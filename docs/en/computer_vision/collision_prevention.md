@@ -50,6 +50,12 @@ The AS-DT1 covers a forward horizontal field of view of about 35 degrees.
 Only the covered sectors are populated; other directions remain no-data unless covered by another sensor.
 Configure the sensor as described in the [Sony AS-DT1](../sensor/sony_asdt1.md) guide, then enable collision prevention with [CP_DIST](#CP_DIST).
 
+### Agam FloRange
+
+[Agam FloRange](../dronecan/agam_florange.md) DroneCAN modules can be mounted horizontally, with the orientation of each set on the module using [SENS_AFBR_ROT](../advanced_config/parameter_reference.md#SENS_AFBR_ROT).
+Its distance sensor measures along a single beam about 2° wide, so use it as an additional safety measure rather than as the main collision prevention sensor.
+Set up the modules as described in [Agam FloRange > Collision Prevention](../dronecan/agam_florange.md#collision-prevention), then enable collision prevention with [CP_DIST](#CP_DIST).
+
 ### Other Rangefinders
 
 Other sensors may be enabled, but this requires modification of driver code to set the sensor orientation and field of view.
