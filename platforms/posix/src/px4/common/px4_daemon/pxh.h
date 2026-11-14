@@ -98,7 +98,7 @@ private:
 	History _history;
 	struct termios _orig_term {};
 
-	static apps_map_type _apps;
+	static apps_map_type &_apps;
 	static pthread_once_t _apps_once;
 	static Pxh *_instance;
 };
