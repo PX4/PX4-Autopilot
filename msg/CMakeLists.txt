@@ -120,6 +120,7 @@ set(msg_files
 	GpioRequest.msg
 	GpsDump.msg
 	Gripper.msg
+	GyroFilterStatus.msg
 	HealthReport.msg
 	HeaterStatus.msg
 	HoverThrustEstimate.msg
