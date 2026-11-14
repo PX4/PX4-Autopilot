@@ -399,12 +399,20 @@ void LoggedTopics::add_vision_and_avoidance_topics()
 
 void LoggedTopics::add_raw_imu_gyro_fifo()
 {
-	add_topic("sensor_gyro_fifo");
+	const int count = _subscriptions.count;
+
+	if (add_topic("sensor_gyro_fifo") && (_subscriptions.count == count + 1)) {
+		_subscriptions.sub[count].use_selected_imu_instance = true;
+	}
 }
 
 void LoggedTopics::add_raw_imu_accel_fifo()
 {
-	add_topic("sensor_accel_fifo");
+	const int count = _subscriptions.count;
+
+	if (add_topic("sensor_accel_fifo") && (_subscriptions.count == count + 1)) {
+		_subscriptions.sub[count].use_selected_imu_instance = true;
+	}
 }
 
 void LoggedTopics::add_system_identification_topics()
@@ -548,8 +556,9 @@ bool LoggedTopics::add_topic(const char *name, uint16_t interval_ms, uint8_t ins
 
 			// check if already added: if so, only update the interval
 			for (int j = 0; j < _subscriptions.count; ++j) {
+				// a subscription that must use the selected IMU instance stays separate from an explicitly requested instance
 				if (_subscriptions.sub[j].id == static_cast<ORB_ID>(topics[i]->o_id) &&
-				    _subscriptions.sub[j].instance == instance) {
+				    _subscriptions.sub[j].instance == instance && !_subscriptions.sub[j].use_selected_imu_instance) {
 
 					PX4_DEBUG("logging topic %s(%" PRIu8 "), interval: %" PRIu16 ", already added, only setting interval",
 						  topics[i]->o_name, instance, interval_ms);

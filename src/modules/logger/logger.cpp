@@ -52,6 +52,9 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/sensor_accel_fifo.h>
+#include <uORB/topics/sensor_gyro_fifo.h>
+#include <uORB/topics/sensor_selection.h>
 
 #include <containers/Bitset.hpp>
 #include <drivers/drv_hrt.h>
@@ -456,6 +459,10 @@ bool Logger::copy_if_updated(int sub_idx, void *buffer, bool try_to_subscribe)
 {
 	LoggerSubscription &sub = _subscriptions[sub_idx];
 
+	if (!sub.enabled) {
+		return false;
+	}
+
 	bool updated = false;
 
 	if (sub.valid()) {
@@ -555,6 +562,8 @@ bool Logger::initialize_topics()
 
 	delete[](_subscriptions);
 	_subscriptions = nullptr;
+	_gyro_fifo_sub_idx = -1;
+	_accel_fifo_sub_idx = -1;
 
 	if (logged_topics.subscriptions().count > 0) {
 		_subscriptions = new LoggerSubscription[logged_topics.subscriptions().count];
@@ -568,6 +577,15 @@ bool Logger::initialize_topics()
 			const LoggedTopics::RequestedSubscription &sub = logged_topics.subscriptions().sub[i];
 			_subscriptions[i] = LoggerSubscription(sub.id, sub.interval_ms, sub.instance);
 			_subscriptions[i].subscribe();
+
+			if (sub.use_selected_imu_instance) {
+				if (sub.id == ORB_ID::sensor_gyro_fifo) {
+					_gyro_fifo_sub_idx = i;
+
+				} else if (sub.id == ORB_ID::sensor_accel_fifo) {
+					_accel_fifo_sub_idx = i;
+				}
+			}
 		}
 	}
 
@@ -1476,11 +1494,67 @@ void Logger::setReplayFile(const char *file_name)
 	_replay_file_name = strdup(file_name);
 }
 
+void Logger::select_imu_fifo_instances()
+{
+	if (_writer.is_started(LogType::Full) || _writer.is_started(LogType::Mission)) {
+		// keep the instance for the duration of a log
+		return;
+	}
+
+	sensor_selection_s sensor_selection{};
+	uORB::Subscription{ORB_ID(sensor_selection)}.copy(&sensor_selection);
+
+	select_fifo_instance<sensor_gyro_fifo_s>(_gyro_fifo_sub_idx, sensor_selection.gyro_device_id);
+	select_fifo_instance<sensor_accel_fifo_s>(_accel_fifo_sub_idx, sensor_selection.accel_device_id);
+}
+
+template<typename T>
+void Logger::select_fifo_instance(int sub_idx, uint32_t device_id)
+{
+	if (sub_idx < 0) {
+		// not enabled in the logging profile
+		return;
+	}
+
+	LoggerSubscription &fifo_sub = _subscriptions[sub_idx];
+	const orb_metadata *topic = fifo_sub.get_topic();
+
+	bool found = false;
+
+	// without a selection (device_id 0) there is nothing to match
+	for (uint8_t instance = 0; (device_id != 0) && (instance < ORB_MULTI_MAX_INSTANCES); ++instance) {
+		T fifo;
+
+		if (uORB::Subscription{topic, instance}.copy(&fifo) && (fifo.device_id == device_id)) {
+			found = fifo_sub.ChangeInstance(instance);
+			break;
+		}
+	}
+
+	if (!found) {
+		// log nothing if no IMU is selected yet or it does not publish FIFO data
+		fifo_sub.enabled = false;
+		return;
+	}
+
+	// do not log an instance twice if it is also requested through logger_topics.txt
+	fifo_sub.enabled = true;
+
+	for (int i = 0; i < _num_subscriptions; ++i) {
+		if (i != sub_idx && _subscriptions[i].get_topic() == topic
+		    && _subscriptions[i].get_instance() == fifo_sub.get_instance()) {
+			fifo_sub.enabled = false;
+		}
+	}
+}
+
 void Logger::start_log_file(LogType type)
 {
 	if (_writer.is_started(type, LogWriter::BackendFile) || (_writer.backend() & LogWriter::BackendFile) == 0) {
 		return;
 	}
+
+	select_imu_fifo_instances();
 
 	if (type == LogType::Full) {
 		int32_t max_size_mib = _param_sdlog_max_size.get();
@@ -1585,6 +1659,8 @@ void Logger::start_log_mavlink()
 	if (!can_start_mavlink_log()) {
 		return;
 	}
+
+	select_imu_fifo_instances();
 
 	// mavlink log does not work in combination with lockstep, it leads to dead-locks
 	px4_lockstep_unregister_component(_lockstep_component);
@@ -1939,7 +2015,7 @@ void Logger::write_all_add_logged_msg(LogType type)
 	for (int i = 0; i < sub_count; ++i) {
 		LoggerSubscription &sub = _subscriptions[i];
 
-		if (sub.valid()) {
+		if (sub.valid() && sub.enabled) {
 			write_add_logged_msg(type, sub);
 			added_subscriptions = true;
 		}
