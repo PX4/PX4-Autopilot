@@ -15,6 +15,7 @@
 #include <lib/rc/sumd.h>
 #include <lib/rc/crsf.h>
 #include <lib/rc/ghst.hpp>
+#include <lib/rc/common_rc.h>
 
 #if defined(CONFIG_ARCH_BOARD_PX4_SITL)
 #define TEST_DATA_PATH "./test_data/"
@@ -41,6 +42,7 @@ private:
 	bool st24MalformedLengthTest();
 	bool st24Test();
 	bool sumdTest();
+	bool crossProtocolSharedUnionOobTest();
 };
 
 bool RCTest::run_tests()
@@ -55,6 +57,7 @@ bool RCTest::run_tests()
 	ut_run_test(st24MalformedLengthTest);
 	ut_run_test(st24Test);
 	ut_run_test(sumdTest);
+	ut_run_test(crossProtocolSharedUnionOobTest);
 
 	return (_tests_failed == 0);
 }
@@ -550,6 +553,41 @@ bool RCTest::sumdTest()
 	}
 
 	ut_test(ret == EOF);
+
+	return true;
+}
+
+bool RCTest::crossProtocolSharedUnionOobTest()
+{
+	uint8_t rssi{}, lost{};
+	uint16_t channel_count{};
+	uint16_t channels[18] {}; // input_rc_s::RC_INPUT_MAX_CHANNELS
+
+	PX4_INFO("rc_decode_buf address=%p size=%zu", (void *)&rc_decode_buf, sizeof(rc_decode_buf));
+
+	st24_decode(ST24_STX1, &rssi, &lost, &channel_count, channels, 18);
+	st24_decode(ST24_STX2, &rssi, &lost, &channel_count, channels, 18);
+	st24_decode(66, &rssi, &lost, &channel_count, channels, 18); // length=66
+	st24_decode(0x00, &rssi, &lost, &channel_count, channels, 18); // type
+
+	for (int i = 0; i < 60; i++) {
+		st24_decode(0xAA, &rssi, &lost, &channel_count, channels, 18);
+	}
+
+	uint16_t dsm_values[18]; uint16_t dsm_num_values = 0; bool dsm_11bit = false;
+	unsigned dsm_frame_drops = 0; int8_t dsm_rssi = 0;
+	const uint8_t dsm_bytes[8] = {0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00};
+	dsm_parse(hrt_absolute_time(), dsm_bytes, sizeof(dsm_bytes), dsm_values, &dsm_num_values,
+		  &dsm_11bit, &dsm_frame_drops, &dsm_rssi, 18);
+
+	PX4_INFO("resuming ST24 after cross-protocol union clobber (expect OOB write under ASan/UBSan)");
+
+	for (int i = 0; i < 20; i++) {
+		st24_decode(0xBB, &rssi, &lost, &channel_count, channels, 18);
+	}
+
+	PX4_INFO("crossProtocolSharedUnionOobTest: completed without crashing "
+		 "(no sanitizer active, or already reset upstream)");
 
 	return true;
 }
