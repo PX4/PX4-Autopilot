@@ -39,10 +39,12 @@
 #include "checks/escCheck.hpp"
 
 #include <drivers/drv_hrt.h>
+#include <lib/circuit_breaker/circuit_breaker.h>
 #include <px4_platform_common/param.h>
 #include <px4_platform_common/time.h>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_motors.h>
+#include <uORB/topics/battery_status.h>
 #include <uORB/topics/esc_status.h>
 
 using namespace time_literals;
@@ -75,6 +77,18 @@ public:
 		param_reset(param_find("FD_ACT_EN"));
 		param_reset(param_find("COM_SPOOLUP_TIME"));
 		param_reset(param_find("MOTFAIL_UND_TIME"));
+		param_reset(param_find("CBRK_SUPPLY_CHK"));
+
+		_battery_status_pub.publish(battery_status_s{}); // the topic outlives the test: leave no required battery behind
+	}
+
+	void publishBattery(bool required, bool connected)
+	{
+		battery_status_s battery_status{};
+		battery_status.timestamp = hrt_absolute_time();
+		battery_status.is_required = required;
+		battery_status.connected = connected;
+		_battery_status_pub.publish(battery_status);
 	}
 
 	// Publish a quad ESC status with every ESC fresh except `stale_index` whose last report is `age` old
@@ -140,8 +154,7 @@ public:
 
 		_check.updateParams();
 		Context context{status};
-		_failsafe_flags = {};
-		Report reporter{_failsafe_flags, 0};
+		Report reporter{_failsafe_flags, 0}; // the flags persist across runs, as in commander: a check must clear what it set
 		_check.checkAndReport(context, reporter);
 
 		_can_arm = reporter.armingCheckResults().can_arm == NavModes::All;
@@ -190,8 +203,7 @@ public:
 
 		_check.updateParams();
 		Context context{status};
-		_failsafe_flags = {};
-		Report reporter{_failsafe_flags, 0};
+		Report reporter{_failsafe_flags, 0}; // the flags persist across runs, as in commander
 		_check.checkAndReport(context, reporter);
 
 		_health_error_escs = reporter.healthResults().error & health_component_t::motors_escs;
@@ -205,6 +217,7 @@ public:
 
 	uORB::Publication<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
 	uORB::Publication<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
+	uORB::Publication<battery_status_s> _battery_status_pub{ORB_ID(battery_status)};
 	hrt_abstime _esc_time{0}; // simulated ESC sample time, starts at the real time of the first fly()
 	failsafe_flags_s _failsafe_flags{};
 	bool _can_arm{true};
@@ -458,4 +471,90 @@ TEST_F(EscChecksTest, EscSharingMotorFunctionJudgedSeparately)
 	fly(600_ms, 2, 0, functions); // the first of the two fails, the second stays healthy
 	EXPECT_EQ(_check.getMotorFailureMask(), 0b0100u);
 	EXPECT_TRUE(_failsafe_flags.fd_motor_failure);
+}
+
+// On ground a missing required battery blocks arming on its own: its unpowered ESCs are not reported offline
+TEST_F(EscChecksTest, EscOfflineIgnoredDisarmedWithRequiredBatteryMissing)
+{
+	publishBattery(true, false);
+	publishWithStaleEsc(2, EscChecks::ESC_OFFLINE_TIMEOUT_US + 50_ms);
+	runCheck();
+	EXPECT_TRUE(_can_arm);
+	EXPECT_FALSE(_health_error_escs);
+	EXPECT_EQ(_check.getMotorFailureMask(), 0u);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_failure);
+}
+
+TEST_F(EscChecksTest, EscOfflineReportedArmedWithRequiredBatteryMissing)
+{
+	publishBattery(true, false);
+	publishWithStaleEsc(2, EscChecks::ESC_OFFLINE_TIMEOUT_US + 50_ms);
+	runCheck(true);
+	EXPECT_TRUE(_health_error_escs);
+	EXPECT_EQ(_check.getMotorFailureMask(), 0b0100u);
+	EXPECT_TRUE(_failsafe_flags.fd_motor_failure);
+}
+
+// A motor failure latched in flight is cleared on disarm also when the required battery is missing,
+// where the ESC checks are skipped
+TEST_F(EscChecksTest, MotorFailureClearedDisarmedWithRequiredBatteryMissing)
+{
+	fly(200_ms, -1);
+	fly(600_ms, 2);
+	ASSERT_EQ(_check.getMotorFailureMask(), 0b0100u);
+	ASSERT_TRUE(_failsafe_flags.fd_motor_failure);
+
+	publishBattery(true, false);
+	runCheck(false);
+	EXPECT_EQ(_check.getMotorFailureMask(), 0u);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_failure);
+	EXPECT_FALSE(_failsafe_flags.fd_esc_arming_failure);
+	EXPECT_FALSE(_health_error_escs);
+}
+
+// A stuck motor flagged at spool-up is cleared on disarm also when the required battery is missing
+TEST_F(EscChecksTest, MotorStuckClearedDisarmedWithRequiredBatteryMissing)
+{
+	publishSpinup({2000, 0, 2000, 2000}, kIdle);
+	runSpinupCheck(hrt_absolute_time() - kAtDecision);
+	ASSERT_TRUE(_failsafe_flags.fd_motor_stuck_failure);
+
+	publishBattery(true, false);
+	runCheck(false);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
+}
+
+// CBRK_SUPPLY_CHK stops the battery check from reporting the missing battery, so the ESC checks must still block arming
+TEST_F(EscChecksTest, EscOfflineReportedWithSupplyCheckBreaker)
+{
+	const int32_t cbrk_supply_chk = CBRK_SUPPLY_CHK_KEY;
+	param_set_no_notification(param_find("CBRK_SUPPLY_CHK"), &cbrk_supply_chk);
+	publishBattery(true, false);
+	publishWithStaleEsc(2, EscChecks::ESC_OFFLINE_TIMEOUT_US + 50_ms);
+	runCheck();
+	EXPECT_FALSE(_can_arm);
+	EXPECT_TRUE(_health_error_escs);
+	EXPECT_EQ(_check.getMotorFailureMask(), 0b0100u);
+}
+
+// Once the required battery connects its ESCs get ESC_INIT_TIME_US to boot before they are reported offline,
+// arming stays blocked meanwhile
+TEST_F(EscChecksTest, EscsGivenTimeToBootOnceRequiredBatteryConnects)
+{
+	publishBattery(true, false);
+	publishWithStaleEsc(2, EscChecks::ESC_OFFLINE_TIMEOUT_US + 50_ms);
+	runCheck();
+
+	publishBattery(true, true);
+	runCheck();
+	EXPECT_FALSE(_can_arm);
+	EXPECT_FALSE(_health_error_escs);
+	EXPECT_EQ(_check.getMotorFailureMask(), 0u);
+
+	px4_usleep(EscChecks::ESC_INIT_TIME_US + 50_ms);
+	publishWithStaleEsc(2, EscChecks::ESC_OFFLINE_TIMEOUT_US + 50_ms);
+	runCheck();
+	EXPECT_FALSE(_can_arm);
+	EXPECT_TRUE(_health_error_escs);
+	EXPECT_EQ(_check.getMotorFailureMask(), 0b0100u);
 }

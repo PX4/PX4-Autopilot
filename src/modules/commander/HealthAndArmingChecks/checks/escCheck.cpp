@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "escCheck.hpp"
+#include <lib/circuit_breaker/circuit_breaker.h>
 #include <px4_platform_common/events.h>
 #include <uORB/topics/actuator_motors.h>
 
@@ -71,9 +72,57 @@ static constexpr const char *esc_fault_reason_str(esc_fault_reason_t esc_fault_r
 void EscChecks::checkAndReport(const Context &context, Report &reporter)
 {
 	const hrt_abstime now = hrt_absolute_time();
-	esc_status_s esc_status;
 
 	reporter.failsafeFlags().fd_motor_stuck_failure = false;
+
+	// On ground a missing required battery is reported and blocks arming: skip the ESC checks, its ESCs are unpowered,
+	// and give them ESC_INIT_TIME_US to boot once it connects, during which arming stays blocked.
+	// CBRK_SUPPLY_CHK disables that report, so the ESC checks then stay the only ones to block arming.
+	if (!context.isArmed() && !circuit_breaker_enabled_by_val(_param_cbrk_supply_chk.get(), CBRK_SUPPLY_CHK_KEY)) {
+		bool required_battery_missing = false;
+
+		for (auto &battery_sub : _battery_status_subs) {
+			battery_status_s battery;
+
+			if (battery_sub.copy(&battery) && battery.is_required && !battery.connected) {
+				required_battery_missing = true;
+			}
+		}
+
+		if (_required_battery_missing && !required_battery_missing) {
+			_escs_init_end = now + ESC_INIT_TIME_US;
+		}
+
+		_required_battery_missing = required_battery_missing;
+
+		if (required_battery_missing || now < _escs_init_end) {
+			// Clear what the disarmed checks clear, a failure from before the battery dropped would otherwise stay set
+			_motor_failure_mask = 0;
+			_motor_failure_detector.reset();
+			_esc_arm_hysteresis.set_state_and_update(false, now);
+			reporter.failsafeFlags().fd_motor_failure = false;
+			reporter.failsafeFlags().fd_esc_arming_failure = false;
+
+			// The battery check no longer blocks arming once the battery connects: block it until the ESCs booted
+			if (!required_battery_missing && _param_com_arm_chk_escs.get() > 0) {
+				/* EVENT
+				 * @description
+				 * The ESCs get time to boot once a required battery connects.
+				 *
+				 * <profile name="dev">
+				 * This check can be configured via <param>COM_ARM_CHK_ESCS</param> parameter.
+				 * </profile>
+				 */
+				reporter.armingCheckFailure(NavModes::All, health_component_t::motors_escs,
+							    events::ID("check_escs_initializing"),
+							    events::Log::Info, "Waiting for ESCs to initialize");
+			}
+
+			return;
+		}
+	}
+
+	esc_status_s esc_status;
 
 	// Run motor status checks even when no new ESC data arrives (to detect timeouts)
 	if (_esc_status_sub.copy(&esc_status)) {
@@ -105,7 +154,7 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.setIsPresent(health_component_t::motors_escs);
 		reporter.failsafeFlags().fd_motor_failure = (mask != 0);
 
-	} else if ((_param_com_arm_chk_escs.get() > 0) && now > _start_time + 3_s) { // Allow ESCs to init
+	} else if ((_param_com_arm_chk_escs.get() > 0) && now > _start_time + ESC_INIT_TIME_US) { // Allow ESCs to init
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
