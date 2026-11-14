@@ -20,9 +20,9 @@ from autopilot_tester import (
     TEST_DIR, AutopilotTester, log, raw_mission_item)
 from geometry import CoordinateTransformation
 
-# TODO: Change development.xml to common.xml when TARGET_* are promoted.
+# MAVSDK's built-in common.xml predates TARGET_*, so load the one PX4 is built with.
 MAVLINK_XML = os.path.join(TEST_DIR, "..", "..", "src", "modules", "mavlink", "mavlink",
-                           "message_definitions", "v1.0", "development.xml")
+                           "message_definitions", "v1.0", "common.xml")
 
 MAV_CMD_DO_SET_MODE = 176
 MAV_CMD_SET_MESSAGE_INTERVAL = 511
@@ -31,7 +31,7 @@ PX4_CUSTOM_MAIN_MODE_AUTO = 4
 PX4_CUSTOM_SUB_MODE_AUTO_PRECLAND = 9
 MAVLINK_MSG_ID_LANDING_TARGET = 149
 LANDING_TARGET_TYPE_VISION_FIDUCIAL = 2
-TARGET_OBS_FRAME_OTHER = 3
+MAV_FRAME_LOCAL_OFFSET_NED = 7
 TARGET_ABSOLUTE_SENSOR_CAPABILITY_POSITION = 1
 
 MISSION_OFFSET_NORTH_M = -3.0
@@ -308,14 +308,16 @@ class AutopilotTesterVisionTarget(AutopilotTester):
             sin_half_yaw = math.sin(math.radians(TARGET_YAW_DEG) / 2)
             q_target_wy = 0.5 * (cos_half_yaw + sin_half_yaw)
             q_target_xz = 0.5 * (sin_half_yaw - cos_half_yaw)
+            # Unknown (NaN) uncertainties make PX4 fall back to the VTE noise floors.
+            std = math.nan if scenario == Scenario.VISION else 0.1
             self._send_target_message("TARGET_RELATIVE", {
-                "frame": TARGET_OBS_FRAME_OTHER,
+                "frame": MAV_FRAME_LOCAL_OFFSET_NED,  # Ignored, as q_sensor is set.
                 "type": LANDING_TARGET_TYPE_VISION_FIDUCIAL,
                 "x": target_sensor_m[0], "y": target_sensor_m[1], "z": target_sensor_m[2],
-                "pos_std": [0.1, 0.1, 0.1],
+                "position_std": [std, std, std],
                 "q_sensor": [0.5, 0.5, -0.5, 0.5],
                 "q_target": [q_target_wy, q_target_xz, q_target_wy, q_target_xz],
-                "yaw_std": 0.1,
+                "yaw_std": std,
             })
 
         if scenario not in (Scenario.VISION, Scenario.MISSION):
@@ -330,9 +332,9 @@ class AutopilotTesterVisionTarget(AutopilotTester):
             })
 
     def _send_target_message(self, name: str, fields: Dict[str, Any]) -> None:
-        # Generate observations immediately, with UNIX timestamps as required by TARGET_*.
+        # Generate observations immediately, with UNIX timestamps.
         # No TIMESYNC: these flight tests use PX4's unsynchronized arrival-time fallback.
-        self.send_mavlink_message(name, {"timestamp": int(time.time() * 1e6), **fields})
+        self.send_mavlink_message(name, {"time_usec": int(time.time() * 1e6), **fields})
 
     def _check_target_yaw(self) -> None:
         attitude = self._telemetry.attitude_euler()
