@@ -60,3 +60,4 @@ The boards in this category are:
 - [X-MAV AP-H743-R1](../flight_controller/x-mav_ap-h743r1.md)
 - [ZenFC H743](../flight_controller/zenfc_h743.md)
 - [SIYI-UniFC-6-PICO](../flight_controller/siyi-unifc-6-pico.md)
+- [X-MAV AP-H743v3](../flight_controller/x-mav_ap-h743v3.md)
