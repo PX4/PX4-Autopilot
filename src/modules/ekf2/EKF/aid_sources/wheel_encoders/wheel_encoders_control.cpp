@@ -83,12 +83,12 @@ void Ekf::fuseWheelEncoders(const wheelEncoderSample &sample, const imuSample &i
 
 	const Vector2f innovation = pred_vel - meas_vel_body;
 
-	float R_val = fmaxf(_params.ekf2_wheel_noise, 1e-3f);
+	float R_val = fmaxf(sqrt(_params.ekf2_wheel_noise), 1e-3f);
 
 	// Artificially inflate the variance if we are stationary
 	if (v_body_x < 0.1f) {
-		const float noise_scale = 1.f / (v_body_x + 0.00001f);
-		R_val = fmaxf(_params.ekf2_wheel_noise, 1e-3f * noise_scale);
+		const float noise_scale = 1.f / (v_body_x + 0.0001f);
+		R_val = fmaxf(sqrt(_params.ekf2_wheel_noise), 1e-3f * noise_scale);
 	}
 
 	const Vector2f R(R_val, R_val);
@@ -106,18 +106,23 @@ void Ekf::fuseWheelEncoders(const wheelEncoderSample &sample, const imuSample &i
 			      innov_var,
 			      _params.ekf2_wheel_gate);
 
-	// TEMPORARY: Disable innovation gate to recover from divergence
-	// if (_aid_src_wheel_encoders.innovation_rejected) {
-	// 	return;
-	// }
+	if (_aid_src_wheel_encoders.innovation_rejected) {
+		return;
+	}
 
 	// Fuse Vx
 	VectorState Kx = (P * Hx) * (1.0f / fmaxf(_aid_src_wheel_encoders.innovation_variance[0], 1e-6f));
 	measurementUpdate(Kx, Hx, R(0), innovation(0));
 
+	_aid_src_wheel_encoders.innovation[0] = _state.quat_nominal.rotateVectorInverse(Vector3f(0.f, 0.f,
+						-1.f))(0) - meas_vel_body(0);
+
 	// Fuse Vy
 	VectorState Ky = (P * Hy) * (1.0f / fmaxf(_aid_src_wheel_encoders.innovation_variance[1], 1e-6f));
 	measurementUpdate(Ky, Hy, R(1), innovation(1));
+
+	_aid_src_wheel_encoders.innovation[1] = _state.quat_nominal.rotateVectorInverse(Vector3f(0.f, 0.f,
+						-1.f))(1) - meas_vel_body(1);
 
 	_aid_src_wheel_encoders.fused = true;
 	_aid_src_wheel_encoders.time_last_fuse = _time_delayed_us;

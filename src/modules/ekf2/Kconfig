@@ -154,7 +154,7 @@ depends on MODULES_EKF2
 menuconfig EKF2_WHEEL_ENCODERS
 depends on MODULES_EKF2
 	bool "wheel encoder support"
-	default y
+	default n
 	---help---
 		EKF2 wheel encoder support.
 

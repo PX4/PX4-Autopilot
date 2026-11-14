@@ -35,7 +35,7 @@ parameters:
         long: If this parameter is enabled then the estimator will make use of the
           wheel encoder measurements to estimate its velocity.
       type: boolean
-      default: 1
+      default: 0
     EKF2_WHEEL_NOISE:
       description:
         short: Wheel encoder noise

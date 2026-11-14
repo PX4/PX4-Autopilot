@@ -58,3 +58,7 @@ param set-default SIM_GZ_WH_MAX2 130
 param set-default SIM_GZ_WH_DIS2 100
 
 param set-default SIM_GZ_WH_REV 1 # reverse right wheel
+
+# Wheel Encoder Fusion
+param set-default EKF2_WHEEL_CTRL 1
+param set-default EKF2_SENS_EN 16383

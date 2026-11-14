@@ -218,6 +218,6 @@ parameters:
         11: Airspeed
         12: Ranging beacon
         13: Wheel encoders
-      default: 16383
+      default: 8191
       min: 0
       max: 16383
