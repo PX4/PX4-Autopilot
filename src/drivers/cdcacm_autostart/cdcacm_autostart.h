@@ -80,6 +80,7 @@ private:
 		mavlink,
 		nsh,
 		ublox,
+		esc_4way,
 	};
 
 	void Run() override;
@@ -99,10 +100,16 @@ private:
 	bool scan_buffer_for_mavlink_heartbeat();
 	bool scan_buffer_for_carriage_returns();
 	bool scan_buffer_for_ublox_bytes();
+#if defined(CONFIG_DRIVERS_ESC_4WAY)
+	bool scan_buffer_for_msp();
+#endif
 
 	bool start_mavlink();
 	void stop_mavlink();
 	bool start_nsh();
+#if defined(CONFIG_DRIVERS_ESC_4WAY)
+	bool start_esc_4way();
+#endif
 #if defined(CONFIG_SERIAL_PASSTHRU_UBLOX)
 	bool start_ublox_serial_passthru(speed_t baudrate);
 #endif
@@ -119,6 +126,9 @@ private:
 
 	char _buffer[80] {};
 	int _bytes_read{0};
+#if defined(CONFIG_DRIVERS_ESC_4WAY)
+	int _msp_offset {-1};	///< start of the MSP request found in _buffer, handed to esc_4way
+#endif
 
 	uint32_t _reschedule_time{0};
 

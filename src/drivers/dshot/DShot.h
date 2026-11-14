@@ -155,6 +155,7 @@ private:
 	// Actuator-order masks (indexed by output channel)
 	uint32_t _output_mask{0};
 	uint32_t _bdshot_output_mask{0};
+	uint32_t _claimed_mask{0};	///< channels claimed by up_dshot_init(), released on destruction
 
 	// Motor-order masks (indexed by motor number: Motor1=0, Motor2=1, etc.)
 	uint32_t _motor_mask{0};

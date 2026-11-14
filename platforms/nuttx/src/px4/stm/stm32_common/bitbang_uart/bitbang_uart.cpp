@@ -34,31 +34,42 @@
 /**
  * @file bitbang_uart.cpp
  *
- * Simple bit-bang UART using timer for periodic interrupts and direct GPIO control.
- * Note: due to interrupt latency and CPU overhead, reliable operation is only
- * guaranteed up to 19200 baud. Higher baud rates are not supported.
+ * Half-duplex 8N1 UART on the ESC signal pins (drv_bitbang_uart.h) for the ESC bootloader at
+ * 19200 baud: one shared timer polls for start bits at about 4 x baud interrupts per second while
+ * listening, then samples or transmits once per bit. The timer stops while parked. Interrupt
+ * latency limits reliable operation to 19200 baud.
+ *
+ * Same contract as the NXP FlexIO backend: init claims the given ESC pins through io_timer (dshot
+ * and pwm_out cannot take them, and init fails with -EBUSY while they own one) and drives all of
+ * them high. Only the active channel ever listens; every other line, and a line that has received
+ * nothing for RX_IDLE_US, stays driven high, because the AM32 bootloader's boot check pulls the
+ * line down and leaves the bootloader if it reads low.
  */
 
 #include <drivers/drv_bitbang_uart.h>
 
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/log.h>
 #include <px4_platform_common/atomic.h>
+#include <px4_platform_common/time.h>
 #include <drivers/drv_hrt.h>
 
 #include <px4_arch/io_timer.h>
 #include <board_config.h>
 
 #include <stm32_tim.h>
-#include <stm32_gpio.h>
-#include <nuttx/arch.h>
 #include <nuttx/irq.h>
 
-#include <string.h>
 #include <errno.h>
+#include <limits.h>
 
 #if !defined(CONFIG_ARCH_CHIP_STM32F7) && !defined(CONFIG_ARCH_CHIP_STM32H7)
 # error "Not supported on this MCU, requires STM32 based MCU"
+#endif
+
+// stm32_tim_init() only knows the timers enabled in the board's NuttX defconfig
+#if CONFIG_UART_BITBANG_TIMER == 13 && ((defined(CONFIG_ARCH_CHIP_STM32H7) && !defined(CONFIG_STM32H7_TIM13)) || \
+					(defined(CONFIG_ARCH_CHIP_STM32F7) && !defined(CONFIG_STM32F7_TIM13)))
+# error "CONFIG_UART_BITBANG_TIMER is 13: enable TIM13 in the board's NuttX defconfig (CONFIG_STM32H7_TIM13=y or CONFIG_STM32F7_TIM13=y)"
 #endif
 
 // Timer interrupt sources
@@ -67,302 +78,385 @@
 
 // UART frame format: 8N1 (8 data bits, no parity, 1 stop bit)
 #define MAX_UART_CHANNELS 8
-#define UART_TOTAL_BITS 10  // Start + 8 data + Stop
-#define TX_BUFFER_SIZE 512  // Circular buffer for queued bytes
-#define RX_BUFFER_SIZE 512  // Circular buffer for received bytes
+#define NO_CHANNEL 0xFF
+#define UART_TOTAL_BITS 10
+#define TX_BUFFER_SIZE 512
+#define RX_BUFFER_SIZE 512
+#define RX_IDLE_US 200000 // Longer than a bootloader reply, shorter than its signal-loss reset
+#define RX_OVERSAMPLE 4
+#define RX_LATENCY_TICKS 3 // interrupt entry plus re-phase time, so the samples center on the bits
+#define MAX_BAUDRATE 19200 // the start-bit poll runs at RX_OVERSAMPLE x baud
+#define TIMER_CLOCK_HZ 1000000
 
 typedef struct {
-	// Configuration
 	uint8_t channel;
+	uint32_t channel_mask;
 	uint32_t gpio_pin;
 	uint32_t bit_time_ticks;
 	bool initialized;
-	bool single_wire; // true = half-duplex (TX and RX share one GPIO); false = full-duplex (not yet implemented)
 	struct stm32_tim_dev_s *timer;
 
-	// TX state
 	px4::atomic_bool tx_busy;
 	uint16_t tx_shift_reg;
 	uint8_t tx_bit_count;
+	hrt_abstime tx_deadline;
 
-	// TX buffer (circular queue)
 	uint8_t tx_buffer[TX_BUFFER_SIZE];
-	volatile uint16_t tx_head;  // Write position
-	volatile uint16_t tx_tail;  // Read position
+	// Wrapping counters allow all 512 slots to be queued before TX starts.
+	uint16_t tx_head;
+	uint16_t tx_tail;
 
-	// RX state
-	volatile bool rx_in_progress;
-	volatile uint16_t rx_shift_reg;
-	volatile uint8_t rx_bit_count;
+	bool rx_enabled;
+	bool rx_armed; // the line was seen high: a low poll is a start bit
+	bool rx_in_progress;
+	uint16_t rx_shift_reg;
+	uint8_t rx_bit_count;
+	hrt_abstime last_activity;
 
-	// RX buffer (circular queue)
 	uint8_t rx_buffer[RX_BUFFER_SIZE];
-	volatile uint16_t rx_head;  // Write position (interrupt)
-	volatile uint16_t rx_tail;  // Read position (user)
+	uint16_t rx_head;
+	uint16_t rx_tail;
 
 } bitbang_uart_t;
 
-// Single UART instance (only one channel active at a time)
+// One session and one active channel. State transitions and ring access are protected against the timer ISR.
 static bitbang_uart_t uart = {};
 
-// Forward declarations
-static int gpio_rx_interrupt_callback(int irq, void *context, void *arg);
-
-// Helper function to enable/disable GPIO interrupt for RX
-static int set_gpio_interrupt(bool enable)
+static bool channel_valid(uint8_t channel)
 {
-	if (enable) {
-		// Stop timer
-		STM32_TIM_SETMODE(uart.timer, STM32_TIM_MODE_DISABLED);
-
-		px4_arch_gpiowrite(uart.gpio_pin, true);
-		// Configure new GPIO as input with pullup for RX
-		px4_arch_configgpio(PX4_MAKE_GPIO_INPUT(uart.gpio_pin));
-
-		// Enable falling edge interrupt for start bit detection
-		return px4_arch_gpiosetevent(PX4_MAKE_GPIO_EXTI(uart.gpio_pin), false, true, true, &gpio_rx_interrupt_callback, &uart);
-
-	} else {
-		// Disable interrupt
-		return px4_arch_gpiosetevent(PX4_MAKE_GPIO_EXTI(uart.gpio_pin), false, false, false, nullptr, nullptr);
-	}
+	return uart.initialized && channel < MAX_UART_CHANNELS && (uart.channel_mask & (1u << channel));
 }
 
-// TIM update interrupt handler - fires every bit period
-static int timer_update_isr(int, void *, void *)
+static void idle_high(uint8_t channel)
 {
-	// Clear update interrupt flag
+	// The AM32 boot check overpowers an input's pull-up and leaves the bootloader on a low line.
+	const uint32_t pin = io_timer_channel_get_gpio_output(channel);
+	px4_arch_gpiowrite(pin, true);
+	px4_arch_configgpio(PX4_MAKE_GPIO_OUTPUT_SET(pin));
+}
+
+static void stop_timer()
+{
+	STM32_TIM_DISABLEINT(uart.timer, GTIM_DIER_UIE);
+	STM32_TIM_SETMODE(uart.timer, STM32_TIM_MODE_DISABLED);
 	STM32_TIM_ACKINT(uart.timer, GTIM_SR_UIF);
-
-	// Handle TX
-	if (uart.tx_busy.load()) {
-		// Get current bit value from shift register
-		bool bit_value = (uart.tx_shift_reg >> uart.tx_bit_count) & 0x01;
-
-		// Set GPIO directly
-		px4_arch_gpiowrite(uart.gpio_pin, bit_value);
-
-		uart.tx_bit_count++;
-
-		// Check if transmission complete
-		if (uart.tx_bit_count >= UART_TOTAL_BITS) {
-			// Check if there's more data in the buffer
-			if (uart.tx_tail != uart.tx_head) {
-				// Start next byte immediately without returning to scheduler
-				uint8_t next_byte = uart.tx_buffer[uart.tx_tail];
-				uart.tx_tail = (uart.tx_tail + 1) % TX_BUFFER_SIZE;
-
-				// Build frame for next byte
-				uart.tx_shift_reg = 0;
-				uart.tx_shift_reg |= (0 << 0);           // Start bit
-				uart.tx_shift_reg |= (next_byte << 1);   // Data bits
-				uart.tx_shift_reg |= (1 << 9);           // Stop bit
-				uart.tx_bit_count = 0;
-				// tx_busy stays true
-
-			} else {
-				// No more data, stop transmitting
-				uart.tx_busy.store(false);
-
-				// Clear RX buffer
-				uart.rx_tail = uart.rx_head;
-
-				// Re-enable RX interrupt after transmission
-				set_gpio_interrupt(true);
-			}
-		}
-	}
-
-	// Handle RX
-	else if (uart.rx_in_progress) {
-		// Sample current pin state
-		bool bit_value = px4_arch_gpioread(uart.gpio_pin);
-
-		// Accumulate all bits as seen on the wire
-		if (bit_value) {
-			uart.rx_shift_reg |= (1 << uart.rx_bit_count);
-		}
-
-		uart.rx_bit_count++;
-
-		// Check if we've received the complete frame (start + 8 data + stop)
-		if (uart.rx_bit_count >= UART_TOTAL_BITS) {
-			// Extract data bits (bits 1-8) and reverse them (LSB-first on wire -> MSB-first in byte)
-			const uint8_t received_byte = (uart.rx_shift_reg >> 1) & 0xFF;  // Skip start bit, get bits 1-8
-
-			uart.rx_in_progress = false;
-
-			// Store byte in RX buffer
-			uint16_t next_head = (uart.rx_head + 1) % RX_BUFFER_SIZE;
-
-			if (next_head != uart.rx_tail) {
-				// Buffer not full, store byte
-				uart.rx_buffer[uart.rx_head] = received_byte;
-				uart.rx_head = next_head;
-			}
-
-			// If buffer full, drop byte (overrun)
-
-			// Re-enable start bit detection
-			set_gpio_interrupt(true);
-		}
-	}
-
-	return OK;
 }
 
-// GPIO interrupt handler for RX - detects start bit only
-static int gpio_rx_interrupt_callback(int irq, void *context, void *arg)
+static void start_timer(uint32_t period, uint32_t counter = 0)
 {
-	// Start bit detection (high to low transition)
-	if (!uart.rx_in_progress) {
-		// Disable further start bit detection until this byte completes
-		set_gpio_interrupt(false);
-
-		uart.rx_in_progress = true;
-		uart.rx_shift_reg = 0;
-		uart.rx_bit_count = 0;
-
-		// Configure timer to sample in middle of each bit period
-		STM32_TIM_SETCOUNTER(uart.timer, uart.bit_time_ticks / 2);
-
-		// Clear any pending update interrupt
-		STM32_TIM_ACKINT(uart.timer, GTIM_SR_UIF);
-
-		// Start timer for RX sampling
-		STM32_TIM_SETMODE(uart.timer, STM32_TIM_MODE_UP);
-	}
-
-	return OK;
-}
-
-static bool tim_initialized = false;
-// Shared timer initialization (call once)
-static int bitbang_uart_init_timer(uint32_t baudrate)
-{
-	if (tim_initialized) {
-		return 0; // Already initialized
-	}
-
-	uart.bit_time_ticks = 1000000 / baudrate; // Assume 1MHz timer
-
-	// Initialize timer using NuttX API
-	uart.timer = stm32_tim_init(CONFIG_UART_BITBANG_TIMER);
-
-	if (uart.timer == nullptr) {
-		PX4_ERR("Failed to initialize timer %d", CONFIG_UART_BITBANG_TIMER);
-		return -1;
-	}
-
-	// Set timer to 1MHz clock
-	STM32_TIM_SETCLOCK(uart.timer, 1000000);
-
-	// Set period for baud rate
-	STM32_TIM_SETPERIOD(uart.timer, uart.bit_time_ticks - 1);
-
-	// Attach interrupt handler for update event
-	STM32_TIM_SETISR(uart.timer, timer_update_isr, nullptr, 0);
-
-	// Enable update interrupt
+	// SETMODE generates UG to load buffered ARR on F7/H7; set the phase and clear UIF afterwards.
+	STM32_TIM_DISABLEINT(uart.timer, GTIM_DIER_UIE);
+	STM32_TIM_SETPERIOD(uart.timer, period - 1);
+	STM32_TIM_SETMODE(uart.timer, STM32_TIM_MODE_UP);
+	STM32_TIM_SETCOUNTER(uart.timer, counter);
+	STM32_TIM_ACKINT(uart.timer, GTIM_SR_UIF);
 	STM32_TIM_ENABLEINT(uart.timer, GTIM_DIER_UIE);
+}
 
-	tim_initialized = true;
+static void stop_receiving()
+{
+	stop_timer();
+	uart.rx_enabled = false;
+	uart.rx_in_progress = false;
+}
+
+static void listen_for_start_bit(bool line_high)
+{
+	// A line held low (unpowered ESC, framing error) must not restart a byte on every poll
+	uart.rx_armed = line_high;
+	uart.rx_in_progress = false;
+	start_timer(uart.bit_time_ticks / RX_OVERSAMPLE);
+}
+
+static void configure_rx()
+{
+	stop_timer();
+	px4_arch_configgpio(PX4_MAKE_GPIO_INPUT(uart.gpio_pin));
+	uart.rx_tail = uart.rx_head;
+	uart.rx_enabled = true;
+	uart.last_activity = hrt_absolute_time();
+	// The line was driven high until now (stop bit or parked), so the first low poll is a start bit
+	listen_for_start_bit(true);
+}
+
+static void park_active_channel()
+{
+	stop_receiving();
+
+	if (uart.channel != NO_CHANNEL) {
+		idle_high(uart.channel);
+	}
+}
+
+static uint16_t tx_queued()
+{
+	return (uint16_t)(uart.tx_head - uart.tx_tail);
+}
+
+static void load_tx_byte()
+{
+	const uint8_t byte = uart.tx_buffer[uart.tx_tail % TX_BUFFER_SIZE];
+	++uart.tx_tail;
+	uart.tx_shift_reg = (byte << 1) | (1 << (UART_TOTAL_BITS - 1));
+	uart.tx_bit_count = 0;
+}
+
+static void finish_tx()
+{
+	// Also discards any queued bytes when a timed-out transmission is cancelled.
+	uart.tx_tail = uart.tx_head;
+	configure_rx();
+	uart.tx_busy.store(false);
+}
+
+static void start_tx(hrt_abstime deadline)
+{
+	// A partial RX byte must not suppress start-bit detection after this transmission.
+	stop_receiving();
+	idle_high(uart.channel);
+	load_tx_byte();
+	uart.tx_deadline = deadline;
+	uart.tx_busy.store(true);
+
+	// Starting from zero holds driven-high idle for one bit time before the first start bit.
+	start_timer(uart.bit_time_ticks);
+}
+
+static int wait_for_tx()
+{
+	while (uart.tx_busy.load()) {
+		irqstate_t flags = px4_enter_critical_section();
+
+		if (uart.tx_busy.load() && hrt_absolute_time() >= uart.tx_deadline) {
+			finish_tx();
+			px4_leave_critical_section(flags);
+			return -ETIMEDOUT;
+		}
+
+		const bool sleep = tx_queued() > 2;
+		px4_leave_critical_section(flags);
+
+		// Poll the final bytes so consecutive writes need not wait for another scheduler tick.
+		if (sleep) {
+			px4_usleep(1000);
+		}
+	}
 
 	return 0;
 }
 
-int bitbang_uart_init(uint32_t baudrate, bool single_wire)
+// TIM update interrupt handler: quarter-bit polling while listening, full bits during RX/TX.
+// The only interrupt that touches the UART state, so it needs no critical section of its own.
+static int timer_update_isr(int, void *, void *)
 {
+	// A stopped/restarted timer can still have an interrupt pending in the NVIC.
+	if (!uart.timer || !STM32_TIM_CHECKINT(uart.timer, GTIM_SR_UIF)) {
+		return OK;
+	}
+
+	STM32_TIM_ACKINT(uart.timer, GTIM_SR_UIF);
+
+	if (uart.tx_busy.load()) {
+		// The final stop bit stays driven for a full tick before RX takes over.
+		if (uart.tx_bit_count == UART_TOTAL_BITS) {
+			if (tx_queued() > 0) {
+				load_tx_byte();
+
+			} else {
+				// Turn around in the ISR: a bootloader can reply before the task runs again.
+				finish_tx();
+			}
+		}
+
+		if (uart.tx_busy.load()) {
+			px4_arch_gpiowrite(uart.gpio_pin, (uart.tx_shift_reg >> uart.tx_bit_count) & 1);
+			++uart.tx_bit_count;
+		}
+
+	} else if (uart.rx_enabled) {
+		const bool high = px4_arch_gpioread(uart.gpio_pin);
+
+		if (!uart.rx_in_progress) {
+			if (high) {
+				uart.rx_armed = true;
+
+			} else if (uart.rx_armed) {
+				uart.rx_in_progress = true;
+				uart.rx_shift_reg = 0;
+				uart.rx_bit_count = 0;
+				// Center the samples over the preceding poll interval's possible start edges; every
+				// sample is also read an interrupt latency after its update event.
+				const uint32_t poll_ticks = uart.bit_time_ticks / RX_OVERSAMPLE;
+				const uint32_t start_delay = uart.bit_time_ticks / 2 - poll_ticks / 2 - RX_LATENCY_TICKS;
+				start_timer(uart.bit_time_ticks, uart.bit_time_ticks - start_delay);
+			}
+
+		} else if (uart.rx_bit_count == 0 && high) {
+			// A high start-bit sample was a glitch.
+			listen_for_start_bit(true);
+
+		} else {
+			if (high) {
+				uart.rx_shift_reg |= (1 << uart.rx_bit_count);
+			}
+
+			if (++uart.rx_bit_count == UART_TOTAL_BITS) {
+				listen_for_start_bit(high);
+				const uint16_t next_head = (uart.rx_head + 1) % RX_BUFFER_SIZE;
+
+				// Data is LSB first between start and stop; drop on framing error or overrun. Only a
+				// valid byte counts as activity, so a line stuck low still parks after RX_IDLE_US.
+				if (high && next_head != uart.rx_tail) {
+					uart.rx_buffer[uart.rx_head] = (uart.rx_shift_reg >> 1) & 0xFF;
+					uart.rx_head = next_head;
+					uart.last_activity = hrt_absolute_time();
+				}
+			}
+		}
+	}
+
+	return OK;
+}
+
+static int bitbang_uart_init_timer()
+{
+	uart.timer = stm32_tim_init(CONFIG_UART_BITBANG_TIMER);
+
+	// Not -EBUSY: callers take that as pins owned by an output driver
+	if (!uart.timer) {
+		return -ENODEV;
+	}
+
+	int ret = STM32_TIM_SETMODE(uart.timer, STM32_TIM_MODE_DISABLED);
+
+	if (ret == 0) {
+		STM32_TIM_SETCLOCK(uart.timer, TIMER_CLOCK_HZ);
+		stop_timer();
+		ret = STM32_TIM_SETISR(uart.timer, timer_update_isr, nullptr, 0);
+	}
+
+	if (ret < 0) {
+		stm32_tim_deinit(uart.timer);
+		uart.timer = nullptr;
+	}
+
+	return ret;
+}
+
+static void release_channels()
+{
+	for (uint8_t ch = 0; ch < MAX_UART_CHANNELS; ch++) {
+		if (uart.channel_mask & (1u << ch)) {
+			io_timer_unallocate_channel(ch);
+		}
+	}
+
+	uart.channel_mask = 0;
+}
+
+int bitbang_uart_init(uint32_t baudrate, bool single_wire, uint32_t channel_mask)
+{
+	irqstate_t flags = px4_enter_critical_section();
+
+	if (uart.initialized) {
+		px4_leave_critical_section(flags);
+		return -EBUSY;
+	}
+
 	if (!single_wire) {
-		PX4_ERR("bitbang_uart: full-duplex (dual-wire) mode is not yet implemented");
+		px4_leave_critical_section(flags);
 		return -ENOSYS;
 	}
 
-	// Initialize timer once (shared across all channels)
-	int ret = bitbang_uart_init_timer(baudrate);
+	// Faster rates would poll for start bits faster than the interrupt can run; the period must fit
+	// even a 16-bit general-purpose timer.
+	const uint32_t bit_time_ticks = baudrate ? TIMER_CLOCK_HZ / baudrate : 0;
+
+	if (baudrate == 0 || baudrate > MAX_BAUDRATE || bit_time_ticks > UINT16_MAX + 1u) {
+		px4_leave_critical_section(flags);
+		return -EINVAL;
+	}
+
+	for (uint8_t ch = 0; ch < MAX_UART_CHANNELS; ch++) {
+		if ((channel_mask & (1u << ch)) && io_timer_channel_get_gpio_output(ch) != 0) {
+			if (io_timer_allocate_channel(ch, IOTimerChanMode_Other) != 0) {
+				release_channels();
+				px4_leave_critical_section(flags);
+				return -EBUSY;
+			}
+
+			uart.channel_mask |= 1u << ch;
+		}
+	}
+
+	if (uart.channel_mask == 0) {
+		px4_leave_critical_section(flags);
+		return -EINVAL;
+	}
+
+	// Claims must all succeed before touching the shared timer or any output pin.
+	uart.channel = NO_CHANNEL;
+	uart.gpio_pin = 0;
+	uart.bit_time_ticks = bit_time_ticks;
+	uart.tx_busy.store(false);
+	uart.tx_head = 0;
+	uart.tx_tail = 0;
+	uart.rx_enabled = false;
+	uart.rx_armed = false;
+	uart.rx_in_progress = false;
+	uart.rx_head = 0;
+	uart.rx_tail = 0;
+
+	const int ret = bitbang_uart_init_timer();
+
+	if (ret != 0) {
+		release_channels();
+		px4_leave_critical_section(flags);
+		return ret;
+	}
+
+	for (uint8_t ch = 0; ch < MAX_UART_CHANNELS; ch++) {
+		if (uart.channel_mask & (1u << ch)) {
+			idle_high(ch);
+		}
+	}
+
+	uart.initialized = true;
+	px4_leave_critical_section(flags);
+	return 0;
+}
+
+// Caller holds the critical section and chooses RX or TX before leaving it.
+static void select_channel(uint8_t channel)
+{
+	park_active_channel();
+	uart.channel = channel;
+	uart.gpio_pin = io_timer_channel_get_gpio_output(channel);
+	uart.tx_head = 0;
+	uart.tx_tail = 0;
+}
+
+static int bitbang_uart_switch_channel(uint8_t channel)
+{
+	if (!channel_valid(channel)) {
+		return -EINVAL;
+	}
+
+	const int ret = wait_for_tx();
 
 	if (ret != 0) {
 		return ret;
 	}
 
-	// Initialize structure (no channel yet)
-	uart.channel = 0xFF; // Mark as no channel selected
-	uart.initialized = true;
-	uart.single_wire = single_wire;
+	irqstate_t flags = px4_enter_critical_section();
 
-	// Set all ESC signal pins (channels 0-3) to high (idle state)
-	for (uint8_t ch = 0; ch < MAX_UART_CHANNELS; ch++) {
-		uint32_t gpio_pin = io_timer_channel_get_gpio_output(ch);
-		PX4_DEBUG("bitbang_uart_init: channel %u gpio_pin=0x%08lx", ch, (unsigned long)gpio_pin);
-
-		if (gpio_pin == 0) {
-			PX4_WARN("bitbang_uart_init: channel %u has no GPIO pin (not in timer_config?)", ch);
-			continue;
-		}
-
-		px4_arch_configgpio(PX4_MAKE_GPIO_OUTPUT_SET(gpio_pin));
+	// A read on the same channel preserves its state, including driven-high idle parking.
+	if (uart.channel != channel) {
+		select_channel(channel);
+		configure_rx();
 	}
 
-	return 0;
-}
-
-int bitbang_uart_switch_channel(uint8_t channel)
-{
-	if (channel >= MAX_UART_CHANNELS) {
-		return -EINVAL;
-	}
-
-	if (!uart.initialized) {
-		return -EINVAL;
-	}
-
-	// If already on this channel, nothing to do
-	if (uart.channel == channel) {
-		return 0;
-	}
-
-	// Disable previous channel's RX interrupt if a channel was active
-	if (uart.channel != 0xFF) {
-		set_gpio_interrupt(false);
-
-		// Wait for any ongoing TX to complete
-		while (uart.tx_busy.load()) {
-			px4_usleep(10);
-		}
-
-		// Stop the timer and clear any pending interrupt so a remaining RX
-		// transfer cannot fire and overwrite the buffer state
-		STM32_TIM_SETMODE(uart.timer, STM32_TIM_MODE_DISABLED);
-		STM32_TIM_ACKINT(uart.timer, GTIM_SR_UIF);
-	}
-
-	// Reset TX/RX buffers to avoid stale data from the previous channel
-	uart.tx_head = 0;
-	uart.tx_tail = 0;
-	uart.rx_head = 0;
-	uart.rx_tail = 0;
-	uart.rx_in_progress = false;
-
-	// Update to new channel
-	uart.channel = channel;
-	uart.gpio_pin = io_timer_channel_get_gpio_output(channel);
-	PX4_DEBUG("bitbang_uart_switch_channel: channel %u gpio_pin=0x%08lx", channel, (unsigned long)uart.gpio_pin);
-
-	if (uart.gpio_pin == 0) {
-		PX4_ERR("bitbang_uart_switch_channel: channel %u has no GPIO pin", channel);
-		return -EINVAL;
-	}
-
-	// Set up interrupt on falling edge for start bit detection
-	int ret = set_gpio_interrupt(true);
-
-	if (ret != PX4_OK) {
-		PX4_ERR("Failed to setup GPIO interrupt for channel %d", channel);
-		return ret;
-	}
-
-	PX4_DEBUG("Switched to channel %d", channel);
-
+	px4_leave_critical_section(flags);
 	return 0;
 }
 
@@ -372,163 +466,134 @@ int bitbang_uart_deinit()
 		return -EINVAL;
 	}
 
-	// Disable RX interrupt if a channel is active
-	if (uart.channel != 0xFF) {
-		set_gpio_interrupt(false);
-	}
-
-	// Wait for TX to complete
-	while (uart.tx_busy.load()) {
-		px4_usleep(100);
-	}
-
-	// Disable timer interrupts
-	STM32_TIM_DISABLEINT(uart.timer, GTIM_DIER_UIE);
-
-	// Detach interrupt handler
+	const int ret = wait_for_tx();
+	irqstate_t flags = px4_enter_critical_section();
+	park_active_channel();
 	STM32_TIM_SETISR(uart.timer, nullptr, nullptr, 0);
-
-	// Stop timer
-	STM32_TIM_SETMODE(uart.timer, STM32_TIM_MODE_DISABLED);
-
-	// Deinitialize timer
 	stm32_tim_deinit(uart.timer);
 	uart.timer = nullptr;
 
-	uart.initialized = false;
-	tim_initialized = false;
-	uart.channel = 0xFF;
+	for (uint8_t ch = 0; ch < MAX_UART_CHANNELS; ch++) {
+		if (uart.channel_mask & (1u << ch)) {
+			idle_high(ch);
+		}
+	}
 
-	return 0;
+	release_channels();
+	uart.channel = NO_CHANNEL;
+	uart.initialized = false;
+	px4_leave_critical_section(flags);
+	return ret;
 }
 
-static int bitbang_uart_write_byte(uint8_t channel, uint8_t byte)
+int bitbang_uart_idle(uint8_t channel)
 {
-	if (!uart.initialized) {
+	if (!channel_valid(channel)) {
 		return -EINVAL;
 	}
 
-	// Switch to requested channel if needed
-	int ret = bitbang_uart_switch_channel(channel);
-
-	if (ret != 0) {
-		return ret;
-	}
-
-	// Check if buffer is full
-	uint16_t next_head = (uart.tx_head + 1) % TX_BUFFER_SIZE;
-
-	while (next_head == uart.tx_tail) {
-		// Buffer full, wait
-		px4_usleep(10);
-	}
-
-	// Add byte to buffer
-	uart.tx_buffer[uart.tx_head] = byte;
-	uart.tx_head = next_head;
-
-	// If not currently transmitting, start transmission
-	if (!uart.tx_busy.load()) {
-		// In single-wire mode, disable RX interrupt during TX (shared GPIO)
-		if (uart.single_wire) {
-			set_gpio_interrupt(false);
-		}
-
-		// Reconfigure GPIO as output for transmission
-		px4_arch_configgpio(PX4_MAKE_GPIO_OUTPUT_SET(uart.gpio_pin));
-
-		// Get first byte from buffer
-		uint8_t first_byte = uart.tx_buffer[uart.tx_tail];
-		uart.tx_tail = (uart.tx_tail + 1) % TX_BUFFER_SIZE;
-
-		// Build frame: START(0) + DATA(8 bits) + STOP(1)
-		uart.tx_shift_reg = 0;
-		uart.tx_shift_reg |= (0 << 0);           // Start bit
-		uart.tx_shift_reg |= (first_byte << 1);  // Data bits
-		uart.tx_shift_reg |= (1 << 9);           // Stop bit
-
-		uart.tx_bit_count = 0;
-		uart.tx_busy.store(true);
-
-		// Reset timer counter
-		STM32_TIM_SETCOUNTER(uart.timer, 0);
-
-		// Clear any pending update interrupt
-		STM32_TIM_ACKINT(uart.timer, GTIM_SR_UIF);
-
-		// Start timer
-		STM32_TIM_SETMODE(uart.timer, STM32_TIM_MODE_UP);
-	}
-
-	return 0;
+	const int ret = wait_for_tx();
+	irqstate_t flags = px4_enter_critical_section();
+	park_active_channel();
+	idle_high(channel);
+	px4_leave_critical_section(flags);
+	return ret;
 }
 
 int bitbang_uart_write(uint8_t channel, const uint8_t *data, size_t length)
 {
-	if (!uart.initialized) {
+	if (!channel_valid(channel) || !data || length == 0 || length > INT_MAX) {
 		return -EINVAL;
 	}
 
-	if (length == 0) {
-		return -EINVAL;
-	}
-
-	// Switch to requested channel if needed
-	int ret = bitbang_uart_switch_channel(channel);
+	int ret = wait_for_tx();
 
 	if (ret != 0) {
 		return ret;
 	}
 
-	for (size_t i = 0; i < length; i++) {
-		ret = bitbang_uart_write_byte(channel, data[i]);
+	const hrt_abstime deadline = hrt_absolute_time() + (length + 2ULL) * UART_TOTAL_BITS * 2 * uart.bit_time_ticks;
+	size_t queued = 0;
 
-		if (ret < 0) {
-			return ret;
+	while (queued < length) {
+		irqstate_t flags = px4_enter_critical_section();
+
+		if (hrt_absolute_time() >= deadline) {
+			if (uart.tx_busy.load()) {
+				finish_tx();
+			}
+
+			px4_leave_critical_section(flags);
+			return -ETIMEDOUT;
+		}
+
+		if (uart.channel != channel) {
+			select_channel(channel);
+		}
+
+		// ESC frames fit in this ring: queue them fully before starting, so task latency cannot split a frame.
+		while (queued < length && tx_queued() < TX_BUFFER_SIZE) {
+			uart.tx_buffer[uart.tx_head % TX_BUFFER_SIZE] = data[queued++];
+			++uart.tx_head;
+		}
+
+		// Channel selection, queueing and TX startup must be atomic with respect to the timer ISR.
+		if (!uart.tx_busy.load()) {
+			start_tx(deadline);
+		}
+
+		px4_leave_critical_section(flags);
+
+		if (queued < length) {
+			// Serial passthrough may send more than one ring's worth of bytes.
+			px4_usleep(1000);
 		}
 	}
 
-	// Wait for last byte to complete
-	while (uart.tx_busy.load()) {
-		px4_usleep(10);
-	}
-
-	return 0;
+	ret = wait_for_tx();
+	return ret == 0 ? (int)length : ret;
 }
 
 int bitbang_uart_read(uint8_t channel, uint8_t *data, size_t length, uint32_t timeout_us)
 {
-	if (!uart.initialized || !data || length == 0) {
+	if (!channel_valid(channel) || !data || length == 0 || length > INT_MAX) {
 		return -EINVAL;
 	}
 
-	// Switch to requested channel if needed
-	int ret = bitbang_uart_switch_channel(channel);
+	const int ret = bitbang_uart_switch_channel(channel);
 
 	if (ret != 0) {
 		return ret;
 	}
 
-	hrt_abstime deadline = hrt_absolute_time() + timeout_us;
+	const hrt_abstime deadline = hrt_absolute_time() + timeout_us;
 	size_t bytes_read = 0;
 
 	while (bytes_read < length) {
-		// Check for timeout
-		if (timeout_us > 0 && hrt_absolute_time() >= deadline) {
-			break; // Return partial read on timeout
-		}
+		irqstate_t flags = px4_enter_critical_section();
 
-		// Check if data available
 		if (uart.rx_tail != uart.rx_head) {
-			// Read byte from buffer
 			data[bytes_read++] = uart.rx_buffer[uart.rx_tail];
 			uart.rx_tail = (uart.rx_tail + 1) % RX_BUFFER_SIZE;
-
-		} else {
-			// No data available, yield briefly
-			px4_usleep(10);
+			px4_leave_critical_section(flags);
+			continue;
 		}
+
+		const hrt_abstime now = hrt_absolute_time();
+
+		if (timeout_us > 0 && now >= deadline) {
+			if (uart.rx_enabled && now - uart.last_activity > RX_IDLE_US) {
+				park_active_channel();
+			}
+
+			px4_leave_critical_section(flags);
+			break;
+		}
+
+		px4_leave_critical_section(flags);
+		// RX is buffered by the ISR; poll once per scheduler tick on these boards.
+		px4_usleep(1000);
 	}
 
-	return bytes_read;
+	return (int)bytes_read;
 }

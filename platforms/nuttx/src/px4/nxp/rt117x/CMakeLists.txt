@@ -45,5 +45,9 @@ add_subdirectory(../imxrt/version version)
 add_subdirectory(../imxrt/spi spi)
 add_subdirectory(../nxp_common/dshot dshot)
 
+if(CONFIG_UART_BITBANG)
+	add_subdirectory(../nxp_common/flexio_uart flexio_uart)
+endif()
+
 add_subdirectory(px4io_serial)
 add_subdirectory(ssarc)

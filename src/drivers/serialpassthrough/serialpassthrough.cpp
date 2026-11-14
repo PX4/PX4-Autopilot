@@ -56,6 +56,13 @@
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/actuator_armed.h>
+
+#ifdef CONFIG_SERIALPASSTHROUGH_BITBANG
+#include <board_config.h>
+#include <lib/mixer_module/motor_outputs.hpp>
+#endif
 
 #include <string.h>
 #include <errno.h>
@@ -114,7 +121,22 @@ void SerialPassthrough::run()
 #ifdef CONFIG_SERIALPASSTHROUGH_BITBANG
 
 		// --- Bitbang UART mode (motor signal pin) ---
-		if (bitbang_uart_init(_baudrate, true /* single_wire */) < 0) {
+		// Only the motor outputs are taken over: every ESC line is held high so that its ESC stays
+		// in the bootloader, and an output with another function keeps its driver
+		uint32_t motor_outputs = 0;
+
+		for (unsigned i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; i++) {
+			if (motor_index_of_output(i) >= 0) {
+				motor_outputs |= 1u << i;
+			}
+		}
+
+		if (motor_index_of_output(_esc_channel) < 0) {
+			PX4_ERR("output %d is not assigned to a motor", _esc_channel + 1);
+			return;
+		}
+
+		if (bitbang_uart_init(_baudrate, true /* single_wire */, motor_outputs) < 0) {
 			PX4_ERR("Failed to init bitbang_uart at %u baud", _baudrate);
 			return;
 		}
@@ -139,7 +161,16 @@ void SerialPassthrough::run()
 				pthread_mutex_unlock(&_rx_mutex);
 			}
 
-			// ESC -> MAVLink: try to read up to 5ms
+			// ESC -> MAVLink: try to read up to 5ms, unless more MAVLink data is
+			// queued (the ESC bootloader aborts a frame on an inter-byte gap)
+			pthread_mutex_lock(&_rx_mutex);
+			const bool rx_pending = _rx_len > 0;
+			pthread_mutex_unlock(&_rx_mutex);
+
+			if (rx_pending) {
+				continue;
+			}
+
 			ssize_t nread = bitbang_uart_read((uint8_t)_esc_channel,
 							  _ser_read_buf, sizeof(_ser_read_buf),
 							  5000 /* us */);
@@ -396,6 +427,16 @@ int SerialPassthrough::startForDevice(uint8_t device_id, uint32_t baudrate)
 #ifdef CONFIG_SERIALPASSTHROUGH_BITBANG
 
 	if (esc_channel >= 0) {
+		// Taking over the ESC signal pins stops the motor outputs
+		actuator_armed_s armed{};
+		uORB::Subscription armed_sub{ORB_ID(actuator_armed)};
+		armed_sub.copy(&armed);
+
+		if (armed.armed) {
+			PX4_ERR("serialpassthrough: refusing ESC channel %d while armed", esc_channel);
+			return -1;
+		}
+
 		// The bitbang UART uses a single shared hardware timer and a single
 		// global state struct — only one ESC channel can be active at a time.
 		// Stop any existing bitbang instance and wait for it to exit before
@@ -628,7 +669,15 @@ SerialPassthrough *SerialPassthrough::instantiate(int argc, char *argv[])
 	}
 
 	if (esc_channel >= 0) {
-		// Bitbang mode: no device path needed
+		// Bitbang mode: no device path needed. ESC bootloaders run at 19200 baud, the fastest rate
+		// the ESC pin UART supports.
+		static constexpr unsigned ESC_UART_MAX_BAUDRATE = 19200;
+
+		if (baudrate > ESC_UART_MAX_BAUDRATE) {
+			PX4_WARN("ESC channel %d: %u baud not supported, using %u", esc_channel, baudrate, ESC_UART_MAX_BAUDRATE);
+			baudrate = ESC_UART_MAX_BAUDRATE;
+		}
+
 		return new SerialPassthrough("", baudrate, false, false, esc_channel);
 	}
 

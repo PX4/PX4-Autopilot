@@ -52,6 +52,14 @@ PWMOut::~PWMOut()
 	/* make sure servos are off */
 	up_pwm_servo_deinit(_pwm_mask);
 
+	// release the pins for other users (e.g. the ESC configuration UART); _pwm_mask can lose
+	// channels after init (failed rate group), the claim mask cannot
+	for (unsigned i = 0; i < 32; i++) {
+		if (_pwm_claimed_mask & (1u << i)) {
+			io_timer_unallocate_channel(i);
+		}
+	}
+
 	perf_free(_cycle_perf);
 	perf_free(_interval_perf);
 }
@@ -95,6 +103,7 @@ bool PWMOut::update_pwm_out_state(bool on)
 		}
 
 		_pwm_mask = ret;
+		_pwm_claimed_mask = ret;
 
 		// set the timer rates
 		for (int timer = 0; timer < MAX_IO_TIMERS; ++timer) {
