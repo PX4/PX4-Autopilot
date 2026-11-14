@@ -2631,7 +2631,7 @@ bool Commander::handleModeIntentionAndFailsafe()
 
 void Commander::checkAndInformReadyForTakeoff()
 {
-#ifdef CONFIG_ARCH_BOARD_PX4_SITL
+#if defined(CONFIG_ARCH_BOARD_PX4_SITL) || defined(CONFIG_ARCH_BOARD_QNX_SITL)
 	static bool ready_for_takeoff_printed = false;
 
 	if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING ||

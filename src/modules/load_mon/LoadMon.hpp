@@ -48,7 +48,7 @@
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/task_stack_info.h>
 
-#if defined(__PX4_LINUX)
+#if defined(__PX4_LINUX) || defined(__PX4_QNX)
 #include <sys/times.h>
 #endif
 
@@ -97,6 +97,10 @@ private:
 #if defined(__PX4_LINUX)
 	FILE *_proc_fd = nullptr;
 	/* calculate usage directly from clock ticks on Linux */
+	clock_t _last_total_time_stamp{};
+	clock_t _last_spent_time_stamp{};
+#elif defined(__PX4_QNX)
+	/* process CPU time from times(), like Linux; RAM from sysconf() */
 	clock_t _last_total_time_stamp{};
 	clock_t _last_spent_time_stamp{};
 #elif defined(__PX4_NUTTX)

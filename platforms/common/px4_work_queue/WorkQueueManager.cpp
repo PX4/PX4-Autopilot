@@ -302,7 +302,12 @@ WorkQueueManagerRun(int, char **)
 #endif
 
 			// priority
+#if defined(__PX4_QNX)
+			// capped at 253: QNX 8.0 reserves 254 (clock IST) and 255 (IPIs)
+			int sched_priority = SCHED_PRIORITY_MAX + wq->relative_priority;
+#else
 			int sched_priority = sched_get_priority_max(SCHED_FIFO) + wq->relative_priority;
+#endif
 
 			// use pthreads for NuttX flat and posix builds. For NuttX protected build, use tasks or kernel threads
 #if !defined(__PX4_NUTTX) || defined(CONFIG_BUILD_FLAT)
@@ -325,6 +330,17 @@ WorkQueueManagerRun(int, char **)
 			if (ret_getschedparam != 0) {
 				PX4_ERR("getting sched param for %s failed (%i)", wq->name, ret_getschedparam);
 			}
+
+#if defined(__PX4_QNX)
+			// QNX threads inherit the creator's scheduling by default, which
+			// would ignore the policy and priority set below.
+			int ret_setinheritsched = pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+
+			if (ret_setinheritsched != 0) {
+				PX4_ERR("setting explicit sched for %s failed (%i)", wq->name, ret_setinheritsched);
+			}
+
+#endif
 
 			// schedule policy FIFO
 			int ret_setschedpolicy = pthread_attr_setschedpolicy(&attr, SCHED_FIFO);

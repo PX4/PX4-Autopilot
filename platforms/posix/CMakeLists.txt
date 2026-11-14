@@ -69,12 +69,17 @@ target_link_libraries(px4
 		parameters
 )
 
-if((NOT APPLE) AND (NOT ANDROID))
-	target_link_libraries(px4 PRIVATE rt)
-endif()
+if(CMAKE_SYSTEM_NAME STREQUAL "QNX")
+	# librt and libpthread are part of libc on QNX; sockets live in libsocket.
+	target_link_libraries(px4 PRIVATE socket)
+else()
+	if((NOT APPLE) AND (NOT ANDROID))
+		target_link_libraries(px4 PRIVATE rt)
+	endif()
 
-if(NOT ANDROID)
-	target_link_libraries(px4 PRIVATE pthread)
+	if(NOT ANDROID)
+		target_link_libraries(px4 PRIVATE pthread)
+	endif()
 endif()
 
 target_link_libraries(px4 PRIVATE uORB)

@@ -31,7 +31,7 @@
 #
 ############################################################################
 
-if(${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL} STREQUAL "px4_sitl")
+if((${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL} STREQUAL "px4_sitl") OR (${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL} STREQUAL "qnx_sitl"))
 	set(module_config "module_sim.yaml")
 else()
 	set(module_config "module_hil.yaml")

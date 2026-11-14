@@ -4498,6 +4498,11 @@ void MavlinkReceiver::start()
 	struct sched_param param;
 	(void)pthread_attr_getschedparam(&receiveloop_attr, &param);
 	param.sched_priority = SCHED_PRIORITY_MAX - 80;
+#if defined(__PX4_QNX)
+	// QNX threads inherit the creator's scheduling unless told otherwise
+	(void)pthread_attr_setinheritsched(&receiveloop_attr, PTHREAD_EXPLICIT_SCHED);
+	(void)pthread_attr_setschedpolicy(&receiveloop_attr, SCHED_FIFO);
+#endif
 	(void)pthread_attr_setschedparam(&receiveloop_attr, &param);
 
 	pthread_attr_setstacksize(&receiveloop_attr, PX4_STACK_ADJUSTED(4000 + MAVLINK_RECEIVER_NET_ADDED_STACK));

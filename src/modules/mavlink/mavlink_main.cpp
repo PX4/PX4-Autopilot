@@ -81,6 +81,11 @@
 #error The non-standard CRTSCTS define is incorrect. Fix this in the OS or replace with (CRTS_IFLOW | CCTS_OFLOW)
 #endif
 
+#if defined(__PX4_QNX) && !defined(CRTSCTS)
+// QNX names hardware flow control IHFLOW (RTS) / OHFLOW (CTS)
+#define CRTSCTS (IHFLOW | OHFLOW)
+#endif
+
 #ifdef CONFIG_NET
 #define MAVLINK_NET_ADDED_STACK PX4_STACK_ADJUSTED(350)
 #else
@@ -666,6 +671,10 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 int
 Mavlink::mavlink_open_uart(const int baud, const char *uart_name, const FLOW_CONTROL_MODE flow_control)
 {
+#ifndef B230400
+#define B230400 230400
+#endif
+
 #ifndef B460800
 #define B460800 460800
 #endif

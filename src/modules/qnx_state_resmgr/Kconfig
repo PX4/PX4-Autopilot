@@ -1,0 +1,7 @@
+menuconfig MODULES_QNX_STATE_RESMGR
+	bool "qnx_state_resmgr"
+	default n
+	depends on PLATFORM_POSIX
+	---help---
+		QNX only: serve live vehicle state as text at /dev/px4/state
+		through a QNX resource manager.

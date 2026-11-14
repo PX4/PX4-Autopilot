@@ -92,8 +92,8 @@ void print_load(int fd, struct print_load_s *print_state)
 		memset(clear_line, 0, sizeof(clear_line));
 	}
 
-#if defined(__PX4_LINUX) || defined(__PX4_CYGWIN) || defined(__PX4_QURT)
-	dprintf(fd, "%sTOP NOT IMPLEMENTED ON LINUX, QURT, WINDOWS (ONLY ON NUTTX, APPLE)\n", clear_line);
+#if defined(__PX4_LINUX) || defined(__PX4_CYGWIN) || defined(__PX4_QURT) || defined(__PX4_QNX)
+	dprintf(fd, "%sTOP NOT IMPLEMENTED ON LINUX, QURT, WINDOWS, QNX (ONLY ON NUTTX, APPLE)\n", clear_line);
 
 #elif defined(__PX4_DARWIN)
 	pid_t pid = getpid();   //-- this is the process id you need info for

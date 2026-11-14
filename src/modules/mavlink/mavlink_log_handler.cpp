@@ -34,6 +34,7 @@
 #include "mavlink_log_handler.h"
 #include "mavlink_main.h"
 #include <dirent.h>
+#include <px4_platform_common/dirent.h>
 #include <sys/stat.h>
 
 static_assert(PX4_MAX_FILEPATH_SCANF < PX4_MAX_FILEPATH,
@@ -444,7 +445,7 @@ bool MavlinkLogHandler::create_log_list_file()
 			break;
 		}
 
-		if (result->d_type != PX4LOG_DIRECTORY) {
+		if (px4_dirent_type(dp, result) != PX4LOG_DIRECTORY) {
 			// Skip stray files
 			continue;
 		}
@@ -496,7 +497,7 @@ void MavlinkLogHandler::write_entries_to_file(FILE *fp, const char *dir)
 			break;
 		}
 
-		if (result->d_type != PX4LOG_REGULAR_FILE) {
+		if (px4_dirent_type(dp, result) != PX4LOG_REGULAR_FILE) {
 			// Skip non files
 			continue;
 		}
@@ -605,7 +606,7 @@ void MavlinkLogHandler::delete_all_logs(const char *dir, unsigned depth)
 			continue;
 		}
 
-		if (result->d_type == PX4LOG_DIRECTORY) {
+		if (px4_dirent_type(dp, result) == PX4LOG_DIRECTORY) {
 			delete_all_logs(filepath, depth + 1);
 
 			if (rmdir(filepath)) {

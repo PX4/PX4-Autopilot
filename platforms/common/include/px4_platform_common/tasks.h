@@ -73,6 +73,18 @@ typedef int px4_task_t;
 #define SCHED_PRIORITY_MIN sched_get_priority_min(SCHED_FIFO)
 #define SCHED_PRIORITY_DEFAULT (((sched_get_priority_max(SCHED_FIFO) - sched_get_priority_min(SCHED_FIFO)) / 2) + sched_get_priority_min(SCHED_FIFO))
 
+#elif defined(__PX4_QNX)
+
+/*
+ * QNX 8.0 reserves priority 255 for IPIs and 254 for the clock IST, so cap the
+ * top of the PX4 range at 253. The rest of the PX4 priorities are offsets
+ * below SCHED_PRIORITY_MAX and stay in 1..253.
+ */
+#define PX4_QNX_PRIORITY_CAP 253
+#define SCHED_PRIORITY_MAX ((sched_get_priority_max(SCHED_FIFO) > PX4_QNX_PRIORITY_CAP) ? PX4_QNX_PRIORITY_CAP : sched_get_priority_max(SCHED_FIFO))
+#define SCHED_PRIORITY_MIN sched_get_priority_min(SCHED_FIFO)
+#define SCHED_PRIORITY_DEFAULT (((SCHED_PRIORITY_MAX - SCHED_PRIORITY_MIN) / 2) + SCHED_PRIORITY_MIN)
+
 #elif defined(__PX4_QURT)
 
 #define SCHED_PRIORITY_MAX 255

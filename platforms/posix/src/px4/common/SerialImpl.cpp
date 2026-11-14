@@ -34,6 +34,11 @@
 #include <SerialImpl.hpp>
 #include <string.h> // strncpy
 #include <termios.h>
+
+#if defined(__PX4_QNX) && !defined(CRTSCTS)
+// QNX names hardware flow control IHFLOW (RTS) / OHFLOW (CTS)
+#define CRTSCTS (IHFLOW | OHFLOW)
+#endif
 #include <px4_log.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -81,6 +86,10 @@ bool SerialImpl::configure()
 	case 57600:  speed = B57600;  break;
 
 	case 115200: speed = B115200; break;
+
+#ifndef B230400
+#define B230400 230400
+#endif
 
 	case 230400: speed = B230400; break;
 
