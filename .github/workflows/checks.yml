@@ -20,6 +20,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  board_ids:
+    name: Board IDs
+    runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
+    steps:
+      - uses: runs-on/action@v2
+      - uses: actions/checkout@v6
+      - name: Test board ID checker
+        run: python3 -m unittest discover -s Tools/ci -p test_check_board_ids.py
+      - name: Check firmware and bootloader board IDs
+        run: python3 Tools/ci/check_board_ids.py
+
   gate_checks:
     name: Gate Checks [${{ matrix.check }}]
     runs-on: [runs-on,runner=2cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
