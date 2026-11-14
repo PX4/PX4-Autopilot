@@ -184,42 +184,21 @@ void MagBiasEstimator::Run()
 					_bias_estimator[mag_index].setField(mag_calibrated);
 
 					_reset_field_estimator[mag_index] = false;
-					_valid[mag_index] = false;
-					_time_valid[mag_index] = 0;
+					_convergence[mag_index].reset();
 
 				} else {
 					updated = true;
 
-					const Vector3f bias_prev = _bias_estimator[mag_index].getBias();
-
 					_bias_estimator[mag_index].updateEstimate(angular_velocity, mag_calibrated, dt);
 
 					const Vector3f &bias = _bias_estimator[mag_index].getBias();
-					const Vector3f bias_rate = (bias - bias_prev) / dt;
 
 					if (!bias.isAllFinite() || bias.longerThan(5.f)) {
 						_reset_field_estimator[mag_index] = true;
-						_valid[mag_index] = false;
-						_time_valid[mag_index] = 0;
+						_convergence[mag_index].reset();
 
 					} else {
-
-						Vector3f fitness{
-							fabsf(angular_velocity(0)) / fmaxf(fabsf(bias_rate(1)) + fabsf(bias_rate(2)), 0.02f),
-							fabsf(angular_velocity(1)) / fmaxf(fabsf(bias_rate(0)) + fabsf(bias_rate(2)), 0.02f),
-							fabsf(angular_velocity(2)) / fmaxf(fabsf(bias_rate(0)) + fabsf(bias_rate(1)), 0.02f)
-						};
-
-						const bool bias_significant = bias.longerThan(0.04f);
-						const bool has_converged = fitness(0) > 20.f || fitness(1) > 20.f || fitness(2) > 20.f;
-
-						if (bias_significant && has_converged) {
-							if (!_valid[mag_index]) {
-								_time_valid[mag_index] = hrt_absolute_time();
-							}
-
-							_valid[mag_index] = true;
-						}
+						_convergence[mag_index].update(angular_velocity, mag_calibrated, bias, _param_mbe_learn_gain.get(), dt);
 					}
 				}
 			}
@@ -238,17 +217,14 @@ void MagBiasEstimator::publishMagBiasEstimate()
 	magnetometer_bias_estimate_s mag_bias_est{};
 
 	for (int mag_index = 0; mag_index < MAX_SENSOR_COUNT; mag_index++) {
-		const Vector3f &bias = _bias_estimator[mag_index].getBias();
+		const FieldSensorBiasConvergence &convergence = _convergence[mag_index];
+		const Vector3f &bias = convergence.bias();
 		mag_bias_est.bias_x[mag_index] = bias(0);
 		mag_bias_est.bias_y[mag_index] = bias(1);
 		mag_bias_est.bias_z[mag_index] = bias(2);
 
-		mag_bias_est.valid[mag_index] = _valid[mag_index];
-
-		if (_valid[mag_index]) {
-			mag_bias_est.valid[mag_index] = true;
-			mag_bias_est.stable[mag_index] = (hrt_elapsed_time(&_time_valid[mag_index]) > 30_s);
-		}
+		mag_bias_est.valid[mag_index] = convergence.valid();
+		mag_bias_est.stable[mag_index] = convergence.stable();
 	}
 
 	mag_bias_est.timestamp = hrt_absolute_time();
@@ -298,4 +274,4 @@ extern "C" __EXPORT int mag_bias_estimator_main(int argc, char *argv[])
 	return ModuleBase::main(MagBiasEstimator::desc, argc, argv);
 }
 
-} // namespace load_mon
+} // namespace mag_bias_estimator
