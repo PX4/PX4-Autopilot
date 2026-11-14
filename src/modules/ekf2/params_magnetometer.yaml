@@ -74,14 +74,16 @@ parameters:
       description:
         short: Integer bitmask controlling handling of magnetic declination
         long: 'Set bits in the following positions to enable functions. 0 : Set to
-          true to use the declination from the geo_lookup library when the GPS position
-          becomes available, set to false to always use the EKF2_MAG_DECL value. 1
-          : Set to true to save the EKF2_MAG_DECL parameter to the value returned
-          by the EKF when the vehicle disarms.'
+          true to use the declination from the world magnetic model once a global
+          position is available, set to false to always use the EKF2_MAG_DECL value.
+          1 : Set to true to save the world magnetic model declination to EKF2_MAG_DECL
+          once a global position is available, so that it is used after a reboot
+          until a global position is available again. A value of 0 in EKF2_MAG_DECL
+          means the declination is unknown.'
       type: bitmask
       bit:
-        0: use geo_lookup declination
-        1: save EKF2_MAG_DECL on disarm
+        0: use world magnetic model declination
+        1: save world magnetic model declination to EKF2_MAG_DECL
       default: 3
       min: 0
       max: 3
