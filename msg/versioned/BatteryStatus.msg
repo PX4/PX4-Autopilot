@@ -1,7 +1,7 @@
 # Battery status
 #
 # Battery status information for up to 3 battery instances.
-# These are populated from power module and smart battery device drivers, and one battery updated from MAVLink.
+# These are populated from power module and smart battery device drivers, and batteries updated from MAVLink.
 # Battery instance information is also logged and streamed in MAVLink telemetry.
 
 uint32 MESSAGE_VERSION = 1
