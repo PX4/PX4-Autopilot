@@ -9,6 +9,7 @@ Some RTK GNSS setups can provide yaw/heading information, as an alternative to t
 
 - [RTK GPS Heading with Dual u-blox F9P](../gps_compass/u-blox_f9p_heading.md).
 - GPS directly output yaw (see table below).
+- [Dual RTK GNSS setup](#supported-devices)
 
 :::
 
@@ -161,23 +162,21 @@ The RTK GPS connection is essentially plug and play:
 
 ### Configuring GPS as Yaw/Heading Source
 
-GPS can be used as a source for yaw fusion when using a single device with two antenna where _yaw output is supported by the device_, or when using some [RTK GPS Setups with Dual u-blox F9P](../gps_compass/u-blox_f9p_heading.md).
 Using GPS as a heading source has the benefit that yaw calculations are not impacted by magnetic interference.
-
-Both approaches work comparing the time taken for a GNSS signal to reach two separated antennas.
-Antennas should be at least 30 cm apart (check the manufacturer's documentation).
-
-The devices that can be used in this way are listed in the **GPS Yaw** column of the table above, such as [Septentrio AsteRx-m3 Pro](../gps_compass/septentrio_asterx-rib.md) and [Holybro H-RTK Unicore UM982 GPS](../gps_compass/rtk_gps_holybro_unicore_um982.md).
-The links in the table take you to the device-specific PX4 configuration.
 
 The heading is the bearing of the _baseline_, the vector from one antenna to the other.
 PX4 derives the baseline in the body frame (as shown [here][fc_orientation]) from the antenna positions, and uses a heading only when the length of the baseline the receiver reports is within 20% of it.
+
+:::warning
+Antennas should be at least 30 cm apart (check the manufacturer's documentation if needed).
+:::
+
 Configure the slot of the receiver that reports the heading, matched by [SENS_GNSSn_ID][SENS_GNSSn_ID]:
 
 | Parameter                              | Setting                                                                                                                                                                       |
 | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [SENS_GNSSn_HDG][SENS_GNSSn_HDG]       | `Moving base rover` for the rover of two receivers (the baseline runs from the moving base's antenna to the rover's), `Dual antenna` for a single receiver with two antennas. |
-| [SENS_GNSSn_OFFX/Y/Z][SENS_GNSSn_OFFX] | Antenna position of each receiver, the main antenna's for a receiver with two antennas. With `Moving base rover`, both receivers' slots must be set.                          |
+| [SENS_GNSSn_HDG][SENS_GNSSn_HDG]       | `Moving base rover` for the rover of two receivers (the baseline runs from the moving base's antenna to the rover's), `Dual antenna` for a single receiver with two antennas. `Two receivers` for the rover of independent GNSS RTK setup |
+| [SENS_GNSSn_OFFX/Y/Z][SENS_GNSSn_OFFX] | Antenna position of each receiver, the main antenna's for a receiver with two antennas. With `Moving base rover` and `Two receivers`, both receivers' slots must be set.                          |
 | [SENS_GNSSn_AUXX/Y/Z][SENS_GNSSn_AUXX] | With `Dual antenna`: position of the auxiliary antenna (see the device page for which antenna is which).                                                                      |
 | [EKF2_GPS_CTRL][EKF2_GPS_CTRL]         | Set bit position 3 "Dual antenna heading" to `1` (i.e. add 8 to the parameter value).                                                                                         |
 
@@ -192,6 +191,27 @@ Configure the slot of the receiver that reports the heading, matched by [SENS_GN
 
 :::tip
 If using this feature, all other configuration should be setup up as normal (e.g. [RTK Positioning](../gps_compass/rtk_gps.md#positioning-setup-configuration)).
+:::
+
+
+#### Single device with two antennas
+GNSS can be used as a source for yaw fusion when using a single device with two antenna where _yaw output is supported by the device_. This approach works by comparing the time taken for a GNSS signal to reach two separated antennas.
+
+The devices that can be used in this way are listed in the **GPS Yaw** column of the table above, such as [Septentrio AsteRx-m3 Pro](../gps_compass/septentrio_asterx-rib.md) and [Holybro H-RTK Unicore UM982 GPS](../gps_compass/rtk_gps_holybro_unicore_um982.md).
+The links in the table take you to the device-specific PX4 configuration.
+
+#### Specific RTK GPS Setups with DUal u-blox F9P
+GNSS can be used as a source for yaw fusion when using some [RTK GPS Setups with Dual u-blox F9P](../gps_compass/u-blox_f9p_heading.md). This approach works by comparing the time taken for a GNSS signal to reach two separated antennas.
+
+The devices that can be used in this way are listed in the **GPS Yaw** column of the table above, such as [Septentrio AsteRx-m3 Pro](../gps_compass/septentrio_asterx-rib.md) and [Holybro H-RTK Unicore UM982 GPS](../gps_compass/rtk_gps_holybro_unicore_um982.md).
+The links in the table take you to the device-specific PX4 configuration.
+
+#### Independent GNSS RTK receivers
+GNSS can be used as a source for yaw fusion when using RTK GNSS with matching measurement time base.
+This approach works by using the GNSS' measured position and time of measurement to compute baseline heading.
+
+:::warning
+Please make sure the two GNSS you use for this method fill the `utc_time_usec` field of the [sensors_gnss msg](../msg_docs/SensorGnss.md) with time using the same time base. It will not work otherwise.
 :::
 
 ### Optional PX4 Configuration
