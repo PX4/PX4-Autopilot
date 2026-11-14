@@ -49,6 +49,8 @@ These workarounds are disabled by default and can be enabled with the [UAVCAN_QU
 - **Hobbywing ESCs:** some Hobbywing DroneCAN ESCs report `uavcan.equipment.esc.Status.esc_index` starting at 1 for the first ESC instead of 0 as required by the specification, while still expecting `RawCommand.cmd[0]` to command the first ESC.
   This causes ESC status feedback (e.g. RPM, voltage, current) to be matched to the wrong motor.
   Set bit 0 of `UAVCAN_QUIRKS` to correct for this off-by-one indexing.
+- **Scaled RPM telemetry:** some ESCs report `uavcan.equipment.esc.Status.rpm` off by a fixed factor (for example electrical instead of mechanical RPM).
+  Set [UAVCAN_ESC_RPMSC](../advanced_config/parameter_reference.md#UAVCAN_ESC_RPMSC) to the factor that converts the reported value to mechanical RPM.
 
 ## Reversible Motors {#reversible-motors}
 
