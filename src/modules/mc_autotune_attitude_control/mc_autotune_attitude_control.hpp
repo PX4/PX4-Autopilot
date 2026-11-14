@@ -87,6 +87,8 @@ public:
 	int print_status() override;
 
 private:
+	friend class McAutotuneAttitudeControlTest;
+
 	void Run() override;
 
 	void checkFilters();
