@@ -117,9 +117,10 @@ float get_distance_to_next_waypoint(double lat_now, double lon_now, double lat_n
 	const double d_lat = lat_next_rad - lat_now_rad;
 	const double d_lon = math::radians(lon_next) - math::radians(lon_now);
 
-	const double a = sin(d_lat / 2.0) * sin(d_lat / 2.0) + sin(d_lon / 2.0) * sin(d_lon / 2.0) * cos(lat_now_rad) * cos(
-				 lat_next_rad);
+	const double a_raw = sin(d_lat / 2.0) * sin(d_lat / 2.0) + sin(d_lon / 2.0) * sin(d_lon / 2.0) * cos(lat_now_rad) * cos(
+				     lat_next_rad);
 
+	const double a = math::constrain(a_raw, 0.0, 1.0);
 	const double c = atan2(sqrt(a), sqrt(1.0 - a));
 
 	return static_cast<float>(CONSTANTS_RADIUS_OF_EARTH * 2.0 * c);
@@ -355,6 +356,9 @@ float get_distance_to_point_global_wgs84(double lat_now, double lon_now, float a
 	double d_lon = y_rad - current_y_rad;
 
 	double a = sin(d_lat / 2.0) * sin(d_lat / 2.0) + sin(d_lon / 2.0) * sin(d_lon / 2.0) * cos(current_x_rad) * cos(x_rad);
+
+	a = math::constrain(a, 0.0, 1.0);
+
 	double c = 2 * atan2(sqrt(a), sqrt(1 - a));
 
 	const float dxy = static_cast<float>(CONSTANTS_RADIUS_OF_EARTH * c);
