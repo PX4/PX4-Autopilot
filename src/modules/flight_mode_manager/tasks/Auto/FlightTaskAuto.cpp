@@ -148,7 +148,7 @@ bool FlightTaskAuto::update()
 		// XY Velocity waypoint
 		// TODO : Rewiew that. What is the expected behavior?
 		_position_setpoint = Vector3f(NAN, NAN, _position(2));
-		_velocity_setpoint.xy() = Vector2f(_velocity).unit_or_zero() * _mc_cruise_speed;
+		_velocity_setpoint.xy() = Vector2f(_velocity).unit_or_zero() * _mc_cruise_speed_derated;
 		_velocity_setpoint(2) = NAN;
 		break;
 
@@ -436,6 +436,15 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 
 	// Ensure planned cruise speed is below the maximum such that the smooth trajectory doesn't get capped
 	_mc_cruise_speed = math::min(_mc_cruise_speed, _param_mpc_xy_vel_max.get());
+
+	// Slow down for control authority lost to a motor failure. Kept apart from the requested speed, which persists.
+	control_allocator_status_s control_allocator_status;
+	// full authority until the allocator reports, kept during Return such that speed, acceleration and jerk stay as planned
+	const float authority_ratio = _authority_ratio.update(
+					      _control_allocator_status_sub.copy(&control_allocator_status) ? control_allocator_status.roll_pitch_authority_ratio : 1.f,
+					      _sub_vehicle_status.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
+	_mc_cruise_speed_derated = math::trajectory::reduceSpeedForControlAuthority(_mc_cruise_speed, authority_ratio,
+				   _param_mpc_derate_gain.get(), _param_mpc_derate_vmin.get());
 
 	// Temporary target variable where we save the local reprojection of the latest navigator current triplet.
 	Vector3f tmp_target;
@@ -825,14 +834,18 @@ void FlightTaskAuto::_updateTrajConstraints()
 	_position_smoothing.setMaxAllowedHorizontalError(_param_mpc_xy_err_max.get());
 	_position_smoothing.setMaxAllowedVerticalError(_param_mpc_z_err_max.get());
 	_position_smoothing.setVerticalAcceptanceRadius(_param_nav_mc_alt_rad.get());
-	_position_smoothing.setCruiseSpeed(_mc_cruise_speed);
+	_position_smoothing.setCruiseSpeed(_mc_cruise_speed_derated);
 	_position_smoothing.setHorizontalTrajectoryGain(_param_mpc_xy_traj_p.get());
 	_position_smoothing.setTargetAcceptanceRadius(_target_acceptance_radius);
 
 	// Update the constraints of the trajectories
-	_position_smoothing.setMaxAccelerationXY(_param_mpc_acc_hor.get()); // TODO : Should be computed using heading
+	// Horizontal acceleration and jerk are reduced by the same fraction as the cruise speed
+	const float authority_scale = (_mc_cruise_speed > FLT_EPSILON && PX4_ISFINITE(_mc_cruise_speed_derated))
+				      ? (_mc_cruise_speed_derated / _mc_cruise_speed) : 1.f;
+	_position_smoothing.setMaxAccelerationXY(_param_mpc_acc_hor.get() * authority_scale); // TODO : Should be computed using heading
 	_position_smoothing.setMaxVelocityXY(_param_mpc_xy_vel_max.get());
-	_position_smoothing.setMaxJerk(_param_mpc_jerk_auto.get()); // TODO : Should be computed using heading
+	_position_smoothing.setMaxJerkXY(_param_mpc_jerk_auto.get() * authority_scale); // TODO : Should be computed using heading
+	_position_smoothing.setMaxJerkZ(_param_mpc_jerk_auto.get());
 
 	if (_is_emergency_braking_active) {
 		// When initializing with large velocity, allow 1g of

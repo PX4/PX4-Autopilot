@@ -192,6 +192,57 @@ ControlAllocationPseudoInverse::allocate()
 	_actuator_sp = _actuator_trim + _mix * (_control_sp - _control_trim);
 }
 
+matrix::Vector2f
+ControlAllocationPseudoInverse::rollPitchMargin(float thrust_z_setpoint)
+{
+	// A stopped actuator sitting exactly on its limit is not beyond it
+	static constexpr float kLimitTolerance = 1e-4f;
+
+	updatePseudoInverse();
+
+	const ActuatorVector actuator_at_zero_control = _actuator_trim - _mix * _control_trim;
+	matrix::Vector2f margin(INFINITY, INFINITY);
+
+	for (int i = 0; i < _num_actuators; i++) {
+		const float actuator = actuator_at_zero_control(i) + _mix(i, THRUST_Z) * thrust_z_setpoint;
+		const float headroom = fminf(_actuator_max(i) - actuator, actuator - _actuator_min(i));
+
+		if (headroom < -kLimitTolerance) {
+			return matrix::Vector2f(); // thrust alone is not achievable
+		}
+
+		for (int axis = ROLL; axis <= PITCH; axis++) {
+			if (fabsf(_mix(i, axis)) > FLT_EPSILON) {
+				// the two directions move the actuator opposite ways, the closer limit bounds the pair
+				margin(axis) = fminf(margin(axis), fmaxf(headroom, 0.f) / fabsf(_mix(i, axis)));
+			}
+		}
+	}
+
+	for (int axis = ROLL; axis <= PITCH; axis++) {
+		if (!PX4_ISFINITE(margin(axis))) {
+			margin(axis) = 0.f; // no actuator on this axis
+		}
+	}
+
+	return margin;
+}
+
+float
+ControlAllocationPseudoInverse::rollPitchAuthorityRatio(const matrix::Vector2f &margin,
+		const matrix::Vector2f &reference)
+{
+	float ratio = 1.f;
+
+	for (int axis = ROLL; axis <= PITCH; axis++) {
+		if (reference(axis) > FLT_EPSILON) {
+			ratio = fminf(ratio, margin(axis) / reference(axis));
+		}
+	}
+
+	return ratio; // margins are not negative, so neither is the ratio
+}
+
 uint8_t
 ControlAllocationPseudoInverse::dropDependentAxes(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &effectiveness)
 {

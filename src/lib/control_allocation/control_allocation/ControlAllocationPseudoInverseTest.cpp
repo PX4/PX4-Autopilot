@@ -243,3 +243,102 @@ TEST(ControlAllocationPseudoInverseTest, DroppedAxisIsUnallocatedOthersExact)
 		EXPECT_LT(fabsf(method.getActuatorSetpoint()(i)), 0.01f) << "actuator " << i;
 	}
 }
+
+// Roll and pitch authority ratio after motor failures on symmetric multirotors
+namespace
+{
+
+using EffectivenessMatrix = Matrix<float, ControlAllocation::NUM_AXES, ControlAllocation::NUM_ACTUATORS>;
+using ActuatorVector = ControlAllocation::ActuatorVector;
+
+constexpr float kYawMomentRatio = 0.05f;
+constexpr float kTolerance = 0.01f;
+
+/**
+ * Motors evenly spaced on a unit circle with alternating spin directions. Same sequence as the control
+ * allocator: margin before the failure, keep the normalization, remove the motors, optionally make one
+ * reversible, margin with the failure.
+ */
+float authorityRatio(int num_motors, float hover_thrust, uint16_t removed_motors_mask,
+		     int reversible_motor = -1, float reverse_fraction = 0.f)
+{
+	EffectivenessMatrix effectiveness;
+	const float spacing = 2.f * M_PI_F / num_motors;
+
+	for (int i = 0; i < num_motors; i++) {
+		const float angle = spacing * (i + 0.5f);
+		effectiveness(ControlAllocation::ROLL, i) = sinf(angle);
+		effectiveness(ControlAllocation::PITCH, i) = -cosf(angle);
+		effectiveness(ControlAllocation::YAW, i) = (i % 2 == 0) ? kYawMomentRatio : -kYawMomentRatio;
+		effectiveness(ControlAllocation::THRUST_Z, i) = -1.f;
+	}
+
+	ControlAllocationPseudoInverse allocation;
+	ActuatorVector actuator_min;
+	ActuatorVector actuator_max;
+	actuator_max.setAll(1.f);
+	allocation.setActuatorMin(actuator_min);
+	allocation.setActuatorMax(actuator_max);
+	allocation.setEffectivenessMatrix(effectiveness, ActuatorVector(), ActuatorVector(), num_motors, true);
+	const Vector2f margin_before_failure = allocation.rollPitchMargin(-hover_thrust);
+
+	allocation.setHadActuatorFailure(true);
+
+	for (int i = 0; i < num_motors; i++) {
+		if (removed_motors_mask & (1u << i)) {
+			effectiveness.setCol(i, 0.f);
+		}
+	}
+
+	if (reversible_motor >= 0) {
+		actuator_min(reversible_motor) = -reverse_fraction;
+		allocation.setActuatorMin(actuator_min);
+	}
+
+	allocation.setEffectivenessMatrix(effectiveness, ActuatorVector(), ActuatorVector(), num_motors, false);
+	return ControlAllocationPseudoInverse::rollPitchAuthorityRatio(allocation.rollPitchMargin(-hover_thrust),
+			margin_before_failure);
+}
+
+TEST(RollPitchAuthorityTest, NoFailureKeepsFullAuthority)
+{
+	EXPECT_FLOAT_EQ(authorityRatio(6, 0.3f, 0), 1.f);
+}
+
+TEST(RollPitchAuthorityTest, HexStopOppositeDependsOnHoverThrust)
+{
+	// Four motors carry the weight of six. A light vehicle is limited by the lower actuator limit as before,
+	// a heavy one runs out of room below the upper limit.
+	EXPECT_NEAR(authorityRatio(6, 0.19f, 0b1001), 0.75f, kTolerance);
+	EXPECT_NEAR(authorityRatio(6, 0.3f, 0b1001), 0.75f, kTolerance);
+	EXPECT_NEAR(authorityRatio(6, 0.5f, 0b1001), 0.25f, kTolerance);
+}
+
+TEST(RollPitchAuthorityTest, HexStopOppositeCannotHoverWhenTooHeavy)
+{
+	EXPECT_FLOAT_EQ(authorityRatio(6, 0.8f, 0b1001), 0.f);
+}
+
+TEST(RollPitchAuthorityTest, HexReverseOppositeKeepsAuthorityWhenLight)
+{
+	EXPECT_NEAR(authorityRatio(6, 0.3f, 0b1, 3, 1.f), 1.f, kTolerance);
+	EXPECT_NEAR(authorityRatio(6, 0.5f, 0b1, 3, 1.f), 0.33f, kTolerance);
+}
+
+TEST(RollPitchAuthorityTest, HexWithoutOppositeHandlingHasNoMargin)
+{
+	// The opposite motor has to sit on its lower limit to balance the torques
+	EXPECT_NEAR(authorityRatio(6, 0.3f, 0b1), 0.f, kTolerance);
+}
+
+TEST(RollPitchAuthorityTest, QuadHasNoMargin)
+{
+	EXPECT_NEAR(authorityRatio(4, 0.3f, 0b1), 0.f, kTolerance);
+}
+
+TEST(RollPitchAuthorityTest, OctoKeepsAboutHalf)
+{
+	EXPECT_NEAR(authorityRatio(8, 0.3f, 0b1), 0.48f, kTolerance);
+}
+
+} // namespace
