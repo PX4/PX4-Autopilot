@@ -62,7 +62,7 @@ parameters:
     COM_RC_IN_MODE:
       description:
         short: Manual control input source configuration
-        long: RC receiver or MAVLink joystick (MANUAL_CONTROL). Priority modes switch
+        long: RC receiver or MAVLink joystick (MANUAL_CONTROL message). Priority modes switch
           to a higher-priority source as soon as it becomes valid. MAVL 1 is the lower
           MAVLink instance.
       type: enum
