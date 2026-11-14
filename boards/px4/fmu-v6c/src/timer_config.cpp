@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include <px4_arch/io_timer_hw_description.h>
+#include <px4_arch/dma_budget.h>
 
 /* Timer allocation
  *
@@ -51,8 +52,13 @@
  * TIM3_CH3  T BUZZER_1              - Driven by other driver
  */
 
+// TIM1's BDShot capture channels are routed to a DMA2 pool distinct from its DMA1
+// burst UP stream, enabling concurrent (non round-robin) capture of all 4 channels.
+// DMA2 has 4 free streams for this after freeing USART3(DEBUG)'s DMA - see
+// board_dma_map.h and nuttx-config/nsh/defconfig. DMA1 stays untouched (IMU/FRAM/PX4IO
+// unaffected). TIM4 is left on the default single-DMA round-robin capture.
 constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
-	initIOTimer(Timer::Timer1, DMA{DMA::Index1}),
+	initIOTimer(Timer::Timer1, DMA{DMA::Index1}, DMA{DMA::Index2}),
 	initIOTimer(Timer::Timer4, DMA{DMA::Index1}),
 	initIOTimer(Timer::Timer5),
 	initIOTimer(Timer::Timer17),
@@ -68,6 +74,8 @@ constexpr timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
 	initIOTimerChannel(io_timers, {Timer::Timer5, Timer::Channel1}, {GPIO::PortA, GPIO::Pin0}),
 	initIOTimerChannel(io_timers, {Timer::Timer5, Timer::Channel2}, {GPIO::PortA, GPIO::Pin1}),
 };
+
+PX4_VALIDATE_DMA_BUDGET(io_timers, timer_io_channels);
 
 constexpr io_timers_channel_mapping_t io_timers_channel_mapping =
 	initIOTimerChannelMapping(io_timers, timer_io_channels);
