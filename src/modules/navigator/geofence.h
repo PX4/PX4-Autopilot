@@ -154,6 +154,12 @@ public:
 	/** Check the polygons and circles only, without the altitude band. */
 	bool isInsideHorizontalFences(double lat, double lon, float altitude);
 
+	/**
+	 * True if a loiter circle lies inside the polygons, circles and maximum distance from Home without
+	 * touching a boundary. The fence altitude band is not checked. Uses cached fence data only, like checkPathBatch().
+	 */
+	bool isLoiterCircleInside(double lat, double lon, float radius);
+
 	bool valid();
 
 	/**

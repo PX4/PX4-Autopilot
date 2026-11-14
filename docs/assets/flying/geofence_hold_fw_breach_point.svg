@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="340" viewBox="0 0 640 340"><style>
+text{font-family:"JetBrains Mono","Menlo","Consolas","DejaVu Sans Mono",monospace;font-size:12px;fill:#18211f}
+.muted{fill:#5b6965}
+.zone{font-family:"Barlow Semi Condensed","Liberation Sans Narrow",sans-serif;font-size:15px;font-weight:600;letter-spacing:.06em;fill:#5b6965}
+.in{fill:#e3efe8}.out{fill:#f6e2df}
+.fence{stroke:#1d2a27;stroke-width:3}
+.track{stroke:#3d5a80;stroke-width:2.5;fill:none}
+.orbit{stroke:#2f7d55;stroke-width:2.5;fill:none}
+.bad{stroke:#c2412d;stroke-width:4;fill:none}
+.baddash{stroke:#c2412d;stroke-width:2;fill:none;stroke-dasharray:6 5}
+.turn{stroke:#b7791f;stroke-width:2.5;fill:none;stroke-dasharray:6 4}
+.dim{stroke:#5b6965;stroke-width:1;fill:none}
+.dt{fill:#3d5a80}.dok{fill:#2f7d55}.dbad{fill:#c2412d}
+.hi{paint-order:stroke;stroke:#e3efe8;stroke-width:6px;stroke-linejoin:round}.ho{paint-order:stroke;stroke:#f6e2df;stroke-width:6px;stroke-linejoin:round}
+.mt{fill:#3d5a80}.ma{fill:#b7791f}.md{fill:#5b6965}</style><defs>
+<marker id="at" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mt" d="M0 0L10 5L0 10z"/></marker>
+<marker id="aa" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ma" d="M0 0L10 5L0 10z"/></marker>
+<marker id="ad" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="md" d="M0 0L10 5L0 10z"/></marker>
+</defs><rect class="in" x="0" y="0" width="400.0" height="340"/>
+<rect class="out" x="400.0" y="0" width="240.0" height="340"/>
+<text class="zone" x="20" y="30">INSIDE</text>
+<text class="zone" x="620" y="30" text-anchor="end">OUTSIDE</text>
+<line class="fence" x1="400.0" y1="0" x2="400.0" y2="340"/>
+<text x="392.0" y="326" text-anchor="end">fence</text>
+<line class="track" x1="40" y1="170" x2="402" y2="170" marker-end="url(#at)"/>
+<circle class="orbit" cx="410.0" cy="170.0" r="80.0"/>
+<path class="bad" d="M400.0 90.6 A80.0 80.0 0 1 1 400.0 249.4"/>
+<line class="dim" x1="410.0" y1="170.0" x2="353.4" y2="226.6" stroke-dasharray="3 3"/>
+<text x="330" y="212" text-anchor="end">R = 80 m</text>
+<circle class="dt" cx="410.0" cy="170.0" r="5"/>
+<line class="dim" x1="416" y1="168" x2="500" y2="140"/>
+<text x="504" y="138" class="ho">breach detected</text>
+<text x="504" y="154" class="muted ho">= loiter centre</text>
+<line class="dim" x1="400.0" y1="290" x2="490.0" y2="290" marker-start="url(#ad)" marker-end="url(#ad)"/><text x="0.0" y="0" text-anchor="middle" class=""></text>
+<line class="dim" x1="490.0" y1="250" x2="490.0" y2="298"/>
+<text x="500" y="294">≈ R + lag ≈ 90 m</text>
+</svg>

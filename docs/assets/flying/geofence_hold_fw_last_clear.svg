@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="340" viewBox="0 0 640 340"><style>
+text{font-family:"JetBrains Mono","Menlo","Consolas","DejaVu Sans Mono",monospace;font-size:12px;fill:#18211f}
+.muted{fill:#5b6965}
+.zone{font-family:"Barlow Semi Condensed","Liberation Sans Narrow",sans-serif;font-size:15px;font-weight:600;letter-spacing:.06em;fill:#5b6965}
+.in{fill:#e3efe8}.out{fill:#f6e2df}
+.fence{stroke:#1d2a27;stroke-width:3}
+.track{stroke:#3d5a80;stroke-width:2.5;fill:none}
+.orbit{stroke:#2f7d55;stroke-width:2.5;fill:none}
+.bad{stroke:#c2412d;stroke-width:4;fill:none}
+.baddash{stroke:#c2412d;stroke-width:2;fill:none;stroke-dasharray:6 5}
+.turn{stroke:#b7791f;stroke-width:2.5;fill:none;stroke-dasharray:6 4}
+.dim{stroke:#5b6965;stroke-width:1;fill:none}
+.dt{fill:#3d5a80}.dok{fill:#2f7d55}.dbad{fill:#c2412d}
+.hi{paint-order:stroke;stroke:#e3efe8;stroke-width:6px;stroke-linejoin:round}.ho{paint-order:stroke;stroke:#f6e2df;stroke-width:6px;stroke-linejoin:round}
+.mt{fill:#3d5a80}.ma{fill:#b7791f}.md{fill:#5b6965}</style><defs>
+<marker id="at" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mt" d="M0 0L10 5L0 10z"/></marker>
+<marker id="aa" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ma" d="M0 0L10 5L0 10z"/></marker>
+<marker id="ad" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="md" d="M0 0L10 5L0 10z"/></marker>
+</defs><rect class="in" x="0" y="0" width="400.0" height="340"/>
+<rect class="out" x="400.0" y="0" width="240.0" height="340"/>
+<text class="zone" x="20" y="30">INSIDE</text>
+<text class="zone" x="620" y="30" text-anchor="end">OUTSIDE</text>
+<line class="fence" x1="400.0" y1="0" x2="400.0" y2="340"/>
+<text x="392.0" y="326" text-anchor="end">fence</text>
+<line class="track" x1="40" y1="170" x2="402" y2="170" marker-end="url(#at)"/>
+<circle class="dim" cx="280.0" cy="170.0" r="120.0" stroke-dasharray="4 4"/>
+<circle class="orbit" cx="280.0" cy="170.0" r="80.0"/>
+<circle class="dok" cx="360.0" cy="170.0" r="3.5"/>
+<circle class="dok" cx="336.6" cy="226.6" r="3.5"/>
+<circle class="dok" cx="280.0" cy="250.0" r="3.5"/>
+<circle class="dok" cx="223.4" cy="226.6" r="3.5"/>
+<circle class="dok" cx="200.0" cy="170.0" r="3.5"/>
+<circle class="dok" cx="223.4" cy="113.4" r="3.5"/>
+<circle class="dok" cx="280.0" cy="90.0" r="3.5"/>
+<circle class="dok" cx="336.6" cy="113.4" r="3.5"/>
+<path class="turn" d="M410 170 A45 45 0 0 1 410 260 L290.0 252" marker-end="url(#aa)"/>
+<circle class="dt" cx="410" cy="170" r="5"/>
+<text x="420" y="160">breach detected</text>
+<path d="M274.0 164.0L286.0 176.0M286.0 164.0L274.0 176.0" stroke="#18211f" stroke-width="2"/>
+<text x="280.0" y="152" text-anchor="middle" class="hi">last clear centre</text>
+<text x="166.0" y="62" class="muted hi">check circle 1.5R</text>
+<line class="dim" x1="360.0" y1="290" x2="400.0" y2="290" marker-start="url(#ad)" marker-end="url(#ad)"/><text x="352.0" y="294" text-anchor="end" class="hi">≈ 40 m clear</text>
+<line class="dim" x1="360.0" y1="180" x2="360.0" y2="298" stroke-dasharray="2 3"/>
+</svg>

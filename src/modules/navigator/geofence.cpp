@@ -908,6 +908,22 @@ bool Geofence::isInsideHorizontalFences(double lat, double lon, float altitude)
 	return inside;
 }
 
+bool Geofence::isLoiterCircleInside(double lat, double lon, float radius)
+{
+	if (!PX4_ISFINITE(lat) || !PX4_ISFINITE(lon) || !PX4_ISFINITE(radius) || radius <= 0.f) {
+		return false;
+	}
+
+	// The circle check only detects boundary contact, so the center must also be inside. Altitude is not used.
+	if (!isInsideHorizontalFences(lat, lon, 0.f) || !isCloserThanMaxDistToHome(lat, lon, 0.f)) {
+		return false;
+	}
+
+	const PathCheck circle{matrix::Vector2d{lat, lon}, matrix::Vector2d{lat, lon}, radius};
+	bool clear = false;
+	return checkPathBatch(&circle, 1, &clear) && clear;
+}
+
 bool Geofence::checkPointAgainstPolygonCircle(const PolygonInfo &polygon, double lat, double lon, float altitude)
 {
 	bool checksPass = true;

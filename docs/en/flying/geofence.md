@@ -49,6 +49,11 @@ In summary:
 1. Once finished, click on the **Upload** button (top right) to send the fence (along with rally points and mission) to the vehicle.
 1. Set the breach action in the [Geofence Failsafe](../config/safety.md#geofence-failsafe).
 
+::: tip
+With the `Hold` breach action, a fixed-wing vehicle loiters inside the fence rather than at the breach point.
+See [Safety > Fixed-Wing Hold After a Breach](../config/safety.md#fixed-wing-hold-after-a-breach).
+:::
+
 ::: info
 Any geofence that does not include the Home position will be rejected by the flight controller and not uploaded.
 If the vehicle is flying, also any geofence that would immediately get breached after the upload is rejected.
