@@ -342,6 +342,7 @@
       - [Flight Modes](config/flight_mode.md)
     - [Joysticks](config/joystick.md)
     - [Integrated GCS](config/integrated_gcs.md)
+      - [UXV Technologies Controllers](config/uxv_technologies_controllers.md)
   - [Data Links](data_links/index.md)
     - [MAVLink Telemetry (OSD/GCS)](peripherals/mavlink_peripherals.md)
     - [Telemetry Radios](telemetry/index.md)
