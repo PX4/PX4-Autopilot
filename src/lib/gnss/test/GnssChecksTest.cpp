@@ -47,6 +47,7 @@ public:
 		_sample.lat = 47.0;
 		_sample.lon = 9.0;
 		_sample.alt = 800.f;
+		_sample.vel_valid = true;
 		_sample.hacc = 1.f;
 		_sample.vacc = 2.f;
 		_sample.sacc = 0.2f;
@@ -68,8 +69,24 @@ public:
 		}
 	}
 
+	// Fly armed in the air at the reported velocity, while the reported position moves at that velocity plus pos_error_rate
+	void flySeconds(float duration_s, const matrix::Vector3f &vel, const matrix::Vector3f &pos_error_rate = {})
+	{
+		const MapProjection origin(47.0, 9.0);
+
+		for (int k = 0; k < static_cast<int>(duration_s * 10.f); k++) {
+			_sample.time_us += 100'000;
+			_pos_ned += (vel + pos_error_rate) * 0.1f;
+			origin.reproject(_pos_ned(0), _pos_ned(1), _sample.lat, _sample.lon);
+			_sample.alt = 800.f - _pos_ned(2);
+			_sample.vel = vel;
+			_checks.run(_sample, true, true, false);
+		}
+	}
+
 	GnssChecks _checks;
 	gnssChecksSample _sample{};
+	matrix::Vector3f _pos_ned{};
 };
 
 TEST_F(GnssChecksTest, passesAfterHealthTime)
@@ -215,4 +232,60 @@ TEST_F(GnssChecksTest, strictFollowsCheckMask)
 
 	// THEN: they aren't
 	EXPECT_FALSE(_checks.passedStrict());
+}
+
+class GnssChecksHPosVelTest : public GnssChecksTest
+{
+public:
+	void SetUp() override
+	{
+		GnssChecksTest::SetUp();
+
+		// GIVEN: the default checks, which include the position/velocity consistency, and a receiver that passed them
+		runSeconds(2.f, false, false);
+	}
+};
+
+TEST_F(GnssChecksHPosVelTest, failsWhenPositionWandersFromVelocity)
+{
+	// WHEN: in flight, the position moves as the velocity says
+	flySeconds(2.f, matrix::Vector3f(8.f, -6.f, 0.f));
+
+	// THEN: it passes the strict checks
+	EXPECT_FALSE(_checks.getStrictFailFlags() & vehicle_gnss_s::CHECK_HPOSVEL);
+	EXPECT_TRUE(_checks.passedStrict());
+
+	// WHEN: the position walks off at 3 m/s that the velocity doesn't show, as with multipath
+	flySeconds(5.f, matrix::Vector3f(8.f, -6.f, 0.f), matrix::Vector3f(0.f, 3.f, 0.f));
+
+	// THEN: it fails the strict checks on the consistency, while the relaxed checks still let it be used
+	EXPECT_TRUE(_checks.getStrictFailFlags() & vehicle_gnss_s::CHECK_HPOSVEL);
+	EXPECT_FALSE(_checks.passedStrict());
+	EXPECT_TRUE(_checks.passed());
+
+	// WHEN: the position follows the velocity again
+	flySeconds(5.f, matrix::Vector3f(8.f, -6.f, 0.f));
+
+	// THEN: it passes the strict checks again
+	EXPECT_FALSE(_checks.getStrictFailFlags() & vehicle_gnss_s::CHECK_HPOSVEL);
+	EXPECT_TRUE(_checks.passedStrict());
+}
+
+TEST_F(GnssChecksHPosVelTest, skipsPositionStepAtFixTypeChange)
+{
+	// WHEN: in flight, the position steps by 3 m in the epoch the receiver starts applying corrections, as it does
+	// when a differential or RTK solution starts or stops
+	flySeconds(2.f, matrix::Vector3f(8.f, -6.f, 0.f));
+	_pos_ned(0) += 3.f;
+	_sample.fix_type = 4;
+	flySeconds(0.1f, matrix::Vector3f(8.f, -6.f, 0.f));
+
+	// THEN: the step doesn't count, and it passes the consistency check
+	EXPECT_FALSE(_checks.getStrictFailFlags() & vehicle_gnss_s::CHECK_HPOSVEL);
+
+	// WHEN: the position then walks off at 3 m/s that the velocity doesn't show
+	flySeconds(5.f, matrix::Vector3f(8.f, -6.f, 0.f), matrix::Vector3f(0.f, 3.f, 0.f));
+
+	// THEN: it still fails it
+	EXPECT_TRUE(_checks.getStrictFailFlags() & vehicle_gnss_s::CHECK_HPOSVEL);
 }

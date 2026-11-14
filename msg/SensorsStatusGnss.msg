@@ -18,5 +18,6 @@ bool[4] strict                       # The strict checks decide whether its samp
 float32[4] drift_rate_horizontal     # [m/s] Horizontal position drift rate at rest
 float32[4] drift_rate_vertical       # [m/s] Vertical position drift rate at rest
 float32[4] speed_horizontal_filtered # [m/s] Filtered horizontal speed at rest
+float32[4] hpos_vel_inconsistency    # [m/s] Rate of change of the horizontal position minus the horizontal velocity, filtered, checked against GNSS_REQ_HPOSVEL
 
 # TOPICS sensors_status_gnss

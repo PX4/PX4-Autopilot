@@ -129,7 +129,7 @@ private:
 	hrt_abstime _last_gnss_fusion_time_us{0};
 
 	// when each GNSS quality check last failed, indexed by its bit in estimator_status.gps_check_fail_flags
-	static constexpr int kNumGnssChecks = estimator_status_s::GPS_CHECK_FAIL_JAMMED + 1;
+	static constexpr int kNumGnssChecks = estimator_status_s::GPS_CHECK_FAIL_HPOSVEL + 1;
 	hrt_abstime _last_gnss_check_fail_time_us[kNumGnssChecks] {};
 
 	// how long after GNSS fusion stops, or after a receiver check last failed, that check is still taken as

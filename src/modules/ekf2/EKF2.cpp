@@ -68,6 +68,7 @@ static uint16_t toEstimatorStatusCheckFlags(uint16_t failed_checks)
 		{vehicle_gnss_s::CHECK_VSPEED,  estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_SPD_ERR},
 		{vehicle_gnss_s::CHECK_SPOOFED, estimator_status_s::GPS_CHECK_FAIL_SPOOFED},
 		{vehicle_gnss_s::CHECK_JAMMED,  estimator_status_s::GPS_CHECK_FAIL_JAMMED},
+		{vehicle_gnss_s::CHECK_HPOSVEL, estimator_status_s::GPS_CHECK_FAIL_HPOSVEL},
 	};
 
 	uint16_t flags = 0;
