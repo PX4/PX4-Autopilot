@@ -1,0 +1,23 @@
+#!/bin/sh
+# prerm for @PX4_PACKAGE@, generated from Tools/packaging/deb/board/prerm.in.
+# Stops the unit, then runs the board's pre-remove hooks while the package
+# files are still installed. On upgrade these are the outgoing version's hooks.
+set -e
+
+service='@PX4_SERVICE@'
+
+case "$1" in
+	remove|upgrade|deconfigure)
+		if [ -d /run/systemd/system ]; then
+			if command -v deb-systemd-invoke >/dev/null 2>&1; then
+				deb-systemd-invoke stop "$service.service" >/dev/null || true
+			else
+				systemctl stop "$service.service" || true
+			fi
+		fi
+
+		PX4_ACTION="$1" PX4_OLD_VERSION="${2:-}" /usr/lib/px4/run-hooks pre-remove
+		;;
+esac
+
+exit 0

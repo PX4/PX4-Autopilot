@@ -33,6 +33,28 @@
 
 # packaging
 
+# Boards with a package descriptor are packaged by Tools/packaging
+# (make <vendor>_<board>_deb), not by CPack in this build directory. The
+# descriptor is validated here so a broken one fails the configure, and the
+# share directory is baked into the binary so a bare `px4` finds its ROMFS.
+set(PX4_PACKAGE_DESCRIPTOR "${PX4_BOARD_DIR}/package.yaml")
+if(EXISTS "${PX4_PACKAGE_DESCRIPTOR}")
+	execute_process(
+		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/packaging/package_descriptor.py
+			cmake-vars "${PX4_PACKAGE_DESCRIPTOR}" --output "${PX4_BINARY_DIR}/package_descriptor_vars.cmake"
+		RESULT_VARIABLE package_descriptor_result
+	)
+	if(NOT package_descriptor_result EQUAL 0)
+		message(FATAL_ERROR "invalid package descriptor ${PX4_PACKAGE_DESCRIPTOR}")
+	endif()
+	set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${PX4_PACKAGE_DESCRIPTOR}")
+	include(${PX4_BINARY_DIR}/package_descriptor_vars.cmake)
+	if(TARGET px4)
+		target_compile_definitions(px4 PRIVATE PX4_INSTALL_PREFIX="${PX4_PACKAGE_SHARE_DIR}")
+	endif()
+	message(STATUS "PX4 package descriptor: ${PX4_PACKAGE_NAME} (make ${PX4_BOARD}_deb)")
+endif()
+
 set(CPACK_PACKAGE_VENDOR "px4")
 set(CPACK_PACKAGE_CONTACT "daniel@agar.ca")
 set(CPACK_RESOURCE_FILE_LICENSE "${PX4_SOURCE_DIR}/LICENSE")
@@ -80,7 +102,9 @@ if("${CMAKE_SYSTEM}" MATCHES "Linux")
 		set(CPACK_PACKAGE_VERSION "${DEB_VERSION}-${DEB_CODENAME}")
 
 		# Label-aware package metadata
-		if(PX4_BOARD_LABEL STREQUAL "sih")
+		if(EXISTS "${PX4_PACKAGE_DESCRIPTOR}")
+			# packaged by Tools/packaging; nothing to configure for CPack here
+		elseif(PX4_BOARD_LABEL STREQUAL "sih")
 			set(CPACK_PACKAGING_INSTALL_PREFIX "/opt/px4")
 			set(CPACK_DEBIAN_PACKAGE_NAME "px4")
 			set(CPACK_DEBIAN_FILE_NAME "px4_${DEB_VERSION}-${DEB_CODENAME}_${DEB_ARCHITECTURE}.deb")
@@ -100,7 +124,7 @@ if("${CMAKE_SYSTEM}" MATCHES "Linux")
 
 		# Bake the install prefix into the px4 binary so it can locate its ROMFS
 		# (etc/) without a wrapper script or command-line argument.
-		if(TARGET px4)
+		if(TARGET px4 AND CPACK_PACKAGING_INSTALL_PREFIX)
 			target_compile_definitions(px4 PRIVATE PX4_INSTALL_PREFIX="${CPACK_PACKAGING_INSTALL_PREFIX}")
 		endif()
 
@@ -120,8 +144,11 @@ else()
 	set(CPACK_GENERATOR "ZIP")
 endif()
 
-# Board-specific overrides (loaded after defaults are set)
-if(EXISTS "${PX4_BOARD_DIR}/cmake/package.cmake")
+# Board-specific overrides (loaded after defaults are set). Deprecated in
+# favour of boards/<vendor>/<board>/package.yaml; see docs/en/hardware/board_packaging.md.
+if(EXISTS "${PX4_BOARD_DIR}/cmake/package.cmake" AND NOT EXISTS "${PX4_PACKAGE_DESCRIPTOR}")
+	message(DEPRECATION "${PX4_BOARD_DIR}/cmake/package.cmake: board CPack overrides are deprecated, "
+		"describe the package in ${PX4_PACKAGE_DESCRIPTOR} instead")
 	include(${PX4_BOARD_DIR}/cmake/package.cmake)
 endif()
 

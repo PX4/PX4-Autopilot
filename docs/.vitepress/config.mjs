@@ -7,8 +7,11 @@ import openEditor from "open-editor"; // Open file locally via edit
 // Tabs: https://github.com/Red-Asuka/vitepress-plugin-tabs
 import tabsPlugin from "@red-asuka/vitepress-plugin-tabs";
 
+// Mermaid diagrams in fenced ```mermaid blocks: https://github.com/emersonbottero/vitepress-plugin-mermaid
+import { withMermaid } from "vitepress-plugin-mermaid";
+
 // https://vitepress.dev/reference/site-config
-export default defineConfig({
+const config = defineConfig({
   title: "PX4 Guide (main)",
   description: "PX4 User and Developer Guide",
   base: process.env.BRANCH_NAME
@@ -309,3 +312,5 @@ export default defineConfig({
     },
   },
 });
+
+export default withMermaid(config);
