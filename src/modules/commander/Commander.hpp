@@ -208,7 +208,7 @@ private:
 
 	void handleCommandsFromModeExecutors();
 
-	void modeManagementUpdate();
+	void modeManagementUpdate(hrt_abstime now);
 
 	static void onFailsafeNotifyUserTrampoline(void *arg);
 	void onFailsafeNotifyUser();

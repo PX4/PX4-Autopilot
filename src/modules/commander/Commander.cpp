@@ -2088,9 +2088,9 @@ void Commander::run()
 			_status_changed = true;
 		}
 
-		modeManagementUpdate();
-
 		const hrt_abstime now = hrt_absolute_time();
+
+		modeManagementUpdate(now);
 
 		const bool nav_state_or_failsafe_changed = handleModeIntentionAndFailsafe();
 
@@ -2646,17 +2646,23 @@ void Commander::checkAndInformReadyForTakeoff()
 #endif // CONFIG_ARCH_BOARD_PX4_SITL
 }
 
-void Commander::modeManagementUpdate()
+void Commander::modeManagementUpdate(hrt_abstime now)
 {
 	ModeManagement::UpdateRequest mode_management_update{};
-	_mode_management.update(_vehicle_status.vehicle_type, _vehicle_status.is_vtol, isArmed(),
-				_vehicle_status.nav_state_user_intention, mode_management_update);
+
+	// Without a land detector (UUV, spacecraft) vehicle_land_detected is never published and landed keeps its initial
+	// true. Such vehicles count as not landed, so the setpoint timeout of external modes applies while armed.
+	const bool landed = (_vehicle_land_detected.timestamp != 0) && _vehicle_land_detected.landed;
+
+	_mode_management.update(_vehicle_status.vehicle_type, _vehicle_status.is_vtol, isArmed(), landed,
+				_vehicle_status.nav_state_user_intention, _vehicle_status.nav_state, now, mode_management_update);
 
 	if (!isArmed() && mode_management_update.change_user_intended_nav_state) {
 		_user_mode_intention.change(mode_management_update.user_intended_nav_state);
 	}
 
-	if (mode_management_update.control_setpoint_update) {
+	// A setpoint timeout change needs the health checks to update mode_req_other right away
+	if (mode_management_update.control_setpoint_update || mode_management_update.setpoint_timeout_changed) {
 		_status_changed = true;
 	}
 }
