@@ -346,10 +346,13 @@ When set to -1 (default), the value depends on the function (see {:}).
         groups = all_param_prefixes[param_prefix]
         # collect the bits
         channel_bits = {}
+        # MixingOutput reads bit i for output channel i, counted from the
+        # instance_start of the prefix's first group (0 or 1)
+        first_instance = groups[0][0]
         for instance_start, instance_start_label, num_instances, label in groups:
             for instance in range(instance_start, instance_start+num_instances):
                 instance_label = instance - instance_start + instance_start_label
-                channel_bits[instance-1] = label + ' ' + str(instance_label)
+                channel_bits[instance - first_instance] = label + ' ' + str(instance_label)
 
         param = {
             'description': {
