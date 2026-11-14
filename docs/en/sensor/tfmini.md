@@ -16,6 +16,9 @@ They connect to the flight controller using a serial port (UART).
 
 PX4 reports distances from 0.4 m to 12 m for the TFmini-S and from 0.1 m to 12 m for the TFmini Plus.
 
+The original TFmini is no longer in Benewake's current product lineup, but the `TFMINI / TFMINI-S` setting remains for compatibility with it.
+The current [TFmini-i](https://en.benewake.com/TFminii/index_proid_324.html) is not supported by this driver: it connects via RS-485 or CAN (separate product versions) rather than UART, and is supplied with 7–30 V.
+
 ## Specifications {#specifications}
 
 - **Technology:** Time-of-flight, 850 nm infrared (VCSEL on the TFmini-S, LED on the TFmini Plus)
@@ -31,7 +34,7 @@ PX4 reports distances from 0.4 m to 12 m for the TFmini-S and from 0.1 m to 12 m
 - **Weight:** 5 g (TFmini-S), 12 g (TFmini Plus)
 - **Operating temperature:** 0–60 °C (TFmini-S), -20 °C to 60 °C (TFmini Plus)
 - **Ingress protection:** IP65 (TFmini Plus)
-- **Laser class:** Class 1 (TFmini-S)
+- **Photobiological safety:** Class 1 (EN 60825) (TFmini-S); exemption level (EN 62471) (TFmini Plus, LED source)
 
 ## Where to Buy {#store}
 
