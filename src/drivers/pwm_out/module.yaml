@@ -11,6 +11,12 @@ actuator_output:
         max: { min: 1600, max: 2200, default: 2000 }
         failsafe: { min: 800, max: 2200 }
       extra_function_groups: [ pwm_fmu ]
+      custom_params:
+        - name: 'GPIO_EN'
+          label: "GPIO\nOutput"
+          index_offset: -1
+          show_as: bitset
+          advanced: true
       pwm_timer_param:
         description:
             short: Output Protocol Configuration for ${label}
