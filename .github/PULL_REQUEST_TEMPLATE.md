@@ -15,7 +15,7 @@ Documentation: Need to clarify page ... / done, read docs.px4.io/...
 
 ### Alternatives
 
-### Test coverage
+### Testing
 
 ### Context
 Related links, screenshot before/after, video
