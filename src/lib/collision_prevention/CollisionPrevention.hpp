@@ -116,6 +116,15 @@ protected:
 	void _adaptSetpointDirection(matrix::Vector2f &setpoint_dir, int &setpoint_index, float vehicle_yaw_angle_rad);
 
 	/**
+	 * Converts the guidance angle parameter to a number of bins, clamped to the parameter's
+	 * documented range [0, 90] deg. The parameter range is metadata only and is not enforced
+	 * when the parameter is set, so the value has to be bounded where it is used.
+	 * @param guidance_angle_deg guidance angle in degrees, may be non-finite
+	 * @return number of bins to search on each side of the setpoint, within [0, 90 / BIN_SIZE]
+	 */
+	static int guidanceBins(float guidance_angle_deg);
+
+	/**
 	 * Constrain the acceleration setpoint based on the distance to the obstacle
 	 * The Scaling of the acceleration setpoint is linear below the min_dist_to_keep and quadratic until the scale_distance above
 	 *           +1          ________ _ _
