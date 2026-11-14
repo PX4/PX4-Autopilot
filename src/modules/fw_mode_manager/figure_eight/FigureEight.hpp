@@ -166,11 +166,12 @@ private:
 	 * @brief Update active segment.
 	 *
 	 * @param[in] curr_pos_local is the current local position of the vehicle in [m].
+	 * @param[in] ground_speed is the current ground speed of the vehicle in [m/s].
 	 * @param[in] parameters is the parameter set defining the figure eight shape.
 	 * @param[in] pattern_points are the relevant points defining the figure eight pattern.
 	 */
-	void updateSegment(const matrix::Vector2f &curr_pos_local, const FigureEightPatternParameters &parameters,
-			   const FigureEightPatternPoints &pattern_points);
+	void updateSegment(const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_speed,
+			   const FigureEightPatternParameters &parameters, const FigureEightPatternPoints &pattern_points);
 	/**
 	 * @brief calculate normalized and rotated relative vehicle position to pattern center.
 	 *
@@ -267,7 +268,8 @@ private:
 	bool _pos_passed_circle_center_along_major_axis;
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::FW_AIRSPD_MAX>) _param_fw_airspd_max,
-		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_nav_loiter_rad
+		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_nav_loiter_rad,
+		(ParamFloat<px4::params::NPFG_ROLL_TC>) _param_npfg_roll_tc
 	)
 };
 
