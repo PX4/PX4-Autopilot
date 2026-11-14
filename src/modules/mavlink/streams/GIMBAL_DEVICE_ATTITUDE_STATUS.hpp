@@ -44,9 +44,6 @@ public:
 	static constexpr const char *get_name_static() { return "GIMBAL_DEVICE_ATTITUDE_STATUS"; }
 	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_GIMBAL_DEVICE_ATTITUDE_STATUS; }
 
-	const char *get_name() const override { return get_name_static(); }
-	uint16_t get_id() override { return get_id_static(); }
-
 	unsigned get_size() override
 	{
 		if (_gimbal_device_attitude_status_sub.advertised()) {

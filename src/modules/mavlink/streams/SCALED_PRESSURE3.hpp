@@ -45,9 +45,6 @@ public:
 	static constexpr const char *get_name_static() { return "SCALED_PRESSURE3"; }
 	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_SCALED_PRESSURE3; }
 
-	const char *get_name() const override { return get_name_static(); }
-	uint16_t get_id() override { return get_id_static(); }
-
 	unsigned get_size() override
 	{
 		if (_sensor_baro_sub.advertised() || _differential_pressure_sub.advertised()) {

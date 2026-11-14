@@ -46,9 +46,6 @@ public:
 	static constexpr const char *get_name_static() { return "HIL_ACTUATOR_CONTROLS"; }
 	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_HIL_ACTUATOR_CONTROLS; }
 
-	const char *get_name() const override { return get_name_static(); }
-	uint16_t get_id() override { return get_id_static(); }
-
 	unsigned get_size() override
 	{
 		return _act_sub.advertised() ? MAVLINK_MSG_ID_HIL_ACTUATOR_CONTROLS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;

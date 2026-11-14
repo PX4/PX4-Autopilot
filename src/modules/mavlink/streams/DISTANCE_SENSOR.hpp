@@ -45,9 +45,6 @@ public:
 	static constexpr const char *get_name_static() { return "DISTANCE_SENSOR"; }
 	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_DISTANCE_SENSOR; }
 
-	const char *get_name() const override { return get_name_static(); }
-	uint16_t get_id() override { return get_id_static(); }
-
 	unsigned get_size() override
 	{
 		return _distance_sensor_subs.advertised_count() * (MAVLINK_MSG_ID_DISTANCE_SENSOR_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES);
