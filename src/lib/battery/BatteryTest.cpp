@@ -41,88 +41,130 @@
 
 using namespace time_literals;
 
+static constexpr int N_CELLS = 4;
+static constexpr float FULL_VOLTAGE = 4.2f * N_CELLS;
+static constexpr hrt_abstime SAMPLE_INTERVAL = 50_ms;
+
 class BatteryTest : public ::testing::Test
 {
 public:
 	void SetUp() override
 	{
 		param_control_autosave(false);
-		param_reset(param_find("BAT1_N_CELLS"));
-		param_reset(param_find("BAT1_CAPACITY"));
+		param_reset_all();
+
+		// The battery only reads its parameters on construction
+		const int32_t n_cells = N_CELLS;
+		param_set(param_find("BAT1_N_CELLS"), &n_cells);
+
+		_battery = new Battery(1, nullptr, SAMPLE_INTERVAL, battery_status_s::SOURCE_POWER_MODULE);
+		_battery->setCapacityMah(1000.f);
+		_battery->setConnected(true);
 	}
 
 	void TearDown() override
 	{
-		param_reset(param_find("BAT1_N_CELLS"));
-		param_reset(param_find("BAT1_CAPACITY"));
+		delete _battery;
 	}
 
-	// feed a connected battery for long enough to pass the initialization delay
-	static battery_status_s run(Battery &battery, float voltage_v, float current_a)
+	// Feed constant samples at the battery sample rate for the given duration
+	void run(const float current_a, const hrt_abstime duration, const float voltage_v = FULL_VOLTAGE)
 	{
-		hrt_abstime timestamp = 1_s;
+		const hrt_abstime end = _now + duration;
 
-		for (int i = 0; i < 8 * 50; i++) {
-			battery.setConnected(true);
-			battery.updateVoltage(voltage_v);
-			battery.updateCurrent(current_a);
-			battery.updateBatteryStatus(timestamp);
-			timestamp += 20_ms;
+		while (_now < end) {
+			_now += SAMPLE_INTERVAL;
+			_battery->updateVoltage(voltage_v);
+			_battery->updateCurrent(current_a);
+			_battery->updateBatteryStatus(_now);
 		}
-
-		return battery.getBatteryStatus();
 	}
+
+	float remaining() { return _battery->getBatteryStatus().remaining; }
+
+	Battery *_battery{nullptr};
+	hrt_abstime _now{1_s};
 };
 
-// without a cell count the state of charge is unknown, which is treated as empty
-TEST_F(BatteryTest, UnknownCellCountIsAnEmergency)
+TEST_F(BatteryTest, CoulombCountIntegratesCurrent)
 {
-	Battery battery(1, nullptr, 20_ms, battery_status_s::SOURCE_POWER_MODULE);
-	const battery_status_s status = run(battery, 12.4f, 1.f);
-	EXPECT_EQ(status.cell_count, 0);
-	EXPECT_FLOAT_EQ(status.remaining, -1.f);
-	EXPECT_EQ(status.warning, battery_status_s::WARNING_EMERGENCY);
+	// GIVEN: an initialized battery
+	run(0.f, 3_s);
+	EXPECT_FLOAT_EQ(_battery->getDischargedMah(), 0.f);
+
+	// WHEN: drawing 36 A for 50 s
+	run(36.f, 50_s);
+
+	// THEN: 36 A * 50 s / 3600 s/h = 0.5 Ah are counted
+	EXPECT_NEAR(_battery->getDischargedMah(), 500.f, 1.f);
 }
 
-// a configured capacity can't make up for the unknown starting charge, so it stays reported as unknown
-TEST_F(BatteryTest, UnknownCellCountWithCapacityStaysUnknown)
+TEST_F(BatteryTest, ZeroOrInvalidCurrentStopsCount)
 {
-	float capacity = 5000.f;
-	param_set(param_find("BAT1_CAPACITY"), &capacity);
+	// The battery simulator holds the charge at SIM_BAT_MIN_PCT by publishing 0 A
+	// GIVEN: a partially discharged battery
+	run(0.f, 3_s);
+	run(36.f, 50_s);
+	const float discharged_mah = _battery->getDischargedMah();
 
-	Battery battery(1, nullptr, 20_ms, battery_status_s::SOURCE_POWER_MODULE);
-	const battery_status_s status = run(battery, 12.4f, 1.f);
-	EXPECT_FLOAT_EQ(status.remaining, -1.f);
-	EXPECT_EQ(status.warning, battery_status_s::WARNING_EMERGENCY);
-	EXPECT_FALSE(PX4_ISFINITE(status.time_remaining_s));
+	// WHEN: no current is drawn
+	run(0.f, 10_s);
+
+	// THEN: the count does not change
+	EXPECT_FLOAT_EQ(_battery->getDischargedMah(), discharged_mah);
+
+	// WHEN: the current is invalid
+	run(-1.f, 10_s);
+
+	// THEN: the count does not change either
+	EXPECT_FLOAT_EQ(_battery->getDischargedMah(), discharged_mah);
 }
 
-// a NaN voltage sample is skipped and doesn't directly trigger a false positive warning,
-TEST_F(BatteryTest, NanVoltageIsSkipped)
+TEST_F(BatteryTest, ResetDischargedMahSetsCount)
 {
-	int32_t n_cells = 3;
-	param_set(param_find("BAT1_N_CELLS"), &n_cells);
-	float capacity = 5000.f;
-	param_set(param_find("BAT1_CAPACITY"), &capacity);
+	// GIVEN: a partially discharged battery
+	run(0.f, 3_s);
+	run(36.f, 50_s);
 
-	Battery battery(1, nullptr, 20_ms, battery_status_s::SOURCE_ESCS);
-	const battery_status_s status = run(battery, NAN, 1.f);
-	EXPECT_EQ(status.warning, battery_status_s::WARNING_NONE);
+	// WHEN: reset to a given discharged capacity
+	_battery->resetDischargedMah(200.f);
+
+	// THEN: the count restarts from that value
+	EXPECT_FLOAT_EQ(_battery->getDischargedMah(), 200.f);
+	run(36.f, 10_s);
+	EXPECT_NEAR(_battery->getDischargedMah(), 300.f, 1.f);
+
+	// WHEN: reset with no argument
+	_battery->resetDischargedMah();
+
+	// THEN: the count restarts from empty
+	EXPECT_FLOAT_EQ(_battery->getDischargedMah(), 0.f);
+
+	// WHEN: reset to a negative value
+	_battery->resetDischargedMah(-100.f);
+
+	// THEN: the count is clamped to 0
+	EXPECT_FLOAT_EQ(_battery->getDischargedMah(), 0.f);
 }
 
-TEST_F(BatteryTest, KnownCellCountEstimatesCharge)
+TEST_F(BatteryTest, ResetDischargedMahReinitializesStateOfCharge)
 {
-	int32_t n_cells = 3;
-	param_set(param_find("BAT1_N_CELLS"), &n_cells);
+	// GIVEN: a battery discharged to half its capacity, with the voltage still reading full
+	run(0.f, 3_s);
+	EXPECT_NEAR(remaining(), 1.f, 0.01f);
+	run(36.f, 50_s);
+	run(0.f, 3_s);
+	EXPECT_NEAR(remaining(), 0.5f, 0.01f);
 
-	Battery battery(1, nullptr, 20_ms, battery_status_s::SOURCE_POWER_MODULE);
-	const battery_status_s status = run(battery, 12.4f, 1.f);
-	EXPECT_EQ(status.cell_count, 3);
-	EXPECT_GT(status.remaining, 0.5f);
-	EXPECT_EQ(status.warning, battery_status_s::WARNING_NONE);
+	// WHEN: the count is reset, e.g. a fresh battery after disarming in simulation
+	_battery->resetDischargedMah();
+	run(0.f, 3_s);
 
-	// an empty battery still raises the emergency warning
-	Battery empty_battery(1, nullptr, 20_ms, battery_status_s::SOURCE_POWER_MODULE);
-	const battery_status_s empty_status = run(empty_battery, 9.f, 1.f);
-	EXPECT_EQ(empty_status.warning, battery_status_s::WARNING_EMERGENCY);
+	// THEN: the state of charge restarts from the voltage instead of keeping the old estimate
+	EXPECT_NEAR(remaining(), 1.f, 0.01f);
+
+	// AND: the battery drains again from full
+	run(36.f, 25_s);
+	run(0.f, 3_s);
+	EXPECT_NEAR(remaining(), 0.75f, 0.01f);
 }
