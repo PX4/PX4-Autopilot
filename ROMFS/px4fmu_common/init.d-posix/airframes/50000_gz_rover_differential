@@ -11,6 +11,17 @@ PX4_SIM_MODEL=${PX4_SIM_MODEL:=rover_differential}
 
 param set-default SIM_GZ_EN 1 # Gazebo bridge
 
+# Sensor Offset Parameters
+param set-default EKF2_IMU_POS_X 0.15625
+param set-default EKF2_IMU_POS_Y 0
+param set-default EKF2_IMU_POS_Z -0.00625
+param set-default EKF2_AXLE_POS_X -0.04375
+param set-default EKF2_AXLE_POS_Y 0
+param set-default EKF2_AXLE_POS_Z -0.00625
+param set-default SENS_GPS0_OFFX 0.15625
+param set-default SENS_GPS0_OFFY 0
+param set-default SENS_GPS0_OFFZ -0.00625
+
 param set-default NAV_ACC_RAD 0.5
 
 # Differential Parameters
@@ -57,3 +68,7 @@ param set-default SIM_GZ_WH_FUNC2 102 # left wheel
 param set-default SIM_GZ_WH_MIN2 80
 param set-default SIM_GZ_WH_MAX2 120
 param set-default SIM_GZ_WH_DIS2 100
+
+# Wheel Encoder Fusion
+param set-default EKF2_WHEEL_CTRL 1
+param set-default EKF2_SENS_EN 16383

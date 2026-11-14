@@ -32,6 +32,7 @@ float32 airspeed	# airspeed innovation (m/sec) and innovation variance ((m/sec)*
 float32 beta		# synthetic sideslip innovation (rad) and innovation variance (rad**2)
 float32 hagl		# height of ground innovation (m) and innovation variance (m**2)
 float32 hagl_rate	# height of ground rate innovation (m/s) and innovation variance ((m/s)**2)
+float32[2] wheel  # wheel encoder sensor innovation for both wheels
 
 # The innovation test ratios are scalar values. In case the field is a vector,
 # the test ratio will be put in the first component of the vector.

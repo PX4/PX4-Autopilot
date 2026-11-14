@@ -79,6 +79,9 @@ static constexpr uint64_t MAG_MAX_INTERVAL      =
 static constexpr uint64_t RNGBC_MAX_INTERVAL    =
 	5000e3;  ///< Maximum allowable time interval between ranging beacon measurements (uSec)
 
+static constexpr uint64_t WHEEL_MAX_INTERVAL    =
+	5000e3;  ///< Maximum allowable time interval between ranging beacon measurements (uSec)
+
 // bad accelerometer detection and mitigation
 static constexpr uint64_t BADACC_PROBATION =
 	3e6; ///< Period of time that accel data declared bad must continuously pass checks to be declared good again (uSec)
@@ -282,6 +285,15 @@ struct rangingBeaconSample {
 	float       beacon_alt{};  ///< beacon altitude AMSL (m)
 };
 
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+struct wheelEncoderSample {
+	uint64_t    time_us{};     ///< timestamp of the measurement (uSec)
+	float       delta_sr{};    ///< distance traveled by right wheel (m)
+	float       delta_sl{};    ///< distance traveled by left wheel (m)
+	float       dt{};          ///< integration period (sec)
+};
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
+
 struct systemFlagUpdate {
 	uint64_t time_us{};
 	bool armed{false};
@@ -312,6 +324,7 @@ struct FusionControl {
 	FusionSensor mag;
 	FusionSensor aspd;
 	FusionSensor rngbcn;
+	FusionSensor wheel;
 };
 
 struct parameters {
@@ -394,8 +407,7 @@ struct parameters {
 	const unsigned EKFGSF_min_active_time{10'000'000}; ///< Minimum period of continuous EKF-GSF velocity fusion after an in-flight restart
 
 #endif // CONFIG_EKF2_GNSS
-
-	float ekf2_noaid_noise{10.0f};          ///< observation noise for non-aiding position fusion (m)
+	float ekf2_noaid_noise {10.0f};         ///< observation noise for non-aiding position fusion (m)
 	float ekf2_hdg_gate{2.6f};              ///< heading fusion innovation consistency gate size (STD)
 	float ekf2_head_noise{3.0e-1f};         ///< measurement noise used for simple heading fusion (rad)
 
@@ -544,6 +556,16 @@ struct parameters {
 	float ekf2_rngbc_gate{5.f};            ///< ranging beacon fusion innovation consistency gate size (STD)
 #endif // CONFIG_EKF2_RANGING_BEACON
 
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+	// wheel encoder fusion
+	int32_t ekf2_wheel_ctrl{0};            ///< wheel encoder fusion control (0=disabled, 1=enabled)
+	float ekf2_wheel_noise{0.01f};           ///< wheel encoder measurement noise (m)
+	float ekf2_wheel_gate{5.f};            ///< wheel encoder fusion innovation consistency gate size (STD)
+	float ekf2_wheel_rad{0.1f};            ///< wheel radius (m)
+	float ekf2_wheel_track{0.6f};          ///< wheel track width (m)
+	Vector3f axle_pos_body{};             ///< driven axle midpoint relative to CG in body FRD (m)
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
+
 };
 
 union fault_status_u {
@@ -635,6 +657,7 @@ uint64_t gnss_hgt_fault              :
 		uint64_t heading_observable      : 1; ///< 49 - true when heading is observable
 		uint64_t rngbcn_fusion           : 1; ///< 50 - true when ranging beacon position fusion is active
 		uint64_t armed                   : 1; ///< 51 - true when the vehicle is armed
+		uint64_t fuse_wheel              : 1; ///< 52 - true when wheel encoder fusion is active
 
 	} flags;
 	uint64_t value;

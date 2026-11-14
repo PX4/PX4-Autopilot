@@ -197,6 +197,16 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_rngbc_noise(_params->ekf2_rngbc_noise),
 	_param_ekf2_rngbc_gate(_params->ekf2_rngbc_gate),
 #endif // CONFIG_EKF2_RANGING_BEACON
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+	_param_ekf2_wheel_ctrl(_params->ekf2_wheel_ctrl),
+	_param_ekf2_wheel_noise(_params->ekf2_wheel_noise),
+	_param_ekf2_wheel_gate(_params->ekf2_wheel_gate),
+	_param_ekf2_wheel_track(_params->ekf2_wheel_track),
+	_param_ekf2_wheel_rad(_params->ekf2_wheel_rad),
+	_param_ekf2_axle_pos_x(_params->axle_pos_body(0)),
+	_param_ekf2_axle_pos_y(_params->axle_pos_body(1)),
+	_param_ekf2_axle_pos_z(_params->axle_pos_body(2)),
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	_param_ekf2_ev_delay(_params->ekf2_ev_delay),
 	_param_ekf2_ev_ctrl(_params->ekf2_ev_ctrl),
@@ -276,6 +286,10 @@ void EKF2::AdvertiseTopics()
 #if defined(CONFIG_EKF2_WIND)
 	_wind_pub.advertise();
 #endif // CONFIG_EKF2_WIND
+
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+	_estimator_aid_src_wheel_encoders_pub.advertise();
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
 
 #if defined(CONFIG_EKF2_GNSS)
 
@@ -847,6 +861,9 @@ void EKF2::Run()
 #if defined(CONFIG_EKF2_RANGING_BEACON)
 		UpdateRangingBeaconSample(ekf2_timestamps);
 #endif // CONFIG_EKF2_RANGING_BEACON
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+		UpdateWheelEncoderSample(ekf2_timestamps);
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
 		UpdateSystemFlagsSample(ekf2_timestamps);
 		UpdateFusionControlFromReplay();
 
@@ -1050,6 +1067,7 @@ void EKF2::initFusionControl()
 		_fc.mag.enabled    = sens_en & SensEn::MAG;
 		_fc.aspd.enabled   = sens_en & SensEn::ASPD;
 		_fc.rngbcn.enabled = sens_en & SensEn::RNGBCN;
+		_fc.wheel.enabled  = sens_en & SensEn::WHEEL;
 	}
 }
 
@@ -1084,6 +1102,8 @@ void EKF2::handleSensorFusionCommand(const vehicle_command_s &cmd, vehicle_comma
 	case vehicle_command_s::FUSION_SOURCE_ASPD:   sensor = &_fc.aspd;   break;
 
 	case vehicle_command_s::FUSION_SOURCE_RNGBCN: sensor = &_fc.rngbcn; break;
+
+	case vehicle_command_s::FUSION_SOURCE_WHEEL:   sensor = &_fc.wheel;   break;
 
 	default: break;
 	}
@@ -1126,6 +1146,8 @@ void EKF2::syncSensEnParam()
 	if (_fc.aspd.enabled)   { sens_en |= SensEn::ASPD; }
 
 	if (_fc.rngbcn.enabled) { sens_en |= SensEn::RNGBCN; }
+
+	if (_fc.wheel.enabled) { sens_en |= SensEn::WHEEL; }
 
 	_param_ekf2_sens_en.set(sens_en);
 	_param_ekf2_sens_en.commit_no_notification();
@@ -1220,6 +1242,12 @@ void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 	PublishAidSourceStatus(timestamp, _ekf.aid_src_optical_flow(), _status_optical_flow_pub_last,
 			       _estimator_aid_src_optical_flow_pub);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
+
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+	// wheel encoders
+	PublishAidSourceStatus(timestamp, _ekf.aid_src_wheel_encoders(), _status_wheel_encoders_pub_last,
+			       _estimator_aid_src_wheel_encoders_pub);
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
 }
 
 void EKF2::PublishAttitude(const hrt_abstime &timestamp)
@@ -1684,6 +1712,12 @@ void EKF2::PublishInnovationVariances(const hrt_abstime &timestamp)
 	variances.beta = _ekf.aid_src_sideslip().innovation_variance;
 #endif // CONFIG_EKF2_SIDESLIP
 
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+	// wheel encoders
+	variances.wheel[0] = _ekf.aid_src_wheel_encoders().innovation_variance[0];
+	variances.wheel[1] = _ekf.aid_src_wheel_encoders().innovation_variance[1];
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
+
 #if defined(CONFIG_EKF2_TERRAIN) && defined(CONFIG_EKF2_RANGE_FINDER)
 	// hagl
 	variances.hagl = _ekf.aid_src_rng_hgt().innovation_variance;
@@ -2044,6 +2078,7 @@ void EKF2::PublishFusionControl(const hrt_abstime &timestamp)
 	msg.mag_intended    = _fc.mag.intended();
 	msg.aspd_intended   = _fc.aspd.intended();
 	msg.rngbcn_intended = _fc.rngbcn.intended();
+	msg.wheel_intended  = _fc.wheel.intended();
 
 	const auto &cs = _ekf.control_status_flags();
 	msg.gps_active[0] = cs.gnss_pos || cs.gps_hgt || cs.gnss_vel || cs.gnss_yaw;
@@ -2054,6 +2089,7 @@ void EKF2::PublishFusionControl(const hrt_abstime &timestamp)
 	msg.mag_active    = cs.mag;
 	msg.aspd_active   = cs.fuse_aspd;
 	msg.rngbcn_active = cs.rngbcn_fusion;
+	msg.wheel_active  = cs.fuse_wheel;
 
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION)
 	{
@@ -2122,6 +2158,7 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.cs_vehicle_at_rest       = _ekf.control_status_flags().vehicle_at_rest;
 		status_flags.cs_gnss_yaw_fault         = _ekf.control_status_flags().gnss_yaw_fault;
 		status_flags.cs_rng_fault             = _ekf.control_status_flags().rng_fault;
+		status_flags.cs_fuse_wheel            = _ekf.control_status_flags().fuse_wheel;
 		status_flags.cs_inertial_dead_reckoning = _ekf.control_status_flags().inertial_dead_reckoning;
 		status_flags.cs_wind_dead_reckoning     = _ekf.control_status_flags().wind_dead_reckoning;
 		status_flags.cs_rng_kin_consistent      = _ekf.control_status_flags().rng_kin_consistent;
@@ -2819,6 +2856,31 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 	}
 }
 #endif // CONFIG_EKF2_RANGE_FINDER
+
+void EKF2::UpdateWheelEncoderSample(ekf2_timestamps_s &ekf2_timestamps)
+{
+	wheel_encoders_s wheel_encoders;
+
+	if (_wheel_encoders_sub.update(&wheel_encoders)) {
+		float dt = 0.01f;
+
+		if (_last_wheel_encoder_timestamp != 0) {
+			dt = (wheel_encoders.timestamp - _last_wheel_encoder_timestamp) / 1e6f;
+		}
+
+		_last_wheel_encoder_timestamp = wheel_encoders.timestamp;
+
+		float wheel_rad = _ekf.getParamHandle()->ekf2_wheel_rad;
+
+		wheelEncoderSample sample{
+			.time_us = wheel_encoders.timestamp,
+			.delta_sr = (float)wheel_encoders.wheel_speed[0] * wheel_rad,
+			.delta_sl = (float)wheel_encoders.wheel_speed[1] * wheel_rad,
+			.dt = dt,
+		};
+		_ekf.setWheelEncoderData(sample);
+	}
+}
 
 void EKF2::UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps)
 {

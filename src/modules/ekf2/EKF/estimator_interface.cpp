@@ -512,6 +512,43 @@ void EstimatorInterface::setRangingBeaconData(const rangingBeaconSample &ranging
 }
 #endif // CONFIG_EKF2_RANGING_BEACON
 
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+void EstimatorInterface::setWheelEncoderData(const wheelEncoderSample &sample)
+{
+	if (!_initialised) {
+		return;
+	}
+
+	// Allocate the required buffer size if not previously done
+	if (_wheel_encoder_buffer == nullptr) {
+		_wheel_encoder_buffer = new TimestampedRingBuffer<wheelEncoderSample>(_obs_buffer_length);
+
+		if (_wheel_encoder_buffer == nullptr || !_wheel_encoder_buffer->valid()) {
+			delete _wheel_encoder_buffer;
+			_wheel_encoder_buffer = nullptr;
+			printBufferAllocationFailed("wheel encoders");
+			return;
+		}
+	}
+
+	const int64_t time_us = sample.time_us
+				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
+
+	if (time_us >= static_cast<int64_t>(_wheel_encoder_buffer->get_newest().time_us + _min_obs_interval_us)) {
+
+		wheelEncoderSample sample_new{sample};
+		sample_new.time_us = time_us;
+
+		_wheel_encoder_buffer->push(sample_new);
+		_time_last_wheel_encoder_buffer_push = _time_latest_us;
+
+	} else {
+		ECL_WARN("wheel encoder data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us,
+			 _wheel_encoder_buffer->get_newest().time_us, _min_obs_interval_us);
+	}
+}
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
+
 void EstimatorInterface::setSystemFlagData(const systemFlagUpdate &system_flags)
 {
 	if (!_initialised) {
@@ -720,7 +757,8 @@ int EstimatorInterface::getNumberOfActiveHorizontalVelocityAidingSources() const
 	       + int(_control_status.flags.ev_vel)
 	       // Combined airspeed and sideslip fusion allows sustained wind relative dead reckoning
 	       // and so is treated as a single aiding source.
-	       + int(_control_status.flags.fuse_aspd && _control_status.flags.fuse_beta);
+	       + int(_control_status.flags.fuse_aspd && _control_status.flags.fuse_beta)
+	       + int(_control_status.flags.fuse_wheel);
 }
 
 bool EstimatorInterface::isHorizontalAidingActive() const

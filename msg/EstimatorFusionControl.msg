@@ -10,6 +10,7 @@ bool rng_intended
 bool mag_intended
 bool aspd_intended
 bool rngbcn_intended
+bool wheel_intended
 
 # whether the estimator is actively fusing data from each source
 bool[2] gps_active
@@ -21,3 +22,4 @@ bool rng_active
 bool mag_active
 bool aspd_active
 bool rngbcn_active
+bool wheel_active

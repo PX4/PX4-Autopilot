@@ -158,6 +158,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_status");
 	add_topic("vtx");
 	add_optional_topic("vtol_vehicle_status", 200);
+	add_topic("wheel_encoders", 10);
 	add_topic("wind", 1000);
 	add_topic("fixed_wing_lateral_setpoint");
 	add_topic("fixed_wing_longitudinal_setpoint");
@@ -429,7 +430,6 @@ void LoggedTopics::add_high_rate_sensors_topics()
 	add_topic("vehicle_air_data", 10);
 	add_topic("vehicle_magnetometer", 10);
 	add_topic("vehicle_thrust_setpoint", 10);
-	add_topic("wheel_encoders", 10);
 }
 
 void LoggedTopics::add_mavlink_tunnel()

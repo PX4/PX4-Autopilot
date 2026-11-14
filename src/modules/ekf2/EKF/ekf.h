@@ -446,6 +446,10 @@ public:
 	const auto &aid_src_ranging_beacon() const { return _aid_src_ranging_beacon; }
 #endif // CONFIG_EKF2_RANGING_BEACON
 
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+	const auto &aid_src_wheel_encoders() const { return _aid_src_wheel_encoders; }
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
+
 	bool resetGlobalPosToExternalObservation(double latitude, double longitude, float altitude, float eph, float epv,
 			uint64_t timestamp_observation);
 
@@ -538,7 +542,8 @@ private:
 	uint64_t _time_last_hor_vel_fuse{0};	///< time the last fusion of horizontal velocity measurements was performed (uSec)
 	uint64_t _time_last_ver_vel_fuse{0};	///< time the last fusion of verticalvelocity measurements was performed (uSec)
 	uint64_t _time_last_heading_fuse{0};
-	uint64_t _time_heading_fusion_start{0};	///< start of the current uninterrupted period of heading observation fusion, while yaw was set manually (uSec)
+	float _wheel_yaw_rate_lpf{0.f}; ///< Low pass filtered wheel yaw rate measurement
+	uint64_t _time_last_heading_fusion_start{0};	///< start of the current uninterrupted period of heading observation fusion, while yaw was set manually (uSec)
 	uint64_t _time_last_terrain_fuse{0};
 
 	LatLonAlt _last_known_gpos{};
@@ -643,6 +648,10 @@ private:
 #if defined(CONFIG_EKF2_RANGING_BEACON)
 	estimator_aid_source1d_s _aid_src_ranging_beacon {};
 #endif // CONFIG_EKF2_RANGING_BEACON
+
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+	estimator_aid_source2d_s _aid_src_wheel_encoders {};
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
 
 #if defined(CONFIG_EKF2_GRAVITY_FUSION)
 	estimator_aid_source3d_s _aid_src_gravity {};
@@ -993,6 +1002,12 @@ private:
 	void fuseRangingBeacon(const rangingBeaconSample &sample);
 	void stopRangingBeaconFusion();
 #endif // CONFIG_EKF2_RANGING_BEACON
+
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+	void controlWheelEncoderFusion(const imuSample &imu_delayed);
+	void fuseWheelEncoders(const wheelEncoderSample &sample, const imuSample &imu_delayed);
+	void stopWheelEncoderFusion();
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// control fusion of magnetometer observations

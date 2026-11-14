@@ -217,6 +217,7 @@ parameters:
         10: Magnetometer
         11: Airspeed
         12: Ranging beacon
+        13: Wheel encoders
       default: 8191
       min: 0
-      max: 8191
+      max: 16383
