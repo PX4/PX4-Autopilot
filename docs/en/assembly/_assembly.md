@@ -410,6 +410,7 @@ They recommend sensors, power systems, and other components from the same manufa
 - [CUAV V5+ Wiring Quickstart](../assembly/quick_start_cuav_v5_plus.md)
 - [CUAV V5 nano Wiring Quickstart](../assembly/quick_start_cuav_v5_nano.md)
 - [CUAV X25 EVO Wiring Quickstart](../assembly/quick_start_cuav_x25_evo.md)
+- [CyberCraft CyberX-v10 Wiring Quickstart](../assembly/quick_start_cyberx_v10.md)
 - [Holybro Pixhawk 6C Wiring Quickstart](../assembly/quick_start_pixhawk6c.md)
 - [Holybro Pixhawk 6X Wiring Quickstart](../assembly/quick_start_pixhawk6x.md)
 - [Holybro Pixhawk 5X Wiring Quickstart](../assembly/quick_start_pixhawk5x.md)
