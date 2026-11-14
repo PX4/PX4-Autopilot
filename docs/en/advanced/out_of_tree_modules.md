@@ -74,6 +74,32 @@ The new uORB messages can be used like any other uORB message as described [here
 The out-of-tree uORB message definitions cannot have the same name as any of the normal uORB messages.
 :::
 
+## Out-of-Tree MAVLink Message Handlers and Streams
+
+An external module can add MAVLink message handlers and streams to the [mavlink module](../modules/modules_communication.md#mavlink) without changing its sources, by calling `px4_add_mavlink_extension()` from its `CMakeLists.txt`:
+
+```cmake
+px4_add_mavlink_extension(
+	HANDLER_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/MyHandler.hpp
+	HANDLERS MyHandler
+	STREAM_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/MY_MESSAGE.hpp
+	STREAMS MavlinkStreamMyMessage
+	SRCS ${CMAKE_CURRENT_SOURCE_DIR}/MyHandler.cpp
+	)
+```
+
+- Each handler class gets one instance per MAVLink instance, constructed from that instance's `Mavlink &`.
+  Its `void handle_message(const mavlink_message_t *msg)` receives every message the instance receives, after the mavlink module's own handlers.
+  `HANDLER_HEADER` is included where `Mavlink` is only declared, so define the handler's methods in `SRCS`, which can include `mavlink_main.h`.
+- Each stream class is written like the streams in [src/modules/mavlink/streams](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/mavlink/streams), and joins the list of streams after the module's own.
+  The `mavlink stream` command and `MAV_CMD_SET_MESSAGE_INTERVAL` reach it by name or message ID; give it a name and message ID no in-tree stream uses.
+- The messages must be in the dialect PX4 is built with (`CONFIG_MAVLINK_DIALECT`).
+- `SRCS` are compiled as part of the mavlink module, with their own directory and the directories of the two headers on its include path (`INCLUDES` adds others).
+  On NuttX the module is built as a single file (a unity build), so file-static and anonymous-namespace names in `SRCS`, and header names, must not collide with the module's own or another extension's.
+
+The mavlink module reads the registrations when it is configured, which is after every external module.
+`src/modules/mavlink/extension_example` is a complete example, built with `CONFIG_MAVLINK_EXTENSION_EXAMPLE`.
+
 ## Building External Modules and uORB Messages
 
 Execute `make px4_sitl EXTERNAL_MODULES_LOCATION=<path>`.
