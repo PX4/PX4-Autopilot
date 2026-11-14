@@ -1,0 +1,55 @@
+menuconfig DRIVERS_IMU_ADI_ADI_BURST
+	bool "ADI single-sample SPI burst family"
+	default n
+	help
+	  Shared acquisition for ADIS1647x, ADIS16497, ADIS1650x and ADIS1657x.
+	  Exact -T selection is required for all commands. Original drivers are retained.
+	  Select at least one model below. ADIS16448 and ADIS16607 are not migrated.
+
+if DRIVERS_IMU_ADI_ADI_BURST
+
+config ADI_BURST_ADIS16470
+	bool "ADIS16470"
+	default n
+
+config ADI_BURST_ADIS16477
+	bool "ADIS16477"
+	default n
+
+config ADI_BURST_ADIS16497
+	bool "ADIS16497"
+	default n
+
+config ADI_BURST_ADIS16500
+	bool "ADIS16500"
+	default n
+
+config ADI_BURST_ADIS16501
+	bool "ADIS16501"
+	default n
+
+config ADI_BURST_ADIS16505
+	bool "ADIS16505"
+	default n
+
+config ADI_BURST_ADIS16507
+	bool "ADIS16507"
+	default n
+
+config ADI_BURST_ADIS16507_16
+	bool "ADIS16507 16-bit compatibility"
+	default n
+
+config ADI_BURST_ADIS16575
+	bool "ADIS16575"
+	default n
+
+config ADI_BURST_ADIS16576
+	bool "ADIS16576"
+	default n
+
+config ADI_BURST_ADIS16577
+	bool "ADIS16577"
+	default n
+
+endif # DRIVERS_IMU_ADI_ADI_BURST
