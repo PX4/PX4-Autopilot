@@ -5,6 +5,7 @@
 uint64 timestamp # [us] Time since system start
 
 uint32 device_id_selected # [-] Receiver that vehicle_gnss carries
+bool primary_offline      # A primary receiver is configured and is not publishing
 
 uint8 MAX_RECEIVERS = 4 # Length of the per-receiver arrays
 

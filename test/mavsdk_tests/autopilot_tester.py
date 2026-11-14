@@ -316,6 +316,9 @@ class AutopilotTester:
     def set_param_int(self, name: str, value: int) -> None:
         self._param.set_param_int(name, value)
 
+    def get_param_int(self, name: str) -> int:
+        return int(self._param.get_param_int(name))
+
     def set_param_float(self, name: str, value: float) -> None:
         self._param.set_param_float(name, value)
 
