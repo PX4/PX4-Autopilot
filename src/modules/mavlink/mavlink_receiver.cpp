@@ -3952,6 +3952,44 @@ void MavlinkReceiver::handle_message_open_drone_id_system(
 
 	_open_drone_id_system_pub.publish(odid_system);
 }
+
+#if defined(MAVLINK_UDP)
+void MavlinkReceiver::update_client_source(const sockaddr_in &source)
+{
+	struct sockaddr_in &last_source = _mavlink.get_client_source_address();
+	const int localhost = (127 << 24) + 1;
+
+	if (!_mavlink.get_client_source_initialized()) {
+		// Set the address either if localhost or if 3 seconds have passed. This
+		// ensures that a GCS running on localhost can get a hold of the system
+		// within the first N seconds.
+		hrt_abstime start_time = _mavlink.get_start_time();
+
+		if ((start_time != 0 && (hrt_elapsed_time(&start_time) > 3_s))
+		    || (last_source.sin_addr.s_addr == htonl(localhost))) {
+			last_source.sin_addr.s_addr = source.sin_addr.s_addr;
+			last_source.sin_port = source.sin_port;
+			_mavlink.set_client_source_initialized();
+			PX4_INFO("partner IP: %s", inet_ntoa(source.sin_addr));
+		}
+
+	} else if ((source.sin_addr.s_addr == last_source.sin_addr.s_addr)
+		   && (source.sin_port == last_source.sin_port)) {
+		// Our client is still there, keep the address latched.
+		_mavlink.mark_client_source_seen();
+
+	} else if (_mavlink.client_source_can_be_replaced()) {
+		// Our client stopped talking to us a while ago and someone else is
+		// talking to us now. This is what a client which was restarted looks
+		// like, as it comes back with a new source port, so switch over to it.
+		last_source.sin_addr.s_addr = source.sin_addr.s_addr;
+		last_source.sin_port = source.sin_port;
+		_mavlink.set_client_source_initialized();
+		PX4_INFO("new partner IP: %s:%d", inet_ntoa(source.sin_addr), ntohs(source.sin_port));
+	}
+}
+#endif // MAVLINK_UDP
+
 void
 MavlinkReceiver::run()
 {
@@ -4040,50 +4078,16 @@ MavlinkReceiver::run()
 					nread = recvfrom(_mavlink.get_socket_fd(), buf, sizeof(buf), 0, (struct sockaddr *)&srcaddr, &addrlen);
 				}
 
-				struct sockaddr_in &srcaddr_last = _mavlink.get_client_source_address();
-
-				int localhost = (127 << 24) + 1;
-
-				if (!_mavlink.get_client_source_initialized()) {
-
-					// set the address either if localhost or if 3 seconds have passed
-					// this ensures that a GCS running on localhost can get a hold of
-					// the system within the first N seconds
-					hrt_abstime stime = _mavlink.get_start_time();
-
-					if ((stime != 0 && (hrt_elapsed_time(&stime) > 3_s))
-					    || (srcaddr_last.sin_addr.s_addr == htonl(localhost))) {
-
-						srcaddr_last.sin_addr.s_addr = srcaddr.sin_addr.s_addr;
-						srcaddr_last.sin_port = srcaddr.sin_port;
-
-						_mavlink.set_client_source_initialized();
-
-						PX4_INFO("partner IP: %s", inet_ntoa(srcaddr.sin_addr));
-					}
-
-				} else if (nread > 0) {
-					if ((srcaddr.sin_addr.s_addr == srcaddr_last.sin_addr.s_addr)
-					    && (srcaddr.sin_port == srcaddr_last.sin_port)) {
-						// Our client is still there, keep the address latched.
-						_mavlink.mark_client_source_seen();
-
-					} else if (_mavlink.client_source_can_be_replaced()) {
-						// Our client stopped talking to us a while ago and someone else is
-						// talking to us now. This is what a client which was restarted looks
-						// like, as it comes back with a new source port, so switch over to it.
-						srcaddr_last.sin_addr.s_addr = srcaddr.sin_addr.s_addr;
-						srcaddr_last.sin_port = srcaddr.sin_port;
-
-						_mavlink.set_client_source_initialized();
-
-						PX4_INFO("new partner IP: %s:%d", inet_ntoa(srcaddr.sin_addr), ntohs(srcaddr.sin_port));
-					}
+				// Without signing, preserve discovery from any received datagram.
+				// Signed links defer this update until frame authentication succeeds.
+				if (nread > 0 && !_mavlink.is_signing_active()) {
+					update_client_source(srcaddr);
 				}
 			}
 
 			// only start accepting messages on UDP once we're sure who we talk to
-			if (_mavlink.get_protocol() != Protocol::UDP || _mavlink.get_client_source_initialized()) {
+			if (_mavlink.get_protocol() != Protocol::UDP || _mavlink.get_client_source_initialized()
+			    || _mavlink.is_signing_active()) {
 #endif // MAVLINK_UDP
 
 				/* if read failed, this loop won't execute */
@@ -4125,11 +4129,30 @@ MavlinkReceiver::run()
 
 					const FrameCheck frame_check = check_frame(framing, msg);
 
+#if defined(MAVLINK_UDP)
+					const mavlink_signing_t *signing = _mavlink.get_status()->signing;
+					const bool authenticated_frame = signing_active
+									 && (frame_check == FrameCheck::Ok || frame_check == FrameCheck::ForwardOnly)
+									 && (msg.incompat_flags & MAVLINK_IFLAG_SIGNED)
+									 && signing != nullptr
+									 && signing->last_status == MAVLINK_SIGNING_STATUS_OK;
+#endif
+
 					if (frame_check == FrameCheck::Invalid) {
 						reset_parser_after_rejected_frame(buf[i]);
 					}
 
 					_mavlink.unlock_send();
+
+#if defined(MAVLINK_UDP)
+
+					// Do not let an unauthenticated datagram select or refresh the
+					// destination used for signed outbound traffic.
+					if (authenticated_frame && _mavlink.get_protocol() == Protocol::UDP) {
+						update_client_source(srcaddr);
+					}
+
+#endif
 
 					if (frame_check == FrameCheck::Ok) {
 
