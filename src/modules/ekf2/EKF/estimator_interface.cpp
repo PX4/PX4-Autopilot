@@ -820,10 +820,7 @@ bool EstimatorInterface::isNorthEastAidingActive() const
 	       || _control_status.flags.gnss_vel
 	       || _control_status.flags.aux_gpos
 	       || (_control_status.flags.ev_pos && ev_pos_ned)
-	       || (_control_status.flags.ev_vel && ev_vel_ned)
-#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
-	       || _control_status.flags.fuse_wheel;
-#endif // CONFIG_EKF2_WHEEL_ENCODERS
+	       || (_control_status.flags.ev_vel && ev_vel_ned);
 }
 
 void EstimatorInterface::printBufferAllocationFailed(const char *buffer_name)
