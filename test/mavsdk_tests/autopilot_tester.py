@@ -45,6 +45,8 @@ MAV_CMD_NAV_LAND = 21
 MAV_CMD_NAV_TAKEOFF = 22
 MAV_CMD_NAV_VTOL_LAND = 85
 MAV_CMD_DO_JUMP = 177
+MAV_CMD_DO_SET_ACTUATOR = 187
+MAV_CMD_COMPONENT_ARM_DISARM = 400
 MAV_CMD_REQUEST_MESSAGE = 512
 MAV_FRAME_GLOBAL_INT = 5
 MAV_FRAME_GLOBAL_RELATIVE_ALT = 3
@@ -401,6 +403,17 @@ class AutopilotTester:
     def enable_actuator_output_status(self) -> None:
         self._telemetry.set_rate_actuator_output_status(20.0)
 
+    def wait_for_actuator_output(self, index: int, value: float, timeout_s: float,
+                                 tolerance: float = 1.0) -> None:
+        """Wait until output index (0-based) of ACTUATOR_OUTPUT_STATUS is within tolerance."""
+        def reached() -> bool:
+            output = float(self._telemetry.actuator_output_status().actuator[index])
+            return abs(output - value) <= tolerance
+
+        assert self.poll_condition_with_timeout(reached, timeout_s), \
+            "Actuator output {} not {} within {} s, last {}".format(
+                index, value, timeout_s, self._telemetry.actuator_output_status().actuator[index])
+
     def ensure_motors_stopped(self, stopped_mask: int, num_motors: int) -> None:
         """Check that exactly the motors in stopped_mask (0-based bits) are stopped."""
         status = self._telemetry.actuator_output_status()
@@ -701,6 +714,9 @@ class AutopilotTester:
         self._mission_raw.upload_mission(items)
         # PX4 needs time to realize that it now has a mission available.
         self.sleep_for(1)
+
+    def download_mission_raw(self) -> List[Any]:
+        return list(self._mission_raw.download_mission())
 
     def load_qgc_mission_raw_and_move_here(self, plan_file: str) -> None:
         """Upload a QGC .plan mission, shifted so that it starts at the current position."""
