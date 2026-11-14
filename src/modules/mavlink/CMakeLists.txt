@@ -109,6 +109,7 @@ px4_add_module(
 		mavlink_events.cpp
 		mavlink_ftp.cpp
 		mavlink_ftp_param.cpp
+		mavlink_ftp_path.cpp
 		mavlink_log_handler.cpp
 		mavlink_main.cpp
 		mavlink_messages.cpp
@@ -170,6 +171,7 @@ px4_add_unit_gtest(SRC MavlinkStatustextHandlerTest.cpp
 	)
 
 px4_add_unit_gtest(SRC MavlinkFtpParamTest.cpp EXTRA_SRCS mavlink_ftp_param.cpp)
+px4_add_unit_gtest(SRC MavlinkFtpPathTest.cpp EXTRA_SRCS mavlink_ftp_path.cpp)
 
 if(CONFIG_NET AND "${PX4_PLATFORM}" MATCHES "nuttx")
 	target_link_libraries(modules__mavlink PRIVATE nuttx_apps) # netlib_get_ipv4netmask
