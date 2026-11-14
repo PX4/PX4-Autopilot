@@ -44,6 +44,8 @@ parameters:
         long: |-
           Set home position automatically if possible.
 
+          If disabled, home is only set manually with MAV_CMD_DO_SET_HOME.
+
           During missions, the latitude/longitude of the home position is locked and will not reset during intermediate landings.
           It will only update once the mission is complete or landed outside of a mission.
           However, the altitude is still being adjusted to correct for GNSS vertical drift in the first 2 minutes after takeoff.
