@@ -61,6 +61,7 @@
 #include <uORB/topics/ranging_beacon.h>
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/aux_global_position.h>
+#include <uORB/topics/vehicle_imu_status.h>
 
 #include "ReplayEkf2.hpp"
 
@@ -132,6 +133,9 @@ ReplayEkf2::onSubscriptionAdded(Subscription &sub, uint16_t msg_id)
 	} else if (sub.orb_meta == ORB_ID(aux_global_position)) {
 		_aux_global_position_msg_ids.push_back(msg_id);
 
+	} else if (sub.orb_meta == ORB_ID(vehicle_imu_status)) {
+		_vehicle_imu_status_msg_ids.push_back(msg_id);
+
 	} else if (sub.orb_meta == ORB_ID(vehicle_local_position_groundtruth)) {
 		_vehicle_local_position_groundtruth_msg_id = msg_id;
 
@@ -191,6 +195,7 @@ ReplayEkf2::publishEkf2Topics(sensor_combined_s &sensor_combined, std::ifstream 
 	findTimestampAndPublish(sensor_combined.timestamp, _vehicle_magnetometer_msg_id, replay_file);
 	findTimestampAndPublish(sensor_combined.timestamp, _vehicle_visual_odometry_msg_id, replay_file);
 	findTimestampAndPublish(sensor_combined.timestamp, _aux_global_position_msg_ids, replay_file);
+	findTimestampAndPublish(sensor_combined.timestamp, _vehicle_imu_status_msg_ids, replay_file);
 	findTimestampAndPublish(sensor_combined.timestamp, _ranging_beacon_msg_id, replay_file);
 	findTimestampAndPublish(sensor_combined.timestamp, _vehicle_gnss_msg_id, replay_file);
 	findTimestampAndPublish(sensor_combined.timestamp, _vehicle_gnss_heading_msg_id, replay_file);
@@ -240,6 +245,7 @@ ReplayEkf2::publishEkf2Topics(const ekf2_timestamps_s &ekf2_timestamps, std::ifs
 	handle_sensor_publication(ekf2_timestamps.vehicle_magnetometer_timestamp_rel, _vehicle_magnetometer_msg_id);
 	handle_sensor_publication(ekf2_timestamps.visual_odometry_timestamp_rel, _vehicle_visual_odometry_msg_id);
 	handle_multi_sensor_publication(0, _aux_global_position_msg_ids);
+	handle_multi_sensor_publication(0, _vehicle_imu_status_msg_ids);
 	handle_sensor_publication(0, _ranging_beacon_msg_id);
 	handle_sensor_publication(0, _vehicle_local_position_groundtruth_msg_id);
 	handle_sensor_publication(0, _vehicle_global_position_groundtruth_msg_id);
@@ -483,6 +489,7 @@ ReplayEkf2::onExitMainLoop()
 	print_sensor_statistics(_vehicle_magnetometer_msg_id, "vehicle_magnetometer");
 	print_sensor_statistics(_vehicle_visual_odometry_msg_id, "vehicle_visual_odometry");
 	print_multi_sensor_statistics(_aux_global_position_msg_ids, "aux_global_position");
+	print_multi_sensor_statistics(_vehicle_imu_status_msg_ids, "vehicle_imu_status");
 	print_sensor_statistics(_ranging_beacon_msg_id, "ranging_beacon");
 
 	if (_ekf2_update_timeouts > 0) {
