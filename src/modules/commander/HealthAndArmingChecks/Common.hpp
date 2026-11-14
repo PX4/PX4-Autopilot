@@ -336,6 +336,7 @@ private:
 	FRIEND_TEST(ReporterTest, arming_checks_mode_category2);
 	FRIEND_TEST(ReporterTest, reporting);
 	FRIEND_TEST(ReporterTest, reporting_multiple);
+	FRIEND_TEST(ReporterTest, manualControlLostReportsBlockedModes);
 #if CONFIG_NAVIGATOR_ADSB
 	FRIEND_TEST(ReporterTest, daaCheckIgnoresStaleConflict);
 	FRIEND_TEST(ReporterTest, daaCheckIgnoresConflictWhileArmed);
