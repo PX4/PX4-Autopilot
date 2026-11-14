@@ -365,6 +365,9 @@
     - [TBS Crossfire (CRSF) Telemetry](telemetry/crsf_telemetry.md)
     - [Satellite Comms (Iridium/RockBlock)](advanced_features/satcom_roadblock.md)
     - [Analog Video Transmitters](vtx/index.md)
+    - [IP-Based Radios](ip_based_radios/index.md)
+      - [UXV Technologies SRM Radios](ip_based_radios/uxv_technologies_srm_radios.md)
+        - [UXV Technologies SRM-S-DL+](ip_based_radios/uxv_technologies_srm_s_dl+.md)
 
   - [Power Systems](power_systems/index.md)
     - [Battery Estimation Tuning](config/battery.md)
