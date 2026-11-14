@@ -322,7 +322,9 @@ board_deinit(void)
 #endif
 
 #if INTERFACE_USB
-	px4_arch_configgpio(MK_GPIO_INPUT(GPIO_OTGFS_VBUS));
+#ifdef BOARD_VBUS
+	px4_arch_configgpio(BOARD_VBUS);
+#endif
 	putreg32(RCC_AHB1RSTR_OTGFSRST, STM32_RCC_AHB1RSTR);
 #endif
 
