@@ -1,9 +1,15 @@
 module_name: Benewake TFmini Rangefinder
 serial_config:
-    - command: tfmini start -d ${SERIAL_DEV}
+    - command: tfmini start -d ${SERIAL_DEV} -R p:SENS_TFMINI_ROT
       port_config_param:
         name: SENS_TFMINI_CFG
         group: Sensors
+
+    - command: tfmini start -d ${SERIAL_DEV} -R p:SENS_TFMINI2_ROT
+      port_config_param:
+        name: SENS_TFMINI2_CFG
+        group: Sensors
+      label: Benewake TFmini Rangefinder (second)
 
 parameters:
     - group: Sensors
@@ -22,3 +28,37 @@ parameters:
             max: 4
             default: 1
             reboot_required: true
+
+        SENS_TFMINI_ROT:
+            description:
+                short: Distance Sensor Rotation
+                long: |
+                    Orientation of the TFmini on the port selected by SENS_TFMINI_CFG,
+                    as MAV_SENSOR_ORIENTATION enum.
+            type: enum
+            values:
+                25: ROTATION_DOWNWARD_FACING
+                24: ROTATION_UPWARD_FACING
+                4: ROTATION_BACKWARD_FACING
+                0: ROTATION_FORWARD_FACING
+                6: ROTATION_LEFT_FACING
+                2: ROTATION_RIGHT_FACING
+            reboot_required: true
+            default: 25
+
+        SENS_TFMINI2_ROT:
+            description:
+                short: Second Distance Sensor Rotation
+                long: |
+                    Orientation of the TFmini on the port selected by SENS_TFMINI2_CFG,
+                    as MAV_SENSOR_ORIENTATION enum.
+            type: enum
+            values:
+                25: ROTATION_DOWNWARD_FACING
+                24: ROTATION_UPWARD_FACING
+                4: ROTATION_BACKWARD_FACING
+                0: ROTATION_FORWARD_FACING
+                6: ROTATION_LEFT_FACING
+                2: ROTATION_RIGHT_FACING
+            reboot_required: true
+            default: 25
