@@ -2,7 +2,7 @@
   <rect width="760" height="300" fill="#ffffff"/>
 
   <text x="24" y="32" font-size="15" font-weight="bold" fill="#212529">Pitch and throttle roles with an airspeed setpoint above trim</text>
-  <text x="24" y="52" font-size="12" fill="#868e96">Depending on the measured airspeed, for FW_T_SPDWEIGHT up to 1.</text>
+  <text x="24" y="52" font-size="12" fill="#868e96">Depending on the measured airspeed.</text>
 
   <!-- regions -->
   <rect x="130" y="70" width="190" height="150" fill="#e7f5ff" stroke="#a5d8ff"/>

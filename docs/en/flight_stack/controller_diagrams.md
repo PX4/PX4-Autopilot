@@ -175,12 +175,13 @@ $$\dot{B} = \frac{\dot{B_s}}{g V_T} \approx \gamma - \frac{\dot{V_T}}{g}$$
 TECS computes the energy rates in their specific form (m²/s³).
 It only converts the energy balance rate to its normalised form, an equivalent flight path angle, when forming the pitch setpoint.
 
-#### Speed and Altitude Weighting
+#### Speed and Altitude Priority
 
-[FW_T_SPDWEIGHT](../advanced_config/parameter_reference.md#FW_T_SPDWEIGHT) sets how the pitch loop weights speed errors against height errors in the energy balance.
-A value of 0 controls height only, which is also used when flying without an airspeed sensor.
-A value of 2 controls speed only, which is intended for gliders.
-The default of 1 weights both equally.
+How fast TECS corrects altitude and airspeed errors is set by the altitude and airspeed time constants, [FW_T_ALT_TC](../advanced_config/parameter_reference.md#FW_T_ALT_TC) and [FW_T_TAS_TC](../advanced_config/parameter_reference.md#FW_T_TAS_TC).
+The airspeed time constant is limited to at most the altitude time constant.
+The throttle supplies the total energy rate, and the pitch splits it between altitude and airspeed.
+Without an airspeed sensor, TECS controls altitude only: the throttle supplies the total energy rate demanded by the altitude error, and the pitch controls height.
+The airspeed time constant `FW_T_TAS_TC` then has no effect.
 
 Pitch only trades altitude for speed up to the trim airspeed ([FW_AIRSPD_TRIM](../advanced_config/parameter_reference.md#FW_AIRSPD_TRIM)): accelerating beyond trim is the throttle's job.
 With an airspeed setpoint above trim, what the pitch loop does therefore depends on the measured airspeed:
@@ -193,11 +194,11 @@ With an airspeed setpoint above trim, what the pitch loop does therefore depends
   If the throttle saturates at [FW_THR_MAX](../advanced_config/parameter_reference.md#FW_THR_MAX), the vehicle holds its altitude and settles at a lower airspeed than commanded.
 - Above the setpoint, pitch trades speed for height to correct the overspeed.
 
-With an airspeed setpoint at or below trim there is no middle region, and pitch and throttle share speed control as weighted by `FW_T_SPDWEIGHT`.
+With an airspeed setpoint at or below trim there is no middle region, and pitch and throttle share speed control.
 
-These regions apply up to a speed weight of 1 and are faded out as the speed weight goes from 1 to 2, so with a weight of 2 pitch alone tracks the full airspeed setpoint.
-Gliders, which have no throttle to accelerate with, should therefore use `FW_T_SPDWEIGHT` = 2.
-The speed weight is also raised towards 2 automatically during underspeed recovery and fast descend, which therefore still use pitch to reach their airspeed setpoint.
+When the demanded total energy rate is beyond what the throttle can deliver (limited by [FW_T_CLMB_MAX](../advanced_config/parameter_reference.md#FW_T_CLMB_MAX) and [FW_T_SINK_MIN](../advanced_config/parameter_reference.md#FW_T_SINK_MIN)), the pitch gives airspeed priority: of the total energy rate the throttle delivers, it uses what the airspeed needs and leaves the rest to altitude.
+During underspeed recovery and fast descend, and without throttle range ([FW_THR_MIN](../advanced_config/parameter_reference.md#FW_THR_MIN) equal to [FW_THR_MAX](../advanced_config/parameter_reference.md#FW_THR_MAX)), as for gliders and gliding waypoints, the throttle is overridden or has no authority and the pitch controls airspeed only.
+In these cases the trim limit above is lifted as well, so pitch alone tracks the full airspeed setpoint.
 
 ## Fixed-Wing Attitude Controller
 

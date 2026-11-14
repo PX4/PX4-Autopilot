@@ -84,7 +84,7 @@ parameters:
           Increase it to trim out speed and height offsets faster,
           with the downside of possible overshoots and oscillations.
       type: float
-      default: 0.1
+      default: 0.2
       min: 0.0
       max: 2.0
       decimal: 2
@@ -120,7 +120,7 @@ parameters:
       description:
         short: Pitch damping gain
       type: float
-      default: 0.1
+      default: 0.2
       min: 0.0
       max: 2.0
       decimal: 2
@@ -169,15 +169,6 @@ parameters:
       default: 0.4
       min: 0.0
       max: 2
-      decimal: 2
-      increment: 0.01
-    FW_T_SEB_R_FF:
-      description:
-        short: Specific total energy balance rate feedforward gain
-      type: float
-      default: 1.0
-      min: 0.5
-      max: 3
       decimal: 2
       increment: 0.01
     FW_WIND_ARSP_SC:

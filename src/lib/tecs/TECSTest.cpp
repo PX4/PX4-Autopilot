@@ -36,6 +36,7 @@
 #include <unistd.h>
 
 #include "TECS.hpp"
+#include <lib/geo/geo.h>
 
 using namespace math;
 
@@ -65,8 +66,6 @@ TECSControl::Param makeParam()
 	param.altitude_setpoint_gain_ff = 0.f;
 	param.airspeed_error_gain = 0.1f;
 	param.ste_rate_time_const = 0.1f;
-	param.seb_rate_ff = 1.f;
-	param.pitch_speed_weight = 1.f;
 	param.integrator_gain_pitch = 0.4f;
 	param.pitch_damping_gain = 0.1f;
 	param.integrator_gain_throttle = 0.3f;
@@ -227,12 +226,11 @@ TEST(TECSControlTest, PitchIntegratorSurvivesSustainedNonFiniteInput)
 TEST(TECSControlTest, PitchOutputUsesMinimumAirspeedBelowIt)
 {
 	TECSControl::Param param = makeParam();
-	param.pitch_speed_weight = 0.f; // pitch controls height only, so airspeed enters solely through the conversion
 	param.pitch_max = 1.5f; // keep both commands clear of the pitch limits
 	param.pitch_min = -1.5f;
 
 	TECSControl::Flag flag = makeFlag();
-	flag.detect_underspeed_enabled = false; // underspeed handling would shift the weights to speed
+	flag.detect_underspeed_enabled = false; // underspeed handling would give airspeed priority
 
 	TECSControl::Setpoint setpoint = makeSetpoint();
 	setpoint.altitude_reference.alt = 102.f; // small climb demand
@@ -242,10 +240,16 @@ TEST(TECSControlTest, PitchOutputUsesMinimumAirspeedBelowIt)
 	TECSControl::Input at_min = makeInput();
 	at_min.tas = param.tas_min;
 
+	// No airspeed error, so that airspeed enters solely through the conversion
+	TECSControl::Setpoint setpoint_below_min = setpoint;
+	setpoint_below_min.tas_setpoint = below_min.tas;
+	TECSControl::Setpoint setpoint_at_min = setpoint;
+	setpoint_at_min.tas_setpoint = at_min.tas;
+
 	TECSControl control_below_min;
-	control_below_min.initialize(setpoint, below_min, param, flag);
+	control_below_min.initialize(setpoint_below_min, below_min, param, flag);
 	TECSControl control_at_min;
-	control_at_min.initialize(setpoint, at_min, param, flag);
+	control_at_min.initialize(setpoint_at_min, at_min, param, flag);
 
 	EXPECT_GT(control_at_min.getPitchSetpoint(), 0.f);
 	EXPECT_FLOAT_EQ(control_below_min.getPitchSetpoint(), control_at_min.getPitchSetpoint());
@@ -492,9 +496,13 @@ TEST(TECSControlTest, PitchIntegratorDoesNotWindUpAtPitchLimit)
 	ASSERT_FLOAT_EQ(control.getPitchSetpoint(), param.pitch_max);
 	const float integrator_saturated = control.getDebugOutput().pitch_integrator;
 
+	// Check the anti-windup while the pitch is held at the limit.
 	for (int i = 0; i < 500; i++) {
 		control.update(kDt, setpoint, input, param, flag);
-		EXPECT_LE(control.getDebugOutput().pitch_integrator, integrator_saturated) << "update " << i;
+
+		if (control.getPitchSetpoint() >= param.pitch_max) {
+			EXPECT_LE(control.getDebugOutput().pitch_integrator, integrator_saturated) << "update " << i;
+		}
 	}
 }
 
@@ -642,12 +650,49 @@ TEST(TECSControlTest, AirspeedlessIgnoresAirspeed)
 	EXPECT_FLOAT_EQ(control_slow.getThrottleSetpoint(), control_reference.getThrottleSetpoint());
 }
 
+// The pitch damping corrects a climb angle error by FW_T_PTCH_DAMP times that error, with or without airspeed: losing
+// the airspeed sensor must not change the pitch loop gain on altitude. At constant throttle a climb angle error is an
+// exchange of kinetic for potential energy, a balance rate error of 2 g V times the climb angle error, which is what
+// the conversion to pitch divides by. Without airspeed the kinetic half is not measured and must not be missing.
+TEST(TECSControlTest, PitchDampingOnClimbAngleErrorIndependentOfAirspeed)
+{
+	TECSControl::Param param = makeParam();
+	param.integrator_gain_pitch = 0.f; // damping only
+
+	// On the altitude and airspeed setpoints, at trim airspeed: no feedforward, the throttle sits at trim
+	const TECSControl::Setpoint setpoint = makeSetpoint();
+	const float climb_rate_error = 1.f;
+
+	// WHEN climbing at constant total energy, i.e. trading airspeed for height
+	TECSControl::Input input = makeInput();
+	input.altitude_rate = climb_rate_error;
+	input.tas_rate = -CONSTANTS_ONE_G * climb_rate_error / input.tas;
+
+	TECSControl with_airspeed;
+	with_airspeed.initialize(setpoint, input, param, makeFlag());
+
+	// AND the same without airspeed, where the airspeed filter reports trim airspeed and no acceleration
+	TECSControl::Flag flag_airspeedless = makeFlag();
+	flag_airspeedless.airspeed_enabled = false;
+	flag_airspeedless.detect_underspeed_enabled = false;
+	TECSControl::Input input_airspeedless = input;
+	input_airspeedless.tas = param.tas_trim;
+	input_airspeedless.tas_rate = 0.f;
+
+	TECSControl airspeedless;
+	airspeedless.initialize(setpoint, input_airspeedless, param, flag_airspeedless);
+
+	// THEN both pitch down by the damping gain times the climb angle error
+	const float expected_pitch = -param.pitch_damping_gain * climb_rate_error / input.tas;
+	EXPECT_NEAR(with_airspeed.getPitchSetpoint(), expected_pitch, 1e-6f);
+	EXPECT_NEAR(airspeedless.getPitchSetpoint(), expected_pitch, 1e-6f);
+}
+
 // Below the minimum airspeed, the pitch integrator must integrate exactly as fast as at the minimum airspeed: it uses
 // the same floored airspeed as the pitch output.
 TEST(TECSControlTest, PitchIntegratorUsesMinimumAirspeedBelowIt)
 {
 	TECSControl::Param param = makeParam();
-	param.pitch_speed_weight = 0.f; // pitch controls height only
 	param.pitch_max = 1.5f;
 	param.pitch_min = -1.5f;
 
@@ -662,12 +707,18 @@ TEST(TECSControlTest, PitchIntegratorUsesMinimumAirspeedBelowIt)
 	TECSControl::Input at_min = makeInput();
 	at_min.tas = param.tas_min;
 
+	// No airspeed error, so that airspeed enters solely through the conversion
+	TECSControl::Setpoint setpoint_below_min = setpoint;
+	setpoint_below_min.tas_setpoint = below_min.tas;
+	TECSControl::Setpoint setpoint_at_min = setpoint;
+	setpoint_at_min.tas_setpoint = at_min.tas;
+
 	TECSControl control_below_min;
-	control_below_min.initialize(setpoint, below_min, param, flag);
-	control_below_min.update(kDt, setpoint, below_min, param, flag);
+	control_below_min.initialize(setpoint_below_min, below_min, param, flag);
+	control_below_min.update(kDt, setpoint_below_min, below_min, param, flag);
 	TECSControl control_at_min;
-	control_at_min.initialize(setpoint, at_min, param, flag);
-	control_at_min.update(kDt, setpoint, at_min, param, flag);
+	control_at_min.initialize(setpoint_at_min, at_min, param, flag);
+	control_at_min.update(kDt, setpoint_at_min, at_min, param, flag);
 
 	EXPECT_GT(control_at_min.getDebugOutput().pitch_integrator, 0.f);
 	EXPECT_FLOAT_EQ(control_below_min.getDebugOutput().pitch_integrator,
@@ -732,6 +783,8 @@ TEST(TECSControlTest, LevelFlightPitchIsFedForward)
 }
 
 // Pitch limits are absolute: a level-flight pitch above the maximum pitch must not lift the command past it.
+// The envelope clip reduces the altitude rate demand to the sink the pitch limit can fly, so the feedforward
+// lands on the limit and the feedback on the (static) altitude rate error pulls the command slightly below it.
 TEST(TECSControlTest, PitchLimitsAreAbsolute)
 {
 	TECSControl::Param param = makeParam();
@@ -742,14 +795,15 @@ TEST(TECSControlTest, PitchLimitsAreAbsolute)
 
 	TECSControl control;
 	control.initialize(makeSetpoint(), input, param, flag);
-	EXPECT_FLOAT_EQ(control.getPitchSetpoint(), param.pitch_max);
+	EXPECT_LE(control.getPitchSetpoint(), param.pitch_max);
+	EXPECT_NEAR(control.getPitchSetpoint(), param.pitch_max, radians(1.f));
 
 	for (int i = 0; i < 100; i++) {
 		control.update(kDt, makeSetpoint(), input, param, flag);
 		EXPECT_LE(control.getPitchSetpoint(), param.pitch_max) << "update " << i;
 	}
 
-	EXPECT_FLOAT_EQ(control.getPitchSetpoint(), param.pitch_max);
+	EXPECT_NEAR(control.getPitchSetpoint(), param.pitch_max, radians(1.f));
 }
 
 // A non-finite demand falls back to the integrator on top of the level-flight pitch, not to the bare integrator.
@@ -766,6 +820,61 @@ TEST(TECSControlTest, NonFiniteDemandFallsBackToLevelFlightPitch)
 	control.initialize(bad_setpoint, makeInput(), param, flag); // integrator reset to zero
 
 	EXPECT_FLOAT_EQ(control.getPitchSetpoint(), param.level_flight_pitch);
+}
+
+// A single non-finite frame must not stay in the filtered states: once the inputs are finite again, pitch and
+// throttle return to those of a controller that never saw the bad frame, instead of a non-finite throttle and a pitch
+// stuck on its non-finite fallback until the controller is reinitialised.
+TEST(TECSControlTest, RecoversFromSingleNonFiniteFrame)
+{
+	using Corrupt = void (*)(TECSControl::Setpoint &, TECSControl::Input &);
+	const struct {
+		const char *name;
+		Corrupt corrupt;
+	} cases[] = {
+		{"tas_setpoint", [](TECSControl::Setpoint & s, TECSControl::Input &) { s.tas_setpoint = NAN; }},
+		{"altitude_reference", [](TECSControl::Setpoint & s, TECSControl::Input &) { s.altitude_reference.alt = NAN; }},
+		{"tas", [](TECSControl::Setpoint &, TECSControl::Input & i) { i.tas = NAN; }},
+		{"tas_rate", [](TECSControl::Setpoint &, TECSControl::Input & i) { i.tas_rate = NAN; }},
+		{"altitude", [](TECSControl::Setpoint &, TECSControl::Input & i) { i.altitude = NAN; }},
+		{"altitude_rate", [](TECSControl::Setpoint &, TECSControl::Input & i) { i.altitude_rate = NAN; }},
+	};
+
+	const TECSControl::Param param = makeParam();
+	const TECSControl::Flag flag = makeFlag();
+	const TECSControl::Input input = makeInput();
+	TECSControl::Setpoint setpoint = makeSetpoint();
+	setpoint.altitude_reference.alt = 150.f; // climb at full throttle, so that kinetic priority is active
+
+	for (const auto &c : cases) {
+		SCOPED_TRACE(c.name);
+
+		TECSControl reference;
+		TECSControl control;
+		reference.initialize(makeSetpoint(), input, param, flag);
+		control.initialize(makeSetpoint(), input, param, flag);
+
+		for (int i = 0; i < 100; i++) {
+			reference.update(kDt, setpoint, input, param, flag);
+			control.update(kDt, setpoint, input, param, flag);
+		}
+
+		// WHEN a single frame is non-finite
+		TECSControl::Setpoint bad_setpoint = setpoint;
+		TECSControl::Input bad_input = input;
+		c.corrupt(bad_setpoint, bad_input);
+		reference.update(kDt, setpoint, input, param, flag);
+		control.update(kDt, bad_setpoint, bad_input, param, flag);
+
+		for (int i = 0; i < 500; i++) {
+			reference.update(kDt, setpoint, input, param, flag);
+			control.update(kDt, setpoint, input, param, flag);
+		}
+
+		// THEN the controller is back to the reference
+		EXPECT_NEAR(control.getThrottleSetpoint(), reference.getThrottleSetpoint(), 1e-3f);
+		EXPECT_NEAR(control.getPitchSetpoint(), reference.getPitchSetpoint(), 1e-3f);
+	}
 }
 
 // Underspeed starts at 1/3 stall + 2/3 min, leaving a margin below tas_min itself
@@ -857,11 +966,18 @@ namespace
 {
 
 // Pitch setpoint after holding altitude for a while with the given airspeed, airspeed setpoint and airspeed rate.
-float pitchSetpointAtSpeed(float tas, float tas_setpoint, float pitch_speed_weight, float tas_rate = 0.f)
+// Without throttle range (gliders) the pitch is the only way to track the airspeed setpoint.
+float pitchSetpointAtSpeed(float tas, float tas_setpoint, float tas_rate = 0.f, bool no_throttle_range = false)
 {
 	TECSControl control;
 	TECSControl::Param param = makeParam();
-	param.pitch_speed_weight = pitch_speed_weight;
+
+	if (no_throttle_range) {
+		param.throttle_min = 0.f;
+		param.throttle_max = 0.f;
+		param.throttle_trim = 0.f;
+	}
+
 	const TECSControl::Flag flag = makeFlag();
 
 	TECSControl::Input input = makeInput();
@@ -894,7 +1010,6 @@ void configureTECS(TECS &tecs)
 	tecs.set_vertical_accel_limit(10.f);
 	tecs.set_altitude_error_time_constant(5.f);
 	tecs.set_airspeed_error_time_constant(2.f);
-	tecs.set_speed_weight(1.f);
 }
 
 void runTECS(TECS &tecs, float altitude, float hgt_setpoint, float equivalent_airspeed, int cycles,
@@ -928,32 +1043,30 @@ void runTECS(TECS &tecs, float altitude, float hgt_setpoint, float equivalent_ai
 // the pitch loop must hold altitude instead of pitching down.
 TEST(TECSControlTest, NoPitchDownToAccelerateAboveTrim)
 {
-	// WHEN flying above trim airspeed (15 m/s) with a higher airspeed setpoint, at nominal and altitude priority
-	const float pitch_nominal_weight = pitchSetpointAtSpeed(20.f, 30.f, 1.f);
-	const float pitch_altitude_priority = pitchSetpointAtSpeed(20.f, 30.f, 0.f);
+	// WHEN flying above trim airspeed (15 m/s) with a higher airspeed setpoint
+	const float pitch = pitchSetpointAtSpeed(20.f, 30.f);
 
 	// THEN the pitch loop holds altitude and does not pitch down
-	EXPECT_NEAR(pitch_nominal_weight, 0.f, 1e-4f);
-	EXPECT_NEAR(pitch_altitude_priority, 0.f, 1e-4f);
+	EXPECT_NEAR(pitch, 0.f, 1e-4f);
 }
 
 // Below trim airspeed, pitch still trades altitude for speed, but only up to trim.
 TEST(TECSControlTest, PitchDownToAccelerateBelowTrim)
 {
 	// WHEN flying below trim airspeed with the setpoint at trim, and with the setpoint above trim
-	const float pitch_setpoint_at_trim = pitchSetpointAtSpeed(12.f, 15.f, 1.f);
-	const float pitch_setpoint_above_trim = pitchSetpointAtSpeed(12.f, 30.f, 1.f);
+	const float pitch_setpoint_at_trim = pitchSetpointAtSpeed(12.f, 15.f);
+	const float pitch_setpoint_above_trim = pitchSetpointAtSpeed(12.f, 30.f);
 
 	// THEN the pitch loop pitches down, but only as much as needed to reach trim airspeed
 	EXPECT_LT(pitch_setpoint_at_trim, 0.f);
 	EXPECT_NEAR(pitch_setpoint_above_trim, pitch_setpoint_at_trim, 1e-4f);
 }
 
-// With full speed priority (e.g. gliders), pitch is the only way to track the airspeed setpoint.
-TEST(TECSControlTest, PitchDownToAccelerateAboveTrimWithSpeedPriority)
+// Without throttle range (gliders), pitch is the only way to track the airspeed setpoint.
+TEST(TECSControlTest, PitchDownToAccelerateAboveTrimWithoutThrottleRange)
 {
-	// WHEN flying above trim airspeed with a higher airspeed setpoint and full speed priority
-	const float pitch = pitchSetpointAtSpeed(20.f, 30.f, 2.f);
+	// WHEN flying above trim airspeed with a higher airspeed setpoint and no throttle range
+	const float pitch = pitchSetpointAtSpeed(20.f, 30.f, 0.f, true);
 
 	// THEN the pitch loop pitches down to accelerate
 	EXPECT_LT(pitch, 0.f);
@@ -963,9 +1076,9 @@ TEST(TECSControlTest, PitchDownToAccelerateAboveTrimWithSpeedPriority)
 // that acceleration, otherwise it pitches up and turns the throttle's energy into height instead of speed.
 TEST(TECSControlTest, NoPitchUpWhileThrottleAcceleratesAboveTrim)
 {
-	// WHEN accelerating between trim airspeed (15 m/s) and the airspeed setpoint, at nominal and altitude priority
-	const float pitch_accelerating = pitchSetpointAtSpeed(18.f, 25.f, 1.f, 1.f);
-	const float pitch_steady = pitchSetpointAtSpeed(18.f, 25.f, 1.f, 0.f);
+	// WHEN accelerating between trim airspeed (15 m/s) and the airspeed setpoint
+	const float pitch_accelerating = pitchSetpointAtSpeed(18.f, 25.f, 1.f);
+	const float pitch_steady = pitchSetpointAtSpeed(18.f, 25.f, 0.f);
 
 	// THEN the pitch setpoint is the same as without acceleration
 	EXPECT_NEAR(pitch_accelerating, pitch_steady, 1e-5f);
@@ -975,8 +1088,8 @@ TEST(TECSControlTest, NoPitchUpWhileThrottleAcceleratesAboveTrim)
 TEST(TECSControlTest, PitchUpOnAccelerationAboveSetpoint)
 {
 	// WHEN accelerating above the airspeed setpoint
-	const float pitch_accelerating = pitchSetpointAtSpeed(22.f, 20.f, 1.f, 1.f);
-	const float pitch_steady = pitchSetpointAtSpeed(22.f, 20.f, 1.f, 0.f);
+	const float pitch_accelerating = pitchSetpointAtSpeed(22.f, 20.f, 1.f);
+	const float pitch_steady = pitchSetpointAtSpeed(22.f, 20.f, 0.f);
 
 	// THEN the pitch loop pitches up more than without acceleration
 	EXPECT_GT(pitch_accelerating, pitch_steady + 1e-3f);
@@ -986,33 +1099,10 @@ TEST(TECSControlTest, PitchUpOnAccelerationAboveSetpoint)
 TEST(TECSControlTest, PitchUpOnOverspeed)
 {
 	// WHEN flying faster than the airspeed setpoint
-	const float pitch = pitchSetpointAtSpeed(25.f, 20.f, 1.f);
+	const float pitch = pitchSetpointAtSpeed(25.f, 20.f);
 
 	// THEN the pitch loop pitches up to slow down
 	EXPECT_GT(pitch, 0.f);
-}
-
-// Between trim airspeed and the setpoint, a speed weight between 1 and 2 must fade the pitch loop's kinetic setpoint
-// and estimate equally: accelerating exactly as commanded while holding altitude leaves no energy balance error.
-TEST(TECSControlTest, KineticSetpointAndEstimateFadeEquallyAboveTrim)
-{
-	TECSControl::Param param = makeParam();
-	param.pitch_speed_weight = 1.5f;
-	TECSControl::Flag flag = makeFlag();
-	flag.detect_underspeed_enabled = false;
-
-	TECSControl::Setpoint setpoint = makeSetpoint(); // altitude reference at the current altitude
-	setpoint.tas_setpoint = 18.f;
-
-	TECSControl::Input input = makeInput();
-	input.tas = 17.f; // between trim (15 m/s) and the setpoint
-	input.tas_rate = (setpoint.tas_setpoint - input.tas) * param.airspeed_error_gain; // the commanded acceleration
-
-	TECSControl control;
-	control.initialize(setpoint, input, param, flag);
-
-	const TECSControl::DebugOutput &debug = control.getDebugOutput();
-	EXPECT_NEAR(debug.energy_balance_rate_sp, debug.energy_balance_rate_estimate, 1e-4f);
 }
 
 // The stall airspeed is converted to TAS the same way as the minimum airspeed.
@@ -1060,4 +1150,147 @@ TEST(TECSUnderspeedTest, AltitudeReferenceTracksSetpointWhenNotUndersped)
 
 	ASSERT_FLOAT_EQ(tecs.get_underspeed_ratio(), 0.f);
 	EXPECT_GT(tecs.getStatus().altitude_reference, altitude);
+}
+
+// --- Pitch energy allocation ----------------------------------------------------
+//
+// The pitch's share of the energy rates, on setpoints only: the throttle is assumed to deliver what its model says.
+
+class TECSPitchAllocationTest : public ::testing::Test
+{
+protected:
+	struct Result {
+		float seb_rate_setpoint;
+		float seb_rate_estimate;
+		float ste_rate;		// total energy rate the pitch relies on
+		float spe_rate_setpoint;
+		float ske_rate_setpoint;
+		float spe_rate_estimate;
+		float ske_rate_estimate;
+		float ste_rate_min;
+		float ste_rate_max;
+	};
+
+	Result allocate(const TECSControl::Setpoint &setpoint, const TECSControl::Input &input,
+			const TECSControl::Param &param, const TECSControl::Flag &flag = makeFlag())
+	{
+		TECSControl control;
+		control.initialize(setpoint, input, param, flag);
+		const TECSControl::STERateLimit limit = control._calculateTotalEnergyRateLimit(param);
+		const TECSControl::SpecificEnergyRates rates = control._updateOuterLoops(setpoint, input, limit, param, flag);
+		const TECSControl::PitchControlValues pitch = control._calcPitchControlSebRateValues(setpoint, input, limit, rates,
+				param, flag);
+
+		return {pitch.seb_rate.setpoint, pitch.seb_rate.estimate, pitch.ste_rate,
+			rates.spe_rate.setpoint, rates.ske_rate.setpoint, rates.spe_rate.estimate, rates.ske_rate.estimate,
+			limit.STE_rate_min, limit.STE_rate_max};
+	}
+};
+
+// Within the throttle's limits the pitch flies the plain energy balance of the setpoints.
+TEST_F(TECSPitchAllocationTest, WithinLimitsIsPlainBalance)
+{
+	TECSControl::Setpoint setpoint = makeSetpoint();
+	setpoint.altitude_reference.alt = 102.f;
+	TECSControl::Input input = makeInput();
+	input.tas = 14.5f;
+
+	const Result r = allocate(setpoint, input, makeParam());
+
+	ASSERT_GT(r.spe_rate_setpoint, 0.f);
+	ASSERT_GT(r.ske_rate_setpoint, 0.f);
+	ASSERT_LT(r.spe_rate_setpoint + r.ske_rate_setpoint, r.ste_rate_max);
+	EXPECT_FLOAT_EQ(r.ste_rate, r.spe_rate_setpoint + r.ske_rate_setpoint);
+	EXPECT_FLOAT_EQ(r.seb_rate_setpoint, r.spe_rate_setpoint - r.ske_rate_setpoint);
+	EXPECT_FLOAT_EQ(r.seb_rate_estimate, r.spe_rate_estimate - r.ske_rate_estimate);
+}
+
+// Climbing beyond the maximum total energy rate: the kinetic demand is met, altitude gets what remains.
+TEST_F(TECSPitchAllocationTest, ClimbBeyondMaximumGivesKineticPriority)
+{
+	TECSControl::Setpoint setpoint = makeSetpoint();
+	setpoint.altitude_reference.alt = 200.f;
+	TECSControl::Input input = makeInput();
+	input.tas = 14.5f;
+
+	const Result r = allocate(setpoint, input, makeParam());
+
+	ASSERT_GT(r.ske_rate_setpoint, 0.f);
+	ASSERT_GT(r.spe_rate_setpoint + r.ske_rate_setpoint, r.ste_rate_max);
+	EXPECT_FLOAT_EQ(r.ste_rate, r.ste_rate_max);
+	// SEB = SPE - SKE with SPE = STE max - SKE sp
+	EXPECT_FLOAT_EQ(r.seb_rate_setpoint, r.ste_rate_max - 2.f * r.ske_rate_setpoint);
+}
+
+// Descending beyond the minimum total energy rate: the kinetic demand is met, the descent is slower.
+TEST_F(TECSPitchAllocationTest, DescentBeyondMinimumGivesKineticPriority)
+{
+	TECSControl::Setpoint setpoint = makeSetpoint();
+	setpoint.altitude_reference.alt = 0.f;
+	TECSControl::Input input = makeInput();
+	input.tas = 15.5f;
+
+	const Result r = allocate(setpoint, input, makeParam());
+
+	ASSERT_LT(r.ske_rate_setpoint, 0.f);
+	ASSERT_LT(r.spe_rate_setpoint + r.ske_rate_setpoint, r.ste_rate_min);
+	EXPECT_FLOAT_EQ(r.ste_rate, r.ste_rate_min);
+	EXPECT_FLOAT_EQ(r.seb_rate_setpoint, r.ste_rate_min - 2.f * r.ske_rate_setpoint);
+}
+
+// In a turn the throttle spends the load factor correction on induced drag, which lowers the total energy rate
+// available to climb and accelerate.
+TEST_F(TECSPitchAllocationTest, LoadFactorLowersAvailableEnergyRate)
+{
+	TECSControl::Setpoint setpoint = makeSetpoint();
+	setpoint.altitude_reference.alt = 200.f;
+	TECSControl::Input input = makeInput();
+	input.tas = 14.5f;
+	TECSControl::Param param = makeParam();
+	param.load_factor_correction = 10.f;
+	param.load_factor = 1.5f;
+	const float load_factor_ste_rate = 5.f;
+
+	const Result r = allocate(setpoint, input, param);
+
+	EXPECT_FLOAT_EQ(r.ste_rate, r.ste_rate_max - load_factor_ste_rate);
+	EXPECT_FLOAT_EQ(r.seb_rate_setpoint, r.ste_rate_max - load_factor_ste_rate - 2.f * r.ske_rate_setpoint);
+}
+
+// In fast descend the throttle sits at its minimum and the pitch flies airspeed only: its error is the kinetic
+// energy rate error alone, independent of the climb rate, and it relies on the minimum total energy rate.
+TEST_F(TECSPitchAllocationTest, FastDescendFliesAirspeedOnly)
+{
+	TECSControl::Setpoint setpoint = makeSetpoint();
+	setpoint.altitude_reference.alt = 0.f;
+	setpoint.tas_setpoint = 30.f;
+	TECSControl::Input input = makeInput();
+	input.tas = 20.f;
+	input.tas_rate = 0.3f;
+	input.altitude_rate = -3.f;
+	TECSControl::Param param = makeParam();
+	param.fast_descend = 1.f;
+
+	const Result r = allocate(setpoint, input, param);
+
+	EXPECT_FLOAT_EQ(r.ste_rate, r.ste_rate_min);
+	EXPECT_NEAR(r.seb_rate_setpoint - r.seb_rate_estimate, 2.f * (r.ske_rate_estimate - r.ske_rate_setpoint), 1e-4f);
+}
+
+// In underspeed the throttle is commanded to its maximum, but the pitch must not rely on it (engine failure, throttle
+// still slewing up, less excess power near stall): it assumes gliding, i.e. the minimum total energy rate, and flies
+// airspeed only.
+TEST_F(TECSPitchAllocationTest, UnderspeedAssumesGliding)
+{
+	TECSControl::Setpoint setpoint = makeSetpoint();
+	TECSControl::Input input = makeInput();
+	input.tas = 7.5f;
+	input.tas_rate = 0.3f;
+	input.altitude_rate = -1.f;
+	const TECSControl::Param param = makeParam();
+
+	const Result r = allocate(setpoint, input, param);
+
+	EXPECT_FLOAT_EQ(r.ste_rate, r.ste_rate_min);
+	EXPECT_NEAR(r.seb_rate_setpoint - r.seb_rate_estimate, 2.f * (r.ske_rate_estimate - r.ske_rate_setpoint), 1e-4f);
 }
