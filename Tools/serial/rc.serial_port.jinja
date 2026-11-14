@@ -9,6 +9,14 @@ if param compare "$PRT" {{ serial_device.index }}; then
 		set SERIAL_DEV {{ serial_device.device }}
 		set BAUD_PARAM SER_{{ serial_device.tag }}_BAUD
 		set PRT_{{ serial_device.tag }}_ 1
+{% if serial_config_enabled -%}
+		if param compare SER_{{ serial_device.tag }}_SWAP 1; then
+			if ! serial_config -d $SERIAL_DEV -s; then
+				echo "Failed to configure {{ serial_device.label }} RX/TX swap"
+				set SERIAL_DEV none
+			fi
+		fi
+{% endif -%}
 {% if not constrained_flash -%}
 	else
 		echo "Conflicting config for {{ serial_device.device }}"
