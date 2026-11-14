@@ -1,0 +1,6 @@
+# Accton Godwit GFH7 debug build configuration
+# Build target: make accton-godwit_gfh7_debug
+# Merged on top of default.px4board, so only the differences belong here.
+
+# UART4 (/dev/ttyS3) is the NuttX console in this build.
+# CONFIG_BOARD_SERIAL_TEL4 is not set

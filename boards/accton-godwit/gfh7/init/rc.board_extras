@@ -1,0 +1,7 @@
+#!/bin/sh
+
+# Start the SPI1 SW7456-compatible analog OSD when configured.
+if ! param compare OSD_ATXXXX_CFG 0
+then
+	atxxxx start -s
+fi
