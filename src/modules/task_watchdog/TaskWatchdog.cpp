@@ -111,7 +111,8 @@ void TaskWatchdog::start()
 	sched_lock();
 
 	for (int i = 0; i < CONFIG_FS_PROCFS_MAX_TASKS; i++) {
-		if (system_load.tasks[i].valid && system_load.tasks[i].tcb->pid == my_pid) {
+		if (system_load.tasks[i].valid && system_load.tasks[i].tcb
+		    && system_load.tasks[i].tcb->pid == my_pid) {
 			_shared.monitored_task_index = i;
 			break;
 		}
@@ -140,7 +141,7 @@ void TaskWatchdog::isr_callback(void *arg)
 	const system_load_taskinfo_s &watchdog_task = system_load.tasks[shared->monitored_task_index];
 	const hrt_abstime now = hrt_absolute_time();
 
-	if (!watchdog_task.valid) {
+	if (!watchdog_task.valid || !watchdog_task.tcb) {
 		shared->monitored_task_index = -1;
 		return;
 	}
