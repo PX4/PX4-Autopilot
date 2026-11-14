@@ -131,20 +131,27 @@ function(px4_add_functional_gtest)
 		add_executable(${TESTNAME} EXCLUDE_FROM_ALL ${SRC} ${EXTRA_SRCS})
 
 		# link the libary to test and gtest
-		set(_FUNCTIONAL_GTEST_LIBS ${LINKLIBS} gtest_functional_main
-		                           px4_layer
-		                           px4_platform
-		                           uORB
-		                           systemlib
-		                           cdev
-		                           px4_work_queue
-		                           px4_daemon
-		                           work_queue
-		                           parameters
-		                           events
-		                           perf
-		                           tinybson
-		                           uorb_msgs)
+		set(_FUNCTIONAL_GTEST_PX4_LIBS px4_layer
+		                               px4_platform
+		                               uORB
+		                               systemlib
+		                               cdev
+		                               px4_work_queue
+		                               px4_daemon
+		                               work_queue
+		                               parameters
+		                               events
+		                               perf
+		                               tinybson
+		                               uorb_msgs)
+		if(APPLE)
+			set(_FUNCTIONAL_GTEST_LIBS ${LINKLIBS} gtest_functional_main ${_FUNCTIONAL_GTEST_PX4_LIBS})
+		else()
+			# These libraries reference each other (px4_platform and parameters publish through uORB),
+			# so which objects a test pulls in depends on the order unless the linker rescans them.
+			set(_FUNCTIONAL_GTEST_LIBS ${LINKLIBS} gtest_functional_main
+			                           -Wl,--start-group ${_FUNCTIONAL_GTEST_PX4_LIBS} -Wl,--end-group)
+		endif()
 		if(TARGET fuzztest::fuzztest)
 			list(APPEND _FUNCTIONAL_GTEST_LIBS fuzztest::fuzztest) # Do not use link_fuzztest() here because that
 			                                                       # also links to fuzztest_gtest_main
