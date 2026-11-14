@@ -44,6 +44,10 @@
 
 #define BOARD_HAS_POWER_CONTROL 1
 
+#if defined(__PX4_LINUX) && !defined(__PX4_SITL_MAIN_OVERRIDE)
+#define CONFIG_BOARDCTL_RESET 1
+#endif
+
 #define PX4_NUMBER_I2C_BUSES 1
 
 #define BOARD_NUMBER_BRICKS     0
