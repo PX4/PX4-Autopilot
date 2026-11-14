@@ -171,7 +171,7 @@ void set_param_value_float(const std::string &name, float value)
 	set_param_value(name, param_value);
 }
 
-int failsafe_update(bool armed, bool vtol_in_transition_mode, bool mission_finished,
+int failsafe_update(bool armed, bool vtol_in_transition_mode, bool mission_finished, bool fw_mission_takeoff,
 		    bool user_override, uint8_t user_intended_mode, uint8_t vehicle_type,
 		    failsafe_flags_s status_flags, bool defer_failsafes)
 {
@@ -182,6 +182,10 @@ int failsafe_update(bool armed, bool vtol_in_transition_mode, bool mission_finis
 	state.mission_finished = mission_finished;
 	state.user_intended_mode = user_intended_mode;
 	state.vehicle_type = vehicle_type;
+	// Same condition as in Commander: only a fixed-wing vehicle in Mission can be in its takeoff item
+	state.fw_mission_takeoff = fw_mission_takeoff
+				   && user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION
+				   && vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 	mode_util::getModeRequirements(vehicle_type, status_flags);
 	failsafe_instance.current().deferFailsafes(defer_failsafes, 0);
 	return failsafe_instance.current().update(time_ms * 1000, state, false, user_override, status_flags);
