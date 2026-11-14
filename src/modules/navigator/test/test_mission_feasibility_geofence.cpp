@@ -853,3 +853,65 @@ INSTANTIATE_TEST_SUITE_P(MissionEnds, MissionGeofenceEndLoiterTest, ::testing::V
 {
 	return test_info.param.name;
 });
+
+// Both fence levels use the existing waypoint, leg and loiter feasibility checks.
+class MissionPreGeofenceTest : public MissionGeofenceLoiterTest
+{
+protected:
+	FencePoints bothFences() const
+	{
+		FencePoints points = inclusionSquare();
+		const FencePoints pre = polygon(true, {{-900.f, -900.f}, {900.f, -900.f}, {900.f, 900.f}, {-900.f, 900.f}}, FenceLevel::Pre);
+		points.insert(points.end(), pre.begin(), pre.end());
+		return points;
+	}
+
+	void setDefaultLoiterRadius(float radius)
+	{
+		ASSERT_EQ(param_set(param_find("NAV_LOITER_RAD"), &radius), PX4_OK);
+		_navigator.updateParams();
+	}
+};
+
+TEST_F(MissionPreGeofenceTest, WaypointsMustSatisfyBothLevels)
+{
+	ASSERT_TRUE(loadFence(bothFences()));
+	EXPECT_TRUE(missionFeasible({waypoint({0.f, 0.f}), waypoint({0.f, 850.f})}));
+	EXPECT_FALSE(missionFeasible({waypoint({0.f, 0.f}), waypoint({0.f, 950.f})}));
+	EXPECT_FALSE(missionFeasible({waypoint({0.f, 950.f}), waypoint({0.f, 0.f})}));
+	ASSERT_TRUE(loadFence(inclusionSquare()));
+	EXPECT_TRUE(missionFeasible({waypoint({0.f, 0.f}), waypoint({0.f, 950.f})}));
+}
+
+TEST_F(MissionPreGeofenceTest, LoiterCircleMustSatisfyPreGeofence)
+{
+	ASSERT_TRUE(configureVehicle());
+	setDefaultLoiterRadius(40.f);
+	ASSERT_TRUE(loadFence(bothFences()));
+	EXPECT_TRUE(missionFeasible({waypoint({0.f, 0.f}), loiter(850.f, 40.f), waypoint({0.f, 0.f})}));
+	EXPECT_FALSE(missionFeasible({waypoint({0.f, 0.f}), loiter(870.f, 40.f), waypoint({0.f, 0.f})}));
+}
+
+TEST_F(MissionPreGeofenceTest, EndOfMissionLoiterMustSatisfyPreGeofence)
+{
+	ASSERT_TRUE(configureVehicle());
+	setDefaultLoiterRadius(40.f);
+	ASSERT_TRUE(loadFence(bothFences()));
+	EXPECT_TRUE(missionFeasible({waypoint({0.f, 0.f}), waypoint({0.f, 850.f})}));
+	EXPECT_FALSE(missionFeasible({waypoint({0.f, 0.f}), waypoint({0.f, 870.f})}));
+	ASSERT_TRUE(configureVehicle(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING));
+	EXPECT_TRUE(missionFeasible({waypoint({0.f, 0.f}), waypoint({0.f, 870.f})}));
+}
+
+TEST_F(MissionPreGeofenceTest, LegCrossingOnlyPreGeofenceIsRejected)
+{
+	FencePoints points = exclusionSquare();
+	const FencePoints pre = polygon(false, {{-150.f, 150.f}, {150.f, 150.f}, {150.f, 450.f}, {-150.f, 450.f}}, FenceLevel::Pre);
+	points.insert(points.end(), pre.begin(), pre.end());
+	ASSERT_TRUE(loadFence(points));
+	// Both endpoints are valid and the leg clears the hard exclusion by 30 m.
+	EXPECT_FALSE(missionFeasible({waypoint({80.f, 0.f}), waypoint({80.f, 600.f})}));
+	expectPathViolation(2);
+	ASSERT_TRUE(loadFence(exclusionSquare()));
+	EXPECT_TRUE(missionFeasible({waypoint({80.f, 0.f}), waypoint({80.f, 600.f})}));
+}

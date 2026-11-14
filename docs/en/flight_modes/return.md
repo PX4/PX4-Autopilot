@@ -210,7 +210,7 @@ The vehicle:
 
 <Badge type="tip" text="main (PX4 v1.20)" />
 
-For most of the return types (including the default home/rally point return type) the return path is chosen to avoid breaching any geofence.
+For most of the return types (including the default home/rally point return type) the return path is chosen to avoid breaching any geofence or [pre-geofence](../config/safety.md#pre-geofence).
 Planning is purely horizontal: the altitude profile is unaffected, and only the lateral path is adjusted to avoid the fence.
 If no geofence is set, the vehicle flies a direct path to the destination.
 
@@ -258,7 +258,9 @@ The figures below show an exclusion zone and an inclusion zone.
 
 - The size of geofence that can be handled is limited by [GF_AVOID_NODES](../advanced_config/parameter_reference.md#GF_AVOID_NODES) (default 100, maximum 200, reboot required).
   Each circle counts as 8 nodes, and each polygon counts as its number of vertices plus extra nodes for sharp corners.
-  If the geofence needs more nodes than configured, the autopilot falls back to a direct path as described above.
+  The areas of a [pre-geofence](../config/safety.md#pre-geofence) count as well.
+  The planner also supports at most 16 areas across both levels.
+  If either limit is exceeded, the autopilot falls back to a direct path as described above.
   Setting the parameter to 0 disables geofence awareness in Return entirely.
 - The autopilot does not check at upload time whether every part of the allowed area is still reachable once the [safety margin](#shortest-path-calculation) has been applied.
   A region can be "cut off" by the margin — for example where several exclusion zones overlap — without any error being reported when the geofence is uploaded.

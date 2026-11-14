@@ -70,7 +70,7 @@ typedef enum {
 enum {
 	DM_KEY_SAFE_POINTS_MAX = 32,
 	DM_KEY_SAFE_POINTS_STATE_MAX = 1,
-	DM_KEY_FENCE_POINTS_MAX = 64,
+	DM_KEY_FENCE_POINTS_MAX = 2 * kMaxFencePointsPerLevel,
 	DM_KEY_FENCE_POINTS_STATE_MAX = 1,
 	DM_KEY_WAYPOINTS_OFFBOARD_0_MAX = CONFIG_NUM_MISSION_ITEMS_SUPPORTED,
 	DM_KEY_WAYPOINTS_OFFBOARD_1_MAX = CONFIG_NUM_MISSION_ITEMS_SUPPORTED,
@@ -119,7 +119,8 @@ static constexpr size_t g_per_item_size[DM_KEY_NUM_KEYS] = {
 };
 
 /* increment this define whenever a binary incompatible change is performed */
-#define DM_COMPAT_VERSION	5ULL
+// Fence levels reuse old uninitialised padding; the larger banks also move following items.
+#define DM_COMPAT_VERSION	6ULL
 
 #define DM_COMPAT_KEY ((DM_COMPAT_VERSION << 32) + (sizeof(struct mission_item_s) << 24) + \
 		       (sizeof(struct mission_s) << 16) + (sizeof(struct mission_stats_entry_s) << 12) + \

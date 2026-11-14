@@ -91,7 +91,7 @@ public:
 
 	/**
 	 * Check if a 3D point passes the Geofence test.
-	 * Checks max distance, max altitude, inside polygon or circle.
+	 * Checks max distance, max altitude, inside the polygons and circles of the geofence and the pre-geofence.
 	 * In addition to checkPolygons(), this takes all additional parameters into account.
 	 *
 	 * @return false for a geofence violation
@@ -107,7 +107,7 @@ public:
 	};
 
 	/**
-	 * Check 1..MAX_PATH_CHECKS paths and optional circles at their ends against horizontal fences.
+	 * Check 1..MAX_PATH_CHECKS paths and optional circles at their ends against horizontal fences (both levels).
 	 * Circles are also checked against the maximum distance from Home.
 	 * Boundary contact is a breach, including contact by a circle. Callers choose the circles;
 	 * a fixed-wing waypoint turned into a loiter to reach its altitude cannot be predicted here.
@@ -149,10 +149,14 @@ public:
 	/** Check the altitude band from a loaded fence file, if configured. */
 	bool isWithinAltitudeBand(float altitude);
 
+	/** Check the polygons and circles of the geofence and the fence-file altitude band, not the pre-geofence. */
 	virtual bool isInsidePolygonOrCircle(double lat, double lon, float altitude);
 
-	/** Check the polygons and circles only, without the altitude band. */
+	/** Check the polygons and circles only (both levels), without the altitude band. */
 	bool isInsideHorizontalFences(double lat, double lon, float altitude);
+
+	/** Check the polygons and circles of the pre-geofence only. True if it has none. */
+	bool isInsidePreGeofence(double lat, double lon);
 
 	bool valid();
 
@@ -181,6 +185,9 @@ public:
 
 	int getSource() { return _param_gf_source.get(); }
 	int getGeofenceAction() { return _param_gf_action.get(); }
+
+	/** GF_PRE_ACTION as a GF_ACTION value: None without a pre-geofence, Warning for values it does not offer. */
+	uint8_t getPreGeofenceAction() const;
 
 	float getMaxHorDistanceHome() { return _param_gf_max_hor_dist.get(); }
 
@@ -305,11 +312,14 @@ private:
 	bool insideCircle(const PolygonInfo &polygon, double lat, double lon, float altitude);
 
 	bool checkPaths(const PathCheck *paths, size_t num_paths, bool *results);
+
 	bool _readFencePoint(unsigned index, mission_fence_point_s &point);
 	bool _fencePointValid(const mission_fence_point_s &point) const;
 	bool checkPolygonPaths(const PolygonInfo &polygon, const PathCheck *paths, const uint8_t *pieces, size_t num_paths,
 			       bool *results);
 	bool checkCirclePaths(const PolygonInfo &polygon, const PathCheck *paths, size_t num_paths, bool *results);
+
+	bool isInsideFenceLevel(double lat, double lon, float altitude, FenceLevel level);
 
 	/**
 	 * Check if a single point is within a polygon or circle
@@ -340,6 +350,7 @@ private:
 		(ParamInt<px4::params::GF_ACTION>)         _param_gf_action,
 		(ParamInt<px4::params::GF_SOURCE>)         _param_gf_source,
 		(ParamFloat<px4::params::GF_MAX_HOR_DIST>) _param_gf_max_hor_dist,
-		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist
+		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist,
+		(ParamInt<px4::params::GF_PRE_ACTION>)     _param_gf_pre_action
 	)
 };

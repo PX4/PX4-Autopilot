@@ -57,6 +57,8 @@
 #include <systemlib/mavlink_log.h>
 #include <px4_platform_common/events.h>
 
+static_assert(DM_KEY_FENCE_POINTS_MAX <= UINT8_MAX, "Fence indices must fit in PolygonInfo::dataman_index");
+
 // Great circles approximate the straight local lines used by guidance; fence edges are straight in lat/lon.
 // A straight lat/lon line at heading h has geodesic curvature tan(lat) * sin(h) * (1 + cos(h)^2) / R, tan(lat) / R
 // along a parallel (https://en.wikipedia.org/wiki/Geodesic_curvature), so over a length L it strays at most
@@ -196,7 +198,7 @@ static uint32_t crc32_for_fence_point(const mission_fence_point_s &fence_point, 
 	u.item.autocontinue = 0U;
 	u.item.params[0] = 0.f;
 	u.item.params[1] = 0.f;
-	u.item.params[2] = 0.f;
+	u.item.params[2] = static_cast<float>(fence_point.fence_level);
 	u.item.params[3] = 0.f;
 	u.item.params[4] = static_cast<float>(fence_point.lat);
 	u.item.params[5] = static_cast<float>(fence_point.lon);
@@ -444,6 +446,7 @@ Geofence::LoadResult Geofence::_updateFence()
 	// iterate over all polygons and store their starting vertices
 	_num_polygons = 0;
 	int current_seq = 0;
+	uint16_t points_per_level[2] {};
 
 	while (current_seq < _dataman_cache.size()) {
 
@@ -461,6 +464,12 @@ Geofence::LoadResult Geofence::_updateFence()
 
 		switch (mission_fence_point.nav_cmd) {
 		case NAV_CMD_FENCE_RETURN_POINT:
+			if (++points_per_level[static_cast<unsigned>(FenceLevel::Hard)] > kMaxFencePointsPerLevel) {
+				_reportInvalidFence(current_seq);
+				_clearFence();
+				return LoadResult::Invalid;
+			}
+
 			// TODO: do we need to store this?
 			++current_seq;
 			break;
@@ -475,6 +484,16 @@ Geofence::LoadResult Geofence::_updateFence()
 				if (validity != LoadResult::Loaded) {
 					_clearFence();
 					return validity;
+				}
+
+				// Apply the upload's per-level limit to stored fences too.
+				uint16_t &level_points = points_per_level[static_cast<unsigned>(mission_fence_point.fence_level)];
+				level_points += is_circle_area ? 1 : mission_fence_point.vertex_count;
+
+				if (level_points > kMaxFencePointsPerLevel) {
+					_reportInvalidFence(current_seq);
+					_clearFence();
+					return LoadResult::Invalid;
 				}
 
 				if (_polygons) {
@@ -499,8 +518,9 @@ Geofence::LoadResult Geofence::_updateFence()
 				}
 
 				PolygonInfo &polygon = _polygons[_num_polygons];
-				polygon.dataman_index = current_seq;
+				polygon.dataman_index = static_cast<uint8_t>(current_seq);
 				polygon.fence_type = mission_fence_point.nav_cmd;
+				polygon.fence_level = mission_fence_point.fence_level;
 
 				if (is_circle_area) {
 					polygon.circle_radius = mission_fence_point.circle_radius;
@@ -544,7 +564,8 @@ Geofence::LoadResult Geofence::_validateFenceArea(unsigned index, const mission_
 
 	if (!_fencePointValid(first)
 	    || (is_circle && !(PX4_ISFINITE(first.circle_radius) && first.circle_radius > 0.f))
-	    || (!is_circle && (vertex_count < 3 || index + vertex_count > static_cast<unsigned>(_dataman_cache.size())))) {
+	    || (!is_circle && (vertex_count < kMinFencePolygonVertices || vertex_count > kMaxFencePointsPerLevel
+			       || index + vertex_count > static_cast<unsigned>(_dataman_cache.size())))) {
 		_reportInvalidFence(index);
 		return LoadResult::Invalid;
 	}
@@ -566,7 +587,8 @@ Geofence::LoadResult Geofence::_validateFenceArea(unsigned index, const mission_
 				return LoadResult::ReadFailed;
 			}
 
-			if (!_fencePointValid(vertex) || vertex.nav_cmd != first.nav_cmd || vertex.vertex_count != first.vertex_count) {
+			if (!_fencePointValid(vertex) || vertex.nav_cmd != first.nav_cmd || vertex.vertex_count != first.vertex_count
+			    || vertex.fence_level != first.fence_level) {
 				_reportInvalidFence(index + v);
 				return LoadResult::Invalid;
 			}
@@ -587,7 +609,8 @@ Geofence::LoadResult Geofence::_validateFenceArea(unsigned index, const mission_
 
 bool Geofence::_fencePointValid(const mission_fence_point_s &point) const
 {
-	if (!PX4_ISFINITE(point.lat) || !PX4_ISFINITE(point.lon) || fabs(point.lat) > 90.0 || fabs(point.lon) > 180.0) {
+	if (!PX4_ISFINITE(point.lat) || !PX4_ISFINITE(point.lon) || fabs(point.lat) > 90.0 || fabs(point.lon) > 180.0
+	    || point.fence_level > FenceLevel::Pre) {
 		return false;
 	}
 
@@ -605,7 +628,7 @@ bool Geofence::_fencePointValid(const mission_fence_point_s &point) const
 
 bool Geofence::_readFencePoint(unsigned index, mission_fence_point_s &point)
 {
-	return index < static_cast<unsigned>(_dataman_cache.size())
+	return index < DM_KEY_FENCE_POINTS_MAX && index < static_cast<unsigned>(_dataman_cache.size())
 	       && _dataman_cache.loadWait(static_cast<dm_item_t>(_stats.dataman_id), index,
 					  reinterpret_cast<uint8_t *>(&point), sizeof(point));
 }
@@ -635,7 +658,9 @@ bool Geofence::checkCurrentPositionRequirementsForGeofence(const PolygonInfo &po
 	bool checks_pass = true;
 
 	// do not allow upload of geofence if vehicle is flying and current geofence would be immediately violated
-	if (getGeofenceAction() != geofence_result_s::GF_ACTION_NONE && !_navigator->get_land_detected()->landed) {
+	// A pre-geofence area always has an action: GF_PRE_ACTION has no None.
+	if ((polygon.fence_level == FenceLevel::Pre || getGeofenceAction() != geofence_result_s::GF_ACTION_NONE)
+	    && !_navigator->get_land_detected()->landed) {
 		checks_pass = checkPointAgainstPolygonCircle(polygon, _navigator->get_global_position()->lat,
 				_navigator->get_global_position()->lon, _navigator->get_global_position()->alt);
 	}
@@ -653,7 +678,7 @@ bool Geofence::checkCurrentPositionRequirementsForGeofence(const PolygonInfo &po
 bool Geofence::checkPointAgainstAllGeofences(double lat, double lon, float altitude)
 {
 	const bool inside_fence = isCloserThanMaxDistToHome(lat, lon, altitude) && isBelowMaxAltitude(altitude)
-				  && isInsidePolygonOrCircle(lat, lon, altitude);
+				  && isInsidePolygonOrCircle(lat, lon, altitude) && isInsidePreGeofence(lat, lon);
 	return inside_fence;
 }
 
@@ -871,6 +896,11 @@ bool Geofence::isWithinAltitudeBand(float altitude)
 	return true;
 }
 
+bool Geofence::isInsidePreGeofence(double lat, double lon)
+{
+	return isInsideFenceLevel(lat, lon, 0.f, FenceLevel::Pre);
+}
+
 bool Geofence::isInsidePolygonOrCircle(double lat, double lon, float altitude)
 {
 	if (isEmpty()) {
@@ -883,14 +913,25 @@ bool Geofence::isInsidePolygonOrCircle(double lat, double lon, float altitude)
 		return false;
 	}
 
-	/* Horizontal check: iterate all polygons & circles */
-	bool checksPass = true;
+	/* Horizontal check: the geofence polygons & circles, the pre-geofence has its own check */
+	return isInsideFenceLevel(lat, lon, altitude, FenceLevel::Hard);
+}
 
-	for (int polygon_index = 0; polygon_index < _num_polygons; ++polygon_index) {
-		checksPass &= checkPointAgainstPolygonCircle(_polygons[polygon_index], lat, lon, altitude);
+bool Geofence::isInsideFenceLevel(double lat, double lon, float altitude, FenceLevel level)
+{
+	if (isEmpty()) {
+		return true;
 	}
 
-	return checksPass;
+	bool inside = true;
+
+	for (int polygon_index = 0; polygon_index < _num_polygons; ++polygon_index) {
+		if (_polygons[polygon_index].fence_level == level) {
+			inside &= checkPointAgainstPolygonCircle(_polygons[polygon_index], lat, lon, altitude);
+		}
+	}
+
+	return inside;
 }
 
 bool Geofence::isInsideHorizontalFences(double lat, double lon, float altitude)
@@ -906,6 +947,26 @@ bool Geofence::isInsideHorizontalFences(double lat, double lon, float altitude)
 	}
 
 	return inside;
+}
+
+uint8_t Geofence::getPreGeofenceAction() const
+{
+	// Not isEmpty(): the loaded areas stay in place while a new fence loads.
+	for (int polygon_index = 0; polygon_index < _num_polygons; ++polygon_index) {
+		if (_polygons[polygon_index].fence_level == FenceLevel::Pre) {
+			switch (_param_gf_pre_action.get()) {
+			case geofence_result_s::GF_ACTION_LOITER:
+			case geofence_result_s::GF_ACTION_RTL:
+			case geofence_result_s::GF_ACTION_LAND:
+				return static_cast<uint8_t>(_param_gf_pre_action.get());
+
+			default:
+				return geofence_result_s::GF_ACTION_WARN;
+			}
+		}
+	}
+
+	return geofence_result_s::GF_ACTION_NONE;
 }
 
 bool Geofence::checkPointAgainstPolygonCircle(const PolygonInfo &polygon, double lat, double lon, float altitude)
@@ -1086,6 +1147,11 @@ Geofence::loadFromFile(const char *filename)
 		}
 
 		if (gotVertical) {
+			if (pointCounter >= kMaxFencePointsPerLevel) {
+				PX4_ERR("Geofence file exceeds %u vertices", static_cast<unsigned>(kMaxFencePointsPerLevel));
+				goto error;
+			}
+
 			/* Parse the line as a geofence point */
 			mission_fence_point_s vertex{};
 			vertex.frame = NAV_FRAME_GLOBAL;
@@ -1142,7 +1208,7 @@ Geofence::loadFromFile(const char *filename)
 
 
 	/* Check if import was successful */
-	if (gotVertical && pointCounter > 2) {
+	if (gotVertical && pointCounter >= kMinFencePolygonVertices) {
 		ret_val = PX4_ERROR;
 		uint32_t crc32{0U};
 
@@ -1202,7 +1268,8 @@ bool Geofence::isHomeRequired()
 {
 	bool max_horizontal_enabled = (_param_gf_max_hor_dist.get() > FLT_EPSILON);
 	bool max_vertical_enabled = (_param_gf_max_ver_dist.get() > FLT_EPSILON);
-	bool geofence_action_rtl = (getGeofenceAction() == geofence_result_s::GF_ACTION_RTL);
+	bool geofence_action_rtl = (getGeofenceAction() == geofence_result_s::GF_ACTION_RTL)
+				   || (getPreGeofenceAction() == geofence_result_s::GF_ACTION_RTL);
 
 	return max_horizontal_enabled || max_vertical_enabled || geofence_action_rtl;
 }

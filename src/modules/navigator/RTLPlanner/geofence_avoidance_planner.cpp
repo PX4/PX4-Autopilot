@@ -163,8 +163,7 @@ void GeofenceAvoidancePlanner::updateGraphFromGeofence(GeofenceInterface &geofen
 	}
 
 	if (_required_nodes > _max_nodes) {
-		// Fence larger than the configured node budget. With a budget
-		// >= kMaxNodesForAnyStorableFence this cannot happen.
+		// Fence larger than the configured node budget.
 		_polygons_healthy = false;
 		_status = Status::BudgetExceeded;
 		return;
@@ -201,7 +200,7 @@ bool GeofenceAvoidancePlanner::updatePolygonsFromGeofence(
 
 		if (info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION || info.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION) {
 
-			if (info.vertex_count > DM_KEY_FENCE_POINTS_MAX) {
+			if (info.vertex_count > kMaxFencePointsPerLevel) {
 				_status = Status::BudgetExceeded;
 				perf_cancel(_update_polygons_perf);
 				return false;

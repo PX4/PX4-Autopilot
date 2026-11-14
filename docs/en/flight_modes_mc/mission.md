@@ -99,7 +99,7 @@ If any of the checks fail, the user is notified and it is not possible to start 
 
 A subset of the most important checks are listed below:
 
-- Any mission item conflicts with a plan or safety geofence
+- Any mission item conflicts with a plan or safety geofence, or with a [pre-geofence](../config/safety.md#pre-geofence)
 - Missing takeoff and/or land item when these are configured as a requirement ([MIS_TKO_LAND_REQ](#MIS_TKO_LAND_REQ))
 
 Additionally there is a check if the first waypoint is too far from the Home position ([MIS_DIST_1WP](#MIS_DIST_1WP)).

@@ -57,3 +57,17 @@ parameters:
       min: 0
       max: 10000
       increment: 1
+    GF_PRE_ACTION:
+      description:
+        short: Pre-geofence action
+        long: Only used when the uploaded fence contains pre-geofence areas.
+          GF_ACTION takes precedence when the geofence is breached and its action is enabled.
+      type: enum
+      values:
+        1: Warning
+        2: Hold mode
+        3: Return mode
+        5: Land mode
+      default: 2
+      min: 1
+      max: 5

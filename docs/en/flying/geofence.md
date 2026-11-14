@@ -45,9 +45,15 @@ In summary:
    - The markers on corners (vertices) can be used to change the geometry of a polygon.
      Additional vertices are created by clicking halfway along the lines between existing markers.
 1. Use the _Geofence Editor_ to set a fence as an inclusion or exclusion, and to select a fence to edit (**Edit** radio button) or Delete (**Del** button).
-1. Add as many fences as you like.
+1. Add the remaining fences.
+   The geofence and [pre-geofence](../config/safety.md#pre-geofence) each support up to 64 points: a polygon uses one point for each vertex and a circle uses one point.
 1. Once finished, click on the **Upload** button (top right) to send the fence (along with rally points and mission) to the vehicle.
 1. Set the breach action in the [Geofence Failsafe](../config/safety.md#geofence-failsafe).
+
+::: tip
+A geofence action is only triggered once the vehicle has breached the geofence.
+To act before that add a [Pre-Geofence](../config/safety.md#pre-geofence) with an appropriate action.
+:::
 
 ::: info
 Any geofence that does not include the Home position will be rejected by the flight controller and not uploaded.
