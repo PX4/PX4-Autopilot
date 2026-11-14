@@ -85,6 +85,10 @@
 #include "uavcan_driver.hpp"
 #include "uavcan_servers.hpp"
 
+#if defined(CONFIG_UAVCAN_CAN_FORWARD)
+#include "can_forwarder.hpp"
+#endif
+
 #include <lib/drivers/device/Device.hpp>
 #include <lib/failure_injection/FailureInjection.hpp>
 #include <lib/mixer_module/mixer_module.hpp>
@@ -402,4 +406,8 @@ private:
 	bool _check_fw{false};
 
 	UavcanServers   *_servers{nullptr};
+
+#if defined(CONFIG_UAVCAN_CAN_FORWARD)
+	CanForwarder _can_forwarder {this};
+#endif
 };
