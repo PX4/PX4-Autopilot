@@ -1,0 +1,5 @@
+menuconfig DRIVERS_INS_NAVIGUIDER
+	bool "naviguider"
+	default n
+	---help---
+		Enable support for pni drivers
