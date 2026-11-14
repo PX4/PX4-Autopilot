@@ -163,21 +163,12 @@ parameters:
     FW_T_STE_R_TC:
       description:
         short: Specific total energy rate first order filter time constant
-        long: This filter is applied to the specific total energy rate used for throttle
+        long: This filter is applied to the specific total energy rate error used for throttle
           damping.
       type: float
       default: 0.4
       min: 0.0
       max: 2
-      decimal: 2
-      increment: 0.01
-    FW_T_SEB_R_FF:
-      description:
-        short: Specific total energy balance rate feedforward gain
-      type: float
-      default: 1.0
-      min: 0.5
-      max: 3
       decimal: 2
       increment: 0.01
     FW_WIND_ARSP_SC:
