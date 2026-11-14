@@ -69,8 +69,7 @@ using namespace time_literals;
 
 union failure_detector_status_u {
 	struct {
-		uint16_t roll : 1;
-		uint16_t pitch : 1;
+		uint16_t tilt : 1;
 		uint16_t alt : 1;
 		uint16_t ext : 1;
 		uint16_t battery : 1;
@@ -101,8 +100,7 @@ private:
 
 	failure_detector_status_u _failure_detector_status{};
 
-	systemlib::Hysteresis _roll_failure_hysteresis{false};
-	systemlib::Hysteresis _pitch_failure_hysteresis{false};
+	systemlib::Hysteresis _tilt_failure_hysteresis{false};
 	systemlib::Hysteresis _alt_loss_hysteresis{false};
 	systemlib::Hysteresis _ext_ats_failure_hysteresis{false};
 
@@ -119,6 +117,7 @@ private:
 
 
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _vehicle_attitude_setpoint_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_local_position_setpoint_sub{ORB_ID(vehicle_local_position_setpoint)};
 	uORB::Subscription _pwm_input_sub{ORB_ID(pwm_input)};
@@ -131,10 +130,8 @@ private:
 	failure_injection::MotorFailureMasks _injected_motor_masks{};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::FD_FAIL_P>) _param_fd_fail_p,
 		(ParamInt<px4::params::FD_FAIL_R>) _param_fd_fail_r,
 		(ParamFloat<px4::params::FD_FAIL_R_TTRI>) _param_fd_fail_r_ttri,
-		(ParamFloat<px4::params::FD_FAIL_P_TTRI>) _param_fd_fail_p_ttri,
 		(ParamBool<px4::params::FD_EXT_ATS_EN>) _param_fd_ext_ats_en,
 		(ParamInt<px4::params::FD_EXT_ATS_TRIG>) _param_fd_ext_ats_trig,
 		(ParamInt<px4::params::FD_IMB_PROP_THR>) _param_fd_imb_prop_thr,

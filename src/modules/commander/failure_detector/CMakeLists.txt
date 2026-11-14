@@ -40,3 +40,7 @@ set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOUR
 px4_add_functional_gtest(SRC FailureDetectorAltitudeLossTest.cpp
 	LINKLIBS failure_detector hysteresis
 )
+
+px4_add_functional_gtest(SRC FailureDetectorTiltTest.cpp
+	LINKLIBS failure_detector hysteresis
+)

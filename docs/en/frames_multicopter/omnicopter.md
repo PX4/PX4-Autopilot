@@ -114,7 +114,7 @@ Make sure the motors do not overheat with the changed settings.
   Make sure to use the right props, as there is a CCW and a CW version.
 - Parameters:
   - Change the desaturation logic for better attitude tracking: set [CA_METHOD](../advanced_config/parameter_reference.md#CA_METHOD) to 0.
-  - Disable failure detection: set [FD_FAIL_P](../advanced_config/parameter_reference.md#FD_FAIL_P) and [FD_FAIL_R](../advanced_config/parameter_reference.md#FD_FAIL_R) to 0.
+  - Disable failure detection: set [FD_FAIL_R](../advanced_config/parameter_reference.md#FD_FAIL_R) to -1.
 - [This file](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/multicopter/omnicopter/omnicopter.params) contains all the relevant parameters.
 
 ## Video

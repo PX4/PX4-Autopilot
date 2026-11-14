@@ -44,36 +44,20 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 	// don't warn while the vehicle is tilted during calibration
 	const bool report_attitude_failure = !context.status().calibration_enabled;
 
-	if (report_attitude_failure && fd_status.fd_roll) {
+	if (report_attitude_failure && fd_status.fd_tilt) {
 		/* EVENT
 		 * @description
-		 * The vehicle exceeded the maximum configured roll angle.
+		 * The vehicle tilt deviated from the attitude setpoint, by more than the configured angle.
 		 *
 		 * <profile name="dev">
 		 * This check can be configured via <param>FD_FAIL_R</param> parameter.
 		 * </profile>
 		 */
-		reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_failure_detector_roll"),
+		reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_failure_detector_tilt"),
 					    events::Log::Critical, "Attitude failure detected");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Attitude failure (roll)");
-		}
-
-	} else if (report_attitude_failure && fd_status.fd_pitch) {
-		/* EVENT
-		 * @description
-		 * The vehicle exceeded the maximum configured pitch angle.
-		 *
-		 * <profile name="dev">
-		 * This check can be configured via <param>FD_FAIL_P</param> parameter.
-		 * </profile>
-		 */
-		reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_failure_detector_pitch"),
-					    events::Log::Critical, "Attitude failure detected");
-
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Attitude failure (pitch)");
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Attitude failure (tilt)");
 		}
 	}
 
@@ -103,7 +87,7 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 		}
 	}
 
-	reporter.failsafeFlags().fd_critical_failure = fd_status.fd_roll || fd_status.fd_pitch || fd_status.fd_ext;
+	reporter.failsafeFlags().fd_critical_failure = fd_status.fd_tilt || fd_status.fd_ext;
 	reporter.failsafeFlags().fd_alt_loss = fd_status.fd_alt;
 
 	reporter.failsafeFlags().fd_imbalanced_prop = fd_status.fd_imbalanced_prop;

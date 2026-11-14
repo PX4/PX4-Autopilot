@@ -88,6 +88,14 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   In flight the primary receiver is now also left when it has failed the strict checks for 10 s while the other receiver passed them. ([PX4-Autopilot#28798](https://github.com/PX4/PX4-Autopilot/pull/28798))
 - **Re-check the motor failure trigger thresholds.**
   `MOTFAIL_OFF` and `MOTFAIL_TIME` are replaced by a separate band and trigger time per direction ([MOTFAIL_OVER](../advanced_config/parameter_reference.md#MOTFAIL_OVER)/[MOTFAIL_OVR_TIME](../advanced_config/parameter_reference.md#MOTFAIL_OVR_TIME) and [MOTFAIL_UNDER](../advanced_config/parameter_reference.md#MOTFAIL_UNDER)/[MOTFAIL_UND_TIME](../advanced_config/parameter_reference.md#MOTFAIL_UND_TIME)), and are not migrated: the new parameters start at their defaults. The check now compares a low-pass filtered current residual instead of the instantaneous value, so the thresholds are worth re-deriving: see [Motor Failure Detection > Upgrading from PX4 v1.18](../config/motor_failure_detection.md#upgrading-from-px4-v1-18). ([PX4-Autopilot#27917](https://github.com/PX4/PX4-Autopilot/pull/27917))
+- **The failure detector attitude trigger checks the tilt error instead of roll and pitch separately.**
+  [FD_FAIL_R](../advanced_config/parameter_reference.md#FD_FAIL_R) is now the maximum angle between the vehicle tilt and the attitude setpoint tilt, in any direction, and [FD_FAIL_R_TTRI](../advanced_config/parameter_reference.md#FD_FAIL_R_TTRI) the time it has to be exceeded (default now 1 s instead of 0.3 s).
+  Without a recent attitude setpoint, for example on rovers, the tilt from level is checked instead.
+  Vehicles may now fly at any tilt their attitude setpoint asks for, and a large tracking error triggers the check at any tilt.
+  `FD_FAIL_P` and `FD_FAIL_P_TTRI` have been removed and are not migrated.
+  If you raised `FD_FAIL_R` or `FD_FAIL_R_TTRI` to allow larger tilts, consider resetting them to their defaults.
+  The check is now disabled with `FD_FAIL_R` set to -1; 0 still disables it.
+  The `fd_roll` and `fd_pitch` fields of [FailureDetectorStatus](../msg_docs/FailureDetectorStatus.md) are replaced by `fd_tilt`.
 
 ## Other changes
 
