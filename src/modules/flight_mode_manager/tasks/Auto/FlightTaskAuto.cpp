@@ -104,13 +104,76 @@ bool FlightTaskAuto::updateInitialize()
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	_position_setpoint_triplet_sub.update();
 	_takeoff_status_sub.update();
+	_landing_target_pose_sub.update();
 
 	// require valid reference and valid target
 	ret = ret && _evaluateGlobalReference() && _evaluatePositionSetpointTriplet();
 	// require valid position
 	ret = ret && _position.isAllFinite() && _velocity.isAllFinite();
 
+	if (ret) {
+		_evaluateDistanceToLandingPoint();
+	}
+
 	return ret;
+}
+
+void FlightTaskAuto::_evaluateDistanceToLandingPoint()
+{
+	if (_type != WaypointType::land) {
+		_dist_to_ground_src = LandGroundSource::None;
+		return;
+	}
+
+	const int32_t sources = _param_mpc_land_gnd_src.get();
+
+	const bool distance_sensor_valid = (sources & LandGroundSource::DistanceSensor) && PX4_ISFINITE(_dist_to_bottom);
+
+	// Use the first valid enabled source in bit order
+	const landing_target_pose_s &landing_target_pose = _landing_target_pose_sub.get();
+	const bool landing_target_valid = (sources & LandGroundSource::LandingTarget)
+					  && landing_target_pose.abs_pos_valid && PX4_ISFINITE(landing_target_pose.z_abs)
+					  && (hrt_elapsed_time(&landing_target_pose.timestamp) < _timeout);
+
+	// Only Mission and Return provide a landing altitude, Land mode sends a placeholder altitude
+	const uint8_t nav_state = _sub_vehicle_status.get().nav_state;
+	const bool landing_altitude_valid = (sources & LandGroundSource::LandingWaypoint)
+					    && ((nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION)
+						|| (nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL))
+					    && PX4_ISFINITE(_triplet_current(2));
+
+	const home_position_s &home = _sub_home_position.get();
+	const bool home_valid = (sources & LandGroundSource::Home) && home.valid_alt && PX4_ISFINITE(home.z);
+
+	// AMSL assumes the ground is at mean sea level
+	const bool amsl_valid = (sources & LandGroundSource::Amsl) && _sub_vehicle_local_position.get().z_global
+				&& PX4_ISFINITE(_global_local_alt0);
+
+	if (distance_sensor_valid) {
+		_dist_to_ground = _dist_to_bottom;
+		_dist_to_ground_src = LandGroundSource::DistanceSensor;
+
+	} else if (landing_target_valid) {
+		_dist_to_ground = landing_target_pose.z_abs - _position(2);
+		_dist_to_ground_src = LandGroundSource::LandingTarget;
+
+	} else if (landing_altitude_valid) {
+		_dist_to_ground = _triplet_current(2) - _position(2);
+		_dist_to_ground_src = LandGroundSource::LandingWaypoint;
+
+	} else if (home_valid) {
+		_dist_to_ground = home.z - _position(2);
+		_dist_to_ground_src = LandGroundSource::Home;
+
+	} else if (amsl_valid) {
+		_dist_to_ground = _global_local_alt0 - _position(2);
+		_dist_to_ground_src = LandGroundSource::Amsl;
+
+	} else {
+		// No enabled source available, _prepareLandSetpoints() descends at MPC_LAND_SPEED
+		_dist_to_ground = NAN;
+		_dist_to_ground_src = LandGroundSource::None;
+	}
 }
 
 bool FlightTaskAuto::update()
@@ -298,14 +361,16 @@ void FlightTaskAuto::_prepareLandSetpoints()
 {
 	_velocity_setpoint.setNaN(); // Don't take over any smoothed velocity setpoint
 
-	// Slow down automatic descend close to ground
-	float vertical_speed = math::interpolate(_dist_to_ground,
-			       _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
-			       _param_mpc_land_speed.get(), _param_mpc_z_vel_max_dn.get());
+	// Slow down automatic descend close to ground, descend at landing speed if the height above ground is unknown
+	float vertical_speed = _param_mpc_land_speed.get();
 
-	bool range_dist_available = PX4_ISFINITE(_dist_to_bottom);
+	if (PX4_ISFINITE(_dist_to_ground)) {
+		vertical_speed = math::interpolate(_dist_to_ground,
+						   _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
+						   _param_mpc_land_speed.get(), _param_mpc_z_vel_max_dn.get());
+	}
 
-	if (range_dist_available && _dist_to_bottom <= _param_mpc_land_alt3.get()) {
+	if (_dist_to_ground_src==LandGroundSource::DistanceSensor && _dist_to_ground <= _param_mpc_land_alt3.get()) {
 		vertical_speed = _param_mpc_land_crwl.get();
 	}
 
