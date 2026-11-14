@@ -166,7 +166,8 @@ static int power_button_state_notification_cb(board_power_button_state_notificat
 #ifndef CONSTRAINED_FLASH
 static bool send_vehicle_command(const uint32_t cmd, const float param1 = NAN, const float param2 = NAN,
 				 const float param3 = NAN,  const float param4 = NAN, const double param5 = static_cast<double>(NAN),
-				 const double param6 = static_cast<double>(NAN), const float param7 = NAN)
+				 const double param6 = static_cast<double>(NAN), const float param7 = NAN,
+				 const uint8_t frame = vehicle_command_s::VEHICLE_FRAME_GLOBAL)
 {
 	vehicle_command_s vcmd{};
 	vcmd.command = cmd;
@@ -177,6 +178,7 @@ static bool send_vehicle_command(const uint32_t cmd, const float param1 = NAN, c
 	vcmd.param5 = param5;
 	vcmd.param6 = param6;
 	vcmd.param7 = param7;
+	vcmd.frame = frame;
 
 	uORB::SubscriptionData<vehicle_status_s> vehicle_status_sub{ORB_ID(vehicle_status)};
 	vcmd.source_system = vehicle_status_sub.get().system_id;
@@ -435,6 +437,22 @@ int Commander::custom_command(int argc, char *argv[])
 		// switch to takeoff mode and arm
 		uORB::SubscriptionData<vehicle_command_ack_s> vehicle_command_ack_sub{ORB_ID(vehicle_command_ack)};
 		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF);
+
+		if (wait_for_vehicle_command_reply(vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF, vehicle_command_ack_sub)) {
+			send_vehicle_command(vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM,
+					     static_cast<float>(vehicle_command_s::ARMING_ACTION_ARM),
+					     0.f);
+		}
+
+		return 0;
+	}
+
+	if (!strcmp(argv[0], "takeoff_local")) {
+		// switch to takeoff mode and arm, in a local frame (no global position required)
+		uORB::SubscriptionData<vehicle_command_ack_s> vehicle_command_ack_sub{ORB_ID(vehicle_command_ack)};
+		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF, NAN, NAN, NAN, NAN,
+				     static_cast<double>(NAN), static_cast<double>(NAN), NAN,
+				     vehicle_command_s::VEHICLE_FRAME_LOCAL_NED);
 
 		if (wait_for_vehicle_command_reply(vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF, vehicle_command_ack_sub)) {
 			send_vehicle_command(vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM,
@@ -1215,12 +1233,22 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF: {
-			/* ok, home set, use it to take off */
-			if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF, getSourceFromCommand(cmd))) {
+			const bool local_frame_takeoff = (cmd.frame == vehicle_command_s::VEHICLE_FRAME_LOCAL_NED);
+
+			if (local_frame_takeoff && _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+				// Navigator's fixed-wing takeoff state machine (Takeoff::on_active()) never looks at
+				// frame; its climbout/loiter/course-hold logic only works off state the global branch
+				// of the takeoff command handler sets up. Reject rather than run that state machine
+				// against loiter position/altitude/course that were never populated for this command.
+				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+				mavlink_log_critical(&_mavlink_log_pub, "Local-frame takeoff not supported for fixed-wing\t");
+
+			} else if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF, getSourceFromCommand(cmd))) {
 				// fixed-wing: course to continue on after the climbout, unless a takeoff position is set (as in Navigator)
 				const bool takeoff_position_valid = PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)
 								    && (fabs(cmd.param5) > DBL_EPSILON || fabs(cmd.param6) > DBL_EPSILON);
 				_takeoff_hold_course = PX4_ISFINITE(cmd.param4) && !takeoff_position_valid;
+				_takeoff_is_local_frame = local_frame_takeoff;
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
@@ -2225,6 +2253,10 @@ void Commander::checkForMissionUpdate()
 		_takeoff_hold_course = false; // the commanded takeoff was left or completed
 	}
 
+	if (_takeoff_is_local_frame && _user_mode_intention.get() != vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF) {
+		_takeoff_is_local_frame = false; // the commanded takeoff was left or completed
+	}
+
 	if (_mission_result_sub.updated()) {
 		const mission_result_s &mission_result = _mission_result_sub.get();
 
@@ -2271,8 +2303,22 @@ void Commander::checkForMissionUpdate()
 								&& _user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE, ModeChangeSource::ModeExecutor);
 
 				if (!continue_on_course) {
-					// Transition to loiter when the takeoff is completed (force into the Loiter, if mode is not executable then failsafe).
-					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, ModeChangeSource::ModeExecutor, false, true);
+					if (!_health_and_arming_checks.canRun(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER)) {
+						mavlink_log_critical(&_mavlink_log_pub, "Takeoff complete, Hold not available (no global position)\t");
+						events::send(events::ID("commander_takeoff_hold_unavailable"), {events::Log::Critical, events::LogInternal::Info},
+							     "Takeoff complete, but Hold is not available without a global position estimate");
+					}
+
+					// Transition to loiter when the takeoff is completed. A global takeoff forces into
+					// the Loiter (if that turns out not to be executable, the failsafe framework takes
+					// over from there). A local-frame takeoff never forces it: Loiter needs global
+					// position every time on that vehicle, not just transiently, so forcing it would
+					// permanently stick the intended mode on a Loiter that can never run, and the
+					// failsafe framework would keep re-deriving a fallback from it every cycle. Leaving
+					// force off keeps the intended mode at AUTO_TAKEOFF when Loiter can't run, so the
+					// vehicle just holds where Takeoff already left it.
+					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, ModeChangeSource::ModeExecutor,
+								    false, !_takeoff_is_local_frame);
 				}
 
 			} else if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
@@ -2280,7 +2326,9 @@ void Commander::checkForMissionUpdate()
 
 				// However, only do so if there's no pending mode change, so there isn't already a pending change (like Return).
 				if (_user_mode_intention.get() == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
-					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
+					if (!_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER)) {
+						printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
+					}
 				}
 			}
 		}
@@ -3302,6 +3350,7 @@ The commander module contains the state machine for mode switching and failsafe 
 	PRINT_MODULE_USAGE_COMMAND("disarm");
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Force disarming (disarm in air)", true);
 	PRINT_MODULE_USAGE_COMMAND("takeoff");
+	PRINT_MODULE_USAGE_COMMAND("takeoff_local");
 	PRINT_MODULE_USAGE_COMMAND("land");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("transition", "VTOL transition");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("mode", "Change flight mode");

@@ -440,26 +440,39 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 	// Temporary target variable where we save the local reprojection of the latest navigator current triplet.
 	Vector3f tmp_target;
 
-	if (!PX4_ISFINITE(position_setpoint_triplet.current.lat) || !PX4_ISFINITE(position_setpoint_triplet.current.lon)) {
-		// No position provided in xy. Lock position
-		if (!_lock_position_xy.isAllFinite()) {
-			tmp_target(0) = _lock_position_xy(0) = _position(0);
-			tmp_target(1) = _lock_position_xy(1) = _position(1);
+	if (position_setpoint_triplet.current.frame == position_setpoint_s::FRAME_TYPE_GLOBAL) {
+
+		if (!PX4_ISFINITE(position_setpoint_triplet.current.lat)
+		    || !PX4_ISFINITE(position_setpoint_triplet.current.lon)) {
+			// No position provided in xy. Lock position
+			if (!_lock_position_xy.isAllFinite()) {
+				tmp_target(0) = _lock_position_xy(0) = _position(0);
+				tmp_target(1) = _lock_position_xy(1) = _position(1);
+
+			} else {
+				tmp_target(0) = _lock_position_xy(0);
+				tmp_target(1) = _lock_position_xy(1);
+			}
 
 		} else {
-			tmp_target(0) = _lock_position_xy(0);
-			tmp_target(1) = _lock_position_xy(1);
+			// reset locked position if current lon and lat are valid
+			_lock_position_xy.setAll(NAN);
+
+			// Convert from global to local frame.
+			_reference_position.project(position_setpoint_triplet.current.lat, position_setpoint_triplet.current.lon,
+						    tmp_target(0), tmp_target(1));
 		}
 
-	} else {
-		// reset locked position if current coordinates are valid
-		_lock_position_xy.setNaN();
+		tmp_target(2) = -(position_setpoint_triplet.current.alt - _reference_altitude);
 
-		// Convert from global to local frame.
-		_reference_position.project(position_setpoint_triplet.current.lat, position_setpoint_triplet.current.lon, tmp_target(0), tmp_target(1));
+	} else if (position_setpoint_triplet.current.frame == position_setpoint_s::FRAME_TYPE_LOCAL) {
+
+		tmp_target(0) = position_setpoint_triplet.current.x;
+		tmp_target(1) = position_setpoint_triplet.current.y;
+		tmp_target(2) = position_setpoint_triplet.current.alt;
+
 	}
 
-	tmp_target(2) = -(position_setpoint_triplet.current.alt - _reference_altitude);
 
 	// Check if anything has changed. We do that by comparing the temporary target
 	// to the internal _triplet_current.
@@ -490,9 +503,7 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 		}
 
 		if (_isFinite(position_setpoint_triplet.previous) && position_setpoint_triplet.previous.valid) {
-			_reference_position.project(position_setpoint_triplet.previous.lat,
-						    position_setpoint_triplet.previous.lon, _triplet_previous(0), _triplet_previous(1));
-			_triplet_previous(2) = -(position_setpoint_triplet.previous.alt - _reference_altitude);
+			_setLocalPositionFromSetpoint(position_setpoint_triplet.previous, _triplet_previous);
 
 		} else {
 			_triplet_previous = _triplet_current;
@@ -504,9 +515,7 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 			_triplet_next = _triplet_current;
 
 		} else if (_isFinite(position_setpoint_triplet.next) && position_setpoint_triplet.next.valid) {
-			_reference_position.project(position_setpoint_triplet.next.lat,
-						    position_setpoint_triplet.next.lon, _triplet_next(0), _triplet_next(1));
-			_triplet_next(2) = -(position_setpoint_triplet.next.alt - _reference_altitude);
+			_setLocalPositionFromSetpoint(position_setpoint_triplet.next, _triplet_next);
 
 		} else {
 			_triplet_next = _triplet_current;
@@ -631,7 +640,24 @@ void FlightTaskAuto::_set_heading_from_mode()
 
 bool FlightTaskAuto::_isFinite(const position_setpoint_s &sp)
 {
+	if (sp.frame == position_setpoint_s::FRAME_TYPE_LOCAL) {
+		return (PX4_ISFINITE(sp.x) && PX4_ISFINITE(sp.y) && PX4_ISFINITE(sp.alt));
+	}
+
 	return (PX4_ISFINITE(sp.lat) && PX4_ISFINITE(sp.lon) && PX4_ISFINITE(sp.alt));
+}
+
+void FlightTaskAuto::_setLocalPositionFromSetpoint(const position_setpoint_s &sp, matrix::Vector3f &local_pos)
+{
+	if (sp.frame == position_setpoint_s::FRAME_TYPE_LOCAL) {
+		local_pos(0) = sp.x;
+		local_pos(1) = sp.y;
+		local_pos(2) = sp.alt;
+
+	} else {
+		_reference_position.project(sp.lat, sp.lon, local_pos(0), local_pos(1));
+		local_pos(2) = -(sp.alt - _reference_altitude);
+	}
 }
 
 bool FlightTaskAuto::_evaluateGlobalReference()

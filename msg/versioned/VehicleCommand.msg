@@ -234,6 +234,10 @@ uint8 ACTUATOR_TEST_GROUP_Z_THRUST = 6
 
 uint8 ORB_QUEUE_LENGTH = 8
 
+# Used as frame. Mirrors the MAVLink MAV_FRAME enum values
+uint8 VEHICLE_FRAME_GLOBAL = 0 # matches MAV_FRAME_GLOBAL
+uint8 VEHICLE_FRAME_LOCAL_NED = 1 # matches MAV_FRAME_LOCAL_NED
+
 float32 param1 # Parameter 1, as defined by MAVLink uint16 VEHICLE_CMD enum.
 float32 param2 # Parameter 2, as defined by MAVLink uint16 VEHICLE_CMD enum.
 float32 param3 # Parameter 3, as defined by MAVLink uint16 VEHICLE_CMD enum.
@@ -241,6 +245,7 @@ float32 param4 # Parameter 4, as defined by MAVLink uint16 VEHICLE_CMD enum.
 float64 param5 # Parameter 5, as defined by MAVLink uint16 VEHICLE_CMD enum.
 float64 param6 # Parameter 6, as defined by MAVLink uint16 VEHICLE_CMD enum.
 float32 param7 # Parameter 7, as defined by MAVLink uint16 VEHICLE_CMD enum.
+uint8 frame # VEHICLE_FRAME_* coordinate frame for param5/param6/param7
 uint32 command # Command ID.
 uint32 target_system # System which should execute the command.
 uint8 target_component # Component which should execute the command, 0 for all components.

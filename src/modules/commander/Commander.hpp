@@ -291,6 +291,7 @@ private:
 	bool _status_changed{true};
 	bool _mission_in_progress{false};
 	bool _takeoff_hold_course{false}; ///< the takeoff command carried a course, continue in Guided Course
+	bool _takeoff_is_local_frame{false}; ///< the takeoff command's cmd.frame requested a local frame
 
 	vehicle_land_detected_s	_vehicle_land_detected{};
 

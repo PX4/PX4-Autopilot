@@ -61,6 +61,11 @@
             "timeout_min": 10
         },
         {
+            "model": "quadx_flow",
+            "test_filter": "takeoff_local",
+            "timeout_min": 5
+        },
+        {
             "model": "standard_vtol_flow",
             "test_filter": "optical_flow_vtol",
             "timeout_min": 10

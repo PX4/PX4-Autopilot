@@ -187,13 +187,21 @@ MissionBlock::is_mission_item_reached_or_completed()
 				&& fabsf(_mission_item.loiter_radius) > FLT_EPSILON) ? fabsf(_mission_item.loiter_radius) :
 				_navigator->get_default_loiter_rad();
 
-		dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, mission_item_altitude_amsl,
-				_navigator->get_global_position()->lat,
-				_navigator->get_global_position()->lon,
-				_navigator->get_global_position()->alt,
-				&dist_xy, &dist_z);
+		if (_mission_item.frame != NAV_FRAME::NAV_FRAME_LOCAL_NED) {
+			// _mission_item.lat/lon alias the local x/y fields for a local-frame item and are not valid WGS84 coordinates.
+			// add more commands which doesn't depend on global navigation here, so that these are not computed each loop
+			dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, mission_item_altitude_amsl,
+					_navigator->get_global_position()->lat,
+					_navigator->get_global_position()->lon,
+					_navigator->get_global_position()->alt,
+					&dist_xy, &dist_z);
+		}
 
+		/*
+			Takeoff for  Multirotor and VTOL(MC) in Global coordinates
+		*/
 		if ((_mission_item.nav_cmd == NAV_CMD_TAKEOFF || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF)
+		    && _mission_item.frame != NAV_FRAME::NAV_FRAME_LOCAL_NED
 		    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 
 			/* We want to avoid the edge case where the acceptance radius is bigger or equal than
@@ -217,12 +225,42 @@ MissionBlock::is_mission_item_reached_or_completed()
 				_waypoint_position_reached = true;
 			}
 
+
+			/*
+				Takeoff for  Multirotor  in Local coordinates
+			*/
+
+		} else if ((_mission_item.nav_cmd == NAV_CMD_TAKEOFF)
+			   && (_mission_item.frame == NAV_FRAME::NAV_FRAME_LOCAL_NED)
+			   && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+
+			const float takeoff_height = _mission_item.altitude;
+			float altitude_acceptance_radius = _navigator->get_altitude_acceptance_radius();
+
+			/* It should be safe to just use half of the takoeff_alt as an acceptance radius. */
+			if (fabsf(takeoff_height) < altitude_acceptance_radius) {
+				altitude_acceptance_radius = fabsf(takeoff_height) / 2.0f;
+			}
+
+			if (fabsf(_navigator->get_local_position()->z - takeoff_height) < altitude_acceptance_radius) {
+
+				_waypoint_position_reached = true;
+			}
+
+			/*
+			Takeoff for Fixed Wing
+			*/
+
 		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
 			   && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 			/* fixed-wing takeoff is reached once the mode manager has finished the climbout */
 			if (_navigator->fw_climbout_completed(mission_item_altitude_amsl)) {
 				_waypoint_position_reached = true;
 			}
+
+			/*
+			Takeoff for Rover
+			*/
 
 		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
 			   && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
@@ -646,6 +684,83 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 		return false;
 	}
 
+	if (item.frame == NAV_FRAME::NAV_FRAME_LOCAL_NED) {
+
+		sp->x = item.x;
+		sp->y = item.y;
+		sp->alt = item.altitude;
+		sp->yaw = item.yaw;
+		sp->course = NAN; // mission items never command a course, only Course mode sets it
+		sp->loiter_radius = (fabsf(item.loiter_radius) > FLT_EPSILON) ? fabsf(item.loiter_radius) :
+				    _navigator->get_default_loiter_rad();
+		sp->loiter_direction_counter_clockwise = item.loiter_radius < 0;
+
+		if (item.acceptance_radius > FLT_EPSILON && PX4_ISFINITE(item.acceptance_radius)) {
+			// if the mission item has a specified acceptance radius, overwrite the default one from parameters
+			sp->acceptance_radius = item.acceptance_radius;
+
+		} else {
+			sp->acceptance_radius = _navigator->get_default_acceptance_radius();
+		}
+
+		// by default, FW guidance logic will take alt acceptance from NAV_FW_ALT_RAD, in some special cases
+		// we override it after this
+		sp->alt_acceptance_radius = NAN;
+
+		sp->cruising_speed = _navigator->get_cruising_speed();
+		sp->cruising_throttle = _navigator->get_cruising_throttle();
+
+		// for fixed wing we don't use cruising_throttle directly anymore, instead we command airspeed setpoints via cruising_speed
+		// we still use cruising throttle here to determine if gliding is enabled
+		sp->gliding_enabled = (_navigator->get_cruising_throttle() < FLT_EPSILON);
+
+		sp->frame = position_setpoint_s::FRAME_TYPE_LOCAL;
+
+
+		switch (item.nav_cmd) {
+		case NAV_CMD_IDLE:
+			sp->type = position_setpoint_s::SETPOINT_TYPE_IDLE;
+			break;
+
+		case NAV_CMD_TAKEOFF:
+
+			// if already flying (armed and !landed) treat TAKEOFF like regular POSITION
+			if ((_navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED)
+			    && !_navigator->get_land_detected()->landed && !_navigator->get_land_detected()->maybe_landed) {
+
+				sp->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+
+			} else {
+				sp->type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
+
+				// Don't set a yaw setpoint for takeoff, as Navigator doesn't handle the yaw reset.
+				// The yaw setpoint generation is handled by FlightTaskAuto.
+				sp->yaw = NAN;
+			}
+
+			break;
+
+		case NAV_CMD_LOITER_TIME_LIMIT:
+		case NAV_CMD_LOITER_UNLIMITED:
+
+			sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+			break;
+
+		default:
+			sp->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+			break;
+		}
+
+		sp->valid = true;
+		sp->timestamp = hrt_absolute_time();
+
+		return sp->valid;
+	}
+
+	// Any other frame is treated as global. Most mission items carry one of the WGS84 frames,
+	// but some tools (e.g. QGroundControl's NAV_CMD_LOITER_TO_ALT) use NAV_FRAME_MISSION even
+	// though lat/lon are real coordinates, so this stays the permissive default instead of an
+	// exhaustive whitelist, matching the pre-local-frame behaviour of this function.
 	sp->lat = item.lat;
 	sp->lon = item.lon;
 	sp->alt = get_absolute_altitude_for_item(item);
@@ -707,6 +822,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 			break;
 		}
 
+
 	case NAV_CMD_LAND:
 	case NAV_CMD_VTOL_LAND:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_LAND;
@@ -729,6 +845,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 
 	sp->valid = true;
 	sp->timestamp = hrt_absolute_time();
+	sp->frame = position_setpoint_s::FRAME_TYPE_GLOBAL;
 
 	return sp->valid;
 }
@@ -737,10 +854,17 @@ void
 MissionBlock::setLoiterItemFromCurrentPositionSetpoint(struct mission_item_s &item,
 		const position_setpoint_s &reference_setpoint)
 {
-	setLoiterItemCommonFields(&item);
+	setLoiterItemCommonFields(&item, reference_setpoint.frame);
 
-	item.lat = reference_setpoint.lat;
-	item.lon = reference_setpoint.lon;
+	if (reference_setpoint.frame == NAV_FRAME::NAV_FRAME_LOCAL_NED) {
+		item.x = static_cast<double>(reference_setpoint.x);
+		item.y = static_cast<double>(reference_setpoint.y);
+
+	} else {
+		item.lat = reference_setpoint.lat;
+		item.lon = reference_setpoint.lon;
+	}
+
 	item.altitude = reference_setpoint.alt;
 	item.loiter_radius = reference_setpoint.loiter_direction_counter_clockwise ?
 			     -reference_setpoint.loiter_radius : reference_setpoint.loiter_radius;
@@ -788,9 +912,10 @@ MissionBlock::setLoiterItemFromCurrentPositionWithBraking(struct mission_item_s 
 }
 
 void
-MissionBlock::setLoiterItemCommonFields(struct mission_item_s *item)
+MissionBlock::setLoiterItemCommonFields(struct mission_item_s *item, uint8_t frame)
 {
 	item->nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+	item->frame = frame;
 
 	item->altitude_is_relative = false;
 	item->acceptance_radius = _navigator->get_acceptance_radius();
@@ -819,11 +944,32 @@ MissionBlock::set_takeoff_item(struct mission_item_s *item, float abs_altitude)
 	item->nav_cmd = NAV_CMD_TAKEOFF;
 
 	/* use current position */
+	item->frame = NAV_FRAME::NAV_FRAME_GLOBAL;
 	item->lat = _navigator->get_global_position()->lat;
 	item->lon = _navigator->get_global_position()->lon;
 	item->yaw = NAN;
 
 	item->altitude = abs_altitude;
+	item->altitude_is_relative = false;
+
+	item->acceptance_radius = _navigator->get_acceptance_radius();
+	item->loiter_radius = _navigator->get_default_loiter_rad();
+	item->autocontinue = false;
+	item->origin = ORIGIN_ONBOARD;
+}
+
+void
+MissionBlock::set_local_takeoff_item(struct mission_item_s *item, float local_altitude)
+{
+	item->nav_cmd = NAV_CMD_TAKEOFF;
+
+	/* use current position */
+	item->frame = NAV_FRAME::NAV_FRAME_LOCAL_NED;
+	item->x = static_cast<double>(_navigator->get_local_position()->x);
+	item->y = static_cast<double>(_navigator->get_local_position()->y);
+	item->yaw = NAN;
+
+	item->altitude = local_altitude;
 	item->altitude_is_relative = false;
 
 	item->acceptance_radius = _navigator->get_acceptance_radius();
@@ -869,6 +1015,7 @@ MissionBlock::publishCourseHoldSetpoint(const float course_rad, const float alti
 	_navigator->set_position_setpoint_triplet_updated();
 }
 
+
 void
 MissionBlock::set_land_item(struct mission_item_s *item)
 {
@@ -884,6 +1031,7 @@ MissionBlock::set_land_item(struct mission_item_s *item)
 
 	/* set the land item */
 	item->nav_cmd = NAV_CMD_LAND;
+	item->frame = NAV_FRAME::NAV_FRAME_GLOBAL;
 
 	// set land item to current position
 	if (_navigator->get_local_position()->xy_global) {
@@ -910,6 +1058,7 @@ void
 MissionBlock::set_idle_item(struct mission_item_s *item)
 {
 	item->nav_cmd = NAV_CMD_IDLE;
+	item->frame = NAV_FRAME::NAV_FRAME_GLOBAL;
 	item->lat = _navigator->get_home_position()->lat;
 	item->lon = _navigator->get_home_position()->lon;
 	item->altitude_is_relative = false;
@@ -926,6 +1075,7 @@ void
 MissionBlock::set_vtol_transition_item(struct mission_item_s *item, const uint8_t new_mode)
 {
 	item->nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
+	item->frame = NAV_FRAME::NAV_FRAME_GLOBAL;
 	item->params[0] = (float) new_mode;
 	item->params[1] = 0.0f; // not immediate transition
 	item->autocontinue = true;
@@ -971,6 +1121,7 @@ MissionBlock::set_align_mission_item(struct mission_item_s *const mission_item,
 				     const struct mission_item_s *const mission_item_next) const
 {
 	mission_item->nav_cmd = NAV_CMD_WAYPOINT;
+	mission_item->frame = NAV_FRAME::NAV_FRAME_GLOBAL;
 	copy_position_if_valid(mission_item, &(_navigator->get_position_setpoint_triplet()->current));
 	mission_item->altitude_is_relative = false;
 	mission_item->autocontinue = true;
@@ -998,6 +1149,7 @@ void MissionBlock::setLoiterToAltMissionItem(mission_item_s &item, const Positio
 		float loiter_radius) const
 {
 	item.nav_cmd = NAV_CMD_LOITER_TO_ALT;
+	item.frame = NAV_FRAME::NAV_FRAME_GLOBAL;
 	item.lat = pos_yaw_sp.lat;
 	item.lon = pos_yaw_sp.lon;
 	item.altitude = pos_yaw_sp.alt;
@@ -1023,6 +1175,7 @@ void MissionBlock::setLoiterHoldMissionItem(mission_item_s &item, const Position
 		item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
 	}
 
+	item.frame = NAV_FRAME::NAV_FRAME_GLOBAL;
 	item.lat = pos_yaw_sp.lat;
 	item.lon = pos_yaw_sp.lon;
 	item.altitude = pos_yaw_sp.alt;
@@ -1040,6 +1193,7 @@ void MissionBlock::setLoiterHoldMissionItem(mission_item_s &item, const Position
 void MissionBlock::setMoveToPositionMissionItem(mission_item_s &item, const PositionYawSetpoint &pos_yaw_sp) const
 {
 	item.nav_cmd = NAV_CMD_WAYPOINT;
+	item.frame = NAV_FRAME::NAV_FRAME_GLOBAL;
 	item.lat = pos_yaw_sp.lat;
 	item.lon = pos_yaw_sp.lon;
 	item.altitude = pos_yaw_sp.alt;
@@ -1056,6 +1210,7 @@ void MissionBlock::setMoveToPositionMissionItem(mission_item_s &item, const Posi
 void MissionBlock::setLandMissionItem(mission_item_s &item, const PositionYawSetpoint &pos_yaw_sp) const
 {
 	item.nav_cmd = NAV_CMD_LAND;
+	item.frame = NAV_FRAME::NAV_FRAME_GLOBAL;
 	item.lat = pos_yaw_sp.lat;
 	item.lon = pos_yaw_sp.lon;
 	item.altitude = pos_yaw_sp.alt;
@@ -1157,8 +1312,10 @@ MissionBlock::update_precision_takeoff(const hrt_abstime now)
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-	// Vertical takeoffs only
-	const bool takeoff_item = _mission_item.nav_cmd == NAV_CMD_TAKEOFF || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF;
+	// Vertical takeoffs only. Excludes a local-frame takeoff: the correction below is written into
+	// _mission_item.lat/lon, which alias the local x/y fields for a local-frame item.
+	const bool takeoff_item = (_mission_item.nav_cmd == NAV_CMD_TAKEOFF || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF)
+				  && _mission_item.frame != NAV_FRAME::NAV_FRAME_LOCAL_NED;
 	const bool vertical_takeoff = takeoff_item
 				      && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 				      && pos_sp_triplet->current.valid

@@ -165,7 +165,7 @@ protected:
 	void setLoiterItemFromCurrentPositionWithBraking(struct mission_item_s *item);
 	void setLoiterFromLastLink(struct mission_item_s *item);
 
-	void setLoiterItemCommonFields(struct mission_item_s *item);
+	void setLoiterItemCommonFields(struct mission_item_s *item, uint8_t frame = NAV_FRAME::NAV_FRAME_GLOBAL);
 
 	/**
 	 * Publish a setpoint that holds a course (ground track) at an altitude, without a position target
@@ -176,6 +176,11 @@ protected:
 	 * Set a takeoff mission item
 	 */
 	void set_takeoff_item(struct mission_item_s *item, float abs_altitude);
+
+	/**
+	 * Set a takeoff mission item in local frame
+	 */
+	void set_local_takeoff_item(struct mission_item_s *item, float local_altitude);
 
 	/**
 	 * Set a land mission item
