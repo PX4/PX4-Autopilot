@@ -27,3 +27,5 @@ add_custom_target(test_results
         COMMENT "Running tests"
         WORKING_DIRECTORY ${PX4_BINARY_DIR})
 set_target_properties(test_results PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+add_subdirectory(turtle_recovery)

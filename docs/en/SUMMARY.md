@@ -324,6 +324,7 @@
       - [ESC Protocols](esc/esc_protocols.md)
       - [PWM ESCs and Servos](peripherals/pwm_escs_and_servo.md)
       - [DShot ESCs](peripherals/dshot.md)
+        - [Quad-X Turtle Recovery](advanced_config/turtle_recovery.md)
       - [OneShot ESCs and Servos](peripherals/oneshot.md)
       - [DroneCAN ESCs](dronecan/escs.md)
         - [PX4 Sapog ESC Firmware](dronecan/sapog.md)

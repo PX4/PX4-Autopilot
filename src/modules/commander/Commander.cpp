@@ -39,6 +39,7 @@
  */
 
 #include "Commander.hpp"
+#include <parameters/param.h>
 
 /* commander module headers */
 #include "Arming/ArmAuthorization/ArmAuthorization.h"
@@ -59,6 +60,9 @@
 #include <mathlib/mathlib.h>
 #include <px4_platform_common/events.h>
 #include <px4_platform_common/px4_config.h>
+#if defined(CONFIG_DRIVERS_DSHOT)
+#include <lib/dragonfly_turtle/ArmingInterlock.hpp>
+#endif
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/external_reset_lockout.h>
 #include <px4_platform_common/posix.h>
@@ -667,6 +671,39 @@ static constexpr const char *arm_disarm_reason_str(arm_disarm_reason_t calling_r
 
 transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_preflight_checks)
 {
+#if defined(CONFIG_DRIVERS_DSHOT)
+	// Reserve output ownership before any arming path, including forced arming.
+	int32_t turtle_enabled = 0;
+	const param_t turtle_enable_handle = param_find("TRTL_EN");
+
+	if (turtle_enable_handle != PARAM_INVALID) {
+		param_get(turtle_enable_handle, &turtle_enabled);
+	}
+
+	// Shared vehicle capability must protect the first arm even before DShot has
+	// run. The driver latches the obligation within this boot independently of EN.
+	int32_t turtle_esc = 0;
+	const param_t turtle_esc_handle = param_find("TRTL_ESC");
+
+	if (turtle_esc_handle != PARAM_INVALID) {
+		if (param_get(turtle_esc_handle, &turtle_esc) != PX4_OK) {
+			turtle_esc = 1; // An unreadable capability cannot waive direction readiness.
+		}
+	}
+
+	dragonfly_trtl::ArmGuard turtle_arm_guard(_vehicle_status.arming_state,
+			vehicle_status_s::ARMING_STATE_ARMED, turtle_enabled != 0 || turtle_esc != 0);
+
+	if (!turtle_arm_guard.allowed()) {
+		mavlink_log_critical(&_mavlink_log_pub, "Arming denied: turtle recovery active or not ready\t");
+		events::send(events::ID("commander_arm_denied_turtle"), {events::Log::Critical, events::LogInternal::Info},
+			     "Arming denied: turtle recovery active or not ready");
+		tune_negative(true);
+		return TRANSITION_DENIED;
+	}
+
+#endif
+
 	if (isArmed()) {
 		return TRANSITION_NOT_CHANGED;
 	}
@@ -756,6 +793,11 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 
 transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason, bool forced)
 {
+#if defined(CONFIG_DRIVERS_DSHOT)
+	dragonfly_trtl::DisarmGuard turtle_disarm_guard(_vehicle_status.arming_state,
+			vehicle_status_s::ARMING_STATE_ARMED);
+#endif
+
 	if (!isArmed()) {
 		return TRANSITION_NOT_CHANGED;
 	}
