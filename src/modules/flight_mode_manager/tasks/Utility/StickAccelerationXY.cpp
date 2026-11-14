@@ -84,12 +84,24 @@ void StickAccelerationXY::setVelocityConstraint(float vel)
 	}
 };
 
+void StickAccelerationXY::setVelocityLimit(float vel)
+{
+	if ((vel < _velocity_limit) && (vel >= FLT_EPSILON)) {
+		_velocity_limit = vel;
+	}
+}
+
 void StickAccelerationXY::generateSetpoints(Vector2f stick_xy, const float yaw, const float yaw_sp, const Vector3f &pos,
 		const matrix::Vector2f &vel_sp_feedback, const float dt)
 {
 	// avoid setpoint steps from limit changes to improve velocity tracking and hence drag estimation
 	const float velocity_constraint = _velocity_slew_rate_xy.update(_velocity_constraint, dt);
 	_velocity_constraint = _param_mpc_vel_manual.get(); // reset, reduced to strictest limit in next loop
+
+	// A limit below the current speed comes down at the stick's acceleration, or the setpoint would be cut in one step
+	// and the vehicle would brake as hard as it can
+	const float velocity_limit = fmaxf(_velocity_limit, _velocity_setpoint.norm() - _param_mpc_acc_hor.get() * dt);
+	_velocity_limit = INFINITY; // reset, reduced to strictest limit in next loop
 
 	// maximum commanded velocity can be constrained dynamically
 	const float velocity_sc = fminf(_param_mpc_vel_manual.get(), velocity_constraint);
@@ -132,6 +144,15 @@ void StickAccelerationXY::generateSetpoints(Vector2f stick_xy, const float yaw, 
 		_velocity_setpoint.setZero();
 	}
 
+	// A limit lowers the speed the stick settles at by adding drag rather than by scaling acceleration down. The brake
+	// boost stays off this part, or it would hold the vehicle back for seconds when the stick leaves center. It is
+	// added after the check above, which would zero a setpoint held at a limit smaller than one step of this drag,
+	// and its rate is capped so that it can't reverse the velocity within a step either.
+	if (velocity_limit < velocity_sc) {
+		const float limit_drag_rate = fminf(acceleration_scale(0) * (1.f / velocity_limit - 1.f / velocity_sc), 1.f / dt);
+		drag += _velocity_setpoint * limit_drag_rate;
+	}
+
 	_acceleration_setpoint -= drag;
 
 	applyJerkLimit(dt);
@@ -139,6 +160,7 @@ void StickAccelerationXY::generateSetpoints(Vector2f stick_xy, const float yaw, 
 
 	// Generate velocity setpoint by forward integrating commanded acceleration
 	_velocity_setpoint += _acceleration_setpoint * dt;
+	applyVelocityLimit(velocity_limit);
 
 	lockPosition(pos, vel_sp_feedback, dt);
 	_acceleration_setpoint_prev = _acceleration_setpoint;
@@ -204,6 +226,25 @@ void StickAccelerationXY::applyTiltLimit(Vector2f &acceleration)
 
 	if (acc > _acceleration_tilt_max) {
 		acceleration *= _acceleration_tilt_max / acc;
+	}
+}
+
+void StickAccelerationXY::applyVelocityLimit(const float velocity_limit)
+{
+	// the jerk limit delays the drag, so a small limit would otherwise be overshot while accelerating
+	const float speed = _velocity_setpoint.norm();
+
+	if (speed > velocity_limit) {
+		const Vector2f direction = _velocity_setpoint / speed;
+		_velocity_setpoint = direction * velocity_limit;
+
+		const float acceleration_outward = _acceleration_setpoint.dot(direction);
+
+		if (acceleration_outward > 0.f) {
+			_acceleration_setpoint -= direction * acceleration_outward;
+			// restart the jerk limit from here so braking isn't delayed by acceleration that was never applied
+			resetAcceleration(_acceleration_setpoint);
+		}
 	}
 }
 
