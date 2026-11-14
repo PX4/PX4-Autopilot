@@ -165,6 +165,8 @@ private:
 	 * @param cmd 		Vehicle command to handle
 	 */
 	bool handle_command(const vehicle_command_s &cmd);
+	bool requestModeChange(uint8_t nav_state, ModeChangeSource source = ModeChangeSource::User,
+			       bool allow_fallback = false, bool force = false);
 
 	unsigned handleCommandActuatorTest(const vehicle_command_s &cmd);
 
@@ -253,6 +255,7 @@ private:
 	hrt_abstime _datalink_last_heartbeat_traffic_avoidance_system{0};
 
 	hrt_abstime _last_print_mode_reject_time{0};	///< To remember when last notification was sent
+	hrt_abstime _last_manual_takeover_reject_time{0};
 
 	hrt_abstime _high_latency_datalink_timestamp{0};
 	hrt_abstime _high_latency_datalink_lost{0};
@@ -353,6 +356,7 @@ private:
 		(ParamFloat<px4::params::COM_CPU_MAX>)      _param_com_cpu_max,
 		(ParamBool<px4::params::COM_ARM_ON_BOOT>)   _param_com_arm_on_boot,
 		(ParamInt<px4::params::COM_FLTMODE_BOOT>)   _param_com_fltmode_boot,
+		(ParamFloat<px4::params::COM_MAN_THR_MIN>)  _param_com_man_thr_min,
 		(ParamInt<px4::params::NAV_RCL_ACT>)        _param_nav_rcl_act
 	)
 };

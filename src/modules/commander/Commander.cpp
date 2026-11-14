@@ -39,6 +39,7 @@
  */
 
 #include "Commander.hpp"
+#include "ManualThrottleHandover.hpp"
 
 /* commander module headers */
 #include "Arming/ArmAuthorization/ArmAuthorization.h"
@@ -1065,7 +1066,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 				const bool force = desired_nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 
-				if (_user_mode_intention.change(desired_nav_state, getSourceFromCommand(cmd), false, force)) {
+				if (requestModeChange(desired_nav_state, getSourceFromCommand(cmd), false, force)) {
 					main_ret = TRANSITION_CHANGED;
 
 				} else {
@@ -1089,7 +1090,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_SET_NAV_STATE: { // Used from ROS
 			uint8_t desired_nav_state = static_cast<uint8_t>(lroundf(cmd.param1));
 
-			if (_user_mode_intention.change(desired_nav_state, getSourceFromCommand(cmd))) {
+			if (requestModeChange(desired_nav_state, getSourceFromCommand(cmd))) {
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
@@ -1671,7 +1672,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED);
 
 			} else {
-				if (_user_mode_intention.change(nav_state, getSourceFromCommand(cmd))) {
+				if (requestModeChange(nav_state, getSourceFromCommand(cmd))) {
 					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
 				} else {
@@ -1792,6 +1793,27 @@ ModeChangeSource Commander::getSourceFromCommand(const vehicle_command_s &cmd)
 {
 	return cmd.source_component >= vehicle_command_s::COMPONENT_MODE_EXECUTOR_START ? ModeChangeSource::ModeExecutor :
 	       ModeChangeSource::User;
+}
+
+bool Commander::requestModeChange(uint8_t nav_state, ModeChangeSource source, bool allow_fallback, bool force)
+{
+	const bool rotary_wing = _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	const bool manual_control_available = !_failsafe_flags.manual_control_signal_lost;
+
+	if (!force && commander::rejectManualThrottleHandover(_param_com_man_thr_min.get(), _last_manual_throttle,
+			manual_control_available, isArmed(), _vehicle_land_detected.landed, rotary_wing, _vehicle_status.nav_state,
+			nav_state)) {
+		if (hrt_elapsed_time(&_last_manual_takeover_reject_time) > 1_s) {
+			mavlink_log_info(&_mavlink_log_pub, "Manual takeover rejected: raise throttle\t");
+			events::send(events::ID("commander_manual_takeover_throttle"), events::Log::Info,
+				     "Manual takeover rejected: raise throttle");
+			_last_manual_takeover_reject_time = hrt_absolute_time();
+		}
+
+		return false;
+	}
+
+	return _user_mode_intention.change(nav_state, source, allow_fallback, force);
 }
 
 void Commander::handleCommandsFromModeExecutors()
@@ -1950,7 +1972,7 @@ void Commander::executeActionRequest(const action_request_s &action_request)
 
 	case action_request_s::ACTION_SWITCH_MODE:
 
-		if (!_user_mode_intention.change(action_request.mode, ModeChangeSource::User, false)) {
+		if (!requestModeChange(action_request.mode, ModeChangeSource::User, false)) {
 			printRejectMode(action_request.mode);
 		}
 
