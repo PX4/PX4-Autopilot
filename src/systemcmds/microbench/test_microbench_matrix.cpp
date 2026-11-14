@@ -99,6 +99,7 @@ private:
 	bool time_matrix_quaternion();
 	bool time_matrix_dcm();
 	bool time_matrix_pseduo_inverse();
+	bool time_matrix_pseduo_inverse_mixed_precision();
 
 	void reset();
 
@@ -116,6 +117,7 @@ bool MicroBenchMatrix::run_tests()
 	ut_run_test(time_matrix_quaternion);
 	ut_run_test(time_matrix_dcm);
 	ut_run_test(time_matrix_pseduo_inverse);
+	ut_run_test(time_matrix_pseduo_inverse_mixed_precision);
 
 	return (_tests_failed == 0);
 }
@@ -172,6 +174,17 @@ bool MicroBenchMatrix::time_matrix_pseduo_inverse()
 {
 	PERF("matrix 6x16 pseudo inverse (all non-zero columns)", matrix::geninv(B16, A16), 100);
 	PERF("matrix 6x16 pseudo inverse (4 non-zero columns)", matrix::geninv(B16_4, A16), 100);
+	return true;
+}
+
+bool MicroBenchMatrix::time_matrix_pseduo_inverse_mixed_precision()
+{
+	// same inputs as the float version above: the interesting number is the ratio, and it is
+	// much larger on boards without a double precision FPU (every cortex-m4 target)
+	PERF("matrix 6x16 mixed precision pseudo inverse (all non-zero columns)",
+	     matrix::geninvMixedPrecision(B16, A16), 100);
+	PERF("matrix 6x16 mixed precision pseudo inverse (4 non-zero columns)",
+	     matrix::geninvMixedPrecision(B16_4, A16), 100);
 	return true;
 }
 
