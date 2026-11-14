@@ -153,10 +153,14 @@ public:
 	struct Param {
 		float target_climbrate;	///< The target climbrate in [m/s].
 		float target_sinkrate;	///< The target sinkrate in [m/s].
-		float vert_accel_limit;	///< Magnitude of the maximum vertical acceleration allowed [m/s²].
+		float vert_accel_limit;	///< Magnitude of the maximum vertical acceleration the controller allows [m/s²].
 		float max_climb_rate;	///< Climb rate produced by max allowed throttle [m/s].
 		float max_sink_rate;	///< Maximum sink rate (with min throttle, max speed) [m/s].
 	};
+
+	/// Fraction of the controller's vertical acceleration limit the reference trajectory uses, leaving the rest
+	/// for feedback corrections on top of the feedforward.
+	static constexpr float kAccelLimitRatio = 0.75f;
 
 public:
 	TECSAltitudeReferenceModel() = default;
@@ -240,7 +244,6 @@ public:
 
 		// Energy control param
 		float ste_rate_time_const;				///< Filter time constant for specific total energy rate (damping path) [s].
-		float seb_rate_ff;					///< Specific energy balance rate feedforward gain.
 
 		// Pitch control param
 		float pitch_speed_weight;				///< Speed control weighting used by pitch demand calculation.
@@ -449,8 +452,22 @@ private:
 	 * @return controlled altitude rate setpoint in [m/s].
 	 */
 	float _calcAltitudeControlOutput(const Setpoint &setpoint, const Input &input, const Param &param) const;
+
 	/**
-	 * @brief Run the airspeed and altitude outer loops and the underspeed detection.
+	 * @brief Airspeed that maps a climb angle to a climb rate.
+	 *
+	 * The filtered true airspeed, which is trim airspeed without a valid measurement, floored at the minimum
+	 * airspeed so the conversion stays well conditioned at low or invalid airspeed.
+	 *
+	 * @param input is the current input measurement of the UAS.
+	 * @param param is the control parameters.
+	 * @return airspeed in [m/s].
+	 */
+	static float _airspeedForClimbAngle(const Input &input, const Param &param);
+
+	/**
+	 * @brief Run the underspeed detection and the airspeed and altitude outer loops, and clip the altitude rate
+	 *        demand to the flyable envelope.
 	 *
 	 * Uses the direct height rate setpoint if it is finite, the altitude loop otherwise.
 	 *
@@ -463,6 +480,22 @@ private:
 	 */
 	SpecificEnergyRates _updateOuterLoops(const Setpoint &setpoint, const Input &input, const STERateLimit &limit,
 					      const Param &param, const Flag &flag);
+
+	/**
+	 * @brief Clip the altitude rate setpoint to the energy rate the throttle can fund and to the pitch limits.
+	 *
+	 * In fast descend and underspeed the throttle envelope fades to the minimum throttle energy rate, so altitude
+	 * is given up for airspeed. The kinetic energy rate demand is not taken out of the envelope: the pitch output
+	 * already trades it against altitude, see _calcPitchControlOutput.
+	 *
+	 * @param control_setpoint is the outer loop setpoints, the altitude rate setpoint is clipped in place.
+	 * @param input is the current input measurement of the UAS.
+	 * @param limit is the specific total energy rate limits in [m²/s³].
+	 * @param param is the control parameters.
+	 */
+	void _clipAltitudeRateSetpointToEnvelope(OuterLoopSetpoints &control_setpoint, const Input &input,
+			const STERateLimit &limit, const Param &param) const;
+
 	/**
 	 * @brief Calculate specific energy rates.
 	 *
@@ -540,8 +573,15 @@ private:
 	 * @param specific_energy_rate is the specific energy rates in [m²/s³].
 	 * @return specific energy balance rate values in [m²/s³].
 	 */
-	ControlValues _calcPitchControlSebRate(const SpecificEnergyWeighting &weight,
-					       const SpecificEnergyRates &specific_energy_rate) const;
+	ControlValues _calcPitchControlSebRate(const SpecificEnergyRates &specific_energy_rate) const;
+
+	/**
+	 * @brief Energy rate error the pitch loop acts on: the unweighted balance error, plus the total energy rate
+	 * error cross-fed with the speed priority (speed weight - 1). Equals the weighted balance error
+	 * (2 - w) * e_spe - w * e_ske.
+	 */
+	static float _calcPitchControlError(const ControlValues &seb_rate, const SpecificEnergyRates &specific_energy_rates,
+					    const SpecificEnergyWeighting &weight);
 
 	/**
 	 * @brief Calculate the pitch control update function.
@@ -552,7 +592,7 @@ private:
 	 * @param seb_rate is the specific energy balance rate in [m²/s³].
 	 * @param param is the control parameters.
 	 */
-	void _calcPitchControlUpdate(float dt, const Input &input, const ControlValues &seb_rate, const Param &param);
+	void _calcPitchControlUpdate(float dt, const Input &input, float pitch_error, const Param &param);
 
 	/**
 	 * @brief Derivative of the specific energy balance rate with respect to the climb angle.
@@ -571,10 +611,17 @@ private:
 	 *
 	 * @param input is the current input measurement of the UAS.
 	 * @param seb_rate is the specific energy balance rate in [m²/s³].
+	 * @param specific_energy_rates are the specific energy rate setpoints and estimates in [m²/s³]. The potential
+	 *        energy rate setpoint is the feedforward (demanded climb angle), unweighted: the speed/height weighting
+	 *        prioritises errors and stays in the feedback.
+	 * @param weight is the speed/height weighting. It scales the kinetic energy rate setpoint, which is the airspeed
+	 *        error through the airspeed loop gain and acts as feedback.
 	 * @param param is the control parameters.
 	 * @return absolute pitch setpoint [rad].
 	 */
-	float _calcPitchControlOutput(const Input &input, const ControlValues &seb_rate, const Param &param) const;
+	float _calcPitchControlOutput(const Input &input, const ControlValues &seb_rate,
+				      const SpecificEnergyRates &specific_energy_rates, const SpecificEnergyWeighting &weight,
+				      const Param &param) const;
 
 	/**
 	 * @brief Update controlled throttle setpoint.
@@ -626,7 +673,7 @@ private:
 
 private:
 	// State
-	AlphaFilter<float> _ste_rate_estimate_filter;		///< Low pass filter for the specific total energy rate.
+	AlphaFilter<float> _ste_rate_error_filter;		///< Low pass filter for the specific total energy rate error (feedback path).
 	float _pitch_integ_state{0.0f};				///< Pitch integrator state [rad].
 	float _fast_descend_prev{0.0f};				///< Fast descend ratio of the last update [0,1].
 	float _throttle_integ_state{0.0f};			///< Throttle integrator state [-].
@@ -741,8 +788,6 @@ public:
 	void set_load_factor(float load_factor) { _control_param.load_factor = load_factor; }
 
 	void set_ste_rate_time_const(float time_const) { _control_param.ste_rate_time_const = time_const; }
-
-	void set_seb_rate_ff_gain(float ff_gain) { _control_param.seb_rate_ff = ff_gain; }
 
 	/**
 	 * Set the pitch angle in level flight at trim airspeed [rad], fed forward as the pitch at zero climb angle
@@ -860,7 +905,6 @@ private:
 		.altitude_setpoint_gain_ff = 0.0f,
 		.airspeed_error_gain = 0.1f,
 		.ste_rate_time_const = 0.1f,
-		.seb_rate_ff = 1.0f,
 		.pitch_speed_weight = 1.0f,
 		.integrator_gain_pitch = 0.0f,
 		.pitch_damping_gain = 0.0f,

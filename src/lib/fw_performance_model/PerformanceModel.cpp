@@ -273,6 +273,39 @@ bool PerformanceModel::runSanityChecks() const
 		ret = false;
 	}
 
+	// The climb and sink rates the pitch limits allow in level flight at trim airspeed, sea level. The flown
+	// rate setpoints are the target rates capped by the maxima; the pitch integrator offset is not known here.
+	const float climb_rate_at_pitch_max = _param_fw_airspd_trim.get() * sinf(math::radians(
+			_param_fw_p_lim_max.get() - _param_fw_psp_off.get()));
+	const float sink_rate_at_pitch_min = _param_fw_airspd_trim.get() * sinf(math::radians(
+			_param_fw_psp_off.get() - _param_fw_p_lim_min.get()));
+	const float climb_rate_setpoint = math::min(_param_fw_t_clmb_r_sp.get(), _param_fw_t_clmb_max.get());
+	const float sink_rate_setpoint = math::min(_param_fw_t_sink_r_sp.get(), _param_fw_t_sink_max.get());
+
+	if (climb_rate_setpoint > climb_rate_at_pitch_max) {
+		/* EVENT
+		 * @description
+		 * - <param>FW_T_CLMB_R_SP</param>: {1:.1}
+		 * - climb rate at <param>FW_P_LIM_MAX</param>: {2:.1}
+		 */
+		events::send<float, float>(events::ID("fixedwing_position_control_conf_climb_rate_pitch_limited"),
+					   events::Log::Warning,
+					   "Configuration: climb rate setpoint exceeds what FW_P_LIM_MAX allows at trim airspeed",
+					   climb_rate_setpoint, climb_rate_at_pitch_max);
+	}
+
+	if (sink_rate_setpoint > sink_rate_at_pitch_min) {
+		/* EVENT
+		 * @description
+		 * - <param>FW_T_SINK_R_SP</param>: {1:.1}
+		 * - sink rate at <param>FW_P_LIM_MIN</param>: {2:.1}
+		 */
+		events::send<float, float>(events::ID("fixedwing_position_control_conf_sink_rate_pitch_limited"),
+					   events::Log::Warning,
+					   "Configuration: sink rate setpoint exceeds what FW_P_LIM_MIN allows at trim airspeed",
+					   sink_rate_setpoint, sink_rate_at_pitch_min);
+	}
+
 	return ret;
 
 }

@@ -355,7 +355,12 @@ parameters:
     FW_P_LIM_MIN:
       description:
         short: Minimum absolute pitch angle setpoint
-        long: Applies in any altitude controlled flight mode.
+        long: |-
+          Applies in any altitude controlled flight mode.
+          Set it below the pitch that flies FW_T_SINK_MAX at FW_AIRSPD_MAX and FW_THR_MIN,
+          so the limit is only reached transiently. While pitch limited the altitude loop has no
+          authority left: the sink rate demand is clipped to what the limit can fly, the
+          altitude error grows without feedback, and the pitch integrator cannot act on it.
       type: float
       default: -30.0
       unit: deg
@@ -366,7 +371,12 @@ parameters:
     FW_P_LIM_MAX:
       description:
         short: Maximum absolute pitch angle setpoint
-        long: Applies in any altitude controlled flight mode.
+        long: |-
+          Applies in any altitude controlled flight mode.
+          Set it above the pitch that flies FW_T_CLMB_MAX at FW_AIRSPD_TRIM and FW_THR_MAX,
+          so the limit is only reached transiently. While pitch limited the altitude loop has no
+          authority left: the climb rate demand is clipped to what the limit can fly, the
+          altitude error grows without feedback, and the pitch integrator cannot act on it.
       type: float
       default: 30.0
       unit: deg
