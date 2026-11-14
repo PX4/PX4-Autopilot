@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
 
 if [ -z ${PX4_DOCKER_REPO+x} ]; then
-	PX4_DOCKER_REPO="px4io/px4-dev:v1.17.0-beta1"
+  #Check if a docker PX4 image exists locally and use that. If not, get the latest (stable) tag from git.
+  PX4_DOCKER_REPO=$(docker images px4io/px4-dev --format "{{.Repository}}:{{.Tag}}" | grep -v "<none>" | head -n1)   #Gets highest version local image
+
+  if ! docker image inspect "${PX4_DOCKER_REPO}" >/dev/null 2>&1; then
+    TAG=$(cd "$(dirname "$0")/.." && git tag -l | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -Vr | head -n1)         #Highest stable version
+    # TAG=$(cd "$(dirname "$0")/.." && git describe --tags --abbrev=0)                                                 #Highest version
+    PX4_DOCKER_REPO="px4io/px4-dev:${TAG}"
+    # PX4_DOCKER_REPO="px4io/px4-dev:v1.18.0-beta1"                                                                    #Or just put your hard coded version here
+  fi
 else
 	echo "PX4_DOCKER_REPO is set to '$PX4_DOCKER_REPO'";
 fi
