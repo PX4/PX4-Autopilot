@@ -124,4 +124,23 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Imbalanced propeller detected");
 		}
 	}
+
+	reporter.failsafeFlags().fd_impact = fd_status.fd_impact;
+
+	if (reporter.failsafeFlags().fd_impact) {
+		/* EVENT
+		 * @description
+		 * The vehicle experienced an acceleration above the configured impact threshold.
+		 *
+		 * <profile name="dev">
+		 * This check can be configured via <param>FD_IMPACT_THR</param> and <param>CBRK_FLIGHTTERM</param> parameters.
+		 * </profile>
+		 */
+		reporter.healthFailure(NavModes::All, health_component_t::system, events::ID("check_failure_detector_impact"),
+				       events::Log::Critical, "Impact detected");
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Impact detected");
+		}
+	}
 }

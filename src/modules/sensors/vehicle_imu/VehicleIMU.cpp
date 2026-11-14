@@ -568,6 +568,7 @@ bool VehicleIMU::Publish()
 			const float accel_dt_s = 1.e-6f * imu.delta_velocity_dt;
 			const Vector3f acceleration{_accel_calibration.Correct(delta_velocity / accel_dt_s)};
 			UpdateAccelVibrationMetrics(acceleration);
+			UpdateAccelImpactMetric(acceleration, accel_dt_s);
 			const Vector3f delta_velocity_corrected{acceleration * accel_dt_s};
 
 			// vehicle_imu_status
@@ -638,6 +639,13 @@ bool VehicleIMU::Publish()
 				_vehicle_imu_status_pub.publish(_status);
 
 				_publish_status = false;
+
+				// Reset the impact metric peak at the status interval, also if forced publications (clipping, errors)
+				// keep the interval from being exceeded. Resetting only after a publication ensures no peak is lost.
+				if (hrt_elapsed_time(&_accel_impact_metric_reset_time) >= kIMUStatusPublishingInterval) {
+					_status.accel_impact_metric = 0.f;
+					_accel_impact_metric_reset_time = _status.timestamp;
+				}
 
 				if (status_publish_interval_exceeded) {
 					_raw_accel_mean.reset();
@@ -749,6 +757,15 @@ void VehicleIMU::UpdateAccelVibrationMetrics(const Vector3f &acceleration)
 					 + 0.01f * Vector3f(acceleration - _acceleration_prev).norm();
 
 	_acceleration_prev = acceleration;
+}
+
+void VehicleIMU::UpdateAccelImpactMetric(const Vector3f &acceleration, float dt_s)
+{
+	// Impact metric = norm of the low-pass filtered specific force.
+	// Filtering the vector before taking the norm rejects vibration (which averages out) and single sample glitches,
+	// while an impact (velocity change the rotors cannot produce) shows up as a large sustained value.
+	const float specific_force = _accel_impact_lpf.update(acceleration, dt_s).norm();
+	_status.accel_impact_metric = math::max(_status.accel_impact_metric, specific_force);
 }
 
 void VehicleIMU::UpdateGyroVibrationMetrics(const Vector3f &angular_velocity)

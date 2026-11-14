@@ -728,14 +728,17 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	if ((_armed_time != 0) && (time_us < _armed_time + spoolup + 3_s)) {
 		CHECK_FAILSAFE(status_flags, fd_critical_failure, ActionOptions(Action::Disarm).cannotBeDeferred());
 		CHECK_FAILSAFE(status_flags, fd_alt_loss, ActionOptions(Action::Disarm).cannotBeDeferred());
+		CHECK_FAILSAFE(status_flags, fd_impact, ActionOptions(Action::Disarm).cannotBeDeferred());
 
 	} else if (!circuit_breaker_enabled_by_val(_param_cbrk_flightterm.get(), CBRK_FLIGHTTERM_KEY)) {
 		CHECK_FAILSAFE(status_flags, fd_critical_failure, ActionOptions(Action::Terminate).cannotBeDeferred());
 		CHECK_FAILSAFE(status_flags, fd_alt_loss, ActionOptions(Action::Terminate).cannotBeDeferred());
+		CHECK_FAILSAFE(status_flags, fd_impact, ActionOptions(Action::Terminate).cannotBeDeferred());
 
 	} else {
 		CHECK_FAILSAFE(status_flags, fd_critical_failure, Action::Warn);
 		CHECK_FAILSAFE(status_flags, fd_alt_loss, Action::Warn);
+		CHECK_FAILSAFE(status_flags, fd_impact, Action::Warn);
 	}
 
 	CHECK_FAILSAFE(status_flags, fd_imbalanced_prop, Action::Warn);
