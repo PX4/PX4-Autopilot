@@ -102,6 +102,54 @@ Common failure causes:
 
 Relevant parameters: [ASPD_FP_T_WINDOW](#aspd_fp_t_window_table), [FW_PSP_OFF](#fw_psp_off_table), [FW_THR_TRIM](#fw_thr_trim_table), [FW_THR_MAX](#fw_thr_max_table)
 
+### Transition Lift Check
+
+::: info
+This check is disabled by default.
+It only runs during a VTOL front transition, on VTOLs with separate lift motors (not tailsitters), and only while a valid hover thrust estimate is available.
+:::
+
+Estimates the airspeed from how much of the vehicle weight the wing is carrying, and fails if the measured airspeed is far below that estimate.
+
+A sensor that reads too low (e.g. a partially blocked pitot tube) delays the end of a front transition.
+The pusher keeps accelerating the vehicle, the wing produces more lift than the lift motors can counter, and the vehicle overspeeds and climbs.
+The other checks don't run during the transition, so they cannot catch this.
+
+The share of the weight carried by the wing is:
+
+```txt
+n_wing = −a_z / g − T_mc / T_hover
+```
+
+where `a_z` is the vertical specific force measured by the accelerometer (body frame, z down), `T_mc` the lift motor thrust and `T_hover` the hover thrust estimate.
+During the transition pitch is held by the transition logic, so the lift coefficient is roughly constant and lift grows with the square of the calibrated airspeed.
+The transition ends at [FW_PSP_OFF](#fw_psp_off_table), the pitch in level flight at [FW_AIRSPD_TRIM](#fw_airspd_trim_table), so the wing alone carries the weight at trim airspeed:
+
+```txt
+CAS_expected = FW_AIRSPD_TRIM · sqrt(WEIGHT_GROSS / WEIGHT_BASE) · sqrt(n_wing)
+```
+
+The weight term is only applied if both [WEIGHT_BASE](#weight_base_table) and [WEIGHT_GROSS](#weight_gross_table) are set (it is clamped to 0.5–2), otherwise it is 1.
+Burned fuel ([WEIGHT_FUEL](../advanced_config/parameter_reference.md#WEIGHT_FUEL)) is not taken into account.
+
+The check fails if the measured calibrated airspeed is below [ASPD_TR_RATIO](#aspd_tr_ratio_table) times `CAS_expected`.
+Both values are low-pass filtered with the same time constant, and the check only runs while the wing carries more than 30% of the weight.
+
+When the sensor is declared invalid, the VTOL continues the transition without airspeed (see [VT_F_TR_OL_TM](../advanced_config/parameter_reference.md#VT_F_TR_OL_TM)).
+
+Before the blend airspeed the pitch setpoint is below `FW_PSP_OFF`, so the wing produces less lift than at trim and `CAS_expected` is slightly low.
+This errs towards missed detections, not false failures.
+To verify the configuration, compute `CAS / sqrt(n_wing)` on several healthy transitions: it should be close to `FW_AIRSPD_TRIM`.
+Use [ASPD_TR_RATIO](#aspd_tr_ratio_table) to leave a margin below the lowest ratio seen.
+
+Common failure causes:
+
+- Faulty or blocked airspeed sensor (_sensor fault_)
+- `FW_AIRSPD_TRIM` and `FW_PSP_OFF` not consistent, i.e. `FW_PSP_OFF` is not the level flight pitch at trim airspeed (_configuration issue_)
+- Weight change not reflected in `WEIGHT_GROSS` (_configuration issue_)
+
+Relevant parameters: [FW_AIRSPD_TRIM](#fw_airspd_trim_table), [FW_PSP_OFF](#fw_psp_off_table), [ASPD_TR_RATIO](#aspd_tr_ratio_table), [WEIGHT_BASE](#weight_base_table), [WEIGHT_GROSS](#weight_gross_table)
+
 ## Additional Configuration
 
 To configure the delay before PX4 starts or stops using airspeed sensor data after it passes or fails validation, use:
@@ -192,6 +240,10 @@ Listed below are all the relevant parameters.
 | <a id="fw_thr_trim_table"></a>[FW_THR_TRIM](../advanced_config/parameter_reference.md#FW_THR_TRIM)                | Throttle trim value. If misconfigured, the first principle check may trigger.                            | [First Principle Check](#first-principle-check)  |
 | <a id="fw_thr_max_table"></a>[FW_THR_MAX](../advanced_config/parameter_reference.md#FW_THR_MAX)                   | Throttle limit max.                                                                                      | [First Principle Check](#first-principle-check)  |
 | <a id="aspd_fp_t_window_table"></a>[ASPD_FP_T_WINDOW](../advanced_config/parameter_reference.md#ASPD_FP_T_WINDOW) | Time window for evaluating airspeed trend in First Principle Check.                                      | [First Principle Check](#first-principle-check)  |
+| <a id="fw_airspd_trim_table"></a>[FW_AIRSPD_TRIM](../advanced_config/parameter_reference.md#FW_AIRSPD_TRIM)       | Trim airspeed, at which the wing alone carries the weight at `FW_PSP_OFF`.                               | [Transition Lift Check](#transition-lift-check)  |
+| <a id="aspd_tr_ratio_table"></a>[ASPD_TR_RATIO](../advanced_config/parameter_reference.md#ASPD_TR_RATIO)          | Fraction of the expected airspeed below which the measured airspeed fails the check.                     | [Transition Lift Check](#transition-lift-check)  |
+| <a id="weight_base_table"></a>[WEIGHT_BASE](../advanced_config/parameter_reference.md#WEIGHT_BASE)                | Weight at which `FW_AIRSPD_TRIM` is defined.                                                             | [Transition Lift Check](#transition-lift-check)  |
+| <a id="weight_gross_table"></a>[WEIGHT_GROSS](../advanced_config/parameter_reference.md#WEIGHT_GROSS)             | Actual vehicle weight, used to scale `FW_AIRSPD_TRIM`.                                                   | [Transition Lift Check](#transition-lift-check)  |
 | <a id="aspd_fs_t_start_table"></a>[ASPD_FS_T_START](../advanced_config/parameter_reference.md#ASPD_FS_T_START)    | Delay after passing validation before using sensor data. Affects how soon a recovered sensor is trusted. | All Checks                                       |
 | <a id="aspd_fs_t_stop_table"></a>[ASPD_FS_T_STOP](../advanced_config/parameter_reference.md#ASPD_FS_T_STOP)       | Delay after failure before declaring data invalid. Affects how quickly faults lead to rejection.         | All Checks                                       |
 | <a id="aspd_fallback_table"></a>[ASPD_FALLBACK](../advanced_config/parameter_reference.md#ASPD_FALLBACK)          | Fallback mode when airspeed data is lost or invalid.                                                     | System behavior (post-check)                     |

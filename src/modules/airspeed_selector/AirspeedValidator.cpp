@@ -62,6 +62,8 @@ AirspeedValidator::update_airspeed_validator(const airspeed_validator_update_dat
 				  input_data.ground_velocity, input_data.gnss_valid);
 	check_first_principle(input_data.timestamp, input_data.fixed_wing_throttle_filtered,
 			      input_data.fixed_wing_tecs_throttle_trim, input_data.tecs_timestamp, input_data.q_att);
+	check_transition_lift(input_data.timestamp, input_data.in_transition_to_fw, input_data.accel_z,
+			      input_data.lift_thrust_z, input_data.hover_thrust, input_data.hover_thrust_valid);
 	update_airspeed_valid_status(input_data.timestamp);
 }
 
@@ -338,15 +340,68 @@ AirspeedValidator::check_first_principle(const uint64_t timestamp, const float t
 }
 
 void
+AirspeedValidator::check_transition_lift(const uint64_t timestamp, const bool in_transition_to_fw,
+		const float accel_z, const float lift_thrust_z, const float hover_thrust, const bool hover_thrust_valid)
+{
+	// During a front transition, estimate the airspeed from the share of the weight carried by the wing and
+	// check that the measured airspeed is not far below it. Catches under-reading sensors (e.g. partial pitot
+	// blockage) that delay the end of the transition while the vehicle overspeeds and climbs.
+	// Only valid during the front transition, where pitch is held by the transition logic so the
+	// lift coefficient is roughly constant.
+
+	if (!_transition_lift_check_enabled || !(_transition_lift_vref > FLT_EPSILON) || !in_transition_to_fw) {
+		_transition_lift_check_failed = false;
+		_in_transition_to_fw_prev = false;
+		return;
+	}
+
+	if (!_in_transition_to_fw_prev) {
+		// restart the filters at the start of each front transition
+		_wing_load_fraction_filtered.reset(0.f);
+		_CAS_transition_filtered.reset(_CAS);
+		_time_last_transition_lift_check = timestamp;
+		_in_transition_to_fw_prev = true;
+	}
+
+	const float dt = static_cast<float>(timestamp - _time_last_transition_lift_check) * 1e-6f;
+	_time_last_transition_lift_check = timestamp;
+
+	if (!hover_thrust_valid || !PX4_ISFINITE(hover_thrust) || !(hover_thrust > kTransitionLiftMinHoverThrust)
+	    || !PX4_ISFINITE(accel_z) || !PX4_ISFINITE(lift_thrust_z) || !PX4_ISFINITE(_CAS)) {
+		_transition_lift_check_failed = false;
+		return;
+	}
+
+	// Fraction of the weight carried by the wing (FRD body frame, z down):
+	// total specific force per weight minus the share carried by the lift motors.
+	const float wing_load_fraction = -accel_z / CONSTANTS_ONE_G + lift_thrust_z / hover_thrust;
+
+	if (dt > FLT_EPSILON && dt < 1.f) {
+		_wing_load_fraction_filtered.update(wing_load_fraction, dt);
+		_CAS_transition_filtered.update(_CAS, dt);
+	}
+
+	const float wing_load_fraction_filtered = _wing_load_fraction_filtered.getState();
+
+	if (wing_load_fraction_filtered > kTransitionLiftMinWingLoad) {
+		// lift scales with CAS squared at constant lift coefficient
+		const float cas_expected = _transition_lift_vref * sqrtf(wing_load_fraction_filtered);
+		_transition_lift_check_failed = _CAS_transition_filtered.getState() < _transition_lift_ratio * cas_expected;
+
+	} else {
+		_transition_lift_check_failed = false;
+	}
+}
+
+void
 AirspeedValidator::update_airspeed_valid_status(const uint64_t timestamp)
 {
 	if (_data_stuck_test_failed || _innovations_check_failed || _load_factor_check_failed
-	    || _first_principle_check_failed) {
-		// at least one check (data stuck, innovation or load factor) failed, so record timestamp
+	    || _first_principle_check_failed || _transition_lift_check_failed) {
+		// at least one check failed, so record timestamp
 		_time_checks_failed = timestamp;
 
-	} else if (! _data_stuck_test_failed && !_innovations_check_failed
-		   && !_load_factor_check_failed && !_first_principle_check_failed) {
+	} else {
 		// all checks(data stuck, innovation and load factor) must pass to declare airspeed good
 		_time_checks_passed = timestamp;
 	}

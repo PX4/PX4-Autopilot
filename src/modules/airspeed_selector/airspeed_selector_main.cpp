@@ -55,6 +55,7 @@
 #include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/hover_thrust_estimate.h>
 #include <uORB/topics/launch_detection_status.h>
 #include <uORB/topics/mavlink_log.h>
 #include <uORB/topics/parameter_update.h>
@@ -69,6 +70,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/airspeed_wind.h>
 #include <uORB/topics/flight_phase_estimation.h>
 
@@ -132,6 +134,8 @@ private:
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_rates_setpoint_sub{ORB_ID(vehicle_rates_setpoint)};
+	uORB::Subscription _vehicle_thrust_setpoint_sub{ORB_ID(vehicle_thrust_setpoint)};
+	uORB::Subscription _hover_thrust_estimate_sub{ORB_ID(hover_thrust_estimate)};
 	uORB::Subscription _position_setpoint_triplet_sub{ORB_ID(position_setpoint_triplet)};
 	uORB::Subscription _launch_detection_status_sub{ORB_ID(launch_detection_status)};
 	uORB::SubscriptionMultiArray<airspeed_s, MAX_NUM_AIRSPEED_SENSORS> _airspeed_subs{ORB_ID::airspeed};
@@ -146,6 +150,8 @@ private:
 	vehicle_local_position_s _vehicle_local_position {};
 	vehicle_status_s _vehicle_status {};
 	position_setpoint_triplet_s _position_setpoint_triplet {};
+	vehicle_thrust_setpoint_s _vehicle_thrust_setpoint {};
+	hover_thrust_estimate_s _hover_thrust_estimate {};
 
 	WindEstimator	_wind_estimator_sideslip; /**< wind estimator instance only fusing sideslip */
 	airspeed_wind_s _wind_estimate_sideslip {}; /**< wind estimate message for wind estimator instance only fusing sideslip */
@@ -211,7 +217,8 @@ private:
 		CHECK_TYPE_DATA_STUCK_BIT = (1 << 1),
 		CHECK_TYPE_INNOVATION_BIT = (1 << 2),
 		CHECK_TYPE_LOAD_FACTOR_BIT = (1 << 3),
-		CHECK_TYPE_FIRST_PRINCIPLE_BIT = (1 << 4)
+		CHECK_TYPE_FIRST_PRINCIPLE_BIT = (1 << 4),
+		CHECK_TYPE_TRANSITION_LIFT_BIT = (1 << 5)
 	};
 
 
@@ -219,6 +226,8 @@ private:
 	float _param_pitch_sp_offset{0.0f};
 	param_t _param_handle_fw_thr_max{PARAM_INVALID};
 	float _param_fw_thr_max{0.0f};
+	param_t _param_handle_weight_base{PARAM_INVALID};
+	param_t _param_handle_weight_gross{PARAM_INVALID};
 
 	AlphaFilter<float> _throttle_filtered{_kThrottleFilterTimeConstant};
 	uint64_t _t_last_throttle_fw{0};
@@ -241,6 +250,7 @@ private:
 
 		(ParamFloat<px4::params::ASPD_WERR_THR>) _param_wind_sigma_max_synth_tas,
 		(ParamFloat<px4::params::ASPD_FP_T_WINDOW>) _aspd_fp_t_window,
+		(ParamFloat<px4::params::ASPD_TR_RATIO>) _param_aspd_tr_ratio,
 
 		// external parameters
 		(ParamFloat<px4::params::FW_AIRSPD_STALL>) _param_fw_airspd_stall,
@@ -271,6 +281,8 @@ AirspeedModule::AirspeedModule():
 {
 	_param_handle_pitch_sp_offset = param_find("FW_PSP_OFF");
 	_param_handle_fw_thr_max = param_find("FW_THR_MAX");
+	_param_handle_weight_base = param_find("WEIGHT_BASE");
+	_param_handle_weight_gross = param_find("WEIGHT_GROSS");
 	// initialise parameters
 	update_params();
 
@@ -448,6 +460,15 @@ AirspeedModule::Run()
 		input_data.fixed_wing_throttle_filtered = _throttle_filtered.getState();
 		input_data.fixed_wing_tecs_throttle_trim = _tecs_status.throttle_trim;
 
+		// transition lift check: only for VTOLs with separate lift motors (not tailsitters) in a front transition
+		input_data.in_transition_to_fw = _vehicle_status.is_vtol && !_vehicle_status.is_vtol_tailsitter
+						 && _vehicle_status.in_transition_to_fw && !_vehicle_land_detected.landed;
+		input_data.lift_thrust_z = (_time_now_usec - _vehicle_thrust_setpoint.timestamp < 500_ms) ?
+					   _vehicle_thrust_setpoint.xyz[2] : NAN;
+		input_data.hover_thrust = _hover_thrust_estimate.hover_thrust;
+		input_data.hover_thrust_valid = _hover_thrust_estimate.valid
+						&& (_time_now_usec - _hover_thrust_estimate.timestamp < 1_s);
+
 		// iterate through all airspeed sensors, poll new data from them and update their validators
 		for (int i = 0; i < _number_of_airspeed_sensors; i++) {
 
@@ -551,6 +572,23 @@ void AirspeedModule::update_params()
 {
 	updateParams();
 
+	// Transition lift check reference: the front transition ends at FW_PSP_OFF, the level flight pitch at
+	// FW_AIRSPD_TRIM, so the wing carries the full weight at trim airspeed. FW_AIRSPD_TRIM is defined at
+	// WEIGHT_BASE, the lift-equivalent airspeed scales with sqrt(weight).
+	// The weight parameters are looked up by handle since they only exist on builds with the FW performance model.
+	float weight_ratio = 1.f;
+	float weight_base = 0.f;
+	float weight_gross = 0.f;
+
+	if (_param_handle_weight_base != PARAM_INVALID && _param_handle_weight_gross != PARAM_INVALID
+	    && param_get(_param_handle_weight_base, &weight_base) == PX4_OK
+	    && param_get(_param_handle_weight_gross, &weight_gross) == PX4_OK
+	    && weight_base > FLT_EPSILON && weight_gross > FLT_EPSILON) {
+		weight_ratio = math::constrain(weight_gross / weight_base, 0.5f, 2.f);
+	}
+
+	const float transition_lift_vref = _param_fw_airspd_trim.get() * sqrtf(weight_ratio);
+
 	if (_param_handle_pitch_sp_offset != PARAM_INVALID) {
 		param_get(_param_handle_pitch_sp_offset, &_param_pitch_sp_offset);
 	}
@@ -607,6 +645,10 @@ void AirspeedModule::update_params()
 		_airspeed_validator[i].set_psp_off_param(math::radians(_param_pitch_sp_offset));
 		_airspeed_validator[i].set_throttle_max_param(_param_fw_thr_max);
 		_airspeed_validator[i].set_fp_t_window(_aspd_fp_t_window.get());
+		_airspeed_validator[i].set_enable_transition_lift_check(_param_airspeed_checks_on.get() &
+				CheckTypeBits::CHECK_TYPE_TRANSITION_LIFT_BIT);
+		_airspeed_validator[i].set_transition_lift_vref(transition_lift_vref);
+		_airspeed_validator[i].set_transition_lift_ratio(_param_aspd_tr_ratio.get());
 	}
 }
 
@@ -691,6 +733,8 @@ void AirspeedModule::poll_topics()
 	_vehicle_status_sub.update(&_vehicle_status);
 	_vehicle_local_position_sub.update(&_vehicle_local_position);
 	_position_setpoint_triplet_sub.update(&_position_setpoint_triplet);
+	_vehicle_thrust_setpoint_sub.update(&_vehicle_thrust_setpoint);
+	_hover_thrust_estimate_sub.update(&_hover_thrust_estimate);
 
 	_tecs_status_sub.update(&_tecs_status);
 

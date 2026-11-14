@@ -87,9 +87,10 @@ parameters:
         2: Innovation check (see ASPD_FS_INNOV)
         3: Load factor check (triggers if measurement is below stall speed)
         4: First principle check (airspeed change vs. throttle and pitch)
+        5: Transition lift check (airspeed vs. wing lift in VTOL front transition, uses FW_AIRSPD_TRIM and FW_PSP_OFF)
       default: 7
       min: 0
-      max: 31
+      max: 63
     ASPD_FALLBACK:
       description:
         short: Fallback options
@@ -172,3 +173,12 @@ parameters:
       unit: s
       min: 0
       decimal: 1
+    ASPD_TR_RATIO:
+      description:
+        short: Transition lift check airspeed ratio threshold
+        long: The transition lift check fails if the measured airspeed is below this fraction of the airspeed expected from the wing lift. Only used when ASPD_DO_CHECKS bit 5 is enabled.
+      type: float
+      default: 0.7
+      min: 0.1
+      max: 1.0
+      decimal: 2
