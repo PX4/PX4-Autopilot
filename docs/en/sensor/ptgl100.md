@@ -50,7 +50,7 @@ To check or change a module's baud rate, contact JRT at [sales@jrt-measure.com](
 The driver assumes the sensor is mounted facing downward.
 For any other direction, set [SENS_PTGL100_ROT](../advanced_config/parameter_reference.md#SENS_PTGL100_ROT) (see [PX4 Configuration](#px4_configuration)).
 
-The manufacturer's manual states that the sensor should not be used in direct sunlight.
+The [PTGL-100 manual](#further_information) (§7(2)) states that the sensor should not be used in direct sunlight.
 Contact JRT at [sales@jrt-measure.com](mailto:sales@jrt-measure.com) for guidance on outdoor use and any questions about this restriction.
 
 Keep glass and mirror-like surfaces out of the sensor's blind zone (closer than 0.2 m), and don't mount it facing another laser rangefinder at close range.
@@ -61,8 +61,7 @@ If the sensor is fitted behind a protective window, the manual (§3.4) recommend
 The module has a six-pin `HC-0.8-6PWT` connector (0.8 mm pitch).
 An adapter cable is needed to connect to flight controllers that follow the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) (which use 1.25 mm pitch JST-GH connectors).
 
-On the module socket, pin 1 (`GND`) is at the end of the contact row furthest from the two optical apertures.
-The pins are numbered 1–6 towards the optical apertures, with pin 6 (`EN`) nearest them.
+On the module socket, the pins are numbered 1–6 towards the two optical apertures: pin 1 (`GND`) is furthest from them and pin 6 (`EN`) nearest.
 This numbering refers to the socket on the module; check the corresponding contacts when adapting the supplied cable.
 
 ![JRT PTGL-100 module socket with pins numbered 1 to 6 towards the optical apertures](../../assets/hardware/sensors/ptgl100/ptgl100_pinout.png)
