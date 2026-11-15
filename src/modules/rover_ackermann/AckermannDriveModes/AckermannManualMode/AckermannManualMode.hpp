@@ -47,7 +47,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/rover_throttle_setpoint.h>
+#include <uORB/topics/surface_vehicle_thrust_setpoint.h>
 #include <uORB/topics/surface_vehicle_steering_setpoint.h>
 #include <uORB/topics/surface_vehicle_rate_setpoint.h>
 #include <uORB/topics/surface_vehicle_attitude_setpoint.h>
@@ -68,23 +68,23 @@ public:
 	~AckermannManualMode() = default;
 
 	/**
-	 * @brief Publish roverThrottleSetpoint and surfaceVehicleSteeringSetpoint from manualControlSetpoint.
+	 * @brief Publish surfaceVehicleThrustSetpoint and surfaceVehicleSteeringSetpoint from manualControlSetpoint.
 	 */
 	void manual();
 
 	/**
-	 * @brief Publish roverThrottleSetpoint and surfaceVehicleSteeringSetpoint from manualControlSetpoint with
+	 * @brief Publish surfaceVehicleThrustSetpoint and surfaceVehicleSteeringSetpoint from manualControlSetpoint with
 	 * reduced throttle and full steering authority for precise maneuvering in tight spaces.
 	 */
 	void manualParking();
 
 	/**
-	 * @brief Generate and publish roverThrottleSetpoint and SurfaceVehicleRateSetpoint from manualControlSetpoint.
+	 * @brief Generate and publish surfaceVehicleThrustSetpoint and SurfaceVehicleRateSetpoint from manualControlSetpoint.
 	 */
 	void acro();
 
 	/**
-	 * @brief Generate and publish roverThrottleSetpoint and SurfaceVehicleAttitudeSetpoint from manualControlSetpoint.
+	 * @brief Generate and publish surfaceVehicleThrustSetpoint and SurfaceVehicleAttitudeSetpoint from manualControlSetpoint.
 	 */
 	void stab();
 
@@ -111,7 +111,7 @@ private:
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 
 	// uORB publications
-	uORB::Publication<rover_throttle_setpoint_s> _rover_throttle_setpoint_pub{ORB_ID(rover_throttle_setpoint)};
+	uORB::Publication<surface_vehicle_thrust_setpoint_s> _surface_vehicle_thrust_setpoint_pub{ORB_ID(surface_vehicle_thrust_setpoint)};
 	uORB::Publication<surface_vehicle_steering_setpoint_s> _surface_vehicle_steering_setpoint_pub{ORB_ID(surface_vehicle_steering_setpoint)};
 	uORB::Publication<surface_vehicle_rate_setpoint_s>     _surface_vehicle_rate_setpoint_pub{ORB_ID(surface_vehicle_rate_setpoint)};
 	uORB::Publication<surface_vehicle_attitude_setpoint_s> _surface_vehicle_attitude_setpoint_pub{ORB_ID(surface_vehicle_attitude_setpoint)};
@@ -136,6 +136,7 @@ private:
 		(ParamFloat<px4::params::RO_YAW_SUPEXPO>)   _param_ro_yaw_supexpo,
 		(ParamFloat<px4::params::RO_PARK_THR_MAX>)  _param_ro_park_thr_max,
 		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
-		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max
+		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max,
+		(ParamInt<px4::params::RO_STICK_MAP>)       _param_ro_stick_map
 	)
 };

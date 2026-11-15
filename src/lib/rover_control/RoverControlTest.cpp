@@ -198,3 +198,31 @@ TEST(DriftAngleEstimator, filteredAndReset)
 	drift_angle_estimator.reset();
 	EXPECT_FLOAT_EQ(drift_angle_estimator.getDriftAngle(), 0.f);
 }
+
+TEST(mapSticks, mappings)
+{
+	manual_control_setpoint_s manual_control_setpoint{};
+	manual_control_setpoint.throttle = 0.1f;
+	manual_control_setpoint.yaw = 0.2f;
+	manual_control_setpoint.pitch = 0.3f;
+	manual_control_setpoint.roll = 0.4f;
+
+	const auto expectSticks = [&](int32_t stick_map, float forward, float lateral, float yaw) {
+		const RoverControl::ManualSticks sticks = RoverControl::mapSticks(manual_control_setpoint, stick_map);
+		EXPECT_FLOAT_EQ(sticks.forward, forward);
+		EXPECT_FLOAT_EQ(sticks.lateral, lateral);
+		EXPECT_FLOAT_EQ(sticks.yaw, yaw);
+	};
+
+	// Sticks of a mode 2 transmitter: throttle = left vertical, yaw = left horizontal,
+	// pitch = right vertical, roll = right horizontal
+	expectSticks(1, 0.1f, 0.4f, 0.2f); // Left: forward & yaw, right: lateral
+	expectSticks(2, 0.3f, 0.4f, 0.2f); // Left: yaw, right: forward & lateral
+	expectSticks(3, 0.1f, 0.2f, 0.4f); // Left: forward & lateral, right: yaw
+	expectSticks(4, 0.3f, 0.2f, 0.4f); // Left: lateral, right: forward & yaw
+
+	// Out of range values fall back to the default mapping (mode 3)
+	expectSticks(-1, 0.1f, 0.2f, 0.4f);
+	expectSticks(0, 0.1f, 0.2f, 0.4f);
+	expectSticks(5, 0.1f, 0.2f, 0.4f);
+}

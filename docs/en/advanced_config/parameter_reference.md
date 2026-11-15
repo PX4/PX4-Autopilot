@@ -35824,7 +35824,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Failure Injection
 
-<div class="param-group" style="--param-count: 8">
+<div class="param-group" style="--param-count: 14">
 
 <div class="param">
 
@@ -35845,6 +35845,51 @@ WARNING: the failures can easily cause crashes and are to be used with caution!
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &check; |  |  |  | Disabled (0) |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SYS_FAIL_A_BIAS (`FLOAT`) {#SYS_FAIL_A_BIAS}
+
+Accel bias failure injection offset.
+
+Constant offset added to every axis while an accel 'wrong' failure injection is active.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.2 | m/s^2 | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SYS_FAIL_A_DRIFT (`FLOAT`) {#SYS_FAIL_A_DRIFT}
+
+Accel drift failure injection rate.
+
+Rate at which the offset added to every axis grows while an accel 'drift' failure injection is active.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.005 | m/s^3 | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SYS_FAIL_A_NOISE (`FLOAT`) {#SYS_FAIL_A_NOISE}
+
+Accel noise failure injection magnitude.
+
+Amplitude of the uniform noise added to every axis while an accel 'garbage' failure injection is active.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 |  |  | 1.0 | m/s^2 | &nbsp;
 
 </div>
 
@@ -35930,6 +35975,51 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
+### SYS_FAIL_G_BIAS (`FLOAT`) {#SYS_FAIL_G_BIAS}
+
+Gyro bias failure injection offset.
+
+Constant offset added to every axis while a gyro 'wrong' failure injection is active.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.01 | rad/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SYS_FAIL_G_DRIFT (`FLOAT`) {#SYS_FAIL_G_DRIFT}
+
+Gyro drift failure injection rate.
+
+Rate at which the offset added to every axis grows while a gyro 'drift' failure injection is active.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.001 | rad/s^2 | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SYS_FAIL_G_NOISE (`FLOAT`) {#SYS_FAIL_G_NOISE}
+
+Gyro noise failure injection magnitude.
+
+Amplitude of the uniform noise added to every axis while a gyro 'garbage' failure injection is active.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 |  |  | 0.05 | rad/s | &nbsp;
+
+</div>
+
+<div class="param">
+
 ### SYS_FAIL_RC_INST (`INT32`) {#SYS_FAIL_RC_INST}
 
 Instances failed by the RC switch.
@@ -35984,6 +36074,7 @@ unsupported (unit, type) pairs are ignored.
 - `5`: Slow
 - `6`: Delayed
 - `7`: Intermittent
+- `8`: Drift
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -50874,7 +50965,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Rover Manual Control
 
-<div class="param-group" style="--param-count: 1">
+<div class="param-group" style="--param-count: 2">
 
 <div class="param">
 
@@ -50889,6 +50980,29 @@ Scales the stick inputs that are mapped to motor commands in Manual Parking mode
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0 | 1 | 0.01 | 0.3 | norm | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RO_STICK_MAP (`INT32`) {#RO_STICK_MAP}
+
+Stick mapping for the manual modes.
+
+Follows the RC transmitter modes 1-4 with the pitch stick driving forwards/backwards, the roll stick sideways and the yaw stick turning, assuming the RC channels are mapped as for a mode 2 transmitter. Ackermann and differential rovers ignore the sideways assignment. In the tank-style Manual Parking mode of differential and mecanum rovers only the sideways assignment applies.
+
+
+**Values:**
+
+- `1`: Mode 1: forward and turn on left stick, sideways on right stick
+- `2`: Mode 2: turn on left stick, forward and sideways on right stick
+- `3`: Mode 3: forward and sideways on left stick, turn on right stick
+- `4`: Mode 4: sideways on left stick, forward and turn on right stick
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 3 |  | &nbsp;
 
 </div>
 
@@ -51114,7 +51228,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Rover Velocity Control
 
-<div class="param-group" style="--param-count: 9">
+<div class="param-group" style="--param-count: 10">
 
 <div class="param">
 
@@ -51255,6 +51369,23 @@ The minimum threshold for the speed measurement not to be interpreted as zero.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0 | 100 | 0.01 | 0.1 | m/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RO_WHEEL_RAD (`FLOAT`) {#RO_WHEEL_RAD}
+
+Wheel radius in meters.
+
+Used to convert wheel encoder counts to the distance travelled by each wheel
+for the MAVLink WHEEL_DISTANCE message:
+distance = 2 * pi * RO_WHEEL_RAD * encoder_counts / counts_per_rev
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.01 | 10 | 0.001 | 0.1 | m | &nbsp;
 
 </div>
 
@@ -61363,13 +61494,35 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Simulation In Hardware
 
-<div class="param-group" style="--param-count: 35">
+<div class="param-group" style="--param-count: 41">
+
+<div class="param">
+
+### SIH_DISTSNSR_EN (`INT32`) {#SIH_DISTSNSR_EN}
+
+Enable the simulated downward facing distance sensor.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 1 |  | &nbsp;
+
+</div>
 
 <div class="param">
 
 ### SIH_DISTSNSR_MAX (`FLOAT`) {#SIH_DISTSNSR_MAX}
 
 distance sensor maximum range.
+
+The signal quality degrades over the last 20% of the range. Beyond the maximum range
+the sensor reports a saturated reading with a zero signal quality.
+
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
@@ -61383,9 +61536,29 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 distance sensor minimum range.
 
+Readings closer than this saturate at the minimum range
+and are reported with a zero signal quality.
+
+
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0.0 | 10.0 | 0.01 | 0.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SIH_DISTSNSR_NOI (`FLOAT`) {#SIH_DISTSNSR_NOI}
+
+Distance sensor measurement noise standard deviation.
+
+Gaussian noise added to the simulated distance sensor measurements.
+Set to 0 to disable noise.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 10.0 |  | 0.01 | m | &nbsp;
 
 </div>
 
@@ -61395,7 +61568,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 if >= 0 the distance sensor measures will be overridden by this value.
 
-Absolute value superior to 10000 will disable distance sensor
+Set SIH_DISTSNSR_EN to 0 to disable the distance sensor.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -61802,6 +61975,76 @@ This value can be measured by weighting the quad on a scale.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0.0 |  | 0.1 | 1.0 | kg | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SIH_OF_EN (`INT32`) {#SIH_OF_EN}
+
+Enable the simulated optical flow sensor.
+
+The simulated sensor reports the integrated flow only. The flow module completes the
+sample with the vehicle gyro and the downward facing distance sensor, which therefore
+has to be enabled as well (SIH_DISTSNSR_EN) for the flow to be usable by the estimator.
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SIH_OF_H_MAX (`FLOAT`) {#SIH_OF_H_MAX}
+
+Optical flow maximum ground distance.
+
+Above this distance to the ground the simulated sensor cannot track the ground image
+anymore and reports a zero quality.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 1.0 |  |  | 30.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SIH_OF_NOISE (`FLOAT`) {#SIH_OF_NOISE}
+
+Optical flow measurement noise standard deviation.
+
+Gaussian noise added to the simulated flow rate.
+Set to 0 to disable noise.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 5.0 |  | 0.05 | rad/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SIH_OF_RATE (`FLOAT`) {#SIH_OF_RATE}
+
+Optical flow publication rate.
+
+The simulated sensor integrates the flow over one publication interval.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 1.0 | 100.0 |  | 12.0 | Hz | &nbsp;
 
 </div>
 

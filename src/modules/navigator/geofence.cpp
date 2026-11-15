@@ -68,7 +68,8 @@ static constexpr unsigned kMaxPathPieces = 255;
 static constexpr double kHalfPi = M_PI / 2.0; // M_PI_2 is not available on every platform
 
 // Zero means the path cannot be approximated within the subdivision budget.
-static uint8_t pathPieces(const Geofence::PathCheck &path)
+// Not inlined: its double math would otherwise stay on the checkPaths() stack under checkPolygonPaths().
+static __attribute__((noinline)) uint8_t pathPieces(const Geofence::PathCheck &path)
 {
 	const float distance = get_distance_to_next_waypoint(path.start(0), path.start(1), path.end(0), path.end(1));
 	const double half_angle = static_cast<double>(distance) / (2.0 * CONSTANTS_RADIUS_OF_EARTH);
@@ -673,7 +674,6 @@ bool Geofence::checkPathBatch(const PathCheck *paths, size_t num_paths, bool *re
 
 bool Geofence::checkPaths(const PathCheck *paths, size_t num_paths, bool *results)
 {
-	uint8_t pieces[MAX_PATH_CHECKS];
 	bool pieces_calculated = false;
 	const float max_home_distance = _navigator->home_global_position_valid() ? _param_gf_max_hor_dist.get() : 0.f;
 	const home_position_s &home = *_navigator->get_home_position();
@@ -710,9 +710,9 @@ bool Geofence::checkPaths(const PathCheck *paths, size_t num_paths, bool *result
 		case NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION:
 			if (!pieces_calculated) {
 				for (size_t i = 0; i < num_paths; ++i) {
-					pieces[i] = pathPieces(paths[i]);
+					_path_pieces[i] = pathPieces(paths[i]);
 
-					if (pieces[i] == 0) {
+					if (_path_pieces[i] == 0) {
 						return false;
 					}
 				}
@@ -720,7 +720,7 @@ bool Geofence::checkPaths(const PathCheck *paths, size_t num_paths, bool *result
 				pieces_calculated = true;
 			}
 
-			if (!checkPolygonPaths(polygon, paths, pieces, num_paths, results)) {
+			if (!checkPolygonPaths(polygon, paths, _path_pieces, num_paths, results)) {
 				return false;
 			}
 

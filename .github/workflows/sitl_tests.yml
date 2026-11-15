@@ -37,9 +37,11 @@ jobs:
         config:
           - {model: "quadx",         latitude:  "59.617693", longitude: "-151.145316", altitude:  "48", build_type: "AddressSanitizer" } # Alaska
           - {model: "hex",           latitude:  "47.397742", longitude:    "8.545594", altitude: "488", build_type: "ThreadSanitizer" } # Zurich
+          - {model: "quadx_flow",    latitude:  "59.617693", longitude: "-151.145316", altitude:  "48", build_type: "RelWithDebInfo" } # Alaska
           # Coverage on main only; PRs reuse main's numbers through Codecov carryforward (codecov.yml)
           - {model: "standard_vtol", latitude:  "47.397742", longitude:    "8.545594", altitude: "488", build_type: "${{ github.event_name == 'push' && 'Coverage' || 'RelWithDebInfo' }}" } # Zurich
           - {model: "xvert",         latitude:  "47.397742", longitude:    "8.545594", altitude: "488", build_type: "UndefinedBehaviorSanitizer" } # Zurich
+          - {model: "standard_vtol_flow", latitude:  "47.397742", longitude:    "8.545594", altitude: "488", build_type: "RelWithDebInfo" } # Zurich
     env:
       PX4_CMAKE_BUILD_TYPE: ${{ matrix.config.build_type }}
       PX4_SBOM_DISABLE: 1

@@ -39,6 +39,7 @@
 
 // Libraries
 #include <lib/rover_control/RoverControl.hpp>
+#include <lib/rover_control/RoverControllerWorkItem.hpp>
 #include <lib/pid/PID.hpp>
 #include <lib/slew_rate/SlewRate.hpp>
 #include <math.h>
@@ -54,7 +55,7 @@
 /**
  * @brief Class for mecanum rate control.
  */
-class MecanumRateControl : public ModuleParams
+class MecanumRateControl : public ModuleParams, public RoverControllerWorkItem
 {
 public:
 	/**
@@ -87,6 +88,8 @@ protected:
 	void updateParams() override;
 
 private:
+	void runController() override { updateRateControl(); }
+	void onEnable() override { _timestamp = hrt_absolute_time(); } // The first dt after (re-)enabling must not span the time spent disabled
 
 	// uORB subscriptions
 	uORB::Subscription _surface_vehicle_rate_setpoint_sub{ORB_ID(surface_vehicle_rate_setpoint)};

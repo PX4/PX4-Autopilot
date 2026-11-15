@@ -39,6 +39,7 @@
 
 // Library includes
 #include <lib/rover_control/RoverControl.hpp>
+#include <lib/rover_control/RoverControllerWorkItem.hpp>
 #include <lib/pid/PID.hpp>
 #include <matrix/matrix/math.hpp>
 #include <lib/slew_rate/SlewRate.hpp>
@@ -47,7 +48,7 @@
 // uORB includes
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/rover_throttle_setpoint.h>
+#include <uORB/topics/surface_vehicle_thrust_setpoint.h>
 #include <uORB/topics/surface_vehicle_speed_setpoint.h>
 #include <uORB/topics/surface_vehicle_speed_status.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -58,7 +59,7 @@ using namespace matrix;
 /**
  * @brief Class for ackermann speed control.
  */
-class AckermannSpeedControl : public ModuleParams
+class AckermannSpeedControl : public ModuleParams, public RoverControllerWorkItem
 {
 public:
 	/**
@@ -69,7 +70,7 @@ public:
 	~AckermannSpeedControl() = default;
 
 	/**
-	 * @brief Generate and publish RoverThrottleSetpoint from surfaceVehicleSpeedSetpoint.
+	 * @brief Generate and publish SurfaceVehicleThrustSetpoint from surfaceVehicleSpeedSetpoint.
 	 */
 	void updateSpeedControl();
 
@@ -91,6 +92,9 @@ protected:
 	void updateParams() override;
 
 private:
+	void runController() override { updateSpeedControl(); }
+	void onEnable() override { _timestamp = hrt_absolute_time(); } // The first dt after (re-)enabling must not span the time spent disabled
+
 	/**
 	 * @brief Update uORB subscriptions used in speed controller.
 	 */
@@ -102,7 +106,7 @@ private:
 	uORB::Subscription _surface_vehicle_speed_setpoint_sub{ORB_ID(surface_vehicle_speed_setpoint)};
 
 	// uORB publications
-	uORB::Publication<rover_throttle_setpoint_s> _rover_throttle_setpoint_pub{ORB_ID(rover_throttle_setpoint)};
+	uORB::Publication<surface_vehicle_thrust_setpoint_s> _surface_vehicle_thrust_setpoint_pub{ORB_ID(surface_vehicle_thrust_setpoint)};
 	uORB::Publication<surface_vehicle_speed_status_s>      _surface_vehicle_speed_status_pub{ORB_ID(surface_vehicle_speed_status)};
 
 	// Variables

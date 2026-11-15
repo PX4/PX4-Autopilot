@@ -234,6 +234,7 @@ private:
 	uint32_t _opaque_id{0}; ///< dataman geofence id: if it does not match, the polygon data was updated
 	bool _fence_loaded{false}; ///< Used by live point checks; may remain true while an update is pending.
 	bool _path_check_ready{false}; ///< Update succeeded with no newer request pending.
+	uint8_t _path_pieces[MAX_PATH_CHECKS] {}; ///< Pieces per path of the batch in checkPaths(), off the stack
 	bool _initiate_fence_updated{true}; ///< flag indicating if fence updated is needed
 	hrt_abstime _fence_retry_time{0}; ///< Next retry of a failed load; zero when none is scheduled.
 	uint8_t _fence_load_failures{0}; ///< Consecutive failed load attempts.

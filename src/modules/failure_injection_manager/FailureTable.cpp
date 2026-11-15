@@ -45,6 +45,13 @@ bool FailureTable::isSupported(uint8_t unit, uint8_t type)
 	switch (unit) {
 	case failure_injection_s::FAILURE_UNIT_SENSOR_GYRO:
 	case failure_injection_s::FAILURE_UNIT_SENSOR_ACCEL:
+		return type == failure_injection_s::FAILURE_TYPE_OK
+		       || type == failure_injection_s::FAILURE_TYPE_OFF
+		       || type == failure_injection_s::FAILURE_TYPE_STUCK
+		       || type == failure_injection_s::FAILURE_TYPE_WRONG    // bias
+		       || type == failure_injection_s::FAILURE_TYPE_GARBAGE  // noise
+		       || type == failure_injection_s::FAILURE_TYPE_DRIFT;
+
 	case failure_injection_s::FAILURE_UNIT_SENSOR_MAG:
 	case failure_injection_s::FAILURE_UNIT_SENSOR_BARO:
 	case failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR:

@@ -35,7 +35,9 @@
 
 using namespace time_literals;
 
-MecanumPosControl::MecanumPosControl(ModuleParams *parent) : ModuleParams(parent)
+MecanumPosControl::MecanumPosControl(ModuleParams *parent) :
+	ModuleParams(parent),
+	RoverControllerWorkItem("rover_mecanum_pos_control", ORB_ID(vehicle_local_position))
 {
 	_surface_vehicle_speed_setpoint_pub.advertise();
 	_pure_pursuit_status_pub.advertise();
@@ -94,15 +96,15 @@ void MecanumPosControl::updatePosControl()
 
 			surface_vehicle_speed_setpoint_s surface_vehicle_speed_setpoint{};
 			surface_vehicle_speed_setpoint.timestamp = timestamp;
-			surface_vehicle_speed_setpoint.speed_body_x = velocity_in_body_frame(0);
-			surface_vehicle_speed_setpoint.speed_body_y = velocity_in_body_frame(1);
+			surface_vehicle_speed_setpoint.x = velocity_in_body_frame(0);
+			surface_vehicle_speed_setpoint.y = velocity_in_body_frame(1);
 			_surface_vehicle_speed_setpoint_pub.publish(surface_vehicle_speed_setpoint);
 
 		} else {
 			surface_vehicle_speed_setpoint_s surface_vehicle_speed_setpoint{};
 			surface_vehicle_speed_setpoint.timestamp = timestamp;
-			surface_vehicle_speed_setpoint.speed_body_x = 0.f;
-			surface_vehicle_speed_setpoint.speed_body_y = 0.f;
+			surface_vehicle_speed_setpoint.x = 0.f;
+			surface_vehicle_speed_setpoint.y = 0.f;
 			_surface_vehicle_speed_setpoint_pub.publish(surface_vehicle_speed_setpoint);
 
 			if (!_stopped && fabsf(_vehicle_speed) < FLT_EPSILON) {

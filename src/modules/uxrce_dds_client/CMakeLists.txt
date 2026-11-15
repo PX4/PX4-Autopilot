@@ -75,8 +75,8 @@ else()
 		set(c_flags_with_includes "${c_flags_with_includes} -Wno-cast-align -D__PX4_NUTTX")
 	endif()
 
-	# Match UXRCE_DDS_CLIENT_UDP in uxrce_dds_client.h: NuttX targets without networking have no UDP transport
-	if(PX4_PLATFORM STREQUAL "nuttx" AND NOT CONFIG_NET)
+	# Match UXRCE_DDS_CLIENT_UDP in uxrce_dds_client.h: NuttX targets without Ethernet have no UDP transport
+	if(PX4_PLATFORM STREQUAL "nuttx" AND NOT CONFIG_NET_ETHERNET)
 		set(uclient_profile_udp OFF)
 	else()
 		set(uclient_profile_udp ON)

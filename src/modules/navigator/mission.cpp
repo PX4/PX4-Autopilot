@@ -407,9 +407,14 @@ void Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s nex
 		_mission_item.yaw = NAN;
 	}
 
-	/* if we just did a normal takeoff navigate to the actual waypoint now */
-	if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF &&
-	    _work_item_type == WorkItemType::WORK_ITEM_TYPE_CLIMB) {
+	/* if we just did a normal takeoff, or a VTOL takeoff without transition after a quadchute, navigate to the actual waypoint now */
+	if ((_mission_item.nav_cmd == NAV_CMD_TAKEOFF
+	     || (_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF && _navigator->front_transition_inhibited()))
+	    && _work_item_type == WorkItemType::WORK_ITEM_TYPE_CLIMB) {
+
+		if (_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF) {
+			send_front_transition_skipped();
+		}
 
 		_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 		/* ignore yaw here, otherwise it might yaw before heading_sp_update takes over */
@@ -470,13 +475,14 @@ void Mission::handleVtolTransition(WorkItemType &new_work_item_type, mission_ite
 {
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-	/* turn towards next waypoint before MC to FW transition */
+	/* turn towards next waypoint before MC to FW transition, unless it is skipped after a quadchute */
 	if (_mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
 	    && _work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT
 	    && new_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT
 	    && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 	    && !_land_detected_sub.get().landed
-	    && (num_found_items > 0u)) {
+	    && (num_found_items > 0u)
+	    && !_navigator->front_transition_inhibited()) {
 
 		new_work_item_type = WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING;
 

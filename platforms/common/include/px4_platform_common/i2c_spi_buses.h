@@ -299,6 +299,12 @@ protected:
 	static int module_start(const BusCLIArguments &cli, BusInstanceIterator &iterator, void(*print_usage)(),
 				instantiate_method instantiate);
 
+	/**
+	 * Handle the start, stop and status verbs, or print the usage for any other verb.
+	 */
+	static int module_main(const char *verb, const BusCLIArguments &cli, BusInstanceIterator &iterator,
+			       void(*print_usage)(), instantiate_method instantiate);
+
 	static I2CSPIDriverBase *init_instance(I2CSPIDriverBase *instance, int init_ret);
 
 private:
@@ -321,6 +327,11 @@ public:
 	static int module_start(const BusCLIArguments &cli, BusInstanceIterator &iterator)
 	{
 		return I2CSPIDriverBase::module_start(cli, iterator, &T::print_usage, InstantiateHelper<T>::m);
+	}
+
+	static int module_main(const char *verb, const BusCLIArguments &cli, BusInstanceIterator &iterator)
+	{
+		return I2CSPIDriverBase::module_main(verb, cli, iterator, &T::print_usage, InstantiateHelper<T>::m);
 	}
 
 protected:

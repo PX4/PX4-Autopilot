@@ -130,8 +130,10 @@ MissionBlock::is_mission_item_reached_or_completed()
 			       && !_navigator->get_vstatus()->in_transition_mode;
 
 		} else if (int(_mission_item.params[0]) == 4) {
-			// transition to FW requested, only accept waypoint if vehicle state has changed accordingly
-			return _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+			// transition to FW requested, only accept waypoint if vehicle state has changed accordingly.
+			// After a quadchute, also one during this transition, the mission continues in multicopter mode.
+			return _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+			       || _navigator->front_transition_inhibited();
 
 		} else {
 			// invalid vtol transition request
@@ -540,11 +542,24 @@ MissionBlock::reset_mission_item_reached()
 }
 
 void
+MissionBlock::send_front_transition_skipped()
+{
+	events::send(events::ID("navigator_front_transition_skipped"), events::Log::Warning,
+		     "Front transition skipped after quad-chute, continuing in multicopter mode");
+}
+
+void
 MissionBlock::issue_command(const mission_item_s &item)
 {
 	if (mission_item_contains_position(item)
 	    || item_contains_gate(item)
 	    || item_contains_marker(item)) {
+		return;
+	}
+
+	if (item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION && int(item.params[0]) == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW
+	    && _navigator->front_transition_inhibited()) {
+		send_front_transition_skipped();
 		return;
 	}
 

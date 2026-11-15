@@ -35,8 +35,12 @@
 
 using namespace time_literals;
 
-MecanumActControl::MecanumActControl(ModuleParams *parent) : ModuleParams(parent)
+MecanumActControl::MecanumActControl(ModuleParams *parent) :
+	ModuleParams(parent),
+	RoverControllerWorkItem("rover_mecanum_act_control", ORB_ID(vehicle_angular_velocity))
 {
+	// Paced by the gyro like the rate controller, so actuator setpoints are published every cycle,
+	// also when no new steering setpoint arrives (e.g. the cycle after a mode change resets the rate controller)
 	updateParams();
 }
 
@@ -57,11 +61,11 @@ void MecanumActControl::updateActControl()
 	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 10_ms) * 1e-6f;
 
 	// Motor control
-	if (_rover_throttle_setpoint_sub.updated()) {
-		rover_throttle_setpoint_s rover_throttle_setpoint{};
-		_rover_throttle_setpoint_sub.copy(&rover_throttle_setpoint);
-		_throttle_x_setpoint = rover_throttle_setpoint.throttle_body_x;
-		_throttle_y_setpoint = rover_throttle_setpoint.throttle_body_y;
+	if (_surface_vehicle_thrust_setpoint_sub.updated()) {
+		surface_vehicle_thrust_setpoint_s surface_vehicle_thrust_setpoint{};
+		_surface_vehicle_thrust_setpoint_sub.copy(&surface_vehicle_thrust_setpoint);
+		_throttle_x_setpoint = surface_vehicle_thrust_setpoint.x;
+		_throttle_y_setpoint = surface_vehicle_thrust_setpoint.y;
 	}
 
 	if (_surface_vehicle_steering_setpoint_sub.updated()) {

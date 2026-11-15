@@ -35,7 +35,9 @@
 
 using namespace time_literals;
 
-AckermannPosControl::AckermannPosControl(ModuleParams *parent) : ModuleParams(parent)
+AckermannPosControl::AckermannPosControl(ModuleParams *parent) :
+	ModuleParams(parent),
+	RoverControllerWorkItem("rover_ackermann_pos_control", ORB_ID(vehicle_local_position))
 {
 	_pure_pursuit_status_pub.advertise();
 	_surface_vehicle_speed_setpoint_pub.advertise();
@@ -105,7 +107,7 @@ void AckermannPosControl::updatePosControl()
 
 			surface_vehicle_speed_setpoint_s surface_vehicle_speed_setpoint{};
 			surface_vehicle_speed_setpoint.timestamp = timestamp;
-			surface_vehicle_speed_setpoint.speed_body_x = speed_setpoint;
+			surface_vehicle_speed_setpoint.x = speed_setpoint;
 			_surface_vehicle_speed_setpoint_pub.publish(surface_vehicle_speed_setpoint);
 			surface_vehicle_attitude_setpoint_s surface_vehicle_attitude_setpoint{};
 			surface_vehicle_attitude_setpoint.timestamp = timestamp;
@@ -116,7 +118,7 @@ void AckermannPosControl::updatePosControl()
 		} else {
 			surface_vehicle_speed_setpoint_s surface_vehicle_speed_setpoint{};
 			surface_vehicle_speed_setpoint.timestamp = timestamp;
-			surface_vehicle_speed_setpoint.speed_body_x = 0.f;
+			surface_vehicle_speed_setpoint.x = 0.f;
 			_surface_vehicle_speed_setpoint_pub.publish(surface_vehicle_speed_setpoint);
 			surface_vehicle_attitude_setpoint_s surface_vehicle_attitude_setpoint{};
 			surface_vehicle_attitude_setpoint.timestamp = timestamp;

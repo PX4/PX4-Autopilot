@@ -39,14 +39,21 @@ ModuleBase::Descriptor RoverDifferential::desc{task_spawn, custom_command, print
 
 RoverDifferential::RoverDifferential() :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
 	updateParams();
 }
 
 bool RoverDifferential::init()
 {
-	if (!_vehicle_angular_velocity_sub.registerCallback()) {
+	// The module registers its gyro callback first and keeps it, so the setpoints it generates reach the controllers in the same cycle.
+	// The controllers only check their trigger here, they register it while enabled, see enableControllers().
+	if (!_vehicle_angular_velocity_sub.registerCallback()
+	    || !_differential_pos_control.init()
+	    || !_differential_speed_control.init()
+	    || !_differential_att_control.init()
+	    || !_differential_rate_control.init()
+	    || !_differential_act_control.init()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
@@ -67,7 +74,7 @@ void RoverDifferential::Run()
 		return;
 	}
 
-	// Drain the trigger. The gyro paces the loop; its value is not used here.
+	// Drain the trigger. The gyro paces the setpoint generation; its value is not used here.
 	vehicle_angular_velocity_s angular_velocity;
 	_vehicle_angular_velocity_sub.update(&angular_velocity);
 
@@ -101,14 +108,16 @@ void RoverDifferential::Run()
 
 		_was_armed = true;
 		generateSetpoints();
-		updateControllers();
+		enableControllers(true);
 
 	} else if (_was_armed) { // Reset all controllers and stop the vehicle
+		enableControllers(false);
 		reset();
 		_differential_act_control.stopVehicle();
 		_was_armed = false;
 
 	} else {
+		enableControllers(false);
 		_differential_act_control.stopVehicle();
 	}
 
@@ -181,27 +190,36 @@ void RoverDifferential::generateSetpoints()
 
 }
 
-void RoverDifferential::updateControllers()
+void RoverDifferential::enableControllers(const bool enabled)
 {
-	if (_vehicle_control_mode.flag_control_position_enabled) {
-		_differential_pos_control.updatePosControl();
+	const bool pos_was_enabled = _differential_pos_control.enabled();
+	const bool speed_was_enabled = _differential_speed_control.enabled();
+	const bool rate_was_enabled = _differential_rate_control.enabled();
+	const bool act_was_enabled = _differential_act_control.enabled();
+
+	// Enable top-down, so newly enabled controllers run in cascade order in this cycle
+	bool registered = _differential_pos_control.setEnabled(enabled && _vehicle_control_mode.flag_control_position_enabled);
+	registered = _differential_speed_control.setEnabled(enabled && _vehicle_control_mode.flag_control_velocity_enabled) && registered;
+	registered = _differential_att_control.setEnabled(enabled && _vehicle_control_mode.flag_control_attitude_enabled) && registered;
+	registered = _differential_rate_control.setEnabled(enabled && _vehicle_control_mode.flag_control_rates_enabled) && registered;
+	registered = _differential_act_control.setEnabled(enabled && _vehicle_control_mode.flag_control_allocation_enabled) && registered;
+
+	// Callbacks sharing a trigger topic run in registration order: keep the position controller ahead of the speed
+	// controller (vehicle_local_position) and the rate controller ahead of the actuator controller (vehicle_angular_velocity)
+	if (!pos_was_enabled && _differential_pos_control.enabled() && speed_was_enabled && _differential_speed_control.enabled()) {
+		registered = _differential_speed_control.reregisterTrigger() && registered;
 	}
 
-	if (_vehicle_control_mode.flag_control_attitude_enabled) {
-		_differential_att_control.updateAttControl();
+	if (!rate_was_enabled && _differential_rate_control.enabled() && act_was_enabled && _differential_act_control.enabled()) {
+		registered = _differential_act_control.reregisterTrigger() && registered;
 	}
 
-	if (_vehicle_control_mode.flag_control_rates_enabled) {
-		_differential_rate_control.updateRateControl();
+	// Report a failure once, the controllers retry on every cycle
+	if (!registered && !_controller_registration_failed) {
+		PX4_ERR("controller callback registration failed, retrying");
 	}
 
-	if (_vehicle_control_mode.flag_control_velocity_enabled) {
-		_differential_speed_control.updateSpeedControl();
-	}
-
-	if (_vehicle_control_mode.flag_control_allocation_enabled) {
-		_differential_act_control.updateActControl();
-	}
+	_controller_registration_failed = !registered;
 }
 
 void RoverDifferential::runSanityChecks()

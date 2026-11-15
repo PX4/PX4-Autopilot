@@ -139,6 +139,7 @@ The remaining flight time comes from the battery:
 Without a remaining flight time estimate, the distance-aware return failsafe never triggers, and there is no warning either.
 This is the case if `BATn_CAPACITY` is not set (the default is `-1`), if a DroneCAN battery sends only `BatteryInfo`, or if a MAVLink battery does not fill in `time_remaining`.
 This also applies when there is no valid home position or global position estimate.
+It also never triggers with [RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 2 or 4 while a valid mission is loaded: these Return types do not estimate the time to follow the mission.
 The vehicle is then only protected by the [battery level failsafe](#battery-level-failsafe).
 :::
 
@@ -378,8 +379,12 @@ The parachute health failsafe is triggered when a [MAVLink parachute](../periphe
 Failsafe for when a VTOL vehicle can no longer fly in fixed-wing mode, perhaps due to the failure of a pusher motor, airspeed sensor, or control surface.
 If the failsafe is triggered, the vehicle will immediately switch to multicopter mode and execute the action defined in parameter [COM_QC_ACT](#COM_QC_ACT).
 
+After a quad-chute, Mission and VTOL Takeoff mode no longer command forward transitions, as the next one would likely fail too: they skip them and fly on in multicopter mode, which has much less range.
+A forward transition commanded by the pilot or ground station allows them again; otherwise this lasts until the vehicle is rebooted.
+
 ::: info
 The quad-chute can also be triggered by sending a MAVLINK [MAV_CMD_DO_VTOL_TRANSITION](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_VTOL_TRANSITION) message with `param2` set to `1`.
+As this is not caused by a failure, it only switches to multicopter mode, without executing [COM_QC_ACT](#COM_QC_ACT) or requiring a reboot before the next arming.
 :::
 
 The parameters that control when the quad-chute will trigger are listed in the table below.
