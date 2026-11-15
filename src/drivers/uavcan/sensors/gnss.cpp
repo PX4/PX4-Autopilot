@@ -40,6 +40,7 @@
  */
 
 #include "gnss.hpp"
+#include "gnss_time.hpp"
 
 #include <cstdint>
 
@@ -452,28 +453,7 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 
 	const uint64_t gnss_ts_usec = uavcan::UtcTime(msg.gnss_timestamp).toUSec();
 
-	switch (msg.gnss_time_standard) {
-	case FixType::GNSS_TIME_STANDARD_UTC:
-		sensor_gnss.time_utc_usec = gnss_ts_usec;
-		break;
-
-	case FixType::GNSS_TIME_STANDARD_GPS:
-		if (msg.num_leap_seconds > 0) {
-			sensor_gnss.time_utc_usec = gnss_ts_usec - msg.num_leap_seconds + 9;
-		}
-
-		break;
-
-	case FixType::GNSS_TIME_STANDARD_TAI:
-		if (msg.num_leap_seconds > 0) {
-			sensor_gnss.time_utc_usec = gnss_ts_usec - msg.num_leap_seconds - 10;
-		}
-
-		break;
-
-	default:
-		break;
-	}
+	sensor_gnss.time_utc_usec = gnssTimeToUtc(msg);
 
 	// Recover the navigation epoch in HRT: map msg.timestamp (node send UTC)
 	// into HRT, then subtract (msg.timestamp - msg.gnss_timestamp), which is
