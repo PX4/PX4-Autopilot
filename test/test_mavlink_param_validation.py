@@ -52,6 +52,10 @@ CMD_NAV_VTOL_LAND = 85
 CMD_NAV_DELAY = 93
 CMD_COMPONENT_ARM_DISARM = 400
 CMD_IMAGE_STOP_CAPTURE = 2001
+CMD_DO_CONTROL_VIDEO = 200
+CMD_DO_MOUNT_CONFIGURE = 204
+CMD_OBLIQUE_SURVEY = 260
+CMD_EXTERNAL_POSITION_ESTIMATE = 43003
 
 NAN = float("nan")
 INT32_MAX = 2_147_483_647
@@ -334,6 +338,40 @@ def run_mission_tests(mav: Any, timeout: float) -> None:
         result, MAV_MISSION_ACCEPTED,
     )
 
+    # 20. DO_CONTROL_VIDEO with unsupported param5 (mask 0x0F: p1-p4 only,
+    # spec marks p5-p7 empty). Mission path.
+    result = _upload_mission(mav, [
+        _item(0, CMD_DO_CONTROL_VIDEO, MAV_FRAME_MISSION,
+              p1=16.0, p2=0.0, p3=1.0, p4=NAN,
+              x=42, y=0, z=0.0),
+    ], timeout)
+    _check(
+        "DO_CONTROL_VIDEO unsupported param5 -> INVALID_PARAM5",
+        result, MAV_MISSION_INVALID_PARAM5,
+    )
+
+    # 21. DO_MOUNT_CONFIGURE with unsupported param5 (mask 0x0F).
+    result = _upload_mission(mav, [
+        _item(0, CMD_DO_MOUNT_CONFIGURE, MAV_FRAME_MISSION,
+              p1=0.0, p2=1.0, p3=1.0, p4=1.0,
+              x=42, y=0, z=0.0),
+    ], timeout)
+    _check(
+        "DO_MOUNT_CONFIGURE unsupported param5 -> INVALID_PARAM5",
+        result, MAV_MISSION_INVALID_PARAM5,
+    )
+
+    # 22. OBLIQUE_SURVEY with unsupported param7 (mask 0x3F: p1-p6 only).
+    result = _upload_mission(mav, [
+        _item(0, CMD_OBLIQUE_SURVEY, MAV_FRAME_MISSION,
+              p1=10.0, p2=0.0, p3=0.0, p4=NAN,
+              x=0, y=0, z=42.0),
+    ], timeout)
+    _check(
+        "OBLIQUE_SURVEY unsupported param7 -> INVALID_PARAM7",
+        result, MAV_MISSION_INVALID_PARAM7,
+    )
+
 
 def run_command_tests(mav: Any, timeout: float) -> None:
     print("\n=== Command (COMMAND_LONG) tests ===")
@@ -407,6 +445,16 @@ def run_command_tests(mav: Any, timeout: float) -> None:
     _check(
         "NAV_VTOL_TAKEOFF command p3 (approach_hdg) -> not DENIED",
         result != MAV_RESULT_DENIED, True,
+    )
+
+    # 23. EXTERNAL_POSITION_ESTIMATE with unsupported param4 (mask 0x77:
+    # p4 is empty in the MAVLink spec).
+    result = _send_command(
+        mav, CMD_EXTERNAL_POSITION_ESTIMATE, timeout, p4=42.0,
+    )
+    _check(
+        "EXTERNAL_POSITION_ESTIMATE unsupported param4 -> DENIED",
+        result, MAV_RESULT_DENIED,
     )
 
 
