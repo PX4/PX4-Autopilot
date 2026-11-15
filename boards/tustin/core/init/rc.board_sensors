@@ -73,7 +73,8 @@ iim42652 -R 6 -s start
 icm45686 -R 10 -s start
 
 # The IMU-board I2C1 nets are connected to MCU I2C4.
-ist8310 -I -b 4 -a 0x0e -R 0 start
+# The onboard compass is mounted with a 180-degree yaw rotation.
+ist8310 -I -b 4 -a 0x0e -R 4 start
 icp201xx -I -b 4 -a 0x63 start
 
 # The onboard BMP581 shares MCU I2C2 with an external connector. SDO is low.
