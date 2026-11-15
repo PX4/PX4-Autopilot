@@ -21,7 +21,7 @@ Order this module from:
 - Battery Voltage: 2-6s
   - 5.5V Minimum
   - 24V Maximum
-- Current Rating:  25 A continuous current, 50A peak current
+- Current Rating: 25A continuous, 50A peak
 - Input Protocols (auto-detected)
   - DShot
   - Bidirectional DShot
