@@ -53,9 +53,9 @@ jobs:
       - name: Result
         if: steps.check.outputs.exit_code != '0'
         run: |
-          # Fork PRs get a read-only token, so no comment was posted.
           if [ "$IS_FORK" = "true" ]; then
-            echo "::error::PR title does not follow conventional commits format. See https://github.com/PX4/PX4-Autopilot/blob/main/CONTRIBUTING.md#commit-message-convention for details."
+            # Output the entire content of the comment on the job log as a substitute for the comment.
+            tee -a "$GITHUB_STEP_SUMMARY" < comment.md
           else
             echo "::error::PR title does not follow conventional commits format. See the PR comment for details."
           fi
