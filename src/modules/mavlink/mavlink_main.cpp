@@ -3155,7 +3155,7 @@ void Mavlink::handleCanForwardOutput()
 {
 #if defined(CONFIG_UAVCAN_CAN_FORWARD)
 
-	if (!_can_forward.isOwner()) {
+	if (!_can_forward.isOwner(hrt_absolute_time())) {
 		_can_forward.dropFrames();
 		return;
 	}
@@ -3685,7 +3685,7 @@ Mavlink::display_status()
 
 #if defined(CONFIG_UAVCAN_CAN_FORWARD)
 
-	if (_can_forward.isOwner()) {
+	if (_can_forward.isOwner(hrt_absolute_time())) {
 		printf("\tCAN forwarding to GCS, lost batches: %" PRIu32 "\n", _can_forward.lostBatches());
 	}
 

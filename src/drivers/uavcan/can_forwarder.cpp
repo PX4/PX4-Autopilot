@@ -75,20 +75,6 @@ static bool isConfigurationFrame(uint32_t can_id)
 	return static_cast<uint16_t>(id >> 8) == uavcan::protocol::NodeStatus::DefaultDataTypeID;
 }
 
-// BeginFirmwareUpdate, and the file.Read responses the node pulls the image with
-static bool isFirmwareUpdateFrame(uint32_t can_id)
-{
-	const uint32_t id = can_id & can_forward::CanMaskExtId;
-
-	if (!(can_id & can_forward::CanFlagEff) || !(id & 0x80U)) {
-		return false;
-	}
-
-	const uint8_t type = static_cast<uint8_t>(id >> 16);
-	return type == uavcan::protocol::file::BeginFirmwareUpdate::DefaultDataTypeID
-	       || type == uavcan::protocol::file::Read::DefaultDataTypeID;
-}
-
 ForwardingCanDriver::ForwardingCanDriver(uavcan::ICanDriver &inner) : _inner(inner)
 {
 	_num_ifaces = math::min(inner.getNumIfaces(), static_cast<uint8_t>(uavcan::MaxCanIfaces));
@@ -184,8 +170,9 @@ void CanForwarder::mirror(uint8_t bus, const uavcan::CanFrame &frame)
 
 	_rx_batch.bus = bus;
 	_rx_batch.id[i] = frame.id;
-	_rx_batch.len[i] = frame.dlc;
-	memcpy(&_rx_batch.data[i * 8], frame.data, frame.dlc);
+	// the CAN drivers pass the DLC of the wire, up to 15
+	_rx_batch.len[i] = math::min(frame.dlc, can_forward::CanMaxDataLen);
+	memcpy(&_rx_batch.data[i * 8], frame.data, _rx_batch.len[i]);
 	_rx_batch.count++;
 	_frames_to_gcs++;
 
@@ -220,7 +207,13 @@ void CanForwarder::handleCommand(const vehicle_command_s &cmd, hrt_abstime now)
 
 	const int bus = PX4_ISFINITE(cmd.param1) ? static_cast<int>(roundf(cmd.param1)) : -1;
 
-	if (bus == 0) {
+	const bool held_by_other = active() && now <= _last_keepalive + KeepaliveTimeout
+				   && (cmd.source_system != _client_system || cmd.source_component != _client_component);
+
+	if (held_by_other) {
+		// the session belongs to another client until it stops it or its keepalive times out
+
+	} else if (bus == 0) {
 		if (active()) {
 			mavlink_log_info(&_mavlink_log_pub, "CAN forwarding stopped");
 		}
@@ -236,6 +229,8 @@ void CanForwarder::handleCommand(const vehicle_command_s &cmd, hrt_abstime now)
 		}
 
 		_last_keepalive = now;
+		_client_system = cmd.source_system;
+		_client_component = cmd.source_component;
 		ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 	}
 
@@ -329,10 +324,6 @@ void CanForwarder::pushFramesToBus(hrt_abstime now, uavcan::CanIOManager &canio)
 			(void)canio.send(frame, uavcan::MonotonicTime::fromUSec(now + TxDeadline), uavcan::MonotonicTime(),
 					 static_cast<uint8_t>(1U << bus), uavcan::CanTxQueue::Persistent, ForwardingCanDriver::CanIOFlagForwarded);
 
-			if (isFirmwareUpdateFrame(_tx_batch.id[_tx_index])) {
-				_last_update_frame = now;
-			}
-
 			_tx_index++;
 			_frames_from_gcs++;
 			sent++;
@@ -357,7 +348,6 @@ void CanForwarder::printStatus() const
 	}
 
 	printf("%s\n", _config_only ? " (configuration only)" : "");
-	printf("\tfirmware update: %s\n", firmwareUpdating(hrt_absolute_time()) ? "in progress" : "none");
 
 	printf("\tto GCS: %" PRIu32 ", from GCS: %" PRIu32 ", dropped from GCS: %" PRIu32 ", lost batches from GCS: %" PRIu32
 	       ", filter IDs: %u\n", _frames_to_gcs, _frames_from_gcs, _dropped_from_gcs, _lost_from_gcs, unsigned(_filter.size()));

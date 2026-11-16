@@ -128,12 +128,9 @@ parameters:
       description:
         short: CAN forwarding over MAVLink
         long: |-
-          Allow forwarding CAN messages over MAVLink.
-          Configuration only lets the ground station configure and update nodes: read node
-          info, read and write parameters, restart nodes and update their firmware.
-          Applies to the next boot only: it is reset to 0 at startup, so the following
-          reboot returns to normal operation. Arming is not possible while a node
-          firmware update runs through forwarding.
+          Lets a ground station reach the CAN bus through MAVLink while disarmed. Reset to 0 at startup, so it applies to the next boot only. Arming is not possible while forwarding is active.
+          Configuration only: read node info, read and write node parameters, restart nodes and update their firmware.
+          Unrestricted: any frame, including actuator commands.
       type: enum
       values:
         0: Disabled

@@ -38,6 +38,7 @@
 #include <lib/mathlib/mathlib.h>
 
 px4::atomic<MavlinkCanForward *> MavlinkCanForward::_owner{nullptr};
+px4::atomic<hrt_abstime> MavlinkCanForward::_last_keepalive{0};
 
 MavlinkCanForward::~MavlinkCanForward()
 {
@@ -45,21 +46,41 @@ MavlinkCanForward::~MavlinkCanForward()
 	_owner.compare_exchange(&self, nullptr);
 }
 
-void MavlinkCanForward::handleCommand(uint32_t sysid, uint8_t compid, float param1)
+bool MavlinkCanForward::isOwner(hrt_abstime now) const
 {
-	if (param1 >= 0.5f) {
-		_client.store(client(sysid, compid));
-		_owner.store(this);
+	return _owner.load() == this && now < _last_keepalive.load() + OwnerTimeout;
+}
 
-	} else if (isOwner() && _client.load() == client(sysid, compid)) {
-		MavlinkCanForward *self = this;
-		_owner.compare_exchange(&self, nullptr);
+bool MavlinkCanForward::handleCommand(uint32_t sysid, uint8_t compid, float param1, hrt_abstime now)
+{
+	MavlinkCanForward *owner = _owner.load();
+	const bool held = owner != nullptr && now < _last_keepalive.load() + OwnerTimeout;
+	const bool mine = owner == this && _client.load() == client(sysid, compid);
+
+	if (held && !mine) {
+		return false;
 	}
+
+	if (param1 >= 0.5f) {
+		// keepalive first: a concurrent claim on another link then sees the session as held
+		_last_keepalive.store(now);
+
+		if (!mine && !_owner.compare_exchange(&owner, this)) {
+			return false;
+		}
+
+		_client.store(client(sysid, compid));
+
+	} else if (mine && param1 < 0.5f) {
+		_owner.compare_exchange(&owner, nullptr);
+	}
+
+	return true;
 }
 
 void MavlinkCanForward::handleMessage(const mavlink_message_t &msg)
 {
-	if (!isOwner() || _client.load() != client(msg.sysid, msg.compid)) {
+	if (!isOwner(hrt_absolute_time()) || _client.load() != client(msg.sysid, msg.compid)) {
 		return;
 	}
 

@@ -42,6 +42,7 @@
 
 #include "mavlink_bridge_header.h"
 
+#include <drivers/drv_hrt.h>
 #include <px4_platform_common/atomic.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
@@ -57,14 +58,17 @@ public:
 	MavlinkCanForward(const MavlinkCanForward &) = delete;
 	MavlinkCanForward &operator=(const MavlinkCanForward &) = delete;
 
+	static constexpr hrt_abstime OwnerTimeout = 5'000'000; ///< same as the driver's keepalive timeout
+
 	// receiver thread
-	void handleCommand(uint32_t sysid, uint8_t compid, float param1);
+	/// @return false if another client holds the session: the command must not reach the driver
+	bool handleCommand(uint32_t sysid, uint8_t compid, float param1, hrt_abstime now);
 
 	void handleMessage(const mavlink_message_t &msg);
 
 	void flushToBus();
 
-	bool isOwner() const { return _owner.load() == this; }
+	bool isOwner(hrt_abstime now) const;
 	uint32_t lostBatches() const { return _rx_lost; }
 
 	// main thread
@@ -79,6 +83,7 @@ private:
 	bool nextRxBatch(); ///< main thread
 
 	static px4::atomic<MavlinkCanForward *> _owner;
+	static px4::atomic<hrt_abstime> _last_keepalive; ///< the session ends without commands from its client
 	px4::atomic<uint64_t> _client{0}; ///< sysid << 8 | compid
 
 	// receiver thread only

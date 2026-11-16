@@ -122,11 +122,9 @@ public:
 	/// call after the node spins
 	void publish(hrt_abstime now);
 
+	/// a session blocks arming
 	bool active() const { return _bus >= 0; }
 
-	/// the GCS updates a node's firmware through the tunnel; without frames for the keepalive timeout the session ends
-	/// too, and the update cannot continue
-	bool firmwareUpdating(hrt_abstime now) const { return _last_update_frame != 0 && now < _last_update_frame + KeepaliveTimeout; }
 	void printStatus() const;
 
 	bool allowInject(uint8_t bus) const { return _bus == bus && !_armed; }
@@ -142,6 +140,8 @@ private:
 
 	int8_t _bus{-1};
 	hrt_abstime _last_keepalive{0};
+	uint32_t _client_system{0};
+	uint16_t _client_component{0};
 	bool _armed{false};
 	bool _config_only{true};
 	can_forward::Filter _filter;
@@ -153,7 +153,6 @@ private:
 	uORB::Publication<can_forward_frames_s> _rx_pub{ORB_ID(can_forward_rx)};
 	uORB::Publication<vehicle_command_ack_s> _ack_pub{ORB_ID(vehicle_command_ack)};
 
-	hrt_abstime _last_update_frame{0};
 	orb_advert_t _mavlink_log_pub{nullptr};
 
 	can_forward_frames_s _rx_batch{};

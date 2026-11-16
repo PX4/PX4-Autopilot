@@ -78,6 +78,7 @@ static UavcanNode::CanInitHelper *can = nullptr;
 
 #if defined(CONFIG_UAVCAN_CAN_FORWARD)
 static ForwardingCanDriver *can_forward_driver = nullptr;
+static bool can_forward_config_only = true; // kept with the driver: UAVCAN_CAN_FWD is reset at the first start
 #endif
 
 UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock, uavcan::NodeID node_id, uint32_t bitrate) :
@@ -459,6 +460,7 @@ UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 
 	if (can_fwd != 0 && can_forward_driver == nullptr) {
 		can_forward_driver = new ForwardingCanDriver(can->driver);
+		can_forward_config_only = (can_fwd != 2);
 	}
 
 	if (can_forward_driver != nullptr) {
@@ -478,7 +480,7 @@ UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	}
 
 #if defined(CONFIG_UAVCAN_CAN_FORWARD)
-	_instance->_can_forwarder.init(can_forward_driver, can_fwd == 1);
+	_instance->_can_forwarder.init(can_forward_driver, can_forward_config_only);
 #endif
 
 	_instance->ScheduleOnInterval(ScheduleIntervalMs * 1000);
@@ -878,7 +880,7 @@ UavcanNode::Run()
 
 	bool pending = _servers != nullptr && _servers->hasPendingFirmwareUpdates();
 #if defined(CONFIG_UAVCAN_CAN_FORWARD)
-	pending = pending || _can_forwarder.firmwareUpdating(hrt_absolute_time());
+	pending = pending || _can_forwarder.active();
 #endif
 
 	if (pending != _fw_update_pending_last) {
