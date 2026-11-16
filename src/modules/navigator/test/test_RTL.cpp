@@ -3378,3 +3378,49 @@ TEST_F(RTLTest, RallyPointReturnWithoutRallyPointEstimatesNoFixedWingLanding)
 	ASSERT_TRUE(no_delay.valid && hold.valid);
 	EXPECT_FLOAT_EQ(no_delay.time_estimate, hold.time_estimate);
 }
+
+// WHY: Return compares destinations only by straight-line distance,
+// so it has no reason to prefer a rally point that is farther away than Home.
+// WHAT: RTL_TYPE 6 keeps Home while the battery reaches it. When the battery does not reach Home,
+// it takes a rally point only if it is closer than Home.
+TEST_F(RTLTest, Type6BeyondBatteryTakesOnlyCloserRallyPoint)
+{
+	// GIVEN: Home 300 m away
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(kBaseLat, kBaseLon, kAlt + 100.f);
+	publishLandDetected(false);
+	publishHomePosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, -300.f, 0.f, kAlt));
+	battery_status_s battery{};
+	battery.timestamp = hrt_absolute_time();
+	battery.connected = true;
+	orb_advert_t battery_pub = orb_advertise(ORB_ID(battery_status), &battery);
+	uORB::SubscriptionData<rtl_status_s> rtl_status_sub{ORB_ID(rtl_status)};
+
+	const struct {
+		float battery_remaining_s;
+		float rally_north_m;
+		bool takes_rally_point;
+	} cases[] {
+		{3600.f, 200.f, false}, // the battery reaches Home
+		{1.f, 400.f, false},
+		{1.f, 200.f, true},
+	};
+
+	for (const auto &c : cases) {
+		SCOPED_TRACE(::testing::Message() << "battery " << c.battery_remaining_s << " s, rally point " << c.rally_north_m << " m away");
+		battery.timestamp = hrt_absolute_time();
+		battery.time_remaining_s = c.battery_remaining_s;
+		orb_publish(ORB_ID(battery_status), battery_pub, &battery);
+		const PositionYawSetpoint rally_point = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, c.rally_north_m, 0.f, kAlt);
+		loadSafePointsIntoRouteCache({makeSafePointItem(rally_point.lat, rally_point.lon, kAlt, NAV_FRAME_GLOBAL)});
+
+		// WHEN: Return evaluates type 6
+		_rtl.evaluateReturnTypeForTest(6);
+
+		// THEN: it keeps Home unless the battery does not reach Home and the rally point is closer
+		EXPECT_TRUE(rtl_status_sub.update());
+		EXPECT_EQ(rtl_status_sub.get().safe_point_index, c.takes_rally_point ? 0 : UINT8_MAX);
+	}
+
+	orb_unadvertise(battery_pub);
+}
