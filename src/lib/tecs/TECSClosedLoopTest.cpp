@@ -563,18 +563,16 @@ TEST_F(TECSClosedLoopTest, AltitudeStepUpDefaultTuningPitchOffset)
 // --- Gliding at speed weight 2 ---------------------------------------------------
 //
 // Speed weight 2 is the glider setting: the pitch flies airspeed only, so it tracks an airspeed setpoint with no
-// propulsion at all.
-//
-// Disabled: at speed weight 2 the climb angle follows entirely from the total energy rate the throttle delivers,
-// gamma = (SEB rate + 2 STE rate) / (2 g V). The pitch takes it from the setpoint, which with a failed throttle is
-// never delivered, so the pitch flies the altitude demand. Needs the pitch to assume gliding at speed weight 2.
+// propulsion at all. A glider has no throttle range (throttle max = min). Its climb angle follows from the total energy
+// rate, gamma = (SEB rate + 2 STE rate) / (2 g V), which the pitch must take as the glide (minimum total energy rate),
+// not the altitude demand of the setpoint, which no throttle delivers.
 
-TEST_F(TECSClosedLoopTest, DISABLED_GlideSpeedWeightTwoAirspeedStep)
+TEST_F(TECSClosedLoopTest, GlideSpeedWeightTwoAirspeedStep)
 {
 	_params.pitch_speed_weight = 2.f;
+	_params.throttle_max = _params.throttle_min;
+	_throttle_prev = _params.throttle_min;
 
-	run(10.f);
-	_throttle_failed = true;
 	run(60.f); // settle into the glide
 
 	setAirspeedSetpoint(_params.equivalent_airspeed_trim + 2.f);

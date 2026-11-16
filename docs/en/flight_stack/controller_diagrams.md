@@ -197,6 +197,7 @@ With an airspeed setpoint at or below trim there is no middle region, and pitch 
 
 These regions apply up to a speed weight of 1 and are faded out as the speed weight goes from 1 to 2, so with a weight of 2 pitch alone tracks the full airspeed setpoint.
 Gliders, which have no throttle to accelerate with, should therefore use `FW_T_SPDWEIGHT` = 2.
+Gliders should also set [FW_THR_MAX](../advanced_config/parameter_reference.md#FW_THR_MAX) equal to [FW_THR_MIN](../advanced_config/parameter_reference.md#FW_THR_MIN): with a speed weight of 2 and no throttle range, pitch assumes the vehicle glides at the minimum sink rate ([FW_T_SINK_MIN](../advanced_config/parameter_reference.md#FW_T_SINK_MIN)) instead of flying the climb or descent rate demanded by the altitude setpoint.
 The speed weight is also raised towards 2 automatically during underspeed recovery and fast descend, which therefore still use pitch to reach their airspeed setpoint.
 
 ## Fixed-Wing Attitude Controller
