@@ -36796,6 +36796,9 @@ Device ID of the accelerometer this calibration applies to.
 
 Accelerometer 0 priority.
 
+Uninitialized sensors default to Medium when internal and Low when
+external, so an on-board IMU is preferred over one behind a bus.
+
 **Values:**
 
 - `-1`: Uninitialized
@@ -36926,6 +36929,9 @@ Device ID of the accelerometer this calibration applies to.
 ### CAL_ACC1_PRIO (`INT32`) {#CAL_ACC1_PRIO}
 
 Accelerometer 1 priority.
+
+Uninitialized sensors default to Medium when internal and Low when
+external, so an on-board IMU is preferred over one behind a bus.
 
 **Values:**
 
@@ -37058,6 +37064,9 @@ Device ID of the accelerometer this calibration applies to.
 
 Accelerometer 2 priority.
 
+Uninitialized sensors default to Medium when internal and Low when
+external, so an on-board IMU is preferred over one behind a bus.
+
 **Values:**
 
 - `-1`: Uninitialized
@@ -37188,6 +37197,9 @@ Device ID of the accelerometer this calibration applies to.
 ### CAL_ACC3_PRIO (`INT32`) {#CAL_ACC3_PRIO}
 
 Accelerometer 3 priority.
+
+Uninitialized sensors default to Medium when internal and Low when
+external, so an on-board IMU is preferred over one behind a bus.
 
 **Values:**
 
@@ -37464,6 +37476,9 @@ Device ID of the gyroscope this calibration applies to.
 
 Gyroscope 0 priority.
 
+Uninitialized sensors default to Medium when internal and Low when
+external, so an on-board IMU is preferred over one behind a bus.
+
 **Values:**
 
 - `-1`: Uninitialized
@@ -37570,6 +37585,9 @@ Device ID of the gyroscope this calibration applies to.
 ### CAL_GYRO1_PRIO (`INT32`) {#CAL_GYRO1_PRIO}
 
 Gyroscope 1 priority.
+
+Uninitialized sensors default to Medium when internal and Low when
+external, so an on-board IMU is preferred over one behind a bus.
 
 **Values:**
 
@@ -37678,6 +37696,9 @@ Device ID of the gyroscope this calibration applies to.
 
 Gyroscope 2 priority.
 
+Uninitialized sensors default to Medium when internal and Low when
+external, so an on-board IMU is preferred over one behind a bus.
+
 **Values:**
 
 - `-1`: Uninitialized
@@ -37784,6 +37805,9 @@ Device ID of the gyroscope this calibration applies to.
 ### CAL_GYRO3_PRIO (`INT32`) {#CAL_GYRO3_PRIO}
 
 Gyroscope 3 priority.
+
+Uninitialized sensors default to Medium when internal and Low when
+external, so an on-board IMU is preferred over one behind a bus.
 
 **Values:**
 
