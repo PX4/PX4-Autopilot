@@ -43,7 +43,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - **Ethernet:** 100 Mbps, with transformer
 - **USB:** Type-C
 - **RC input:** SBUS on `S.Bin`, SBUS or PPM on `RCin`, CRSF on `Uart8`
-- **RSSI input:** 1 analog/PWM
+- **RSSI input:** 1 analog
 - **Analog inputs:** 2 on the `ADC` port (3.3 V and 6.6 V)
 - **Power inputs:** 2 (`PWR1` analog, `PWR2` I2C)
 - **Parameter storage:** FRAM (FM25V02A) on SPI5
