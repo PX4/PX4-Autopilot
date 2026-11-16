@@ -9,5 +9,6 @@ parameters:
           This offset will be subtracted before calculating the battery
           current based on the voltage.
       type: float
+      unit: V
       default: 0.0
       decimal: 8

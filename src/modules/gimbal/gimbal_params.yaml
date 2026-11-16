@@ -204,6 +204,7 @@ parameters:
           With MNT_MODE_OUT set to AUX, the mount operates in open-loop and directly commands the servo output.
           Parameters must be tuned for the specific servo to approximate its speed and response.
       type: float
+      unit: s
       default: 0.3
       min: 0.0
     MNT_RC_IN_MODE:

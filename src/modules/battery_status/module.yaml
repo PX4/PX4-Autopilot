@@ -30,6 +30,7 @@ parameters:
                     the board default.
 
             type: float
+            unit: A/V
             decimal: 8
             reboot_required: true
             num_instances: *max_num_config_instances

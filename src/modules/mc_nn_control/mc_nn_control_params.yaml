@@ -15,6 +15,7 @@ parameters:
           sets the part of the action range the motor can reproduce, which the module
           reports at startup.
       type: int32
+      unit: rpm
       default: 22000
       min: 0
       max: 80000

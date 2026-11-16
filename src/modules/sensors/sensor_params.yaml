@@ -12,6 +12,7 @@ parameters:
           airspeed has been calibrated. The firmware applies CAL_DPRESx_OFF, not this value.
       category: System
       type: float
+      unit: Pa
       default: 0.0
       volatile: true
     SENS_DPRES_REV:
@@ -34,6 +35,7 @@ parameters:
           NOTE: If the sensor always registers zero, try switching
           the static and dynamic tubes.
       type: float
+      unit: Pa/V
       default: 0
 - group: Sensors
   definitions:

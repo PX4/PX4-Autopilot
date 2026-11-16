@@ -19,6 +19,7 @@ parameters:
       description:
         short: simulated barometer pressure offset
       type: float
+      unit: Pa
       default: 0.0
     SIM_BARO_OFF_T:
       description:

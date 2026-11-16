@@ -142,6 +142,7 @@ parameters:
       description:
         short: Maximum time (in seconds) before resetting setpoint
       type: float
+      unit: s
       default: 2.0
     UUV_STICK_MODE:
       description:

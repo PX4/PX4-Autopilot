@@ -39,6 +39,7 @@ parameters:
           Note: When the user force sets the angle out of the min/max range, it will be
           wrapped (e.g. 480 -> 120) in the range to gracefully handle the out of range.
       type: float
+      unit: deg
       default: 180.0
       min: -180.0
       max: 180.0
@@ -68,6 +69,7 @@ parameters:
           This is the maximum tangential velocity the drone will circle around the target whenever
           an orbit angle setpoint changes. Higher value means more aggressive follow behavior.
       type: float
+      unit: m/s
       default: 5.0
       min: 0.0
       max: 20.0

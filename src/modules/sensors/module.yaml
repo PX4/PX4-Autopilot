@@ -203,6 +203,7 @@ parameters:
                 short: Barometer ${i} offset
             category: System
             type: float
+            unit: Pa
             default: 0.0
             decimal: 3
             #unit: Pa
@@ -227,6 +228,7 @@ parameters:
                 long: The zero-reading of this differential pressure sensor, in Pascal.
             category: System
             type: float
+            unit: Pa
             default: 0.0
             decimal: 3
             volatile: true
