@@ -67,7 +67,6 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_mc_virtual_att_sp = _attc->get_mc_virtual_att_sp();
 	_fw_virtual_att_sp = _attc->get_fw_virtual_att_sp();
 	_v_control_mode = _attc->get_control_mode();
-	_vtol_vehicle_status = _attc->get_vtol_vehicle_status();
 	_vehicle_torque_setpoint_virtual_mc = _attc->get_vehicle_torque_setpoint_virtual_mc();
 	_vehicle_torque_setpoint_virtual_fw = _attc->get_vehicle_torque_setpoint_virtual_fw();
 	_vehicle_thrust_setpoint_virtual_mc = _attc->get_vehicle_thrust_setpoint_virtual_mc();
@@ -474,8 +473,8 @@ float VtolType::pusher_assist()
 		return 0.0f;
 	}
 
-	// Do not engage pusher assist during a failsafe event (could be a problem with the fixed wing drive)
-	if (_attc->get_vtol_vehicle_status()->fixed_wing_system_failure) {
+	// Do not engage pusher assist after a detected quad-chute (could be a problem with the fixed wing drive)
+	if (_attc->is_fixed_wing_system_failure()) {
 		return 0.0f;
 	}
 

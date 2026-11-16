@@ -61,7 +61,7 @@ Note that _yaw_ also names the rotation about the vertical axis (yaw rate, yaw m
 PX4 represents the heading using:
 
 - [`vehicle_local_position.heading`](../msg_docs/VehicleLocalPosition.md) (estimate).
-- [`trajectory_setpoint.yaw`](../msg_docs/TrajectorySetpoint.md) and [`rover_attitude_setpoint.yaw_setpoint`](../msg_docs/RoverAttitudeSetpoint.md) (setpoints).
+- [`trajectory_setpoint.yaw`](../msg_docs/TrajectorySetpoint.md) and [`surface_vehicle_attitude_setpoint.yaw_setpoint`](../msg_docs/SurfaceVehicleAttitudeSetpoint.md) (setpoints).
 - MAVLink [`GLOBAL_POSITION_INT.hdg`](https://mavlink.io/en/messages/common.html#GLOBAL_POSITION_INT) and [`VFR_HUD.heading`](https://mavlink.io/en/messages/common.html#VFR_HUD).
 
 ### Course

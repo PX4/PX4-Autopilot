@@ -35824,7 +35824,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Failure Injection
 
-<div class="param-group" style="--param-count: 8">
+<div class="param-group" style="--param-count: 14">
 
 <div class="param">
 
@@ -35845,6 +35845,51 @@ WARNING: the failures can easily cause crashes and are to be used with caution!
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &check; |  |  |  | Disabled (0) |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SYS_FAIL_A_BIAS (`FLOAT`) {#SYS_FAIL_A_BIAS}
+
+Accel bias failure injection offset.
+
+Constant offset added to every axis while an accel 'wrong' failure injection is active.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.2 | m/s^2 | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SYS_FAIL_A_DRIFT (`FLOAT`) {#SYS_FAIL_A_DRIFT}
+
+Accel drift failure injection rate.
+
+Rate at which the offset added to every axis grows while an accel 'drift' failure injection is active.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.005 | m/s^3 | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SYS_FAIL_A_NOISE (`FLOAT`) {#SYS_FAIL_A_NOISE}
+
+Accel noise failure injection magnitude.
+
+Amplitude of the uniform noise added to every axis while an accel 'garbage' failure injection is active.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 |  |  | 1.0 | m/s^2 | &nbsp;
 
 </div>
 
@@ -35930,6 +35975,51 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
+### SYS_FAIL_G_BIAS (`FLOAT`) {#SYS_FAIL_G_BIAS}
+
+Gyro bias failure injection offset.
+
+Constant offset added to every axis while a gyro 'wrong' failure injection is active.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.01 | rad/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SYS_FAIL_G_DRIFT (`FLOAT`) {#SYS_FAIL_G_DRIFT}
+
+Gyro drift failure injection rate.
+
+Rate at which the offset added to every axis grows while a gyro 'drift' failure injection is active.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.001 | rad/s^2 | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SYS_FAIL_G_NOISE (`FLOAT`) {#SYS_FAIL_G_NOISE}
+
+Gyro noise failure injection magnitude.
+
+Amplitude of the uniform noise added to every axis while a gyro 'garbage' failure injection is active.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 |  |  | 0.05 | rad/s | &nbsp;
+
+</div>
+
+<div class="param">
+
 ### SYS_FAIL_RC_INST (`INT32`) {#SYS_FAIL_RC_INST}
 
 Instances failed by the RC switch.
@@ -35984,6 +36074,7 @@ unsupported (unit, type) pairs are ignored.
 - `5`: Slow
 - `6`: Delayed
 - `7`: Intermittent
+- `8`: Drift
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -50874,7 +50965,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Rover Manual Control
 
-<div class="param-group" style="--param-count: 1">
+<div class="param-group" style="--param-count: 2">
 
 <div class="param">
 
@@ -50889,6 +50980,29 @@ Scales the stick inputs that are mapped to motor commands in Manual Parking mode
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0 | 1 | 0.01 | 0.3 | norm | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RO_STICK_MAP (`INT32`) {#RO_STICK_MAP}
+
+Stick mapping for the manual modes.
+
+Follows the RC transmitter modes 1-4 with the pitch stick driving forwards/backwards, the roll stick sideways and the yaw stick turning, assuming the RC channels are mapped as for a mode 2 transmitter. Ackermann and differential rovers ignore the sideways assignment. In the tank-style Manual Parking mode of differential and mecanum rovers only the sideways assignment applies.
+
+
+**Values:**
+
+- `1`: Mode 1: forward and turn on left stick, sideways on right stick
+- `2`: Mode 2: turn on left stick, forward and sideways on right stick
+- `3`: Mode 3: forward and sideways on left stick, turn on right stick
+- `4`: Mode 4: sideways on left stick, forward and turn on right stick
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 3 |  | &nbsp;
 
 </div>
 
@@ -51114,7 +51228,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Rover Velocity Control
 
-<div class="param-group" style="--param-count: 9">
+<div class="param-group" style="--param-count: 10">
 
 <div class="param">
 
@@ -51255,6 +51369,23 @@ The minimum threshold for the speed measurement not to be interpreted as zero.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0 | 100 | 0.01 | 0.1 | m/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### RO_WHEEL_RAD (`FLOAT`) {#RO_WHEEL_RAD}
+
+Wheel radius in meters.
+
+Used to convert wheel encoder counts to the distance travelled by each wheel
+for the MAVLink WHEEL_DISTANCE message:
+distance = 2 * pi * RO_WHEEL_RAD * encoder_counts / counts_per_rev
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.01 | 10 | 0.001 | 0.1 | m | &nbsp;
 
 </div>
 

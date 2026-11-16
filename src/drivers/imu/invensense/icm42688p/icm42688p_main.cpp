@@ -86,18 +86,5 @@ extern "C" int icm42688p_main(int argc, char *argv[])
 	BusInstanceIterator iterator((cli.custom2 & 0xFF) == DRV_IMU_DEVTYPE_ICM42686P ? "icm42686p" : MODULE_NAME, cli,
 				     (cli.custom2 & 0xFF) == DRV_IMU_DEVTYPE_ICM42686P ? DRV_IMU_DEVTYPE_ICM42686P : DRV_IMU_DEVTYPE_ICM42688P);
 
-	if (!strcmp(verb, "start")) {
-		return ThisDriver::module_start(cli, iterator);
-	}
-
-	if (!strcmp(verb, "stop")) {
-		return ThisDriver::module_stop(iterator);
-	}
-
-	if (!strcmp(verb, "status")) {
-		return ThisDriver::module_status(iterator);
-	}
-
-	ThisDriver::print_usage();
-	return -1;
+	return ThisDriver::module_main(verb, cli, iterator);
 }

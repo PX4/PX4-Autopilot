@@ -56,6 +56,7 @@
 #pragma once
 
 #include <mathlib/math/WhiteGaussianNoise.hpp>
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
@@ -89,6 +90,14 @@
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 #include <sys/time.h>
+#endif
+
+#if defined(SIH_TERRAIN_DEM)
+#include "terrain/TerrainDem.hpp"
+using Terrain = TerrainDem;
+#else
+#include "terrain/TerrainFlat.hpp"
+using Terrain = TerrainFlat;
 #endif
 
 using namespace time_literals;
@@ -219,10 +228,6 @@ private:
 	void send_optical_flow(const hrt_abstime &time_now_us);
 	void send_ranging_beacon(const hrt_abstime &time_now_us);
 
-	// distance from the vehicle to the ground measured along the body down axis, NAN if the
-	// body down axis does not point at the ground anymore
-	float ground_distance() const;
-
 	void publish_ground_truth(const hrt_abstime &time_now_us);
 	void generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd, const float thrust_for_prowash);
 	void generate_ts_aerodynamics();
@@ -230,6 +235,39 @@ private:
 	void sensor_step();
 
 	void ecefToNed();
+
+#if defined(__PX4_POSIX)
+	// orient command: poses the vehicle on the ground for accel and mag calibration.
+	// SITL only: Commander denies sensor calibration when SIH runs on flight controller hardware.
+	void orient_update(const hrt_abstime &now);
+	void orient_step(const hrt_abstime &now, const float dt);
+
+	static constexpr int ORIENT_SIDE_COUNT = 6;
+	static constexpr int ORIENT_NONE = -1;	// no request
+	static constexpr int ORIENT_OFF = ORIENT_SIDE_COUNT;
+	static constexpr int ORIENT_ALL = ORIENT_SIDE_COUNT + 1;
+	static constexpr int ORIENT_ROTATE = 8;	// added to a side
+
+	enum class OrientMode {Off, Hold, Rotate, AllSides, Leveling};
+
+	px4::atomic_int _orient_request{ORIENT_NONE};	// set by the CLI, taken by the simulation loop
+	OrientMode _orient_mode{OrientMode::Off};
+	int _orient_side{0};
+	hrt_abstime _orient_start{0};
+	float _orient_yaw{0.f};	// heading kept while posing
+#endif // __PX4_POSIX
+
+	// distance from the vehicle to the terrain measured along the body down axis, NAN if the
+	// body down axis does not point at the ground or nothing is hit within max_distance
+	float ground_distance(float max_distance) const;
+
+#if defined(__PX4_POSIX)
+	// terrain from the start arguments: the -t DEM, flat without it
+	// false (and print the reason) on error or if the vehicle type does not support terrain
+	static bool load_terrain(int argc, char *argv[]);
+#endif
+
+	static inline Terrain _terrain{}; // loaded by task_spawn(), the SIH task stack is too small for the terrain libraries
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	void lockstep_loop();
@@ -333,6 +371,7 @@ private:
 	// parameters
 	MapProjection _lpos_ref{};
 	float _lpos_ref_alt;
+	float _ground_alt{0.f};  // ground altitude below the vehicle [m AMSL]
 	float _MASS, _T_MAX, _Q_MAX, _L_ROLL, _L_PITCH, _KDV, _KDW, _T_TAU, _F_T_MAX, _F_Q_MAX;
 	matrix::Matrix3f _I;    // vehicle inertia matrix
 	matrix::Matrix3f _Im1;  // inverse of the inertia matrix

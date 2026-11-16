@@ -72,17 +72,12 @@ public:
 		_max_vel_down = max_vel_down;
 	}
 
-	float getCurrentJerk() const { return _state.j; }
-	float getCurrentAcceleration() const { return _state.a; }
-	void setCurrentVelocity(const float vel)
-	{
-		_state.v = vel;
-		_trajectory.setCurrentVelocity(vel);
-	}
-	float getCurrentVelocity() const { return _state.v; }
+	float getCurrentJerk() const { return _trajectory.getCurrentJerk(); }
+	float getCurrentAcceleration() const { return _trajectory.getCurrentAcceleration(); }
+	void setCurrentVelocity(const float vel) { _trajectory.setCurrentVelocity(vel); }
+	float getCurrentVelocity() const { return _trajectory.getCurrentVelocity(); }
 	void setCurrentPosition(const float pos)
 	{
-		_state.x = pos;
 		_trajectory.setCurrentPosition(pos);
 		_position_estimate = pos;
 
@@ -95,7 +90,6 @@ public:
 
 private:
 	void resetPositionLock();
-	void updateTrajectories(float dt);
 	void updateTrajConstraints(float vel_target);
 	void checkPositionLock(float velocity_target);
 	void updateTrajDurations(float velocity_target);
@@ -108,13 +102,6 @@ private:
 
 	float _velocity_setpoint_feedback{};
 	float _position_estimate{};
-
-	struct {
-		float j;
-		float a;
-		float v;
-		float x;
-	} _state{};
 
 	float _max_accel_up{0.f};
 	float _max_accel_down{0.f};

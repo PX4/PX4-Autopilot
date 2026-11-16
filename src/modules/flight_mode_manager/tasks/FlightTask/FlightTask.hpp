@@ -147,13 +147,6 @@ public:
 
 	virtual void overrideCruiseSpeed(const float cruise_speed_m_s) {}
 
-	void updateVelocityControllerFeedback(const matrix::Vector3f &vel_sp,
-					      const matrix::Vector3f &acc_sp)
-	{
-		_velocity_setpoint_feedback = vel_sp;
-		_acceleration_setpoint_feedback = acc_sp;
-	}
-
 protected:
 	uORB::SubscriptionData<vehicle_local_position_s> _sub_vehicle_local_position{ORB_ID(vehicle_local_position)};
 	uORB::SubscriptionData<home_position_s> _sub_home_position{ORB_ID(home_position)};
@@ -194,7 +187,6 @@ protected:
 
 	float _deltatime{}; /**< passed time in seconds since the task was last updated */
 
-	hrt_abstime _time_stamp_activate{}; /**< time stamp when task was activated */
 	hrt_abstime _time_stamp_current{}; /**< time stamp at the beginning of the current task update */
 	hrt_abstime _time_stamp_last{}; /**< time stamp when task was last updated */
 
@@ -221,7 +213,6 @@ protected:
 	matrix::Vector3f _velocity_setpoint;
 	matrix::Vector3f _velocity_setpoint_feedback;
 	matrix::Vector3f _acceleration_setpoint;
-	matrix::Vector3f _acceleration_setpoint_feedback;
 	matrix::Vector3f _jerk_setpoint;
 
 	float _yaw_setpoint{};

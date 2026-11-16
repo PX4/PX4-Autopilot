@@ -36,7 +36,7 @@ Configure the following [parameters](../advanced_config/parameters.md) in QGroun
    :::tip
    To tune this parameter, first make sure you set [RO_YAW_RATE_P](#RO_YAW_RATE_P) and [RO_YAW_RATE_I](#RO_YAW_RATE_I) to zero.
    This way the yaw rate is only controlled by the feed-forward term, which makes it easier to tune.
-   Now put the rover in [Acro mode](../flight_modes_rover/manual.md#acro-mode) and then move the right-stick of your controller to the right and/or left and hold it at a few different levels for a couple of seconds each while driving with a constant throttle (for differential/mecanum rovers this can also be done while standing still).
+   Now put the rover in [Acro mode](../flight_modes_rover/manual.md#acro-mode) and turn it to the right and/or left with a few different stick inputs ([stick mapping](../flight_modes_rover/manual.md#stick-mapping)), holding each for a couple of seconds while driving with a constant throttle (for differential/mecanum rovers this can also be done while standing still).
    Disarm the rover and from the flight log plot the `adjusted_yaw_rate_setpoint` from [SurfaceVehicleRateStatus](../msg_docs/SurfaceVehicleRateStatus.md) and the `measured_yaw_rate` from [SurfaceVehicleRateStatus](../msg_docs/SurfaceVehicleRateStatus.md) over each other.
    If the actual yaw rate of the rover is higher than the yaw rate setpoint, decrease [RO_YAW_RATE_CORR](#RO_YAW_RATE_CORR) (between [0, 1]).
    If it is the other way around increase the parameter [1, inf] and repeat until you are satisfied with the setpoint tracking.
@@ -49,7 +49,7 @@ Configure the following [parameters](../advanced_config/parameters.md) in QGroun
 
    :::tip
    To tune this parameter:
-   1. Put the rover in [Acro mode](../flight_modes_rover/manual.md#acro-mode) and hold the throttle stick and the right stick at a few different levels for a couple of seconds each.
+   1. Put the rover in [Acro mode](../flight_modes_rover/manual.md#acro-mode) and drive and turn it with a few different stick inputs, holding each for a couple of seconds.
    1. Disarm the rover and from the flight log plot the `adjusted_yaw_rate_setpoint` and the `measured_yaw_rate` from [SurfaceVehicleRateStatus](../msg_docs/SurfaceVehicleRateStatus.md) over each other.
    1. Increase [RO_YAW_RATE_P](#RO_YAW_RATE_P) if the measured value does not track the setpoint fast enough or decrease it if the measurement overshoots the setpoint by too much.
    1. Repeat until you are satisfied with the behaviour.
@@ -65,7 +65,7 @@ Configure the following [parameters](../advanced_config/parameters.md) in QGroun
 5. (Optional) [RO_YAW_ACCEL_LIM](#RO_YAW_ACCEL_LIM)/[RO_YAW_DECEL_LIM](#RO_YAW_DECEL_LIM) [deg/s^2]: Used to limit the yaw acceleration/deceleration.
    This can be used to smoothen the yaw rate setpoint trajectory.
 
-6. (Optional) [RO_YAW_STICK_DZ](#RO_YAW_STICK_DZ) [-]: Percentage of yaw stick input range that will be interpreted as zero around the stick centered value.
+6. (Optional) [RO_YAW_STICK_DZ](#RO_YAW_STICK_DZ) [-]: Percentage of the turn input range that will be interpreted as zero around the stick centered value.
 
 7. (Advanced) [RO_YAW_RATE_TH](#RO_YAW_RATE_TH) [deg/s]: The minimum threshold for the yaw rate measurement not to be interpreted as zero.
    This can be used to cut off measurement noise when the rover is standing still.
@@ -104,7 +104,7 @@ with
 
 The steering setpoint is equal to $\delta$ interpolated from [-[RA_MAX_STR_ANG](../advanced_config/parameter_reference.md#RA_MAX_STR_ANG), [RA_MAX_STR_ANG](../advanced_config/parameter_reference.md#RA_MAX_STR_ANG)] to [-1, 1].
 
-For driving this means that the same right hand stick input will cause a different steering angle based on how fast you are driving.
+For driving this means that the same turn input will cause a different steering angle based on how fast you are driving.
 By limiting the maximum yaw rate, we can restrict the steering angle based on the speed, which can prevent the rover from rolling over.
 This mode will feel more like "driving a car" than [Manual mode](../flight_modes_rover/manual.md#manual-mode).
 

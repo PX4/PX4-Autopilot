@@ -178,6 +178,10 @@ static calibrate_return read_accelerometer_avg(accel_worker_data_s *worker_data,
 
 	/* use the first sensor to pace the readout, but do per-sensor counts */
 	while (counts[0] < samples_num) {
+		if (calibrate_cancel_check(worker_data->mavlink_log_pub)) {
+			return calibrate_return_cancelled;
+		}
+
 		// Yield CPU — updatedBlocking() returns immediately when data is
 		// already available, so with high-rate sensors the loop never blocks.
 		px4_usleep(1000);
@@ -221,7 +225,11 @@ static calibrate_return accel_calibration_worker(detect_orientation_return orien
 	calibration_log_info(worker_data->mavlink_log_pub, "[cal] Hold still, measuring %s side",
 			     detect_orientation_str(orientation));
 
-	read_accelerometer_avg(worker_data, orientation, samples_num);
+	const calibrate_return result = read_accelerometer_avg(worker_data, orientation, samples_num);
+
+	if (result != calibrate_return_ok) {
+		return result;
+	}
 
 	// check accel
 	for (unsigned accel_index = 0; accel_index < MAX_ACCEL_SENS; accel_index++) {
@@ -334,8 +342,15 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 	/* measure and calculate offsets & scales */
 	bool data_collected[detect_orientation_side_count] {};
 
-	if (calibrate_from_orientation(mavlink_log_pub, data_collected, accel_calibration_worker, &worker_data,
-				       false) == calibrate_return_ok) {
+	const calibrate_return result = calibrate_from_orientation(mavlink_log_pub, data_collected, accel_calibration_worker,
+					&worker_data, false);
+
+	if (result == calibrate_return_cancelled) {
+		// already reported
+		return PX4_ERROR;
+	}
+
+	if (result == calibrate_return_ok) {
 
 		bool param_save = false;
 		bool failed = true;
