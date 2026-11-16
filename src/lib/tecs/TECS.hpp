@@ -537,11 +537,13 @@ private:
 	 * @brief Calculate pitch control specific energy balance rates.
 	 *
 	 * @param weight is the weighting use of the potential and kinetic energy.
-	 * @param specific_energy_rate is the specific energy rates in [m²/s³].
+	 * @param specific_energy_rates is the specific energy rates of the outer loops in [m²/s³].
+	 * @param pitch_specific_energy_rates is the specific energy rates as seen by the pitch loop in [m²/s³].
 	 * @return specific energy balance rate values in [m²/s³].
 	 */
 	ControlValues _calcPitchControlSebRate(const SpecificEnergyWeighting &weight,
-					       const SpecificEnergyRates &specific_energy_rate) const;
+					       const SpecificEnergyRates &specific_energy_rates,
+					       const SpecificEnergyRates &pitch_specific_energy_rates) const;
 
 	/**
 	 * @brief Calculate the pitch control update function.

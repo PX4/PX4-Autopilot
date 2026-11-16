@@ -356,11 +356,6 @@ protected:
 	{
 		_flag.airspeed_enabled = false;
 		_flag.detect_underspeed_enabled = false;
-
-		// Without airspeed the speed weight is forced to 0, and the pitch feedforward flies twice the altitude rate
-		// setpoint the throttle funds. FW_T_SEB_R_FF = 0.5 compensates. This mismatch has existed since the port from
-		// ArduPilot, except from #20443 (Oct 2022) to #22479 (May 2024), when the weights were clamped to 1.
-		_params.seb_rate_ff = 0.5f;
 	}
 
 	void checkAltitudeStep(float altitude_step)

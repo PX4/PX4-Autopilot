@@ -36,6 +36,7 @@
 #include <unistd.h>
 
 #include "TECS.hpp"
+#include <lib/geo/geo.h>
 
 using namespace math;
 
@@ -227,7 +228,7 @@ TEST(TECSControlTest, PitchIntegratorSurvivesSustainedNonFiniteInput)
 TEST(TECSControlTest, PitchOutputUsesMinimumAirspeedBelowIt)
 {
 	TECSControl::Param param = makeParam();
-	param.pitch_speed_weight = 0.f; // pitch controls height only, so airspeed enters solely through the conversion
+	param.airspeed_error_gain = 0.f; // no airspeed demand, so airspeed enters solely through the conversion
 	param.pitch_max = 1.5f; // keep both commands clear of the pitch limits
 	param.pitch_min = -1.5f;
 
@@ -647,7 +648,7 @@ TEST(TECSControlTest, AirspeedlessIgnoresAirspeed)
 TEST(TECSControlTest, PitchIntegratorUsesMinimumAirspeedBelowIt)
 {
 	TECSControl::Param param = makeParam();
-	param.pitch_speed_weight = 0.f; // pitch controls height only
+	param.airspeed_error_gain = 0.f; // no airspeed demand
 	param.pitch_max = 1.5f;
 	param.pitch_min = -1.5f;
 
@@ -940,9 +941,11 @@ TEST(TECSControlTest, NoPitchDownToAccelerateAboveTrim)
 // Below trim airspeed, pitch still trades altitude for speed, but only up to trim.
 TEST(TECSControlTest, PitchDownToAccelerateBelowTrim)
 {
-	// WHEN flying below trim airspeed with the setpoint at trim, and with the setpoint above trim
+	// WHEN flying below trim airspeed with the setpoint at trim, and with the setpoint above trim and the throttle
+	// accelerating towards it beyond what trim airspeed needs
+	const float airspeed_error_gain = makeParam().airspeed_error_gain;
 	const float pitch_setpoint_at_trim = pitchSetpointAtSpeed(12.f, 15.f, 1.f);
-	const float pitch_setpoint_above_trim = pitchSetpointAtSpeed(12.f, 30.f, 1.f);
+	const float pitch_setpoint_above_trim = pitchSetpointAtSpeed(12.f, 30.f, 1.f, (30.f - 15.f) * airspeed_error_gain);
 
 	// THEN the pitch loop pitches down, but only as much as needed to reach trim airspeed
 	EXPECT_LT(pitch_setpoint_at_trim, 0.f);
@@ -992,9 +995,9 @@ TEST(TECSControlTest, PitchUpOnOverspeed)
 	EXPECT_GT(pitch, 0.f);
 }
 
-// Between trim airspeed and the setpoint, a speed weight between 1 and 2 must fade the pitch loop's kinetic setpoint
-// and estimate equally: accelerating exactly as commanded while holding altitude leaves no energy balance error.
-TEST(TECSControlTest, KineticSetpointAndEstimateFadeEquallyAboveTrim)
+// Between trim airspeed and the setpoint, with a speed weight between 1 and 2, flying exactly the energy rate demands
+// leaves no energy balance error.
+TEST(TECSControlTest, NoEnergyBalanceErrorOnDemandAboveTrim)
 {
 	TECSControl::Param param = makeParam();
 	param.pitch_speed_weight = 1.5f;
@@ -1006,7 +1009,13 @@ TEST(TECSControlTest, KineticSetpointAndEstimateFadeEquallyAboveTrim)
 
 	TECSControl::Input input = makeInput();
 	input.tas = 17.f; // between trim (15 m/s) and the setpoint
-	input.tas_rate = (setpoint.tas_setpoint - input.tas) * param.airspeed_error_gain; // the commanded acceleration
+
+	// The pitch flies the airspeed setpoint capped halfway between the airspeed (w = 1) and the setpoint (w = 2)
+	const float ske_rate_sp = input.tas * (setpoint.tas_setpoint - input.tas) * param.airspeed_error_gain;
+	const float ske_rate_sp_pitch = input.tas * (17.5f - input.tas) * param.airspeed_error_gain;
+	const float spe_rate_demand = -1.5f * ske_rate_sp_pitch;
+	input.altitude_rate = spe_rate_demand / CONSTANTS_ONE_G;
+	input.tas_rate = (ske_rate_sp - spe_rate_demand) / input.tas; // the throttle flies the total energy rate
 
 	TECSControl control;
 	control.initialize(setpoint, input, param, flag);
