@@ -35,6 +35,35 @@
 using namespace matrix;
 namespace RoverControl
 {
+ManualSticks mapSticks(const manual_control_setpoint_s &manual_control_setpoint, int32_t stick_map)
+{
+	// Transmitter modes 1-4 with pitch -> forward, roll -> lateral, yaw -> yaw.
+	// manual_control_setpoint reports the stick positions of a mode 2 transmitter:
+	// throttle = left vertical, yaw = left horizontal, pitch = right vertical, roll = right horizontal.
+	switch (static_cast<StickMapping>(stick_map)) {
+	case StickMapping::Mode1:
+		// Left: Forward & Yaw
+		// Right: Lateral
+		return {manual_control_setpoint.throttle, manual_control_setpoint.roll, manual_control_setpoint.yaw};
+
+	case StickMapping::Mode2:
+		// Left: Yaw
+		// Right: Forward & Lateral
+		return {manual_control_setpoint.pitch, manual_control_setpoint.roll, manual_control_setpoint.yaw};
+
+	case StickMapping::Mode3:
+	default:
+		// Left: Forward & Lateral
+		// Right: Yaw
+		return {manual_control_setpoint.throttle, manual_control_setpoint.yaw, manual_control_setpoint.roll};
+
+	case StickMapping::Mode4:
+		// Left: Lateral
+		// Right: Forward & Yaw
+		return {manual_control_setpoint.pitch, manual_control_setpoint.yaw, manual_control_setpoint.roll};
+	}
+}
+
 float throttleControl(SlewRate<float> &motor_setpoint, const float throttle_setpoint,
 		      const float current_motor_setpoint, const float max_accel, const float max_decel, const float max_thr_spd,
 		      const float dt)

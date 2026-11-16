@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,57 +31,52 @@
  *
  ****************************************************************************/
 
-/**
- * Test code for the Manual Velocity Smoothing library
- * Run this test only using make tests TESTFILTER=ManualVelocitySmoothing
- */
 
-#include <gtest/gtest.h>
-#include <matrix/matrix/math.hpp>
+#include <nuttx/config.h>
+#include <board_config.h>
 
-#include <motion_planning/ManualVelocitySmoothingXY.hpp>
+#include <nuttx/spi/spi.h>
+#include <px4_platform_common/px4_manifest.h>
 
-using namespace matrix;
-
-class ManualVelocitySmoothingXYTest : public ::testing::Test
-{
-public:
-	ManualVelocitySmoothingXY _smoothing;
+static const px4_mft_device_t spifram = {
+	.bus_type = px4_mft_device_t::SPI,
+	.devid    = SPIDEV_FLASH(0)
 };
 
+// The same firmware runs on units with a 16 KiB FM25V01 and with a 32 KiB FM25V02, and a partition larger
+// than the part is not created at all, so size it for the FM25V01.
+static const px4_mtd_entry_t fram = {
+	.device = &spifram,
+	.npart = 1,
+	.partd = {
+		{
+			.type = MTD_PARAMETERS,
+			.path = "/fs/mtd_params",
+			.nblocks = (16384 / (1 << CONFIG_RAMTRON_EMULATE_SECTOR_SHIFT))
+		}
+	},
+};
 
-TEST_F(ManualVelocitySmoothingXYTest, setGet)
+static const px4_mtd_manifest_t board_mtd_config = {
+	.nconfigs = 1,
+	.entries = {
+		&fram,
+	}
+};
+
+static const px4_mft_entry_s mtd_mft = {
+	.type = MTD,
+	.pmft = (void *) &board_mtd_config,
+};
+
+static const px4_mft_s mft = {
+	.nmft = 1,
+	.mfts = {
+		&mtd_mft,
+	}
+};
+
+const px4_mft_s *board_get_manifest(void)
 {
-	// GIVEN: Some max values
-	_smoothing.setMaxJerk(11.f);
-	_smoothing.setMaxAccel(7.f);
-	_smoothing.setMaxVel(5.f);
-
-	// THEN: We should be able to get them back
-	EXPECT_FLOAT_EQ(_smoothing.getMaxJerk(), 11.f);
-	EXPECT_FLOAT_EQ(_smoothing.getMaxAccel(), 7.f);
-	EXPECT_FLOAT_EQ(_smoothing.getMaxVel(), 5.f);
-}
-
-TEST_F(ManualVelocitySmoothingXYTest, getCurrentState)
-{
-	// GIVEN: the initial conditions
-	Vector2f v0(11.f, 13.f);
-	_smoothing.setCurrentVelocity(v0);
-
-	// WHEN: we get the current state
-	Vector3f j_end;
-	Vector3f a_end;
-	Vector3f v_end;
-	Vector3f x_end;
-	j_end.xy() = _smoothing.getCurrentJerk();
-	a_end.xy() = _smoothing.getCurrentAcceleration();
-	v_end.xy() = _smoothing.getCurrentVelocity();
-	x_end.xy() = _smoothing.getCurrentPosition();
-
-	// THEN: the returned values should match the input
-	EXPECT_EQ(j_end, Vector3f(0.f, 0.f, 0.f));
-	EXPECT_EQ(a_end, Vector3f(0.f, 0.f, 0.f));
-	EXPECT_EQ(v_end, Vector3f(11.f, 13.f, 0.f));
-	EXPECT_EQ(x_end, Vector3f(0.f, 0.f, 0.f));
+	return &mft;
 }

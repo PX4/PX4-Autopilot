@@ -74,7 +74,7 @@ void AckermannOffboardMode::offboardControl()
 		const Vector2f velocity_ned(trajectory_setpoint.velocity[0], trajectory_setpoint.velocity[1]);
 		surface_vehicle_speed_setpoint_s surface_vehicle_speed_setpoint{};
 		surface_vehicle_speed_setpoint.timestamp = timestamp;
-		surface_vehicle_speed_setpoint.speed_body_x = velocity_ned.norm();
+		surface_vehicle_speed_setpoint.x = velocity_ned.norm();
 		_surface_vehicle_speed_setpoint_pub.publish(surface_vehicle_speed_setpoint);
 		surface_vehicle_attitude_setpoint_s surface_vehicle_attitude_setpoint{};
 		surface_vehicle_attitude_setpoint.timestamp = timestamp;

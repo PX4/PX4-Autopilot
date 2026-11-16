@@ -64,8 +64,10 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   `COM_FLTT_LOW_ACT` is not migrated: if you use `COM_LOW_BAT_ACT` `3` or `4` and do not want distance-aware return, change it to `5` or `6`.
   Distance-aware return is not available together with `COM_LOW_BAT_ACT` `0` (Warning) or `2` (Land), and the warning can no longer be disabled (previously `COM_FLTT_LOW_ACT=0`). ([PX4-Autopilot#26955](https://github.com/PX4/PX4-Autopilot/pull/26955))
 
-- **`DO_JUMP` can only loop back and its repeat count must fit.**
-  A mission is now rejected if a `DO_JUMP` targets itself or a later mission item, even if its repeat count is 0, and if its repeat count is negative, above 65535 or not a number (it is no longer narrowed to a different count).
+- **`DO_JUMP` can only loop back to a waypoint and its repeat count must fit.**
+  A mission is now rejected if a `DO_JUMP` targets itself or a later mission item, or if scanning forward from its target reaches a `DO_JUMP` before a waypoint, including the original jump.
+  These target rules apply even if the repeat count is 0.
+  A mission is also rejected if the repeat count is negative, above 65535 or not a number (it is no longer narrowed to a different count).
   Missions stored on the vehicle with such jumps must be edited and uploaded again.
 
 - **`MAV_CMD_MISSION_START` no longer arms the vehicle.**
@@ -105,6 +107,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 - Fast mission Return modes ([RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 2 and 4) now skip `DO_JUMP` commands (loops) while following the mission path. ([PX4-Autopilot#26993: fix(navigator): goToNextPositionItem skip loops when required](https://github.com/PX4/PX4-Autopilot/pull/26993))
 - A fixed-wing vehicle landing at the end of a reverse mission Return ([RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 2 or 4) uses the home altitude again instead of flaring at flight altitude, a regression in the v1.18 pre-releases.
+- A Return to the mission landing ([RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 1 or 3, or 0 as a last resort) uses the current return altitude for its climb, geofence detours and time estimate. It used the one from when the mission landing was first selected, often on the ground, so a multicopter could fly to the landing without climbing to [RTL_RETURN_ALT](../advanced_config/parameter_reference.md#RTL_RETURN_ALT), a regression in the v1.18 pre-releases.
 - A mission Return mode ([RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 1, 2, 3 or 4) now reads the current mission on the cycle that activates it, so a mission uploaded or changed right as Return starts is used for the return type, the geofence avoidance destination and the starting item. The fast variants also discard the item index they recorded from an earlier mission when a different one is current. ([PX4-Autopilot#28748](https://github.com/PX4/PX4-Autopilot/pull/28748))
 - A `DO_JUMP` whose counter cannot be written to storage, for example on a failing SD card, is now skipped with a message to the operator. Previously the jump was taken again on every pass, repeating the same mission segment until a failsafe stopped the mission. ([PX4-Autopilot#28752](https://github.com/PX4/PX4-Autopilot/pull/28752))
 - Return mode now stops in the cycle it is left, not one cycle later. Before, a precision landing selected right after Return was partly reset, and Return selected again after one cycle of Hold hovered in place instead of returning. ([PX4-Autopilot#29444](https://github.com/PX4/PX4-Autopilot/pull/29444))
@@ -113,6 +116,9 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - With [RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 5 and no rally point, a fixed-wing vehicle now circles where Return started, whatever [RTL_LAND_DELAY](../advanced_config/parameter_reference.md#RTL_LAND_DELAY) is.
   It used to land there when `RTL_LAND_DELAY` was not -1, with the altitude it was flying at as the ground altitude.
   VTOLs and multicopters still follow `RTL_LAND_DELAY`.
+- After its climb, a Return to a mission landing without `DO_LAND_START` ([RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 1 or 3, or 0 as a last resort) flies to the landing at altitude before it descends, and a VTOL transitions back to multicopter there.
+  Since PX4 v1.15 a multicopter descended right after the climb while flying to the landing and could touch down short of it, and a VTOL in fixed-wing flight flew a fixed-wing landing.
+  Mission now does the same after the climb it adds when it starts or resumes below a landing item.
 
 ### Hardware Support
 
@@ -125,6 +131,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - [Agam FloRange](../dronecan/agam_florange.md): new DroneCAN optical flow, distance sensor and IMU module (PAA3905, AFBR-S50LV85D, ICM-42688-P). ([PX4-Autopilot#28901](https://github.com/PX4/PX4-Autopilot/pull/28901))
 - [Agam Autopilot v6X-RT](../flight_controller/agam_v6xrt.md): new FMUv6X-RT flight controller (NXP i.MX RT1176) with triple-redundant IMUs and 100BASE-T1 Ethernet. ([PX4-Autopilot#28285](https://github.com/PX4/PX4-Autopilot/pull/28285))
 - [NXP MR-NavQ95](../flight_controller/nxp_mr_navq95.md): new i.MX 95 flight controller with PX4 on the Cortex-M7 core and Linux on the Cortex-A55 cores. ([PX4-Autopilot#29055](https://github.com/PX4/PX4-Autopilot/pull/29055))
+- [Avian Automata 305AP](../flight_controller/avianautomata_305ap.md): new STM32H743 flight controller with two IMU slots, two CAN buses and eight DShot outputs. ([PX4-Autopilot#29689](https://github.com/PX4/PX4-Autopilot/pull/29689))
 
 ### 공통
 
@@ -187,6 +194,8 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - ESC/motor health is now reported in [SYS_STATUS](https://mavlink.io/en/messages/common.html#SYS_STATUS) using the [MAV_SYS_STATUS_SENSOR_PROPULSION](https://mavlink.io/en/messages/common.html#MAV_SYS_STATUS_SENSOR_PROPULSION) bit instead of [MAV_SYS_STATUS_SENSOR_MOTOR_OUTPUTS](https://mavlink.io/en/messages/common.html#MAV_SYS_STATUS_SENSOR_MOTOR_OUTPUTS).
   ([PX4-Autopilot#29192](https://github.com/PX4/PX4-Autopilot/pull/29192)).
 - [SYS_STATUS](https://mavlink.io/en/messages/common.html#SYS_STATUS) now sets the [MAV_SYS_STATUS_EXTENSION_USED](https://mavlink.io/en/messages/common.html#MAV_SYS_STATUS_EXTENSION_USED) flag in `onboard_control_sensors_present` when extended sensor fields are used.
+- [TIME_ESTIMATE_TO_TARGET](https://mavlink.io/en/messages/common.html#TIME_ESTIMATE_TO_TARGET) reports `safe_return` as `-1` (landed or no estimate) when Return has no time estimate: before Home is set, on the ground unless Return would follow a mission landing, and with [RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 2 or 4 and a valid mission.
+  It used to send `0`, or an undefined value with `RTL_TYPE` 2 and 4.
 
 ### RC
 
@@ -201,7 +210,8 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### 수직이착륙기(VTOL)
 
-- TBD
+- After a [quad-chute](../config/safety.md#quad-chute-failsafe), Mission and VTOL Takeoff mode no longer command forward transitions and continue in multicopter mode. Before, a resumed mission commanded the next transition again, which also cleared the quad-chute, and with [COM_QC_ACT](../advanced_config/parameter_reference.md#COM_QC_ACT) set to Warning a quad-chute during a mission transition left the mission waiting at that item.
+- A [quad-chute](../config/safety.md#quad-chute-failsafe) commanded with `MAV_CMD_DO_VTOL_TRANSITION` (`param2` = 1) now only switches to multicopter mode, as it is not caused by a failure. It no longer executes [COM_QC_ACT](../advanced_config/parameter_reference.md#COM_QC_ACT) or requires a reboot before the next arming.
 
 ### Fixed-wing
 
@@ -214,4 +224,6 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### ROS 2
 
-- TBD
+- `rover_throttle_setpoint` is now `surface_vehicle_thrust_setpoint` ([SurfaceVehicleThrustSetpoint](../msg_docs/SurfaceVehicleThrustSetpoint.md)), and `SetpointConfig.TYPE_ROVER_THROTTLE_*` is now `TYPE_SURFACE_VEHICLE_THRUST_*`.
+  The `throttle_body_x/y` and `speed_body_x/y` fields of the thrust and speed setpoints are now `x` and `y`, and the PX4 ROS 2 Interface Library rover setpoint types are now `SurfaceVehicle*SetpointType`.
+  ROS 2 applications must publish to `/fmu/in/surface_vehicle_thrust_setpoint` instead of `/fmu/in/rover_throttle_setpoint`. ([PX4-Autopilot#29777](https://github.com/PX4/PX4-Autopilot/pull/29777))

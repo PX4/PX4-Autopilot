@@ -55,8 +55,10 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   The new options `5` and `6` are the same as `3` and `4` without distance-aware return (they only warn).
   `COM_FLTT_LOW_ACT` is not migrated: if you use `COM_LOW_BAT_ACT` `3` or `4` and do not want distance-aware return, change it to `5` or `6`.
   Distance-aware return is not available together with `COM_LOW_BAT_ACT` `0` (Warning) or `2` (Land), and the warning can no longer be disabled (previously `COM_FLTT_LOW_ACT=0`). ([PX4-Autopilot#26955](https://github.com/PX4/PX4-Autopilot/pull/26955))
-- **`DO_JUMP` can only loop back and its repeat count must fit.**
-  A mission is now rejected if a `DO_JUMP` targets itself or a later mission item, even if its repeat count is 0, and if its repeat count is negative, above 65535 or not a number (it is no longer narrowed to a different count).
+- **`DO_JUMP` can only loop back to a waypoint and its repeat count must fit.**
+  A mission is now rejected if a `DO_JUMP` targets itself or a later mission item, or if scanning forward from its target reaches a `DO_JUMP` before a waypoint, including the original jump.
+  These target rules apply even if the repeat count is 0.
+  A mission is also rejected if the repeat count is negative, above 65535 or not a number (it is no longer narrowed to a different count).
   Missions stored on the vehicle with such jumps must be edited and uploaded again.
 - **`MAV_CMD_MISSION_START` no longer arms the vehicle.**
   The command switches to [Mission mode](../flight_modes_mc/mission.md) at the requested item, and the mission starts once the vehicle is armed.
@@ -115,6 +117,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - [Agam FloRange](../dronecan/agam_florange.md): new DroneCAN optical flow, distance sensor and IMU module (PAA3905, AFBR-S50LV85D, ICM-42688-P). ([PX4-Autopilot#28901](https://github.com/PX4/PX4-Autopilot/pull/28901))
 - [Agam Autopilot v6X-RT](../flight_controller/agam_v6xrt.md): new FMUv6X-RT flight controller (NXP i.MX RT1176) with triple-redundant IMUs and 100BASE-T1 Ethernet. ([PX4-Autopilot#28285](https://github.com/PX4/PX4-Autopilot/pull/28285))
 - [NXP MR-NavQ95](../flight_controller/nxp_mr_navq95.md): new i.MX 95 flight controller with PX4 on the Cortex-M7 core and Linux on the Cortex-A55 cores. ([PX4-Autopilot#29055](https://github.com/PX4/PX4-Autopilot/pull/29055))
+- [Avian Automata 305AP](../flight_controller/avianautomata_305ap.md): new STM32H743 flight controller with two IMU slots, two CAN buses and eight DShot outputs. ([PX4-Autopilot#29689](https://github.com/PX4/PX4-Autopilot/pull/29689))
 
 ### Common
 
@@ -193,7 +196,8 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### VTOL
 
-- TBD
+- After a [quad-chute](../config/safety.md#quad-chute-failsafe), Mission and VTOL Takeoff mode no longer command forward transitions and continue in multicopter mode. Before, a resumed mission commanded the next transition again, which also cleared the quad-chute, and with [COM_QC_ACT](../advanced_config/parameter_reference.md#COM_QC_ACT) set to Warning a quad-chute during a mission transition left the mission waiting at that item.
+- A [quad-chute](../config/safety.md#quad-chute-failsafe) commanded with `MAV_CMD_DO_VTOL_TRANSITION` (`param2` = 1) now only switches to multicopter mode, as it is not caused by a failure. It no longer executes [COM_QC_ACT](../advanced_config/parameter_reference.md#COM_QC_ACT) or requires a reboot before the next arming.
 
 ### Fixed-wing
 
@@ -206,4 +210,6 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### ROS 2
 
-- TBD
+- `rover_throttle_setpoint` is now `surface_vehicle_thrust_setpoint` ([SurfaceVehicleThrustSetpoint](../msg_docs/SurfaceVehicleThrustSetpoint.md)), and `SetpointConfig.TYPE_ROVER_THROTTLE_*` is now `TYPE_SURFACE_VEHICLE_THRUST_*`.
+  The `throttle_body_x/y` and `speed_body_x/y` fields of the thrust and speed setpoints are now `x` and `y`, and the PX4 ROS 2 Interface Library rover setpoint types are now `SurfaceVehicle*SetpointType`.
+  ROS 2 applications must publish to `/fmu/in/surface_vehicle_thrust_setpoint` instead of `/fmu/in/rover_throttle_setpoint`. ([PX4-Autopilot#29777](https://github.com/PX4/PX4-Autopilot/pull/29777))

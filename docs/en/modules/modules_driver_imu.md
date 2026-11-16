@@ -783,6 +783,34 @@ icm45686 <command> [arguments...]
    status        print status info
 ```
 
+## icm56686
+
+Source: [drivers/imu/invensense/icm56686](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/invensense/icm56686)
+
+### Usage {#icm56686_usage}
+
+```
+icm56686 <command> [arguments...]
+ Commands:
+   start
+     [-s]        Internal SPI bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-S]        External SPI bus (connector sensors, including shared buses)
+     [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
+                 (default=1))
+     [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
+     [-m <val>]  SPI mode
+     [-f <val>]  bus frequency in kHz
+     [-q]        quiet startup (no message if no device found)
+     [-R <val>]  Rotation
+                 default: 0
+     [-2]        Route the FIFO interrupt to INT2 instead of INT1
+
+   stop
+
+   status        print status info
+```
+
 ## iim20670
 
 Source: [drivers/imu/invensense/iim20670](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/imu/invensense/iim20670)

@@ -56,6 +56,29 @@ using namespace time_literals;
 
 ModuleBase::Descriptor Sih::desc{task_spawn, custom_command, print_usage};
 
+#if defined(__PX4_POSIX)
+// Poses for the orient command, named after the face pointing down as the calibration names them
+static constexpr struct {
+	const char *name;
+	float roll;
+	float pitch;
+} orient_sides[] = {
+	{"down", 0.f, 0.f},
+	{"up", M_PI_F, 0.f},
+	{"front", 0.f, -M_PI_F / 2.f},
+	{"back", 0.f, M_PI_F / 2.f},
+	{"left", -M_PI_F / 2.f, 0.f},
+	{"right", M_PI_F / 2.f, 0.f},
+};
+
+static constexpr float ORIENT_RATE_MAX = M_PI_F;	// [rad/s] turn rate between poses
+static constexpr float ORIENT_YAW_RATE = 1.5f;		// [rad/s] rotation about the vertical
+static constexpr float ORIENT_WOBBLE = 0.4f;		// [rad] tilt swing while rotating, so the accel never reads still
+static constexpr float ORIENT_WOBBLE_FREQ = 0.5f;	// [Hz]
+static constexpr hrt_abstime ORIENT_ALL_HOLD = 10_s;	// still on each side for the accel calibration,
+static constexpr hrt_abstime ORIENT_ALL_ROTATE = 10_s;	// then rotating for the mag calibration
+#endif // __PX4_POSIX
+
 Sih::Sih() :
 	ModuleParams(nullptr)
 {
@@ -73,12 +96,18 @@ Sih::~Sih()
 {
 	perf_free(_loop_perf);
 	perf_free(_loop_interval_perf);
+	_terrain = Terrain{}; // free the DEM
 }
 
 void Sih::run()
 {
 	_px4_accel.set_temperature(T1_C);
 	_px4_gyro.set_temperature(T1_C);
+
+	// the vehicle type is needed by parameters_updated() to place the vehicle on the terrain
+	_vehicle = static_cast<VehicleType>(constrain(_sih_vtype.get(),
+					    static_cast<int32_t>(VehicleType::First),
+					    static_cast<int32_t>(VehicleType::Last)));
 
 	parameters_updated();
 
@@ -96,9 +125,6 @@ void Sih::run()
 	_dist_snsr_time = task_start;
 	_optical_flow_time = task_start;
 	_ranging_beacon_time = task_start;
-	_vehicle = static_cast<VehicleType>(constrain(_sih_vtype.get(),
-					    static_cast<int32_t>(VehicleType::First),
-					    static_cast<int32_t>(VehicleType::Last)));
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	lockstep_loop();
@@ -280,9 +306,21 @@ void Sih::sensor_step()
 
 	read_motors(dt);
 
-	generate_force_and_torques(dt);
+#if defined(__PX4_POSIX)
+	orient_update(now);
 
+	if (_orient_mode == OrientMode::Off) {
+		generate_force_and_torques(dt);
+		equations_of_motion(dt);
+
+	} else {
+		orient_step(now, dt);
+	}
+
+#else
+	generate_force_and_torques(dt);
 	equations_of_motion(dt);
+#endif // __PX4_POSIX
 
 	reconstruct_sensors_signals(now);
 
@@ -373,13 +411,19 @@ void Sih::parameters_updated()
 	if (!_lpos_ref.isInitialized()
 	    || (fabsf(static_cast<float>(_lpos_ref.getProjectionReferenceLat()) - _sih_lat0.get()) > FLT_EPSILON)
 	    || (fabsf(static_cast<float>(_lpos_ref.getProjectionReferenceLon()) - _sih_lon0.get()) > FLT_EPSILON)
-	    || (fabsf(_lpos_ref_alt - _sih_h0.get()) > FLT_EPSILON)) {
-		_lpos_ref.initReference(static_cast<double>(_sih_lat0.get()), static_cast<double>(_sih_lon0.get()));
-		_lpos_ref_alt = _sih_h0.get();
+	    || (fabsf(_terrain.defaultAltitude() - _sih_h0.get()) > FLT_EPSILON)) {
+		const double lat0 = static_cast<double>(_sih_lat0.get());
+		const double lon0 = static_cast<double>(_sih_lon0.get());
+		_lpos_ref.initReference(lat0, lon0);
+
+		// start on the ground: flat at SIH_LOC_H0, or on the terrain model
+		_terrain.setDefaultAltitude(_sih_h0.get());
+		_lpos_ref_alt = _terrain.vehicleGroundAltitude(lat0, lon0);
+		_ground_alt = _lpos_ref_alt;
 
 		// Reset earth position, velocity and attitude
-		_lla.setLatitudeDeg(static_cast<double>(_sih_lat0.get()));
-		_lla.setLongitudeDeg(static_cast<double>(_sih_lon0.get()));
+		_lla.setLatitudeDeg(lat0);
+		_lla.setLongitudeDeg(lon0);
 		_lla.setAltitude(_lpos_ref_alt);
 		_p_E = _lla.toEcef();
 
@@ -720,7 +764,7 @@ void Sih::equations_of_motion(const float dt)
 	const float force_down = Vector3f(_R_N2E.transpose() * sum_of_forces_E)(2);
 	Vector3f ground_force_E;
 
-	if ((_lla.altitude() - _lpos_ref_alt) < 0.f && force_down > 0.f) {
+	if (_lla.altitude() < _ground_alt && force_down > 0.f) {
 		if (_vehicle == VehicleType::Quadcopter
 		    || _vehicle == VehicleType::Hexacopter
 		    || _vehicle == VehicleType::TailsitterVTOL
@@ -780,8 +824,144 @@ void Sih::equations_of_motion(const float dt)
 
 	ecefToNed();
 
+	// ground below the new position, for the next contact check and the sensors
+	_ground_alt = _terrain.vehicleGroundAltitude(_lla.latitude_deg(), _lla.longitude_deg());
+
+	// the ground force only stops the vertical motion, keep the vehicle from sinking into rising terrain
+	static constexpr float MAX_PENETRATION = 0.05f; // [m]
+
+	if (_lla.altitude() < _ground_alt - MAX_PENETRATION) {
+		_lla.setAltitude(_ground_alt - MAX_PENETRATION);
+		_p_E = _lla.toEcef();
+
+		if (_v_N(2) > 0.f) {
+			_v_N(2) = 0.f;
+			_v_E = _R_N2E * _v_N;
+			_v_apparent_N = _v_N + _v_wind_N;
+		}
+	}
+
 	_lpos_ref.project(_lla.latitude_deg(), _lla.longitude_deg(), _lpos(0), _lpos(1));
 	_lpos(2) = -(_lla.altitude() - _lpos_ref_alt);
+}
+
+#if defined(__PX4_POSIX)
+void Sih::orient_update(const hrt_abstime &now)
+{
+	static_assert(sizeof(orient_sides) / sizeof(orient_sides[0]) == ORIENT_SIDE_COUNT, "orient side table");
+
+	int request = _orient_request.load();
+
+	if (request == ORIENT_NONE || !_orient_request.compare_exchange(&request, ORIENT_NONE)) {
+		return;
+	}
+
+	if (request == ORIENT_OFF) {
+		if (_orient_mode != OrientMode::Off) {
+			_orient_mode = OrientMode::Leveling;
+		}
+
+		return;
+	}
+
+	if (_orient_mode == OrientMode::Off) {
+		if (!_grounded) {
+			PX4_WARN("orient: vehicle not on the ground");
+			return;
+		}
+
+		_orient_yaw = Eulerf(_q).psi();
+	}
+
+	_orient_start = now;
+
+	if (request == ORIENT_ALL) {
+		_orient_mode = OrientMode::AllSides;
+		_orient_side = -1;
+
+	} else {
+		_orient_mode = (request >= ORIENT_ROTATE) ? OrientMode::Rotate : OrientMode::Hold;
+		_orient_side = request % ORIENT_ROTATE;
+	}
+}
+
+void Sih::orient_step(const hrt_abstime &now, const float dt)
+{
+	bool rotate = (_orient_mode == OrientMode::Rotate);
+	hrt_abstime rotate_start = _orient_start;
+
+	if (_orient_mode == OrientMode::AllSides) {
+		static constexpr hrt_abstime side_time = ORIENT_ALL_HOLD + ORIENT_ALL_ROTATE;
+		const hrt_abstime elapsed = now - _orient_start;
+		const int side = elapsed / side_time;
+
+		if (side >= ORIENT_SIDE_COUNT) {
+			PX4_INFO("orient: all sides done");
+			_orient_mode = OrientMode::Leveling;
+
+		} else {
+			if (side != _orient_side) {
+				PX4_INFO("orient: %s side", orient_sides[side].name);
+				_orient_side = side;
+			}
+
+			rotate = (elapsed % side_time) >= ORIENT_ALL_HOLD;
+			rotate_start = _orient_start + side * side_time + ORIENT_ALL_HOLD;
+		}
+	}
+
+	const Quatf q_yaw{AxisAnglef(Vector3f(0.f, 0.f, 1.f), _orient_yaw)};
+	Quatf q_target = q_yaw;
+
+	if (_orient_mode != OrientMode::Leveling) {
+		const Quatf q_side{Eulerf(orient_sides[_orient_side].roll, orient_sides[_orient_side].pitch, 0.f)};
+
+		if (rotate) {
+			const float t = (now - rotate_start) * 1e-6f;
+			const float tilt = ORIENT_WOBBLE * sinf(2.f * M_PI_F * ORIENT_WOBBLE_FREQ * t);
+			const Quatf q_spin = Quatf(AxisAnglef(Vector3f(0.f, 0.f, 1.f), ORIENT_YAW_RATE * t));
+			const Quatf q_wobble = Quatf(AxisAnglef(Vector3f(1.f, 0.f, 0.f), tilt));
+			q_target = q_yaw * q_spin * q_wobble * q_side;
+
+		} else {
+			q_target = q_yaw * q_side;
+		}
+	}
+
+	// turn towards the target at a bounded rate, with the gyro reading the turn
+	Quatf q_error = _q.inversed() * q_target;
+	q_error.canonicalize();
+	Vector3f rotation = AxisAnglef(q_error);
+	const float max_angle = ORIENT_RATE_MAX * dt;
+
+	if (rotation.norm() > max_angle) {
+		rotation = rotation.normalized() * max_angle;
+	}
+
+	if (_orient_mode == OrientMode::Leveling && rotation.norm() < 1e-4f) {
+		_orient_mode = OrientMode::Off;
+		_w_B.zero();
+		return;
+	}
+
+	_w_B = (dt > FLT_EPSILON) ? rotation / dt : Vector3f{};
+
+	// at rest in place
+	_specific_force_E = -Vector3f(_R_N2E.col(2)) * LatLonAlt::Wgs84::gravity(_lla.latitude_rad());
+	_v_E.zero();
+	_v_E_dot.zero();
+	_v_N_dot.zero();
+
+	_q_E = Quatf(_R_N2E) * _q * Quatf(AxisAnglef(rotation));
+	_q_E.normalize();
+
+	ecefToNed();
+}
+#endif // __PX4_POSIX
+
+float Sih::ground_distance(float max_distance) const
+{
+	return _terrain.rayDistance(_lla.latitude_deg(), _lla.longitude_deg(), _lla.altitude(), _q.dcm_z(), max_distance);
 }
 
 void Sih::ecefToNed()
@@ -860,21 +1040,6 @@ void Sih::send_airspeed(const hrt_abstime &time_now_us)
 	_airspeed_pub.publish(airspeed);
 }
 
-float Sih::ground_distance() const
-{
-	// the ground is assumed flat at the altitude of the simulation reference (SIH_LOC_H0)
-	const float cos_tilt = _q.dcm_z()(2);
-
-	if (cos_tilt < FLT_EPSILON) {
-		// the body down axis points away from the ground
-		return NAN;
-	}
-
-	// the fake ground lets the vehicle settle marginally below the reference altitude, clamp it
-	// so that a landed vehicle reads zero instead of dropping out of range
-	return math::max(-_lpos(2), 0.f) / cos_tilt;
-}
-
 void Sih::send_dist_snsr(const hrt_abstime &time_now_us)
 {
 	if (_distance_sensor_blocked) {
@@ -892,7 +1057,7 @@ void Sih::send_dist_snsr(const hrt_abstime &time_now_us)
 	} else {
 		// the quality is decided on the true distance rather than on the noisy reading, so
 		// that a measurement sitting at a range limit does not flicker in and out of validity
-		const float true_distance = ground_distance();
+		const float true_distance = ground_distance(_distance_snsr_max);
 
 		if (!PX4_ISFINITE(true_distance) || true_distance > _distance_snsr_max) {
 			// nothing within reach, the sensor reports its saturated raw reading
@@ -931,7 +1096,7 @@ void Sih::accumulate_optical_flow(const float dt)
 	// value is produced by a right handed rotation of the sensor about the body axis, which
 	// gives the translation over the ground the opposite sign (see the flow observation model
 	// in the EKF).
-	const float distance = ground_distance();
+	const float distance = ground_distance(_sih_optical_flow_h_max.get());
 
 	if (!PX4_ISFINITE(distance) || distance > _sih_optical_flow_h_max.get()) {
 		// too high above the ground, or not looking at it: no image to track
@@ -1111,6 +1276,8 @@ void Sih::publish_ground_truth(const hrt_abstime &time_now_us)
 		local_position.heading_good_for_control = true;
 		local_position.unaided_heading = NAN;
 
+		local_position.dist_bottom = _lla.altitude() - _ground_alt;
+
 		local_position.timestamp = hrt_absolute_time();
 		_local_position_ground_truth_pub.publish(local_position);
 	}
@@ -1123,7 +1290,7 @@ void Sih::publish_ground_truth(const hrt_abstime &time_now_us)
 		global_position.lon = _lla.longitude_deg();
 		global_position.alt = _lla.altitude();
 		global_position.alt_ellipsoid = global_position.alt;
-		global_position.terrain_alt = -_lpos(2);
+		global_position.terrain_alt = _ground_alt;
 		global_position.timestamp = hrt_absolute_time();
 		_global_position_ground_truth_pub.publish(global_position);
 	}
@@ -1164,7 +1331,20 @@ int Sih::print_status()
 		PX4_INFO("Rover Ackermann");
 	}
 
+	_terrain.printStatus();
+
+	PX4_INFO("ground altitude: %.2f m", (double)_ground_alt);
 	PX4_INFO("vehicle landed: %d", _grounded);
+
+#if defined(__PX4_POSIX)
+
+	if (_orient_mode != OrientMode::Off) {
+		PX4_INFO("orient: %s", (_orient_mode == OrientMode::Leveling || _orient_side < 0) ? "moving" :
+			 orient_sides[_orient_side].name);
+	}
+
+#endif // __PX4_POSIX
+
 	PX4_INFO("local position NED (m)");
 	_lpos.print();
 	PX4_INFO("local velocity NED (m/s)");
@@ -1194,8 +1374,59 @@ int Sih::run_trampoline(int argc, char *argv[])
 	}, argc, argv);
 }
 
+#if defined(__PX4_POSIX)
+bool Sih::load_terrain(int argc, char *argv[])
+{
+	_terrain = Terrain{};
+
+	int myoptind = 1;
+	int ch;
+	const char *myoptarg = nullptr;
+	const char *terrain_path = nullptr;
+
+	while ((ch = px4_getopt(argc, argv, "t:", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 't':
+			terrain_path = myoptarg;
+			break;
+
+		default:
+			print_usage("unrecognized flag");
+			return false;
+		}
+	}
+
+	if (!terrain_path) {
+		return true;
+	}
+
+	int32_t vehicle_type = 0;
+	param_get(param_find("SIH_VEHICLE_TYPE"), &vehicle_type);
+	const VehicleType vehicle = static_cast<VehicleType>(vehicle_type);
+
+	if (vehicle != VehicleType::Quadcopter
+	    && vehicle != VehicleType::Hexacopter
+	    && vehicle != VehicleType::FixedWing
+	    && vehicle != VehicleType::TailsitterVTOL
+	    && vehicle != VehicleType::StandardVTOL) {
+		PX4_ERR("terrain is not supported for SIH_VEHICLE_TYPE %" PRId32, vehicle_type);
+		return false;
+	}
+
+	return _terrain.load(terrain_path);
+}
+#endif // __PX4_POSIX
+
 int Sih::task_spawn(int argc, char *argv[])
 {
+#if defined(__PX4_POSIX)
+
+	if (!load_terrain(argc, argv)) {
+		return -1;
+	}
+
+#endif
+
 	desc.task_id = px4_task_spawn_cmd("sih",
 					  SCHED_DEFAULT,
 					  SCHED_PRIORITY_MAX,
@@ -1224,6 +1455,48 @@ Sih *Sih::instantiate(int argc, char *argv[])
 
 int Sih::custom_command(int argc, char *argv[])
 {
+#if defined(__PX4_POSIX)
+	Sih *sih = get_instance<Sih>(desc);
+
+	if (!is_running(desc) || !sih) {
+		return print_usage("not running");
+	}
+
+	if (argc >= 2 && !strcmp(argv[0], "orient")) {
+		int request = ORIENT_NONE;
+
+		if (!strcmp(argv[1], "off")) {
+			request = ORIENT_OFF;
+
+		} else if (!strcmp(argv[1], "all")) {
+			request = ORIENT_ALL;
+
+		} else {
+			for (int side = 0; side < ORIENT_SIDE_COUNT; side++) {
+				if (!strcmp(argv[1], orient_sides[side].name)) {
+					request = side;
+				}
+			}
+
+			if (request != ORIENT_NONE && argc >= 3) {
+				if (strcmp(argv[2], "rotate") != 0) {
+					return print_usage("unknown orient option");
+				}
+
+				request += ORIENT_ROTATE;
+			}
+		}
+
+		if (request == ORIENT_NONE) {
+			return print_usage("unknown side");
+		}
+
+		sih->_orient_request.store(request);
+		return 0;
+	}
+
+#endif // __PX4_POSIX
+
 	return print_usage("unknown command");
 }
 
@@ -1251,11 +1524,27 @@ Quaternion representation is used for the attitude.
 Forward Euler is used for integration.
 Most of the variables are declared global in the .hpp file to avoid stack overflow.
 
+### Examples
+Pose the vehicle on the ground for accel and mag calibration (SITL only), sides named as the calibration names them.
+With `rotate` it turns about the vertical with a tilt swing, as the mag calibration asks for:
+$ simulator_sih orient left rotate
+
+Each side in turn: 10 s still, then 10 s rotating, then level. This completes either calibration.
+$ simulator_sih orient all
+
+Level the vehicle and resume the flight dynamics:
+$ simulator_sih orient off
 
 )DESCR_STR");
 
     PRINT_MODULE_USAGE_NAME("simulator_sih", "simulation");
     PRINT_MODULE_USAGE_COMMAND("start");
+#if defined(__PX4_POSIX)
+    PRINT_MODULE_USAGE_PARAM_STRING('t', nullptr, "<file>", "Terrain elevation GeoTIFF (DEM), SITL only", true);
+    PRINT_MODULE_USAGE_COMMAND_DESCR("orient", "Pose the vehicle on the ground for calibration");
+    PRINT_MODULE_USAGE_ARG("down|up|front|back|left|right|all|off", "Side facing down, every side in turn, or level", false);
+    PRINT_MODULE_USAGE_ARG("rotate", "Rotate about the vertical", true);
+#endif // __PX4_POSIX
     PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
     return 0;
