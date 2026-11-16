@@ -114,9 +114,9 @@ The CyberX-v10 has the following power configuration:
 - `PWR2`: One I2C-based power monitoring IC that monitors the same physical power input and provides additional voltage/current measurements.
 - `USB`: USB power is provided for debugging and development purposes only.
 
-::: info
-`PWR1` and `PWR2` monitor the same physical power source, by ADC and I2C respectively.
-They are not redundant power inputs.
+::: warning
+`PWR1` and `PWR2` monitor the same power source, and must be connected to the same power module.
+Do not connect two different power modules.
 :::
 
 **Normal Operation Maximum Ratings**
