@@ -745,7 +745,11 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 
 
 	// Mode fallback (last)
-	Action mode_fallback_action = checkModeFallback(status_flags, state.user_intended_mode);
+	// A fixed-wing takeoff does not need a position estimate (the mode manager then climbs with wings level),
+	// so the takeoff item of a mission is held to the same requirements as Takeoff mode.
+	const uint8_t mode_fallback_check_mode = state.fw_mission_takeoff ? vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF :
+			state.user_intended_mode;
+	Action mode_fallback_action = checkModeFallback(status_flags, mode_fallback_check_mode);
 	_last_state_mode_fallback = checkFailsafe(_caller_id_mode_fallback, _last_state_mode_fallback,
 				    mode_fallback_action != Action::None,
 				    ActionOptions(mode_fallback_action).allowUserTakeover(UserTakeoverAllowed::Always).cannotBeDeferred());

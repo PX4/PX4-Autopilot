@@ -35,9 +35,11 @@
 
 using namespace time_literals;
 
-MecanumSpeedControl::MecanumSpeedControl(ModuleParams *parent) : ModuleParams(parent)
+MecanumSpeedControl::MecanumSpeedControl(ModuleParams *parent) :
+	ModuleParams(parent),
+	RoverControllerWorkItem("rover_mecanum_speed_control", ORB_ID(vehicle_local_position))
 {
-	_rover_throttle_setpoint_pub.advertise();
+	_surface_vehicle_thrust_setpoint_pub.advertise();
 	_surface_vehicle_speed_status_pub.advertise();
 	updateParams();
 }
@@ -65,23 +67,24 @@ void MecanumSpeedControl::updateSpeedControl()
 {
 	const hrt_abstime timestamp_prev = _timestamp;
 	_timestamp = hrt_absolute_time();
-	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 10_ms) * 1e-6f;
+	// Runs at the EKF2 output rate (EKF2_PREDICT_US up to 20 ms), allow for that plus jitter
+	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 50_ms) * 1e-6f;
 
 	updateSubscriptions();
 
-	// Throttle Setpoints
+	// Thrust setpoints
 	if (PX4_ISFINITE(_speed_x_setpoint) && PX4_ISFINITE(_speed_y_setpoint)) {
 		Vector2f speed_setpoint = calcSpeedSetpoint();
-		rover_throttle_setpoint_s rover_throttle_setpoint{};
-		rover_throttle_setpoint.timestamp = _timestamp;
+		surface_vehicle_thrust_setpoint_s surface_vehicle_thrust_setpoint{};
+		surface_vehicle_thrust_setpoint.timestamp = _timestamp;
 
-		rover_throttle_setpoint.throttle_body_x = RoverControl::speedControl(_adjusted_speed_x_setpoint, _pid_speed_x,
-				speed_setpoint(0), _vehicle_speed_body_x, _param_ro_accel_limit.get(), _param_ro_decel_limit.get(),
-				_param_ro_max_thr_speed.get(), dt);
-		rover_throttle_setpoint.throttle_body_y = RoverControl::speedControl(_adjusted_speed_y_setpoint, _pid_speed_y,
-				speed_setpoint(1), _vehicle_speed_body_y, _param_ro_accel_limit.get(), _param_ro_decel_limit.get(),
-				_param_ro_max_thr_speed.get(), dt);
-		_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
+		surface_vehicle_thrust_setpoint.x = RoverControl::speedControl(_adjusted_speed_x_setpoint, _pid_speed_x,
+						    speed_setpoint(0), _vehicle_speed_body_x, _param_ro_accel_limit.get(), _param_ro_decel_limit.get(),
+						    _param_ro_max_thr_speed.get(), dt);
+		surface_vehicle_thrust_setpoint.y = RoverControl::speedControl(_adjusted_speed_y_setpoint, _pid_speed_y,
+						    speed_setpoint(1), _vehicle_speed_body_y, _param_ro_accel_limit.get(), _param_ro_decel_limit.get(),
+						    _param_ro_max_thr_speed.get(), dt);
+		_surface_vehicle_thrust_setpoint_pub.publish(surface_vehicle_thrust_setpoint);
 
 	}
 
@@ -92,8 +95,8 @@ void MecanumSpeedControl::updateSpeedControl()
 	surface_vehicle_speed_status.adjusted_speed_body_x_setpoint = _adjusted_speed_x_setpoint.getState();
 	surface_vehicle_speed_status.measured_speed_body_y = _vehicle_speed_body_y;
 	surface_vehicle_speed_status.adjusted_speed_body_y_setpoint = _adjusted_speed_y_setpoint.getState();
-	surface_vehicle_speed_status.pid_throttle_body_x_integral = _pid_speed_x.getIntegral();
-	surface_vehicle_speed_status.pid_throttle_body_y_integral = _pid_speed_y.getIntegral();
+	surface_vehicle_speed_status.pid_thrust_body_x_integral = _pid_speed_x.getIntegral();
+	surface_vehicle_speed_status.pid_thrust_body_y_integral = _pid_speed_y.getIntegral();
 	_surface_vehicle_speed_status_pub.publish(surface_vehicle_speed_status);
 }
 
@@ -118,8 +121,8 @@ void MecanumSpeedControl::updateSubscriptions()
 	if (_surface_vehicle_speed_setpoint_sub.updated()) {
 		surface_vehicle_speed_setpoint_s surface_vehicle_speed_setpoint;
 		_surface_vehicle_speed_setpoint_sub.copy(&surface_vehicle_speed_setpoint);
-		_speed_x_setpoint = surface_vehicle_speed_setpoint.speed_body_x;
-		_speed_y_setpoint = surface_vehicle_speed_setpoint.speed_body_y;
+		_speed_x_setpoint = surface_vehicle_speed_setpoint.x;
+		_speed_y_setpoint = surface_vehicle_speed_setpoint.y;
 	}
 }
 

@@ -35,7 +35,9 @@
 
 using namespace time_literals;
 
-AckermannAttControl::AckermannAttControl(ModuleParams *parent) : ModuleParams(parent)
+AckermannAttControl::AckermannAttControl(ModuleParams *parent) :
+	ModuleParams(parent),
+	RoverControllerWorkItem("rover_ackermann_att_control", ORB_ID(vehicle_attitude))
 {
 	_surface_vehicle_rate_setpoint_pub.advertise();
 	_surface_vehicle_attitude_status_pub.advertise();
@@ -65,7 +67,8 @@ void AckermannAttControl::updateAttControl()
 
 	hrt_abstime timestamp_prev = _timestamp;
 	_timestamp = hrt_absolute_time();
-	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 10_ms) * 1e-6f;
+	// Runs on every vehicle_attitude publication (EKF2 output predictor at IMU_INTEG_RATE >= 100 Hz), allow for jitter
+	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 50_ms) * 1e-6f;
 
 	if (PX4_ISFINITE(_yaw_setpoint)) {
 		// Calculate yaw rate limit for slew rate

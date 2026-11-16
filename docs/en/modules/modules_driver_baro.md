@@ -1,5 +1,10 @@
 # Modules Reference: Baro (Driver)
 
+::: info
+**This page is [auto-generated](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/px4moduledoc/markdownout.py) from the source code** using the build command: `make module_documentation`.
+Do not edit it directly; fix the module documentation in the [PX4-Autopilot](https://github.com/PX4/PX4-Autopilot) source instead.
+:::
+
 ## bmp280
 
 Source: [drivers/barometer/bmp280](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/barometer/bmp280)

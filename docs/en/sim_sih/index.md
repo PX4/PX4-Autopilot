@@ -14,7 +14,8 @@ See [PX4 Simulation QuickStart](../simulation/px4_simulation_quickstart.md) for 
 ## Overview
 
 SIH runs as a PX4 module that replaces real sensor and actuator hardware with a simulated physics model.
-It provides simulated IMU, GPS, barometer, magnetometer, and airspeed sensor data via uORB, and reads actuator outputs to update the vehicle state at each timestep.
+It provides simulated IMU, GPS, barometer, magnetometer, airspeed, distance sensor, and optical flow data via uORB, and reads actuator outputs to update the vehicle state at each timestep.
+The distance sensor and the downward facing [optical flow sensor](#optical-flow) let you exercise flow aided navigation without a rendered camera image.
 
 The simulation runs in lockstep with PX4, ensuring deterministic and reproducible results.
 It also integrates seamlessly with ROS 2 with no additional configuration (see [ROS 2 Integration](#ros-2-integration) below).
@@ -30,14 +31,16 @@ Two modes are supported:
 
 The following vehicle types are supported:
 
-| Vehicle                                                         | Make Target                                | Status       |
-| --------------------------------------------------------------- | ------------------------------------------ | ------------ |
-| Quadrotor X <Badge type="tip" text="PX4 v1.9" />                | `make px4_sitl_sih sihsim_quadx`           | Stable       |
-| Hexarotor X <Badge type="tip" text="PX4 v1.16" />               | `make px4_sitl_sih sihsim_hex`             | Experimental |
-| Fixed-wing (airplane) <Badge type="tip" text="PX4 v1.13" />     | `make px4_sitl_sih sihsim_airplane`        | Experimental |
-| Tailsitter VTOL <Badge type="tip" text="PX4 v1.13" />           | `make px4_sitl_sih sihsim_xvert`           | Experimental |
-| Standard VTOL (QuadPlane) <Badge type="tip" text="PX4 v1.16" /> | `make px4_sitl_sih sihsim_standard_vtol`   | Experimental |
-| Ackermann Rover <Badge type="tip" text="PX4 v1.16" />           | `make px4_sitl_sih sihsim_rover_ackermann` | Experimental |
+| Vehicle                                                              | Make Target                                   | Status       |
+| -------------------------------------------------------------------- | --------------------------------------------- | ------------ |
+| Quadrotor X <Badge type="tip" text="PX4 v1.9" />                     | `make px4_sitl_sih sihsim_quadx`              | Stable       |
+| Hexarotor X <Badge type="tip" text="PX4 v1.16" />                    | `make px4_sitl_sih sihsim_hex`                | Experimental |
+| Fixed-wing (airplane) <Badge type="tip" text="PX4 v1.13" />          | `make px4_sitl_sih sihsim_airplane`           | Experimental |
+| Tailsitter VTOL <Badge type="tip" text="PX4 v1.13" />                | `make px4_sitl_sih sihsim_xvert`              | Experimental |
+| Standard VTOL (QuadPlane) <Badge type="tip" text="PX4 v1.16" />      | `make px4_sitl_sih sihsim_standard_vtol`      | Experimental |
+| Ackermann Rover <Badge type="tip" text="PX4 v1.16" />                | `make px4_sitl_sih sihsim_rover_ackermann`    | Experimental |
+| Quadrotor X with optical flow <Badge type="tip" text="PX4 v2.0" />   | `make px4_sitl_sih sihsim_quadx_flow`         | Experimental |
+| Standard VTOL with optical flow <Badge type="tip" text="PX4 v2.0" /> | `make px4_sitl_sih sihsim_standard_vtol_flow` | Experimental |
 
 ::: warning
 Only the quadrotor vehicle type is stable and recommended for development. All other vehicle types (hexarotor, fixed-wing, VTOL, rover) are experimental and may have aerodynamic model or controller interaction issues that produce unrealistic flight behaviour.
@@ -117,6 +120,24 @@ PX4_SIM_SPEED_FACTOR=10 make px4_sitl_sih sihsim_quadx
 
 SIH supports setting a wind velocity with the PX4 parameters [`SIH_WIND_N`](../advanced_config/parameter_reference.md#SIH_WIND_E) and [`SIH_WIND_E`](../advanced_config/parameter_reference.md#SIH_WIND_E) [m/s]. The parameters can also be changed during flight to simulate changing wind.
 
+#### Optical Flow
+
+SIH can simulate a downward facing optical flow sensor, so that flow aided navigation can be exercised without a rendered camera image.
+The sensor reports the integrated flow only: the flow module completes the sample with the vehicle gyro and a downward facing distance sensor, which therefore has to be enabled as well ([`SIH_DISTSNSR_EN`](../advanced_config/parameter_reference.md#SIH_DISTSNSR_EN)).
+
+The flow sensor is configured with [`SIH_OF_EN`](../advanced_config/parameter_reference.md#SIH_OF_EN), [`SIH_OF_RATE`](../advanced_config/parameter_reference.md#SIH_OF_RATE), [`SIH_OF_NOISE`](../advanced_config/parameter_reference.md#SIH_OF_NOISE), and [`SIH_OF_H_MAX`](../advanced_config/parameter_reference.md#SIH_OF_H_MAX).
+Quality drops to zero above `SIH_OF_H_MAX` or when the flow rate exceeds what the sensor can correlate.
+
+Two ready-made airframes use it:
+
+```sh
+# Multicopter navigating on optical flow only (GNSS fusion disabled)
+make px4_sitl_sih sihsim_quadx_flow
+
+# Standard VTOL navigating on optical flow only (GNSS fusion disabled)
+make px4_sitl_sih sihsim_standard_vtol_flow
+```
+
 #### Set Custom Takeoff Location
 
 The default takeoff location can be set using environment variables:
@@ -127,6 +148,63 @@ export PX4_HOME_LON=-13.867138
 export PX4_HOME_ALT=28.5
 make px4_sitl_sih sihsim_quadx
 ```
+
+#### Sensor Calibration
+
+`simulator_sih orient` poses the vehicle on the ground the way accelerometer and magnetometer calibration ask for, so either calibration can be run from QGroundControl or a script.
+Run it from the PX4 shell, or the [MAVLink shell](../debug/mavlink_shell.md), after starting the calibration:
+
+| Command                              | Pose                                                                              |
+| ------------------------------------ | --------------------------------------------------------------------------------- |
+| `simulator_sih orient all`           | Each side in turn: 10 s still, then 10 s rotating. Completes either calibration.  |
+| `simulator_sih orient <side>`        | Still, with `<side>` facing down: `down`, `up`, `front`, `back`, `left`, `right`. |
+| `simulator_sih orient <side> rotate` | Rotating about the vertical with `<side>` down, with a tilt swing.                |
+| `simulator_sih orient off`           | Level, then back to the flight dynamics.                                          |
+
+`orient` is only built for SITL: sensor calibration is rejected when SIH runs on flight controller hardware.
+
+#### Terrain Elevation (DEM) {#terrain}
+
+<Badge type="tip" text="main (PX4 v2.0)" />
+
+By default SIH simulates flat ground at [`SIH_LOC_H0`](../advanced_config/parameter_reference.md#SIH_LOC_H0).
+SIH can instead load the terrain elevation from a digital elevation model (DEM) [GeoTIFF](https://www.ogc.org/standards/geotiff/) file, set with the `PX4_SIH_TERRAIN` environment variable:
+
+```sh
+PX4_SIH_TERRAIN=/path/to/dem.tif make px4_sitl_sih sihsim_quadx
+```
+
+The terrain is then used for:
+
+- Ground contact: the vehicle starts, lands and rests on the terrain.
+  It is placed at the terrain elevation below [`SIH_LOC_LAT0`](../advanced_config/parameter_reference.md#SIH_LOC_LAT0)/[`SIH_LOC_LON0`](../advanced_config/parameter_reference.md#SIH_LOC_LON0) (`PX4_HOME_LAT`/`PX4_HOME_LON`).
+  `SIH_LOC_H0` (`PX4_HOME_ALT`) sets the start altitude only when that point is outside the DEM.
+- The downward facing distance sensor, which measures the range to the terrain along the vehicle body z axis (up to [`SIH_DISTSNSR_MAX`](../advanced_config/parameter_reference.md#SIH_DISTSNSR_MAX)).
+- The `terrain_alt` field of the `vehicle_global_position_groundtruth` topic.
+- The `dist_bottom` field of the `vehicle_local_position_groundtruth` topic.
+
+Outside the area covered by the DEM, or over cells without data, the ground is flat at `SIH_LOC_H0` and a warning is printed.
+Terrain is supported for multicopters, VTOLs and fixed-wing vehicles; with any other vehicle type (such as Ackermann rovers), setting `PX4_SIH_TERRAIN` stops SIH from starting with an error.
+`simulator_sih status` shows the loaded DEM and whether the vehicle is inside it.
+
+The DEM must be a single-band GeoTIFF whose coordinate reference system has an [EPSG code](https://epsg.io/), either geographic (such as WGS84, `EPSG:4326`) or projected (such as UTM or the Swiss `EPSG:2056`).
+8, 16 and 32-bit integer and 32 and 64-bit floating point samples are supported with any TIFF compression, and the [_GDAL_](https://gdal.org/) nodata value is respected.
+Elevations are used as they are, as altitude above mean sea level.
+Free sources include [Copernicus GLO-30](https://registry.opendata.aws/copernicus-dem/) (near-global, 30 m, including buildings and vegetation) and national elevation models such as [swissALTI3D](https://www.swisstopo.admin.ch/en/height-model-swissalti3d) (2 m).
+Crop large files to the area you fly in, for example with _GDAL_:
+
+```sh
+gdal_translate -projwin 8.48 47.44 8.61 47.35 Copernicus_DSM_COG_10_N47_00_E008_00_DEM.tif zurich.tif
+```
+
+Files in other formats, with other sample types or without an EPSG code can be converted with `gdalwarp -t_srs EPSG:4326 -ot Float32 in.tif out.tif`.
+
+::: info
+Terrain support is optional and only available in SITL, not when [running SIH on flight controller hardware](#sih-on-flight-controller-hardware).
+The [prebuilt](../simulation/px4_sitl_prebuilt_packages.md) `px4` package and `px4io/px4-sitl` container are built without it, and SIH reports an error and does not start if `PX4_SIH_TERRAIN` is set.
+When building from source, the [setup scripts](../dev_setup/dev_env.md) install the required libraries with the simulation tools.
+The CMake output shows `SIH terrain (DEM) support enabled` when it is available.
+:::
 
 ### ROS 2 Integration
 

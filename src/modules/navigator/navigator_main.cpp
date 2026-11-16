@@ -364,6 +364,12 @@ void Navigator::run()
 		_takeoff_status_sub.update();
 		_home_pos_sub.update(&_home_pos);
 
+		vtol_vehicle_status_s vtol_vehicle_status{};
+
+		if (_vtol_vehicle_status_sub.update(&vtol_vehicle_status)) {
+			_front_transition_inhibited = vtol_vehicle_status.fixed_wing_system_failure;
+		}
+
 		// Handle Vehicle commands
 		int vehicle_command_updates = 0;
 

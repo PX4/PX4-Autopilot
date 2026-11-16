@@ -41,6 +41,7 @@
 #include <matrix/matrix/math.hpp>
 #include <lib/pure_pursuit/PurePursuit.hpp>
 #include <lib/rover_control/RoverControl.hpp>
+#include <lib/rover_control/RoverControllerWorkItem.hpp>
 #include <math.h>
 
 // uORB includes
@@ -60,7 +61,7 @@ using namespace matrix;
 /**
  * @brief Class for ackermann position control.
  */
-class AckermannPosControl : public ModuleParams
+class AckermannPosControl : public ModuleParams, public RoverControllerWorkItem
 {
 public:
 	/**
@@ -93,6 +94,8 @@ protected:
 	void updateParams() override;
 
 private:
+	void runController() override { updatePosControl(); }
+
 	/**
 	 * @brief Update uORB subscriptions used in position controller.
 	 */

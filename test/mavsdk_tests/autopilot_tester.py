@@ -415,6 +415,20 @@ class AutopilotTester:
                 assert status.actuator[i] >= 999.0, \
                     "Motor {} output {}, expected running".format(i, status.actuator[i])
 
+    def record_scaled_imu(self, duration_s: float, rate_hz: float = 50.0) -> List[Any]:
+        """Record SCALED_IMU samples (vehicle_imu, so after any injected IMU failure)."""
+        samples: List[Any] = []
+        self._telemetry.set_rate_scaled_imu(rate_hz)
+        handle = self._telemetry.subscribe_scaled_imu(
+            lambda sample, _user_data: samples.append(sample))
+        try:
+            self.sleep_for(duration_s)
+        finally:
+            self._telemetry.unsubscribe_scaled_imu(handle)
+        assert len(samples) >= rate_hz * duration_s / 2, \
+            "Only {} SCALED_IMU samples in {} s".format(len(samples), duration_s)
+        return list(samples)
+
     # ------------------------------------------------------------------
     # Position and home
     # ------------------------------------------------------------------

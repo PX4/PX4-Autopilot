@@ -35,7 +35,9 @@
 
 using namespace time_literals;
 
-AckermannPosControl::AckermannPosControl(ModuleParams *parent) : ModuleParams(parent)
+AckermannPosControl::AckermannPosControl(ModuleParams *parent) :
+	ModuleParams(parent),
+	RoverControllerWorkItem("rover_ackermann_pos_control", ORB_ID(vehicle_local_position))
 {
 	_pure_pursuit_status_pub.advertise();
 	_surface_vehicle_speed_setpoint_pub.advertise();
@@ -94,8 +96,12 @@ void AckermannPosControl::updatePosControl()
 				_pure_pursuit_status_pub.publish(pure_pursuit_status);
 			}
 
+			// Driving in reverse, the rover points away from its direction of travel
+			const float yaw_setpoint = speed_setpoint > -FLT_EPSILON ? bearing_setpoint : matrix::wrap_pi(
+							   bearing_setpoint + M_PI_F);
+
 			if (_param_ro_speed_red.get() > FLT_EPSILON) {
-				const float course_error = fabsf(matrix::wrap_pi(bearing_setpoint - _vehicle_yaw));
+				const float course_error = fabsf(matrix::wrap_pi(yaw_setpoint - _vehicle_yaw));
 				const float speed_reduction = math::constrain(_param_ro_speed_red.get() * math::interpolate(course_error,
 							      0.f, M_PI_F, 0.f, 1.f), 0.f, 1.f);
 				const float max_speed = math::constrain(_param_ro_max_thr_speed.get() * (1.f - speed_reduction), _min_speed,
@@ -105,18 +111,17 @@ void AckermannPosControl::updatePosControl()
 
 			surface_vehicle_speed_setpoint_s surface_vehicle_speed_setpoint{};
 			surface_vehicle_speed_setpoint.timestamp = timestamp;
-			surface_vehicle_speed_setpoint.speed_body_x = speed_setpoint;
+			surface_vehicle_speed_setpoint.x = speed_setpoint;
 			_surface_vehicle_speed_setpoint_pub.publish(surface_vehicle_speed_setpoint);
 			surface_vehicle_attitude_setpoint_s surface_vehicle_attitude_setpoint{};
 			surface_vehicle_attitude_setpoint.timestamp = timestamp;
-			surface_vehicle_attitude_setpoint.yaw_setpoint = speed_setpoint > -FLT_EPSILON ? bearing_setpoint : matrix::wrap_pi(
-						bearing_setpoint + M_PI_F);
+			surface_vehicle_attitude_setpoint.yaw_setpoint = yaw_setpoint;
 			_surface_vehicle_attitude_setpoint_pub.publish(surface_vehicle_attitude_setpoint);
 
 		} else {
 			surface_vehicle_speed_setpoint_s surface_vehicle_speed_setpoint{};
 			surface_vehicle_speed_setpoint.timestamp = timestamp;
-			surface_vehicle_speed_setpoint.speed_body_x = 0.f;
+			surface_vehicle_speed_setpoint.x = 0.f;
 			_surface_vehicle_speed_setpoint_pub.publish(surface_vehicle_speed_setpoint);
 			surface_vehicle_attitude_setpoint_s surface_vehicle_attitude_setpoint{};
 			surface_vehicle_attitude_setpoint.timestamp = timestamp;
