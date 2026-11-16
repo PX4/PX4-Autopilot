@@ -13,14 +13,33 @@ from conventional_commits import (
     CONVENTIONAL_TYPES,
     EXEMPT_PREFIXES,
     parse_header,
+    split_backport_tag,
     suggest_scope,
     suggest_type,
 )
 
+RELEASE_BRANCH_PREFIX = 'release/'
+
+
+def misplaced_backport(title: str, base_ref: str | None) -> str | None:
+    """Explain a backport tag on a PR that does not target a release branch.
+
+    Returns None when the title has no tag, the base is a release branch, or
+    the base is not known.
+    """
+    tag, _ = split_backport_tag(title)
+    if not tag or not base_ref or base_ref.startswith(RELEASE_BRANCH_PREFIX):
+        return None
+    return (f"The title is tagged `{tag}`, but this PR targets `{base_ref}`. "
+            f"Backports go to a `{RELEASE_BRANCH_PREFIX}*` branch.")
+
 
 def suggest_title(title: str) -> str | None:
     """Try to suggest a corrected title in conventional commits format."""
-    stripped = title.strip()
+    tag, stripped = split_backport_tag(title)
+    if tag:
+        suggestion = suggest_title(stripped)
+        return f"{tag} {suggestion}" if suggestion else None
 
     # Remove common bracket prefixes like [docs], [CI], etc.
     bracket_match = re.match(r'^\[([^\]]+)\]\s*(.+)', stripped)
@@ -56,7 +75,7 @@ def suggest_title(title: str) -> str | None:
     return None
 
 
-def check_title(title: str) -> bool:
+def check_title(title: str, base_ref: str | None = None) -> bool:
     title = title.strip()
 
     if not title:
@@ -68,7 +87,10 @@ def check_title(title: str) -> bool:
             return True
 
     if parse_header(title):
-        return True
+        misplaced = misplaced_backport(title, base_ref)
+        if misplaced:
+            print(misplaced, file=sys.stderr)
+        return not misplaced
 
     types_str = ', '.join(f'`{t}`' for t in CONVENTIONAL_TYPES.keys())
     print(
@@ -98,8 +120,25 @@ def check_title(title: str) -> bool:
     return False
 
 
-def format_markdown(title: str) -> str:
+def format_markdown(title: str, base_ref: str | None = None) -> str:
     """Format a markdown PR comment body for a bad title."""
+    misplaced = misplaced_backport(title, base_ref) if parse_header(title) else None
+    if misplaced:
+        return '\n'.join([
+            "## \u274c Backport PR does not target a release branch",
+            "",
+            misplaced,
+            "",
+            "**To fix this:** click the ✏️ next to the PR title and change the "
+            "base branch, or remove the tag from the title.",
+            "",
+            "See [CONTRIBUTING.md](https://github.com/PX4/PX4-Autopilot/blob/main/CONTRIBUTING.md#pr-titles) "
+            "for details.",
+            "",
+            "---",
+            "*This comment will be automatically removed once the issue is resolved.*",
+        ])
+
     lines = [
         "## \u274c PR title needs conventional commit format",
         "",
@@ -137,16 +176,19 @@ def main() -> None:
     import argparse
     parser = argparse.ArgumentParser(description='Check PR title format')
     parser.add_argument('title', help='The PR title to validate')
+    parser.add_argument('--base-ref', metavar='BRANCH',
+                        help='Branch the PR targets; a backport tag is only '
+                             f'accepted on {RELEASE_BRANCH_PREFIX}* branches')
     parser.add_argument('--markdown', action='store_true',
                         help='Output markdown to stdout on failure')
     parser.add_argument('--markdown-file', metavar='FILE',
                         help='Write markdown to FILE on failure')
     args = parser.parse_args()
 
-    passed = check_title(args.title)
+    passed = check_title(args.title, args.base_ref)
 
     if not passed:
-        md = format_markdown(args.title)
+        md = format_markdown(args.title, args.base_ref)
         if args.markdown:
             print(md)
         if args.markdown_file:
