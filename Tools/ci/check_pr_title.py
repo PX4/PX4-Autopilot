@@ -120,8 +120,8 @@ def format_markdown(title: str) -> str:
         ])
 
     lines.extend([
-        "**To fix this:** click the ✏️ next to the PR title at the top "
-        "of this page and update it.",
+        "**To fix this:** click the ✏️ next to the PR title "
+        "and update it.",
         "",
         "See [CONTRIBUTING.md](https://github.com/PX4/PX4-Autopilot/blob/main/CONTRIBUTING.md#commit-message-convention) "
         "for details.",
