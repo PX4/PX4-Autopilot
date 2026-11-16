@@ -396,6 +396,7 @@ bool Ekf::isMagInFlightAlignmentRequired() const
 bool Ekf::isHeadingResetToMagAllowed() const
 {
 	return (_control_status.flags.mag_hdg || _control_status.flags.mag_3D)
+	       && !_control_status.flags.in_air // a heading jump is only harmless on the ground
 	       && !_control_status.flags.yaw_manual; // do not override manual reset
 }
 

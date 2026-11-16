@@ -785,3 +785,70 @@ TEST_F(EkfMagTest, fusionFailingWithoutWmmKeepsHeading)
 				<< "Yaw: " << degrees(_ekf_wrapper.getYawAngle()) << " deg";
 	}
 }
+
+TEST_F(EkfMagTest, wmmUpdateInFlightKeepsHeading)
+{
+	// GIVEN: a heading aligned on the ground without a WMM, using a saved declination that is 20
+	// degrees off, and a vehicle then flying without North-East aiding
+	const gnssSample gnss = _sensor_simulator._gps.getDefaultGpsData();
+	const float declination_error = radians(20.f);
+	_ekf->getParamHandle()->ekf2_mag_decl = get_mag_declination_degrees(gnss.lat, gnss.lon) - degrees(declination_error);
+
+	const Vector3f mag_earth_wmm = getWmmEarthField();
+	_sensor_simulator._mag.setRateHz(15);
+	_sensor_simulator._mag.setData(mag_earth_wmm);
+	_sensor_simulator.runSeconds(_init_duration_s);
+	ASSERT_NO_FATAL_FAILURE(climbToInFlightAlignment(Vector3f()));
+	_sensor_simulator.runSeconds(10);
+
+	ASSERT_FALSE(_ekf->isNorthEastAidingActive());
+	ASSERT_TRUE(_ekf_wrapper.isIntendingMag3DFusion());
+	ASSERT_NEAR(_ekf_wrapper.getYawAngle(), -declination_error, radians(1.f));
+	const int quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
+
+	// WHEN: the origin is set, which makes the WMM available
+	ASSERT_TRUE(_ekf->setEkfGlobalOrigin(gnss.lat, gnss.lon, gnss.alt));
+	_sensor_simulator.runSeconds(10);
+
+	// THEN: the earth field is reset to the WMM, without resetting the heading
+	Vector3f mag_earth = _ekf->getMagEarthField();
+	EXPECT_NEAR(atan2f(mag_earth(1), mag_earth(0)), atan2f(mag_earth_wmm(1), mag_earth_wmm(0)), radians(1.f));
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), quat_reset_counter);
+	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), -declination_error, radians(1.f))
+			<< "Yaw: " << degrees(_ekf_wrapper.getYawAngle()) << " deg";
+
+	// AND WHEN: the vehicle yaws
+	float heading = 0.f;
+	yawAtConstantRate(radians(10.f), 60.f, mag_earth_wmm, heading);
+
+	// THEN: the heading converges to the true one without being reset
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), quat_reset_counter);
+	EXPECT_NEAR(wrap_pi(_ekf_wrapper.getYawAngle() - heading), 0.f, radians(2.f))
+			<< "Yaw: " << degrees(_ekf_wrapper.getYawAngle()) << " deg, true: " << degrees(heading) << " deg";
+}
+
+TEST_F(EkfMagTest, wmmUpdateOnGroundKeepsManualHeading)
+{
+	// GIVEN: a vehicle on the ground without a WMM, with the heading set manually
+	const gnssSample gnss = _sensor_simulator._gps.getDefaultGpsData();
+	const Vector3f mag_earth_wmm = getWmmEarthField();
+	_sensor_simulator._mag.setRateHz(15);
+	_sensor_simulator._mag.setData(mag_earth_wmm);
+	_sensor_simulator.runSeconds(_init_duration_s);
+
+	const float manual_heading = radians(30.f);
+	_ekf->resetHeadingToExternalObservation(manual_heading, radians(2.f));
+	_sensor_simulator.runSeconds(2);
+	const int quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
+
+	// WHEN: the origin is set, which makes the WMM available
+	ASSERT_TRUE(_ekf->setEkfGlobalOrigin(gnss.lat, gnss.lon, gnss.alt));
+	_sensor_simulator.runSeconds(10);
+
+	// THEN: the earth field is reset to the WMM, and the manual heading is kept
+	const Vector3f mag_earth = _ekf->getMagEarthField();
+	EXPECT_NEAR(atan2f(mag_earth(1), mag_earth(0)), atan2f(mag_earth_wmm(1), mag_earth_wmm(0)), radians(1.f));
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), quat_reset_counter);
+	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), manual_heading, radians(1.f))
+			<< "Yaw: " << degrees(_ekf_wrapper.getYawAngle()) << " deg";
+}
