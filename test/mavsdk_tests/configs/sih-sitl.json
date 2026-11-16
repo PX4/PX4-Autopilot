@@ -71,6 +71,11 @@
             "timeout_min": 10
         },
         {
+            "model": "standard_vtol",
+            "test_filter": "vtol_pusher_failure",
+            "timeout_min": 10
+        },
+        {
             "model": "xvert",
             "test_filter": "sih_xvert_transition",
             "timeout_min": 5
