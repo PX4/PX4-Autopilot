@@ -145,13 +145,6 @@ public:
 	const Vector2f &getFilteredFlowVelBody(uint8_t slot = 0) const { return _flow_aiding.source(slot)._vel_body_lpf.getState(); }
 	Vector2f getFilteredFlowVelNE(uint8_t slot = 0) const { return Vector2f(_R_to_earth * Vector3f(getFilteredFlowVelBody(slot)(0), getFilteredFlowVelBody(slot)(1), 0.f)); }
 
-	const Vector2f &getFlowCompensated(uint8_t slot = 0) const { return _flow_aiding.source(slot)._rate_compensated; }
-	const Vector2f &getFlowUncompensated(uint8_t slot = 0) const { return _flow_aiding.source(slot)._sample_delayed.flow_rate; }
-
-	const Vector3f getFlowGyro(uint8_t slot = 0) const { return _flow_aiding.source(slot)._sample_delayed.gyro_rate; }
-	const Vector3f &getFlowGyroBias(uint8_t slot = 0) const { return _flow_aiding.source(slot)._gyro_bias; }
-	const Vector3f &getFlowRefBodyRate(uint8_t slot = 0) const { return _flow_aiding.source(slot)._ref_body_rate; }
-
 	uint8_t getPrimaryFlowSlot() const { return _flow_aiding.primarySlot(); }
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 

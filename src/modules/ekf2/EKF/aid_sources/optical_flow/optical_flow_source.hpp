@@ -45,8 +45,10 @@
 
 #if defined(MODULE_NAME)
 # include <lib/parameters/param.h>
+# include <uORB/PublicationMulti.hpp>
 # include <uORB/Subscription.hpp>
 # include <uORB/topics/vehicle_optical_flow.h>
+# include <uORB/topics/vehicle_optical_flow_vel.h>
 #endif // MODULE_NAME
 
 class Ekf;
@@ -98,6 +100,12 @@ public:
 #if defined(MODULE_NAME)
 	// configured SENS_FLOW<slot>_DELAY, 0 while the slot is disabled
 	float delayMs() const;
+
+	void advertise();
+
+	// publish once per new flow sample
+	void publishAidSource(uint64_t timestamp, uint8_t estimator_instance);
+	void publishFlowVel(const Ekf &ekf, uint64_t timestamp);
 #endif // MODULE_NAME
 
 private:
@@ -123,6 +131,11 @@ private:
 	} _param_handles{};
 
 	uORB::Subscription _sub{ORB_ID(vehicle_optical_flow)};
+
+	uORB::PublicationMulti<estimator_aid_source2d_s> _aid_src_pub{ORB_ID(estimator_aid_src_optical_flow)};
+	uORB::PublicationMulti<vehicle_optical_flow_vel_s> _vel_pub{ORB_ID(estimator_optical_flow_vel)};
+	uint64_t _aid_src_pub_last{0};
+	uint64_t _vel_pub_last{0};
 #endif // MODULE_NAME
 
 	bool fuse(Ekf &ekf, matrix::Vector<float, estimator::State::size> &H, bool update_terrain);

@@ -112,10 +112,6 @@
 # include <uORB/topics/vehicle_magnetometer.h>
 #endif // CONFIG_EKF2_MAGNETOMETER
 
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-# include <uORB/topics/vehicle_optical_flow_vel.h>
-#endif // CONFIG_EKF2_OPTICAL_FLOW
-
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 # include <uORB/topics/distance_sensor.h>
 #endif // CONFIG_EKF2_RANGE_FINDER
@@ -229,9 +225,6 @@ private:
 	void UpdateGnssYawSample();
 # endif // CONFIG_EKF2_GNSS_YAW
 #endif // CONFIG_EKF2_GNSS
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	void PublishOpticalFlowVel(const hrt_abstime &timestamp);
-#endif // CONFIG_EKF2_OPTICAL_FLOW
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	void UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps);
 #endif // CONFIG_EKF2_MAGNETOMETER
@@ -343,17 +336,6 @@ private:
 #if defined(CONFIG_EKF2_RANGING_BEACON)
 	uORB::Subscription _ranging_beacon_sub {ORB_ID(ranging_beacon)};
 #endif // CONFIG_EKF2_RANGING_BEACON
-
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	struct OpticalFlowPublications {
-		uORB::PublicationMulti<estimator_aid_source2d_s> aid_src{ORB_ID(estimator_aid_src_optical_flow)};
-		uORB::PublicationMulti<vehicle_optical_flow_vel_s> vel{ORB_ID(estimator_optical_flow_vel)};
-		hrt_abstime aid_src_last{0};
-		hrt_abstime vel_last{0};
-	};
-
-	OpticalFlowPublications _optical_flow_pubs[MAX_OF_INSTANCES] {};
-#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_BAROMETER)
 	uint8_t _baro_calibration_count {0};
