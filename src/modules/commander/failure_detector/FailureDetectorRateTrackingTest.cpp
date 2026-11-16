@@ -70,7 +70,8 @@ public:
 	}
 
 	// Publish setpoint and measured rates [rad/s], run the detector, return the rate flag.
-	bool update(Vector3f rates_sp, Vector3f rates, uint8_t vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING,
+	bool update(const Vector3f &rates_sp, const Vector3f &rates,
+		    uint8_t vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING,
 		    bool attitude_enabled = true, bool publish_rates = true, bool publish_setpoint = true)
 	{
 		if (publish_setpoint) {
@@ -109,7 +110,7 @@ public:
 	}
 
 	// Run update() every 10 ms for the given duration, return the last flag state.
-	bool updateFor(hrt_abstime duration, Vector3f rates_sp, Vector3f rates,
+	bool updateFor(hrt_abstime duration, const Vector3f &rates_sp, const Vector3f &rates,
 		       uint8_t vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING,
 		       bool attitude_enabled = true, bool publish_rates = true, bool publish_setpoint = true)
 	{
