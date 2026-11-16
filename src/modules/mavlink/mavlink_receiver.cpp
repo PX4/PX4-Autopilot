@@ -675,13 +675,8 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	vcmd.param3 = cmd_mavlink.param3;
 	vcmd.param4 = cmd_mavlink.param4;
 
-	if (cmd_mavlink.x == INT32_MAX && cmd_mavlink.y == INT32_MAX) {
-		// INT32_MAX for x and y means to ignore it.
-		vcmd.param5 = (double)NAN;
-		vcmd.param6 = (double)NAN;
-
-	} else if (command_has_location(cmd_mavlink.command)
-		   || cmd_mavlink.command == MAV_CMD_DO_SET_ACTUATOR) { // actuator values use 1e7 scaling
+	if (command_has_location(cmd_mavlink.command)
+	    || cmd_mavlink.command == MAV_CMD_DO_SET_ACTUATOR) { // actuator values use 1e7 scaling
 		if (cmd_mavlink.frame == MAV_FRAME_LOCAL_NED
 		    || cmd_mavlink.frame == MAV_FRAME_LOCAL_ENU
 		    || cmd_mavlink.frame == MAV_FRAME_LOCAL_OFFSET_NED
@@ -702,6 +697,15 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	} else {
 		vcmd.param5 = (double)cmd_mavlink.x;
 		vcmd.param6 = (double)cmd_mavlink.y;
+	}
+
+	// Each of x and y is ignored on its own when unset, e.g. DO_SET_ACTUATOR setting only actuator 5.
+	if (mavlink_cmd_params::int_param_is_unset(cmd_mavlink.x)) {
+		vcmd.param5 = (double)NAN;
+	}
+
+	if (mavlink_cmd_params::int_param_is_unset(cmd_mavlink.y)) {
+		vcmd.param6 = (double)NAN;
 	}
 
 	vcmd.param7 = cmd_mavlink.z;
