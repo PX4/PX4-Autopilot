@@ -358,6 +358,11 @@ void SensorSimulator::setSensorDataFromTrajectory()
 	const Vector3f vel_world{_trajectory[0].getCurrentVelocity(),
 				 _trajectory[1].getCurrentVelocity(),
 				 _trajectory[2].getCurrentVelocity()};
+	const Vector3f pos_world{_trajectory[0].getCurrentPosition(),
+				 _trajectory[1].getCurrentPosition(),
+				 _trajectory[2].getCurrentPosition()};
+	const Vector3f delta_pos_world = pos_world - _trajectory_position_prev;
+	_trajectory_position_prev = pos_world;
 
 	// IMU
 	const Vector3f earth_gravity = {0.0f, 0.0f, -CONSTANTS_ONE_G};
@@ -397,9 +402,11 @@ void SensorSimulator::setSensorDataFromTrajectory()
 	}
 
 	if (_gps.isRunning()) {
-		/* _gps.setAltitude(); */
-		/* _gps.setLatitude(); */
-		/* _gps.setLongitude(); */
+		LatLonAlt gps_position(_gps.getData().lat, _gps.getData().lon, _gps.getData().alt);
+		gps_position += delta_pos_world;
+		_gps.setLatitude(gps_position.latitude_deg());
+		_gps.setLongitude(gps_position.longitude_deg());
+		_gps.setAltitude(gps_position.altitude());
 		_gps.setVelocity(vel_world);
 	}
 }
