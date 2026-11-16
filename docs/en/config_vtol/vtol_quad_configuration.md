@@ -149,7 +149,8 @@ For advanced tuning of the back-transition please refer to the [Back-transition 
 
 It’s important to know what to expect when you revert a transition command _during_ a transition.
 
-When transitioning from **multirotor to fixed-wing** (transition switch is on/fixed-wing) then reverting the switch back (off/multirotor position) _before_ the transition happens it will immediately return to multirotor mode.
+When transitioning from **multirotor to fixed-wing** (transition switch is on/fixed-wing) then reverting the switch back (off/multirotor position) _before_ the transition happens stops the pusher/puller and gives the multirotor motors full control at once.
+If its speed is known and above [MPC_XY_CRUISE](../advanced_config/parameter_reference.md#MPC_XY_CRUISE), it decelerates as in a back-transition before it returns to multirotor mode; otherwise it returns to multirotor mode immediately.
 
 When transitioning from **fixed-wing to multirotor** for this type of VTOL the switch is immediate so there isn’t really a backing out option here, unlike for tilt rotor VTOLs.
 If you want it to go back into fixed-wing you will need to go through the full transition.
