@@ -23,7 +23,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 ### Processor {#processor}
 
 - **Main FMU processor:** [STM32H743IIK6](https://www.st.com/en/microcontrollers-microprocessors/stm32h743ii.html) (32 Bit Arm® Cortex®-M7, 480 MHz, 2 MB Flash, 1 MB RAM)
-- **IO processor:** [STM32F103](https://www.st.com/en/microcontrollers-microprocessors/stm32f103.html) (PX4IO v2)
+- **IO processor:** [STM32F103](https://www.st.com/en/microcontrollers-microprocessors/stm32f103.html) (PX4IO v2) (32 Bit Arm® Cortex®-M3, 24MHz, 128KB Flash, 20KB SRAM)
 
 ### Sensors {#sensors}
 
