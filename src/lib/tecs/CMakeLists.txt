@@ -42,3 +42,4 @@ target_link_libraries(tecs PRIVATE geo)
 target_compile_options(tecs PRIVATE -Wmissing-field-initializers)
 
 px4_add_functional_gtest(SRC TECSTest.cpp LINKLIBS tecs motion_planning)
+px4_add_functional_gtest(SRC TECSControlClosedLoopTests.cpp LINKLIBS tecs motion_planning)
