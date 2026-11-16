@@ -73,7 +73,7 @@ You will need to [select a compatible transmitter/receiver](../getting_started/r
 
 - SBUS receivers connect to the `S.Bin` port or the `RCin` pin.
 - PPM receivers connect to the `RCin` pin.
-- CRSF receivers connect to the `Uart8` port, with the receiver's `TX` output on the `RX` pin.
+- CRSF receivers connect to the `Uart8` port: receiver `TX` to `RX`, and receiver `RX` to `TX`.
 - Spektrum/DSM receivers are not supported.
 
 For more information about selecting a radio system, receiver compatibility, and binding your transmitter/receiver pair, see: [Remote Control Transmitters & Receivers](../getting_started/rc_transmitter_receiver.md).
