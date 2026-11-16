@@ -35,6 +35,7 @@ Supported flight controllers include:
 - [Holybro Pixhawk 5X](../flight_controller/pixhawk5x.md)
 - [Holybro Pixhawk 6X](../flight_controller/pixhawk6x.md)
 - [RaccoonLab FMUv6X Autopilot](../flight_controller/raccoonlab_fmu6x.md)
+- [CyberX v10](../flight_controller/cyberx_v10.md)
 
 ## Setting up the Ethernet Network
 
