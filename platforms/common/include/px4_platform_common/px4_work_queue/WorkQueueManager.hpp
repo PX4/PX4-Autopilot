@@ -60,12 +60,16 @@ static constexpr wq_config_t SPI3{"wq:SPI3", CONFIG_WQ_SPI_STACKSIZE, (int8_t)CO
 static constexpr wq_config_t SPI4{"wq:SPI4", CONFIG_WQ_SPI_STACKSIZE, (int8_t)CONFIG_WQ_SPI4_PRIORITY};
 static constexpr wq_config_t SPI5{"wq:SPI5", CONFIG_WQ_SPI_STACKSIZE, (int8_t)CONFIG_WQ_SPI5_PRIORITY};
 static constexpr wq_config_t SPI6{"wq:SPI6", CONFIG_WQ_SPI_STACKSIZE, (int8_t)CONFIG_WQ_SPI6_PRIORITY};
+static constexpr wq_config_t SPI7{"wq:SPI7", CONFIG_WQ_SPI_STACKSIZE, (int8_t)CONFIG_WQ_SPI7_PRIORITY};
+static constexpr wq_config_t SPI8{"wq:SPI8", CONFIG_WQ_SPI_STACKSIZE, (int8_t)CONFIG_WQ_SPI8_PRIORITY};
 
 static constexpr wq_config_t I2C0{"wq:I2C0", CONFIG_WQ_I2C_STACKSIZE, (int8_t)CONFIG_WQ_I2C0_PRIORITY};
 static constexpr wq_config_t I2C1{"wq:I2C1", CONFIG_WQ_I2C_STACKSIZE, (int8_t)CONFIG_WQ_I2C1_PRIORITY};
 static constexpr wq_config_t I2C2{"wq:I2C2", CONFIG_WQ_I2C_STACKSIZE, (int8_t)CONFIG_WQ_I2C2_PRIORITY};
 static constexpr wq_config_t I2C3{"wq:I2C3", CONFIG_WQ_I2C_STACKSIZE, (int8_t)CONFIG_WQ_I2C3_PRIORITY};
 static constexpr wq_config_t I2C4{"wq:I2C4", CONFIG_WQ_I2C_STACKSIZE, (int8_t)CONFIG_WQ_I2C4_PRIORITY};
+static constexpr wq_config_t I2C5{"wq:I2C5", CONFIG_WQ_I2C_STACKSIZE, (int8_t)CONFIG_WQ_I2C5_PRIORITY};
+static constexpr wq_config_t I2C6{"wq:I2C6", CONFIG_WQ_I2C_STACKSIZE, (int8_t)CONFIG_WQ_I2C6_PRIORITY};
 
 // PX4 att/pos controllers, highest priority after sensors.
 static constexpr wq_config_t nav_and_controllers{"wq:nav_and_controllers", CONFIG_WQ_NAV_AND_CONTROLLERS_STACKSIZE, (int8_t)CONFIG_WQ_NAV_AND_CONTROLLERS_PRIORITY};

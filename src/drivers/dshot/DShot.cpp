@@ -97,6 +97,8 @@ void DShot::Run()
 	bool serial_updated = process_serial_telemetry();
 	bool bdshot_updated = process_bdshot_telemetry();
 
+	_telemetry.publishSettings();
+
 	if (serial_updated || bdshot_updated) {
 		_esc_status.timestamp = hrt_absolute_time();
 		_esc_status.esc_count = _motor_count;
@@ -108,9 +110,8 @@ void DShot::Run()
 		update_params();
 	}
 
-	// Telemetry init hook
-	if (_request_telemetry_init.load()) {
-		init_telemetry(_serial_port_path, _telemetry_swap_rxtx);
+	// Telemetry init hook, retried until the motor mask is known
+	if (_request_telemetry_init.load() && init_telemetry(_serial_port_path, _telemetry_swap_rxtx)) {
 		_request_telemetry_init.store(false);
 	}
 
@@ -136,6 +137,15 @@ bool DShot::updateOutputs(float *outputs, unsigned num_outputs, unsigned num_con
 
 	_esc_status.esc_armed_flags = esc_armed_mask(hw_outputs, num_outputs);
 	bool armed = _esc_status.esc_armed_flags != 0;
+
+	// Bluejay drops EDT when the motor stops, so it has to be re-enabled after every flight.
+	if (_armed_prev && !armed) {
+		for (int i = 0; i < DSHOT_MAX_MOTORS; i++) {
+			clear_edt_confirmation(i);
+		}
+	}
+
+	_armed_prev = armed;
 
 	if (!armed) {
 		// Select next command to send (if any)
@@ -177,12 +187,21 @@ void DShot::select_next_command()
 				PX4_ERR("esc_eeprom_write lost, generation %u -> %u", last_generation, current_generation);
 			}
 
-			if (_esc_eeprom_write.index != 255 && _esc_eeprom_write.index >= DSHOT_MAX_MOTORS) {
+			// A command for a motor without an output is never sent, so it never finishes and blocks every
+			// later command and the serial telemetry.
+			uint16_t write_mask = _motor_mask;
+
+			if (_esc_eeprom_write.index != 255) {
+				write_mask = _esc_eeprom_write.index < DSHOT_MAX_MOTORS ? (_motor_mask & (1u << _esc_eeprom_write.index)) : 0;
+			}
+
+			if (write_mask == 0) {
 				PX4_ERR("esc_eeprom_write: invalid index %u", _esc_eeprom_write.index);
 
 			} else {
 				PX4_DEBUG("ESC%u: starting programming mode", _esc_eeprom_write.index + 1);
 				_dshot_programming_active = true;
+				_telemetry.invalidateSettings(write_mask);
 			}
 		}
 	}
@@ -191,12 +210,11 @@ void DShot::select_next_command()
 	// - EDT Request
 	// - Settings Request
 	// - Settings Programming
+	// Programming, once started, runs to the save without the others: an ESC in programming mode takes the
+	// next frames of any command as the address and value, and a read before the save returns old settings.
 
 	// EDT Request mask
-	uint16_t needs_edt_request_mask = _bdshot_telem_online_mask & ~_bdshot_edt_requested_mask;
-
-	// Settings Request mask
-	uint16_t needs_settings_request_mask = _serial_telem_online_mask & ~_settings_requested_mask;
+	uint16_t needs_edt_request_mask = _bdshot_telem_online_mask & ~_bdshot_edt_confirmed_mask;
 
 	bool serial_telem_delay_elapsed = hrt_absolute_time() > _serial_telem_delay_until;
 
@@ -205,43 +223,55 @@ void DShot::select_next_command()
 	// EDT Request: use motor-order masks since needs_edt_request_mask is in motor order
 	uint16_t edt_motors_to_request = _bdshot_motor_mask & needs_edt_request_mask;
 
-	if (_bdshot_edt_enabled && edt_motors_to_request != 0) {
+	if (_bdshot_edt_enabled && !_dshot_programming_active && edt_motors_to_request != 0) {
 		// Find first motor that needs EDT request and has been online long enough
 		hrt_abstime now = hrt_absolute_time();
 
 		for (int motor_index = 0; motor_index < DSHOT_MAX_MOTORS; motor_index++) {
-			if (edt_motors_to_request & (1 << motor_index)) {
-				// Wait 1 second after ESC comes online before sending EDT (ESC init sequence)
-				if (_bdshot_telem_online_timestamps[motor_index] == 0
-				    || (now - _bdshot_telem_online_timestamps[motor_index]) < 1_s) {
-					continue;
+			if (!(edt_motors_to_request & (1 << motor_index))) {
+				continue;
+			}
+
+			// The ESC only takes commands once it has seen zero throttle for a while (AM32: one second plus
+			// its arming tune), so hold off after it comes online and space the retries.
+			if (_bdshot_telem_online_timestamps[motor_index] == 0
+			    || (now - _bdshot_telem_online_timestamps[motor_index]) < 1_s
+			    || (now - _bdshot_edt_last_request[motor_index]) < BDSHOT_EDT_RETRY_INTERVAL) {
+				continue;
+			}
+
+			if (_bdshot_edt_attempts[motor_index] >= BDSHOT_EDT_MAX_ATTEMPTS) {
+				// Warn once, a retry interval after the last attempt went unanswered
+				if (_bdshot_edt_attempts[motor_index] == BDSHOT_EDT_MAX_ATTEMPTS) {
+					PX4_WARN("ESC%d: no EDT frames after %d enable requests", motor_index + 1, BDSHOT_EDT_MAX_ATTEMPTS);
+					_bdshot_edt_attempts[motor_index]++;
 				}
 
-				_current_command.num_repetitions = 10;
-				_current_command.command = DSHOT_EXTENDED_TELEMETRY_ENABLE;
-				_current_command.motor_mask = (1 << motor_index);
-				_bdshot_edt_requested_mask |= (1 << motor_index);
-				PX4_DEBUG("ESC%d: requesting EDT at time %.2fs", motor_index + 1, (double)now / 1000000.);
-				break;
+				continue;
 			}
+
+			_current_command.num_repetitions = 10;
+			_current_command.command = DSHOT_EXTENDED_TELEMETRY_ENABLE;
+			_current_command.motor_mask = (1 << motor_index);
+			_bdshot_edt_attempts[motor_index]++;
+			_bdshot_edt_last_request[motor_index] = now;
+			PX4_DEBUG("ESC%d: requesting EDT (attempt %d) at time %.2fs", motor_index + 1,
+				  _bdshot_edt_attempts[motor_index], (double)now / 1000000.);
+			break;
 		}
+	}
 
-	} else if (_esc_type != 0 && _serial_telemetry_enabled && serial_telem_delay_elapsed && (_motor_mask & needs_settings_request_mask)) {
-		// Settings Request: use motor-order masks since needs_settings_request_mask is in motor order
-		uint16_t settings_motors_to_request = _motor_mask & needs_settings_request_mask;
+	// A motor held off or out of EDT attempts leaves no EDT command, and must not keep the settings reads waiting.
+	if (_current_command.finished() && _esc_type != 0 && _serial_telemetry_enabled && serial_telem_delay_elapsed
+	    && !_dshot_programming_active && !_mixing_output.armed().armed) {
+		const int motor_index = _telemetry.getSettingsRequest(_motor_mask & _serial_telem_online_mask);
 
-		// Find first motor that needs settings request
-		for (int motor_index = 0; motor_index < DSHOT_MAX_MOTORS; motor_index++) {
-			if (settings_motors_to_request & (1 << motor_index)) {
-				auto now = hrt_absolute_time();
-				_current_command.num_repetitions = 6;
-				_current_command.command = DSHOT_CMD_ESC_INFO;
-				_current_command.motor_mask = (1 << motor_index);
-				_current_command.expect_response = true;
-				_settings_requested_mask |= (1 << motor_index);
-				PX4_DEBUG("ESC%d: requesting Settings at time %.2fs", motor_index + 1, (double)now / 1000000.);
-				break;
-			}
+		if (motor_index >= 0) {
+			_current_command.num_repetitions = 6;
+			_current_command.command = DSHOT_CMD_ESC_INFO;
+			_current_command.motor_mask = (1 << motor_index);
+			_current_command.expect_response = true;
+			PX4_DEBUG("ESC%d: requesting settings", motor_index + 1);
 		}
 
 	} else if (_dshot_programming_active) {
@@ -293,8 +323,8 @@ void DShot::select_next_command()
 				// All settings have been written
 				PX4_DEBUG("All settings written at time %.2fs", (double)hrt_absolute_time() / 1000000.);
 
-				_dshot_programming_active = false;
 				_current_command.command = DSHOT_CMD_SAVE_SETTINGS;
+				_current_command.is_save = true;
 				_current_command.num_repetitions = 6;
 				_current_command.motor_mask = programming_motor_mask;
 				_programming_state = ProgrammingState::Idle;
@@ -302,10 +332,6 @@ void DShot::select_next_command()
 				// Clear the written mask for this motor for next time
 				_settings_written_mask[0] = 0;
 				_settings_written_mask[1] = 0;
-
-				// Mark as unread so that we read again
-				_settings_requested_mask &= ~(programming_motor_mask);
-				_serial_telem_delay_until = hrt_absolute_time() + 500_ms;
 			}
 		}
 
@@ -398,19 +424,39 @@ void DShot::update_motor_commands(int num_outputs)
 			command_sent = true;
 		}
 
-		up_dshot_motor_command(i, command, false);
+		// Bluejay/BLHeli_S discard commands unless the tlm bit is set. It stays clear on commands answered
+		// over the telemetry UART: AM32 reads it as a KISS request and starts that frame on the same wire,
+		// then aborts it a few loop iterations later to send the EEPROM dump.
+		const bool request_telemetry = command != DSHOT_CMD_MOTOR_STOP && !_current_command.expect_response;
+		up_dshot_motor_command(i, command, request_telemetry);
 	}
 
 	if (command_sent) {
 		--_current_command.num_repetitions;
 
+		if (_current_command.finished() && _current_command.is_save) {
+			// Programming ends with the save: anything sent in its place leaves the ESC on unsaved settings.
+			_dshot_programming_active = false;
+			_telemetry.invalidateSettings(_current_command.motor_mask);
+
+			_serial_telem_delay_until = hrt_absolute_time() + 500_ms;
+		}
+
 		// Queue a save command if it has been requested
 		if (_current_command.num_repetitions == 0 && _current_command.save) {
 			_current_command.save = false;
+			_current_command.is_save = true;
 			_current_command.num_repetitions = 10;
 			_current_command.command = DSHOT_CMD_SAVE_SETTINGS;
 		}
 	}
+}
+
+void DShot::clear_edt_confirmation(int motor_index)
+{
+	_bdshot_edt_confirmed_mask &= ~(1 << motor_index);
+	_bdshot_edt_attempts[motor_index] = 0;
+	_bdshot_edt_last_request[motor_index] = hrt_absolute_time();
 }
 
 uint16_t DShot::esc_armed_mask(uint16_t *outputs, uint8_t num_outputs)
@@ -534,6 +580,7 @@ bool DShot::process_serial_telemetry()
 
 				if (_serial_telem_consecutive_timeouts[motor_index] >= SERIAL_TELEM_SKIP_THRESHOLD) {
 					_serial_telem_skip_mask |= (1 << motor_index);
+					_telemetry.invalidateSettings(1u << motor_index);
 					PX4_DEBUG("ESC%d serial telemetry lost, skipping", motor_index + 1);
 				}
 			}
@@ -659,8 +706,12 @@ bool DShot::process_bdshot_telemetry()
 
 				uint8_t value = 0;
 
+				// The enable ack is a single state/event frame and can be lost, so any EDT frame counts
+				bool edt_frame = up_bdshot_get_extended_telemetry(output_channel, DSHOT_EDT_STATE_EVENT, &value) == PX4_OK;
+
 				if (up_bdshot_get_extended_telemetry(output_channel, DSHOT_EDT_TEMPERATURE, &value) == PX4_OK) {
 					esc.temperature = value; // BDShot temperature is in C
+					edt_frame = true;
 
 				} else {
 					esc.temperature = _esc_status.esc[motor_index].esc_temperature; // use previous
@@ -668,6 +719,7 @@ bool DShot::process_bdshot_telemetry()
 
 				if (up_bdshot_get_extended_telemetry(output_channel, DSHOT_EDT_VOLTAGE, &value) == PX4_OK) {
 					esc.voltage = static_cast<float>(value) / 4.f; // BDShot voltage is in 0.25V
+					edt_frame = true;
 
 				} else {
 					esc.voltage = _esc_status.esc[motor_index].esc_voltage; // use previous
@@ -675,16 +727,23 @@ bool DShot::process_bdshot_telemetry()
 
 				if (up_bdshot_get_extended_telemetry(output_channel, DSHOT_EDT_CURRENT, &value) == PX4_OK) {
 					esc.current = static_cast<float>(value); // EDT current is in 1A steps
+					edt_frame = true;
 
 				} else {
 					esc.current = _esc_status.esc[motor_index].esc_current; // use previous
+				}
+
+				// Only frames after our own request count, or one still in flight at the disarm edge would
+				// hide Bluejay dropping EDT with the motor stop.
+				if (edt_frame && _bdshot_edt_attempts[motor_index] > 0) {
+					_bdshot_edt_confirmed_mask |= (1 << motor_index);
 				}
 			}
 
 		} else {
 			_bdshot_telem_online_mask &= ~(1 << motor_index);
 			_bdshot_telem_online_timestamps[motor_index] = 0;
-			_bdshot_edt_requested_mask &= ~(1 << motor_index);
+			clear_edt_confirmation(motor_index);
 			perf_count(_bdshot_error_perf);
 		}
 
@@ -788,7 +847,9 @@ void DShot::handle_vehicle_commands()
 {
 	vehicle_command_s command = {};
 
-	while (_current_command.finished() && _vehicle_command_sub.update(&command)) {
+	// Wait for an outstanding settings read, which completes within COMMAND_RESPONSE_TIMEOUT: a setting changed
+	// before it lands would have the read restore the old cache.
+	while (_current_command.finished() && _telemetry.commandResponseFinished() && _vehicle_command_sub.update(&command)) {
 
 		switch (command.command) {
 		case vehicle_command_s::VEHICLE_CMD_CONFIGURE_ACTUATOR:
@@ -835,7 +896,11 @@ void DShot::handle_configure_actuator(const vehicle_command_s &command)
 	command_ack.target_component = command.source_component;
 	command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 
-	if ((motor_index >= 0) && (motor_index < DSHOT_MAX_MOTORS)) {
+	if (_dshot_programming_active) {
+		// Programming spans many commands and would take the next frames as an address and value.
+		command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+
+	} else if ((motor_index >= 0) && (motor_index < DSHOT_MAX_MOTORS)) {
 		int type = lroundf(command.param1);
 		PX4_DEBUG("motor_index: %i type: %i", motor_index, type);
 		_current_command.clear();
@@ -877,6 +942,10 @@ void DShot::handle_configure_actuator(const vehicle_command_s &command)
 		if (_current_command.command != DSHOT_CMD_MOTOR_STOP) {
 			command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 			_current_command.motor_mask = 1 << motor_index;
+
+			if (_current_command.save) {
+				_telemetry.invalidateSettings(_current_command.motor_mask);
+			}
 		}
 	}
 
@@ -896,14 +965,7 @@ void DShot::handle_esc_request_eeprom(const vehicle_command_s &command)
 		return;
 	}
 
-	if (esc_index == 255) {
-		PX4_DEBUG("mark all unread");
-		_settings_requested_mask = 0;
-
-	} else {
-		PX4_DEBUG("mark one unread");
-		_settings_requested_mask &= ~(1 << esc_index);
-	}
+	_telemetry.requestSettings(esc_index == 255 ? _motor_mask : (1u << esc_index));
 }
 
 int DShot::get_pole_count(int motor_index) const
@@ -1063,7 +1125,7 @@ bool DShot::initialize_dshot()
 
 		if (freq > 0) {
 			if (_dshot_frequency != 0 && _dshot_frequency != freq) {
-				PX4_WARN("Mixed DShot frequencies across timers, using freq: %lu", freq);
+				PX4_WARN("Mixed DShot frequencies across timers, using freq: %" PRIu32, freq);
 			}
 
 			_dshot_frequency = freq;
@@ -1083,15 +1145,20 @@ bool DShot::initialize_dshot()
 	return true;
 }
 
-void DShot::init_telemetry(const char *device, bool swap_rxtx)
+bool DShot::init_telemetry(const char *device, bool swap_rxtx)
 {
 	if (!device) {
-		return;
+		return true;
+	}
+
+	// The settings handlers are created per motor, and the mask is only known once the mixer has run
+	if (_motor_mask == 0) {
+		return false;
 	}
 
 	if (_telemetry.init(device, swap_rxtx) != PX4_OK) {
 		PX4_ERR("telemetry init failed");
-		return;
+		return true;
 	}
 
 	// Enable serial telemetry now that we've successfully initialized
@@ -1100,6 +1167,8 @@ void DShot::init_telemetry(const char *device, bool swap_rxtx)
 	// Initialize ESC settings handlers based on ESC type
 	ESCType esc_type = static_cast<ESCType>(_param_dshot_esc_type.get());
 	_telemetry.initSettingsHandlers(esc_type, _motor_mask);
+
+	return true;
 }
 
 static void print_spacer()
@@ -1132,7 +1201,7 @@ int DShot::print_status()
 	default: break;
 	}
 
-	PX4_INFO("  ESC Type:           %s (%ld)", esc_type_str, _param_dshot_esc_type.get());
+	PX4_INFO("  ESC Type:           %s (%" PRId32 ")", esc_type_str, _param_dshot_esc_type.get());
 	PX4_INFO("  3D Mode:            %s", _param_dshot_3d_enable.get() ? "Enabled" : "Disabled");
 
 	// Per-motor pole counts
@@ -1185,11 +1254,7 @@ int DShot::print_status()
 		}
 
 		if (_bdshot_output_mask && _bdshot_edt_enabled) {
-			PX4_INFO("  EDT Requested Mask (motor order): 0x%02x", _bdshot_edt_requested_mask);
-		}
-
-		if (_serial_telemetry_enabled) {
-			PX4_INFO("  Settings Requested Mask (motor order): 0x%02x", _settings_requested_mask);
+			PX4_INFO("  EDT Confirmed Mask (motor order): 0x%02x", _bdshot_edt_confirmed_mask);
 		}
 	}
 

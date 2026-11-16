@@ -37,6 +37,7 @@
  */
 
 #include "Subscription.hpp"
+#include "SubscriptionMultiArray.hpp"
 #include <px4_platform_common/defines.h>
 
 namespace uORB
@@ -50,6 +51,14 @@ bool Subscription::subscribe()
 	}
 
 	if (_orb_id != ORB_ID::INVALID && uORB::Manager::get_instance()) {
+		// While unsubscribed, _last_generation holds the node generation of the last failed lookup:
+		// nodes are never removed, so the lookup cannot succeed before a node is added.
+		const unsigned node_generation = uORB::Manager::orb_node_generation();
+
+		if (node_generation != 0 && node_generation == _last_generation) {
+			return false;
+		}
+
 		unsigned initial_generation;
 		void *node = uORB::Manager::orb_add_internal_subscriber(_orb_id, _instance, &initial_generation);
 
@@ -58,9 +67,17 @@ bool Subscription::subscribe()
 			_last_generation = initial_generation;
 			return true;
 		}
+
+		_last_generation = node_generation;
 	}
 
 	return false;
+}
+
+unsigned Subscription::get_last_generation() const
+{
+	// while unsubscribed, _last_generation holds a node generation: report 0 as before
+	return (_node != nullptr) ? _last_generation : 0;
 }
 
 void Subscription::unsubscribe()
@@ -176,6 +193,14 @@ bool Subscription::updated()
 	}
 
 	return false;
+}
+
+void subscribeMultiArray(Subscription *subscriptions, uint8_t count, ORB_ID id)
+{
+	for (uint8_t i = 0; i < count; i++) {
+		subscriptions[i] = Subscription{id, i};
+		subscriptions[i].subscribe();
+	}
 }
 
 } // namespace uORB

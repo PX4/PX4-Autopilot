@@ -55,8 +55,8 @@ LandDetector::LandDetector() :
 	_land_detected.maybe_landed = true;
 	_land_detected.landed = true;
 	_land_detected.in_ground_effect = true;
-	_land_detected.in_descend = false;
-	_land_detected.has_low_throttle = false;
+	_land_detected.in_descend = true;
+	_land_detected.has_low_throttle = true;
 	_land_detected.vertical_movement = false;
 	_land_detected.horizontal_movement = false;
 	_land_detected.rotational_movement = false;
@@ -130,44 +130,46 @@ void LandDetector::Run()
 	_landed_hysteresis.set_state_and_update(_get_landed_state(), now_us);
 	_ground_effect_hysteresis.set_state_and_update(_get_ground_effect_state(), now_us);
 
-	const bool freefallDetected = _freefall_hysteresis.get_state();
-	const bool ground_contactDetected = _ground_contact_hysteresis.get_state();
-	const bool maybe_landedDetected = _maybe_landed_hysteresis.get_state();
-	const bool landDetected = _landed_hysteresis.get_state();
+	const bool freefall = _freefall_hysteresis.get_state();
+	const bool ground_contact = _ground_contact_hysteresis.get_state();
+	const bool maybe_landed = _maybe_landed_hysteresis.get_state();
+	const bool landed = _landed_hysteresis.get_state();
 	const bool in_ground_effect = _ground_effect_hysteresis.get_state();
 
 	UpdateVehicleAtRest();
 
-	const bool at_rest = landDetected && _at_rest;
+	const bool at_rest = landed && _at_rest;
 
-	// publish at 1 Hz, very first time, or when the result has changed
+	// publish at 1 Hz, very first time, or when the core land detection state (not diagnostic flags) changed
 	if ((hrt_elapsed_time(&_land_detected.timestamp) >= 1_s) ||
-	    (_land_detected.landed != landDetected) ||
-	    (_land_detected.freefall != freefallDetected) ||
-	    (_land_detected.maybe_landed != maybe_landedDetected) ||
-	    (_land_detected.ground_contact != ground_contactDetected) ||
+	    (_land_detected.freefall != freefall) ||
+	    (_land_detected.ground_contact != ground_contact) ||
+	    (_land_detected.maybe_landed != maybe_landed) ||
+	    (_land_detected.landed != landed) ||
 	    (_land_detected.in_ground_effect != in_ground_effect) ||
 	    (_land_detected.at_rest != at_rest)) {
 
-		if (!landDetected && _land_detected.landed && _takeoff_time == 0) { /* only set take off time once, until disarming */
+		if (!landed && _land_detected.landed && _takeoff_time == 0) { /* only set take off time once, until disarming */
 			// We did take off
 			_takeoff_time = now_us;
 		}
 
-		_land_detected.landed = landDetected;
-		_land_detected.freefall = freefallDetected;
-		_land_detected.maybe_landed = maybe_landedDetected;
-		_land_detected.ground_contact = ground_contactDetected;
+		_land_detected.freefall = freefall;
+		_land_detected.ground_contact = ground_contact;
+		_land_detected.maybe_landed = maybe_landed;
+		_land_detected.landed = landed;
 		_land_detected.in_ground_effect = in_ground_effect;
-		_land_detected.in_descend = _get_in_descend();
-		_land_detected.has_low_throttle = _get_has_low_throttle();
-		_land_detected.horizontal_movement = _get_horizontal_movement();
-		_land_detected.vertical_movement = _get_vertical_movement();
-		_land_detected.rotational_movement = _get_rotational_movement();
-		_land_detected.close_to_ground_or_skipped_check = _get_close_to_ground_or_skipped_check();
 		_land_detected.at_rest = at_rest;
 		_land_detected.timestamp = hrt_absolute_time();
 		_vehicle_land_detected_pub.publish(_land_detected);
+
+		// reset diagnostic flags for latching logic
+		_land_detected.vertical_movement = false;
+		_land_detected.horizontal_movement = false;
+		_land_detected.rotational_movement = false;
+		_land_detected.in_descend = true;
+		_land_detected.has_low_throttle = true;
+		_land_detected.close_to_ground_or_skipped_check = true;
 	}
 
 	// set the flight time when disarming (not necessarily when landed, because all param changes should

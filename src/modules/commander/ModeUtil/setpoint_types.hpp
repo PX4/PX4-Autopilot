@@ -47,13 +47,13 @@ enum class SetpointType : uint16_t {
 	Trajectory = setpoint_config_s::TYPE_TRAJECTORY,
 	Rates = setpoint_config_s::TYPE_RATES,
 	Attitude = setpoint_config_s::TYPE_ATTITUDE,
-	RoverPosition = setpoint_config_s::TYPE_ROVER_POSITION,
-	RoverSpeedAttitude = setpoint_config_s::TYPE_ROVER_SPEED_ATTITUDE,
-	RoverSpeedRate = setpoint_config_s::TYPE_ROVER_SPEED_RATE,
-	RoverSpeedSteering = setpoint_config_s::TYPE_ROVER_SPEED_STEERING,
-	RoverThrottleAttitude = setpoint_config_s::TYPE_ROVER_THROTTLE_ATTITUDE,
-	RoverThrottleRate = setpoint_config_s::TYPE_ROVER_THROTTLE_RATE,
-	RoverThrottleSteering = setpoint_config_s::TYPE_ROVER_THROTTLE_STEERING,
+	SurfaceVehiclePosition = setpoint_config_s::TYPE_SURFACE_VEHICLE_POSITION,
+	SurfaceVehicleSpeedAttitude = setpoint_config_s::TYPE_SURFACE_VEHICLE_SPEED_ATTITUDE,
+	SurfaceVehicleSpeedRate = setpoint_config_s::TYPE_SURFACE_VEHICLE_SPEED_RATE,
+	SurfaceVehicleSpeedSteering = setpoint_config_s::TYPE_SURFACE_VEHICLE_SPEED_STEERING,
+	SurfaceVehicleThrustAttitude = setpoint_config_s::TYPE_SURFACE_VEHICLE_THRUST_ATTITUDE,
+	SurfaceVehicleThrustRate = setpoint_config_s::TYPE_SURFACE_VEHICLE_THRUST_RATE,
+	SurfaceVehicleThrustSteering = setpoint_config_s::TYPE_SURFACE_VEHICLE_THRUST_STEERING,
 	Trajectory_6dof = setpoint_config_s::TYPE_TRAJECTORY_6DOF,
 	ThrustAndTorque = setpoint_config_s::TYPE_THRUST_AND_TORQUE,
 	PositionTriplet = setpoint_config_s::TYPE_POSITION_TRIPLET,
@@ -77,6 +77,6 @@ enum class SetpointTypeResult : uint8_t {
 /**
  * Check if a setpoint type is valid for a given vehicle type
  */
-SetpointTypeResult isSetpointTypeValid(SetpointType setpoint_type, uint8_t vehicle_type);
+SetpointTypeResult isSetpointTypeValid(SetpointType setpoint_type, uint8_t vehicle_type, bool is_vtol);
 
 } // namespace mode_util

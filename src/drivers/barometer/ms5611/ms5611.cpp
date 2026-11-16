@@ -43,13 +43,15 @@
 
 MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const I2CSPIDriverConfig &config) :
 	I2CSPIDriver(config),
-	_px4_baro{interface->get_device_id()},
+	_px4_baro{interface->get_device_id(), config.external},
 	_interface(interface),
 	_prom(prom_buf.s),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": measure")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err"))
 {
+	_interface->set_external(config.external);
+
 	switch (config.devid_driver_index) {
 	case DRV_BARO_DEVTYPE_MS5611:
 		_device_type = MS5611_DEVICE;

@@ -81,12 +81,13 @@ On this hardware, there is a [default serial port mapping](../peripherals/serial
 - [MAV_2_MODE](../advanced_config/parameter_reference.md#MAV_2_MODE) = `0` (normal/GCS)
 - [MAV_2_RADIO_CTL](../advanced_config/parameter_reference.md#MAV_2_RADIO_CTL) = `0`
 - [MAV_2_RATE](../advanced_config/parameter_reference.md#MAV_2_RATE) = `100000`
+- [MAV_2_REMOTE_IP](../advanced_config/parameter_reference.md#MAV_2_REMOTE_IP) = `0` (auto-discover partner, see [MAVLink Partner Address](../advanced_config/ethernet_setup.md#partner_address))
 - [MAV_2_REMOTE_PRT](../advanced_config/parameter_reference.md#MAV_2_REMOTE_PRT)= `14550` (GCS)
 - [MAV_2_UDP_PRT](../advanced_config/parameter_reference.md#MAV_2_UDP_PRT) = `14550` (GCS)
 
 For more information see: [PX4 Ethernet Setup](../advanced_config/ethernet_setup.md)
 
-## Device Specific Setup
+## 设备专用设置
 
 Links to setup instructions for specific MAVLink components:
 

@@ -94,7 +94,6 @@ You can add SIH to any board -- see [Check if SIH is in Firmware](#check-if-sih-
 
 - A flight controller with SIH module included in firmware (see [Firmware Builds with SIH](#firmware-builds-with-sih)).
 - USB connection for QGroundControl.
-- Optional: jMAVSim for 3D visualization via serial link (see [Visualization](#hardware-visualization)).
 
 ## Check if SIH is in Firmware
 
@@ -115,16 +114,24 @@ If you need a visual aid to see what the simulated vehicle is doing on hardware:
 
 Connect the flight controller via USB. QGC shows the vehicle on the map view with attitude, position, and telemetry, the same as a real flight.
 
-### jMAVSim (3D Display-Only)
+### Hawkeye (3D Display-Only)
 
-jMAVSim can render a 3D view of the vehicle over a serial connection. No physics are simulated in jMAVSim -- it is display-only.
+[Hawkeye](../sim_hawkeye/index.md) can render a 3D view of the vehicle from the [HIL_STATE_QUATERNION](https://mavlink.io/en/messages/common.html#HIL_STATE_QUATERNION) messages SIH sends.
+No physics are simulated in Hawkeye: it is display-only.
+
+Hawkeye listens on UDP, so bridge the flight controller's serial link to UDP port 19410 (for example with [MAVProxy](https://ardupilot.org/mavproxy/)), then start Hawkeye:
 
 ```sh
-./Tools/simulation/jmavsim/jmavsim_run.sh -q -d /dev/ttyACM0 -b 2000000 -o
+# Terminal 1
+mavproxy.py --master /dev/ttyACM0 --out udp:localhost:19410 --out udp:localhost:14550
+
+# Terminal 2
+hawkeye
 ```
 
 Where `/dev/ttyACM0` is the serial device for the flight controller.
 On macOS, this is typically `/dev/tty.usbmodem*`.
+The second `--out` keeps QGroundControl connected on its default port.
 
 ## Controlling Actuators
 

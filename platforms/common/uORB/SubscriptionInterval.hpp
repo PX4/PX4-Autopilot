@@ -39,6 +39,7 @@
 #pragma once
 
 #include <uORB/uORB.h>
+#include <drivers/drv_hrt.h>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/defines.h>
 
@@ -171,6 +172,21 @@ public:
 	 */
 	void		set_last_update(hrt_abstime t) { _last_update.store(t); }
 protected:
+
+	// True with no interval set, or once the interval has elapsed since the last
+	// update. Reads _last_update (64-bit, not lock-free on 32-bit targets) only
+	// when there is an interval.
+	bool interval_elapsed() const
+	{
+		const uint32_t interval_us = _interval_us.load();
+
+		if (interval_us == 0) {
+			return true;
+		}
+
+		const hrt_abstime last_update = _last_update.load();
+		return hrt_elapsed_time(&last_update) >= interval_us;
+	}
 
 	Subscription	_subscription;
 	subscription_interval_detail::storage_t<ATOMIC, uint64_t>	_last_update{0};	// last subscription update in microseconds

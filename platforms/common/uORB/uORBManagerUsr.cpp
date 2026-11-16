@@ -270,6 +270,12 @@ bool uORB::Manager::orb_device_node_exists(ORB_ID orb_id, uint8_t instance)
 	return data.ret == PX4_OK ? true : false;
 }
 
+unsigned uORB::Manager::orb_node_generation()
+{
+	// the device master lives in the kernel: unknown, so subscribers always retry
+	return 0;
+}
+
 void *uORB::Manager::orb_add_internal_subscriber(ORB_ID orb_id, uint8_t instance, unsigned *initial_generation)
 {
 	orbiocdevaddsubscriber_t data = {orb_id, instance, initial_generation, nullptr};

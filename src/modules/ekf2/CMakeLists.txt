@@ -175,7 +175,6 @@ endif()
 
 if(CONFIG_EKF2_GNSS)
 	list(APPEND EKF_SRCS
-		EKF/aid_sources/gnss/gnss_checks.cpp
 		EKF/aid_sources/gnss/gnss_height_control.cpp
 		EKF/aid_sources/gnss/gps_control.cpp
 	)
@@ -295,4 +294,6 @@ px4_add_module(
 
 if(BUILD_TESTING)
 	add_subdirectory(test)
+
+	px4_add_functional_gtest(SRC EKF2SelectorTest.cpp LINKLIBS modules__ekf2)
 endif()

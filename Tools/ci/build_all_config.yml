@@ -14,6 +14,11 @@ containers:
 runners:
   seeder_cpu: 8
   matrix_cpu: 4
+  # Targets each build job compiles concurrently, each in its own git
+  # worktree (NuttX builds inside its source tree, so one per checkout).
+  # 2 keeps a 4-vCPU runner ~80% busy; more slots or larger runners cost more
+  # than they save (PR #28870). 1 = sequential.
+  build_slots: 2
 
 # Default ccache max-size for build groups
 cache:
@@ -55,6 +60,7 @@ special_labels:
 # NXP chip families are pooled under "nxp-{chip}" regardless of board directory
 nxp_chip_families:
   - imxrt
+  - imx9
   - kinetis
   - s32k
 
@@ -65,6 +71,7 @@ seeders:
   stm32f4: "px4_fmu-v4_default"
   stm32f1: "px4_io-v2_default"
   imxrt: "nxp_mr-tropic_default"
+  imx9: "nxp_mr-navq95_default"
   kinetis: "nxp_fmuk66-v3_default"
   s32k: "nxp_mr-canhubk3_default"
   rp2040: "raspberrypi_pico_default"

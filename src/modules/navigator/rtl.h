@@ -33,7 +33,7 @@
 /**
  * @file rtl.h
  *
- * Helper class for RTL
+ * Helper class for Return
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
@@ -71,7 +71,7 @@ class RTL : public NavigatorMode, public ModuleParams
 public:
 	RTL(Navigator *navigator);
 
-	~RTL() = default;
+	~RTL() { delete _rtl_mission_type_handle; }
 
 	enum class RtlType {
 		NONE = rtl_status_s::RTL_STATUS_TYPE_NONE,
@@ -82,6 +82,7 @@ public:
 	};
 
 	void on_inactive() override;
+	void on_inactivation() override;
 	void on_activation() override;
 	void on_active() override;
 
@@ -97,7 +98,8 @@ private:
 	enum class DestinationType {
 		DESTINATION_TYPE_HOME,
 		DESTINATION_TYPE_MISSION_LAND,
-		DESTINATION_TYPE_SAFE_POINT
+		DESTINATION_TYPE_SAFE_POINT,
+		DESTINATION_TYPE_CURRENT_POSITION
 	};
 
 	/**
@@ -117,22 +119,27 @@ private:
 	void setRtlTypeAndDestination();
 
 	/**
-	 * @brief Publish the remaining time estimate to go to the RTL landing point.
+	 * @brief Publish the remaining time estimate to go to the Return landing point.
 	 *
 	 */
 	void publishRemainingTimeEstimate();
 
 	/**
-	 * @brief Find RTL destination.
+	 * @brief Find return destination.
 	 *
 	 */
 	void findRtlDestination(DestinationType &destination_type, PositionYawSetpoint &destination, uint8_t &safe_point_index);
 
 	/**
-	 * @brief Find RTL destination if only safe points are considered
+	 * @brief Find return destination if only safe points are considered
 	 *
 	 */
 	PositionYawSetpoint findClosestSafePoint(float min_dist, uint8_t &safe_point_index);
+
+	/**
+	 * @brief Smallest remaining time [s] of the connected batteries, NAN if none reports one.
+	 */
+	float worstBatteryTimeRemaining();
 
 	/**
 	 * @brief Set the position of the land start marker in the planned mission as destination.
@@ -150,23 +157,20 @@ private:
 	float computeReturnAltitude(const PositionYawSetpoint &rtl_position) const;
 
 	/**
-	 * @brief initialize RTL mission type
+	 * @brief initialize Return mission type
 	 *
+	 * @return false if the executor could not be allocated
 	 */
-	void initRtlMissionType(RtlType new_rtl_type, float rtl_alt);
+	bool initRtlMissionType(RtlType new_rtl_type);
+
+	/** Runs the selected executor active, then the other one inactive. */
+	void runExecutors();
 
 	/**
 	 * @brief Update parameters
 	 *
 	 */
 	void parameters_update();
-
-	/**
-	 * @brief Choose the most wind-aligned approach in a landing-approach block.
-	 *
-	 * Bearings are evaluated from the block's land location.
-	 */
-	loiter_point_s chooseBestLandingApproach(const land_approaches_s &vtol_land_approaches) const;
 
 	/**
 	 * @brief Return the wind-selected VTOL approach for destination, or an invalid loiter if none exists.
@@ -177,6 +181,7 @@ private:
 
 	RtlBase *_rtl_mission_type_handle{nullptr};
 	RtlType _rtl_type{RtlType::RTL_DIRECT};
+	RtlType _init_failure_reported{RtlType::NONE}; ///< Logged failing executor type, reset by a successful init or activation.
 	uint32_t _mission_land_failure_mission_id{0};
 	uint16_t _mission_land_failure_count{0};
 	int32_t _mission_land_failure_index{-1};

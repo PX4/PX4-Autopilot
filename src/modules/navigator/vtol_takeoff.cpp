@@ -75,7 +75,11 @@ VtolTakeoff::on_active()
 
 				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 
-				if (!PX4_ISFINITE(_transition_direction_deg)) {
+				if (_navigator->front_transition_inhibited()) {
+					// nothing to align for, the transition is skipped after a quad-chute
+					_mission_item.yaw = NAN;
+
+				} else if (!PX4_ISFINITE(_transition_direction_deg)) {
 					_mission_item.yaw = wrap_pi(get_bearing_to_next_waypoint(_mission_item.lat,
 								    _mission_item.lon, _loiter_location(0), _loiter_location(1)));
 

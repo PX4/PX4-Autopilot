@@ -13,7 +13,7 @@ Windows 개발자는 Linux를 게스트 운영 체제로 사용하는 가상 머
 가상 머신을 사용하는 것은 펌웨어 구축 환경을 설정과 테스트가 매우 편리하지만, 사용자는 다음 사항에 유의하여야 합니다.
 
 1. 펌웨어 빌드는 Linux에서 빌드하는 것보다 조금 느립니다.
-2. The JMAVSim simulation, frame rate be much slower than on native Linux.
+2. Simulation frame rates will be much slower than on native Linux.
    경우에 따라서, 가상 머신 리소스 부족과 관련된 문제로 차량이 충돌할 수 있습니다.
 3. Gazebo와 ROS는 설치할 수 있지만, 사용할 수 없을 정도로 느립니다.
 
@@ -41,7 +41,7 @@ VMWare performance is acceptable for basic usage (building Firmware) but not for
 5. Enable 3D acceleration in the VM's settings: **VM > Settings > Hardware > Display > Accelerate 3D graphics**
 
    ::: info
-   This option is required to properly run 3D simulation environments like jMAVSim and Gazebo Classic.
+   This option is required to properly run 3D simulation environments like Gazebo and Gazebo Classic.
    가상 환경에 Linux를 설치하기 전에 이 작업을 수행하는 것이 좋습니다.
 
 :::

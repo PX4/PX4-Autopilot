@@ -35,7 +35,7 @@
 #define GNSS_INTEGRITY_HPP
 
 
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_gnss.h>
 #include <uORB/topics/sensor_gnss_status.h>
 #include <uORB/PublicationMulti.hpp>
 
@@ -54,7 +54,7 @@ public:
 
 	unsigned get_size() override
 	{
-		return _vehicle_gps_position_sub.advertised() ? (MAVLINK_MSG_ID_GNSS_INTEGRITY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+		return _vehicle_gnss_sub.advertised() ? (MAVLINK_MSG_ID_GNSS_INTEGRITY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
 private:
@@ -62,21 +62,21 @@ private:
 
 	explicit MavlinkStreamGNSSIntegrity(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 	uORB::SubscriptionMultiArray<sensor_gnss_status_s, GPS_MAX_RECEIVERS> _sensor_gnss_status_sub{ORB_ID::sensor_gnss_status};
 
 	bool send() override
 	{
-		sensor_gps_s vehicle_gps_position{};
+		vehicle_gnss_s vehicle_gnss{};
 
-		if (_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
+		if (_vehicle_gnss_sub.update(&vehicle_gnss)) {
 			mavlink_gnss_integrity_t msg{};
 
-			msg.id = vehicle_gps_position.device_id;
-			msg.system_errors = vehicle_gps_position.system_error;
-			msg.authentication_state = vehicle_gps_position.authentication_state;
-			msg.jamming_state = vehicle_gps_position.jamming_state;
-			msg.spoofing_state = vehicle_gps_position.spoofing_state;
+			msg.id = vehicle_gnss.receiver.device_id;
+			msg.system_errors = vehicle_gnss.receiver.system_error;
+			msg.authentication_state = vehicle_gnss.receiver.authentication_state;
+			msg.jamming_state = vehicle_gnss.receiver.jamming_state;
+			msg.spoofing_state = vehicle_gnss.receiver.spoofing_state;
 
 			msg.corrections_quality = UINT8_MAX;
 			msg.system_status_summary = UINT8_MAX;
@@ -88,7 +88,7 @@ private:
 
 				if (_sensor_gnss_status_sub[i].copy(&sensor_gnss_status)) {
 					if ((hrt_elapsed_time(&sensor_gnss_status.timestamp) < 3_s)
-					    && (sensor_gnss_status.device_id == vehicle_gps_position.device_id)
+					    && (sensor_gnss_status.device_id == vehicle_gnss.receiver.device_id)
 					    && (sensor_gnss_status.quality_available)) {
 						msg.corrections_quality = sensor_gnss_status.quality_corrections;
 						msg.system_status_summary = sensor_gnss_status.quality_receiver;

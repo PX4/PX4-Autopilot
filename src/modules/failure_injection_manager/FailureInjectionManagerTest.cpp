@@ -57,6 +57,8 @@ constexpr uint8_t OFF     = failure_injection_s::FAILURE_TYPE_OFF;
 constexpr uint8_t STUCK   = failure_injection_s::FAILURE_TYPE_STUCK;
 constexpr uint8_t WRONG   = failure_injection_s::FAILURE_TYPE_WRONG;
 constexpr uint8_t GARBAGE = failure_injection_s::FAILURE_TYPE_GARBAGE;
+constexpr uint8_t DRIFT   = failure_injection_s::FAILURE_TYPE_DRIFT;
+constexpr uint8_t SLOW    = failure_injection_s::FAILURE_TYPE_SLOW;
 
 } // namespace
 
@@ -64,19 +66,25 @@ TEST(FailureTable, SupportedCatalogueMatchesInventory)
 {
 	EXPECT_TRUE(FailureTable::isSupported(GYRO, OFF));
 	EXPECT_TRUE(FailureTable::isSupported(GYRO, STUCK));
-	EXPECT_FALSE(FailureTable::isSupported(GYRO, WRONG));   // no gyro WRONG today
+	EXPECT_TRUE(FailureTable::isSupported(GYRO, WRONG));    // IMU bias
+	EXPECT_TRUE(FailureTable::isSupported(GYRO, GARBAGE));  // IMU noise
+	EXPECT_TRUE(FailureTable::isSupported(GYRO, DRIFT));    // IMU drift
 	EXPECT_TRUE(FailureTable::isSupported(GPS, WRONG));
-	EXPECT_TRUE(FailureTable::isSupported(MOTOR, OFF));
-	EXPECT_FALSE(FailureTable::isSupported(MOTOR, STUCK)); // motor is off-only (actuation)
-	EXPECT_FALSE(FailureTable::isSupported(MOTOR, WRONG));
+	EXPECT_TRUE(FailureTable::isSupported(MOTOR, OFF));   // detected motor failure
+	EXPECT_TRUE(FailureTable::isSupported(MOTOR, WRONG)); // undetected motor failure
+	EXPECT_TRUE(FailureTable::isSupported(MOTOR, STUCK)); // rotor stuck, ESC healthy
 	EXPECT_TRUE(FailureTable::isSupported(ESC, OFF));
 	EXPECT_TRUE(FailureTable::isSupported(ESC, WRONG));   // ESC: offline or wrong telemetry
 	EXPECT_FALSE(FailureTable::isSupported(ESC, STUCK));   // no frozen-telemetry (stuck) support
-	EXPECT_FALSE(FailureTable::isSupported(GYRO, GARBAGE)); // GARBAGE unimplemented
+	EXPECT_FALSE(FailureTable::isSupported(GYRO, SLOW));    // SLOW unimplemented
 	// Distance sensor (rangefinder) supports OFF/STUCK on hardware, but not WRONG.
 	EXPECT_TRUE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, OFF));
 	EXPECT_TRUE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, STUCK));
 	EXPECT_FALSE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, WRONG));
+	// VIO supports OFF/STUCK (STUCK replays the last odometry sample), but not WRONG.
+	EXPECT_TRUE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_VIO, OFF));
+	EXPECT_TRUE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_VIO, STUCK));
+	EXPECT_FALSE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_VIO, WRONG));
 	// Traffic avoidance supports OFF (blind)
 	EXPECT_TRUE(FailureTable::isSupported(TRAFFIC, OK));
 	EXPECT_TRUE(FailureTable::isSupported(TRAFFIC, OFF));
@@ -133,7 +141,7 @@ TEST(FailureTable, TrafficOkClearsOffEntry)
 TEST(FailureTable, UnsupportedIsRejectedWithoutChange)
 {
 	FailureTable table;
-	EXPECT_EQ(table.inject(GYRO, WRONG, 0), AckResult::Unsupported);
+	EXPECT_EQ(table.inject(GYRO, SLOW, 0), AckResult::Unsupported);
 	EXPECT_FALSE(table.changed());
 	EXPECT_EQ(table.count(), 0);
 }
@@ -286,7 +294,7 @@ TEST(FailureTable, InjectMaskZeroIsAcceptedNoOp)
 TEST(FailureTable, InjectMaskUnsupportedIsRejected)
 {
 	FailureTable table;
-	EXPECT_EQ(table.injectMask(GYRO, WRONG, 0x1), AckResult::Unsupported);
+	EXPECT_EQ(table.injectMask(GYRO, SLOW, 0x1), AckResult::Unsupported);
 	EXPECT_EQ(table.count(), 0);
 }
 
@@ -295,12 +303,65 @@ TEST(FailureStrings, UnitAndTypeNames)
 	EXPECT_STREQ(unitName(GYRO), "gyro");
 	EXPECT_STREQ(unitName(MOTOR), "motor");
 	EXPECT_STREQ(unitName(ESC), "esc");
+	EXPECT_STREQ(unitName(TRAFFIC), "traffic");
+	EXPECT_STREQ(unitName(CAN), "can");
 	EXPECT_STREQ(unitName(42), "unknown");
 
 	EXPECT_STREQ(typeName(OK), "ok");
 	EXPECT_STREQ(typeName(OFF), "off");
 	EXPECT_STREQ(typeName(STUCK), "stuck");
+	EXPECT_STREQ(typeName(DRIFT), "drift");
 	EXPECT_STREQ(typeName(0xFF), "unknown");
+}
+
+TEST(FailureStrings, EveryMessageConstantIsNamed)
+{
+	// Mirror of the FAILURE_UNIT_* / FAILURE_TYPE_* constants in FailureInjection.msg.
+	// A constant missing from unitName()/typeName() makes the announcement read "unknown".
+	constexpr uint8_t units[] = {
+		failure_injection_s::FAILURE_UNIT_SENSOR_GYRO,
+		failure_injection_s::FAILURE_UNIT_SENSOR_ACCEL,
+		failure_injection_s::FAILURE_UNIT_SENSOR_MAG,
+		failure_injection_s::FAILURE_UNIT_SENSOR_BARO,
+		failure_injection_s::FAILURE_UNIT_SENSOR_GPS,
+		failure_injection_s::FAILURE_UNIT_SENSOR_OPTICAL_FLOW,
+		failure_injection_s::FAILURE_UNIT_SENSOR_VIO,
+		failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR,
+		failure_injection_s::FAILURE_UNIT_SENSOR_AIRSPEED,
+		failure_injection_s::FAILURE_UNIT_SYSTEM_BATTERY,
+		failure_injection_s::FAILURE_UNIT_SYSTEM_MOTOR,
+		failure_injection_s::FAILURE_UNIT_SYSTEM_SERVO,
+		failure_injection_s::FAILURE_UNIT_SYSTEM_AVOIDANCE,
+		failure_injection_s::FAILURE_UNIT_SYSTEM_RC_SIGNAL,
+		failure_injection_s::FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL,
+		failure_injection_s::FAILURE_UNIT_SYSTEM_ESC,
+		failure_injection_s::FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE,
+		failure_injection_s::FAILURE_UNIT_DATALINK_LTE,
+		failure_injection_s::FAILURE_UNIT_DATALINK_WIFI,
+		failure_injection_s::FAILURE_UNIT_DATALINK_TELEM_RADIO,
+		failure_injection_s::FAILURE_UNIT_BUS_CAN,
+		failure_injection_s::FAILURE_UNIT_BUS_I2C,
+	};
+
+	for (uint8_t unit : units) {
+		EXPECT_STRNE(unitName(unit), "unknown") << "FAILURE_UNIT " << static_cast<int>(unit);
+	}
+
+	constexpr uint8_t types[] = {
+		failure_injection_s::FAILURE_TYPE_OK,
+		failure_injection_s::FAILURE_TYPE_OFF,
+		failure_injection_s::FAILURE_TYPE_STUCK,
+		failure_injection_s::FAILURE_TYPE_GARBAGE,
+		failure_injection_s::FAILURE_TYPE_WRONG,
+		failure_injection_s::FAILURE_TYPE_SLOW,
+		failure_injection_s::FAILURE_TYPE_DELAYED,
+		failure_injection_s::FAILURE_TYPE_INTERMITTENT,
+		failure_injection_s::FAILURE_TYPE_DRIFT,
+	};
+
+	for (uint8_t type : types) {
+		EXPECT_STRNE(typeName(type), "unknown") << "FAILURE_TYPE " << static_cast<int>(type);
+	}
 }
 
 TEST(FailureStrings, InstancePhraseSingleInstance)

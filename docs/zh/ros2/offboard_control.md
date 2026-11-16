@@ -2,8 +2,7 @@
 
 以下的 C++ 示例展示了如何在[offboard mode](../flight_modes/offboard.md)  中从 ROS 2 节点进行多轴位置控制。
 
-示例将首先发送设置点、进入offboard模式、解锁、起飞至5米，并悬停等待。
-虽然简单，但它显示了如何使用offboard控制以及如何向无人机发送指令。
+示例将首先发送设置点、进入offboard模式、解锁、起飞至5米，并悬停等待。虽然简单，但它显示了如何使用offboard控制以及如何向无人机发送指令。
 
 该内容已在搭载 ROS 2 Foxy 与 PX4 v1.14 的 Ubuntu 20.04 系统上完成测试。
 
@@ -16,19 +15,17 @@ _Offboard_ control is dangerous.
 ROS 与 PX4 存在若干不同的预设（假设），尤其是在 [frame conventions](../ros/external_position_estimation.md#reference-frames-and-ros)
 当主题发布或订阅时，坐标系类型之间没有隐含转换！
 
-这个例子按照 PX4 的预期在NED坐标系下发布位置。
-若要订阅来自在不同框架内发布的节点的数据(例如ENU, 这是ROS/ROS 2中的标准参考框架），使用[frame_transforms](https://github.com/PX4/px4_ros_com/blob/main/src/lib/frame_transforms.cpp)库中的辅助函数。
+这个例子按照 PX4 的预期在NED坐标系下发布位置。若要订阅来自在不同框架内发布的节点的数据(例如ENU, 这是ROS/ROS 2中的标准参考框架），使用[frame_transforms](https://github.com/PX4/px4_ros_com/blob/main/src/lib/frame_transforms.cpp)库中的辅助函数。
 :::
 
 ## 小试身手
 
 按照 [ROS 2 用户指南](../ros2/user_guide.md)中的说明来安装PX 并运行多轴模拟器，安装ROS 2, 并启动XRCE-DDS代理。
 
-之后，我们可参照 [ROS 2 用户指南 > 构建 ROS 2 工作空间](../ros2/user_guide.md#build-ros-2-workspace)中的相似的步骤来运行这个例子。
+After that we can follow a similar set of steps to those in [ROS 2 User Guide > Running an example (optional)](../ros2/user_guide.md#running-an-example-optional) to run the example.
 
 :::tip
-运行 ROS 2 节点前，请确保 QGC已连接到 PX4。
-之所以需要这样做，是因为默认情况下，若未连接地面控制站（QGC）或已建立的RC连接，飞行器无法解锁（这一机制可确保始终存在重新获得手动控制权的途径）。
+运行 ROS 2 节点前，请确保 QGC已连接到 PX4。之所以需要这样做，是因为默认情况下，若未连接地面控制站（QGC）或已建立的RC连接，飞行器无法解锁（这一机制可确保始终存在重新获得手动控制权的途径）。
 :::
 
 构建并运行示例：
@@ -105,9 +102,7 @@ ROS 与 PX4 存在若干不同的预设（假设），尤其是在 [frame conven
 PX4 默认情况下将此示例中使用的所有消息以ROS为话题发布(详见 [dds_topics.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/uxrce_dds_client/dds_topics.yaml))。
 :::
 
-PX4 要求，飞行器需先持续接收 OffboardControlMode（离板控制模式）消息，之后才能在离板模式下解锁（arm），或在飞行过程中切换至离板模式。
-此外，若 OffboardControlMode（离板控制模式）消息的数据流速率降至约 2Hz 以下，PX4 将会退出离板模式。
-该行为在ROS 2 节点的主循环中实现的，如下所示：
+PX4 要求，飞行器需先持续接收 OffboardControlMode（离板控制模式）消息，之后才能在离板模式下解锁（arm），或在飞行过程中切换至离板模式。此外，若 OffboardControlMode（离板控制模式）消息的数据流速率降至约 2Hz 以下，PX4 将会退出离板模式。该行为在ROS 2 节点的主循环中实现的，如下所示：
 
 ```cpp
 auto timer_callback = [this]() -&gt; void {
@@ -132,16 +127,12 @@ auto timer_callback = [this]() -&gt; void {
 timer_ = this-&gt;create_wall_timer(100ms, timer_callback);
 ```
 
-循环运行在一个100毫秒计时器。
-在最初的 10 个循环中，它会调用 `publish_offboard_control_mode()` 和 `publish_trajectory_setpoint()` 这两个函数，向 PX4 发送 OffboardControlMode[OffboardControlMode](../msg_docs/OffboardControlMode.md) 和 [TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md) 消息。
+循环运行在一个100毫秒计时器。在最初的 10 个循环中，它会调用 `publish_offboard_control_mode()` 和 `publish_trajectory_setpoint()` 这两个函数，向 PX4 发送 OffboardControlMode[OffboardControlMode](../msg_docs/OffboardControlMode.md) 和 [TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md) 消息。
 OffboardControlMode消息会持续发送，以便 PX4 切换到离板模式后允许解锁；而 TrajectorySetpoint消息会被忽略（直到载具处于离板模式）
 
-10 个循环后，会调用 publish_vehicle_command() 函数切换至离板模式，并调用 arm() 函数对载具进行解锁。
-在载具解锁并和切换模式后，它将开始跟踪位置设定值。
-在每个周期内仍然发送设定值，确保载具不会切换出offboard模式。
+10 个循环后，会调用 publish_vehicle_command() 函数切换至离板模式，并调用 arm() 函数对载具进行解锁。在载具解锁并和切换模式后，它将开始跟踪位置设定值。在每个周期内仍然发送设定值，确保载具不会切换出offboard模式。
 
-publish_offboard_control_mode() 和 publish_trajectory_setpoint() 这两个方法的实现代码如下所示。
-这些方法会分别发布到 PX4 的 [OffboardControlMode](../msg_docs/OffboardControlMode.md和 [TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md) 消息。
+publish_offboard_control_mode() 和 publish_trajectory_setpoint() 这两个方法的实现代码如下所示。这些方法会分别发布到 PX4 的 [OffboardControlMode](../msg_docs/OffboardControlMode.md和 [TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md) 消息。
 
 The `OffboardControlMode` is required in order to inform PX4 of the _type_ of offboard control being used.
 此处我们仅使用位置控制，因此将 `position` 字段设为`true`，而所有其他字段均设为 `false`。
@@ -166,8 +157,7 @@ Power
 }
 ```
 
-`TrattorySettpoint` 提供了位置设定点。
-在这种情况下，`x`、`y`、`z`和`yaw`字段的值是硬编码为特定数值的。 但它们可以根据算法动态更新，甚至可以通过订阅回调函数来从另一个节点进行更新。
+`TrattorySettpoint` 提供了位置设定点。在这种情况下，`x`、`y`、`z`和`yaw`字段的值是硬编码为特定数值的。 但它们可以根据算法动态更新，甚至可以通过订阅回调函数来从另一个节点进行更新。
 
 ```cpp
 /**
@@ -185,9 +175,7 @@ void OffboardControl::publish_trajectory_setpoint()
 }
 ```
 
-`publish_vehicle_command()` 将带有命令的 [VehicleCommand](../msg_docs/VehicleCommand.md)消息发送给载具。
-我们使用上面的方法将模式切换为 offboard 模式，同时也在 arm() 函数中用它来对载具进行解锁。
-我们在此示例中不调用 `disarm()` ，但它也用于执行此功能。
+`publish_vehicle_command()` 将带有命令的 [VehicleCommand](../msg_docs/VehicleCommand.md)消息发送给载具。我们使用上面的方法将模式切换为 offboard 模式，同时也在 arm() 函数中用它来对载具进行解锁。我们在此示例中不调用 `disarm()` ，但它也用于执行此功能。
 
 ```cpp
 /**
@@ -213,10 +201,9 @@ void OffboardControl::publish_vehicle_command(uint16_t command, float param1, fl
 ```
 
 :::info
-[VehicleCommand](../msg_docs/VehicleCommand.md) 是命令PX4的最简单和最高效的方式之一。 通过订阅 [VehicleCommandAck](../msg_docs/VehicleCommandAck.md)，您也可以确认设置特定命令是否成功。
-参数字段和 指令字段对应于 [MAVLink commands](https://mavlink.io/en/messages/common.html#mav_commands)以及他们的参数值
+[VehicleCommand](../msg_docs/VehicleCommand.md) 是命令PX4的最简单和最高效的方式之一。 通过订阅 [VehicleCommandAck](../msg_docs/VehicleCommandAck.md)，您也可以确认设置特定命令是否成功。参数字段和 指令字段对应于 [MAVLink commands](https://mavlink.io/en/messages/common.html#mav_commands)以及他们的参数值
 :::
 
 ## 另见
 
-- [Python ROS2 offboard examples with PX4](https://github.com/Jaeyoung-Lim/px4-offboard) (Jaeyoung-Lim/px4-offboard).
+- [Python ROS 2 offboard examples with PX4](https://github.com/Jaeyoung-Lim/px4-offboard) (Jaeyoung-Lim/px4-offboard).

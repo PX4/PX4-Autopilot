@@ -25,10 +25,13 @@ __END_DECLS
 
 #endif
 
+__BEGIN_DECLS
+__EXPORT int px4_usleep(useconds_t usec);
+__END_DECLS
+
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 
 __BEGIN_DECLS
-__EXPORT int px4_usleep(useconds_t usec);
 __EXPORT unsigned int px4_sleep(unsigned int seconds);
 __EXPORT int px4_pthread_cond_timedwait(pthread_cond_t *cond,
 					pthread_mutex_t *mutex,
@@ -37,7 +40,6 @@ __END_DECLS
 
 #else
 
-#define px4_usleep system_usleep
 #define px4_sleep system_sleep
 #define px4_pthread_cond_timedwait system_pthread_cond_timedwait
 

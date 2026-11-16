@@ -39,6 +39,10 @@
 
 const char *const UavcanBatteryBridge::NAME = "battery";
 
+// Number of per-cell voltages battery_status can carry
+static constexpr uint8_t kMaxCellCount = sizeof(battery_status_s::voltage_cell_v)
+		/ sizeof(battery_status_s::voltage_cell_v[0]);
+
 void UavcanBatteryBridge::publishBattery(int node_id, uint8_t instance)
 {
 	_failure_config.update();
@@ -113,14 +117,15 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 		}
 	}
 
-	if (_node_info_publisher != nullptr) {
-		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
-				msg.battery_id, NodeInfoPublisher::DeviceCapability::BATTERY);
-	}
-
 	if (instance >= battery_status_s::MAX_INSTANCES
 	    || _batt_update_mod[instance] == BatteryDataType::CBAT) {
 		return;
+	}
+
+	// CBAT batteries are registered under their node ID in cbat_sub_cb()
+	if (_node_info_publisher != nullptr) {
+		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
+				msg.battery_id, device_information_s::DEVICE_TYPE_BATTERY);
 	}
 
 	_node_ids[instance] = msg.getSrcNodeID().get();
@@ -160,6 +165,12 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 
 	_battery_status[instance].warning = _battery[instance]->determineWarning(_battery_status[instance].remaining);
 
+	// charging is reported only while there is no real warning, so it never hides a low battery
+	if ((msg.status_flags & uavcan::equipment::power::BatteryInfo::STATUS_FLAG_CHARGING)
+	    && (_battery_status[instance].warning == battery_status_s::WARNING_NONE)) {
+		_battery_status[instance].warning = battery_status_s::WARNING_CHARGING;
+	}
+
 	if (_batt_update_mod[instance] == BatteryDataType::Raw) {
 		publishBattery(msg.getSrcNodeID().get(), instance);
 
@@ -194,7 +205,7 @@ UavcanBatteryBridge::battery_aux_sub_cb(const uavcan::ReceivedDataStructure<ardu
 
 	_batt_update_mod[instance] = BatteryDataType::RawAux;
 
-	_battery_status[instance].cell_count = math::min((uint8_t)msg.voltage_cell.size(), (uint8_t)14);
+	_battery_status[instance].cell_count = math::min((uint8_t)msg.voltage_cell.size(), kMaxCellCount);
 	_battery_status[instance].cycle_count = msg.cycle_count;
 	_battery_status[instance].over_discharge_count = msg.over_discharge_count;
 	// ArduPilot BatteryInfoAux convention: nominal_voltage == 0 means "not provided"
@@ -261,7 +272,9 @@ void UavcanBatteryBridge::cbat_sub_cb(const uavcan::ReceivedDataStructure<cuav::
 	_battery_status[instance].max_error = msg.max_error;
 	_battery_status[instance].over_discharge_count = msg.over_discharge_count;
 	_battery_status[instance].connected = true;
-	_battery_status[instance].cell_count = msg.cell_count;
+	// cell_count comes from the node and bounds the per-cell copy below, so clamp it to what
+	// voltage_cell_v can hold, as the BatteryInfoAux handler above already does.
+	_battery_status[instance].cell_count = math::min(msg.cell_count, kMaxCellCount);
 	_battery_status[instance].source = battery_status_s::SOURCE_EXTERNAL;
 	_node_ids[instance] = msg.getSrcNodeID().get();
 	_battery_status[instance].id = msg.getSrcNodeID().get();
@@ -310,7 +323,7 @@ void UavcanBatteryBridge::cbat_sub_cb(const uavcan::ReceivedDataStructure<cuav::
 
 	if (_node_info_publisher != nullptr) {
 		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
-				_node_ids[instance], NodeInfoPublisher::DeviceCapability::BATTERY);
+				_node_ids[instance], device_information_s::DEVICE_TYPE_BATTERY);
 	}
 }
 
@@ -318,6 +331,11 @@ void
 UavcanBatteryBridge::filterData(const uavcan::ReceivedDataStructure<uavcan::equipment::power::BatteryInfo> &msg,
 				uint8_t instance)
 {
+	// Skip a non-finite voltage sample
+	if (!PX4_ISFINITE(msg.voltage)) {
+		return;
+	}
+
 	_battery[instance]->setConnected(true);
 	_battery[instance]->updateVoltage(msg.voltage);
 	_battery[instance]->updateCurrent(msg.current);
@@ -327,6 +345,12 @@ UavcanBatteryBridge::filterData(const uavcan::ReceivedDataStructure<uavcan::equi
 	_battery_status[instance] = _battery[instance]->getBatteryStatus();
 	_battery_status[instance].temperature = msg.temperature + atmosphere::kAbsoluteNullCelsius; // Kelvin to Celsius
 	_battery_status[instance].id = msg.battery_id;
+
+	// charging is reported only while there is no real warning, so it never hides a low battery
+	if ((msg.status_flags & uavcan::equipment::power::BatteryInfo::STATUS_FLAG_CHARGING)
+	    && (_battery_status[instance].warning == battery_status_s::WARNING_NONE)) {
+		_battery_status[instance].warning = battery_status_s::WARNING_CHARGING;
+	}
 
 	publishBattery(msg.getSrcNodeID().get(), instance);
 

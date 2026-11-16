@@ -43,7 +43,7 @@ SensorBaroSim::SensorBaroSim() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
-	srand(1234); // initialize the random seed once before calling generate_wgn()
+	srand(1234); // initialize the random seed once before calling math::generate_wgn()
 }
 
 SensorBaroSim::~SensorBaroSim()
@@ -55,37 +55,6 @@ bool SensorBaroSim::init()
 {
 	ScheduleOnInterval(50_ms); // 20 Hz
 	return true;
-}
-
-float SensorBaroSim::generate_wgn()
-{
-	// generate white Gaussian noise sample with std=1
-
-	// algorithm 1:
-	// float temp=((float)(rand()+1))/(((float)RAND_MAX+1.0f));
-	// return sqrtf(-2.0f*logf(temp))*cosf(2.0f*M_PI_F*rand()/RAND_MAX);
-	// algorithm 2: from BlockRandGauss.hpp
-	static float V1, V2, S;
-	static bool phase = true;
-	float X;
-
-	if (phase) {
-		do {
-			float U1 = (float)rand() / (float)RAND_MAX;
-			float U2 = (float)rand() / (float)RAND_MAX;
-			V1 = 2.0f * U1 - 1.0f;
-			V2 = 2.0f * U2 - 1.0f;
-			S = V1 * V1 + V2 * V2;
-		} while (S >= 1.0f || fabsf(S) < 1e-8f);
-
-		X = V1 * float(sqrtf(-2.0f * float(logf(S)) / S));
-
-	} else {
-		X = V2 * float(sqrtf(-2.0f * float(logf(S)) / S));
-	}
-
-	phase = !phase;
-	return X;
 }
 
 void SensorBaroSim::updateFailureConfig()
@@ -152,7 +121,7 @@ void SensorBaroSim::Run()
 			const float absolute_pressure = pressure_msl / pressure_ratio;
 
 			// Apply noise and drift
-			const float abs_pressure_noise = 1.f * generate_wgn();  // 1 Pa RMS noise
+			const float abs_pressure_noise = 1.f * math::generate_wgn();  // 1 Pa RMS noise
 			_baro_drift_pa += _baro_drift_pa_per_sec * dt;
 			const float absolute_pressure_noisy = absolute_pressure + abs_pressure_noise + _baro_drift_pa;
 

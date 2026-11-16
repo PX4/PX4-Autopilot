@@ -82,9 +82,9 @@ static void phy_set_led(int led, bool state)
 {
 	if (led < 0 || (size_t)led >= sizeof(g_ledmap) / sizeof(g_ledmap[0])) { return; }
 
-	/* Drive Low to switch on */
+	/* Drive High to switch on */
 	if (g_ledmap[led] != 0) {
-		stm32_gpiowrite(g_ledmap[led], !state);
+		stm32_gpiowrite(g_ledmap[led], state);
 	}
 }
 
@@ -92,9 +92,9 @@ static bool phy_get_led(int led)
 {
 	if (led < 0 || (size_t)led >= sizeof(g_ledmap) / sizeof(g_ledmap[0])) { return false; }
 
-	/* If Low it is on */
+	/* If High it is on */
 	if (g_ledmap[led] != 0) {
-		return !stm32_gpioread(g_ledmap[led]);
+		return stm32_gpioread(g_ledmap[led]);
 	}
 
 	return false;

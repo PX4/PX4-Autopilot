@@ -80,7 +80,6 @@ void Ekf::controlEvPosFusion(const imuSample &imu_sample, const extVisionSample 
 		} else {
 			continuing_conditions_passing = false;
 			_ev_pos_b_est.setFusionInactive();
-			_ev_pos_b_est.reset();
 		}
 
 		break;

@@ -64,12 +64,7 @@ public:
 	// WorkItems sorted by name
 	bool operator<=(const WorkItem &rhs) const { return (strcmp(ItemName(), rhs.ItemName()) <= 0); }
 
-	inline void ScheduleNow()
-	{
-		if (_wq != nullptr) {
-			_wq->Add(this);
-		}
-	}
+	void ScheduleNow();
 
 	virtual void print_run_status();
 
@@ -131,11 +126,6 @@ protected:
 	hrt_abstime	_time_first_run{0};
 	const char 	*_item_name;
 	uint32_t	_run_count{0};
-
-	// True while a WorkQueue worker is inside Run() for this item.
-	// Set before Run(), cleared after. Used by Deinit to wait out any
-	// in-flight Run() before the owning object's memory can be reused.
-	px4::atomic_bool	_run_in_progress{false};
 
 private:
 

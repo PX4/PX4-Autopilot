@@ -37,6 +37,8 @@
 namespace px4
 {
 
+ScheduledWorkItem::ScheduledWorkItem(const char *name, const wq_config_t &config) : WorkItem(name, config) {}
+
 ScheduledWorkItem::~ScheduledWorkItem()
 {
 	if (_call.arg != nullptr) {

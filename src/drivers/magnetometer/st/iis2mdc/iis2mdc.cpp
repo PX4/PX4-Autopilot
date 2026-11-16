@@ -42,10 +42,12 @@ using namespace time_literals;
 IIS2MDC::IIS2MDC(device::Device *interface, const I2CSPIDriverConfig &config) :
 	I2CSPIDriver(config),
 	_interface(interface),
-	_px4_mag(interface->get_device_id(), config.rotation),
+	_px4_mag(interface->get_device_id(), config.rotation, config.external),
 	_sample_count(perf_alloc(PC_COUNT, "iis2mdc_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "iis2mdc_comms_errors"))
-{}
+{
+	_interface->set_external(config.external);
+}
 
 IIS2MDC::~IIS2MDC()
 {
@@ -65,6 +67,7 @@ int IIS2MDC::init()
 	write_register(IIS2MDC_ADDR_CFG_REG_C, BDU);
 
 	_px4_mag.set_scale(0.0015f); // 1.5 mGauss/LSB (datasheet)
+	_px4_mag.set_range(49.152f);
 
 	// Poll at the 100 Hz ODR on a fixed interval so the rate does not drift with
 	// the time spent reading the sensor.

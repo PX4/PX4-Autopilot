@@ -39,14 +39,25 @@ ModuleBase::Descriptor RoverMecanum::desc{task_spawn, custom_command, print_usag
 
 RoverMecanum::RoverMecanum() :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
 	updateParams();
 }
 
 bool RoverMecanum::init()
 {
-	ScheduleOnInterval(10_ms); // 100 Hz
+	// The module registers its gyro callback first and keeps it, so the setpoints it generates reach the controllers in the same cycle.
+	// The controllers only check their trigger here, they register it while enabled, see enableControllers().
+	if (!_vehicle_angular_velocity_sub.registerCallback()
+	    || !_mecanum_pos_control.init()
+	    || !_mecanum_speed_control.init()
+	    || !_mecanum_att_control.init()
+	    || !_mecanum_rate_control.init()
+	    || !_mecanum_act_control.init()) {
+		PX4_ERR("callback registration failed");
+		return false;
+	}
+
 	return true;
 }
 
@@ -57,6 +68,16 @@ void RoverMecanum::updateParams()
 
 void RoverMecanum::Run()
 {
+	if (should_exit()) {
+		_vehicle_angular_velocity_sub.unregisterCallback();
+		exit_and_cleanup(desc);
+		return;
+	}
+
+	// Drain the trigger. The gyro paces the setpoint generation; its value is not used here.
+	vehicle_angular_velocity_s angular_velocity;
+	_vehicle_angular_velocity_sub.update(&angular_velocity);
+
 	if (_parameter_update_sub.updated()) {
 		parameter_update_s param_update{};
 		_parameter_update_sub.copy(&param_update);
@@ -87,14 +108,21 @@ void RoverMecanum::Run()
 
 		_was_armed = true;
 		generateSetpoints();
-		updateControllers();
+		enableControllers(true);
 
 	} else if (_was_armed) { // Reset all controllers and stop the vehicle
+		enableControllers(false);
 		reset();
 		_mecanum_act_control.stopVehicle();
 		_was_armed = false;
+
+	} else {
+		enableControllers(false);
+		_mecanum_act_control.stopVehicle();
 	}
 
+	// reschedule backup
+	ScheduleDelayed(100_ms);
 }
 
 void RoverMecanum::generateSetpoints()
@@ -102,11 +130,34 @@ void RoverMecanum::generateSetpoints()
 	vehicle_status_s vehicle_status{};
 	_vehicle_status_sub.copy(&vehicle_status);
 
+	// Each entry into Guided Course takes the speed the rover is driving at
+	if (vehicle_status.nav_state != _nav_state) {
+		_nav_state = vehicle_status.nav_state;
+		_auto_mode.reset();
+	}
+
+	// Navigator stores and acks the speed, Guided Course applies it right away
+	vehicle_command_s vehicle_command{};
+
+	while (_vehicle_command_sub.update(&vehicle_command)) {
+		// Zero stops driving. Negative is -1 "no change" or -2 "default" in MAVLink,
+		// and the speed the mode was entered with is the default there, so both keep the speed.
+		if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED
+		    && _nav_state == vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE && vehicle_command.param2 > -FLT_EPSILON) {
+			_auto_mode.setCourseSpeed(vehicle_command.param2);
+		}
+	}
+
 	switch (vehicle_status.nav_state) {
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
 		_auto_mode.autoControl();
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE:
+		_auto_mode.guidedCourse();
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
@@ -115,6 +166,10 @@ void RoverMecanum::generateSetpoints()
 
 	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
 		_manual_mode.manual();
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_MANUAL_PARKING:
+		_manual_mode.manualParking();
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_ACRO:
@@ -135,27 +190,36 @@ void RoverMecanum::generateSetpoints()
 
 }
 
-void RoverMecanum::updateControllers()
+void RoverMecanum::enableControllers(const bool enabled)
 {
-	if (_vehicle_control_mode.flag_control_position_enabled) {
-		_mecanum_pos_control.updatePosControl();
+	const bool pos_was_enabled = _mecanum_pos_control.enabled();
+	const bool speed_was_enabled = _mecanum_speed_control.enabled();
+	const bool rate_was_enabled = _mecanum_rate_control.enabled();
+	const bool act_was_enabled = _mecanum_act_control.enabled();
+
+	// Enable top-down, so newly enabled controllers run in cascade order in this cycle
+	bool registered = _mecanum_pos_control.setEnabled(enabled && _vehicle_control_mode.flag_control_position_enabled);
+	registered = _mecanum_speed_control.setEnabled(enabled && _vehicle_control_mode.flag_control_velocity_enabled) && registered;
+	registered = _mecanum_att_control.setEnabled(enabled && _vehicle_control_mode.flag_control_attitude_enabled) && registered;
+	registered = _mecanum_rate_control.setEnabled(enabled && _vehicle_control_mode.flag_control_rates_enabled) && registered;
+	registered = _mecanum_act_control.setEnabled(enabled && _vehicle_control_mode.flag_control_allocation_enabled) && registered;
+
+	// Callbacks sharing a trigger topic run in registration order: keep the position controller ahead of the speed
+	// controller (vehicle_local_position) and the rate controller ahead of the actuator controller (vehicle_angular_velocity)
+	if (!pos_was_enabled && _mecanum_pos_control.enabled() && speed_was_enabled && _mecanum_speed_control.enabled()) {
+		registered = _mecanum_speed_control.reregisterTrigger() && registered;
 	}
 
-	if (_vehicle_control_mode.flag_control_attitude_enabled) {
-		_mecanum_att_control.updateAttControl();
+	if (!rate_was_enabled && _mecanum_rate_control.enabled() && act_was_enabled && _mecanum_act_control.enabled()) {
+		registered = _mecanum_act_control.reregisterTrigger() && registered;
 	}
 
-	if (_vehicle_control_mode.flag_control_rates_enabled) {
-		_mecanum_rate_control.updateRateControl();
+	// Report a failure once, the controllers retry on every cycle
+	if (!registered && !_controller_registration_failed) {
+		PX4_ERR("controller callback registration failed, retrying");
 	}
 
-	if (_vehicle_control_mode.flag_control_velocity_enabled) {
-		_mecanum_speed_control.updateSpeedControl();
-	}
-
-	if (_vehicle_control_mode.flag_control_allocation_enabled) {
-		_mecanum_act_control.updateActControl();
-	}
+	_controller_registration_failed = !registered;
 }
 
 void RoverMecanum::runSanityChecks()
@@ -190,6 +254,7 @@ void RoverMecanum::reset()
 	_mecanum_att_control.reset();
 	_mecanum_rate_control.reset();
 	_manual_mode.reset();
+	_auto_mode.reset();
 }
 
 int RoverMecanum::task_spawn(int argc, char *argv[])

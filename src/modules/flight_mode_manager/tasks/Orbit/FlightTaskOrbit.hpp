@@ -76,16 +76,6 @@ private:
 	static constexpr float _horizontal_acceptance_radius = 2.f;
 
 	/**
-	 * Check the feasibility of orbit parameters with respect to
-	 * centripetal acceleration a = v^2 / r
-	 * @param radius desired radius
-	 * @param velocity desired velocity
-	 * @param acceleration maximal allowed acceleration
-	 * @return true on success, false if value not accepted
-	 */
-	bool _accelerationValid(float radius, float velocity, float acceleration) const;
-
-	/**
 	 * Checks if desired orbit params are feasible. If not,
 	 * params are modified such that it is possible
 	 * returns a feasible radius.

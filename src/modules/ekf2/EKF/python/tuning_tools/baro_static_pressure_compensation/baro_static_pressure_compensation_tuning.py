@@ -65,8 +65,13 @@ def getAllData(logfile):
               getData(log, 'vehicle_attitude', 'q[3]')])
     t_q = ms2s(getData(log, 'vehicle_attitude', 'timestamp'))
 
-    gnss_h = getData(log, 'vehicle_gps_position', 'altitude_msl_m')
-    t_gnss = ms2s(getData(log, 'vehicle_gps_position', 'timestamp'))
+    if any(elem.name == 'vehicle_gnss' for elem in log.data_list):
+        gnss_h = getData(log, 'vehicle_gnss', 'receiver.altitude_msl')
+        t_gnss = ms2s(getData(log, 'vehicle_gnss', 'timestamp'))
+    else:
+        # logs recorded before the rename to vehicle_gnss
+        gnss_h = getData(log, 'vehicle_gps_position', 'altitude_msl_m')
+        t_gnss = ms2s(getData(log, 'vehicle_gps_position', 'timestamp'))
 
     (t_aligned, v_body_aligned, baro_aligned, v_local_z_aligned, gnss_h_aligned) = alignData(t_local, v_local, dist_bottom, t_q, q, baro, t_baro, t_gnss, gnss_h)
 

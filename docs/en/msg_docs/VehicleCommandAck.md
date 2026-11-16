@@ -20,7 +20,7 @@ Follows the MAVLink COMMAND_ACK message definition
 | <a id="fld_result"></a>result                     | `uint8`  |                             | [VEHICLE_CMD_RESULT](#VEHICLE_CMD_RESULT) | Command result                                                                                                                              |
 | <a id="fld_result_param1"></a>result_param1       | `uint8`  |                             |                                           | Can be set with the reason why the command was denied, or the progress percentage when result is MAV_RESULT_IN_PROGRESS (%)                 |
 | <a id="fld_result_param2"></a>result_param2       | `int32`  | enum ARM_AUTH_DENIED_REASON |                                           | Additional parameter of the result, example: which parameter of MAV_CMD_NAV_WAYPOINT caused it to be denied, or what ARM_AUTH_DENIED_REASON |
-| <a id="fld_target_system"></a>target_system       | `uint8`  |                             |                                           | Target system                                                                                                                               |
+| <a id="fld_target_system"></a>target_system       | `uint32` |                             |                                           | Target system                                                                                                                               |
 | <a id="fld_target_component"></a>target_component | `uint16` |                             |                                           | Target component / mode executor                                                                                                            |
 | <a id="fld_from_external"></a>from_external       | `bool`   |                             |                                           | Indicates if the command came from an external source                                                                                       |
 
@@ -47,7 +47,7 @@ Used in field(s): [result](#fld_result)
 
 | Name                                                                                          | Type     | Value | Description |
 | --------------------------------------------------------------------------------------------- | -------- | ----- | ----------- |
-| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                                 | `uint32` | 1     |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                                 | `uint32` | 2     |
 | <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH                                               | `uint8`  | 8     |
 | <a id="#ARM_AUTH_DENIED_REASON_GENERIC"></a> ARM_AUTH_DENIED_REASON_GENERIC                   | `uint16` | 0     |
 | <a id="#ARM_AUTH_DENIED_REASON_NONE"></a> ARM_AUTH_DENIED_REASON_NONE                         | `uint16` | 1     |
@@ -68,7 +68,7 @@ Used in field(s): [result](#fld_result)
 # Used for acknowledging the vehicle command being received.
 # Follows the MAVLink COMMAND_ACK message definition
 
-uint32 MESSAGE_VERSION = 1
+uint32 MESSAGE_VERSION = 2
 
 uint64 timestamp # [us] time since system start
 
@@ -100,7 +100,7 @@ uint16 ARM_AUTH_DENIED_REASON_TIMEOUT = 3
 uint16 ARM_AUTH_DENIED_REASON_AIRSPACE_IN_USE = 4
 uint16 ARM_AUTH_DENIED_REASON_BAD_WEATHER = 5
 
-uint8 target_system # [-] Target system
+uint32 target_system # [-] Target system
 uint16 target_component # Target component / mode executor
 
 bool from_external # Indicates if the command came from an external source

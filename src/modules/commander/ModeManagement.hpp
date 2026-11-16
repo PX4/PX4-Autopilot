@@ -45,6 +45,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/config_overrides.h>
+#include <uORB/topics/failsafe_flags.h>
 
 #include <lib/modes/ui.hpp>
 #include "UserModeIntention.hpp"
@@ -134,7 +135,8 @@ public:
 		bool control_setpoint_update{false};
 	};
 
-	void update(uint8_t vehicle_type, bool armed, uint8_t user_intended_nav_state, UpdateRequest &update_request);
+	void update(uint8_t vehicle_type, bool is_vtol, bool armed, uint8_t user_intended_nav_state,
+		    UpdateRequest &update_request);
 	void setFailsafeState(bool failsafe_action_active)
 	{
 		_failsafe_action_active = failsafe_action_active;
@@ -163,19 +165,20 @@ public:
 
 	void printStatus() const;
 
-	void getModeStatus(uint32_t &valid_nav_state_mask, uint32_t &can_set_nav_state_mask) const;
+	void getModeStatus(uint32_t &valid_nav_state_mask, uint32_t &can_set_nav_state_mask, const failsafe_flags_s &failsafe_flags) const;
 
 	bool currentModeAcceptsOffboardSetpoints(uint8_t nav_state) const;
 
 	void updateActiveConfigOverrides(uint8_t nav_state, config_overrides_s &overrides_in_out);
 
 private:
-	bool checkConfigControlSetpointUpdates(uint8_t vehicle_type);
+	bool checkConfigControlSetpointUpdates(uint8_t vehicle_type, bool is_vtol);
 	void checkNewRegistrations(UpdateRequest &update_request);
 	void checkUnregistrations(uint8_t user_intended_nav_state, UpdateRequest &update_request);
 	void checkConfigOverrides();
 
 	void removeModeExecutor(int mode_executor_id);
+	bool resendIfCachedRequest(const register_ext_component_request_s &request);
 
 	uORB::Subscription _setpoint_config_sub{ORB_ID(setpoint_config)};
 	uORB::Publication<setpoint_config_reply_s> _setpoint_config_reply_pub{ORB_ID(setpoint_config_reply)};
@@ -212,7 +215,8 @@ public:
 		bool control_setpoint_update{false};
 	};
 
-	void update(uint8_t vehicle_type, bool armed, uint8_t user_intended_nav_state, UpdateRequest &update_request) {}
+	void update(uint8_t vehicle_type, bool is_vtol, bool armed, uint8_t user_intended_nav_state,
+		    UpdateRequest &update_request) {}
 	void setFailsafeState(bool failsafe_action_active) {}
 
 	int modeExecutorInCharge() const { return ModeExecutors::AUTOPILOT_EXECUTOR_ID; }
@@ -228,9 +232,9 @@ public:
 
 	void printStatus() const {}
 
-	void getModeStatus(uint32_t &valid_nav_state_mask, uint32_t &can_set_nav_state_mask) const
+	void getModeStatus(uint32_t &valid_nav_state_mask, uint32_t &can_set_nav_state_mask, const failsafe_flags_s &failsafe_flags) const
 	{
-		valid_nav_state_mask = mode_util::getValidNavStates();
+		valid_nav_state_mask = mode_util::getValidNavStates(failsafe_flags.mode_not_supported);
 		can_set_nav_state_mask = valid_nav_state_mask & ~(1u << vehicle_status_s::NAVIGATION_STATE_TERMINATION);
 	}
 

@@ -89,6 +89,18 @@ inline const char *unitName(uint8_t unit)
 
 	case failure_injection_s::FAILURE_UNIT_SYSTEM_ESC: return "esc";
 
+	case failure_injection_s::FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE: return "traffic";
+
+	case failure_injection_s::FAILURE_UNIT_DATALINK_LTE: return "lte";
+
+	case failure_injection_s::FAILURE_UNIT_DATALINK_WIFI: return "wifi";
+
+	case failure_injection_s::FAILURE_UNIT_DATALINK_TELEM_RADIO: return "telem_radio";
+
+	case failure_injection_s::FAILURE_UNIT_BUS_CAN: return "can";
+
+	case failure_injection_s::FAILURE_UNIT_BUS_I2C: return "i2c";
+
 	default: return "unknown";
 	}
 }
@@ -112,6 +124,8 @@ inline const char *typeName(uint8_t type)
 	case failure_injection_s::FAILURE_TYPE_DELAYED: return "delayed";
 
 	case failure_injection_s::FAILURE_TYPE_INTERMITTENT: return "intermittent";
+
+	case failure_injection_s::FAILURE_TYPE_DRIFT: return "drift";
 
 	default: return "unknown";
 	}

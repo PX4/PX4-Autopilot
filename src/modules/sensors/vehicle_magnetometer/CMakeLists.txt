@@ -42,3 +42,7 @@ target_link_libraries(vehicle_magnetometer
 		px4_work_queue
 		sensor_calibration
 )
+
+if(BUILD_TESTING)
+	add_subdirectory(test)
+endif()

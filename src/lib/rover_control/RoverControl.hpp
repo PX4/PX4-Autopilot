@@ -42,13 +42,45 @@
 #include <lib/slew_rate/SlewRate.hpp>
 #include <lib/slew_rate/SlewRateYaw.hpp>
 #include <lib/pid/PID.hpp>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
+#include <drivers/drv_hrt.h>
 #include <matrix/matrix/math.hpp>
+#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <lib/geo/geo.h>
 
 using namespace matrix;
 namespace RoverControl
 {
+/**
+ * Stick inputs assigned to the rover motion.
+ */
+struct ManualSticks {
+	float forward; ///< [-1, 1] Forwards/backwards
+	float lateral; ///< [-1, 1] Right/left, only used by rovers that can drive sideways
+	float yaw; ///< [-1, 1] Turn right/left
+};
+
+/**
+ * Stick mappings selectable with RO_STICK_MAP, following the RC transmitter modes 1-4
+ * with pitch mapped to forward, roll to lateral and yaw to yaw motion.
+ */
+enum class StickMapping : int32_t {
+	Mode1 = 1,
+	Mode2 = 2,
+	Mode3 = 3,
+	Mode4 = 4
+};
+
+/**
+ * Assigns the stick inputs to forward, lateral and yaw motion.
+ * @param manual_control_setpoint Stick inputs
+ * @param stick_map Selected mapping (RO_STICK_MAP), unknown values use StickMapping::Mode3
+ * @return Stick inputs per motion axis
+ */
+ManualSticks mapSticks(const manual_control_setpoint_s &manual_control_setpoint, int32_t stick_map);
+
 /**
  * Applies acceleration/deceleration slew rate to a throttle setpoint.
  * @param motor_setpoint Throttle setpoint with applied slew rate [-1, 1] (Updated by this function)
@@ -134,5 +166,40 @@ void globalToLocalSetpointTriplet(Vector2f &curr_wp_ned, Vector2f &prev_wp_ned, 
  * @return Waypoint transition angle [rad]
  */
 float calcWaypointTransitionAngle(Vector2f &prev_wp_ned, Vector2f &curr_wp_ned, Vector2f &next_wp_ned);
+
+/**
+ * Estimates the drift angle, the angle from the heading to the course over ground, while driving forwards.
+ * Course control subtracts it from the course to get the heading setpoint, like the fixed wing corrects its
+ * course setpoint for the wind, so the vehicle moves over ground along the course despite wheel slip.
+ */
+class DriftAngleEstimator
+{
+public:
+	/**
+	 * Update the estimate from the angle between the ground velocity and the heading.
+	 * Only updated while driving forwards fast enough for the velocity direction to be meaningful, kept otherwise.
+	 * @param vehicle_local_position Local position with the velocity and heading estimate
+	 */
+	void update(const vehicle_local_position_s &vehicle_local_position);
+
+	/**
+	 * @return Drift angle [rad], 0 until estimated since the last reset
+	 */
+	float getDriftAngle() const { return _valid ? _filter.getState() : 0.f; }
+
+	void reset() { _valid = false; }
+
+	static constexpr float MIN_SPEED{.5f}; ///< [m/s] Forward speed below which the velocity direction is noise
+	static constexpr float EVH_FACTOR{3.f}; ///< Factor of the velocity standard deviation the forward speed has to exceed
+	static constexpr float MAX_DRIFT_ANGLE{M_PI_F / 4.f}; ///< [rad] Limits the heading offset from the course
+
+private:
+	static constexpr uint64_t TIME_CONSTANT_US{1000000}; ///< Filters the yaw oscillations of the vehicle
+	static constexpr uint64_t MAX_DT_US{100000}; ///< Sample interval limit, as the estimate pauses at low speed
+
+	AlphaFilter<float> _filter{TIME_CONSTANT_US};
+	bool _valid{false};
+	hrt_abstime _timestamp{0};
+};
 
 }

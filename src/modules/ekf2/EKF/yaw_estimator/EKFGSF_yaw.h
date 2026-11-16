@@ -125,6 +125,10 @@ private:
 
 	bool _ekf_gsf_vel_fuse_started{}; // true when the EKF's have started fusing velocity data and the prediction and update processing is active
 
+	// the yaw estimate is only observable through velocity fusion; without it the models dead-reckon on gyro only
+	static constexpr float kVelFusionTimeout{60.f}; // (sec)
+	float _time_since_last_vel_fusion{}; // (sec)
+
 	// initialise states and covariance data for the GSF and EKF filters
 	void initialiseEKFGSF(const matrix::Vector2f &vel_NE, const float vel_accuracy);
 
@@ -135,6 +139,8 @@ private:
 	// update state and covariance for the specified EKF using a NE velocity measurement
 	// return false if update failed
 	bool updateEKF(const uint8_t model_index, const matrix::Vector2f &vel_NE, const float vel_accuracy);
+
+	void updateComposite();
 
 	inline float sq(float x) const { return x * x; };
 

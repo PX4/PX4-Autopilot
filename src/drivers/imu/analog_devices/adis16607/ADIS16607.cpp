@@ -39,8 +39,8 @@ using namespace time_literals;
 ADIS16607::ADIS16607(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
-	_px4_accel(get_device_id(), config.rotation),
-	_px4_gyro(get_device_id(), config.rotation)
+	_px4_accel(get_device_id(), config.rotation, config.external),
+	_px4_gyro(get_device_id(), config.rotation, config.external)
 {
 	ConfigureSampleRate(_px4_gyro.get_max_rate_hz());
 }

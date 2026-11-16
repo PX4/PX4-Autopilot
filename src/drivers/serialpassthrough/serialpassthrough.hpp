@@ -110,7 +110,7 @@ public:
 	 * channel: the MAVLink channel index (0-based) this arrived on.
 	 */
 	void pushFromMavlink(const uint8_t *data, size_t len,
-			     uint8_t sysid, uint8_t compid, uint8_t device,
+			     uint32_t sysid, uint8_t compid, uint8_t device,
 			     uint8_t channel);
 
 	/**
@@ -119,7 +119,7 @@ public:
 	 * Only returns data if channel matches the channel that sent the request.
 	 */
 	size_t popToMavlink(uint8_t *buf, size_t max_len,
-			    uint8_t *out_sysid, uint8_t *out_compid, uint8_t *out_device,
+			    uint32_t *out_sysid, uint8_t *out_compid, uint8_t *out_device,
 			    uint8_t channel);
 
 	bool should_exit() const { return _should_exit.load(); }
@@ -154,7 +154,7 @@ private:
 	pthread_mutex_t _tx_mutex;
 
 	// Reply metadata (sysid/compid/device/channel of last received message)
-	uint8_t _target_sysid{0};
+	uint32_t _target_sysid{0};
 	uint8_t _target_compid{0};
 	uint8_t _device_id{0};
 	uint8_t _tx_channel{255}; // MAVLink channel index to reply on (255 = not set)

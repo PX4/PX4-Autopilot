@@ -46,7 +46,7 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/actuator_outputs.h>
 
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 
 template <class T>
 class uORB_over_UAVCAN_Subscriber : public UavcanDynamicPortSubscriber
@@ -65,7 +65,7 @@ public:
 	{
 		T *data = NULL;
 
-		// Subscribe to messages uORB sensor_gps payload over UAVCAN
+		// Subscribe to messages uORB sensor_gnss payload over UAVCAN
 		_canard_handle.RxSubscribe(CanardTransferKindMessage,
 					   _subj_sub._canard_sub.port_id,
 					   get_payload_size(data),
@@ -111,4 +111,4 @@ private:
 /* ---- Specializations of convert() to convert incompatbile data, instance no. timestamp ---- */
 
 template<>
-void uORB_over_UAVCAN_Subscriber<sensor_gps_s>::convert(sensor_gps_s *data);
+void uORB_over_UAVCAN_Subscriber<sensor_gnss_s>::convert(sensor_gnss_s *data);

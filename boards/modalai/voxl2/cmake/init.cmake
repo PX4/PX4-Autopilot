@@ -35,12 +35,6 @@ if(NOT "${PX4_PLATFORM}" STREQUAL "posix")
 	return()
 endif()
 
-# Initialize libfc-sensor-api submodule (fetches from GitLab if not present)
-execute_process(
-	COMMAND Tools/check_submodules.sh boards/modalai/voxl2/libfc-sensor-api
-	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
-)
-
 include_directories(${PX4_BOARD_DIR}/libfc-sensor-api/inc)
 
 # Build libfc_sensor.so stub library automatically if not already built

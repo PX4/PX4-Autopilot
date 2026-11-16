@@ -35,6 +35,7 @@
 
 #include <drivers/drv_hrt.h>
 #include "fw_wheel_controller.h"
+#include <lib/atmosphere/atmosphere.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
@@ -55,6 +56,7 @@
 #include <uORB/topics/landing_gear_wheel.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -130,6 +132,7 @@ private:
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};		/**< vehicle land detected subscription */
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};				/**< vehicle status subscription */
 	uORB::Subscription _vehicle_rates_sub{ORB_ID(vehicle_angular_velocity)};
+	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
 
 	uORB::SubscriptionData<airspeed_validated_s> _airspeed_validated_sub{ORB_ID(airspeed_validated)};
 
@@ -152,6 +155,7 @@ private:
 	float _groundspeed{0.f};
 	bool _in_fw_or_transition_wo_tailsitter_transition{false}; // only run the FW attitude controller in these states
 	float _steering_wheel_yaw_setpoint{NAN};
+	float _air_density{atmosphere::kAirDensitySeaLevelStandardAtmos};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::FW_AIRSPD_MAX>) _param_fw_airspd_max,
@@ -188,5 +192,5 @@ private:
 	void vehicle_manual_poll(const float yaw_body);
 	void vehicle_attitude_setpoint_poll();
 	void vehicle_land_detected_poll();
-	float get_airspeed_constrained();
+	float get_true_airspeed_constrained();
 };

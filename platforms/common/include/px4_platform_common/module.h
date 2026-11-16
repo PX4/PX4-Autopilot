@@ -191,9 +191,6 @@ __EXPORT void PRINT_MODULE_DESCRIPTION(const char *description);
 #endif
 
 __EXPORT void PRINT_MODULE_USAGE_NAME(const char *executable_name, const char *category);
-__EXPORT void PRINT_MODULE_USAGE_SUBCATEGORY(const char *subcategory);
-__EXPORT void PRINT_MODULE_USAGE_NAME_SIMPLE(const char *executable_name, const char *category);
-__EXPORT void PRINT_MODULE_USAGE_COMMAND_DESCR(const char *name, const char *description);
 
 #define PRINT_MODULE_USAGE_COMMAND(name) \
 	PRINT_MODULE_USAGE_COMMAND_DESCR(name, NULL);
@@ -201,6 +198,28 @@ __EXPORT void PRINT_MODULE_USAGE_COMMAND_DESCR(const char *name, const char *des
 #define PRINT_MODULE_USAGE_DEFAULT_COMMANDS() \
 	PRINT_MODULE_USAGE_COMMAND("stop"); \
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "print status info");
+
+#ifdef CONSTRAINED_FLASH_NO_HELP
+// Only the usage line is printed, so the rest of the help text and its strings stay out of the image
+static inline void PRINT_MODULE_USAGE_SUBCATEGORY(const char *subcategory) {}
+static inline void PRINT_MODULE_USAGE_NAME_SIMPLE(const char *executable_name, const char *category) {}
+static inline void PRINT_MODULE_USAGE_COMMAND_DESCR(const char *name, const char *description) {}
+static inline void PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(bool i2c_support, bool spi_support) {}
+static inline void PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(uint8_t default_address) {}
+static inline void PRINT_MODULE_USAGE_PARAMS_I2C_KEEP_RUNNING_FLAG(void) {}
+static inline void PRINT_MODULE_USAGE_PARAM_INT(char option_char, int default_val, int min_val, int max_val, const char *description,
+		bool is_optional) {}
+static inline void PRINT_MODULE_USAGE_PARAM_FLOAT(char option_char, float default_val, float min_val, float max_val,
+		const char *description, bool is_optional) {}
+static inline void PRINT_MODULE_USAGE_PARAM_FLAG(char option_char, const char *description, bool is_optional) {}
+static inline void PRINT_MODULE_USAGE_PARAM_STRING(char option_char, const char *default_val, const char *values, const char *description,
+		bool is_optional) {}
+static inline void PRINT_MODULE_USAGE_PARAM_COMMENT(const char *comment) {}
+static inline void PRINT_MODULE_USAGE_ARG(const char *values, const char *description, bool is_optional) {}
+#else
+__EXPORT void PRINT_MODULE_USAGE_SUBCATEGORY(const char *subcategory);
+__EXPORT void PRINT_MODULE_USAGE_NAME_SIMPLE(const char *executable_name, const char *category);
+__EXPORT void PRINT_MODULE_USAGE_COMMAND_DESCR(const char *name, const char *description);
 
 __EXPORT void PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(bool i2c_support, bool spi_support);
 __EXPORT void PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(uint8_t default_address);
@@ -214,5 +233,6 @@ __EXPORT void PRINT_MODULE_USAGE_PARAM_STRING(char option_char, const char *defa
 		const char *description, bool is_optional);
 __EXPORT void PRINT_MODULE_USAGE_PARAM_COMMENT(const char *comment);
 __EXPORT void PRINT_MODULE_USAGE_ARG(const char *values, const char *description, bool is_optional);
+#endif
 
 __END_DECLS

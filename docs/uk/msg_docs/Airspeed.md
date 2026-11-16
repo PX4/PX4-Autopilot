@@ -13,13 +13,14 @@ It is subscribed by the airspeed selector module, which validates the data from 
 
 ## Fields
 
-| Назва                                                                                                                        | Тип       | Unit [Frame] | Range/Enum                                                                  | Опис                             |
-| ---------------------------------------------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------- |
-| <a id="fld_timestamp"></a>timestamp                                                                                          | `uint64`  | us                                                               |                                                                             | Time since system start          |
-| <a id="fld_timestamp_sample"></a>timestamp_sample                                                       | `uint64`  | us                                                               |                                                                             | Timestamp of the raw data        |
-| <a id="fld_indicated_airspeed_m_s"></a>indicated_airspeed_m_s | `float32` | m/s                                                              |                                                                             | Indicated airspeed               |
-| <a id="fld_true_airspeed_m_s"></a>true_airspeed_m_s           | `float32` | m/s                                                              |                                                                             | True airspeed                    |
-| <a id="fld_confidence"></a>confidence                                                                                        | `float32` |                                                                  | [0 : 1] | Confidence value for this sensor |
+| Назва                                                                                                                        | Тип       | Unit [Frame] | Range/Enum                                                                  | Опис                                                                    |
+| ---------------------------------------------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                                                                          | `uint64`  | us                                                               |                                                                             | Time since system start                                                 |
+| <a id="fld_timestamp_sample"></a>timestamp_sample                                                       | `uint64`  | us                                                               |                                                                             | Timestamp of the raw data                                               |
+| <a id="fld_device_id"></a>device_id                                                                     | `uint32`  |                                                                  |                                                                             | Unique device ID of the sensor this measurement came from, 0 if unknown |
+| <a id="fld_indicated_airspeed_m_s"></a>indicated_airspeed_m_s | `float32` | m/s                                                              |                                                                             | Indicated airspeed                                                      |
+| <a id="fld_true_airspeed_m_s"></a>true_airspeed_m_s           | `float32` | m/s                                                              |                                                                             | True airspeed                                                           |
+| <a id="fld_confidence"></a>confidence                                                                                        | `float32` |                                                                  | [0 : 1] | Confidence value for this sensor                                        |
 
 ## Source Message
 
@@ -36,6 +37,7 @@ Click here to see original file
 
 uint64 timestamp                 # [us] Time since system start
 uint64 timestamp_sample          # [us] Timestamp of the raw data
+uint32 device_id                 # [-] Unique device ID of the sensor this measurement came from, 0 if unknown
 float32 indicated_airspeed_m_s   # [m/s] Indicated airspeed
 float32 true_airspeed_m_s        # [m/s] True airspeed
 float32 confidence               # [@range 0,1] Confidence value for this sensor

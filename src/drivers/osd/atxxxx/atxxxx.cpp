@@ -412,6 +412,10 @@ OSDatxxxx::get_flight_mode(uint8_t nav_state)
 		flight_mode = "CRUISE";
 		break;
 
+	case vehicle_status_s::NAVIGATION_STATE_MANUAL_PARKING:
+		flight_mode = "MANUAL PARKING";
+		break;
+
 	case vehicle_status_s::NAVIGATION_STATE_POSCTL:
 		flight_mode = "POSITION";
 		break;
@@ -544,18 +548,5 @@ atxxxx_main(int argc, char *argv[])
 
 	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_OSD_DEVTYPE_ATXXXX);
 
-	if (!strcmp(verb, "start")) {
-		return ThisDriver::module_start(cli, iterator);
-	}
-
-	if (!strcmp(verb, "stop")) {
-		return ThisDriver::module_stop(iterator);
-	}
-
-	if (!strcmp(verb, "status")) {
-		return ThisDriver::module_status(iterator);
-	}
-
-	ThisDriver::print_usage();
-	return -1;
+	return ThisDriver::module_main(verb, cli, iterator);
 }

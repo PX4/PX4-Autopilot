@@ -128,6 +128,11 @@ __BEGIN_DECLS
 __EXPORT extern const char *__px4_log_level_str[_PX4_LOG_LEVEL_PANIC + 1];
 __EXPORT void px4_log_modulename(int level, const char *moduleName, const char *fmt, ...)
 __attribute__((format(printf, 3, 4)));
+__EXPORT void px4_log_modulename_va(int level, const char *moduleName, const char *fmt, va_list args)
+__attribute__((format(printf, 3, 0)));
+__EXPORT void px4_log_info(const char *moduleName, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
+__EXPORT void px4_log_warn(const char *moduleName, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
+__EXPORT void px4_log_error(const char *moduleName, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 __EXPORT void px4_log_raw(int level, const char *fmt, ...)
 __attribute__((format(printf, 2, 3)));
 __EXPORT void px4_log_history(FILE *out);
@@ -379,7 +384,7 @@ __END_DECLS
 #if defined(PRINTF_LOG)
 #define PX4_INFO(FMT, ...) 	printf(FMT "\n", ##__VA_ARGS__)
 #else
-#define PX4_INFO(FMT, ...) 	__px4_log_modulename(_PX4_LOG_LEVEL_INFO, FMT, ##__VA_ARGS__)
+#define PX4_INFO(FMT, ...) 	do { px4_log_info(MODULE_NAME, FMT, ##__VA_ARGS__); } while(0)
 #endif
 
 #if defined(__NUTTX) || defined(PRINTF_LOG)
@@ -420,7 +425,7 @@ __END_DECLS
  * Non-verbose settings for a Release build to minimize strings in build
  ****************************************************************************/
 #define PX4_PANIC(FMT, ...)	__px4_log_modulename(_PX4_LOG_LEVEL_PANIC, FMT, ##__VA_ARGS__)
-#define PX4_ERR(FMT, ...)	__px4_log_modulename(_PX4_LOG_LEVEL_ERROR, FMT, ##__VA_ARGS__)
+#define PX4_ERR(FMT, ...)	do { px4_log_error(MODULE_NAME, FMT, ##__VA_ARGS__); } while(0)
 #define PX4_WARN(FMT, ...) 	__px4_log_omit(_PX4_LOG_LEVEL_WARN,  FMT, ##__VA_ARGS__)
 #define PX4_DEBUG(FMT, ...) 	__px4_log_omit(_PX4_LOG_LEVEL_DEBUG, FMT, ##__VA_ARGS__)
 
@@ -429,8 +434,8 @@ __END_DECLS
  * Medium verbose settings for a default build
  ****************************************************************************/
 #define PX4_PANIC(FMT, ...)	__px4_log_modulename(_PX4_LOG_LEVEL_PANIC, FMT, ##__VA_ARGS__)
-#define PX4_ERR(FMT, ...)	__px4_log_modulename(_PX4_LOG_LEVEL_ERROR, FMT, ##__VA_ARGS__)
-#define PX4_WARN(FMT, ...) 	__px4_log_modulename(_PX4_LOG_LEVEL_WARN,  FMT, ##__VA_ARGS__)
+#define PX4_ERR(FMT, ...)	do { px4_log_error(MODULE_NAME, FMT, ##__VA_ARGS__); } while(0)
+#define PX4_WARN(FMT, ...) 	do { px4_log_warn(MODULE_NAME, FMT, ##__VA_ARGS__); } while(0)
 #define PX4_DEBUG(FMT, ...) 	__px4_log_omit(_PX4_LOG_LEVEL_DEBUG, FMT, ##__VA_ARGS__)
 
 #endif

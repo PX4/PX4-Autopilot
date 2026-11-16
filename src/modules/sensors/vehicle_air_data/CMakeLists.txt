@@ -44,3 +44,7 @@ target_link_libraries(vehicle_air_data
 	PUBLIC
 		atmosphere
 )
+
+if(BUILD_TESTING)
+	add_subdirectory(test)
+endif()

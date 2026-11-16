@@ -4,9 +4,7 @@
 
 ### 闪存溢出
 
-可以加载到主板上的代码量受到其具有的闪存量的限制。
-当添加其他模块或代码时，添加可能会超过闪存。
-这将导致 "闪存溢出"。 The upstream version will always build, but depending on what a developer adds it might overflow locally.
+可以加载到主板上的代码量受到其具有的闪存量的限制。当添加其他模块或代码时，添加可能会超过闪存。这将导致 "闪存溢出"。 The upstream version will always build, but depending on what a developer adds it might overflow locally.
 
 ```sh
 region `flash' overflowed by 12456 bytes

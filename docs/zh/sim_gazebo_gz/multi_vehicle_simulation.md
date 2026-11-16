@@ -96,7 +96,7 @@ This allows for greater flexibility and customization.
 /px4_1/fmu/out/vehicle_attitude
 /px4_1/fmu/out/vehicle_control_mode
 /px4_1/fmu/out/vehicle_global_position
-/px4_1/fmu/out/vehicle_gps_position
+/px4_1/fmu/out/vehicle_gnss
 /px4_1/fmu/out/vehicle_local_position
 /px4_1/fmu/out/vehicle_odometry
 /px4_1/fmu/out/vehicle_status
@@ -119,7 +119,7 @@ This allows for greater flexibility and customization.
 /px4_2/fmu/out/vehicle_attitude
 /px4_2/fmu/out/vehicle_control_mode
 /px4_2/fmu/out/vehicle_global_position
-/px4_2/fmu/out/vehicle_gps_position
+/px4_2/fmu/out/vehicle_gnss
 /px4_2/fmu/out/vehicle_local_position
 /px4_2/fmu/out/vehicle_odometry
 /px4_2/fmu/out/vehicle_status
@@ -142,7 +142,7 @@ This allows for greater flexibility and customization.
 /px4_3/fmu/out/vehicle_attitude
 /px4_3/fmu/out/vehicle_control_mode
 /px4_3/fmu/out/vehicle_global_position
-/px4_3/fmu/out/vehicle_gps_position
+/px4_3/fmu/out/vehicle_gnss
 /px4_3/fmu/out/vehicle_local_position
 /px4_3/fmu/out/vehicle_odometry
 /px4_3/fmu/out/vehicle_status

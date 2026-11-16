@@ -76,6 +76,20 @@ config WQ_SPI6_PRIORITY
 	help
 	  Sets the relative priority for the SPI6 work queue.
 
+config WQ_SPI7_PRIORITY
+	int "Relative priority for wq:SPI7"
+	default -7
+	range -255 0
+	help
+	  Sets the relative priority for the SPI7 work queue.
+
+config WQ_SPI8_PRIORITY
+	int "Relative priority for wq:SPI8"
+	default -7
+	range -255 0
+	help
+	  Sets the relative priority for the SPI8 work queue.
+
 endmenu # SPI Bus Work Queues
 
 menu "I2C Bus Work Queues"
@@ -121,6 +135,20 @@ config WQ_I2C4_PRIORITY
 	range -255 0
 	help
 	  Sets the relative priority for the I2C4 work queue.
+
+config WQ_I2C5_PRIORITY
+	int "Relative priority for wq:I2C5"
+	default -12
+	range -255 0
+	help
+	  Sets the relative priority for the I2C5 work queue.
+
+config WQ_I2C6_PRIORITY
+	int "Relative priority for wq:I2C6"
+	default -12
+	range -255 0
+	help
+	  Sets the relative priority for the I2C6 work queue.
 
 endmenu # I2C Bus Work Queues
 
@@ -207,7 +235,7 @@ config WQ_HP_DEFAULT_PRIORITY
 
 config WQ_UAVCAN_STACKSIZE
 	int "Stack size for uavcan"
-	default 3754
+	default 4096
 	range 1000 10000
 	help
 	  Sets the stack size for the uavcan work queue.
@@ -223,7 +251,7 @@ menu "TTY Bus Work Queues"
 
 config WQ_TTY_STACKSIZE
 	int "Stack size for TTY work queues"
-	default 1728
+	default 2048
 	range 1000 10000
 	help
 	  Sets the stack size for all TTY work queues.

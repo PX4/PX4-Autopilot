@@ -114,6 +114,7 @@ private:
 
 	bool Configure();
 	void ConfigureSampleRate(int sample_rate);
+	void ConfigureAntiAliasFilter(uint32_t bandwidth_hz);
 	void ConfigureFIFOWatermark(uint8_t samples);
 	void ConfigureCLKIN();
 

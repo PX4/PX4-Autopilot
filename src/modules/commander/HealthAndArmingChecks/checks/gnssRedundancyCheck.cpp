@@ -38,6 +38,7 @@ using namespace matrix;
 using namespace time_literals;
 
 GnssRedundancyChecks::GnssRedundancyChecks()
+	: _param_ekf2_gps_p_noise_handle(param_find("EKF2_GPS_P_NOISE"))
 {
 	_divergence_hysteresis.set_hysteresis_time_from(false, 2_s);
 	_divergence_hysteresis.set_hysteresis_time_from(true, 2_s);
@@ -46,69 +47,81 @@ GnssRedundancyChecks::GnssRedundancyChecks()
 void GnssRedundancyChecks::checkAndReport(const Context &context, Report &reporter)
 {
 	bool gps_online[GPS_MAX_INSTANCES] {};
-	bool gps_has_fix[GPS_MAX_INSTANCES] {};
-	uint8_t fixed_count = 0;
-	sensor_gps_s fixed_gps[GPS_MAX_INSTANCES] {};
+	bool gnss_healthy[GPS_MAX_INSTANCES] {};
+	uint8_t healthy_count = 0;
+	sensor_gnss_s healthy_gnss[GPS_MAX_INSTANCES] {};
+
+	sensors_status_gnss_s status{};
+	const bool status_valid = _sensors_status_gnss_sub.copy(&status) && (hrt_elapsed_time(&status.timestamp) < 1_s);
 
 	for (int i = 0; i < GPS_MAX_INSTANCES; i++) {
-		sensor_gps_s gps{};
+		sensor_gnss_s gnss{};
 
-		if (_sensor_gps_sub[i].copy(&gps)
-		    && (gps.device_id != 0)
-		    && (hrt_elapsed_time(&gps.timestamp) < 1_s)) {
+		if (_sensor_gnss_sub[i].copy(&gnss)
+		    && (gnss.device_id != 0)
+		    && (hrt_elapsed_time(&gnss.timestamp) < 1_s)) {
 			gps_online[i] = true;
 
-			if (gps.fix_type >= 3) {
-				gps_has_fix[i] = true;
-				fixed_gps[fixed_count++] = gps;
+			// The sensors module indexes its status by the same sensor_gnss instance
+			if (status_valid && (status.device_ids[i] == gnss.device_id) && status.healthy[i]) {
+				gnss_healthy[i] = true;
+				healthy_gnss[healthy_count++] = gnss;
 			}
 		}
 	}
 
-	// Track the highest fixed count seen to warn about GNSS loss regardless of SYS_HAS_NUM_GNSS
-	if (fixed_count > _peak_fixed_count) {
-		_peak_fixed_count = fixed_count;
+	// Track the highest healthy count seen to warn about GNSS loss regardless of SYS_HAS_NUM_GNSS
+	if (healthy_count > _peak_healthy_count) {
+		_peak_healthy_count = healthy_count;
 	}
 
-	// Position divergence check: flag if two fixed receivers disagree beyond their
+	// Position divergence check: flag if two healthy receivers disagree beyond their
 	// combined uncertainty. Gate = 3 * RSS(eph), centered on the expected lever-arm separation.
 	float divergence_m = 0.f;
 
-	if (fixed_count >= 2) {
+	if (healthy_count >= 2) {
 		float north, east;
-		get_vector_to_next_waypoint(fixed_gps[0].latitude_deg, fixed_gps[0].longitude_deg,
-					    fixed_gps[1].latitude_deg, fixed_gps[1].longitude_deg,
+		get_vector_to_next_waypoint(healthy_gnss[0].latitude, healthy_gnss[0].longitude,
+					    healthy_gnss[1].latitude, healthy_gnss[1].longitude,
 					    &north, &east);
 		const float separation_m = Vector2f(north, east).length();
 
-		const Vector2f offset0(_param_sens_gps0_offx.get(), _param_sens_gps0_offy.get());
-		const Vector2f offset1(_param_sens_gps1_offx.get(), _param_sens_gps1_offy.get());
+		const Vector2f offset0(_param_sens_gnss0_offx.get(), _param_sens_gnss0_offy.get());
+		const Vector2f offset1(_param_sens_gnss1_offx.get(), _param_sens_gnss1_offy.get());
 		const float expected_d = (offset0 - offset1).length();
 		divergence_m = fabsf(separation_m - expected_d);
 		// Use quadrature sum for standard deviation of the difference taking the firmware dependent eph as standard deviation
 		// and a heuristic factor of 3 because then it's unlikely just noise.
-		const float divergence_gate_m = 3.f * Vector2f(fixed_gps[0].eph, fixed_gps[1].eph).length();
+		// Receivers might report an optimistic eph, so floor it with the minimum GNSS position noise.
+		// EKF2 might not be part of the build, in that case fall back to the EKF2_GPS_P_NOISE default.
+		float eph_min = 0.5f;
+
+		if (_param_ekf2_gps_p_noise_handle != PARAM_INVALID) {
+			param_get(_param_ekf2_gps_p_noise_handle, &eph_min);
+		}
+
+		const float divergence_gate_m = 3.f * Vector2f(math::max(healthy_gnss[0].eph, eph_min),
+						math::max(healthy_gnss[1].eph, eph_min)).length();
 		_divergence_hysteresis.set_state_and_update(divergence_m > divergence_gate_m, hrt_absolute_time());
 
 	} else {
 		_divergence_hysteresis.set_state_and_update(false, hrt_absolute_time());
 	}
 
-	const bool below_required = (_param_sys_has_num_gnss.get() > 0) && (fixed_count < _param_sys_has_num_gnss.get());
-	const bool dropped_below_peak = (_peak_fixed_count > 1) && (fixed_count < _peak_fixed_count);
-	const bool act_configured = (_param_com_gnssloss_act.get() > 0);
+	const bool below_required = (_param_sys_has_num_gnss.get() > 0) && (healthy_count < _param_sys_has_num_gnss.get());
+	const bool dropped_below_peak = (_peak_healthy_count > 1) && (healthy_count < _peak_healthy_count);
 
 	// Divergence triggers the failsafe only when the operator explicitly expects two
 	// receivers (SYS_HAS_NUM_GNSS >= 2); otherwise it remains a warning.
 	const bool divergence_triggers_failsafe = _divergence_hysteresis.get_state() && (_param_sys_has_num_gnss.get() >= 2);
 
 	reporter.failsafeFlags().gnss_lost = below_required || divergence_triggers_failsafe;
+	const bool block_arming = reporter.failsafeFlags().gnss_lost && (_param_com_gnssloss_act.get() > 0);
+	const NavModes nav_modes = block_arming ? NavModes::All : NavModes::None;
+	const events::Log log_level = block_arming ? events::Log::Error : events::Log::Warning;
 
 	if (below_required || dropped_below_peak) {
-		const bool block_arming = below_required  && (act_configured || !context.isArmed());
-		const NavModes nav_modes = block_arming ? NavModes::All : NavModes::None;
-		const events::Log log_level = block_arming ? events::Log::Error : events::Log::Warning;
-		const int expected = below_required ? _param_sys_has_num_gnss.get() : _peak_fixed_count;
+		const int expected = below_required ? _param_sys_has_num_gnss.get() : _peak_healthy_count;
 
 		for (int i = 0; i < expected; i++) {
 			if (!gps_online[i]) {
@@ -123,7 +136,7 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 								events::ID("check_gnss_receiver_offline"),
 								log_level, "GPS {1} offline", (uint8_t)i);
 
-			} else if (!gps_has_fix[i]) {
+			} else if (!gnss_healthy[i]) {
 				/* EVENT
 				 * @description
 				 * <profile name="dev">
@@ -132,17 +145,13 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 				 * </profile>
 				 */
 				reporter.healthFailure<uint8_t>(nav_modes, health_component_t::gps,
-								events::ID("check_gnss_receiver_no_fix"),
-								log_level, "GPS {1} lost fix", (uint8_t)i);
+								events::ID("check_gnss_receiver_unhealthy"),
+								log_level, "GNSS {1} fails its checks", (uint8_t)i);
 			}
 		}
 	}
 
 	if (_divergence_hysteresis.get_state()) {
-		const bool block_arming = divergence_triggers_failsafe && (act_configured || !context.isArmed());
-		const NavModes nav_modes = block_arming ? NavModes::All : NavModes::None;
-		const events::Log log_level = block_arming ? events::Log::Error : events::Log::Warning;
-
 		/* EVENT
 		 * @description
 		 * Two GNSS receivers report positions that are inconsistent with their reported accuracy.

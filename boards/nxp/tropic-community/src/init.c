@@ -47,7 +47,7 @@
 
 #include "board_config.h"
 
-#include <barriers.h>
+#include <arch/barriers.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -132,7 +132,7 @@ __EXPORT void board_peripheral_reset(int ms)
 __EXPORT void board_on_reset(int status)
 {
 	for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
-		px4_arch_configgpio(PX4_MAKE_GPIO_INPUT(io_timer_channel_get_gpio_output(i)));
+		px4_arch_configgpio(io_timer_channel_get_gpio_output(i));
 	}
 
 	/*
@@ -153,7 +153,7 @@ __EXPORT void board_on_reset(int status)
  ****************************************************************************/
 struct flexspi_nor_config_s g_bootConfig;
 
-locate_code(".ramfunc")
+locate_code(".ramfunc") __attribute__((noinline))
 void imxrt_flash_romapi_initialize(void)
 {
 	memcpy((struct flexspi_nor_config_s *)&g_bootConfig, &g_flash_config,
@@ -165,12 +165,12 @@ void imxrt_flash_romapi_initialize(void)
 	ROM_FLEXSPI_NorFlash_Init(NOR_INSTANCE, (struct flexspi_nor_config_s *)&g_bootConfig);
 	ROM_FLEXSPI_NorFlash_ClearCache(NOR_INSTANCE);
 
-	ARM_DSB();
-	ARM_ISB();
-	ARM_DMB();
+	arm_dsb();
+	arm_isb();
+	arm_dmb();
 }
 
-locate_code(".ramfunc")
+locate_code(".ramfunc") __attribute__((noinline))
 void imxrt_flash_setup_prefetch_partition(void)
 {
 //Prefetch tuning to be determined
@@ -212,9 +212,9 @@ void imxrt_flash_setup_prefetch_partition(void)
 				    FLEXSPI_AHBRXBUFCR0_REGIONEN(0);
 #endif
 
-	ARM_DSB();
-	ARM_ISB();
-	ARM_DMB();
+	arm_dsb();
+	arm_isb();
+	arm_dmb();
 }
 
 /****************************************************************************

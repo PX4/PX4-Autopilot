@@ -29,7 +29,7 @@ Used by: `commander` DAA arming checks, logging, and tests
 | <a id="fld_unique_id_encoding"></a>unique_id_encoding | `uint8`   |                                                                  |            | Namespace used to decode `unique_id`                                                                                                                                     |
 | <a id="fld_has_action"></a>has_action                                      | `bool`    |                                                                  |            | True if the configured DAA response for this most urgent conflict is stronger than Warn only                                                                             |
 | <a id="fld_conflict_level"></a>conflict_level                              | `uint8`   |                                                                  |            | Conflict level of the current most urgent active conflict                                                                                                                |
-| <a id="fld_aircraft_dist"></a>aircraft_dist                                | `float32` | 米                                                                |            | Approximate 3D range to the most urgent traffic aircraft (9999 when empty)                                                                            |
+| <a id="fld_aircraft_dist"></a>aircraft_dist                                | `float32` | m                                                                |            | Approximate 3D range to the most urgent traffic aircraft (9999 when empty)                                                                            |
 
 ## Constants
 

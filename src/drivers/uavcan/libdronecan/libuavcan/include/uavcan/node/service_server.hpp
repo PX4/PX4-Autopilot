@@ -103,6 +103,7 @@ private:
     PublisherType publisher_;
     Callback callback_;
     uint32_t response_failure_count_;
+    bool respond_on_request_iface_;
 
     virtual void handleReceivedDataStruct(ReceivedDataStructure<RequestType>& request) override
     {
@@ -123,6 +124,10 @@ private:
         if (response.isResponseEnabled())
         {
             publisher_.setPriority(request.getPriority());      // Responding at the same priority.
+
+            publisher_.setIfaceMask(respond_on_request_iface_ ?
+                                    uint8_t(1U << request.getIfaceIndex()) :
+                                    uint8_t(TransferSender::AllIfacesMask));
 
             const int res = publisher_.publish(response, TransferTypeServiceResponse, request.getSrcNodeID(),
                                                request.getTransferID());
@@ -145,6 +150,7 @@ public:
         , publisher_(node, getDefaultTxTimeout())
         , callback_()
         , response_failure_count_(0)
+        , respond_on_request_iface_(false)
     {
         UAVCAN_ASSERT(getTxTimeout() == getDefaultTxTimeout());  // Making sure it is valid
 
@@ -186,6 +192,12 @@ public:
 
     MonotonicDuration getTxTimeout() const { return publisher_.getTxTimeout(); }
     void setTxTimeout(MonotonicDuration tx_timeout) { publisher_.setTxTimeout(tx_timeout); }
+
+    /**
+     * Default false: responses go out on every CAN interface (UAVCAN v0 redundant-bus).
+     * Set true to reply only on the interface that carried the request.
+     */
+    void setRespondOnRequestIface(bool enable) { respond_on_request_iface_ = enable; }
 
     /**
      * Returns the number of failed attempts to decode data structs. Generally, a failed attempt means either:

@@ -93,7 +93,7 @@ void getControlMode(SetpointType setpoint_type, vehicle_control_mode_s &control_
 		control_mode.flag_control_attitude_enabled = true;
 		break;
 
-	case SetpointType::RoverPosition:
+	case SetpointType::SurfaceVehiclePosition:
 		control_mode.flag_control_allocation_enabled = true;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
@@ -101,40 +101,37 @@ void getControlMode(SetpointType setpoint_type, vehicle_control_mode_s &control_
 		control_mode.flag_control_position_enabled = true;
 		break;
 
-	case SetpointType::RoverSpeedAttitude:
+	case SetpointType::SurfaceVehicleSpeedAttitude:
 		control_mode.flag_control_allocation_enabled = true;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
 		control_mode.flag_control_velocity_enabled = true;
 		break;
 
-	case SetpointType::RoverSpeedRate:
+	case SetpointType::SurfaceVehicleSpeedRate:
 		control_mode.flag_control_allocation_enabled = true;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_velocity_enabled = true;
 		break;
 
-	case SetpointType::RoverSpeedSteering:
+	case SetpointType::SurfaceVehicleSpeedSteering:
 		control_mode.flag_control_allocation_enabled = true;
 		control_mode.flag_control_velocity_enabled = true;
 		break;
 
-	case SetpointType::RoverThrottleAttitude:
+	case SetpointType::SurfaceVehicleThrustAttitude:
 		control_mode.flag_control_allocation_enabled = true;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
-		control_mode.flag_control_velocity_enabled = true;
 		break;
 
-	case SetpointType::RoverThrottleRate:
+	case SetpointType::SurfaceVehicleThrustRate:
 		control_mode.flag_control_allocation_enabled = true;
 		control_mode.flag_control_rates_enabled = true;
-		control_mode.flag_control_velocity_enabled = true;
 		break;
 
-	case SetpointType::RoverThrottleSteering:
+	case SetpointType::SurfaceVehicleThrustSteering:
 		control_mode.flag_control_allocation_enabled = true;
-		control_mode.flag_control_velocity_enabled = true;
 		break;
 
 	case SetpointType::Trajectory_6dof:
@@ -164,7 +161,7 @@ void getControlMode(SetpointType setpoint_type, vehicle_control_mode_s &control_
 	}
 }
 
-SetpointTypeResult isSetpointTypeValid(SetpointType setpoint_type, uint8_t vehicle_type)
+SetpointTypeResult isSetpointTypeValid(SetpointType setpoint_type, uint8_t vehicle_type, bool is_vtol)
 {
 	switch (setpoint_type) {
 	case SetpointType::Invalid:
@@ -181,7 +178,7 @@ SetpointTypeResult isSetpointTypeValid(SetpointType setpoint_type, uint8_t vehic
 		return SetpointTypeResult::Unsupported;
 
 	case SetpointType::FixedwingLateralLongitudinal:
-		if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING || is_vtol) {
 			return SetpointTypeResult::Success;
 		}
 
@@ -192,13 +189,13 @@ SetpointTypeResult isSetpointTypeValid(SetpointType setpoint_type, uint8_t vehic
 	case SetpointType::Attitude:
 		return SetpointTypeResult::Success;
 
-	case SetpointType::RoverPosition:
-	case SetpointType::RoverSpeedAttitude:
-	case SetpointType::RoverSpeedRate:
-	case SetpointType::RoverSpeedSteering:
-	case SetpointType::RoverThrottleAttitude:
-	case SetpointType::RoverThrottleRate:
-	case SetpointType::RoverThrottleSteering:
+	case SetpointType::SurfaceVehiclePosition:
+	case SetpointType::SurfaceVehicleSpeedAttitude:
+	case SetpointType::SurfaceVehicleSpeedRate:
+	case SetpointType::SurfaceVehicleSpeedSteering:
+	case SetpointType::SurfaceVehicleThrustAttitude:
+	case SetpointType::SurfaceVehicleThrustRate:
+	case SetpointType::SurfaceVehicleThrustSteering:
 		if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
 			return SetpointTypeResult::Success;
 		}

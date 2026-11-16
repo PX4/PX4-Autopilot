@@ -383,6 +383,13 @@ ControlAllocator::Run()
 	if (_vehicle_torque_setpoint_sub.update(&vehicle_torque_setpoint)) {
 		_torque_sp = matrix::Vector3f(vehicle_torque_setpoint.xyz);
 
+		// the topic is also written externally; one non-finite component would reach every actuator
+		for (int i = 0; i < 3; i++) {
+			if (!PX4_ISFINITE(_torque_sp(i))) {
+				_torque_sp(i) = 0.f;
+			}
+		}
+
 		do_update = true;
 		_timestamp_sample = vehicle_torque_setpoint.timestamp_sample;
 
@@ -412,16 +419,18 @@ ControlAllocator::Run()
 		c[0](5) = _thrust_sp(2);
 
 		if (_num_control_allocation > 1) {
+			// The second instance has no NaN based motor stopping (stopMotorsBasedOnThrustSetpoint only reads the
+			// first thrust setpoint), so a non-finite component here carries no meaning and is zeroed.
 			if (_vehicle_torque_setpoint1_sub.copy(&vehicle_torque_setpoint)) {
-				c[1](0) = vehicle_torque_setpoint.xyz[0];
-				c[1](1) = vehicle_torque_setpoint.xyz[1];
-				c[1](2) = vehicle_torque_setpoint.xyz[2];
+				for (int i = 0; i < 3; i++) {
+					c[1](i) = PX4_ISFINITE(vehicle_torque_setpoint.xyz[i]) ? vehicle_torque_setpoint.xyz[i] : 0.f;
+				}
 			}
 
 			if (_vehicle_thrust_setpoint1_sub.copy(&vehicle_thrust_setpoint)) {
-				c[1](3) = vehicle_thrust_setpoint.xyz[0];
-				c[1](4) = vehicle_thrust_setpoint.xyz[1];
-				c[1](5) = vehicle_thrust_setpoint.xyz[2];
+				for (int i = 0; i < 3; i++) {
+					c[1](3 + i) = PX4_ISFINITE(vehicle_thrust_setpoint.xyz[i]) ? vehicle_thrust_setpoint.xyz[i] : 0.f;
+				}
 			}
 		}
 
@@ -447,6 +456,8 @@ ControlAllocator::Run()
 			}
 
 			_control_allocation[i]->clipActuatorSetpoint();
+
+			check_allocation_health(i);
 		}
 	}
 
@@ -635,6 +646,23 @@ ControlAllocator::handle_stopped_motors(const hrt_abstime now)
 }
 
 void
+ControlAllocator::check_allocation_health(int matrix_index)
+{
+	const uint8_t dropped_axes = _control_allocation[matrix_index]->getDroppedAxes();
+
+	if (dropped_axes != _dropped_axes_reported[matrix_index]) {
+		_dropped_axes_reported[matrix_index] = dropped_axes;
+
+		if (dropped_axes != 0) {
+			PX4_WARN("Control allocation %i: dropped dependent control axes 0x%x", matrix_index, dropped_axes);
+
+		} else {
+			PX4_INFO("Control allocation %i: all control axes restored", matrix_index);
+		}
+	}
+}
+
+void
 ControlAllocator::publish_control_allocator_status(int matrix_index)
 {
 	control_allocator_status_s control_allocator_status{};
@@ -706,7 +734,7 @@ ControlAllocator::get_ice_shedding_output(hrt_abstime now)
 
 	} else {
 		// Square wave output
-		const float elapsed_in_period = fmodf(static_cast<float>(now) / 1_s, period_sec);
+		const float elapsed_in_period = fmodf(static_cast<float>(now) * 1e-6f, period_sec);
 		const float ice_shedding_output = elapsed_in_period < ICE_SHEDDING_ON_SEC ? ICE_SHEDDING_OUTPUT : 0.0f;
 
 		return ice_shedding_output;
@@ -1031,6 +1059,10 @@ int ControlAllocator::print_status()
 
 		printf("\n");
 		PX4_INFO("  Configured actuators: %i", num_configured);
+
+		if (_control_allocation[i]->getDroppedAxes() != 0) {
+			PX4_INFO("  Dropped control axes: 0x%x", _control_allocation[i]->getDroppedAxes());
+		}
 	}
 
 	if (_handled_motor_failure_bitmask) {

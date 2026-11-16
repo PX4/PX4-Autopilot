@@ -31,6 +31,12 @@ The vehicle will first ascend to [NAV_MIN_LTR_ALT](#NAV_MIN_LTR_ALT) if the mode
 
 Stick movement will change the vehicle to [Position mode](../flight_modes_mc/position.md) (by [default](#MAN_OVERRIDE_SPD)).
 
+If a region of interest (ROI) location is set, for example with [MAV_CMD_DO_SET_ROI_LOCATION](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_ROI_LOCATION), the vehicle yaws so that its nose points towards it.
+The heading keeps tracking the ROI while the vehicle holds or repositions, and stops updating when the vehicle is within the acceptance radius of the ROI.
+Clearing the ROI with [MAV_CMD_DO_SET_ROI_NONE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_ROI_NONE) leaves the vehicle at its last heading.
+A [MAV_CMD_DO_REPOSITION](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_REPOSITION) with an explicit yaw sent after the ROI overrides ROI tracking until the next ROI command.
+Set [MIS_MNT_YAW_CTL](#MIS_MNT_YAW_CTL) to yaw a gimbal towards the ROI instead of the vehicle.
+
 <!-- AUTO-GENERATED: mode_requirements_rotary_wing_auto_loiter -->
 
 ### Mode Requirements
@@ -55,6 +61,7 @@ Hold mode behaviour can be configured using the parameters below.
 | <a id="NAV_MIN_LTR_ALT"></a>[NAV_MIN_LTR_ALT](../advanced_config/parameter_reference.md#NAV_MIN_LTR_ALT) | This is the minimum altitude above Home the system will always obey in Hold mode if switched into this mode without specifying an altitude (e.g. through switch on RC).                                                                                                                                                                                                                                                                                                                                                                                                             |
 | <a id="MAN_OVERRIDE_SPD"></a>[MAN_OVERRIDE_SPD](../advanced_config/parameter_reference.md#MAN_OVERRIDE_SPD)                   | Speed (normalized stick travel per second) above which moving the sticks controlling a multicopter (or VTOL in hover) gives control back to the pilot by switching to [Position mode](../flight_modes_mc/position.md) (or Altitude mode if position is unavailable). At the default value of 1 a half-stick movement in ~0.5 s triggers it; lower is more sensitive. A stick held statically has zero speed and will not trigger. Set to -1 to disable. <Badge type="tip" text="PX4 v1.18" /> |
 | <a id="MPC_AUTO_NUDGING"></a>[MPC_AUTO_NUDGING](../advanced_config/parameter_reference.md#MPC_AUTO_NUDGING)                   | Bitmask enabling stick nudging in Auto modes (multicopter). Bit 0 (yaw nudging) lets the yaw stick nudge heading in Hold, held when the stick is released; switching flight mode clears the held heading. Requires stick override to be disabled ([MAN_OVERRIDE_SPD](#MAN_OVERRIDE_SPD) = -1).                                                                                                                                                                                                      |
+| <a id="MIS_MNT_YAW_CTL"></a>[MIS_MNT_YAW_CTL](../advanced_config/parameter_reference.md#MIS_MNT_YAW_CTL) | If disabled (default), the vehicle yaws towards an active ROI location. If enabled, the gimbal yaws towards the ROI and the vehicle keeps its heading.                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 
 <!-- Code for this here: https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/navigator/loiter.cpp#L61 -->
 

@@ -44,6 +44,7 @@ add_library(px4_platform STATIC
 	board_common.c
 	board_identity.c
 	external_reset_lockout.cpp
+	hrt.cpp
 	i2c.cpp
 	i2c_spi_buses.cpp
 	module.cpp
@@ -51,6 +52,7 @@ add_library(px4_platform STATIC
 	px4_getopt.c
 	px4_cli.cpp
 	shutdown.cpp
+	sleep.cpp
 	spi.cpp
 	pab_manifest.c
 	Serial.cpp

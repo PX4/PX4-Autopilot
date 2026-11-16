@@ -33,6 +33,7 @@
 
 #include "geofence_utils.h"
 #include <lib/geo/geo.h>
+#include <lib/mathlib/mathlib.h>
 
 namespace geofence_utils
 {
@@ -45,9 +46,46 @@ int32_t metersToCm(float m) { return roundf(m * CM_PER_M); }
 } // namespace
 
 
+bool PlannerPolygons::allocate(int max_nodes)
+{
+	freeBuffers();
+
+	if (max_nodes > 0) {
+		_x_cm = new int32_t[max_nodes];
+		_y_cm = new int32_t[max_nodes];
+		_node_not_on_optimal_path = new bool[max_nodes];
+
+		if (_x_cm != nullptr && _y_cm != nullptr && _node_not_on_optimal_path != nullptr) {
+			_max_nodes = max_nodes;
+
+		} else {
+			freeBuffers();
+		}
+	}
+
+	reset();
+
+	return _max_nodes == max_nodes;
+}
+
+void PlannerPolygons::freeBuffers()
+{
+	delete[] _x_cm;
+	delete[] _y_cm;
+	delete[] _node_not_on_optimal_path;
+	_x_cm = nullptr;
+	_y_cm = nullptr;
+	_node_not_on_optimal_path = nullptr;
+	_max_nodes = 0;
+}
+
 void PlannerPolygons::setNode(int idx, const matrix::Vector2f &p)
 {
-	idx = math::constrain(idx, 0, kMaxNodes - 1);
+	if (_max_nodes < 1) {
+		return;
+	}
+
+	idx = math::constrain(idx, 0, _max_nodes - 1);
 
 	_x_cm[idx] = metersToCm(p(0));
 	_y_cm[idx] = metersToCm(p(1));
@@ -56,7 +94,7 @@ void PlannerPolygons::setNode(int idx, const matrix::Vector2f &p)
 PlannerPolygons::AddResult PlannerPolygons::addPolygon(const matrix::Vector2f *vertices_in, int num_vertices,
 		bool is_inclusion_zone, float margin)
 {
-	if (_num_polygons >= kMaxPolygons || _num_nodes + num_vertices > kMaxNodes) {
+	if (_num_polygons >= kMaxPolygons || _num_nodes + num_vertices > _max_nodes) {
 		return AddResult::BudgetExceeded;
 	}
 
@@ -157,7 +195,7 @@ PlannerPolygons::AddResult PlannerPolygons::addPolygon(const matrix::Vector2f *v
 
 		// If we do not have enough space, do not split the vertex.
 		// This never happens if the planner-internal node buffer is 2x the original buffer.
-		const bool space_for_split_vertices = _num_nodes + out_idx + 1 < kMaxNodes;
+		const bool space_for_split_vertices = _num_nodes + out_idx + 1 < _max_nodes;
 
 		if (corner_convex && angle_sharp && margin_nonzero && space_for_split_vertices) {
 
@@ -221,7 +259,7 @@ PlannerPolygons::AddResult PlannerPolygons::addApproxCircle(const matrix::Vector
 	// planner into all controllers, which would then have to also fly
 	// loiter segments, not just pure waypoint sequences.
 
-	if (_num_polygons >= kMaxPolygons || _num_nodes + kCircleApproxVertices > kMaxNodes) {
+	if (_num_polygons >= kMaxPolygons || _num_nodes + kCircleApproxVertices > _max_nodes) {
 		return AddResult::BudgetExceeded;
 	}
 
@@ -476,6 +514,10 @@ bool PlannerPolygons::setDestination(const matrix::Vector2f &p)
 
 matrix::Vector2f PlannerPolygons::getDestination() const
 {
+	if (_max_nodes < 1) {
+		return matrix::Vector2f{NAN, NAN};
+	}
+
 	return node(destIndex());
 }
 
@@ -511,6 +553,51 @@ float PlannerPolygons::edgeCost(int a, int b) const
 	return edgeVisible(a, b) ? (node(a) - node(b)).norm() : INFINITY;
 }
 
+
+bool segmentsIntersectInclusive(const matrix::Vector2d &a, const matrix::Vector2d &b,
+				const matrix::Vector2d &c, const matrix::Vector2d &d)
+{
+	// Reject separated bounds, including gaps between collinear segments.
+	for (int axis = 0; axis < 2; ++axis) {
+		if (math::max(a(axis), b(axis)) < math::min(c(axis), d(axis))
+		    || math::max(c(axis), d(axis)) < math::min(a(axis), b(axis))) {
+			return false;
+		}
+	}
+
+	const matrix::Vector2d ab = b - a;
+	const matrix::Vector2d cd = d - c;
+	const double side_c = ab.cross(c - a);
+	const double side_d = ab.cross(d - a);
+	const double side_a = cd.cross(a - c);
+	const double side_b = cd.cross(b - c);
+
+	// Each segment must cross or touch the line through the other segment.
+	return ((side_c <= 0.0 && side_d >= 0.0) || (side_c >= 0.0 && side_d <= 0.0))
+	       && ((side_a <= 0.0 && side_b >= 0.0) || (side_a >= 0.0 && side_b <= 0.0));
+}
+
+double pointToSegmentDistanceSquared(const matrix::Vector2d &point,
+				     const matrix::Vector2d &a, const matrix::Vector2d &b)
+{
+	const matrix::Vector2d direction = b - a;
+	const matrix::Vector2d to_point = point - a;
+	const double length_squared = direction.norm_squared();
+	// along / length_squared locates the projection: 0 at a, 1 at b.
+	const double along = to_point.dot(direction);
+
+	if (along <= 0.0) {
+		return to_point.norm_squared();
+
+	} else if (along >= length_squared) {
+		return (point - b).norm_squared();
+	}
+
+	// Squared distance to the line: |to_point x direction|^2 / |direction|^2.
+	// https://mathworld.wolfram.com/2-DimensionalPoint-LineDistance.html
+	const double cross = to_point.cross(direction);
+	return cross * cross / length_squared;
+}
 
 bool isPolygonCCW(const matrix::Vector2f *vertices, int num_vertices)
 {

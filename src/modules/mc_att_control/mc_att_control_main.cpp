@@ -151,10 +151,13 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt)
 
 	if (arming_gesture) {
 		_yaw_setpoint_stabilized = NAN;
+		_stick_yaw.resetYawspeed();
 	}
 
 	const float yaw = Eulerf(q).psi();
-	const float yaw_stick_input = Sticks::expoDeadzone(_manual_control_setpoint.yaw, .6f, _param_man_deadzone.get());
+	const float yaw_stick_input = arming_gesture
+				      ? 0.f
+				      : Sticks::expoDeadzone(_manual_control_setpoint.yaw, .6f, _param_man_deadzone.get());
 	_stick_yaw.generateYawSetpoint(attitude_setpoint.yaw_sp_move_rate, _yaw_setpoint_stabilized, yaw_stick_input, yaw, dt,
 				       _unaided_heading);
 
@@ -270,7 +273,14 @@ MulticopterAttitudeControl::Run()
 				_vtol_tailsitter = vehicle_status.is_vtol_tailsitter;
 
 				const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-				_spooled_up = armed && hrt_elapsed_time(&vehicle_status.armed_time) > _param_com_spoolup_time.get() * 1_s;
+
+				if (!armed) {
+					_spooled_up = false;
+
+				} else if (!_spooled_up) {
+					// Keep the spool-up state latched until disarm.
+					_spooled_up = hrt_elapsed_time(&vehicle_status.armed_time) > _param_com_spoolup_time.get() * 1_s;
+				}
 			}
 		}
 
@@ -323,10 +333,13 @@ MulticopterAttitudeControl::Run()
 					const float setpoint_dt = (_last_attitude_setpoint > 0)
 								  ? (vehicle_attitude_setpoint.timestamp - _last_attitude_setpoint) * 1e-6f
 								  : -1.f;
-					_attitude_control.setAttitudeSetpoint(Quatf(vehicle_attitude_setpoint.q_d),
-									      vehicle_attitude_setpoint.yaw_sp_move_rate, setpoint_dt);
-					_thrust_setpoint_body = Vector3f(vehicle_attitude_setpoint.thrust_body);
-					_last_attitude_setpoint = vehicle_attitude_setpoint.timestamp;
+
+					// Drop the whole message if its attitude is invalid: its thrust cannot be trusted either
+					if (_attitude_control.setAttitudeSetpoint(Quatf(vehicle_attitude_setpoint.q_d),
+							vehicle_attitude_setpoint.yaw_sp_move_rate, setpoint_dt)) {
+						_thrust_setpoint_body = Vector3f(vehicle_attitude_setpoint.thrust_body);
+						_last_attitude_setpoint = vehicle_attitude_setpoint.timestamp;
+					}
 				}
 			}
 
@@ -353,16 +366,16 @@ MulticopterAttitudeControl::Run()
 			Vector3f rates_sp = _attitude_control.update(q);
 
 			const hrt_abstime now = hrt_absolute_time();
-			autotune_attitude_control_status_s pid_autotune;
 
-			if (_autotune_attitude_control_status_sub.copy(&pid_autotune)) {
-				if ((pid_autotune.state == autotune_attitude_control_status_s::STATE_ROLL
-				     || pid_autotune.state == autotune_attitude_control_status_s::STATE_PITCH
-				     || pid_autotune.state == autotune_attitude_control_status_s::STATE_YAW
-				     || pid_autotune.state == autotune_attitude_control_status_s::STATE_TEST)
-				    && ((now - pid_autotune.timestamp) < 1_s)) {
-					rates_sp += Vector3f(pid_autotune.rate_sp);
-				}
+			// the status is only published while autotuning, so copy it only when it changed
+			_autotune_attitude_control_status_sub.update(&_pid_autotune);
+
+			if ((_pid_autotune.state == autotune_attitude_control_status_s::STATE_ROLL
+			     || _pid_autotune.state == autotune_attitude_control_status_s::STATE_PITCH
+			     || _pid_autotune.state == autotune_attitude_control_status_s::STATE_YAW
+			     || _pid_autotune.state == autotune_attitude_control_status_s::STATE_TEST)
+			    && ((now - _pid_autotune.timestamp) < 1_s)) {
+				rates_sp += Vector3f(_pid_autotune.rate_sp);
 			}
 
 			// publish rate setpoint

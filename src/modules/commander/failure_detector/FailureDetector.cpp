@@ -50,7 +50,9 @@ FailureDetector::FailureDetector(ModuleParams *parent) :
 
 bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehicle_control_mode_s &vehicle_control_mode)
 {
-	_failure_injector.update();
+	if (_failure_injection_config.update()) {
+		_injected_motor_masks = failure_injection::process_motor(_failure_injection_config);
+	}
 
 	failure_detector_status_u status_prev = _failure_detector_status;
 
@@ -81,6 +83,8 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 
 void FailureDetector::publishStatus(bool esc_arm_status, uint16_t motor_failure_mask)
 {
+	const uint16_t injected_motor_failure_mask = _injected_motor_masks.failure_mask;
+
 	failure_detector_status_s failure_detector_status{};
 	failure_detector_status.fd_roll = _failure_detector_status.flags.roll;
 	failure_detector_status.fd_pitch = _failure_detector_status.flags.pitch;
@@ -89,10 +93,10 @@ void FailureDetector::publishStatus(bool esc_arm_status, uint16_t motor_failure_
 	failure_detector_status.fd_arm_escs = esc_arm_status || (motor_failure_mask != 0);
 	failure_detector_status.fd_battery = _failure_detector_status.flags.battery;
 	failure_detector_status.fd_imbalanced_prop = _failure_detector_status.flags.imbalanced_prop;
-	failure_detector_status.fd_motor = (motor_failure_mask != 0);
+	failure_detector_status.fd_motor = (motor_failure_mask != 0) || (injected_motor_failure_mask != 0);
 	failure_detector_status.imbalanced_prop_metric = _imbalanced_prop_lpf.getState();
-	failure_detector_status.motor_failure_mask = motor_failure_mask;
-	failure_detector_status.motor_stop_mask = _failure_injector.getMotorStopMask();
+	failure_detector_status.motor_failure_mask = motor_failure_mask | injected_motor_failure_mask;
+	failure_detector_status.motor_stop_mask = _injected_motor_masks.stop_mask;
 	failure_detector_status.timestamp = hrt_absolute_time();
 	_failure_detector_status_pub.publish(failure_detector_status);
 }
@@ -174,14 +178,46 @@ void FailureDetector::updateAltitudeStatus(const vehicle_status_s &vehicle_statu
 
 	const hrt_abstime now = hrt_absolute_time();
 
-	if (lpos.z > lpos_sp.z) {
-		// Ratcheting NED-z reference: tracks the highest altitude reached while below setpoint.
+	const float dt = (_alt_loss_timestamp_prev > 0 && lpos.timestamp > _alt_loss_timestamp_prev)
+			 ? math::min((lpos.timestamp - _alt_loss_timestamp_prev) * 1e-6f, 1.f) : 0.f;
+	_alt_loss_timestamp_prev = lpos.timestamp;
+
+	// A commanded descent lowers the reference with a margin on the descent rate, so a small velocity tracking
+	// error does not accumulate into a trigger over a long descent.
+	// A stale setpoint must not keep lowering the reference, as that could mask a real altitude loss.
+	const bool setpoint_fresh = lpos.timestamp < lpos_sp.timestamp + kAltLossSetpointTimeout;
+	const float commanded_descent_rate = (setpoint_fresh && PX4_ISFINITE(lpos_sp.vz) && lpos_sp.vz > 0.f)
+					     ? lpos_sp.vz + kAltLossDescentRateMargin : 0.f;
+
+	bool reference_valid = false;
+
+	if (PX4_ISFINITE(lpos_sp.z)) {
+		if (lpos.z > lpos_sp.z
+		    || (lpos.v_z_valid && lpos.vz > commanded_descent_rate)) {
+			// Ratcheting NED-z reference: tracks the highest altitude reached while below setpoint, or while
+			// falling faster than allowed.
+			if (!PX4_ISFINITE(_alt_loss_ref_z)) {
+				_alt_loss_ref_z = lpos.z;
+			}
+
+			// The setpoint must not drag the reference down, emergency braking keeps it on the vehicle
+			_alt_loss_ref_z = math::min(_alt_loss_ref_z + commanded_descent_rate * dt, lpos.z);
+			reference_valid = true;
+		}
+
+	} else if (PX4_ISFINITE(lpos_sp.vz)) {
+		// No height target (e.g. pilot moving the throttle stick): the reference remembers the highest
+		// altitude reached and only moves down at the commanded descent rate, so a climb or hold command
+		// keeps it fixed.
 		if (!PX4_ISFINITE(_alt_loss_ref_z)) {
 			_alt_loss_ref_z = lpos.z;
 		}
 
-		_alt_loss_ref_z = math::constrain(_alt_loss_ref_z, lpos_sp.z, lpos.z);
+		_alt_loss_ref_z = math::min(_alt_loss_ref_z + commanded_descent_rate * dt, lpos.z);
+		reference_valid = true;
+	}
 
+	if (reference_valid) {
 		const bool is_below_threshold = (lpos.z - _alt_loss_ref_z) > threshold;
 		_alt_loss_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_alt_loss_ttri.get()));
 		_alt_loss_hysteresis.set_state_and_update(is_below_threshold, now);
@@ -250,10 +286,10 @@ void FailureDetector::updateImbalancedPropStatus()
 
 			if ((imu_status.accel_device_id != 0)
 			    && (imu_status.accel_device_id == _selected_accel_device_id)) {
-				const float dt = math::constrain((imu_status.timestamp - _imu_status_timestamp_prev) * 1e-6f, 0.01f, 1.f);
+				const hrt_abstime dt_us = math::constrain(imu_status.timestamp - _imu_status_timestamp_prev, 10_ms, 1_s);
 				_imu_status_timestamp_prev = imu_status.timestamp;
 
-				_imbalanced_prop_lpf.setParameters(dt, _imbalanced_prop_lpf_time_constant);
+				_imbalanced_prop_lpf.setParameters(dt_us, _imbalanced_prop_lpf_time_constant);
 
 				const float std_x = sqrtf(math::max(imu_status.var_accel[0], 0.f));
 				const float std_y = sqrtf(math::max(imu_status.var_accel[1], 0.f));

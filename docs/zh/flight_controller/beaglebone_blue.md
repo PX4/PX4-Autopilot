@@ -1,6 +1,6 @@
 # BeagleBone Blue
 
-<LinkedBadge type="warning" text="Experimental" url="../flight_controller/autopilot_experimental.md"/>
+[<Badge type="warning" text="Experimental"/>](../flight_controller/autopilot_experimental.md)
 
 :::warning
 PX4 does not manufacture this (or any) autopilot.
@@ -120,7 +120,7 @@ echo "PermitRootLogin yes" >>  /etc/ssh/sshd_config && systemctl restart sshd
          cd /opt/bbblue_toolchain/gcc-arm-linux-gnueabihf
          ```
 
-         The ARM Cross Compiler for _BeagleBone Blue_ can be found at the [Arm GNU Toolchain Downloads](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads) site (the official successor to the Linaro toolchain releases previously used here).
+         The ARM Cross Compiler for _BeagleBone Blue_ can be found at the [Arm GNU Toolchain Downloads](https://gitlab.arm.com/tooling/gnu-toolchains-for-arm) site (the official successor to the Linaro toolchain releases previously used here).
 
          ::: tip
          GCC in the toolchain should be compatible with kernel in _BeagleBone Blue_.
@@ -130,7 +130,7 @@ echo "PermitRootLogin yes" >>  /etc/ssh/sshd_config && systemctl restart sshd
 
          Download and unpack [arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-linux-gnueabihf.tar.xz](https://developer.arm.com/-/media/Files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-linux-gnueabihf.tar.xz) to the bbblue_toolchain folder.
 
-         Different ARM Cross Compiler versions for _BeagleBone Blue_ can be found at the [Arm GNU Toolchain Downloads](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads) site.
+         Different ARM Cross Compiler versions for _BeagleBone Blue_ can be found at the [Arm GNU Toolchain Downloads](https://gitlab.arm.com/tooling/gnu-toolchains-for-arm) site.
 
          ```sh
          wget https://developer.arm.com/-/media/Files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-linux-gnueabihf.tar.xz
@@ -311,8 +311,7 @@ UARTs on BeagleBone Blue can only work with non-inverted 3.3V level signal.
 
 For a quadcopter with GPS and an SBUS receiver, here are typical connections:
 
-1. 将电机 1,2,3 和 4 的电调连接到伺服输出的通道 1,2,3和4 分别在 BeagleBone Blue 上。
-   如果您的电调连接器包含电源输出引脚，将其移除，不要将其连接到伺服通道的电源输出引脚在 BeagleBone Blue 上。
+1. 将电机 1,2,3 和 4 的电调连接到伺服输出的通道 1,2,3和4 分别在 BeagleBone Blue 上。如果您的电调连接器包含电源输出引脚，将其移除，不要将其连接到伺服通道的电源输出引脚在 BeagleBone Blue 上。
 2. Connect the above mentioned converted SBUS signal to the dsm2 port if you have the matching connector for dsm2, otherwise connect it to any other available UART port and change the corresponding port in **/home/debian/px4/px4.config** accordingly.
 3. 将 GPS 模块的信号连接到 BeagleBone Blue 上的 GPS 端口。
    Note that the signal pins of the GPS port on the BeagleBone Blue are only 3.3V tolerant, so choose your GPS module accordingly.

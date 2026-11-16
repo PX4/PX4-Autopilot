@@ -106,7 +106,11 @@ private:
 	DShot operator=(const DShot &) = delete;
 
 	bool initialize_dshot();
-	void init_telemetry(const char *device, bool swap_rxtx);
+	/**
+	 * Initialize serial telemetry and the ESC settings handlers.
+	 * @return false if the request has to be retried later
+	 */
+	bool init_telemetry(const char *device, bool swap_rxtx);
 
 	// Map output channel to motor index [0..DSHOT_MAX_MOTORS-1], or -1 if not a motor
 	int motor_index_from_output(int output_channel) const
@@ -122,6 +126,7 @@ private:
 	void update_motor_outputs(uint16_t *outputs, int num_outputs);
 	void update_motor_commands(int num_outputs);
 	void select_next_command();
+	void clear_edt_confirmation(int motor_index);
 
 	bool set_next_telemetry_index(); // Returns true when the telemetry index has wrapped, indicating all configured motors have been sampled.
 	bool process_serial_telemetry();
@@ -171,8 +176,15 @@ private:
 	uint32_t _serial_telem_online_mask = 0; // Mask indicating telem receive status for serial telem
 	uint32_t _serial_telem_errors[DSHOT_MAX_MOTORS] = {};
 	uint32_t _bdshot_telem_errors[DSHOT_MAX_MOTORS] = {};
-	uint16_t _bdshot_edt_requested_mask = 0;
-	uint16_t _settings_requested_mask = 0;
+
+	// EDT enable is acked with a state/event frame, but any EDT frame proves it took. Retry until one arrives,
+	// giving up until reconnect or disarm so ESCs without EDT do not get a command burst every second.
+	static constexpr int BDSHOT_EDT_MAX_ATTEMPTS = 5;
+	static constexpr hrt_abstime BDSHOT_EDT_RETRY_INTERVAL = 1_s;
+	uint16_t _bdshot_edt_confirmed_mask = 0;
+	uint8_t _bdshot_edt_attempts[DSHOT_MAX_MOTORS] = {};
+	hrt_abstime _bdshot_edt_last_request[DSHOT_MAX_MOTORS] = {};
+	bool _armed_prev = false;
 
 	// Array of timestamps indicating when the telemetry came online
 	hrt_abstime _serial_telem_online_timestamps[DSHOT_MAX_MOTORS] = {};
@@ -225,6 +237,7 @@ private:
 		int num_repetitions{0};
 		uint16_t motor_mask{(1u << DSHOT_MAXIMUM_CHANNELS) - 1};
 		bool save{false};
+		bool is_save{false}; // programming address and value frames can also carry DSHOT_CMD_SAVE_SETTINGS
 		bool expect_response{false};
 
 		bool finished() const { return num_repetitions == 0; }
@@ -234,6 +247,7 @@ private:
 			num_repetitions = 0;
 			motor_mask = 0;
 			save = false;
+			is_save = false;
 			expect_response = false;
 		}
 	};

@@ -78,6 +78,7 @@ function(px4_os_add_flags)
 		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/arch/${CONFIG_ARCH}/src/common
 
 		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/apps/include
+		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/include
 	)
 
 
@@ -171,12 +172,18 @@ function(px4_os_determine_build_chip)
 	elseif(CONFIG_ARCH_CHIP_S32K344)
 		set(CHIP_MANUFACTURER "nxp")
 		set(CHIP "s32k34x")
+	elseif(CONFIG_ARCH_CHIP_IMX95_M7)
+		set(CHIP_MANUFACTURER "nxp")
+		set(CHIP "imx95")
 	elseif(CONFIG_ARCH_CHIP_RP2040)
 		set(CHIP_MANUFACTURER "rpi")
 		set(CHIP "rp2040")
 	elseif(CONFIG_ARCH_CHIP_ESP32)
 		set(CHIP_MANUFACTURER "espressif")
 		set(CHIP "esp32")
+	elseif(CONFIG_ARCH_CHIP_ERBIUM)
+		set(CHIP_MANUFACTURER "aifoundry")
+		set(CHIP "erbium")
 	else()
 		message(FATAL_ERROR "Could not determine chip architecture from NuttX config. You may have to add it.")
 	endif()

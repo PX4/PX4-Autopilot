@@ -65,13 +65,13 @@ public:
 		      float thr_noise = 0.f);
 
 private:
-	ZeroOrderHoverThrustEkf _ekf{};
 	static constexpr float _dt = 0.02f;
 
 	std::normal_distribution<float> _standard_normal_distribution;
 	std::default_random_engine _random_generator; // Pseudo-random generator with constant seed
 
 protected:
+	ZeroOrderHoverThrustEkf _ekf{};
 	static constexpr float _accel_noise_var_min = 1.f; // Constrained in the implementation
 };
 
@@ -220,4 +220,39 @@ TEST_F(ZeroOrderHoverThrustEkfTest, testHoverThrustJump)
 	EXPECT_NEAR(status.hover_thrust_var, 0.f, 1e-3f);
 	// After a recovery, the noise variance estimate takes more time to converge back to the true value
 	EXPECT_NEAR(status.accel_noise_var, accel_var, 2.f * accel_var);
+}
+
+TEST_F(ZeroOrderHoverThrustEkfTest, testMinMaxHoverThrustClamping)
+{
+	// GIVEN: a min/max band requested outside the class's own absolute safe range
+	_ekf.setMinHoverThrust(-1.f);
+	_ekf.setMaxHoverThrust(2.f);
+
+	// WHEN: the hover thrust is (re-)initialized at either edge of [0, 1]
+	_ekf.setHoverThrust(0.f);
+
+	// THEN: the state is clamped to the absolute lower bound, never 0
+	EXPECT_GE(_ekf.getHoverThrustEstimate(), 0.1f);
+
+	_ekf.setHoverThrust(1.f);
+
+	// THEN: the state is clamped to the absolute upper bound
+	EXPECT_LE(_ekf.getHoverThrustEstimate(), 0.9f);
+}
+
+TEST_F(ZeroOrderHoverThrustEkfTest, testHoverThrustNeverReachesZero)
+{
+	// GIVEN: a low MPC_THR_HOVER with the default HTE_THR_RANGE, which used to collapse
+	// the estimator's minimum bound to 0 (division by hover thrust would then produce NaN/inf)
+	const float mpc_thr_hover = 0.1f;
+	const float hte_thr_range = 0.2f;
+	_ekf.setMinHoverThrust(mpc_thr_hover - hte_thr_range);
+	_ekf.setMaxHoverThrust(mpc_thr_hover + hte_thr_range);
+	_ekf.setHoverThrust(mpc_thr_hover);
+
+	// WHEN: the true hover thrust is below the achievable band, driving the estimate towards its floor
+	ZeroOrderHoverThrustEkfTest::Status status = runEkf(0.05f, 0.02f, 5.f);
+
+	// THEN: the estimate is pinned at the absolute floor instead of collapsing to (or past) 0
+	EXPECT_NEAR(status.hover_thrust, 0.1f, 1e-2f);
 }

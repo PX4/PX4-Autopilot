@@ -7,9 +7,7 @@ It may or may not work with current versions of PX4.
 See [Toolchain Installation](../dev_setup/dev_env.md) for information about the environments and tools supported by the core development team.
 :::
 
-[JSBSim](https://jsbsim.sourceforge.net/index.html)是一款开源飞行仿真器（“飞行动力学模型”，FDM），可运行于 Microsoft Windows、Apple Macintosh、Linux、IRIX、Cygwin（Windows 上的 Unix 环境）等平台。
-其功能包括完全可配置的空气动力学和推进系统，可对飞行器的复杂飞行动力学进行建模。
-动力学模型还考虑了地球自转效应。
+[JSBSim](https://jsbsim.sourceforge.net/index.html)是一款开源飞行仿真器（“飞行动力学模型”，FDM），可运行于 Microsoft Windows、Apple Macintosh、Linux、IRIX、Cygwin（Windows 上的 Unix 环境）等平台。其功能包括完全可配置的空气动力学和推进系统，可对飞行器的复杂飞行动力学进行建模。动力学模型还考虑了地球自转效应。
 
 支持的飞行器：固定翼飞机、四旋翼飞行器、六旋翼飞行器
 
@@ -33,8 +31,7 @@ These instructions were tested on Ubuntu 18.04
    dpkg -i JSBSim-devel_1.1.0.dev1-<release-number>.bionic.amd64.deb
    ```
 
-3. （可选）可使用 FlightGear 进行可视化。
-   如需安装 FlightGear，请参阅 FlightGear 安装说明(../sim_flightgear/index.md))。
+3. （可选）可使用 FlightGear 进行可视化。如需安装 FlightGear，请参阅 FlightGear 安装说明(../sim_flightgear/index.md))。
 
 ## Running the Simulation
 
@@ -45,8 +42,7 @@ cd /path/to/PX4-Autopilot
 make px4_sitl jsbsim
 ```
 
-这将同时运行 PX4 SITL 实例和 FlightGear 用户界面（用于可视化）。
-如果希望在不启动 FlightGear 用户界面的情况下运行，可在 make 命令前添加 HEADLESS=1。
+这将同时运行 PX4 SITL 实例和 FlightGear 用户界面（用于可视化）。如果希望在不启动 FlightGear 用户界面的情况下运行，可在 make 命令前添加 HEADLESS=1。
 
 The supported vehicles and `make` commands are listed below (click on the links to see the vehicle images).
 

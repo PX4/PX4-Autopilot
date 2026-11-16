@@ -42,8 +42,9 @@
 
 #pragma once
 
-#include "FailureInjector.hpp"
+#include <lib/failure_injection/FailureInjection.hpp>
 
+#include <drivers/drv_hrt.h>
 #include <lib/hysteresis/hysteresis.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
@@ -63,6 +64,8 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
+
+using namespace time_literals;
 
 union failure_detector_status_u {
 	struct {
@@ -105,8 +108,11 @@ private:
 
 	float _alt_loss_ref_z{NAN}; // ratcheting NED-z reference for altitude loss detection
 	uint8_t _alt_loss_z_reset_counter{0}; // tracks EKF z resets to avoid false altitude loss triggers
+	hrt_abstime _alt_loss_timestamp_prev{0}; // used to integrate the commanded vertical velocity
+	static constexpr hrt_abstime kAltLossSetpointTimeout{500_ms}; // commanded descent is ignored when older
+	static constexpr float kAltLossDescentRateMargin{2.f}; // [m/s] tolerated descent faster than commanded
 
-	static constexpr float _imbalanced_prop_lpf_time_constant{5.f};
+	static constexpr hrt_abstime _imbalanced_prop_lpf_time_constant{5_s};
 	AlphaFilter<float> _imbalanced_prop_lpf{};
 	uint32_t _selected_accel_device_id{0};
 	hrt_abstime _imu_status_timestamp_prev{0};
@@ -121,7 +127,8 @@ private:
 
 	uORB::Publication<failure_detector_status_s> _failure_detector_status_pub{ORB_ID(failure_detector_status)};
 
-	FailureInjector _failure_injector;
+	failure_injection::Config _failure_injection_config;
+	failure_injection::MotorFailureMasks _injected_motor_masks{};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::FD_FAIL_P>) _param_fd_fail_p,

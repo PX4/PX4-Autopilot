@@ -1,5 +1,10 @@
 # 모듈 참조: 자기 센서(드라이버)
 
+:::info
+**This page is [auto-generated](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/px4moduledoc/markdownout.py) from the source code** using the build command: `make module_documentation`.
+Do not edit it directly; fix the module documentation in the [PX4-Autopilot](https://github.com/PX4/PX4-Autopilot) source instead.
+:::
+
 ## af9838
 
 Source: [drivers/magnetometer/voltafield/af9838](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/magnetometer/voltafield/af9838)
@@ -10,8 +15,10 @@ Source: [drivers/magnetometer/voltafield/af9838](https://github.com/PX4/PX4-Auto
 af9838 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -36,8 +43,10 @@ Source: [drivers/magnetometer/akm/ak09916](https://github.com/PX4/PX4-Autopilot/
 ak09916 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -62,8 +71,10 @@ Source: [drivers/magnetometer/akm/ak09940a](https://github.com/PX4/PX4-Autopilot
 ak09940a <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -88,8 +99,10 @@ Source: [drivers/magnetometer/akm/ak8963](https://github.com/PX4/PX4-Autopilot/t
 ak8963 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -114,8 +127,10 @@ Source: [drivers/magnetometer/bosch/bmm150](https://github.com/PX4/PX4-Autopilot
 bmm150 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -140,8 +155,10 @@ Source: [drivers/magnetometer/bosch/bmm350](https://github.com/PX4/PX4-Autopilot
 bmm350 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -166,10 +183,13 @@ Source: [drivers/magnetometer/hmc5883](https://github.com/PX4/PX4-Autopilot/tree
 hmc5883 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
-     [-s]        Internal SPI bus(es)
-     [-S]        External SPI bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
+     [-s]        Internal SPI bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-S]        External SPI bus (connector sensors, including shared buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
@@ -195,8 +215,10 @@ Source: [drivers/magnetometer/st/iis2mdc](https://github.com/PX4/PX4-Autopilot/t
 iis2mdc <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -219,8 +241,10 @@ Source: [drivers/magnetometer/isentek/ist8308](https://github.com/PX4/PX4-Autopi
 ist8308 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -245,8 +269,10 @@ Source: [drivers/magnetometer/isentek/ist8310](https://github.com/PX4/PX4-Autopi
 ist8310 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -271,10 +297,13 @@ Source: [drivers/magnetometer/lis3mdl](https://github.com/PX4/PX4-Autopilot/tree
 lis3mdl <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
-     [-s]        Internal SPI bus(es)
-     [-S]        External SPI bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
+     [-s]        Internal SPI bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-S]        External SPI bus (connector sensors, including shared buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
@@ -303,8 +332,9 @@ Source: [drivers/magnetometer/lsm9ds1_mag](https://github.com/PX4/PX4-Autopilot/
 lsm9ds1_mag <command> [arguments...]
  Commands:
    start
-     [-s]        Internal SPI bus(es)
-     [-S]        External SPI bus(es)
+     [-s]        Internal SPI bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-S]        External SPI bus (connector sensors, including shared buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
@@ -329,10 +359,13 @@ Source: [drivers/magnetometer/memsic/mmc5983ma](https://github.com/PX4/PX4-Autop
 mmc5983ma <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
-     [-s]        Internal SPI bus(es)
-     [-S]        External SPI bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
+     [-s]        Internal SPI bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-S]        External SPI bus (connector sensors, including shared buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
@@ -361,8 +394,10 @@ Source: [drivers/magnetometer/qmc5883l](https://github.com/PX4/PX4-Autopilot/tre
 qmc5883l <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -387,8 +422,10 @@ Source: [drivers/magnetometer/qmc5883p](https://github.com/PX4/PX4-Autopilot/tre
 qmc5883p <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz
@@ -413,10 +450,13 @@ Source: [drivers/magnetometer/rm3100](https://github.com/PX4/PX4-Autopilot/tree/
 rm3100 <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
-     [-s]        Internal SPI bus(es)
-     [-S]        External SPI bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
+     [-s]        Internal SPI bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-S]        External SPI bus (connector sensors, including shared buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-c <val>]  chip-select pin (for internal SPI) or index (for external SPI)
@@ -441,8 +481,10 @@ Source: [drivers/magnetometer/vtrantech/vcm1193l](https://github.com/PX4/PX4-Aut
 vcm1193l <command> [arguments...]
  Commands:
    start
-     [-I]        Internal I2C bus(es)
-     [-X]        External I2C bus(es)
+     [-I]        Internal I2C bus(es) (onboard sensors; shared bus only if -b is
+                 given)
+     [-X]        External I2C bus(es) (connector sensors, including shared
+                 buses)
      [-b <val>]  board-specific bus (default=all) (external SPI: n-th bus
                  (default=1))
      [-f <val>]  bus frequency in kHz

@@ -237,14 +237,16 @@ RCInput::fill_rc_in(uint16_t raw_rc_count_local,
 
 	/* fake rssi if no value was provided */
 	if (rssi == -1) {
-		if ((_param_rc_rssi_pwm_chan.get() > 0) && (_param_rc_rssi_pwm_chan.get() < _input_rc.channel_count)) {
+		if ((_param_rc_rssi_pwm_chan.get() > 0) && (_param_rc_rssi_pwm_chan.get() <= _input_rc.channel_count)) {
 			const int32_t rssi_pwm_chan = _param_rc_rssi_pwm_chan.get();
 			const int32_t rssi_pwm_min = _param_rc_rssi_pwm_min.get();
 			const int32_t rssi_pwm_max = _param_rc_rssi_pwm_max.get();
 
 			// get RSSI from input channel
-			int rc_rssi = ((_input_rc.values[rssi_pwm_chan - 1] - rssi_pwm_min) * 100) / (rssi_pwm_max - rssi_pwm_min);
-			_input_rc.rssi = math::constrain(rc_rssi, 0, 100);
+			if (rssi_pwm_max > rssi_pwm_min) {
+				int rc_rssi = ((_input_rc.values[rssi_pwm_chan - 1] - rssi_pwm_min) * 100) / (rssi_pwm_max - rssi_pwm_min);
+				_input_rc.rssi = math::constrain(rc_rssi, 0, 100);
+			}
 
 		} else if (_analog_rc_rssi_stable) {
 			// set RSSI if analog RSSI input is present

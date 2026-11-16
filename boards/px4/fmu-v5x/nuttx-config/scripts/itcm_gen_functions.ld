@@ -13,3 +13,4 @@
 *(.text.param_get_default_value)
 *(.text._Z12get_orb_meta6ORB_ID)
 *(.text._ZN3Ekf17measurementUpdateERN6matrix6VectorIfLj24EEERKS2_ff)
+*(.text._ZNK3Ekf17computeKalmanGainERKN6matrix6VectorIfLj24EEEf)

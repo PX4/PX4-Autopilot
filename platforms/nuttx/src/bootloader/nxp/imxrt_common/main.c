@@ -684,17 +684,28 @@ arch_do_jump(const uint32_t *app_base)
 	uint32_t stacktop = app_base[APP_VECTOR_OFFSET_WORDS];
 	uint32_t entrypoint = app_base[APP_VECTOR_OFFSET_WORDS + 1];
 
+	uint32_t scratch;
+
+	/* NuttX 12.12 runs thread mode on the PSP (arm_initialize_stack(), enabled
+	 * whenever CONFIG_ARCH_INTERRUPTSTACK > 7). The application expects to start
+	 * on the MSP, so select it again before handing over -- otherwise the app
+	 * keeps running on the bootloader's stack and faults once it is clobbered.
+	 */
 	asm volatile(
-		"msr msp, %0  \n"
-		"bx %1  \n"
-		: : "r"(stacktop), "r"(entrypoint) :);
+		"mrs %0, control  \n"
+		"bic %0, %0, #2   \n"
+		"msr control, %0  \n"
+		"isb sy           \n"
+		"msr msp, %1      \n"
+		"bx %2  \n"
+		: "=&r"(scratch) : "r"(stacktop), "r"(entrypoint) :);
 
 	// just to keep noreturn happy
 	for (;;) ;
 }
 
 int
-bootloader_main(void)
+bootloader_main(int argc, char *argv[])
 {
 	bool try_boot = true;			/* try booting before we drop to the bootloader */
 	unsigned timeout = BOOTLOADER_DELAY;	/* if nonzero, drop out of the bootloader after this time */

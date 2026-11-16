@@ -34,7 +34,7 @@
 #ifndef UAVIONIX_ADSB_OUT_DYNAMIC_HPP
 #define UAVIONIX_ADSB_OUT_DYNAMIC_HPP
 
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_gnss.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/parameter_update.h>
@@ -61,7 +61,7 @@ private:
 	explicit MavlinkStreamUavionixADSBOutDynamic(Mavlink *mavlink) : ModuleParams(nullptr), MavlinkStream(mavlink) {}
 
 
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
@@ -77,8 +77,8 @@ private:
 		vehicle_status_s vehicle_status;
 		_vehicle_status_sub.copy(&vehicle_status);
 
-		sensor_gps_s vehicle_gps_position;
-		_vehicle_gps_position_sub.copy(&vehicle_gps_position);
+		vehicle_gnss_s vehicle_gnss;
+		_vehicle_gnss_sub.copy(&vehicle_gnss);
 
 		vehicle_air_data_s vehicle_air_data;
 		_vehicle_air_data_sub.copy(&vehicle_air_data);
@@ -87,28 +87,28 @@ private:
 		static constexpr uint64_t gps_epoch_offset_us = 315'964'800ULL * 1'000'000ULL;
 		uint32_t gps_epoch_time_s = UINT32_MAX;
 
-		if (vehicle_gps_position.time_utc_usec >= gps_epoch_offset_us) {
-			const uint64_t timestamp_s = (vehicle_gps_position.time_utc_usec - gps_epoch_offset_us) / 1'000'000ULL;
+		if (vehicle_gnss.receiver.time_utc_usec >= gps_epoch_offset_us) {
+			const uint64_t timestamp_s = (vehicle_gnss.receiver.time_utc_usec - gps_epoch_offset_us) / 1'000'000ULL;
 			gps_epoch_time_s = static_cast<uint32_t>(timestamp_s);
 		}
 
 		// Required update for dynamic message is 5 [Hz]
 		mavlink_uavionix_adsb_out_dynamic_t dynamic_msg = {
 			.utcTime = gps_epoch_time_s,
-			.gpsLat = static_cast<int32_t>(round(vehicle_gps_position.latitude_deg * 1e7)),
-			.gpsLon = static_cast<int32_t>(round(vehicle_gps_position.longitude_deg * 1e7)),
-			.gpsAlt = static_cast<int32_t>(round(vehicle_gps_position.altitude_ellipsoid_m * 1e3)), // convert [m] to [mm]
+			.gpsLat = static_cast<int32_t>(round(vehicle_gnss.receiver.latitude * 1e7)),
+			.gpsLon = static_cast<int32_t>(round(vehicle_gnss.receiver.longitude * 1e7)),
+			.gpsAlt = static_cast<int32_t>(round(vehicle_gnss.receiver.altitude_ellipsoid * 1e3)), // convert [m] to [mm]
 			.baroAltMSL = static_cast<int32_t>(vehicle_air_data.baro_pressure_pa / 100.0f), // convert [Pa] to [mBar]
-			.accuracyHor = static_cast<uint32_t>(vehicle_gps_position.eph * 1000.0f), // convert [m] to [mm]
-			.accuracyVert = static_cast<uint16_t>(vehicle_gps_position.epv * 100.0f), // convert [m] to [cm]
-			.accuracyVel = static_cast<uint16_t>(vehicle_gps_position.s_variance_m_s * 1000.f), // convert [m/s] to [mm/s],
-			.velVert = static_cast<int16_t>(-1.0f * vehicle_gps_position.vel_d_m_s * 100.0f), // convert [m/s] to [cm/s]
-			.velNS = static_cast<int16_t>(vehicle_gps_position.vel_n_m_s * 100.0f), // convert [m/s] to [cm/s]
-			.VelEW = static_cast<int16_t>(vehicle_gps_position.vel_e_m_s * 100.0f), // convert [m/s] to [cm/s]
+			.accuracyHor = static_cast<uint32_t>(vehicle_gnss.receiver.eph * 1000.0f), // convert [m] to [mm]
+			.accuracyVert = static_cast<uint16_t>(vehicle_gnss.receiver.epv * 100.0f), // convert [m] to [cm]
+			.accuracyVel = static_cast<uint16_t>(vehicle_gnss.receiver.speed_accuracy * 1000.f), // convert [m/s] to [mm/s],
+			.velVert = static_cast<int16_t>(-1.0f * vehicle_gnss.receiver.vel_down * 100.0f), // convert [m/s] to [cm/s]
+			.velNS = static_cast<int16_t>(vehicle_gnss.receiver.vel_north * 100.0f), // convert [m/s] to [cm/s]
+			.VelEW = static_cast<int16_t>(vehicle_gnss.receiver.vel_east * 100.0f), // convert [m/s] to [cm/s]
 			.state = UAVIONIX_ADSB_OUT_DYNAMIC_STATE_ON_GROUND,
 			.squawk = static_cast<uint16_t>(_adsb_squawk.get()),
-			.gpsFix = vehicle_gps_position.fix_type,
-			.numSats = vehicle_gps_position.satellites_used,
+			.gpsFix = vehicle_gnss.receiver.fix_type,
+			.numSats = vehicle_gnss.receiver.satellites_used,
 			.emergencyStatus = static_cast<uint8_t>(_adsb_emergc.get())
 		};
 

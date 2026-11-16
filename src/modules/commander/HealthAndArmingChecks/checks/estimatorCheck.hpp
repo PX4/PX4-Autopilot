@@ -44,7 +44,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_gnss.h>
 
 #include <lib/hysteresis/hysteresis.h>
 
@@ -71,18 +71,36 @@ private:
 		WarningOnly = 2
 	};
 
+	// The checks on the estimator status: the preflight innovation and magnetic interference checks, and
+	// what the estimator makes of GNSS
 	void checkEstimatorStatus(const Context &context, Report &reporter, const estimator_status_s &estimator_status,
 				  NavModes required_groups);
+	void checkInnovationsPreflight(const Context &context, Report &reporter, const estimator_status_s &estimator_status,
+				       NavModes required_groups);
+	void checkMagneticInterferencePreflight(const Context &context, Report &reporter,
+						const estimator_status_s &estimator_status, NavModes required_groups);
+	void checkGnssFusion(const Context &context, Report &reporter, const estimator_status_s &estimator_status);
+	void reportGnssFusionChange(const Context &context, Report &reporter, bool gnss_fused);
+	void reportGnssInterference(Report &reporter, uint16_t gps_check_fail_flags);
+	void reportFailedGnssCheckPreflight(Report &reporter, const estimator_status_s &estimator_status, bool gnss_fused);
+
 	void checkSensorBias(const Context &context, Report &reporter, NavModes required_groups);
 	void checkEstimatorStatusFlags(const Context &context, Report &reporter, const estimator_status_s &estimator_status,
 				       const vehicle_local_position_s &lpos);
-	void checkGps(const Context &context, Report &reporter, const sensor_gps_s &vehicle_gps_position) const;
+	void checkGnss(const Context &context, Report &reporter, const vehicle_gnss_s &vehicle_gnss) const;
 	void lowPositionAccuracy(const Context &context, Report &reporter, const vehicle_local_position_s &lpos) const;
 
-	void setModeRequirementFlags(const Context &context, bool pre_flt_fail_innov_heading,
-				     bool pre_flt_fail_innov_vel_horiz, bool pre_flt_fail_innov_pos_horiz,
-				     const vehicle_local_position_s &lpos, const sensor_gps_s &vehicle_gps_position,
-				     failsafe_flags_s &failsafe_flags, Report &reporter);
+	// Names the receiver that had stopped, or the GNSS quality checks that kept GNSS out, when the
+	// local position estimate became invalid
+	void reportGnssReasonForPositionLoss(const Context &context, Report &reporter, const hrt_abstime &now,
+					     const vehicle_gnss_s &vehicle_gnss) const;
+
+	// The mode requirement flags, with the warning of an imminent position failure on its own
+	void setModeRequirementFlags(const Context &context, bool pre_flt_fail_innov_vel_horiz,
+				     bool pre_flt_fail_innov_pos_horiz, const vehicle_local_position_s &lpos,
+				     const vehicle_gnss_s &vehicle_gnss, failsafe_flags_s &failsafe_flags, Report &reporter);
+	void warnOfImminentPositionFailure(Report &reporter, const hrt_abstime &now, const vehicle_global_position_s &gpos,
+					   float lpos_eph_threshold, const failsafe_flags_s &failsafe_flags);
 
 	bool checkPosVelValidity(const hrt_abstime &now, const bool data_valid, const float data_accuracy,
 				 const float required_accuracy,
@@ -99,7 +117,7 @@ private:
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 
 	hrt_abstime	_last_gpos_fail_time_us{0};	///< Last time that the global position validity recovery check failed (usec)
 	hrt_abstime	_last_gpos_relaxed_fail_time_us{0};	///< Last time that the global position relaxed validity recovery check failed (usec)
@@ -108,6 +126,18 @@ private:
 	hrt_abstime	_last_lvel_fail_time_us{0};	///< Last time that the local velocity validity recovery check failed (usec)
 
 	bool _gps_was_fused{false};
+	hrt_abstime _last_gnss_fusion_time_us{0};
+
+	// when each GNSS quality check last failed, indexed by its bit in estimator_status.gps_check_fail_flags
+	static constexpr int kNumGnssChecks = estimator_status_s::GPS_CHECK_FAIL_JAMMED + 1;
+	hrt_abstime _last_gnss_check_fail_time_us[kNumGnssChecks] {};
+
+	// how long after GNSS fusion stops, or after a receiver check last failed, that check is still taken as
+	// the reason for losing position
+	static constexpr hrt_abstime kGnssRecentlyFusedTimeout = 10_s;
+
+	// a receiver whose last sample is older than this had stopped
+	static constexpr hrt_abstime kGnssDataTimeout = 1_s;
 	bool _gnss_spoofed{false};
 	bool _gnss_jammed{false};
 

@@ -34,18 +34,22 @@
 /**
  * @file mission_route_types.cpp
  *
- * Implementations for the shared mission-route data types and helpers declared in
- * mission_route_types.h.
+ * Public mission-route types and shared item helpers.
  *
  * @author Jonas Perolini <jonspero@me.com>
  */
 
 #include "mission_route_types.h"
 
+#include "mission_item_utils.h"
+
 #include <px4_platform_common/log.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 
 namespace mission_route
 {
+
+static constexpr double kNullIslandThresholdDeg{1e-7};
 
 bool Position::valid() const
 {
@@ -54,9 +58,96 @@ bool Position::valid() const
 	       && (fabs(lat) <= 90.0) && (fabs(lon) <= 180.0);
 }
 
+bool ActiveJumpAnchor::empty() const
+{
+	return jump_item_index == -1;
+}
+
+bool ActiveJumpAnchor::valid() const
+{
+	return jump_item_index >= 0;
+}
+
+bool MissionResumePlan::valid() const
+{
+	return join_position.valid() && first_mission_item_index >= 0;
+}
+
+bool RtlRoutePlan::valid() const
+{
+	if (!MissionResumePlan::valid() || !goal_position.valid()) {
+		return false;
+	}
+
+	switch (goal_type) {
+	case GoalType::kNone:
+		return false;
+
+	case GoalType::kSafePoint:
+		return safe_point_index >= 0 && branch_off_position.valid() && branch_off_mission_item_index >= 0;
+
+	case GoalType::kMissionLand:
+	case GoalType::kMissionTakeoff:
+		return safe_point_index < 0 && !branch_off_position.valid() && branch_off_mission_item_index < 0;
+	}
+
+	return false;
+}
+
 bool isLandingCmd(uint16_t nav_cmd)
 {
 	return nav_cmd == NAV_CMD_LAND || nav_cmd == NAV_CMD_VTOL_LAND;
+}
+
+bool isTakeoffCmd(uint16_t nav_cmd)
+{
+	return nav_cmd == NAV_CMD_TAKEOFF || nav_cmd == NAV_CMD_VTOL_TAKEOFF;
+}
+
+VtolTransitionAction vtolTransitionActionForState(uint8_t target_vtol_state, bool fw_like)
+{
+	// The target needs MC while the vehicle flies FW or transitions to it.
+	if (target_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC && fw_like) {
+		return VtolTransitionAction::kBackTransition;
+	}
+
+	// The target needs FW while the vehicle flies MC or transitions back to it.
+	if (target_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW && !fw_like) {
+		return VtolTransitionAction::kFrontTransition;
+	}
+
+	return VtolTransitionAction::kNone;
+}
+
+bool updateVtolStateFromMissionItem(const mission_item_s &mission_item, uint8_t &state, bool before_transition)
+{
+	if (mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF && !before_transition) {
+		state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+		return true;
+	}
+
+	if (mission_item.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION) {
+		return false;
+	}
+
+	const float target = roundf(mission_item.params[0]);
+
+	if (target >= 0.f && target <= UINT8_MAX) {
+		const uint8_t target_state = static_cast<uint8_t>(target);
+
+		if (target_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC
+		    || target_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW) {
+			if (before_transition) {
+				state = target_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW
+					? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+
+			} else {
+				state = target_state;
+			}
+		}
+	}
+
+	return true;
 }
 
 float getAbsoluteAltitudeForMissionItem(const mission_item_s &mission_item, float home_altitude_amsl)
@@ -66,6 +157,18 @@ float getAbsoluteAltitudeForMissionItem(const mission_item_s &mission_item, floa
 	}
 
 	return mission_item.altitude;
+}
+
+bool extractMissionPosition(const mission_item_s &mission_item, float home_altitude_amsl, Position &position)
+{
+	if (!mission_item_contains_position(mission_item)) {
+		return false;
+	}
+
+	position.lat = mission_item.lat;
+	position.lon = mission_item.lon;
+	position.alt = getAbsoluteAltitudeForMissionItem(mission_item, home_altitude_amsl);
+	return position.valid();
 }
 
 bool extractSafePointPosition(const mission_item_s &safe_point_item, float home_altitude_amsl, Position &position)
@@ -91,7 +194,7 @@ bool extractSafePointPosition(const mission_item_s &safe_point_item, float home_
 		break;
 
 	default:
-		PX4_WARN("RTL: unsupported rally frame");
+		PX4_WARN("Route: unsupported rally frame");
 		return false;
 	}
 
@@ -115,6 +218,65 @@ loiter_point_s makeVtolLandApproachPoint(const mission_item_s &mission_item, flo
 	approach.height_m = position.alt;
 	approach.loiter_radius_m = mission_item.loiter_radius;
 	return approach;
+}
+
+const char *failureReasonString(FailureReason failure_reason)
+{
+	switch (failure_reason) {
+	case FailureReason::kNone:
+		return "None";
+
+	case FailureReason::kNoValidGlobalPos:
+		return "NoValidGlobalPos";
+
+	case FailureReason::kInvalidRequest:
+		return "InvalidRequest";
+
+	case FailureReason::kNoValidWaypoints:
+		return "NoValidWaypoints";
+
+	case FailureReason::kNoValidSafePoints:
+		return "NoValidSafePoints";
+
+	case FailureReason::kNoValidPath:
+		return "NoValidPath";
+
+	case FailureReason::kInternalError:
+		return "InternalError";
+
+	case FailureReason::kLoadFailed:
+		return "LoadFailed";
+
+	case FailureReason::kPositionItemInvalid:
+		return "PositionItemInvalid";
+
+	case FailureReason::kNoValidCandidateFound:
+		return "NoValidCandidateFound";
+
+	case FailureReason::kGeofenceUnavailable:
+		return "GeofenceUnavailable";
+
+	default:
+		return "Unknown";
+	}
+}
+
+const char *goalTypeString(GoalType goal_type)
+{
+	switch (goal_type) {
+	case GoalType::kSafePoint:
+		return "safe_point";
+
+	case GoalType::kMissionLand:
+		return "mission_land";
+
+	case GoalType::kMissionTakeoff:
+		return "mission_takeoff";
+
+	case GoalType::kNone:
+	default:
+		return "none";
+	}
 }
 
 } // namespace mission_route

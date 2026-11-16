@@ -1,6 +1,6 @@
 # Raspberry Pi 2/3/4 Navio2 Autopilot
 
-<LinkedBadge type="warning" text="Experimental" url="../flight_controller/autopilot_experimental.html"/>
+[<Badge type="warning" text="Experimental"/>](../flight_controller/autopilot_experimental.md)
 
 :::warning
 PX4 does not manufacture this (or any) autopilot.

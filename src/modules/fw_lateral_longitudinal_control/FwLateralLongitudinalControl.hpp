@@ -184,7 +184,6 @@ private:
 	// Smooths changes in the altitude tracking error time constant value
 	SlewRate<float> _tecs_alt_time_const_slew_rate;
 	struct longitudinal_control_state {
-		float pitch_rad{0.f};
 		float altitude_msl{0.f};
 		float airspeed_eas{0.f};
 		float eas2tas{1.f};
@@ -206,7 +205,7 @@ private:
 	bool _landed{false};
 	float _can_run_factor{0.f};
 	float _load_factor_from_bank_angle{1.f};
-	SlewRate<float> _airspeed_slew_rate_controller;
+	SlewRate<float> _airspeed_slew_rate_controller{NAN}; ///< NAN while TECS is not running -- see adapt_airspeed_setpoint
 
 	AlphaFilter<float> _fuel_fraction_filter;
 	hrt_abstime _time_last_fuel_fraction_update{0};

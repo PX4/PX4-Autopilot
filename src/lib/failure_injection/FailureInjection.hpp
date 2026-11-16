@@ -48,12 +48,15 @@
 
 #include <cstdint>
 
+#include <drivers/drv_hrt.h>
+#include <lib/mathlib/mathlib.h>
+#include <matrix/math.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/failure_injection.h>
 
 struct battery_status_s;
-struct sensor_gps_s;
+struct sensor_gnss_s;
 
 namespace failure_injection
 {
@@ -67,6 +70,13 @@ enum class Mode : uint8_t {
 	Slow         = failure_injection_s::FAILURE_TYPE_SLOW,
 	Delayed      = failure_injection_s::FAILURE_TYPE_DELAYED,
 	Intermittent = failure_injection_s::FAILURE_TYPE_INTERMITTENT,
+	Drift        = failure_injection_s::FAILURE_TYPE_DRIFT,
+};
+
+/** Masks of motors failed by injection, bit i = motor instance i+1. */
+struct MotorFailureMasks {
+	uint16_t stop_mask{0};    ///< motor wrong: outputs stopped without informing the allocator
+	uint16_t failure_mask{0}; ///< motor off: reported as failed motors, removed from the allocation
 };
 
 #if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
@@ -207,10 +217,10 @@ bool process_battery(const Config &config, uint8_t instance, battery_status_s &b
  * while leaving the position untouched.
  *
  * @param uorb_instance 0-based uORB instance of the publisher (not the 1-based failure instance).
- * @return false if the sensor_gps publication must be suppressed (Off), true otherwise.
+ * @return false if the sensor_gnss publication must be suppressed (Off), true otherwise.
  */
-bool process_gnss(const Config &config, uint8_t uorb_instance, sensor_gps_s &sensor_gps,
-		  Stuck<sensor_gps_s> &stuck);
+bool process_gnss(const Config &config, uint8_t uorb_instance, sensor_gnss_s &sensor_gnss,
+		  Stuck<sensor_gnss_s> &stuck);
 
 /**
  * ESC counterpart to process(): apply the active FAILURE_UNIT_SYSTEM_ESC failures to a copy of
@@ -221,6 +231,86 @@ bool process_gnss(const Config &config, uint8_t uorb_instance, sensor_gps_s &sen
  * calls. Call after Config::update().
  */
 esc_status_s process_esc(const Config &config, const esc_status_s &status);
+
+/**
+ * Motor counterpart to process(): derive the masks of motors failed by
+ * FAILURE_UNIT_SYSTEM_MOTOR from the injected failure type. Off is the detected failure
+ * (failure_mask: reported as failed motors and removed from the allocation), Wrong the
+ * undetected one (stop_mask: outputs stopped without informing the allocator).
+ * Call after Config::update().
+ */
+MotorFailureMasks process_motor(const Config &config);
+
+/**
+ * Per-axis offset (in the sample's SI units) for the IMU failure mode: Wrong adds a constant bias
+ * (SYS_FAIL_{G,A}_BIAS), Garbage uniform noise within +-SYS_FAIL_{G,A}_NOISE and Drift a bias growing
+ * by SYS_FAIL_{G,A}_DRIFT per second since drift_start, which is latched on onset and reset otherwise.
+ * Zero for any other mode. Used by process_imu().
+ */
+matrix::Vector3f imu_offset(Mode mode, uint8_t unit, hrt_abstime now, hrt_abstime &drift_start);
+
+template<typename T, typename = void>
+struct is_imu_fifo {
+	static constexpr bool value = false;
+};
+template<typename T>
+struct is_imu_fifo<T, void_t<decltype(T::scale)>> {
+	static constexpr bool value = true;
+};
+
+/**
+ * Add the IMU offset to a sensor_{gyro,accel} sample (SI units) or to the raw int16 samples of a
+ * sensor_{gyro,accel}_fifo message (offset converted with the message scale).
+ */
+template<typename MsgT>
+void add_imu_offset(MsgT &msg, const matrix::Vector3f &offset)
+{
+	if constexpr(is_imu_fifo<MsgT>::value) {
+		if (!offset.longerThan(0.f)) {
+			return;
+		}
+
+		const matrix::Vector3f raw = offset / msg.scale;
+
+		for (int n = 0; n < msg.samples; n++) {
+			msg.x[n] = (int16_t)math::constrain(roundf(msg.x[n] + raw(0)), (float)INT16_MIN, (float)INT16_MAX);
+			msg.y[n] = (int16_t)math::constrain(roundf(msg.y[n] + raw(1)), (float)INT16_MIN, (float)INT16_MAX);
+			msg.z[n] = (int16_t)math::constrain(roundf(msg.z[n] + raw(2)), (float)INT16_MIN, (float)INT16_MAX);
+		}
+
+	} else {
+		msg.x += offset(0);
+		msg.y += offset(1);
+		msg.z += offset(2);
+	}
+}
+
+/**
+ * IMU counterpart to process(): on FAILURE_UNIT_SENSOR_GYRO / _ACCEL for the given 0-based uORB
+ * instance, Off and Stuck behave as in the generic process() and Wrong / Garbage / Drift corrupt
+ * the sample on all three axes (see imu_offset()). Works on sensor_{gyro,accel} and on
+ * sensor_{gyro,accel}_fifo (raw samples). Call after Config::update().
+ *
+ * @param uorb_instance 0-based uORB instance of the publisher (not the 1-based failure instance).
+ * @return false if the publication must be suppressed (Off), true otherwise.
+ */
+template<typename MsgT>
+bool process_imu(const Config &config, uint8_t unit, uint8_t uorb_instance, MsgT &msg, Stuck<MsgT> &stuck,
+		 hrt_abstime &drift_start)
+{
+	const Mode mode = config.mode(unit, uorb_instance + 1);
+	// computed before process() so Off also resets drift_start
+	const matrix::Vector3f offset = imu_offset(mode, unit, msg.timestamp, drift_start);
+
+	// Off and Stuck are message-agnostic; run them first so the Stuck cache keeps the
+	// uncorrupted sample and a later Stuck replays a healthy one.
+	if (!process(mode, msg, stuck)) {
+		return false;
+	}
+
+	add_imu_offset(msg, offset);
+	return true;
+}
 
 #else // !CONFIG_MODULES_FAILURE_INJECTION_MANAGER
 
@@ -249,9 +339,14 @@ inline bool process(const Config &, uint8_t, uint8_t) { return true; }
 
 inline bool process_battery(const Config &, uint8_t, battery_status_s &) { return true; }
 
-inline bool process_gnss(const Config &, uint8_t, sensor_gps_s &, Stuck<sensor_gps_s> &) { return true; }
+inline bool process_gnss(const Config &, uint8_t, sensor_gnss_s &, Stuck<sensor_gnss_s> &) { return true; }
 
 inline esc_status_s process_esc(const Config &, const esc_status_s &status) { return status; }
+
+inline MotorFailureMasks process_motor(const Config &) { return {}; }
+
+template<typename MsgT>
+bool process_imu(const Config &, uint8_t, uint8_t, MsgT &, Stuck<MsgT> &, hrt_abstime &) { return true; }
 
 #endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER
 

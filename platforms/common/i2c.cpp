@@ -37,28 +37,18 @@
 
 #if defined(CONFIG_I2C)
 
-#ifndef BOARD_OVERRIDE_I2C_BUS_EXTERNAL
-bool px4_i2c_bus_external(int bus)
+#ifndef BOARD_OVERRIDE_I2C_BUS_TOPOLOGY
+BusTopology px4_i2c_bus_topology(int bus)
 {
 	for (int i = 0; i < I2C_BUS_MAX_BUS_ITEMS; ++i) {
 		if (px4_i2c_buses[i].bus == bus) {
-			return px4_i2c_buses[i].is_external;
+			return px4_i2c_buses[i].topology;
 		}
 	}
 
-	return true;
+	return BusTopology::External;
 }
-#endif // BOARD_OVERRIDE_I2C_BUS_EXTERNAL
-
-#ifndef BOARD_OVERRIDE_I2C_DEVICE_EXTERNAL
-#include <drivers/device/Device.hpp>
-bool px4_i2c_device_external(const uint32_t device_id)
-{
-	device::Device::DeviceId dev_id{};
-	dev_id.devid = device_id;
-	return px4_i2c_bus_external(dev_id.devid_s.bus);
-}
-#endif // BOARD_OVERRIDE_I2C_DEVICE_EXTERNAL
+#endif // BOARD_OVERRIDE_I2C_BUS_TOPOLOGY
 
 bool I2CBusIterator::next()
 {
@@ -69,28 +59,34 @@ bool I2CBusIterator::next()
 			continue;
 		}
 
+		const BusTopology topology = px4_i2c_bus_topology(bus_data.bus);
+		const bool bus_matches = (_bus == bus_data.bus || _bus == -1);
+
 		switch (_filter) {
 		case FilterType::All:
-			if (_bus == bus_data.bus || _bus == -1) {
+			if (bus_matches) {
 				return true;
 			}
 
 			break;
 
 		case FilterType::InternalBus:
-			if (!px4_i2c_bus_external(bus_data.bus)) {
-				if (_bus == bus_data.bus || _bus == -1) {
-					return true;
-				}
+			if (topology == BusTopology::Internal && bus_matches) {
+				return true;
+			}
+
+			// Shared buses are only claimed as internal when the start line pins -b
+			if (topology == BusTopology::Shared && _bus == bus_data.bus) {
+				return true;
 			}
 
 			break;
 
 		case FilterType::ExternalBus:
-			if (px4_i2c_bus_external(bus_data.bus)) {
+			if (bus_topology_has_external(topology)) {
 				++_external_bus_counter;
 
-				if (_bus == bus_data.bus || _bus == -1) {
+				if (bus_matches) {
 					return true;
 				}
 			}

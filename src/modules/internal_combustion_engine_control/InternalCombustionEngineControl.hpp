@@ -103,11 +103,6 @@ private:
 		Rest
 	};
 
-	enum class UserOnOffRequest {
-		Off,
-		On
-	} _user_request{UserOnOffRequest::Off};
-
 	enum class ICESource {
 		ArmingState,
 		Aux1,
@@ -119,6 +114,7 @@ private:
 	hrt_abstime _last_time_run{0};
 	hrt_abstime _rpm_timestamp{0};
 
+	bool _user_request_motor_on{false};
 	bool _ignition_on{false};
 	bool _is_engine_running{false};
 	bool _idle_control_active{false};

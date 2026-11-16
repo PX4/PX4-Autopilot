@@ -4,8 +4,7 @@ This quick start guide shows how to power the [Pixhawk V6X<sup>&reg;</sup>](../f
 
 ## 接线图概述
 
-下图展示了如何连接最重要的传感器和外围设备（电机和伺服舵机输出除外）。
-我们将在下面各节中介绍它们的细节。
+下图展示了如何连接最重要的传感器和外围设备（电机和伺服舵机输出除外）。我们将在下面各节中介绍它们的细节。
 
 ![wiring](../../assets/flight_controller/cuav_pixhawk_v6x/quickstart_01_en.jpg)
 

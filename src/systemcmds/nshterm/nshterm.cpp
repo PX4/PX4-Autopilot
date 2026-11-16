@@ -85,6 +85,8 @@ extern "C" __EXPORT int nshterm_main(int argc, char *argv[])
 
 	/* Set ONLCR flag (which appends a CR for every LF) */
 	uart_config.c_oflag |= (ONLCR | OPOST);
+	uart_config.c_iflag |= ICRNL;
+	uart_config.c_lflag |= (ICANON | ECHO);
 
 	if ((termios_state = tcsetattr(fd, TCSANOW, &uart_config)) < 0) {
 		PX4_ERR("set config %s\n", argv[1]);

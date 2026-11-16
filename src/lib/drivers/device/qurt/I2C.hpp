@@ -52,7 +52,7 @@ namespace device __EXPORT
 /**
  * Abstract class for character device on I2C
  */
-class __EXPORT I2C : public CDev
+class __EXPORT I2C : public Device
 {
 
 public:
@@ -118,8 +118,6 @@ protected:
 	 *			otherwise.
 	 */
 	int		transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const unsigned recv_len);
-
-	virtual bool	external() const override { return px4_i2c_bus_external(_device_id.devid_s.bus); }
 
 private:
 	uint32_t		               _frequency{0};

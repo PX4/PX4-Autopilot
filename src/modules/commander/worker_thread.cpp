@@ -33,13 +33,17 @@
 
 #include "worker_thread.hpp"
 #include "accelerometer_calibration.h"
+#if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
 #include "airspeed_calibration.h"
+#endif
 #include "calibration_routines.h"
 #include "baro_calibration.h"
 #include "esc_calibration.h"
 #include "gyro_calibration.h"
 #include "level_calibration.h"
+#if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
 #include "mag_calibration.h"
+#endif
 #include "rc_calibration.h"
 
 #include <px4_platform_common/events.h>
@@ -70,6 +74,21 @@ void WorkerThread::startTask(Request request)
 
 	_request = request;
 
+	// Open before the thread starts, so a cancel Commander handles before the low priority thread runs reaches it
+	switch (_request) {
+	case Request::GyroCalibration:
+	case Request::MagCalibration:
+	case Request::AccelCalibration:
+	case Request::LevelCalibration:
+	case Request::AirspeedCalibration:
+	case Request::BaroCalibration:
+		calibrate_cancel_open();
+		break;
+
+	default:
+		break;
+	}
+
 	/* initialize low priority thread */
 	pthread_attr_t low_prio_attr;
 	pthread_attr_init(&low_prio_attr);
@@ -90,6 +109,7 @@ void WorkerThread::startTask(Request request)
 
 	} else {
 		PX4_ERR("Failed to start thread (%i)", ret);
+		calibrate_cancel_close();
 		_state.store((int)State::Finished);
 		_ret_value = ret;
 	}
@@ -111,9 +131,22 @@ void WorkerThread::threadEntry()
 		_ret_value = do_gyro_calibration(&_mavlink_log_pub);
 		break;
 
+#if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
+
 	case Request::MagCalibration:
 		_ret_value = do_mag_calibration(&_mavlink_log_pub);
 		break;
+
+	case Request::MagCalibrationQuick:
+		_ret_value = do_mag_calibration_quick(&_mavlink_log_pub, _heading_radians, _latitude, _longitude);
+		break;
+#else
+
+	case Request::MagCalibration:
+	case Request::MagCalibrationQuick:
+		_ret_value = -1;
+		break;
+#endif
 
 	case Request::RCTrimCalibration:
 		_ret_value = do_trim_calibration(&_mavlink_log_pub);
@@ -131,16 +164,20 @@ void WorkerThread::threadEntry()
 		_ret_value = do_accel_calibration_quick(&_mavlink_log_pub);
 		break;
 
+#if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
+
 	case Request::AirspeedCalibration:
 		_ret_value = do_airspeed_calibration(&_mavlink_log_pub);
 		break;
+#else
+
+	case Request::AirspeedCalibration:
+		_ret_value = -1;
+		break;
+#endif
 
 	case Request::ESCCalibration:
 		_ret_value = do_esc_calibration(&_mavlink_log_pub);
-		break;
-
-	case Request::MagCalibrationQuick:
-		_ret_value = do_mag_calibration_quick(&_mavlink_log_pub, _heading_radians, _latitude, _longitude);
 		break;
 
 	case Request::BaroCalibration:
@@ -200,6 +237,8 @@ void WorkerThread::threadEntry()
 			break;
 		}
 	}
+
+	calibrate_cancel_close();
 
 	_state.store((int)State::Finished); // set this last to signal the main thread we're done
 }

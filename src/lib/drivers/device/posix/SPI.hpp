@@ -67,7 +67,7 @@ namespace device __EXPORT
 /**
  * Abstract class for character device on SPI
  */
-class __EXPORT SPI : public CDev
+class __EXPORT SPI : public Device
 {
 public:
 	// no copy, assignment, move, move assignment
@@ -185,8 +185,6 @@ protected:
 	int	_transfer(uint8_t *send, uint8_t *recv, unsigned len);
 
 	int	_transferhword(uint16_t *send, uint16_t *recv, unsigned len);
-
-	virtual bool	external() const override { return px4_spi_bus_external(get_device_bus()); }
 
 };
 

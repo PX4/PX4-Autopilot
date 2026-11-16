@@ -437,7 +437,7 @@ class UORBMessage:
         self.constantFields = dict()
         self.commandConstants = dict()
         self.enums = dict()
-        self.output_file = os.path.join(output_dir, f"{self.name}.md")
+        self.output_file = os.path.join(output_dir, f"{self.name}.md") if output_dir else None
         self.topics = []
         self.errors = dict()
 
@@ -609,7 +609,7 @@ pageClass: is-wide-page
             error = Error("leading_whitespace_field_or_constant", self.filename, line_number, line)
             if not "leading_whitespace_field_or_constant" in self.errors:
                 self.errors["leading_whitespace_field_or_constant"] = []
-                self.errors["leading_whitespace_field_or_constant"].append(error)
+            self.errors["leading_whitespace_field_or_constant"].append(error)
 
         # Now we can parse the stripped line
         fieldOrConstant = line.strip()
@@ -621,7 +621,7 @@ pageClass: is-wide-page
             error = Error("field_or_constant_has_multiple_whitepsace", self.filename, line_number, line)
             if not "field_or_constant_has_multiple_whitepsace" in self.errors:
                 self.errors["field_or_constant_has_multiple_whitepsace"] = []
-                self.errors["field_or_constant_has_multiple_whitepsace"].append(error)
+            self.errors["field_or_constant_has_multiple_whitepsace"].append(error)
 
         fieldOrConstant = stripped_fieldOrConstant
 
@@ -757,10 +757,13 @@ pageClass: is-wide-page
                     error = Error("topic_error", self.filename, "", f"NOTE: TOPIC {self.topics[0]}: Only Declared topic is not default topic {defaultTopic} for {self.name}")
                 if not "topic_error" in self.errors:
                     self.errors["topic_error"] = []
-                    self.errors["topic_error"].append(error)
+                self.errors["topic_error"].append(error)
             elif len(self.topics) > 1:
                 if defaultTopic not in self.topics:
                     error = Error("topic_error", self.filename, "", f"NOTE: TOPIC - Default topic {defaultTopic} for {self.name} not in {self.topics}")
+                    if not "topic_error" in self.errors:
+                        self.errors["topic_error"] = []
+                    self.errors["topic_error"].append(error)
 
             # Parse our short and long description
             #print(f"DEBUG: initial_block_lines: {initial_block_lines}")
@@ -934,15 +937,25 @@ def get_msgs_list(msgdir):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Generate docs from .msg files')
-    parser.add_argument('-d', dest='dir', help='output directory', required=True)
+    parser.add_argument('-d', dest='dir', help='output directory (required unless --report is given)')
     parser.add_argument('-e', dest='errors', action='store_true', help='Report errors')
     parser.add_argument('-m', dest='error_messages', help='Message to report errors against (by default all)')
+    parser.add_argument('-r', '--report', dest='report_only', action='store_true',
+                         help='Report errors without generating any output files (implies -e, no -d required)')
     args = parser.parse_args()
 
-    output_dir = args.dir
-    if not os.path.isdir(output_dir):
-        print(f"making output_dir {output_dir}")
-        os.mkdir(output_dir)
+    if not args.dir and not args.report_only:
+        parser.print_help()
+        sys.exit(0)
+
+    if args.report_only:
+        args.errors = True
+        output_dir = None
+    else:
+        output_dir = args.dir
+        if not os.path.isdir(output_dir):
+            print(f"making output_dir {output_dir}")
+            os.mkdir(output_dir)
 
     msg_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),"../../msg")
     msg_files = get_msgs_list(msg_path)
@@ -964,6 +977,10 @@ if __name__ == "__main__":
 
     for msg_file in msg_files:
         message = UORBMessage(msg_file)
+
+        if args.report_only:
+            continue
+
         # Any additional tests that can't be in UORBMessage parser go here.
         message.markdown_out()
 
@@ -986,8 +1003,9 @@ if __name__ == "__main__":
                 unversioned_msgs_list += f" — {message.shortDescription}"
             unversioned_msgs_list += "\n"
             unversioned_names.append(message.name)
-    # Write out the index.md file
-    index_text=f"""# uORB Message Reference
+    if not args.report_only:
+        # Write out the index.md file
+        index_text=f"""# uORB Message Reference
 
 ::: info
 This list is [auto-generated](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/msg/generate_msg_docs.py) from the source code.
@@ -1014,22 +1032,22 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 
 {unversioned_msgs_list}
     """
-    index_file = os.path.join(output_dir, 'index.md')
-    with open(index_file, 'w', encoding='utf-8') as content_file:
-            content_file.write(index_text)
+        index_file = os.path.join(output_dir, 'index.md')
+        with open(index_file, 'w', encoding='utf-8') as content_file:
+                content_file.write(index_text)
 
-    fragment_lines = ['    - [uORB Message Reference](msg_docs/index.md)']
-    fragment_lines.append('      - [Versioned](msg_docs/versioned_messages.md)')
-    for name in versioned_names:
-        fragment_lines.append(f'        - [{name}](msg_docs/{name}.md)')
-    fragment_lines.append('        - [Historic (old) Versions](msg_docs/versioned_old_messages.md)')
-    for name in historic_names:
-        fragment_lines.append(f'          - [{name}](msg_docs/{name}.md)')
-    fragment_lines.append('      - [Unversioned Messages](msg_docs/unversioned_messages.md)')
-    for name in unversioned_names:
-        fragment_lines.append(f'        - [{name}](msg_docs/{name}.md)')
-    fragment_file = os.path.join(output_dir, '_del_summary_fragment.txt')
-    with open(fragment_file, 'w', encoding='utf-8') as f:
-        f.write('\n'.join(fragment_lines) + '\n')
+        fragment_lines = ['    - [uORB Message Reference](msg_docs/index.md)']
+        fragment_lines.append('      - [Versioned](msg_docs/versioned_messages.md)')
+        for name in versioned_names:
+            fragment_lines.append(f'        - [{name}](msg_docs/{name}.md)')
+        fragment_lines.append('        - [Historic (old) Versions](msg_docs/versioned_old_messages.md)')
+        for name in historic_names:
+            fragment_lines.append(f'          - [{name}](msg_docs/{name}.md)')
+        fragment_lines.append('      - [Unversioned Messages](msg_docs/unversioned_messages.md)')
+        for name in unversioned_names:
+            fragment_lines.append(f'        - [{name}](msg_docs/{name}.md)')
+        fragment_file = os.path.join(output_dir, '_del_summary_fragment.txt')
+        with open(fragment_file, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(fragment_lines) + '\n')
 
-    generate_dds_yaml_doc(msg_files)
+        generate_dds_yaml_doc(msg_files)

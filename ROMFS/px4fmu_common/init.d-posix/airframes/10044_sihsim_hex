@@ -45,7 +45,7 @@ param set-default PWM_MAIN_FUNC4 104
 param set-default PWM_MAIN_FUNC5 105
 param set-default PWM_MAIN_FUNC6 106
 
-param set-default SENS_GPS0_DELAY 0
-param set-default SENS_GPS1_DELAY 0
+param set-default SENS_GNSS0_DELAY 0
+param set-default SENS_GNSS1_DELAY 0
 
 param set-default THR_MDL_FAC 1 # simulated quadratic motor thrust

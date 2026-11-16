@@ -176,7 +176,8 @@ void UavcanRangefinderBridge::range_sub_cb(const
 		quality = 100;
 	}
 
-	const hrt_abstime timestamp_sample = (msg.timestamp.usec > 0) ? msg.timestamp.usec : hrt_absolute_time();
+	const hrt_abstime timestamp_sample = uavcan_bridge::sample_timestamp(msg.timestamp.usec,
+					     _sub_range_data.getNode().getUtcTime().toUSec(), hrt_absolute_time());
 
 	if (orientation == distance_sensor_s::ROTATION_CUSTOM) {
 		const matrix::Quatf q_sensor{uavcan_orientation_to_euler(msg.beam_orientation_in_body_frame)};
@@ -191,7 +192,7 @@ void UavcanRangefinderBridge::range_sub_cb(const
 	// Register device capability if not already done
 	if (_node_info_publisher != nullptr) {
 		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
-				rangefinder->get_device_id(), NodeInfoPublisher::DeviceCapability::RANGEFINDER);
+				rangefinder->get_device_id(), device_information_s::DEVICE_TYPE_RANGEFINDER);
 	}
 }
 

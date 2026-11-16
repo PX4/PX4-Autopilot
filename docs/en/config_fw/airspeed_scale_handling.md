@@ -5,7 +5,11 @@ This section complements the existing [Airspeed Validation](../advanced_config/a
 :::
 
 The airspeed scale is used by PX4 to convert the measured airspeed (indicated airspeed) to the calibrated airspeed.
-This scale can be set by [ASPD_SCALE_n](../advanced_config/parameter_reference.md#ASPD_SCALE_1) (where `n` is the sensor number), and logged in [AirspeedWind.msg](../msg_docs/AirspeedWind.md).
+This scale can be set by [ASPD_SCALE_n](../advanced_config/parameter_reference.md#ASPD_SCALE_1), and logged in [AirspeedWind.msg](../msg_docs/AirspeedWind.md).
+
+`n` identifies the sensor by its calibration entry: `ASPD_SCALE_1` belongs to the sensor recorded in `CAL_DPRES0_ID`, `ASPD_SCALE_2` to `CAL_DPRES1_ID`, and so on.
+With a single airspeed sensor this is always `ASPD_SCALE_1`.
+See [Multiple Airspeed Sensors](../sensor/airspeed.md#multiple-airspeed-sensors) if you have more than one.
 
 Note that the airspeed scale is different from the airspeed sensor offset calibration done on the ground at 0 m/s. The airspeed scale accounts for errors in the airspeed measurement during flight, such as those caused by sensor placement or installation effects.
 

@@ -79,7 +79,7 @@ The Septentrio G5 module firmware can be updated using the Septentrio [RxTools](
 
 ## Flight Controller Setup
 
-### Enabling DroneCAN
+### 启用 DroneCAN
 
 In order to use the ARK G5 RTK GPS, connect it to the Pixhawk CAN bus and enable the DroneCAN driver by setting parameter [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) to `2` for dynamic node allocation (or `3` if using [DroneCAN ESCs](../dronecan/escs.md)).
 
@@ -97,7 +97,7 @@ There is also CAN built-in bus termination via [CANNODE_TERM](../advanced_config
 You need to set necessary [DroneCAN](index.md) parameters and define offsets if the sensor is not centred within the vehicle:
 
 - Enable [UAVCAN_SUB_GPS](../advanced_config/parameter_reference.md#UAVCAN_SUB_GPS), [UAVCAN_SUB_MAG](../advanced_config/parameter_reference.md#UAVCAN_SUB_MAG), and [UAVCAN_SUB_BARO](../advanced_config/parameter_reference.md#UAVCAN_SUB_BARO).
-- The parameters [SENS_GPS0_OFFX](../advanced_config/parameter_reference.md#SENS_GPS0_OFFX), [SENS_GPS0_OFFY](../advanced_config/parameter_reference.md#SENS_GPS0_OFFY) and [SENS_GPS0_OFFZ](../advanced_config/parameter_reference.md#SENS_GPS0_OFFZ) can be set to account for the offset of the ARK G5 RTK GPS from the vehicle's centre of gravity.
+- The parameters [SENS_GNSS0_OFFX](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFX), [SENS_GNSS0_OFFY](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFY) and [SENS_GNSS0_OFFZ](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFZ) can be set to account for the offset of the ARK G5 RTK GPS from the vehicle's centre of gravity.
 
 ## LED含义
 

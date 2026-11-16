@@ -237,12 +237,18 @@ sbus1_output(int sbus_fd, uint16_t *values, uint16_t num_values)
 		* currently ignoring single bit channels.  */
 
 		for (unsigned i = 0; (i < num_values) && (i < 16); ++i) {
-			value = static_cast<uint16_t>(lround((values[i] - SBUS_SCALE_OFFSET) / SBUS_SCALE_FACTOR));
+			long scaled = lround((values[i] - SBUS_SCALE_OFFSET) / SBUS_SCALE_FACTOR);
 
-			/*protect from out of bounds values and limit to 11 bits*/
-			if (value > 0x07ff) {
-				value = 0x07ff;
+			/* limit to 11 bits before the cast: a value below the scale offset (an output with no
+			 * function is 0) is negative and would wrap to full scale */
+			if (scaled < 0) {
+				scaled = 0;
+
+			} else if (scaled > 0x07ff) {
+				scaled = 0x07ff;
 			}
+
+			value = static_cast<uint16_t>(scaled);
 
 			while (offset >= 8) {
 				++byteindex;

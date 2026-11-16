@@ -16,7 +16,9 @@ The output log format is [ULog](../dev_log/ulog_file_format.md).
 To display the current state, use `logger status` on the console.
 If you want to start logging immediately, use `logger on`.
 이 명령은 시동을 걸었을 때, 시동 동작보다 우선합니다.
-`logger off` undoes this.
+`logger off` stops the current log.
+Logging can start again on the next arming or AUX activation according to `SDLOG_MODE`.
+If `logger off` stops a continuous log (`SDLOG_MODE=2` or `4`), the next arming starts a new log that continues until shutdown.
 
 If logging stops due to a write error, or reaching the [maximum file size](#file-size-limitations), PX4 will automatically restart logging in a new file.
 
@@ -52,7 +54,7 @@ This allows, for example, logging of your own uORB topics.
 
 ### 진단SD 카드 설정
 
-The list of logged topics can also be customized with a file on the SD card: `etc/logging/logger_topics.txt` (for SITL, it's `build/px4_sitl_default/rootfs/fs/microsd/etc/logging/logger_topics.txt`).
+The list of logged topics can also be customized with a file on the SD card: `etc/logging/logger_topics.txt` (for SITL, it's `build/px4_sitl_default/rootfs/etc/logging/logger_topics.txt`).
 
 Each topic to be logged is listed on a separate line, with the following format:
 

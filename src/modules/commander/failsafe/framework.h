@@ -103,7 +103,7 @@ public:
 
 		case Action::Hold: return "Hold";
 
-		case Action::RTL: return "RTL";
+		case Action::RTL: return "Return";
 
 		case Action::Land: return "Land";
 
@@ -124,6 +124,7 @@ public:
 		uint8_t vehicle_type;
 		bool vtol_in_transition_mode{false};
 		bool mission_finished{false};
+		bool fw_mission_takeoff{false}; ///< fixed-wing vehicle is flying the takeoff item of a mission
 	};
 
 	FailsafeBase(ModuleParams *parent);

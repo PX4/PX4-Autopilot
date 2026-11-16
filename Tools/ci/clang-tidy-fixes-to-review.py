@@ -87,6 +87,10 @@ import _github_helpers
 from _github_helpers import fail as _fail
 
 
+# Author of the comments the PR Review Poster posts with GITHUB_TOKEN.
+BOT_LOGIN = 'github-actions[bot]'
+
+
 # Markers used inside the per-comment body to call out severity. Plain
 # strings rather than emojis to keep the file emoji-free per project
 # preferences; the rendered Markdown is unaffected.
@@ -98,22 +102,16 @@ SINGLE_COMMENT_MARKERS = {
 }
 
 
-# Diagnostics we never surface as PR review comments. `file not found` from
-# clang-diagnostic-error fires whenever clang-tidy analyzes a header whose
-# including TU is not in the active compile_commands.json (e.g. board-
-# specific NuttX headers against the SITL clang build). It is noise here,
-# not a signal: the build_all_targets CI matrix compiles those headers for
-# real and will fail loudly if an include is actually missing.
-DROPPED_DIAGNOSTIC_PATTERNS = (
-    ('clang-diagnostic-error', 'file not found'),
-)
+# Diagnostics we never surface as PR review comments. clang-diagnostic-error
+# is a compile error, and here it almost always comes from parsing a header
+# on its own or a file whose real flags differ from the SITL clang build's
+# (missing includes, NuttX-only types, an #error for another platform). The
+# build jobs compile every file for real and fail loudly on a genuine error.
+DROPPED_DIAGNOSTICS = ('clang-diagnostic-error',)
 
 
-def is_dropped_diagnostic(diag_name, diag_message):
-    for name, needle in DROPPED_DIAGNOSTIC_PATTERNS:
-        if diag_name == name and needle in (diag_message or ''):
-            return True
-    return False
+def is_dropped_diagnostic(diag_name):
+    return diag_name in DROPPED_DIAGNOSTICS
 
 
 # ---------------------------------------------------------------------------
@@ -154,6 +152,23 @@ def fetch_pull_request_files(client, repo, pr_number):
     path = 'repos/{}/pulls/{}/files'.format(repo, pr_number)
     for entry in client.paginated(path):
         yield entry
+
+
+def fetch_posted_comment_keys(client, repo, pr_number):
+    """Return the (path, line, body) of every review comment the bot
+    already posted on the PR.
+
+    COMMENT reviews cannot be dismissed, so without this every push posts
+    the same findings again. GitHub moves `line` to the current head and
+    sets it to null once the comment is outdated, so a finding that only
+    moved still matches, and one whose comment went outdated posts again.
+    """
+    path = 'repos/{}/pulls/{}/comments'.format(repo, pr_number)
+    return {
+        (c.get('path'), c.get('line'), c.get('body'))
+        for c in client.paginated(path)
+        if (c.get('user') or {}).get('login') == BOT_LOGIN
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -304,7 +319,7 @@ def generate_review_comments(clang_tidy_fixes, repository_root,
         diag_name = diag.get('DiagnosticName', '<unknown>')
         diag_message_msg = diag_message.get('Message', '')
 
-        if is_dropped_diagnostic(diag_name, diag_message_msg):
+        if is_dropped_diagnostic(diag_name):
             dropped += 1
             continue
         level = diag.get('Level', 'Warning')
@@ -451,9 +466,8 @@ def generate_review_comments(clang_tidy_fixes, repository_root,
                               'changed in this PR')
 
     if dropped:
-        print('Dropped {} diagnostic(s) matching the ignored-patterns list '
-              '(e.g. clang-diagnostic-error "file not found"); '
-              'build_all_targets covers real missing includes.'.format(dropped))
+        print('Dropped {} clang-diagnostic-error diagnostic(s); the build '
+              'jobs report real compile errors.'.format(dropped))
 
 
 # ---------------------------------------------------------------------------
@@ -540,6 +554,12 @@ def main(argv=None):
             ))
 
     print('Generated {} review comment(s)'.format(len(comments)))
+
+    if comments:
+        posted = fetch_posted_comment_keys(client, args.repo, args.pr_number)
+        comments = [c for c in comments
+                    if (c['path'], c['line'], c['body']) not in posted]
+        print('{} not already posted on the PR'.format(len(comments)))
 
     manifest = {
         'pr_number': args.pr_number,

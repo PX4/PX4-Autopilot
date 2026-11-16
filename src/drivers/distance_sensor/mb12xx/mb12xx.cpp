@@ -219,7 +219,7 @@ MB12XX::collect()
 	uint16_t distance_cm = val[0] << 8 | val[1];
 	float distance_m = static_cast<float>(distance_cm) * 1e-2f;
 
-	distance_sensor_s report;
+	distance_sensor_s report{};
 	report.current_distance = distance_m;
 	report.device_id        = get_device_id();
 	report.max_distance     = MB12XX_MAX_DISTANCE;

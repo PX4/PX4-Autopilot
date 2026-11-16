@@ -26,11 +26,24 @@ param set-default UAVCAN_ESC_IFACE 2
 
 if ver hwtypecmp ARKV6X000
 then
+	# IIM-42652 on SPI1 is the primary IMU: seed its calibration slot with a
+	# higher voter priority so selection is deterministic rather than a boot
+	# race between the three equal-priority IMUs, falling back to the others
+	# only if it degrades. The heater regulates on it too.
+	param set-default CAL_ACC0_ID 2818058
+	param set-default CAL_GYRO0_ID 2818058
+	param set-default CAL_ACC0_PRIO 100
+	param set-default CAL_GYRO0_PRIO 100
 	param set-default HEATER1_SENS_ID 2818058
 fi
 
 if ver hwtypecmp ARKV6X001
 then
+	# IIM-42653 on SPI1 is the primary IMU (see ARKV6X000 above).
+	param set-default CAL_ACC0_ID 3014666
+	param set-default CAL_GYRO0_ID 3014666
+	param set-default CAL_ACC0_PRIO 100
+	param set-default CAL_GYRO0_PRIO 100
 	param set-default HEATER1_SENS_ID 3014666
 fi
 

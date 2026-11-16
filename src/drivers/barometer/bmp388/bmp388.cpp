@@ -43,7 +43,7 @@ using namespace time_literals;
 BMP388::BMP388(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
-	_px4_baro(get_device_id())
+	_px4_baro(get_device_id(), config.external)
 {
 	_retries = 1;
 }
