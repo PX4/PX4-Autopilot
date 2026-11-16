@@ -370,7 +370,7 @@ void FlightTaskAuto::_prepareLandSetpoints()
 						   _param_mpc_land_speed.get(), _param_mpc_z_vel_max_dn.get());
 	}
 
-	if (_dist_to_ground_src==LandGroundSource::DistanceSensor && _dist_to_ground <= _param_mpc_land_alt3.get()) {
+	if (_dist_to_ground_src == LandGroundSource::DistanceSensor && _dist_to_ground <= _param_mpc_land_alt3.get()) {
 		vertical_speed = _param_mpc_land_crwl.get();
 	}
 
