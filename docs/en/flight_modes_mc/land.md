@@ -51,7 +51,7 @@ During any automatic multicopter landing (Land mode, and the landing phase of [M
 - Below [MPC_LAND_ALT2](#MPC_LAND_ALT2) the vehicle descends at [MPC_LAND_SPEED](#MPC_LAND_SPEED).
 - Below [MPC_LAND_ALT3](#MPC_LAND_ALT3) the vehicle descends at [MPC_LAND_CRWL](#MPC_LAND_CRWL) (only if a distance sensor is available and enabled in [MPC_LAND_GND_SRC](#MPC_LAND_GND_SRC)).
 
-The height above ground is taken from the first valid source in the following list that is enabled in [MPC_LAND_GND_SRC](#MPC_LAND_GND_SRC) (sources 1 to 4 are enabled by default):
+The height above ground is taken from the first valid source in the following list that is enabled in [MPC_LAND_GND_SRC](#MPC_LAND_GND_SRC) (sources 1,4,5 are enabled by default):
 
 1. A [distance sensor](../sensor/rangefinders.md), if one is available and its measurement is valid.
 2. The [landing target](../advanced_features/precland.md), if its absolute position is valid and recent (for example, from an IR beacon or a vision-based target estimator).
