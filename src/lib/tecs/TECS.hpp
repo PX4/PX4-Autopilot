@@ -403,6 +403,7 @@ private:
 	struct SpecificEnergyWeighting {
 		float spe_weighting;	///< 2 - w
 		float ske_weighting;	///< w
+		float no_thrust;	///< Share [0, 1] by which the pitch assumes the minimum total energy rate instead of the throttle's setpoint.
 	};
 
 private:
@@ -536,13 +537,25 @@ private:
 	 * @brief Calculate pitch control specific energy balance rates.
 	 *
 	 * @param weight is the weighting use of the potential and kinetic energy.
+	 * @param limit is the specific total energy rate limits in [m²/s³].
 	 * @param specific_energy_rates is the specific energy rates of the outer loops in [m²/s³].
 	 * @param pitch_specific_energy_rates is the specific energy rates as seen by the pitch loop in [m²/s³].
 	 * @return specific energy balance rate values in [m²/s³].
 	 */
-	ControlValues _calcPitchControlSebRate(const SpecificEnergyWeighting &weight,
+	ControlValues _calcPitchControlSebRate(const SpecificEnergyWeighting &weight, const STERateLimit &limit,
 					       const SpecificEnergyRates &specific_energy_rates,
 					       const SpecificEnergyRates &pitch_specific_energy_rates) const;
+
+	/**
+	 * @brief Total energy rate the pitch loop assumes from the throttle.
+	 *
+	 * @param weight is the speed weight of the energy rate demands.
+	 * @param limit is the specific total energy rate limits in [m²/s³].
+	 * @param specific_energy_rates is the specific energy rates of the outer loops in [m²/s³].
+	 * @return specific total energy rate in [m²/s³].
+	 */
+	static float _calcPitchControlSteRateSetpoint(const SpecificEnergyWeighting &weight, const STERateLimit &limit,
+			const SpecificEnergyRates &specific_energy_rates);
 
 	/**
 	 * @brief Calculate the pitch control update function.
@@ -637,7 +650,6 @@ private:
 	// State
 	AlphaFilter<float> _ste_rate_error_filter;		///< Low pass filter for the specific total energy rate error (feedback path).
 	float _pitch_integ_state{0.0f};				///< Pitch integrator state [rad].
-	float _fast_descend_prev{0.0f};				///< Fast descend ratio of the last update [0,1].
 	float _throttle_integ_state{0.0f};			///< Throttle integrator state [-].
 
 	// Output
