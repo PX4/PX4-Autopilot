@@ -110,8 +110,8 @@ See [Battery Estimation Tuning (Power Setup)](../config/battery.md) for how to c
 
 The CyberX-v10 has the following power configuration:
 
-- `PWR1`: One analog ADC channel for monitoring the main power input voltage.
-- `PWR2`: One I2C-based power monitoring IC that monitors the same physical power input and provides additional voltage/current measurements.
+- `PWR1`: One ADC channel for monitoring the main power input voltage.
+- `PWR2`: One I2C power monitor on the same power input, providing additional voltage/current measurements.
 - `USB`: USB power is provided for debugging and development purposes only.
 
 ::: warning
