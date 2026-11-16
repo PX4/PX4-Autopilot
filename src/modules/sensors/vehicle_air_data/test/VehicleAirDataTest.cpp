@@ -103,6 +103,11 @@ public:
 			setPriority(i, 0);
 			setParamFloat(kOffsetParams[i], 0.f);
 		}
+
+#if defined(CONFIG_SENSORS_BARO_COMPENSATION)
+		setParamFloat("SENS_BARO_K_XP", 0.f);
+		setParamFloat("SENS_BARO_K_T", 0.f);
+#endif // CONFIG_SENSORS_BARO_COMPENSATION
 	}
 
 	static void setParam(const char *name, int32_t value)
