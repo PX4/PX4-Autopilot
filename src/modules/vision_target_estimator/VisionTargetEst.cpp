@@ -134,24 +134,20 @@ void VisionTargetEst::Run()
 			ScheduleClear();
 
 		} else {
-			const uint32_t estimator_update_period_us = static_cast<uint32_t>(math::min(kPosUpdatePeriodUs,
-					kYawUpdatePeriodUs));
-			ScheduleOnInterval(estimator_update_period_us);
+			// Poll at the estimator rate. Without the delay the timer would fire again at once.
+			ScheduleOnInterval(static_cast<uint32_t>(kEstimatorUpdatePeriodUs), static_cast<uint32_t>(kEstimatorUpdatePeriodUs));
 		}
 	}
 
-	// Task is running, check if an estimator must be started or re-started
-	startEstIfNeeded();
-
-	const bool task_completed = isCurrentTaskComplete();
-
-	if (task_completed) {
+	if (isCurrentTaskComplete()) {
 		stopAllEstimators();
 		_current_task_ptr = nullptr;
 		updateAidMask();
 		return;
 	}
 
+	// Task is running, check if an estimator must be started or re-started
+	startEstIfNeeded();
 	restartTimedOutEstimators();
 
 	if (noEstRunning()) {
@@ -180,36 +176,18 @@ bool VisionTargetEst::init()
 		return false;
 	}
 
-	_vte_position_enabled = false;
-	_vte_orientation_enabled = false;
-
 	// Params with reboot required
-	if (_param_vte_pos_en.get()) {
-		PX4_DEBUG("VTE position estimator enabled.");
+	_vte_position_enabled = _param_vte_pos_en.get() != 0;
+	_vte_orientation_enabled = _param_vte_yaw_en.get() != 0;
 
-		if (_vte_position.init()) {
-			_vte_position_enabled = true;
-
-		} else {
-			PX4_ERR("VTE position estimator initialisation failed");
-		}
-	}
-
-	if (_param_vte_yaw_en.get()) {
-		PX4_DEBUG("VTE yaw estimator enabled.");
-
-		if (_vte_orientation.init()) {
-			_vte_orientation_enabled = true;
-
-		} else {
-			PX4_ERR("VTE yaw estimator initialisation failed");
-		}
-	}
+#if defined(CONFIG_VTEST_MOVING)
+	PX4_WARN("VTE for moving targets has not been thoroughly tested");
+#endif // CONFIG_VTEST_MOVING
 
 	// Params that impact the estimators
 	updateParams();
 
-	return _vte_position_enabled || _vte_orientation_enabled;
+	return true;
 }
 
 void VisionTargetEst::updateParams()
@@ -222,6 +200,9 @@ void VisionTargetEst::updateParams()
 	const uint8_t new_vte_task_mask = static_cast<uint8_t>(_param_vte_task_mask.get());
 
 	if (new_vte_task_mask != _vte_task_mask) {
+		if ((_vte_task_mask & task_bits::kPrecTakeoff) && !(new_vte_task_mask & task_bits::kPrecTakeoff)) {
+			_prec_takeoff_task.clearHomeReference();
+		}
 
 		_vte_task_mask = new_vte_task_mask;
 
@@ -573,11 +554,6 @@ void VisionTargetEst::updatePosEst(const matrix::Vector3f &gps_pos_offset_ned,
 {
 	perf_begin(_cycle_perf_pos);
 
-	if (acc_sample_count == 0) {
-		perf_end(_cycle_perf_pos);
-		return;
-	}
-
 	LocalPose local_pose{};
 	const bool local_pose_updated = pollLocalPose(local_pose);
 
@@ -693,23 +669,23 @@ bool VisionTargetEst::pollEstimatorInput(matrix::Vector3f &vehicle_acc_ned, matr
 	vehicle_attitude_s vehicle_attitude{};
 	vehicle_acceleration_s vehicle_acceleration{};
 
-	const bool vehicle_attitude_updated = _vehicle_attitude_sub.update(&vehicle_attitude);
-	const bool vehicle_acceleration_updated = _vehicle_acceleration_sub.update(&vehicle_acceleration);
+	// Keep the acceleration sample even when the attitude has not updated yet.
+	if (_vehicle_acceleration_sub.update(&vehicle_acceleration)) {
+		_vehicle_acc_body.xyz = matrix::Vector3f(vehicle_acceleration.xyz);
+		_vehicle_acc_body.timestamp = vehicle_acceleration.timestamp_sample != 0
+					      ? vehicle_acceleration.timestamp_sample : vehicle_acceleration.timestamp;
+	}
 
-	if (!vehicle_attitude_updated) {
+	if (!_vehicle_attitude_sub.update(&vehicle_attitude)) {
 		return false;
 	}
 
 	// Check the same attitude sample that will rotate this cycle's inputs.
 	handleAttitudeReset(vehicle_attitude);
 
-	if (vehicle_acceleration_updated) {
-		_vehicle_acc_body.xyz = matrix::Vector3f(vehicle_acceleration.xyz);
-		_vehicle_acc_body.timestamp = vehicle_acceleration.timestamp;
-	}
-
 	_vehicle_acc_body.valid = (_vehicle_acc_body.timestamp != 0)
-				  && !hasTimedOut(_vehicle_acc_body.timestamp, kAccUpdatedTimeoutUs);
+				  && !hasTimedOut(_vehicle_acc_body.timestamp, kAccUpdatedTimeoutUs)
+				  && _vehicle_acc_body.xyz.isAllFinite();
 	acc_valid = _vehicle_acc_body.valid;
 
 	/* Transform FRD body acc to NED */
@@ -756,35 +732,18 @@ bool VisionTargetEst::updateWhenIntervalElapsed(hrt_abstime &last_time, const hr
 int VisionTargetEst::print_status()
 {
 	const auto yes_no = [](const bool value) { return value ? "yes" : "no"; };
-	SensorFusionMaskU configured_aid_mask{};
-	configured_aid_mask.value = static_cast<uint16_t>(_param_vte_aid_mask.get());
 
-	PX4_INFO("VTE running");
 #if defined(CONFIG_VTEST_MOVING)
-	PX4_INFO("target model: moving");
-	PX4_WARN("Caution: VTE for moving targets is a beta feature");
+	PX4_INFO("target model: moving (beta)");
 #else
 	PX4_INFO("target model: static");
 #endif // CONFIG_VTEST_MOVING
-	PX4_INFO("work queue: %s", px4::wq_configurations::vte.name);
-	PX4_INFO("current task: %s", _current_task_ptr ? _current_task_ptr->name() : "none");
-	PX4_INFO("task mask: 0x%02x (prec_land: %s, prec_takeoff: %s, debug: %s)",
-		 static_cast<unsigned>(_vte_task_mask),
-		 yes_no(isTaskMaskBitEnabled(task_bits::kPrecLand)),
-		 yes_no(isTaskMaskBitEnabled(task_bits::kPrecTakeoff)),
-		 yes_no(isTaskMaskBitEnabled(task_bits::kDebug)));
+	PX4_INFO("task: %s, mask: 0x%02x", _current_task_ptr ? _current_task_ptr->name() : "none",
+		 static_cast<unsigned>(_vte_task_mask));
 	PX4_INFO("aid mask: configured 0x%04x, effective 0x%04x",
 		 static_cast<unsigned>(_param_vte_aid_mask.get()), static_cast<unsigned>(_vte_aid_mask.value));
-	PX4_INFO("  vision pos: %s, target gps pos: %s, mission land pos: %s, home pos: %s",
-		 yes_no(configured_aid_mask.flags.use_vision_pos),
-		 yes_no(configured_aid_mask.flags.use_target_gps_pos),
-		 yes_no(configured_aid_mask.flags.use_mission_pos),
-		 yes_no(configured_aid_mask.flags.use_home_pos));
-	PX4_INFO("  uav gps vel: %s, target gps vel: %s",
-		 yes_no(configured_aid_mask.flags.use_uav_gps_vel),
-		 yes_no(configured_aid_mask.flags.use_target_gps_vel));
 
-	PX4_INFO("position vte: enabled: %s, available: %s, running: %s, fusing: %s, timed out: %s",
+	PX4_INFO("%s: enabled: %s, available: %s, running: %s, fusing: %s, timed out: %s", "position",
 		 yes_no(_param_vte_pos_en.get()),
 		 yes_no(_vte_position_enabled),
 		 yes_no(_position_estimator_running),
@@ -795,7 +754,7 @@ int VisionTargetEst::print_status()
 		_vte_position.print_status();
 	}
 
-	PX4_INFO("orientation vte: enabled: %s, available: %s, running: %s, fusing: %s, timed out: %s",
+	PX4_INFO("%s: enabled: %s, available: %s, running: %s, fusing: %s, timed out: %s", "yaw",
 		 yes_no(_param_vte_yaw_en.get()),
 		 yes_no(_vte_orientation_enabled),
 		 yes_no(_orientation_estimator_running),

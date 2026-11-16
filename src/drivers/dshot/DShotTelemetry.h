@@ -52,7 +52,6 @@ public:
 
 	TelemetryStatus parseTelemetryPacket(EscData *esc_data);
 
-	// Attempt to parse a command response. Returns the index of the ESC or -1 on failure.
 	void parseCommandResponse();
 	bool commandResponseFinished();
 	bool commandResponseStarted();
@@ -60,11 +59,16 @@ public:
 	void setExpectCommandResponse(int motor_index, uint16_t command);
 	void resetCommandResponse();
 	void initSettingsHandlers(ESCType esc_type, uint16_t output_mask);
+	void publishSettings();
+	int getSettingsRequest(uint16_t motor_mask);
+	void requestSettings(uint16_t motor_mask);
+	void invalidateSettings(uint16_t motor_mask);
 
 private:
 	static constexpr int COMMAND_RESPONSE_MAX_SIZE = 49;
 	static constexpr int TELEMETRY_FRAME_SIZE = 10;
 	TelemetryStatus decodeTelemetryResponse(uint8_t *buffer, int length, EscData *esc_data);
+	void settingsReadFailed();
 
 	device::Serial _uart{};
 
@@ -89,4 +93,9 @@ private:
 	ESCSettingsInterface *_settings_handlers[DSHOT_MAX_MOTORS] = {nullptr};
 	ESCType _esc_type{ESCType::Unknown};
 	bool _settings_initialized{false};
+	uint16_t _settings_request_mask{0};
+	int _next_settings_motor{0};
+	uint8_t _settings_attempts[DSHOT_MAX_MOTORS] {};
+	hrt_abstime _settings_retry_after{0};
+	hrt_abstime _settings_last_publish{0};
 };

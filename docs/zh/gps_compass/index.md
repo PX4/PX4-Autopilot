@@ -159,8 +159,8 @@ The following steps show how to configure a secondary GPS on the `GPS 2` port in
 
 After setting up the second GPS port:
 
-1. Configure the ECL/EKF2 estimator to blend data from both GPS systems.
-   For detailed instructions see: [Using the ECL EKF > Dual Receivers](../advanced_config/tuning_the_ecl_ekf.md#dual-receivers).
+1. Optionally set which receiver is preferred using [SENS_GNSS_PRIME](../advanced_config/parameter_reference.md#SENS_GNSS_PRIME).
+   For more information see: [Using the ECL EKF > Dual Receivers](../advanced_config/tuning_the_ecl_ekf.md#dual-receivers).
 
 ### DroneCAN GNSS Configuration
 

@@ -75,11 +75,18 @@ jobs:
       - name: Build and run unit tests
         env:
           PX4_SBOM_DISABLE: 1
+        # Each tree is deleted once its tests pass so only one sits on disk at a time.
         run: |
           make tests
+          rm -rf build/px4_sitl_test
           make tests_daa_crosstrack
+          rm -rf build/px4_sitl_test-daa-crosstrack
           make tests_vtest_moving
+          rm -rf build/px4_sitl_vtest-moving
           make tests_neural
+          rm -rf build/px4_sitl_neural
+          make tests_nocache
+          rm -rf build/px4_sitl_test-nocache
 
       - uses: ./.github/actions/save-ccache
         if: always()

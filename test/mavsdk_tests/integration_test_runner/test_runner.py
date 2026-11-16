@@ -86,7 +86,8 @@ class Tester:
 
     @staticmethod
     def wildcard_match(pattern: str, potential_match: str) -> bool:
-        return fnmatch.fnmatchcase(potential_match, pattern)
+        # Only '*' and '?' are wildcards: '[' is literal, as in the IDs of parametrized tests.
+        return fnmatch.fnmatchcase(potential_match, pattern.replace('[', '[[]'))
 
     @staticmethod
     def plural_s(n_items: int) -> str:
@@ -111,6 +112,9 @@ class Tester:
         return tests
 
     def run(self) -> bool:
+        if self.num_cases() == 0:
+            print(colorize("No test case selected", color.RED))
+            return False
         self.show_plans()
         self.prepare_for_results()
         self.run_tests()
@@ -246,7 +250,9 @@ class Tester:
                                       str(iteration + 1).zfill(digits))
 
         foldername = os.path.join(foldername, model)
-        foldername = os.path.join(foldername, case.replace(" ", "_"))
+        # Case names can be pytest node IDs which contain "::".
+        foldername = os.path.join(foldername,
+                                  re.sub(r'[^A-Za-z0-9._-]+', '_', case))
 
         return foldername
 
@@ -325,9 +331,11 @@ class Tester:
 
         if self.config['mode'] == 'sitl':
             if self.config.get('simulator') == 'gazebo':
-                # Use RegEx to extract worldname.world from case name
+                # The world comes from the config, or from "(name.world)" in the case name.
                 match = re.search(r'\((.*?\.world)\)', case)
-                if match:
+                if 'world' in test:
+                    world_name = test['world']
+                elif match:
                     world_name = match.group(1)
                 else:
                     world_name = 'empty.world'

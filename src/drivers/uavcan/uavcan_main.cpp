@@ -193,7 +193,7 @@ UavcanNode::save_params(int remote_node_id)
 	uavcan::protocol::param::ExecuteOpcode::Request opcode_req;
 	opcode_req.opcode = opcode_req.OPCODE_SAVE;
 	uavcan::ServiceClient<uavcan::protocol::param::ExecuteOpcode, ExecuteOpcodeCallback> client(_node);
-	client.setCallback(ExecuteOpcodeCallback(this, &UavcanNode::cb_opcode));
+	client.setCallback(ExecuteOpcodeCallback(this, &UavcanNode::cb_save_params));
 	_callback_success = false;
 	int call_res = client.call(remote_node_id, opcode_req);
 
@@ -208,7 +208,8 @@ UavcanNode::save_params(int remote_node_id)
 		return -1;
 	}
 
-	return 0;
+	// Like the MAVLink save, restart the node so parameters that only apply at boot take effect
+	return reset_node(remote_node_id);
 }
 
 int
@@ -217,7 +218,7 @@ UavcanNode::reset_node(int remote_node_id)
 	uavcan::protocol::RestartNode::Request restart_req;
 	restart_req.magic_number = restart_req.MAGIC_NUMBER;
 	uavcan::ServiceClient<uavcan::protocol::RestartNode, RestartNodeCallback> client(_node);
-	client.setCallback(RestartNodeCallback(this, &UavcanNode::cb_restart));
+	client.setCallback(RestartNodeCallback(this, &UavcanNode::cb_reset_node));
 	_callback_success = false;
 	int call_res = client.call(remote_node_id, restart_req);
 
@@ -227,8 +228,13 @@ UavcanNode::reset_node(int remote_node_id)
 		}
 	}
 
-	if (!call_res) {
+	if (call_res < 0) {
 		std::printf("Failed to reset node: %d\n", remote_node_id);
+		return -1;
+	}
+
+	if (!_callback_success) {
+		std::printf("No restart confirmation from node: %d (it may have rebooted without replying)\n", remote_node_id);
 		return -1;
 	}
 
@@ -264,6 +270,18 @@ UavcanNode::list_params(int remote_node_id)
 
 	free_setget_response();
 	return rv;
+}
+
+void
+UavcanNode::cb_save_params(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &result)
+{
+	_callback_success = result.isSuccessful() && result.getResponse().ok;
+}
+
+void
+UavcanNode::cb_reset_node(const uavcan::ServiceCallResult<uavcan::protocol::RestartNode> &result)
+{
+	_callback_success = result.isSuccessful() && result.getResponse().ok;
 }
 
 void
@@ -318,8 +336,10 @@ UavcanNode::set_param(int remote_node_id, const char *name, char *value)
 
 		if (resp.value.is(uavcan::protocol::param::Value::Tag::integer_value)) {
 			int64_t i = std::strtoull(value, NULL, 10);
-			int64_t min = resp.min_value.to<uavcan::protocol::param::NumericValue::Tag::integer_value>();
-			int64_t max = resp.max_value.to<uavcan::protocol::param::NumericValue::Tag::integer_value>();
+			const bool has_min = resp.min_value.is(uavcan::protocol::param::NumericValue::Tag::integer_value);
+			const bool has_max = resp.max_value.is(uavcan::protocol::param::NumericValue::Tag::integer_value);
+			int64_t min = has_min ? resp.min_value.to<uavcan::protocol::param::NumericValue::Tag::integer_value>() : INT64_MIN;
+			int64_t max = has_max ? resp.max_value.to<uavcan::protocol::param::NumericValue::Tag::integer_value>() : INT64_MAX;
 
 			if (i >= min &&  i <= max) {
 				req.value.to<uavcan::protocol::param::Value::Tag::integer_value>() = i;
@@ -331,8 +351,10 @@ UavcanNode::set_param(int remote_node_id, const char *name, char *value)
 
 		} else if (resp.value.is(uavcan::protocol::param::Value::Tag::real_value)) {
 			float f = static_cast<float>(std::atof(value));
-			float min = resp.min_value.to<uavcan::protocol::param::NumericValue::Tag::real_value>();
-			float max = resp.max_value.to<uavcan::protocol::param::NumericValue::Tag::real_value>();
+			const bool has_min = resp.min_value.is(uavcan::protocol::param::NumericValue::Tag::real_value);
+			const bool has_max = resp.max_value.is(uavcan::protocol::param::NumericValue::Tag::real_value);
+			float min = has_min ? resp.min_value.to<uavcan::protocol::param::NumericValue::Tag::real_value>() : -FLT_MAX;
+			float max = has_max ? resp.max_value.to<uavcan::protocol::param::NumericValue::Tag::real_value>() : FLT_MAX;
 
 			if (f >= min &&  f <= max) {
 				req.value.to<uavcan::protocol::param::Value::Tag::real_value>() = f;
@@ -354,16 +376,13 @@ UavcanNode::set_param(int remote_node_id, const char *name, char *value)
 		if (rv == 0) {
 			rv = get_set_param(remote_node_id, name, req);
 
-			if (rv == 0) {
-				// commit parameter change
-				save_params(remote_node_id);
-
-			} else if (rv < 0 || resp.name.empty()) {
+			if (rv < 0 || resp.name.empty()) {
 				std::printf("Failed to set param: %s\n", name);
-				return -1;
-			}
+				rv = -1;
 
-			return 0;
+			} else {
+				rv = 0;
+			}
 		}
 	}
 
@@ -1616,9 +1635,12 @@ UavcanNode::get_next_dirty_node_id(uint8_t base)
  */
 static void print_usage()
 {
-	PX4_INFO("usage: \n"
-		 "\tuavcan {start|status|stop|shrink|update}\n"
-		 "\t        param [set|get|list|save] <node-id> <name> <value>|reset <node-id>");
+	PX4_INFO("usage:");
+	PX4_INFO_RAW("\tuavcan {start|status|stop|shrink|update}\n");
+	PX4_INFO_RAW("\tuavcan param list|save <node-id>\n");
+	PX4_INFO_RAW("\tuavcan param get <node-id> <name>\n");
+	PX4_INFO_RAW("\tuavcan param set <node-id> <name> <value>\n");
+	PX4_INFO_RAW("\tuavcan reset <node-id>\n");
 }
 
 extern "C" __EXPORT int uavcan_main(int argc, char *argv[])
@@ -1686,6 +1708,7 @@ extern "C" __EXPORT int uavcan_main(int argc, char *argv[])
 	 *  uavcan param save <node>
 	 *  uavcan param get <node> <name>
 	 *  uavcan param set <node> <name> <value>
+	 *  uavcan reset <node>
 	 *
 	 */
 	int node_arg = !std::strcmp(argv[1], "reset") ? 2 : 3;

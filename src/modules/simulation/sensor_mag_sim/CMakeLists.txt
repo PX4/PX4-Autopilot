@@ -41,6 +41,7 @@ px4_add_module(
 	MODULE_CONFIG
 		parameters.yaml
 	DEPENDS
+		mathlib
 		drivers_magnetometer
 		failure_injection
 		geo

@@ -140,11 +140,15 @@ $$E_T = \frac{1}{2} m V_T^2 + m g h$$
 
 $$\dot{E_T} = m V_T \dot{V_T} + m g \dot{h}$$
 
-이로부터 특정 에너지율은 다음과 같습니다.
+Dividing by the mass gives the specific (per unit mass) total energy rate, in m²/s³:
 
-$$\dot{E} = \frac{\dot{E_T}}{mgV_T}  = \frac{\dot{V_T}}{g} + \frac{\dot{h}}{V_T} = \frac{\dot{V_T}}{g} + sin(\gamma)$$
+$$\dot{E_s} = \frac{\dot{E_T}}{m} = V_T \dot{V_T} + g \dot{h}$$
 
-여기서 $\gamma{}$는 비행 계획 각도입니다.
+Dividing it further by $g V_T{}$ gives the normalised energy rate, which is dimensionless:
+
+$$\dot{E} = \frac{\dot{E_s}}{g V_T} = \frac{\dot{V_T}}{g} + \frac{\dot{h}}{V_T} = \frac{\dot{V_T}}{g} + sin(\gamma)$$
+
+where $\gamma{}$ is the flight path angle.
 작은 $\gamma{}$의 경우 다음과 같이 근사할 수 있습니다.
 
 $$\dot{E} \approx  \frac{\dot{V_T}}{g} + \gamma$$
@@ -160,9 +164,41 @@ $$\Delta T = mg(\frac{\dot{V_T}}{g} + \gamma)$$
 
 보시다시피 $\Delta T{}$는 $\dot{E}{}$에 비례하므로, 추력 설정값을 전체 에너지 제어에 사용합니다.
 
-반면에 엘리베이터 제어는 에너지를 보존하므로, 위치 에너지를 운동 에너지로 또는 그 반대로 전환합니다. 이를 위하여, 특정 에너지 균형 비율은 다음과 같이 정의합니다.
+Elevator control on the other hand is energy conservative, and is thus used for exchanging potential energy for kinetic energy and vice versa.
+To this end, the specific energy balance rate is defined as:
 
-$$\dot{B} = \gamma - \frac{\dot{V_T}}{g}$$
+$$\dot{B_s} = g \dot{h} - V_T \dot{V_T}$$
+
+and its normalised form as:
+
+$$\dot{B} = \frac{\dot{B_s}}{g V_T} \approx \gamma - \frac{\dot{V_T}}{g}$$
+
+TECS computes the energy rates in their specific form (m²/s³).
+It only converts the energy balance rate to its normalised form, an equivalent flight path angle, when forming the pitch setpoint.
+
+#### Speed and Altitude Weighting
+
+[FW_T_SPDWEIGHT](../advanced_config/parameter_reference.md#FW_T_SPDWEIGHT) sets how the pitch loop weights speed errors against height errors in the energy balance.
+A value of 0 controls height only, which is also used when flying without an airspeed sensor.
+A value of 2 controls speed only, which is intended for gliders.
+The default of 1 weights both equally.
+
+Pitch only trades altitude for speed up to the trim airspeed ([FW_AIRSPD_TRIM](../advanced_config/parameter_reference.md#FW_AIRSPD_TRIM)): accelerating beyond trim is the throttle's job.
+With an airspeed setpoint above trim, what the pitch loop does therefore depends on the measured airspeed:
+
+![Pitch and throttle roles along the measured airspeed: below trim, pitch trades height for speed aiming for trim; between trim and the airspeed setpoint, pitch holds height only and the throttle accelerates; above the setpoint, pitch trades speed for height and the throttle is reduced](../../assets/diagrams/tecs_speed_regions.svg)
+
+- Below trim, pitch trades height for speed, but only aims for trim airspeed.
+- Between trim and the setpoint, pitch ignores airspeed and holds height only.
+  It neither descends to gain speed nor pitches up to turn the throttle's acceleration into height.
+  If the throttle saturates at [FW_THR_MAX](../advanced_config/parameter_reference.md#FW_THR_MAX), the vehicle holds its altitude and settles at a lower airspeed than commanded.
+- Above the setpoint, pitch trades speed for height to correct the overspeed.
+
+With an airspeed setpoint at or below trim there is no middle region, and pitch and throttle share speed control as weighted by `FW_T_SPDWEIGHT`.
+
+These regions apply up to a speed weight of 1 and are faded out as the speed weight goes from 1 to 2, so with a weight of 2 pitch alone tracks the full airspeed setpoint.
+Gliders, which have no throttle to accelerate with, should therefore use `FW_T_SPDWEIGHT` = 2.
+The speed weight is also raised towards 2 automatically during underspeed recovery and fast descend, which therefore still use pitch to reach their airspeed setpoint.
 
 ## 고정익 자세 콘트롤러
 

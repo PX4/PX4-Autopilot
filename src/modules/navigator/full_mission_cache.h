@@ -49,24 +49,48 @@
 
 class MissionRouteCacheTestPeer;
 
+namespace mission_route
+{
+
+// Mission storages the route caches accept as their source.
+inline bool isMissionDatamanIdValid(uint8_t dataman_id)
+{
+	return dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 || dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_1;
+}
+
+// Retry backoff shared by the route caches: 500 ms, doubling up to 4 s.
+struct CacheRetryBackoff {
+	static constexpr hrt_abstime kBackoff{500000};
+	static constexpr uint8_t kMaxBackoffShift{3};
+
+	hrt_abstime retry_at{0};
+	uint8_t retry_count{0};
+
+	bool scheduled() const { return retry_at != 0; }
+	bool due(hrt_abstime now) const { return scheduled() && now >= retry_at; }
+	void clear()
+	{
+		retry_at = 0;
+		retry_count = 0;
+	}
+
+	void scheduleRetry(hrt_abstime now)
+	{
+		const uint8_t backoff_shift = (retry_count < kMaxBackoffShift) ? retry_count : kMaxBackoffShift;
+		retry_at = now + (kBackoff << backoff_shift);
+
+		if (retry_count < UINT8_MAX) {
+			++retry_count;
+		}
+	}
+};
+
+} // namespace mission_route
+
 class FullMissionCache
 {
 public:
 	static constexpr int32_t kMaxMissionCacheSize{CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE};
-
-	struct MissionView {
-		const mission_item_s *items{nullptr};
-		int32_t count{0};
-		uint32_t mission_id{0};
-		uint8_t dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_0};
-		uint32_t generation{0};
-	};
-
-	enum class SyncResult : uint8_t {
-		kRejected,  ///< Source mismatch, index out of range, or the cache is compiled out.
-		kPatched,   ///< A loaded item was updated in place; any borrowed view becomes stale.
-		kDeferred   ///< The item is not loaded yet; the pending load reads it from dataman.
-	};
 
 	explicit FullMissionCache(orb_advert_t *mavlink_log_pub = nullptr);
 	~FullMissionCache();
@@ -74,16 +98,13 @@ public:
 	FullMissionCache &operator=(const FullMissionCache &) = delete;
 
 	void update(const mission_s &mission);
-	void invalidate();
 
 	bool missionItemsReady(const mission_s &mission) const;
 	int missionCount() const;
-	bool loadMissionItem(int index, mission_item_s &mission_item) const;
-	bool getMissionView(const mission_s &mission, MissionView &view) const;
-	bool missionViewStillValid(const MissionView &view) const;
+	const mission_item_s *missionItem(int index) const;
 
 	/** Apply a successful Dataman item write from Navigator's serialized task. */
-	SyncResult syncMissionItem(const mission_s &mission, int32_t index, const mission_item_s &mission_item);
+	void syncMissionItem(const mission_s &mission, int32_t index, const mission_item_s &mission_item);
 
 	/**
 	 * Response subscription while a read is pending. Polling it while idle can spin
@@ -95,42 +116,14 @@ private:
 	friend class MissionRouteCacheTestPeer;
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	static constexpr hrt_abstime kCacheRetryBackoff {500000}; // 500 ms
-	static constexpr uint8_t kMaxRetryBackoffShift{3}; // Retry 3+: 500ms << 3 = 4000 ms.
-
-	struct RetryBackoff {
-		hrt_abstime retry_at{0};
-		uint8_t retry_count{0};
-
-		bool due(hrt_abstime now) const { return retry_at != 0 && now >= retry_at; }
-		void clear()
-		{
-			retry_at = 0;
-			retry_count = 0;
-		}
-
-		void scheduleRetry(hrt_abstime now)
-		{
-			const uint8_t backoff_shift = (retry_count < kMaxRetryBackoffShift) ? retry_count : kMaxRetryBackoffShift;
-			retry_at = now + (kCacheRetryBackoff << backoff_shift);
-
-			if (retry_count < UINT8_MAX) {
-				++retry_count;
-			}
-		}
-	};
-
 	struct MissionCacheState {
 		uint32_t id{0};
-		int32_t count{0};
+		int32_t count{-1}; ///< No mission matches the state before the first update.
 		uint8_t dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_0};
 		int32_t next_index{0}; ///< First unread item; retries resume here.
-		bool initialized{false};
-		bool source_valid{false};
+		bool loadable{false}; ///< Valid source that fits the cache. It loads until ready, except while a retry is scheduled.
 		bool ready{false};
-		bool too_large{false};
-		bool validation_pending{false};
-		RetryBackoff retry{};
+		mission_route::CacheRetryBackoff retry{};
 	};
 
 	struct MissionRequest {
@@ -140,10 +133,6 @@ private:
 	};
 
 	bool missionMatchesCache(const mission_s &mission) const;
-	bool missionCacheAvailable() const;
-	void startMissionLoad();
-	void resumeMissionLoad();
-	void advanceMissionGeneration();
 
 	mission_item_s *_mission_items{nullptr};
 	DatamanClient _dataman_client_mission{};

@@ -64,11 +64,8 @@ public:
 
 	static void invalidateCache(Geofence &fence) { fence._dataman_cache.invalidate(); }
 
-	static bool replaceCachedPoint(Geofence &fence, uint32_t index, const mission_fence_point_s &point)
-	{
-		return fence._dataman_cache.updateCachedItem(static_cast<dm_item_t>(fence._stats.dataman_id), index,
-				reinterpret_cast<const uint8_t *>(&point), sizeof(point));
-	}
+	// What updateFence() from another thread can leave: a reload queued, path checks still ready.
+	static void queueRacedUpdate(Geofence &fence) { fence._initiate_fence_updated = true; }
 
 	static void setAltitudeBand(Geofence &fence, float minimum, float maximum)
 	{
@@ -90,13 +87,6 @@ public:
 	}
 
 	static constexpr unsigned maxLoadRetries() { return Geofence::kMaxFenceLoadRetries; }
-
-	// A load is running or a failed one still waits for its retry.
-	static bool isUpdatePending(const Geofence &fence)
-	{
-		return fence._initiate_fence_updated || fence._dataman_state != Geofence::DatamanState::UpdateRequestWait
-		       || fence._fence_retry_time != 0;
-	}
 
 	static bool waitForPendingRead(Geofence &fence)
 	{

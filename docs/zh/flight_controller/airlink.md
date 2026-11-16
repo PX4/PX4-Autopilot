@@ -383,7 +383,7 @@ More information can be found at [www.sky-drones.com](https://sky-drones.com).
 
 Frequently asked questions are answered in [FAQ](https://docs.sky-drones.com/airlink/faq).
 
-## Useful Links
+## 实用链接
 
 - [AIRLink product page](https://sky-drones.com/airlink)
 - [AIRLink documentation](https://docs.sky-drones.com/avionics/airlink)

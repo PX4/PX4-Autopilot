@@ -7,12 +7,12 @@
     [
         {
             "model": "iris",
-            "test_filter": "[multicopter],[offboard],[offboard_attitude]",
+            "test_filter": "multicopter or offboard or offboard_attitude",
             "timeout_min": 10
         },
         {
             "model": "iris",
-            "test_filter": "[offboard_attitude]",
+            "test_filter": "offboard_attitude",
             "timeout_min": 10,
             "env": {
                 "PX4_PARAM_EKF2_EN": 0,
@@ -22,17 +22,24 @@
         {
             "model": "standard_vtol",
             "vehicle": "standard_vtol",
-            "test_filter": "[vtol], [vtol_wind], [vtol_airspeed_fail], [loiter]",
+            "test_filter": "vtol or vtol_airspeed_fail or loiter",
+            "timeout_min": 10
+        },
+        {
+            "model": "standard_vtol",
+            "vehicle": "standard_vtol",
+            "test_filter": "vtol_wind",
+            "world": "ramped_up_wind.world",
             "timeout_min": 10
         },
         {
             "model": "tailsitter",
-            "test_filter": "[vtol]",
+            "test_filter": "vtol",
             "timeout_min": 10
         },
         {
             "model": "typhoon_h480",
-            "test_filter": "[controlallocation]",
+            "test_filter": "controlallocation",
             "timeout_min": 10
         }
     ]

@@ -94,8 +94,6 @@ protected:
 	{
 		(void)navigatorDatamanRuntime();
 	}
-
-	static void TearDownTestSuite() {}
 };
 
 class DatamanClientTestPeer

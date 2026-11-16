@@ -156,8 +156,8 @@ void PX4Accelerometer::update(const hrt_abstime &timestamp_sample, float x, floa
 
 	_failure_config.update();
 
-	if (!failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_ACCEL,
-					_sensor_pub.get_instance(), report, _stuck)) {
+	if (!failure_injection::process_imu(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_ACCEL,
+					    _sensor_pub.get_instance(), report, _stuck, _drift_start)) {
 		return;
 	}
 
@@ -167,8 +167,10 @@ void PX4Accelerometer::update(const hrt_abstime &timestamp_sample, float x, floa
 void PX4Accelerometer::updateFIFO(sensor_accel_fifo_s &sample)
 {
 	// rotate all raw samples and publish fifo
-	for (int n = 0; n < sample.samples; n++) {
-		rotate_3i(_rotation, sample.x[n], sample.y[n], sample.z[n]);
+	if (_rotation != ROTATION_NONE) {
+		for (int n = 0; n < sample.samples; n++) {
+			rotate_3i(_rotation, sample.x[n], sample.y[n], sample.z[n]);
+		}
 	}
 
 	sample.device_id = _device_id;
@@ -178,8 +180,8 @@ void PX4Accelerometer::updateFIFO(sensor_accel_fifo_s &sample)
 
 	_failure_config.update();
 
-	if (!failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_ACCEL,
-					_sensor_pub.get_instance(), sample, _stuck_fifo)) {
+	if (!failure_injection::process_imu(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_ACCEL,
+					    _sensor_pub.get_instance(), sample, _stuck_fifo, _drift_start)) {
 		return;
 	}
 
@@ -214,11 +216,6 @@ void PX4Accelerometer::updateFIFO(sensor_accel_fifo_s &sample)
 	report.clip_counter[2] = clipping(sample.z, N, clip_limit);
 	report.samples = N;
 	report.timestamp = hrt_absolute_time();
-
-	if (!failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_ACCEL,
-					_sensor_pub.get_instance(), report, _stuck)) {
-		return;
-	}
 
 	_sensor_pub.publish(report);
 }

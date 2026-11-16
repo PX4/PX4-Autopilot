@@ -78,13 +78,13 @@ public:
 	 */
 	size_t available();
 
-	void setTargetID(uint8_t sysid, uint8_t compid) { _target_sysid.store(sysid); _target_compid.store(compid); }
+	void setTargetID(uint32_t sysid, uint8_t compid) { _target_sysid.store(sysid); _target_compid.store(compid); }
 
-	uint8_t targetSysid() const { return _target_sysid.load(); }
+	uint32_t targetSysid() const { return _target_sysid.load(); }
 	uint8_t targetCompid() const { return _target_compid.load(); }
 private:
 
-	px4::atomic<uint8_t> _target_sysid{};
+	px4::atomic<uint32_t> _target_sysid{};
 	px4::atomic<uint8_t> _target_compid{};
 
 	int _to_shell_fd = -1; /** fd to write to the shell */

@@ -198,8 +198,3 @@ To [build PX4](../dev_setup/building_px4.md) for this target:
 ```sh
 make narinfc_h7_default
 ```
-
-## 支持的平台/机身
-
-Any multicopter / airplane / rover or boat that can be controlled with normal RC servos or Futaba S-Bus servos.
-The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).

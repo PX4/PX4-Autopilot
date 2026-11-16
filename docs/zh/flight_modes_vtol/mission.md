@@ -40,6 +40,14 @@ If not provided, or if the feedback is lost, a mission command timeout can be us
 The timeout is set using the [MIS_COMMAND_TOUT](../advanced_config/parameter_reference.md#MIS_COMMAND_TOUT) parameter.
 This should be set to be a small amount greater than the time required for the longest long-running action in the mission to complete.
 
+## Waypoint Heading Timeout
+
+In multicopter mode, a VTOL vehicle only waits at a waypoint for headings that the mission requires, such as the alignment towards the next waypoint before a forward transition.
+Other headings set by mission items are not awaited.
+
+If a required heading is not reached within [MIS_YAW_TMT](../advanced_config/parameter_reference.md#MIS_YAW_TMT) (default: 10 s) after it was commanded, the mission fails and the vehicle switches to [Return mode](../flight_modes_vtol/return.md).
+Set `MIS_YAW_TMT` to -1 to always wait for the heading. <Badge type="tip" text="main (PX4 v2.0)" />
+
 ## Mission Takeoff
 
 Plan a VTOL mission takeoff by adding a `VTOL Takeoff` mission item to the map.

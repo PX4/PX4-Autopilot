@@ -60,7 +60,7 @@ public:
 	using VectorState = matrix::Vector<float, kStateSize>;
 	using SquareMatrixState = matrix::SquareMatrix<float, kStateSize>;
 
-	friend class OOSMManager<KF_position, kStateSize, float>;
+	friend class OOSMManager<KF_position, kStateSize, float, kOosmHistorySize, kOosmMaxStoredObs>;
 
 	KF_position() = default;
 	~KF_position() = default;
@@ -71,19 +71,29 @@ public:
 		float val;
 		float unc;
 		VectorState H;
+		FusionSource source{FusionSource::Primary};
 	};
 
 	void predict(float dt, float acc_uav);
 
+	// Seed position/bias at a delayed capture time while retaining the current motion estimate.
+	// Call predict(latency, 0) afterwards to bridge back to now with constant UAV velocity.
+	void resetPositionAndBias(float position, float position_var, float bias, float bias_var, float latency);
+
 	// Primary Fusion Interface (history-consistent OOSM)
-	// Delayed observations are fused at their timestamp and subsequent accepted observations
-	// are replayed in timestamp order, recomputing their Kalman gains.
+	// Delayed observations are fused at their timestamp and subsequent stored observations
+	// are replayed in timestamp order, gated again and with recomputed Kalman gains.
 	// Returns FusionResult describing the result for logging.
 	FusionResult fuseScalarAtTime(const ScalarMeas &meas, uint64_t now_us, float nis_threshold);
 
+	// Fuse one cycle's observations in a single replay, oldest first. One result per observation.
+	void fuseScalarsAtTime(const ScalarMeas *meas, size_t count, uint64_t now_us, float nis_threshold,
+			       FusionResult *results);
+
 	// History Management
 	void pushHistory(const uint64_t time_us);
-	void resetHistory();
+	void resetHistory(FusionTimes times = {});
+	FusionTimes getFusionTimes() const { return _oosm.getFusionTimes(); }
 
 	// Setters / Getters
 	void setState(const VectorState &state) { _state = state; }
@@ -129,6 +139,7 @@ private:
 	// OOSM history buffer:
 	// 0.5 s window @ 50 Hz predict rate = 25 samples.
 	// Note that the 0.5 s window is enforced with kOosmMaxTimeUs = 500_ms.
-	OOSMManager<KF_position, kStateSize, float, kOosmHistorySize> _oosm;
+	// The observation log keeps the kOosmMaxStoredObs most recent observations.
+	OOSMManager<KF_position, kStateSize, float, kOosmHistorySize, kOosmMaxStoredObs> _oosm;
 };
 } // namespace vision_target_estimator

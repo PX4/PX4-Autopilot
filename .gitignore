@@ -94,7 +94,6 @@ rules.ninja
 /generated_params/
 /googletest-*/
 /logs
-/mavsdk_tests
 /unit-*
 /uORB/
 DartConfiguration.tcl

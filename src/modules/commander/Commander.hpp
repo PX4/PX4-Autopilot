@@ -72,6 +72,7 @@
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/power_button_state.h>
 #include <uORB/topics/rtl_time_estimate.h>
 #include <uORB/topics/sensor_gnss.h>
@@ -290,6 +291,7 @@ private:
 	bool _have_taken_off_since_arming{false};
 	bool _status_changed{true};
 	bool _mission_in_progress{false};
+	bool _takeoff_hold_course{false}; ///< the takeoff command carried a course, continue in Guided Course
 
 	vehicle_land_detected_s	_vehicle_land_detected{};
 
@@ -319,6 +321,7 @@ private:
 
 	uORB::SubscriptionData<mission_result_s>		_mission_result_sub{ORB_ID(mission_result)};
 	uORB::SubscriptionData<offboard_control_mode_s>		_offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
+	uORB::SubscriptionData<position_setpoint_triplet_s>	_position_setpoint_triplet_sub{ORB_ID(position_setpoint_triplet)};
 
 	// Publications
 	uORB::Publication<actuator_armed_s>			_actuator_armed_pub{ORB_ID(actuator_armed)};

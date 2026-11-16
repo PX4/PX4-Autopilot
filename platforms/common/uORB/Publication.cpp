@@ -70,7 +70,11 @@ bool PublicationBase::publish(const void *data)
 		advertise();
 	}
 
+#if defined(CONFIG_BUILD_FLAT) || !defined(__PX4_NUTTX)
+	return (Manager::orb_publish_node(_handle, data) == PX4_OK);
+#else
 	return (Manager::orb_publish(get_topic(), _handle, data) == PX4_OK);
+#endif
 }
 
 bool PublicationMultiBase::advertise()
@@ -89,7 +93,11 @@ bool PublicationMultiBase::publish(const void *data)
 		advertise();
 	}
 
-	return (orb_publish(get_topic(), _handle, data) == PX4_OK);
+#if defined(CONFIG_BUILD_FLAT) || !defined(__PX4_NUTTX)
+	return (Manager::orb_publish_node(_handle, data) == PX4_OK);
+#else
+	return (Manager::orb_publish(get_topic(), _handle, data) == PX4_OK);
+#endif
 }
 
 int PublicationMultiBase::get_instance()

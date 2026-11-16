@@ -101,6 +101,11 @@ private:
 		    || (msg.onboard_control_sensors_health_extended & mav_sensor) == 0) {
 			msg.onboard_control_sensors_enabled_extended |= mav_sensor;
 		}
+
+		if ((msg.onboard_control_sensors_present_extended & mav_sensor)
+		    || (msg.onboard_control_sensors_enabled_extended & mav_sensor)) {
+			msg.onboard_control_sensors_present |= MAV_SYS_STATUS_EXTENSION_USED;
+		}
 	}
 
 	bool send() override
@@ -142,7 +147,7 @@ private:
 			}
 
 			fillOutComponent(health_report, MAV_SYS_STATUS_SENSOR_BATTERY, health_component_t::battery, msg);
-			fillOutComponent(health_report, MAV_SYS_STATUS_SENSOR_MOTOR_OUTPUTS, health_component_t::motors_escs, msg);
+			fillOutComponent(health_report, MAV_SYS_STATUS_SENSOR_PROPULSION, health_component_t::motors_escs, msg);
 			fillOutComponent(health_report, MAV_SYS_STATUS_RECOVERY_SYSTEM, health_component_t::parachute, msg);
 			fillOutComponent(health_report, MAV_SYS_STATUS_SENSOR_3D_ACCEL, health_component_t::accel, msg);
 			fillOutComponent(health_report, MAV_SYS_STATUS_SENSOR_3D_GYRO, health_component_t::gyro, msg);

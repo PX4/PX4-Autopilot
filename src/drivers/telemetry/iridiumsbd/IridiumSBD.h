@@ -87,7 +87,9 @@ typedef enum {
 
 #define SATCOM_TX_BUF_LEN			340		// TX buffer size - maximum for a SBD MO message is 340, but billed per 50
 #define SATCOM_MAX_MESSAGE_LENGTH		50		// Maximum length of the expected messages sent over this link
-#define SATCOM_RX_MSG_BUF_LEN			270		// RX buffer size for MT messages
+// RX buffer for MT messages: a message of up to 270 bytes with its 2 byte length and
+// 2 byte checksum, then \r\n, OK\r\n and the terminator read_at() adds
+#define SATCOM_RX_MSG_BUF_LEN			(270 + 2 + 2 + 2 + 4 + 1)
 #define SATCOM_RX_COMMAND_BUF_LEN		50		// RX buffer size for other commands
 #define SATCOM_SIGNAL_REFRESH_DELAY		20000000 // update signal quality every 20s
 
@@ -230,7 +232,7 @@ private:
 	/*
 	 * Read the return from the modem
 	 */
-	satcom_result_code read_at(uint8_t *rx_buf, int *rx_len, int16_t timeout = 100);
+	satcom_result_code read_at(uint8_t *rx_buf, size_t rx_buf_size, int *rx_len, int16_t timeout = 100);
 
 	/*
 	 * Schedule a test (set test_pending to true)

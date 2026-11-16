@@ -81,10 +81,7 @@ public:
 	 */
 	void update(const matrix::Vector3f &acc_ned);
 
-	/** Validate generated state sizes and prepare per-axis history buffers. Call once at startup. */
-	bool init();
-
-	/** Drop the estimator state. A nonzero sample boundary also invalidates cached NED inputs. */
+	/** Drop the estimator state and publish it as invalid. A nonzero sample boundary also invalidates cached NED inputs. */
 	void resetFilter(hrt_abstime min_sample_time = 0);
 
 	/** Cache the task-specific absolute reference used to build the mission GNSS observation. */
@@ -164,12 +161,6 @@ protected:
 	uORB::Publication<landing_target_pose_s> _target_pose_pub{ORB_ID(landing_target_pose)};
 	uORB::Publication<vte_position_s> _target_estimator_state_pub{ORB_ID(vte_position)};
 
-	// publish innovations target_estimator_gps_pos
-	uORB::Publication<vte_aid_source3d_s> _vte_aid_gps_pos_target_pub{ORB_ID(vte_aid_gps_pos_target)};
-	uORB::Publication<vte_aid_source3d_s> _vte_aid_gps_pos_mission_pub{ORB_ID(vte_aid_gps_pos_mission)};
-	uORB::Publication<vte_aid_source3d_s> _vte_aid_gps_vel_target_pub{ORB_ID(vte_aid_gps_vel_target)};
-	uORB::Publication<vte_aid_source3d_s> _vte_aid_gps_vel_uav_pub{ORB_ID(vte_aid_gps_vel_uav)};
-	uORB::Publication<vte_aid_source3d_s> _vte_aid_fiducial_marker_pub{ORB_ID(vte_aid_fiducial_marker)};
 	uORB::Publication<vte_bias_init_status_s> _vte_bias_init_status_pub{ORB_ID(vte_bias_init_status)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -194,22 +185,23 @@ private:
 	};
 
 	static constexpr size_t kObsTypeCount = static_cast<size_t>(ObsType::kTypeCount);
+#if defined(CONFIG_VTEST_MOVING)
+	static constexpr bool kTargetIsStatic = false;
+#else
+	static constexpr bool kTargetIsStatic = true;
+#endif // CONFIG_VTEST_MOVING
 	static constexpr size_t obsIndex(ObsType type)
 	{
 		return static_cast<size_t>(type);
 	}
 
+	// One 3D observation of a single state, the same state index on every axis.
 	struct TargetObs {
-
-		ObsType type;
-		hrt_abstime timestamp = 0;
-
-		matrix::Vector<bool, vtest::Axis::size> updated{};                   // Indicates if observations were updated.
-		matrix::Vector3f meas_xyz{};     // Measurements (meas_x, meas_y, meas_z)
-		matrix::Vector3f meas_unc_xyz{}; // Measurements' uncertainties
-		matrix::Matrix<float, vtest::Axis::size, vtest::State::size>
-		meas_h_xyz{}; // Observation matrix where the rows correspond to the
-		// x,y,z observations and the columns to the state
+		ObsType type{ObsType::kTypeCount};
+		hrt_abstime timestamp{0}; // 0: nothing observed this cycle
+		uint8_t state_index{0};   // vtest::State index observed by meas_xyz
+		matrix::Vector3f meas_xyz{};
+		matrix::Vector3f meas_unc_xyz{}; // Variances, off-diagonal terms neglected
 	};
 
 	union ObsValidMaskU {
@@ -232,7 +224,7 @@ private:
 	using AxisEstimatorStates = EstimatorState[vtest::Axis::size];
 
 	bool initEstimator(const AxisEstimatorStates &state_init, const matrix::Vector3f &position_variance);
-	bool performUpdateStep(const matrix::Vector3f &vehicle_acc_ned);
+	void performUpdateStep();
 	void predictionStep(const matrix::Vector3f &acc, float dt);
 	float getMinGpsVelVar() const;
 	float getMinGpsPosVar() const;
@@ -317,14 +309,14 @@ private:
 	void buildInitialStateArray(const matrix::Vector3f &initial_position,
 				    const matrix::Vector3f &initial_uav_velocity, const matrix::Vector3f &initial_bias,
 				    AxisEstimatorStates &state_init) const;
-	/** Track the GNSS/vision bias until it is ready to be activated in the state. */
-	void updateBiasIfObservable(const ObsValidMaskU &fusion_mask,
+	/** Track the GNSS/vision bias until it is ready to be activated in the state.
+	 *  Returns true when this cycle's vision sample became the position. */
+	bool updateBiasIfObservable(const ObsValidMaskU &fusion_mask,
 				    const TargetObs observations[kObsTypeCount]);
 	/** Pick the GNSS-relative sample that best matches the requested timestamp. */
 	bool selectBiasGnssSample(hrt_abstime sample_time, matrix::Vector3f &gnss_sample);
-	/** Fuse every ready observation in order of effective fusion time. */
-	bool fuseActiveMeasurements(const matrix::Vector3f &vehicle_acc_ned, ObsValidMaskU &fusion_mask,
-				    const TargetObs observations[kObsTypeCount]);
+	/** Fuse every ready observation of this cycle, one batch per axis. */
+	void fuseActiveMeasurements(const ObsValidMaskU &fusion_mask, const TargetObs observations[kObsTypeCount]);
 	/** Refresh subscriptions and populate the per-cycle observation buffer. */
 	void processObservations(ObsValidMaskU &fusion_mask,
 				 TargetObs observations[kObsTypeCount]);
@@ -332,8 +324,9 @@ private:
 	void startBiasAveraging(const matrix::Vector3f &bias_sample, hrt_abstime sample_time);
 	bool updateBiasAveraging(const matrix::Vector3f &bias_sample, hrt_abstime sample_time);
 	void resetBiasAveraging();
-	/** Commit the final pre-bias position/bias pair and restart OOSM history. */
-	void activateBiasEstimate(const matrix::Vector3f &initial_position, const matrix::Vector3f &initial_bias);
+	/** Reset the position and bias from a sample: restart the OOSM history at its time and propagate to now. */
+	void activateBiasEstimate(const matrix::Vector3f &position, const matrix::Vector3f &bias,
+				  const TargetObs &vision_obs, bool position_from_vision);
 	void publishBiasInitStatus(const matrix::Vector3f &raw_bias, const matrix::Vector3f &filtered_bias,
 				   float raw_bias_delta_norm, hrt_abstime sample_time);
 
@@ -351,6 +344,7 @@ private:
 	bool processObsGNSSVelUav(TargetObs &obs) const;
 
 	/* Target GPS data */
+	bool pollTargetGnss(target_gnss_s &target_gnss);
 	bool isTargetGpsPositionValid(const target_gnss_s &target_gnss);
 	bool isTargetGpsVelocityValid(const target_gnss_s &target_gnss);
 	bool processObsGNSSPosTarget(const target_gnss_s &target_gnss, TargetObs &obs);
@@ -359,11 +353,14 @@ private:
 	void updateTargetGpsVelocity(const target_gnss_s &target_gnss);
 #endif // CONFIG_VTEST_MOVING
 
-	bool fuseMeas(const matrix::Vector3f &vehicle_acc_ned, const TargetObs &target_pos_obs);
+	using AxisResults = FusionResult[vtest::Axis::size][kObsTypeCount]; // [axis][observation]
+	/** Publish the per-axis fusion results of one observation. */
+	void publishAidSource(const TargetObs &target_obs, const AxisResults &results, unsigned obs_pos);
 	void publishTarget();
-	void publishInnov(const vte_aid_source3d_s &target_innov, const ObsType type);
+	/** Report an observation that seeded the state instead of being fused. */
+	void publishInitializedAid(const TargetObs &obs);
+	void publishInvalidState();
 	void resetObservations();
-	bool shouldEmitWarning(hrt_abstime &last_warn);
 
 	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 	uORB::Subscription _fiducial_marker_pos_report_sub{ORB_ID(fiducial_marker_pos_report)};
@@ -374,6 +371,12 @@ private:
 	perf_counter_t _vte_fusion_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": VTE fusion")};
 
 	TargetObs _obs_buffer[kObsTypeCount] {};
+
+	// Fusion results per source, in ObsType order.
+	uORB::Publication<vte_aid_source3d_s> _vte_aid_pubs[kObsTypeCount] {
+		{ORB_ID(vte_aid_gps_pos_target)}, {ORB_ID(vte_aid_gps_pos_mission)}, {ORB_ID(vte_aid_gps_vel_uav)},
+		{ORB_ID(vte_aid_gps_vel_target)}, {ORB_ID(vte_aid_fiducial_marker)}
+	};
 	landing_target_pose_s _target_pose{};
 	vte_position_s _vte_state{};
 
@@ -402,6 +405,7 @@ private:
 	Vector3fStamped _local_position{};
 	Vector3fStamped _local_velocity{};
 	Vector3fStamped _pos_rel_gnss{};
+	bool _pos_rel_gnss_is_target{false};
 	Vector3fStamped _velocity_offset_ned{};
 	Vector3fStamped _gps_pos_offset_ned{};
 
@@ -431,7 +435,7 @@ private:
 
 	hrt_abstime _min_sample_time{0}; // Discard measurements from before an attitude reset.
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
-	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
+	hrt_abstime _last_update{0}; // capture time of the newest fused position sample (used to check timeout)
 	hrt_abstime _uav_gps_vel_warn_last{0};
 	hrt_abstime _target_gps_vel_warn_last{0};
 	hrt_abstime _vision_pos_warn_last{0};

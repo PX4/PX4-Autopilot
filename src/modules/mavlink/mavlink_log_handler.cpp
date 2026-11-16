@@ -49,7 +49,7 @@ static const char *kLogDir = PX4_STORAGEDIR "/log";
  * LOG_ERASE deletes this vehicle's logs too, and a listing request for one vehicle is
  * answered by all of them. Zero is the broadcast value for both fields.
  */
-static bool targeted_at_us(uint8_t target_system, uint8_t target_component)
+static bool targeted_at_us(uint32_t target_system, uint8_t target_component)
 {
 	return (target_system == 0 || target_system == mavlink_system.sysid)
 	       && (target_component == 0
@@ -295,7 +295,7 @@ void MavlinkLogHandler::handle_log_request_list(const mavlink_message_t *msg)
 	mavlink_log_request_list_t request;
 	mavlink_msg_log_request_list_decode(msg, &request);
 
-	if (!targeted_at_us(request.target_system, request.target_component)) {
+	if (!targeted_at_us(mavlink_target_system(msg, request.target_system), request.target_component)) {
 		return;
 	}
 
@@ -322,7 +322,7 @@ void MavlinkLogHandler::handle_log_request_data(const mavlink_message_t *msg)
 	mavlink_log_request_data_t request;
 	mavlink_msg_log_request_data_decode(msg, &request);
 
-	if (!targeted_at_us(request.target_system, request.target_component)) {
+	if (!targeted_at_us(mavlink_target_system(msg, request.target_system), request.target_component)) {
 		return;
 	}
 
@@ -382,7 +382,7 @@ void MavlinkLogHandler::handle_log_request_end(const mavlink_message_t *msg)
 	mavlink_log_request_end_t request;
 	mavlink_msg_log_request_end_decode(msg, &request);
 
-	if (!targeted_at_us(request.target_system, request.target_component)) {
+	if (!targeted_at_us(mavlink_target_system(msg, request.target_system), request.target_component)) {
 		return;
 	}
 
@@ -394,7 +394,7 @@ void MavlinkLogHandler::handle_log_erase(const mavlink_message_t *msg)
 	mavlink_log_erase_t request;
 	mavlink_msg_log_erase_decode(msg, &request);
 
-	if (!targeted_at_us(request.target_system, request.target_component)) {
+	if (!targeted_at_us(mavlink_target_system(msg, request.target_system), request.target_component)) {
 		return;
 	}
 

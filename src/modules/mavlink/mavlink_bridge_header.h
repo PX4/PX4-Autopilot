@@ -104,6 +104,37 @@ extern mavlink_message_t *mavlink_get_channel_buffer(uint8_t chan);
 #include <mavlink.h>
 #include <uAvionix.h>
 
+/**
+ * Full target system of a received message.
+ *
+ * A target above 255 travels in the TARGET32 header extension and the 8-bit
+ * payload field only holds a placeholder (255). Always check the target with
+ * this instead of the decoded payload field.
+ */
+static inline uint32_t mavlink_target_system(const mavlink_message_t *msg, uint8_t payload_target_system)
+{
+	return (msg->incompat_flags & MAVLINK_IFLAG_TARGET32) ? msg->target_sysid : payload_target_system;
+}
+
 __END_DECLS
+
+#if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
+#error "mavlink_msg_send_struct_target() sends the struct as is"
+#endif
+
+/**
+ * Like mavlink_msg_<name>_send_struct(), but keeps a target system above 255.
+ *
+ * send_struct() only has the 8-bit payload field, so a wider target would be
+ * truncated. This puts the target into the TARGET32 header extension instead.
+ */
+#define mavlink_msg_send_struct_target(chan, NAME, packet, target) \
+	do { \
+		const uint32_t _target = (target); \
+		(packet)->target_system = mavlink_msg_target_field(_target); \
+		_mav_finalize_message_chan_send_target((chan), MAVLINK_MSG_ID_##NAME, (const char *)(packet), \
+						       MAVLINK_MSG_ID_##NAME##_MIN_LEN, MAVLINK_MSG_ID_##NAME##_LEN, \
+						       MAVLINK_MSG_ID_##NAME##_CRC, _target); \
+	} while (0)
 
 #endif /* MAVLINK_BRIDGE_HEADER_H */

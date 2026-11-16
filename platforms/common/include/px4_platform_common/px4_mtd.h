@@ -34,6 +34,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+struct i2c_master_s;
+struct mtd_dev_s;
+
 __BEGIN_DECLS
 
 #define MAX_MTD_INSTANCES 5u

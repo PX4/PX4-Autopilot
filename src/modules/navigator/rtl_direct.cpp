@@ -150,13 +150,15 @@ void RtlDirect::on_inactive()
 	_vehicle_status_sub.update();
 }
 
-void RtlDirect::setRtlPosition(const PositionYawSetpoint &rtl_position, const loiter_point_s &loiter_pos)
+void RtlDirect::setRtlPosition(const PositionYawSetpoint &rtl_position, const loiter_point_s &loiter_pos,
+			       bool destination_is_current_position)
 {
 	parameters_update();
 
 	// Only allow to set a new approach if the mode is not activated yet.
 	if (!isActive()) {
 		_destination = rtl_position;
+		_destination_is_current_position = destination_is_current_position;
 		_force_heading = false;
 
 		_land_approach = sanitizeLandApproach(loiter_pos);
@@ -251,6 +253,13 @@ void RtlDirect::set_rtl_item()
 	const float loiter_altitude = math::min(_land_approach.height_m, _rtl_alt);
 
 	const bool is_close_to_destination = destination_dist < _param_rtl_min_dist.get();
+
+	// On the land approach loiter force_heading is the fixed-wing exit course, a multicopter would wait for the heading
+	const bool force_exit_course = _force_heading
+				       && _vehicle_status_sub.get().vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+
+	// The item is reused for every state and the setters keep force_heading
+	_mission_item.force_heading = false;
 
 	float altitude_acceptance_radius = static_cast<float>(NAN);
 
@@ -384,7 +393,7 @@ void RtlDirect::set_rtl_item()
 			pos_sp_triplet->next.lon = _destination.lon;
 			pos_sp_triplet->next.type = position_setpoint_s::SETPOINT_TYPE_LAND;
 
-			if (_force_heading) {
+			if (force_exit_course) {
 				_mission_item.force_heading = true;
 			}
 
@@ -402,9 +411,9 @@ void RtlDirect::set_rtl_item()
 				.yaw = !_param_wv_en.get() ? _destination.yaw : NAN, // set final yaw if weather vane is disabled
 			};
 
-			setLoiterHoldMissionItem(_mission_item, pos_yaw_sp, _param_rtl_land_delay.get(), _land_approach.loiter_radius_m);
+			setLoiterHoldMissionItem(_mission_item, pos_yaw_sp, landDelay(), _land_approach.loiter_radius_m);
 
-			if (_param_rtl_land_delay.get() < -FLT_EPSILON) {
+			if (landDelay() < -FLT_EPSILON) {
 				mavlink_log_info(_navigator->get_mavlink_log_pub(), "Return: completed, loitering\t");
 				events::send(events::ID("rtl_completed_loiter"), events::Log::Info, "Return: completed, loitering");
 
@@ -412,7 +421,7 @@ void RtlDirect::set_rtl_item()
 				/* Set the altitude tracking to best effort but not strictly enforce it */
 				altitude_acceptance_radius = FLT_MAX;
 
-				if (_force_heading) {
+				if (force_exit_course) {
 					_mission_item.force_heading = true;
 				}
 			}
@@ -430,7 +439,6 @@ void RtlDirect::set_rtl_item()
 
 			// Prepare for transition
 			_mission_item.vtol_back_transition = true;
-			_mission_item.force_heading = false;
 
 			// set previous item location to loiter location such that vehicle tracks line between loiter
 			// location and land location after exiting the loiter circle
@@ -613,9 +621,9 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 		// FALLTHROUGH
 		case RTLState::LOITER_HOLD:
 			// Add land delay (the short pause for deploying landing gear)
-			_rtl_time_estimator.addWait(_param_rtl_land_delay.get());
+			_rtl_time_estimator.addWait(landDelay());
 
-			if (_param_rtl_land_delay.get() < -FLT_EPSILON) { // Set to loiter infinitely and not land. Stop calculation here
+			if (landDelay() < -FLT_EPSILON) { // Set to loiter infinitely and not land. Stop calculation here
 				break;
 			}
 
@@ -689,6 +697,18 @@ void RtlDirect::parameters_update()
 		// this class attributes need updating (and do so).
 		updateParams();
 	}
+}
+
+float RtlDirect::landDelay() const
+{
+	// The current airborne altitude is not a landing altitude. MC and VTOL can descend until touchdown,
+	// but a fixed-wing landing would use this altitude to trigger the flare and idle the throttle in flight.
+	if (_destination_is_current_position && !_vehicle_status_sub.get().is_vtol
+	    && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		return -1.f;
+	}
+
+	return _param_rtl_land_delay.get();
 }
 
 loiter_point_s RtlDirect::sanitizeLandApproach(const loiter_point_s &land_approach) const

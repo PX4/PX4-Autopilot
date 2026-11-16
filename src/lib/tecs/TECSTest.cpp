@@ -768,26 +768,28 @@ TEST(TECSControlTest, NonFiniteDemandFallsBackToLevelFlightPitch)
 	EXPECT_FLOAT_EQ(control.getPitchSetpoint(), param.level_flight_pitch);
 }
 
-// The underspeed ramp is anchored on tas_min itself: at or above the minimum airspeed
-// there is no mitigation, and it ramps in linearly over a band 10% of tas_min wide.
-TEST(TECSUnderspeedTest, NoMitigationAtOrAboveMinimumAirspeed)
+// Underspeed starts at 1/3 stall + 2/3 min, leaving a margin below tas_min itself
+// so a TAS setpoint pinned at the minimum doesn't constantly trigger mitigation.
+TEST(TECSUnderspeedTest, NoMitigationAtOrAboveStartingThreshold)
 {
-	TECSControl::Param param = makeParam(); // tas_min = 10, trim = 15
+	TECSControl::Param param = makeParam(); // tas_min = 10, tas_stall = 7, starting threshold = 9
 	const TECSControl::Flag flag = makeFlag();
 
 	EXPECT_FLOAT_EQ(underspeedRatio(20.f, param, flag), 0.f);
-	EXPECT_FLOAT_EQ(underspeedRatio(12.f, param, flag), 0.f);
-	EXPECT_FLOAT_EQ(underspeedRatio(10.f, param, flag), 0.f); // exactly at tas_min
+	EXPECT_FLOAT_EQ(underspeedRatio(10.f, param, flag), 0.f); // at tas_min, still above the start of underspeed
+	EXPECT_FLOAT_EQ(underspeedRatio(9.f, param, flag), 0.f); // exactly at the starting threshold
 }
 
-TEST(TECSUnderspeedTest, RampsLinearlyOverBandBelowMinimumAirspeed)
+// Underspeed completes halfway between stall and the starting threshold, unless that would make
+// the ramp wider than 2 m/s.
+TEST(TECSUnderspeedTest, RampsLinearlyBetweenCompleteAndStartingThresholds)
 {
-	TECSControl::Param param = makeParam(); // band is [9, 10] m/s
+	TECSControl::Param param = makeParam(); // band is [8, 9] m/s
 	const TECSControl::Flag flag = makeFlag();
 
-	EXPECT_NEAR(underspeedRatio(9.75f, param, flag), 0.25f, 1e-5f);
-	EXPECT_NEAR(underspeedRatio(9.5f, param, flag), 0.5f, 1e-5f);
-	EXPECT_NEAR(underspeedRatio(9.25f, param, flag), 0.75f, 1e-5f);
+	EXPECT_NEAR(underspeedRatio(8.75f, param, flag), 0.25f, 1e-5f);
+	EXPECT_NEAR(underspeedRatio(8.5f, param, flag), 0.5f, 1e-5f);
+	EXPECT_NEAR(underspeedRatio(8.25f, param, flag), 0.75f, 1e-5f);
 }
 
 TEST(TECSUnderspeedTest, SaturatesAtFullMitigationBelowBand)
@@ -795,46 +797,47 @@ TEST(TECSUnderspeedTest, SaturatesAtFullMitigationBelowBand)
 	TECSControl::Param param = makeParam();
 	const TECSControl::Flag flag = makeFlag();
 
-	EXPECT_FLOAT_EQ(underspeedRatio(9.f, param, flag), 1.f); // bottom of the band
+	EXPECT_FLOAT_EQ(underspeedRatio(8.f, param, flag), 1.f); // bottom of the band
 	EXPECT_FLOAT_EQ(underspeedRatio(5.f, param, flag), 1.f);
 	EXPECT_FLOAT_EQ(underspeedRatio(0.f, param, flag), 1.f);
 }
 
-// The ramp width scales with tas_min rather than being a fixed airspeed offset.
-TEST(TECSUnderspeedTest, RampWidthScalesWithMinimumAirspeed)
+// Both thresholds are derived from tas_stall and tas_min, not fixed offsets from tas_min alone.
+TEST(TECSUnderspeedTest, RampThresholdsScaleWithStallAirspeed)
 {
 	TECSControl::Param param = makeParam();
-	param.tas_min = 20.f; // band is [18, 20] m/s
+	param.tas_stall = 8.5f; // starting = 9.5, uncapped complete (halfway to stall) = 9: band is [9, 9.5] m/s
 	const TECSControl::Flag flag = makeFlag();
 
-	EXPECT_FLOAT_EQ(underspeedRatio(20.f, param, flag), 0.f);
-	EXPECT_NEAR(underspeedRatio(19.f, param, flag), 0.5f, 1e-5f);
-	EXPECT_FLOAT_EQ(underspeedRatio(18.f, param, flag), 1.f);
+	EXPECT_FLOAT_EQ(underspeedRatio(9.5f, param, flag), 0.f);
+	EXPECT_NEAR(underspeedRatio(9.25f, param, flag), 0.5f, 1e-5f);
+	EXPECT_FLOAT_EQ(underspeedRatio(9.f, param, flag), 1.f);
 }
 
-// With the stall airspeed close to tas_min the band ends halfway between the two.
-TEST(TECSUnderspeedTest, RampEndsHalfwayToStallAirspeed)
+// With a stall airspeed far below tas_min the halfway-to-stall complete threshold would make the
+// ramp wider than 2 m/s, so it gets pulled up to cap the width instead.
+TEST(TECSUnderspeedTest, RampWidthCappedAtTwoMetersPerSecond)
 {
 	TECSControl::Param param = makeParam();
-	param.tas_stall = 9.f; // band is [9.5, 10] m/s
+	param.tas_stall = 1.f; // starting = 7; uncapped complete would be 4, capped to starting - 2 = 5
 	const TECSControl::Flag flag = makeFlag();
 
-	EXPECT_FLOAT_EQ(underspeedRatio(10.f, param, flag), 0.f);
-	EXPECT_NEAR(underspeedRatio(9.75f, param, flag), 0.5f, 1e-5f);
-	EXPECT_FLOAT_EQ(underspeedRatio(9.5f, param, flag), 1.f);
+	EXPECT_FLOAT_EQ(underspeedRatio(7.f, param, flag), 0.f);
+	EXPECT_NEAR(underspeedRatio(6.f, param, flag), 0.5f, 1e-5f);
+	EXPECT_FLOAT_EQ(underspeedRatio(5.f, param, flag), 1.f); // capped complete threshold, not the uncapped 4
+	EXPECT_FLOAT_EQ(underspeedRatio(4.f, param, flag), 1.f); // still saturated below the cap
 }
 
-// A stall airspeed at or above tas_min collapses the band to a step at tas_min.
+// A stall airspeed at or above tas_min collapses both thresholds onto tas_min itself.
 TEST(TECSUnderspeedTest, StallAirspeedAtOrAboveMinimumAirspeed)
 {
 	TECSControl::Param param = makeParam();
+	param.tas_stall = param.tas_min;
 	const TECSControl::Flag flag = makeFlag();
 
-	for (const float tas_stall : {10.f, 12.f}) {
-		param.tas_stall = tas_stall;
-		EXPECT_FLOAT_EQ(underspeedRatio(10.f, param, flag), 0.f);
-		EXPECT_FLOAT_EQ(underspeedRatio(9.99f, param, flag), 1.f);
-	}
+	EXPECT_FLOAT_EQ(underspeedRatio(9.99f, param, flag), 1.f);
+	EXPECT_FLOAT_EQ(underspeedRatio(10.f, param, flag), 1.f);
+	EXPECT_FLOAT_EQ(underspeedRatio(10.01f, param, flag), 0.f);
 }
 
 TEST(TECSUnderspeedTest, NoMitigationWhenDetectionDisabled)
@@ -1018,9 +1021,9 @@ TEST(TECSUnderspeedTest, StallAirspeedIsConvertedToTrueAirspeed)
 	for (const float eas_to_tas : {1.f, 1.5f}) {
 		TECS tecs;
 		configureTECS(tecs);
-		tecs.set_equivalent_airspeed_stall(9.f); // band is [9.5, 10] m/s EAS
+		tecs.set_equivalent_airspeed_stall(8.5f); // band is [9, 9.5] m/s EAS
 
-		runTECS(tecs, 100.f, 100.f, 9.75f, 3, eas_to_tas);
+		runTECS(tecs, 100.f, 100.f, 9.25f, 3, eas_to_tas);
 
 		EXPECT_NEAR(tecs.get_underspeed_ratio(), 0.5f, 1e-5f);
 	}

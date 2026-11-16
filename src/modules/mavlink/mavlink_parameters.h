@@ -143,7 +143,7 @@ protected:
 	 * /// @return true if a error message was sent
 	 */
 	int send_error(MAV_PARAM_ERROR error, const char *param_id = nullptr,
-		       const int param_index = -1, int target_system = -1,
+		       const int param_index = -1, uint32_t target_system = 0,
 		       int target_component = -1, int component_id = -1);
 
 #if defined(CONFIG_MAVLINK_UAVCAN_PARAMETERS)
