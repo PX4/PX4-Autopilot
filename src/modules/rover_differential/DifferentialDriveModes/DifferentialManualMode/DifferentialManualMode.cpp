@@ -181,7 +181,7 @@ void DifferentialManualMode::position()
 
 	if (fabsf(sticks.yaw) > FLT_EPSILON
 	    || fabsf(speed_setpoint) < FLT_EPSILON) {
-		_pos_ctl_bearing = NAN;
+		_pos_ctl_yaw = NAN;
 
 		// Speed control
 		surface_vehicle_speed_setpoint_s surface_vehicle_speed_setpoint{};
@@ -214,14 +214,16 @@ void DifferentialManualMode::position()
 		_surface_vehicle_position_setpoint_pub.publish(surface_vehicle_position_setpoint);
 
 	} else { // Follow an endless linear desired track
-		if (!PX4_ISFINITE(_pos_ctl_bearing)) {
-			// The bearing points backwards when driving in reverse
-			_pos_ctl_bearing = speed_setpoint > 0.f ? _vehicle_yaw : matrix::wrap_pi(_vehicle_yaw + M_PI_F);
+		if (!PX4_ISFINITE(_pos_ctl_yaw)) {
+			_pos_ctl_yaw = _vehicle_yaw;
 			_pos_ctl_start_position_ned = _curr_pos_ned;
 		}
 
+		// The bearing follows the stick: it points backwards when driving in reverse
+		const float bearing = speed_setpoint > 0.f ? _pos_ctl_yaw : matrix::wrap_pi(_pos_ctl_yaw + M_PI_F);
+
 		// Hold the linear desired track through the start position: the target is kept beyond the maximum lookahead, so it is never reached
-		const Vector2f bearing_direction(cosf(_pos_ctl_bearing), sinf(_pos_ctl_bearing));
+		const Vector2f bearing_direction(cosf(bearing), sinf(bearing));
 		const float distance_along_track = fabsf((_curr_pos_ned - _pos_ctl_start_position_ned) * bearing_direction);
 		const Vector2f target_ned = _pos_ctl_start_position_ned + (distance_along_track + _param_pp_lookahd_max.get()) *
 					    bearing_direction;
@@ -243,7 +245,7 @@ void DifferentialManualMode::position()
 void DifferentialManualMode::reset()
 {
 	_stab_yaw_setpoint = NAN;
-	_pos_ctl_bearing = NAN;
+	_pos_ctl_yaw = NAN;
 	_pos_ctl_start_position_ned = Vector2f(NAN, NAN);
 	_curr_pos_ned = Vector2f(NAN, NAN);
 }

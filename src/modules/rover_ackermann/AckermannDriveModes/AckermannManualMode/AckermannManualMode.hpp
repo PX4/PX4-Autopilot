@@ -123,7 +123,7 @@ private:
 	Quatf _vehicle_attitude_quaternion{};
 	Vector2f _pos_ctl_start_position_ned{NAN, NAN};
 	Vector2f _curr_pos_ned{NAN, NAN};
-	float _pos_ctl_bearing{NAN}; // Bearing from the start position to the target, i.e. the direction of the desired track [rad]
+	float _pos_ctl_yaw{NAN}; // Heading of the rover at the start position, the desired track runs along it [rad]
 	float _stab_yaw_setpoint{NAN};
 	float _vehicle_yaw{NAN};
 	float _max_yaw_rate{NAN};
