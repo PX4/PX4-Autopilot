@@ -134,6 +134,7 @@ public:
 	Vio         _vio;
 
 	VelocitySmoothing _trajectory[3];
+	Vector3f _trajectory_position_prev{};
 
 private:
 	void setSensorDataToDefault();
