@@ -2857,6 +2857,7 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 }
 #endif // CONFIG_EKF2_RANGE_FINDER
 
+#ifdef CONFIG_EKF2_WHEEL_ENCODERS
 void EKF2::UpdateWheelEncoderSample(ekf2_timestamps_s &ekf2_timestamps)
 {
 	wheel_encoders_s wheel_encoders;
@@ -2881,6 +2882,7 @@ void EKF2::UpdateWheelEncoderSample(ekf2_timestamps_s &ekf2_timestamps)
 		_ekf.setWheelEncoderData(sample);
 	}
 }
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
 
 void EKF2::UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps)
 {
