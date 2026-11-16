@@ -199,4 +199,3 @@ void Ekf::stopBaroHgtFusion()
 		_control_status.flags.baro_hgt = false;
 	}
 }
-
