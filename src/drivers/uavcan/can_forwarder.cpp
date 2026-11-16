@@ -221,7 +221,7 @@ void CanForwarder::handleCommand(const vehicle_command_s &cmd, hrt_abstime now)
 		_bus = -1;
 		ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
-	} else if (_driver != nullptr && bus > 0 && bus <= _driver->getNumIfaces() && _driver->getIface(bus - 1) != nullptr) {
+	} else if (!_armed && _driver != nullptr && bus > 0 && bus <= _driver->getNumIfaces() && _driver->getIface(bus - 1) != nullptr) {
 		if (_bus != bus - 1) {
 			mavlink_log_info(&_mavlink_log_pub, "CAN forwarding active on CAN%d", bus);
 			_bus = bus - 1;
@@ -240,6 +240,12 @@ void CanForwarder::handleCommand(const vehicle_command_s &cmd, hrt_abstime now)
 
 void CanForwarder::update(hrt_abstime now, uavcan::CanIOManager &canio)
 {
+	actuator_armed_s armed;
+
+	if (_armed_sub.update(&armed)) {
+		_armed = armed.armed;
+	}
+
 	vehicle_command_s cmd;
 
 	while (_vcmd_sub.update(&cmd)) {
@@ -250,12 +256,6 @@ void CanForwarder::update(hrt_abstime now, uavcan::CanIOManager &canio)
 
 	if (_driver == nullptr) {
 		return;
-	}
-
-	actuator_armed_s armed;
-
-	if (_armed_sub.update(&armed)) {
-		_armed = armed.armed;
 	}
 
 	if (active() && now > _last_keepalive + KeepaliveTimeout) {

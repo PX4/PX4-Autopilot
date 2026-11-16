@@ -385,7 +385,7 @@ The parameter applies to one boot only: it is reset to `0` at startup, so the ne
 The vehicle cannot be armed while forwarding is active, the same as during a node firmware update by PX4 itself (bypassed with [CBRK_UAVCAN_FW](../advanced_config/parameter_reference.md#CBRK_UAVCAN_FW)).
 Forwarding ends when the ground station stops it, or 5 seconds after its last `MAV_CMD_CAN_FORWARD`.
 Until then `MAV_CMD_CAN_FORWARD` from any other client is denied.
-Once armed, frames from the ground station are no longer put on the bus.
+While armed, `MAV_CMD_CAN_FORWARD` is denied and frames from the ground station are not put on the bus.
 While disabled, `MAV_CMD_CAN_FORWARD` is denied.
 
 The feature is part of the `uavcan` driver (`CONFIG_UAVCAN_CAN_FORWARD`) and is not included on boards with constrained flash.
