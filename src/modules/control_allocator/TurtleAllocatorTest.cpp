@@ -8,7 +8,9 @@
 #include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cmath>
+#include <iterator>
 #include <memory>
 
 namespace
@@ -27,13 +29,9 @@ public:
 
 bool stopped(const actuator_motors_s &motors)
 {
-	for (float value : motors.control) {
-		if (!std::isnan(value)) {
-			return false;
-		}
-	}
-
-	return true;
+	return std::all_of(std::begin(motors.control), std::end(motors.control), [](float value) {
+		return std::isnan(value);
+	});
 }
 }
 
