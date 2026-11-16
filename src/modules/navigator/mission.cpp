@@ -205,18 +205,6 @@ Mission::do_need_move_to_takeoff(const mission_item_s &takeoff_item)
 
 void Mission::setActiveMissionItems()
 {
-	// Reloaded at the end of its alignment: send the transition command, unless a takeoff no longer hovers.
-	if (vtolTransitionActive() && _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING
-	    && (_vtol_transition.completion_work != WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF
-		|| (!_land_detected_sub.get().landed
-		    && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING))) {
-		setVtolTransitionStep(false);
-		return;
-	}
-
-	// A new or restarted item ends any running transition.
-	resetVtolTransition();
-
 	/* Get mission item that comes after current if available */
 	static constexpr size_t max_num_next_items{2u};
 	int32_t next_mission_items_index[max_num_next_items];
@@ -266,9 +254,7 @@ void Mission::setActiveMissionItems()
 
 	if (mission_item_contains_position(_mission_item)) {
 
-		handleTakeoff(new_work_item_type, next_mission_items, num_found_items);
-
-		if (vtolTransitionActive()) {
+		if (handleTakeoff(new_work_item_type, next_mission_items, num_found_items)) {
 			return;
 		}
 
@@ -374,7 +360,7 @@ void Mission::publishActiveItem(const position_setpoint_s &current_setpoint_copy
 	_navigator->set_position_setpoint_triplet_updated();
 }
 
-void Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s next_mission_items[],
+bool Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s next_mission_items[],
 			    size_t &num_found_items)
 {
 	/* do climb before going to setpoint if needed and not already executing climb */
@@ -445,9 +431,10 @@ void Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s nex
 		_mission_item.yaw = NAN;
 	}
 
-	/* if we just did a VTOL takeoff, prepare transition */
+	/* if we just did a VTOL takeoff, or aligned for its transition, run the transition */
 	if (_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF &&
-	    _work_item_type == WorkItemType::WORK_ITEM_TYPE_CLIMB &&
+	    (_work_item_type == WorkItemType::WORK_ITEM_TYPE_CLIMB
+	     || _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING) &&
 	    _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING &&
 	    !_land_detected_sub.get().landed) {
 		_vtol_transition.command = _mission_item;
@@ -466,7 +453,7 @@ void Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s nex
 
 		// startVtolTransition() copies the takeoff item before changing _mission_item.
 		startVtolTransition(&_mission_item, WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF);
-		return;
+		return true;
 	}
 
 	/* takeoff completed and transitioned, move to takeoff wp as fixed wing */
@@ -478,6 +465,8 @@ void Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s nex
 		_mission_item.autocontinue = true;
 		_mission_item.time_inside = 0.0f;
 	}
+
+	return false;
 }
 
 void Mission::startVtolTransition(const mission_item_s *alignment_target, WorkItemType completion_work)
@@ -485,8 +474,9 @@ void Mission::startVtolTransition(const mission_item_s *alignment_target, WorkIt
 	_vtol_transition.target = alignment_target ? *alignment_target : mission_item_s{};
 	_vtol_transition.completion_work = completion_work;
 
-	// In hover, turn towards the target before the command.
-	setVtolTransitionStep(alignment_target && !_land_detected_sub.get().landed
+	// In hover, turn towards the target before the command. Reloaded at the end of that alignment, send the command.
+	setVtolTransitionStep(_work_item_type != WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING
+			      && alignment_target && !_land_detected_sub.get().landed
 			      && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 			      && !_navigator->front_transition_inhibited());
 }

@@ -104,17 +104,16 @@ private:
 
 	void setActiveMissionItems() override;
 
-	void handleTakeoff(WorkItemType &new_work_item_type, mission_item_s next_mission_items[], size_t &num_found_items);
+	/** Return true when the VTOL takeoff's transition published its step. */
+	bool handleTakeoff(WorkItemType &new_work_item_type, mission_item_s next_mission_items[], size_t &num_found_items);
 
 	/** Keep the previous setpoint, send the command of _mission_item if it has one, set the work item and publish. */
 	void publishActiveItem(const position_setpoint_s &current_setpoint_copy, WorkItemType new_work_item_type);
 
-	/** Start the transition in _vtol_transition.command, first aligning in hover towards alignment_target (copied). */
+	/** Run the transition in _vtol_transition.command: align in hover towards alignment_target (copied), then send it. */
 	void startVtolTransition(const mission_item_s *alignment_target, WorkItemType completion_work);
 	/** Publish the alignment item (aligning) or send the transition command. */
 	void setVtolTransitionStep(bool aligning);
-	bool vtolTransitionActive() const { return _vtol_transition.command.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION; }
-	void resetVtolTransition() { _vtol_transition.command.nav_cmd = NAV_CMD_IDLE; }
 
 	struct VtolTransitionContext {
 		mission_item_s command{}; // Transition command, kept while _mission_item is the alignment item.
