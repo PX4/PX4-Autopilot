@@ -345,9 +345,9 @@ void Ekf::stopMagFusion()
 		resetMagBiasCov();
 
 		if (_control_status.flags.yaw_align && (_control_status.flags.mag_3D || _control_status.flags.mag_hdg)) {
-			// reset yaw alignment from mag unless yaw is observable through North-East aiding
-
-			if (!isNorthEastAidingActive()) {
+			// Before takeoff, we do not want to continue to rely on a heading that came from the mag,
+			// unless yaw is observable through North-East aiding or was set manually
+			if (!_control_status.flags.in_air && !isNorthEastAidingActive() && !_control_status.flags.yaw_manual) {
 				_control_status.flags.yaw_align = false;
 			}
 		}

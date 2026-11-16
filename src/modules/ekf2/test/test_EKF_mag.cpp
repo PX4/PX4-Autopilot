@@ -346,22 +346,20 @@ TEST_F(EkfMagTest, velocityRotationOnYawReset)
 	const matrix::Dcm2f R_ned_to_body_before(-yaw_before);
 	const Vector2f vel_body_before = R_ned_to_body_before * Vector2f(vel_before);
 
-	// WHEN: the mag data stops, and comes back with a heading changed by more than 0.3 rad (90 degrees)
-	_sensor_simulator._mag.stop();
-	_sensor_simulator.runSeconds(2.f);
-	ASSERT_FALSE(_ekf->control_status_flags().yaw_align);
-
-	const float new_mag_heading = yaw_before + M_PI_F / 2.f;
-	mag_data = Vector3f(0.2f * cosf(new_mag_heading), -0.2f * sinf(new_mag_heading), 0.4f);
-	_sensor_simulator._mag.setData(mag_data);
-	_sensor_simulator._mag.start();
+	// WHEN: GNSS yaw fusion starts with a heading that differs by more than 0.3 rad (90 degrees)
+	const float new_heading = yaw_before + M_PI_F / 2.f;
+	_ekf_wrapper.enableGpsHeadingFusion();
+	_sensor_simulator._gnss_yaw.setYaw(new_heading);
+	_sensor_simulator.startGnssYaw();
 	_sensor_simulator.runSeconds(2.f);
 
-	// THEN: the yaw should be re-aligned to the new mag heading
+	ASSERT_FALSE(_ekf->isNorthEastAidingActive());
+
+	// THEN: the yaw should be reset to the GNSS heading
 	const float yaw_after = _ekf_wrapper.getYawAngle();
-	EXPECT_NEAR(yaw_after, new_mag_heading, radians(5.0f))
+	EXPECT_NEAR(yaw_after, new_heading, radians(5.0f))
 			<< "Yaw after: " << degrees(yaw_after)
-			<< " Expected: " << degrees(new_mag_heading);
+			<< " Expected: " << degrees(new_heading);
 
 	// AND: the NED velocity should be rotated to maintain consistent body-frame velocity
 	const Vector3f vel_after = _ekf->getVelocity();
@@ -812,5 +810,108 @@ TEST_F(EkfMagTest, wmmUpdateOnGroundKeepsManualHeading)
 	EXPECT_NEAR(atan2f(mag_earth(1), mag_earth(0)), atan2f(mag_earth_wmm(1), mag_earth_wmm(0)), radians(1.f));
 	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), quat_reset_counter);
 	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), manual_heading, radians(1.f))
+			<< "Yaw: " << degrees(_ekf_wrapper.getYawAngle()) << " deg";
+}
+
+TEST_F(EkfMagTest, magDropoutInFlightKeepsHeading)
+{
+	// GIVEN: a vehicle flying without North-East aiding, with the mag as heading source
+	const Vector3f mag_earth(0.2f, 0.f, 0.4f);
+	_sensor_simulator._mag.setData(mag_earth);
+	_sensor_simulator.runSeconds(_init_duration_s);
+	ASSERT_NO_FATAL_FAILURE(climbToInFlightAlignment(Vector3f()));
+	_sensor_simulator.runSeconds(5);
+
+	ASSERT_TRUE(_ekf_wrapper.isIntendingMag3DFusion());
+	ASSERT_NEAR(_ekf_wrapper.getYawAngle(), 0.f, radians(1.f));
+	const int quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
+
+	// WHEN: the mag data stops
+	_sensor_simulator._mag.stop();
+	_sensor_simulator.runSeconds(2);
+
+	// THEN: the mag fusion stops, and the heading is still considered aligned
+	EXPECT_FALSE(_ekf->control_status_flags().mag);
+	EXPECT_TRUE(_ekf->control_status_flags().yaw_align);
+
+	// AND WHEN: the mag data comes back with the field rotated by 90 degrees
+	_sensor_simulator._mag.setData(Dcmf(Eulerf(0.f, 0.f, radians(90.f))).transpose() * mag_earth);
+	_sensor_simulator._mag.start();
+	_sensor_simulator.runSeconds(10);
+
+	// THEN: the mag fusion resumes without resetting the heading to the new field
+	EXPECT_TRUE(_ekf_wrapper.isIntendingMag3DFusion());
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), quat_reset_counter);
+	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), 0.f, radians(5.f))
+			<< "Yaw: " << degrees(_ekf_wrapper.getYawAngle()) << " deg";
+}
+
+TEST_F(EkfMagTest, magDropoutOnGroundRealignsHeading)
+{
+	// GIVEN: a vehicle on the ground without North-East aiding, with the mag as heading source
+	const Vector3f mag_earth(0.2f, 0.f, 0.4f);
+	_sensor_simulator._mag.setData(mag_earth);
+	_sensor_simulator.runSeconds(_init_duration_s);
+
+	ASSERT_TRUE(_ekf_wrapper.isIntendingMagHeadingFusion());
+	ASSERT_NEAR(_ekf_wrapper.getYawAngle(), 0.f, radians(1.f));
+
+	// WHEN: the mag data stops
+	_sensor_simulator._mag.stop();
+	_sensor_simulator.runSeconds(2);
+
+	// THEN: the heading is no longer considered aligned
+	EXPECT_FALSE(_ekf->control_status_flags().yaw_align);
+
+	// AND WHEN: the mag data comes back with the field rotated by 90 degrees
+	_sensor_simulator._mag.setData(Dcmf(Eulerf(0.f, 0.f, radians(90.f))).transpose() * mag_earth);
+	_sensor_simulator._mag.start();
+	_sensor_simulator.runSeconds(2);
+
+	// THEN: the heading is re-aligned to the new field
+	EXPECT_TRUE(_ekf->control_status_flags().yaw_align);
+	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), radians(90.f), radians(2.f))
+			<< "Yaw: " << degrees(_ekf_wrapper.getYawAngle()) << " deg";
+}
+
+TEST_F(EkfMagTest, magDropoutOnGroundKeepsManualHeading)
+{
+	// GIVEN: a heading set manually, then a flight that made the mag the heading source, and the
+	// vehicle back on the ground without North-East aiding
+	const Vector3f mag_earth(0.2f, 0.f, 0.4f);
+	_sensor_simulator._mag.setData(mag_earth);
+	_sensor_simulator.runSeconds(_init_duration_s);
+
+	const float manual_heading = radians(30.f);
+	_ekf->resetHeadingToExternalObservation(manual_heading, radians(2.f));
+	_sensor_simulator.runSeconds(2);
+	ASSERT_NO_FATAL_FAILURE(climbToInFlightAlignment(Vector3f()));
+	_sensor_simulator.runSeconds(5);
+
+	_ekf->set_in_air_status(false);
+	_ekf->set_vehicle_at_rest(true);
+	_sensor_simulator.runSeconds(5);
+
+	ASSERT_TRUE(_ekf->control_status_flags().yaw_manual);
+	ASSERT_TRUE(_ekf_wrapper.isIntendingMag3DFusion());
+	ASSERT_NEAR(_ekf_wrapper.getYawAngle(), manual_heading, radians(1.f));
+	const int quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
+
+	// WHEN: the mag data stops
+	_sensor_simulator._mag.stop();
+	_sensor_simulator.runSeconds(2);
+
+	// THEN: the mag fusion stops, and the heading is still considered aligned
+	EXPECT_FALSE(_ekf->control_status_flags().mag);
+	EXPECT_TRUE(_ekf->control_status_flags().yaw_align);
+
+	// AND WHEN: the mag data comes back with the field rotated by 90 degrees
+	_sensor_simulator._mag.setData(Dcmf(Eulerf(0.f, 0.f, radians(90.f))).transpose() * mag_earth);
+	_sensor_simulator._mag.start();
+	_sensor_simulator.runSeconds(10);
+
+	// THEN: the manual heading is kept
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), quat_reset_counter);
+	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), manual_heading, radians(5.f))
 			<< "Yaw: " << degrees(_ekf_wrapper.getYawAngle()) << " deg";
 }
