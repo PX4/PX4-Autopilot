@@ -40,6 +40,7 @@
 
 #include <uORB/Publication.hpp>
 #include <uORB/topics/vehicle_angular_velocity.h>
+#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 
 // to run: make tests TESTFILTER=FailureDetectorRateTrackingTest
@@ -88,13 +89,21 @@ public:
 			_angular_velocity_pub.publish(angular_velocity);
 		}
 
+		vehicle_land_detected_s land_detected{};
+		land_detected.timestamp = hrt_absolute_time();
+		land_detected.landed = _landed;
+		_land_detected_pub.publish(land_detected);
+
 		vehicle_status_s status{};
 		status.vehicle_type = vehicle_type;
+		status.in_transition_mode = _in_transition;
 
 		vehicle_control_mode_s control_mode{};
 		control_mode.flag_control_attitude_enabled = attitude_enabled;
 
 		_fd->update(status, control_mode);
+
+		_ever_triggered |= _fd->getStatus().flags.rate;
 
 		return _fd->getStatus().flags.rate;
 	}
@@ -115,11 +124,16 @@ public:
 		return flag;
 	}
 
+	bool _landed{false};
+	bool _in_transition{false};
+	bool _ever_triggered{false}; // the flag was set after any update
+
 private:
 	std::unique_ptr<FailureDetector> _fd;
 
 	uORB::Publication<vehicle_rates_setpoint_s> _rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::Publication<vehicle_angular_velocity_s> _angular_velocity_pub{ORB_ID(vehicle_angular_velocity)};
+	uORB::Publication<vehicle_land_detected_s> _land_detected_pub{ORB_ID(vehicle_land_detected)};
 };
 
 TEST_F(FailureDetectorRateTrackingTest, NoTriggerWhenDisabled)
@@ -215,5 +229,35 @@ TEST_F(FailureDetectorRateTrackingTest, NoTriggerWithStaleSetpoint)
 {
 	// the setpoint is published once and then goes stale while the rates keep coming
 	update({E, 0.f, 0.f}, {});
-	EXPECT_FALSE(updateFor(800_ms, {}, {}, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true, true, false));
+	updateFor(800_ms, {}, {}, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true, true, false);
+	EXPECT_FALSE(_ever_triggered);
+}
+
+TEST_F(FailureDetectorRateTrackingTest, NoTriggerWhenLanded)
+{
+	// e.g. stick input while armed on the ground: the vehicle is not expected to rotate
+	_landed = true;
+	updateFor(kSustained, {E, 0.f, 0.f}, {});
+	EXPECT_FALSE(_ever_triggered);
+}
+
+TEST_F(FailureDetectorRateTrackingTest, ClearsWhenLanded)
+{
+	EXPECT_TRUE(updateFor(kSustained, {E, 0.f, 0.f}, {}));
+	_landed = true;
+	EXPECT_FALSE(update({E, 0.f, 0.f}, {}));
+}
+
+TEST_F(FailureDetectorRateTrackingTest, NoTriggerInVtolTransition)
+{
+	// the rate setpoint comes from the fixed-wing controller during a transition
+	_in_transition = true;
+	updateFor(kSustained, {E, 0.f, 0.f}, {});
+	EXPECT_FALSE(_ever_triggered);
+}
+
+TEST_F(FailureDetectorRateTrackingTest, ClearsOnNanSetpoint)
+{
+	EXPECT_TRUE(updateFor(kSustained, {E, 0.f, 0.f}, {}));
+	EXPECT_FALSE(update({NAN, 0.f, 0.f}, {}));
 }

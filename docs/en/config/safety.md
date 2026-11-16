@@ -469,6 +469,8 @@ It does not require ESC telemetry, and can trigger before the vehicle reaches th
 The check triggers if the combined roll and pitch rate error stays above [FD_RATE_ERR](#FD_RATE_ERR) for longer than [FD_RATE_ERR_T](#FD_RATE_ERR_T), and then causes the same action as the attitude trigger.
 Yaw is not checked, because a multicopter gives up yaw control first when its motors saturate.
 
+It is not checked while the vehicle is landed or in a VTOL transition.
+
 The check is disabled by default.
 The threshold must be above the rate error seen in normal aggressive flight, which can be read from the rate setpoint and angular velocity in a flight log.
 

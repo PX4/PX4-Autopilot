@@ -239,8 +239,13 @@ void FailureDetector::updateRateTrackingStatus(const vehicle_status_s &vehicle_s
 	const float threshold = math::radians(_param_fd_rate_err.get());
 	const hrt_abstime now = hrt_absolute_time();
 	vehicle_angular_velocity_s angular_velocity;
+	vehicle_land_detected_s land_detected{};
+	_vehicle_land_detected_sub.copy(&land_detected);
 
-	if (threshold < FLT_EPSILON || vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+	// Not checked on the ground, where the vehicle is not expected to follow e.g. stick input, and not in a
+	// VTOL transition, where the rate setpoint comes from the fixed-wing controller.
+	if (threshold < FLT_EPSILON || vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+	    || vehicle_status.in_transition_mode || land_detected.landed) {
 		_rate_failure_hysteresis.set_state_and_update(false, now);
 
 	} else if (_vehicle_angular_velocity_sub.update(&angular_velocity)) {

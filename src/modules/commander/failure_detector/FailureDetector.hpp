@@ -62,6 +62,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_imu_status.h>
+#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
@@ -117,7 +118,7 @@ private:
 	static constexpr hrt_abstime kAltLossSetpointTimeout{500_ms}; // commanded descent is ignored when older
 	static constexpr float kAltLossDescentRateMargin{2.f}; // [m/s] tolerated descent faster than commanded
 
-	static constexpr hrt_abstime kRateSetpointTimeout{500_ms}; // rate tracking is not checked against an older setpoint
+	static constexpr hrt_abstime kRateSetpointTimeout{100_ms}; // rate tracking is not checked against an older setpoint
 
 	static constexpr hrt_abstime _imbalanced_prop_lpf_time_constant{5_s};
 	AlphaFilter<float> _imbalanced_prop_lpf{};
@@ -130,6 +131,7 @@ private:
 	uORB::Subscription _vehicle_local_position_setpoint_sub{ORB_ID(vehicle_local_position_setpoint)};
 	uORB::Subscription _vehicle_rates_setpoint_sub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _pwm_input_sub{ORB_ID(pwm_input)};
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _vehicle_imu_status_sub{ORB_ID(vehicle_imu_status)};
