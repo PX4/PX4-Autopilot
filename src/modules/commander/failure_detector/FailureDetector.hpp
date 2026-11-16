@@ -110,6 +110,7 @@ private:
 	systemlib::Hysteresis _pitch_failure_hysteresis{false};
 	systemlib::Hysteresis _alt_loss_hysteresis{false};
 	systemlib::Hysteresis _rate_failure_hysteresis{false};
+	float _rate_tracking_error{0.f}; // [rad/s]
 	systemlib::Hysteresis _ext_ats_failure_hysteresis{false};
 
 	float _alt_loss_ref_z{NAN}; // ratcheting NED-z reference for altitude loss detection

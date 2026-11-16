@@ -11,6 +11,7 @@ bool fd_battery
 bool fd_imbalanced_prop
 bool fd_motor
 
+float32 rate_tracking_error         # [rad/s] Roll and pitch rate error of the rate tracking check, 0 while it is inactive
 float32 imbalanced_prop_metric      # Metric of the imbalanced propeller check (low-passed)
 uint16 motor_failure_mask           # Bit-mask with motor indices, indicating critical motor failures
 uint16 motor_stop_mask              # Bitmaks of motors stopped by failure injection

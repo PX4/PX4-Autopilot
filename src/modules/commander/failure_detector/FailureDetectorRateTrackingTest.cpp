@@ -39,6 +39,7 @@
 #include <unistd.h>
 
 #include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
@@ -125,6 +126,15 @@ public:
 		return flag;
 	}
 
+	// Publish the detector status and return the reported rate tracking error [rad/s]
+	float publishedError()
+	{
+		_fd->publishStatus(false, 0);
+		failure_detector_status_s status{};
+		_status_sub.copy(&status);
+		return status.rate_tracking_error;
+	}
+
 	bool _landed{false};
 	bool _in_transition{false};
 	bool _ever_triggered{false}; // the flag was set after any update
@@ -135,6 +145,7 @@ private:
 	uORB::Publication<vehicle_rates_setpoint_s> _rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::Publication<vehicle_angular_velocity_s> _angular_velocity_pub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Publication<vehicle_land_detected_s> _land_detected_pub{ORB_ID(vehicle_land_detected)};
+	uORB::Subscription _status_sub{ORB_ID(failure_detector_status)};
 };
 
 TEST_F(FailureDetectorRateTrackingTest, NoTriggerWhenDisabled)
@@ -261,4 +272,15 @@ TEST_F(FailureDetectorRateTrackingTest, ClearsOnNanSetpoint)
 {
 	EXPECT_TRUE(updateFor(kSustained, {E, 0.f, 0.f}, {}));
 	EXPECT_FALSE(update({NAN, 0.f, 0.f}, {}));
+}
+
+TEST_F(FailureDetectorRateTrackingTest, ReportsError)
+{
+	update({E, 0.f, 0.f}, {0.f, e, 0.f});
+	EXPECT_NEAR(publishedError(), sqrtf(E * E + e * e), 1e-4f);
+
+	// no error is reported while the check is inactive
+	_landed = true;
+	update({E, 0.f, 0.f}, {});
+	EXPECT_FLOAT_EQ(publishedError(), 0.f);
 }

@@ -75,6 +75,7 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 		_alt_loss_ref_z = NAN;
 		_alt_loss_hysteresis.set_state_and_update(false, hrt_absolute_time());
 		_rate_failure_hysteresis.set_state_and_update(false, hrt_absolute_time());
+		_rate_tracking_error = 0.f;
 	}
 
 	if (_param_fd_imb_prop_thr.get() > 0) {
@@ -98,6 +99,7 @@ void FailureDetector::publishStatus(bool esc_arm_status, uint16_t motor_failure_
 	failure_detector_status.fd_battery = _failure_detector_status.flags.battery;
 	failure_detector_status.fd_imbalanced_prop = _failure_detector_status.flags.imbalanced_prop;
 	failure_detector_status.fd_motor = (motor_failure_mask != 0) || (injected_motor_failure_mask != 0);
+	failure_detector_status.rate_tracking_error = _rate_tracking_error;
 	failure_detector_status.imbalanced_prop_metric = _imbalanced_prop_lpf.getState();
 	failure_detector_status.motor_failure_mask = motor_failure_mask | injected_motor_failure_mask;
 	failure_detector_status.motor_stop_mask = _injected_motor_masks.stop_mask;
@@ -247,18 +249,20 @@ void FailureDetector::updateRateTrackingStatus(const vehicle_status_s &vehicle_s
 	if (threshold < FLT_EPSILON || vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 	    || vehicle_status.in_transition_mode || land_detected.landed) {
 		_rate_failure_hysteresis.set_state_and_update(false, now);
+		_rate_tracking_error = 0.f;
 
 	} else if (_vehicle_angular_velocity_sub.update(&angular_velocity)) {
 		vehicle_rates_setpoint_s rates_setpoint{};
 		_vehicle_rates_setpoint_sub.copy(&rates_setpoint);
 
 		// roll and pitch only: yaw has the least control authority and is given up first, e.g. after a motor failure
-		const float error = matrix::Vector2f(rates_setpoint.roll - angular_velocity.xyz[0],
-						     rates_setpoint.pitch - angular_velocity.xyz[1]).norm();
+		_rate_tracking_error = matrix::Vector2f(rates_setpoint.roll - angular_velocity.xyz[0],
+							rates_setpoint.pitch - angular_velocity.xyz[1]).norm();
 		const bool setpoint_fresh = now < rates_setpoint.timestamp + kRateSetpointTimeout;
 
 		_rate_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_rate_err_t.get()));
-		_rate_failure_hysteresis.set_state_and_update(setpoint_fresh && PX4_ISFINITE(error) && error > threshold, now);
+		_rate_failure_hysteresis.set_state_and_update(setpoint_fresh && PX4_ISFINITE(_rate_tracking_error)
+				&& _rate_tracking_error > threshold, now);
 	}
 
 	_failure_detector_status.flags.rate = _rate_failure_hysteresis.get_state();
