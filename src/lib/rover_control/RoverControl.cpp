@@ -73,7 +73,10 @@ float throttleControl(SlewRate<float> &motor_setpoint, const float throttle_setp
 		return NAN;
 	}
 
-	const bool accelerating = fabsf(throttle_setpoint) > fabsf(current_motor_setpoint);
+	// Braking towards zero for a setpoint of opposite sign is a deceleration
+	// Without a deceleration limit, the magnitude comparison below decides as before
+	const bool braking = throttle_setpoint * current_motor_setpoint < 0.f && max_decel > FLT_EPSILON;
+	const bool accelerating = fabsf(throttle_setpoint) > fabsf(current_motor_setpoint) && !braking;
 
 	if (accelerating && max_accel > FLT_EPSILON && max_thr_spd > FLT_EPSILON) { // Acceleration slew rate
 		motor_setpoint.setSlewRate(max_accel / max_thr_spd);
@@ -142,7 +145,13 @@ float speedControl(SlewRate<float> &speed_with_rate_limit, PID &pid_speed, const
 	}
 
 	// Apply acceleration and deceleration limit
-	if (fabsf(speed_setpoint) >= fabsf(vehicle_speed) && max_accel > FLT_EPSILON) {
+	// Braking towards zero for a setpoint of opposite sign is a deceleration, until the vehicle speed or the
+	// rate limited setpoint has changed sign. Without a deceleration limit, the magnitude comparison decides as before.
+	const bool braking = speed_setpoint * vehicle_speed < 0.f
+			     && speed_setpoint * speed_with_rate_limit.getState() < 0.f && max_decel > FLT_EPSILON;
+	const bool accelerating = fabsf(speed_setpoint) >= fabsf(vehicle_speed) && !braking;
+
+	if (accelerating && max_accel > FLT_EPSILON) {
 		speed_with_rate_limit.setSlewRate(max_accel);
 		speed_with_rate_limit.update(speed_setpoint, dt);
 
@@ -152,7 +161,7 @@ float speedControl(SlewRate<float> &speed_with_rate_limit, PID &pid_speed, const
 			speed_with_rate_limit.setForcedValue(speed_setpoint);
 		}
 
-	} else if (fabsf(speed_setpoint) < fabsf(vehicle_speed) && max_decel > FLT_EPSILON) {
+	} else if (!accelerating && max_decel > FLT_EPSILON) {
 		speed_with_rate_limit.setSlewRate(max_decel);
 		speed_with_rate_limit.update(speed_setpoint, dt);
 

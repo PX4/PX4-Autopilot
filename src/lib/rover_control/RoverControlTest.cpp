@@ -226,3 +226,73 @@ TEST(mapSticks, mappings)
 	expectSticks(0, 0.1f, 0.2f, 0.4f);
 	expectSticks(5, 0.1f, 0.2f, 0.4f);
 }
+
+TEST(throttleControl, decelerationLimitOnSignChange)
+{
+	// Distinct limits so the applied one can be read from a single step
+	const float max_accel = 1.f; // [m/s^2]
+	const float max_decel = 4.f; // [m/s^2]
+	const float no_limit = -1.f;
+	const float max_thr_spd = 2.f; // [m/s]
+	const float dt = 0.1f; // [s]
+	const float accel_step = max_accel / max_thr_spd * dt;
+	const float decel_step = max_decel / max_thr_spd * dt;
+	SlewRate<float> motor_setpoint;
+
+	const auto step = [&](float throttle_setpoint, float current_motor_setpoint, float accel, float decel) {
+		motor_setpoint.setForcedValue(current_motor_setpoint);
+		return RoverControl::throttleControl(motor_setpoint, throttle_setpoint, current_motor_setpoint, accel, decel,
+						     max_thr_spd, dt);
+	};
+
+	// Full reverse while driving forwards (and vice versa) brakes towards zero first: deceleration limit
+	EXPECT_NEAR(step(-1.f, 0.5f, max_accel, max_decel), 0.5f - decel_step, 1e-6f);
+	EXPECT_NEAR(step(1.f, -0.5f, max_accel, max_decel), -0.5f + decel_step, 1e-6f);
+	EXPECT_NEAR(step(-0.2f, 0.5f, max_accel, max_decel), 0.5f - decel_step, 1e-6f);
+	EXPECT_NEAR(step(-1.f, 0.5f, no_limit, max_decel), 0.5f - decel_step, 1e-6f);
+
+	// Once the sign has changed or from standstill: acceleration limit
+	EXPECT_NEAR(step(-1.f, -0.2f, max_accel, max_decel), -0.2f - accel_step, 1e-6f);
+	EXPECT_NEAR(step(1.f, 0.2f, max_accel, max_decel), 0.2f + accel_step, 1e-6f);
+	EXPECT_NEAR(step(-1.f, 0.f, max_accel, max_decel), -accel_step, 1e-6f);
+
+	// Without a deceleration limit the acceleration limit applies as before
+	EXPECT_NEAR(step(-1.f, 0.5f, max_accel, no_limit), 0.5f - accel_step, 1e-6f);
+}
+
+TEST(speedControl, decelerationLimitOnSignChange)
+{
+	// Distinct limits so the applied one can be read from a single step
+	const float max_accel = 1.f; // [m/s^2]
+	const float max_decel = 4.f; // [m/s^2]
+	const float no_limit = -1.f;
+	const float max_thr_speed = 0.f; // [m/s] No feed forward, only the rate limited speed setpoint is checked
+	const float dt = 0.1f; // [s]
+	SlewRate<float> speed_with_rate_limit;
+	PID pid_speed;
+
+	// One update starting from the rate limited setpoint adjusted_speed
+	const auto step = [&](float speed_setpoint, float vehicle_speed, float adjusted_speed, float accel, float decel) {
+		speed_with_rate_limit.setForcedValue(adjusted_speed);
+		RoverControl::speedControl(speed_with_rate_limit, pid_speed, speed_setpoint, vehicle_speed, accel, decel,
+					   max_thr_speed, dt);
+		return speed_with_rate_limit.getState();
+	};
+
+	// Reverse setpoint while driving forwards (and vice versa) brakes towards zero first: deceleration limit
+	EXPECT_NEAR(step(-1.f, 1.f, 1.f, max_accel, max_decel), 1.f - max_decel * dt, 1e-6f);
+	EXPECT_NEAR(step(1.f, -1.f, -1.f, max_accel, max_decel), -1.f + max_decel * dt, 1e-6f);
+	EXPECT_NEAR(step(-2.f, 1.f, 1.f, max_accel, max_decel), 1.f - max_decel * dt, 1e-6f);
+	EXPECT_NEAR(step(-1.f, 1.f, 1.f, no_limit, max_decel), 1.f - max_decel * dt, 1e-6f);
+
+	// Once the sign has changed or from standstill: acceleration limit
+	EXPECT_NEAR(step(-1.f, -0.5f, -0.5f, max_accel, max_decel), -0.5f - max_accel * dt, 1e-6f);
+	EXPECT_NEAR(step(1.f, 0.5f, 0.5f, max_accel, max_decel), 0.5f + max_accel * dt, 1e-6f);
+	EXPECT_NEAR(step(-1.f, 0.f, 0.f, max_accel, max_decel), -max_accel * dt, 1e-6f);
+
+	// The rate limited setpoint has changed sign while the vehicle speed lags behind: acceleration limit
+	EXPECT_NEAR(step(-1.f, 0.5f, -0.1f, max_accel, max_decel), -0.1f - max_accel * dt, 1e-6f);
+
+	// Without a deceleration limit the acceleration limit applies as before
+	EXPECT_NEAR(step(-1.f, 1.f, 1.f, max_accel, no_limit), 1.f - max_accel * dt, 1e-6f);
+}
