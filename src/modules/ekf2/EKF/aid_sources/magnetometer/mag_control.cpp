@@ -280,8 +280,9 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 				if (is_fusion_failing) {
 					if (no_ne_aiding_or_not_moving) {
 						ECL_WARN("%s fusion failing, resetting", AID_SRC_NAME);
-						const bool reset_heading = isHeadingResetToMagAllowed();
-						resetMagStates(_mag_lpf.getState(), reset_heading);
+						// Keep the heading: a field rejected for this long is more likely disturbed
+						// than the heading wrong, and a wrong heading is recovered by yawing
+						resetMagStates(_mag_lpf.getState(), false);
 						aid_src.time_last_fuse = imu_sample.time_us;
 
 					} else {
