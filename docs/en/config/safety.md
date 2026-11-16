@@ -473,6 +473,8 @@ It is not checked while the vehicle is landed or in a VTOL transition.
 
 The check is disabled by default.
 The threshold must be above the rate error seen in normal aggressive flight, which can be read from the rate setpoint and angular velocity in a flight log.
+It must also be below [MC_ROLLRATE_MAX](../advanced_config/parameter_reference.md#MC_ROLLRATE_MAX) and [MC_PITCHRATE_MAX](../advanced_config/parameter_reference.md#MC_PITCHRATE_MAX) to detect a vehicle that cannot rotate (for example one pinned on the ground after a crash), because the rate setpoint, and therefore the error of a vehicle that does not rotate, is limited to those values.
+A vehicle that rotates when it should not, such as after losing a motor, is detected regardless of these limits.
 
 | Parameter                                                                                          | Description                                                                      |
 | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |

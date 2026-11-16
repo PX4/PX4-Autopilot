@@ -117,7 +117,7 @@ parameters:
     FD_RATE_ERR:
       description:
         short: Roll and pitch rate tracking error threshold
-        long: Multicopter only. A combined roll and pitch rate error above this value for FD_RATE_ERR_T triggers the same action as FD_FAIL_R. Not checked in Acro mode, while landed or in a VTOL transition. Set to 0 to disable.
+        long: Multicopter only. A combined roll and pitch rate error above this value for FD_RATE_ERR_T triggers the same action as FD_FAIL_R. Not checked in Acro mode, while landed or in a VTOL transition. Must be below MC_ROLLRATE_MAX and MC_PITCHRATE_MAX to detect a vehicle that cannot rotate. Set to 0 to disable.
       type: float
       default: 0.0
       min: 0.0
