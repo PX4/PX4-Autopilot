@@ -170,6 +170,56 @@ public:
 		const Vector3f mag_earth = _ekf->getMagEarthField();
 		EXPECT_NEAR(atan2f(mag_earth(1), mag_earth(0)), atan2f(mag_earth_wmm(1), mag_earth_wmm(0)), radians(1.f));
 	}
+
+	// The mag stops for good in flight without North-East aiding and the heading drifts, then
+	// GNSS fusion starts while the vehicle accelerates horizontally
+	void checkGnssStartAfterMagLossInFlight(float heading_drift, int expected_yaw_emergency_resets)
+	{
+		_sensor_simulator._mag.setData(Vector3f(0.218f, 0.f, 0.43f));
+		_sensor_simulator.runSeconds(_init_duration_s);
+		ASSERT_NO_FATAL_FAILURE(climbToInFlightAlignment(Vector3f()));
+		_sensor_simulator.runSeconds(5);
+
+		ASSERT_NEAR(_ekf_wrapper.getYawAngle(), 0.f, radians(1.f));
+
+		_sensor_simulator._mag.stop();
+		_sensor_simulator.runSeconds(2);
+
+		const float drift_rate = radians(10.f);
+		const Vector3f specific_force(0.f, 0.f, -CONSTANTS_ONE_G);
+		_sensor_simulator._imu.setData(specific_force, Vector3f(0.f, 0.f, drift_rate));
+		_sensor_simulator.runSeconds(heading_drift / drift_rate);
+		_sensor_simulator._imu.setData(specific_force, Vector3f());
+
+		// the wrong heading is still considered aligned
+		ASSERT_TRUE(_ekf->control_status_flags().yaw_align);
+		ASSERT_NEAR(wrap_pi(_ekf_wrapper.getYawAngle() - heading_drift), 0.f, radians(1.f));
+		const int quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
+
+		_sensor_simulator._gps.setMinRequiredGnssHealthTime(1e6);
+		_ekf_wrapper.enableGpsFusion();
+		_sensor_simulator.startGps();
+
+		const Vector3f velocity_targets[] = {{5.f, 0.f, 0.f}, {0.f, 5.f, 0.f}, {-5.f, 0.f, 0.f}, {0.f, -5.f, 0.f}};
+		bool yaw_emergency_reset = false;
+
+		for (int i = 0; i < 40; i++) {
+			_sensor_simulator.setTrajectoryTargetVelocity(velocity_targets[(i / 5) % 4]);
+
+			for (int k = 0; k < 100; k++) {
+				_sensor_simulator.runTrajectorySeconds(0.01f);
+
+				yaw_emergency_reset = yaw_emergency_reset || _ekf->information_event_flags().yaw_aligned_to_imu_gps;
+			}
+		}
+
+		EXPECT_EQ(yaw_emergency_reset, expected_yaw_emergency_resets > 0);
+		EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), quat_reset_counter + expected_yaw_emergency_resets);
+		EXPECT_TRUE(_ekf->control_status_flags().gnss_vel);
+		EXPECT_TRUE(_ekf->control_status_flags().gnss_pos);
+		EXPECT_NEAR(_ekf_wrapper.getYawAngle(), 0.f, radians(5.f))
+				<< "Yaw: " << degrees(_ekf_wrapper.getYawAngle()) << " deg";
+	}
 };
 
 TEST_F(EkfMagTest, fusionStartWithReset)
@@ -914,4 +964,20 @@ TEST_F(EkfMagTest, magDropoutOnGroundKeepsManualHeading)
 	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), quat_reset_counter);
 	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), manual_heading, radians(5.f))
 			<< "Yaw: " << degrees(_ekf_wrapper.getYawAngle()) << " deg";
+}
+
+TEST_F(EkfMagTest, gnssStartAfterMagLossInFlightCorrectsHeadingError)
+{
+	// GIVEN: a mag lost in flight without North-East aiding, and a heading that drifted by 60 degrees
+	// WHEN: GNSS fusion starts while the vehicle accelerates horizontally
+	// THEN: the GNSS data is accepted and corrects the heading without a reset
+	checkGnssStartAfterMagLossInFlight(radians(60.f), 0);
+}
+
+TEST_F(EkfMagTest, gnssStartAfterMagLossInFlightResetsReversedHeading)
+{
+	// GIVEN: a mag lost in flight without North-East aiding, and a heading that drifted by 180 degrees
+	// WHEN: GNSS fusion starts while the vehicle accelerates horizontally
+	// THEN: the GNSS data is rejected and a single yaw emergency reset recovers the heading
+	checkGnssStartAfterMagLossInFlight(radians(180.f), 1);
 }
