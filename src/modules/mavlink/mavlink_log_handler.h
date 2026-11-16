@@ -99,6 +99,7 @@ private:
 
 	// state functions
 	void state_idle();
+	void close_current_entry();
 	void state_listing();
 	void state_sending_data();
 

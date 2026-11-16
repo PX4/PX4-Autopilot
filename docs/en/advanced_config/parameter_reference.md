@@ -66996,7 +66996,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## UAVCAN
 
-<div class="param-group" style="--param-count: 50">
+<div class="param-group" style="--param-count: 51">
 
 <div class="param">
 
@@ -67352,6 +67352,21 @@ starve other nodes on the bus.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &check; | 1 | 255 |  | 255 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### UAVCAN_ESC_RPMSC (`FLOAT`) {#UAVCAN_ESC_RPMSC}
+
+ESC RPM telemetry scale.
+
+Multiplies the RPM reported in uavcan.equipment.esc.Status by this factor before publishing, for ESCs that report RPM off by a fixed factor (e.g. electrical instead of mechanical RPM). Applies to all DroneCAN ESCs.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; | 0.001 | 100.0 | 0.01 | 1.0 |  | &nbsp;
 
 </div>
 
