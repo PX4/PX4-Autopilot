@@ -24,8 +24,8 @@ We'll go through each of these in detail in the following sections.
 | `SW+BUZ`          | Safety switch, safety LED and buzzer (usually from the GPS module)                                              |
 | `TEL1`, `TEL2`    | Telemetry radios or other MAVLink devices                                                                       |
 | `Uart5`           | General-purpose serial port (EXT2)                                                                              |
-| `Uart8`           | RC input for CRSF receivers                                                                                     |
-| `S.Bin`           | SBUS or PPM receiver (`SBUS_IN`) and RSSI input (`RSSI_IN`)                                                            |
+| `Uart8`           | RC input for CRSF and GHST receivers                                                                            |
+| `S.Bin`           | SBUS or PPM receiver (`SBUS_IN`) and RSSI input (`RSSI_IN`)                                                     |
 | `RCin`            | SBUS or PPM receiver (pin on the servo rail)                                                                    |
 | `I2C3`, `I2C4`    | I2C peripherals, such as an MS4525DO airspeed sensor                                                            |
 | `CAN1`, `CAN2`    | [DroneCAN](../dronecan/index.md) peripherals                                                                    |
@@ -71,8 +71,7 @@ A Radio Control (RC) system is required if you want to manually control your veh
 
 You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then bind them so that they communicate (read the instructions that come with your specific transmitter/receiver).
 
-- SBUS receivers connect to the `S.Bin` port or the `RCin` pin.
-- PPM receivers connect to the `RCin` pin.
+- SBUS/PPM receivers connect to the `S.Bin` port or the `RCin` pin.
 - CRSF and GHST receivers connect to the `Uart8` port: receiver `TX` to `RX`, and receiver `RX` to `TX`.
 - Spektrum/DSM receivers are not supported.
 
