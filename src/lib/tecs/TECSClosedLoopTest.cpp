@@ -57,6 +57,9 @@
 #include "TECS.hpp"
 #include <lib/geo/geo.h>
 #include <px4_platform_common/param.h>
+#include <algorithm>
+#include <string>
+#include <sys/stat.h>
 
 #include <cmath>
 #include <cstdio>
@@ -308,8 +311,18 @@ protected:
 
 			if (log_dir) {
 				const auto *test_info = ::testing::UnitTest::GetInstance()->current_test_info();
-				std::string path = std::string(log_dir) + "/" + test_info->name() + ".csv";
+
+				// Parameterized tests are named "Test/Param": flatten to one file name
+				std::string name = test_info->name();
+				std::replace(name.begin(), name.end(), '/', '_');
+
+				mkdir(log_dir, 0755); // fails harmlessly if it exists
+				std::string path = std::string(log_dir) + "/" + name + ".csv";
 				_output_csv_file = std::fopen(path.c_str(), "w");
+
+				if (!_output_csv_file) {
+					std::fprintf(stderr, "TECS_TEST_LOG_DIR: cannot write %s\n", path.c_str());
+				}
 
 				if (_output_csv_file) {
 					std::fprintf(_output_csv_file,
