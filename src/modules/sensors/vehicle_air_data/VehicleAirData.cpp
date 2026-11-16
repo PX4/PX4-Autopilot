@@ -574,6 +574,8 @@ float VehicleAirData::CurrentThrust(const hrt_abstime &time_now_us)
 		return 0.f;
 	}
 
+	// TODO: use air density times RPM squared from ESC telemetry when it is available. The propeller-induced
+	// pressure follows the real thrust, while the setpoint rises at constant thrust as the battery sags.
 	vehicle_thrust_setpoint_s thrust_setpoint;
 
 	// NAN means the motors are stopped, a stale setpoint that the controller is not running
