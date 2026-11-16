@@ -20575,7 +20575,7 @@ Specify USB MAVLink mode.
 - `9`: extvisionmin
 - `10`: gimbal
 - `11`: onboard_low_bandwidth
-- `12`: uavionix
+- `12`: ADS-B/Traffic (uAvionix)
 - `13`: Low Bandwidth
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
@@ -30749,6 +30749,10 @@ MAVLink Mode for instance 0.
 The MAVLink Mode defines the set of streamed messages (for example the
 vehicle's attitude) and their sending rates.
 
+Use ADS-B/Traffic for a traffic receiver such as an ADS-B or FLARM
+device. With message signing active, unsigned ADSB_VEHICLE and
+COLLISION messages are only accepted on links in this mode.
+
 **Values:**
 
 - `0`: Normal
@@ -30761,7 +30765,7 @@ vehicle's attitude) and their sending rates.
 - `8`: External Vision
 - `10`: Gimbal
 - `11`: Onboard Low Bandwidth
-- `12`: uAvionix
+- `12`: ADS-B/Traffic (uAvionix)
 - `13`: Low Bandwidth
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
@@ -30922,6 +30926,10 @@ MAVLink Mode for instance 1.
 The MAVLink Mode defines the set of streamed messages (for example the
 vehicle's attitude) and their sending rates.
 
+Use ADS-B/Traffic for a traffic receiver such as an ADS-B or FLARM
+device. With message signing active, unsigned ADSB_VEHICLE and
+COLLISION messages are only accepted on links in this mode.
+
 **Values:**
 
 - `0`: Normal
@@ -30934,7 +30942,7 @@ vehicle's attitude) and their sending rates.
 - `8`: External Vision
 - `10`: Gimbal
 - `11`: Onboard Low Bandwidth
-- `12`: uAvionix
+- `12`: ADS-B/Traffic (uAvionix)
 - `13`: Low Bandwidth
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
@@ -31095,6 +31103,10 @@ MAVLink Mode for instance 2.
 The MAVLink Mode defines the set of streamed messages (for example the
 vehicle's attitude) and their sending rates.
 
+Use ADS-B/Traffic for a traffic receiver such as an ADS-B or FLARM
+device. With message signing active, unsigned ADSB_VEHICLE and
+COLLISION messages are only accepted on links in this mode.
+
 **Values:**
 
 - `0`: Normal
@@ -31107,7 +31119,7 @@ vehicle's attitude) and their sending rates.
 - `8`: External Vision
 - `10`: Gimbal
 - `11`: Onboard Low Bandwidth
-- `12`: uAvionix
+- `12`: ADS-B/Traffic (uAvionix)
 - `13`: Low Bandwidth
 
 | Reboot  | minValue | maxValue | increment | default | unit | Read-Only |
@@ -33091,6 +33103,14 @@ For manually controlled modes and offboard see MPC_Z_VEL_MAX_UP
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0.5      | 8        | 0.5       | 3.0     | m/s  | &nbsp;    |
+
+### SC_MAN_TILT_MAX (`FLOAT`) {#SC_MAN_TILT_MAX}
+
+Maximal tilt angle in Stabilized or Manual mode.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 90       | 1         | 90.0    | deg  | &nbsp;    |
 
 ### SYS_VEHICLE_RESP (`FLOAT`) {#SYS_VEHICLE_RESP}
 
@@ -43906,6 +43926,631 @@ simulated magnetometer Z offset.
 | ------ | -------- | -------- | --------- | ------- | ----- | --------- |
 | &nbsp; |          |          |           | 0.0     | gauss | &nbsp;    |
 
+## Spacecraft Attitude Control
+
+### SC_PITCHRATE_MAX (`FLOAT`) {#SC_PITCHRATE_MAX}
+
+Max pitch rate.
+
+Limit for pitch rate in manual and auto modes (except acro).
+Has effect for large rotations in autonomous mode, to avoid large control
+output and mixer saturation.
+
+This is not only limited by the vehicle's properties, but also by the maximum
+measurement rate of the gyro.
+
+| Reboot | minValue | maxValue | increment | default | unit  | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ----- | --------- |
+| &nbsp; | 0.0      | 1800.0   | 5         | 220.0   | deg/s | &nbsp;    |
+
+### SC_PITCH_P (`FLOAT`) {#SC_PITCH_P}
+
+Pitch P gain.
+
+Pitch proportional gain, i.e. desired angular speed in rad/s for error 1 rad.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      | 12       | 0.1       | 6.5     |      | &nbsp;    |
+
+### SC_ROLLRATE_MAX (`FLOAT`) {#SC_ROLLRATE_MAX}
+
+Max roll rate.
+
+Limit for roll rate in manual and auto modes (except acro).
+Has effect for large rotations in autonomous mode, to avoid large control
+output and mixer saturation.
+
+This is not only limited by the vehicle's properties, but also by the maximum
+measurement rate of the gyro.
+
+| Reboot | minValue | maxValue | increment | default | unit  | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ----- | --------- |
+| &nbsp; | 0.0      | 1800.0   | 5         | 220.0   | deg/s | &nbsp;    |
+
+### SC_ROLL_P (`FLOAT`) {#SC_ROLL_P}
+
+Roll P gain.
+
+Roll proportional gain, i.e. desired angular speed in rad/s for error 1 rad.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      | 12       | 0.1       | 6.5     |      | &nbsp;    |
+
+### SC_YAWRATE_MAX (`FLOAT`) {#SC_YAWRATE_MAX}
+
+Max yaw rate.
+
+| Reboot | minValue | maxValue | increment | default | unit  | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ----- | --------- |
+| &nbsp; | 0.0      | 1800.0   | 5         | 200.0   | deg/s | &nbsp;    |
+
+### SC_YAW_P (`FLOAT`) {#SC_YAW_P}
+
+Yaw P gain.
+
+Yaw proportional gain, i.e. desired angular speed in rad/s for error 1 rad.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      | 5        | 0.1       | 2.8     |      | &nbsp;    |
+
+### SC_YAW_WEIGHT (`FLOAT`) {#SC_YAW_WEIGHT}
+
+Yaw weight.
+
+A fraction [0,1] deprioritizing yaw compared to roll and pitch in non-linear attitude control.
+Deprioritizing yaw is necessary because multicopters have much less control authority
+in yaw compared to the other axes and it makes sense because yaw is not critical for
+stable hovering or 3D navigation.
+
+For yaw control tuning use SC_YAW_P. This ratio has no impact on the yaw gain.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      | 1.0      | 0.1       | 0.4     |      | &nbsp;    |
+
+## Spacecraft Position Control
+
+### SC_MAN_TILT_TAU (`FLOAT`) {#SC_MAN_TILT_TAU}
+
+Manual tilt input filter time constant.
+
+Setting this parameter to 0 disables the filter
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      | 2.0      |           | 0.0     | s    | &nbsp;    |
+
+### SC_MAN_Y_SCALE (`FLOAT`) {#SC_MAN_Y_SCALE}
+
+Max manual yaw rate for Stabilized, Altitude, Position mode.
+
+| Reboot | minValue | maxValue | increment | default | unit  | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ----- | --------- |
+| &nbsp; | 0        | 400      | 10        | 150.0   | deg/s | &nbsp;    |
+
+### SPC_ACC (`FLOAT`) {#SPC_ACC}
+
+Acceleration for autonomous and for manual modes.
+
+When piloting manually, this parameter is only used in MPC_POS_MODE 4.
+
+| Reboot | minValue | maxValue | increment | default | unit  | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ----- | --------- |
+| &nbsp; | 2        | 15       | 1         | 3.0     | m/s^2 | &nbsp;    |
+
+### SPC_ACC_MAX (`FLOAT`) {#SPC_ACC_MAX}
+
+Maximum accelaration in autonomous modes.
+
+| Reboot | minValue | maxValue | increment | default | unit  | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ----- | --------- |
+| &nbsp; | 2        | 15       | 1         | 5.0     | m/s^2 | &nbsp;    |
+
+### SPC_JERK_AUTO (`FLOAT`) {#SPC_JERK_AUTO}
+
+Jerk limit in autonomous modes.
+
+Limit the maximum jerk of the vehicle (how fast the acceleration can change).
+A lower value leads to smoother vehicle motions but also limited agility.
+
+| Reboot | minValue | maxValue | increment | default | unit  | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ----- | --------- |
+| &nbsp; | 1        | 80       | 1         | 4.0     | m/s^3 | &nbsp;    |
+
+### SPC_JERK_MAX (`FLOAT`) {#SPC_JERK_MAX}
+
+Maximum jerk in Position/Altitude mode.
+
+Limit the maximum jerk of the vehicle (how fast the acceleration can change).
+A lower value leads to smoother motions but limits agility
+(how fast it can change directions or break).
+
+Setting this to the maximum value essentially disables the limit.
+
+Only used with smooth MPC_POS_MODE 3 and 4.
+
+| Reboot | minValue | maxValue | increment | default | unit  | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ----- | --------- |
+| &nbsp; | 0.5      | 500      | 1         | 8.0     | m/s^3 | &nbsp;    |
+
+### SPC_MAN_Y_MAX (`FLOAT`) {#SPC_MAN_Y_MAX}
+
+Max manual yaw rate for Stabilized, Altitude, Position mode.
+
+| Reboot | minValue | maxValue | increment | default | unit  | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ----- | --------- |
+| &nbsp; | 0        | 400      | 10        | 150.0   | deg/s | &nbsp;    |
+
+### SPC_MAN_Y_TAU (`FLOAT`) {#SPC_MAN_Y_TAU}
+
+Manual yaw rate input filter time constant.
+
+Not used in Stabilized mode
+Setting this parameter to 0 disables the filter
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 5        | 0.01      | 0.08    | s    | &nbsp;    |
+
+### SPC_POS_I (`FLOAT`) {#SPC_POS_I}
+
+Integral gain for position error.
+
+Defined as corrective velocity in m/s per m velocity error
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 15       | 0.1       | 0.0     |      | &nbsp;    |
+
+### SPC_POS_I_LIM (`FLOAT`) {#SPC_POS_I_LIM}
+
+Integral limit for position error.
+
+Defined as corrective velocity in m/s per m velocity error
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 5        | 0.01      | 1.0     |      | &nbsp;    |
+
+### SPC_POS_P (`FLOAT`) {#SPC_POS_P}
+
+Proportional gain for position error.
+
+Defined as corrective velocity in m/s per m position error
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 2        | 0.1       | 0.2     |      | &nbsp;    |
+
+### SPC_THR_MAX (`FLOAT`) {#SPC_THR_MAX}
+
+Maximum collective thrust.
+
+Limit allowed thrust
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1        | 0.05      | 1.0     | norm | &nbsp;    |
+
+### SPC_VELD_LP (`FLOAT`) {#SPC_VELD_LP}
+
+Numerical velocity derivative low pass cutoff frequency.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 10       | 0.5       | 5.0     | Hz   | &nbsp;    |
+
+### SPC_VEL_ALL (`FLOAT`) {#SPC_VEL_ALL}
+
+Overall Velocity Limit.
+
+If set to a value greater than zero, other parameters are automatically set (such as
+MPC_VEL_MAX or MPC_VEL_MANUAL).
+If set to a negative value, the existing individual parameters are used.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | -20      | 20       | 1         | -10.0   |      | &nbsp;    |
+
+### SPC_VEL_CRUISE (`FLOAT`) {#SPC_VEL_CRUISE}
+
+Cruising elocity setpoint in autonomous modes.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 3        | 20       | 1         | 10.0    | m/s  | &nbsp;    |
+
+### SPC_VEL_D (`FLOAT`) {#SPC_VEL_D}
+
+Derivative gain for velocity error.
+
+Defined as corrective acceleration in m/s^2 per m/s velocity error
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      | 15       | 0.1       | 0.0     |      | &nbsp;    |
+
+### SPC_VEL_I (`FLOAT`) {#SPC_VEL_I}
+
+Integral gain for velocity error.
+
+Defined as corrective acceleration in m/s^2 per m/s velocity error
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 15       | 0.1       | 0.0     |      | &nbsp;    |
+
+### SPC_VEL_I_LIM (`FLOAT`) {#SPC_VEL_I_LIM}
+
+Integral limit for velocity error.
+
+Defined as corrective acceleration in m/s^2 per m/s velocity error
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 5        | 0.1       | 1.0     |      | &nbsp;    |
+
+### SPC_VEL_MANUAL (`FLOAT`) {#SPC_VEL_MANUAL}
+
+Maximum velocity setpoint in Position mode.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 3        | 20       | 1         | 10.0    | m/s  | &nbsp;    |
+
+### SPC_VEL_MAX (`FLOAT`) {#SPC_VEL_MAX}
+
+Maximum velocity.
+
+Absolute maximum for all velocity controlled modes.
+Any higher value is truncated.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 20       | 1         | 12.0    | m/s  | &nbsp;    |
+
+### SPC_VEL_P (`FLOAT`) {#SPC_VEL_P}
+
+Proportional gain for velocity error.
+
+Defined as corrective acceleration in m/s^2 per m/s velocity error
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 15       | 0.1       | 6.55    |      | &nbsp;    |
+
+## Spacecraft Rate Control
+
+### SC_ACRO_EXPO (`FLOAT`) {#SC_ACRO_EXPO}
+
+Acro mode Expo factor for Roll and Pitch.
+
+Exponential factor for tuning the input curve shape.
+
+0 Purely linear input curve
+1 Purely cubic input curve
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1        |           | 0.69    |      | &nbsp;    |
+
+### SC_ACRO_EXPO_Y (`FLOAT`) {#SC_ACRO_EXPO_Y}
+
+Acro mode Expo factor for Yaw.
+
+Exponential factor for tuning the input curve shape.
+
+0 Purely linear input curve
+1 Purely cubic input curve
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1        |           | 0.69    |      | &nbsp;    |
+
+### SC_ACRO_P_MAX (`FLOAT`) {#SC_ACRO_P_MAX}
+
+Max acro pitch rate.
+
+default: 2 turns per second
+
+| Reboot | minValue | maxValue | increment | default | unit  | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ----- | --------- |
+| &nbsp; | 0.0      | 1800.0   | 5         | 720.0   | deg/s | &nbsp;    |
+
+### SC_ACRO_R_MAX (`FLOAT`) {#SC_ACRO_R_MAX}
+
+Max acro roll rate.
+
+default: 2 turns per second
+
+| Reboot | minValue | maxValue | increment | default | unit  | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ----- | --------- |
+| &nbsp; | 0.0      | 1800.0   | 5         | 720.0   | deg/s | &nbsp;    |
+
+### SC_ACRO_SUPEXPO (`FLOAT`) {#SC_ACRO_SUPEXPO}
+
+Acro mode SuperExpo factor for Roll and Pitch.
+
+SuperExpo factor for refining the input curve shape tuned using SC_ACRO_EXPO.
+
+0 Pure Expo function
+0.7 reasonable shape enhancement for intuitive stick feel
+0.95 very strong bent input curve only near maxima have effect
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 0.95     |           | 0.7     |      | &nbsp;    |
+
+### SC_ACRO_SUPEXPOY (`FLOAT`) {#SC_ACRO_SUPEXPOY}
+
+Acro mode SuperExpo factor for Yaw.
+
+SuperExpo factor for refining the input curve shape tuned using SC_ACRO_EXPO_Y.
+
+0 Pure Expo function
+0.7 reasonable shape enhancement for intuitive stick feel
+0.95 very strong bent input curve only near maxima have effect
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 0.95     |           | 0.7     |      | &nbsp;    |
+
+### SC_ACRO_Y_MAX (`FLOAT`) {#SC_ACRO_Y_MAX}
+
+Max acro yaw rate.
+
+default 1.5 turns per second
+
+| Reboot | minValue | maxValue | increment | default | unit  | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ----- | --------- |
+| &nbsp; | 0.0      | 1800.0   | 5         | 540.0   | deg/s | &nbsp;    |
+
+### SC_BAT_SCALE_EN (`INT32`) {#SC_BAT_SCALE_EN}
+
+Battery power level scaler.
+
+This compensates for voltage drop of the battery over time by attempting to
+normalize performance across the operating range of the battery. The copter
+should constantly behave as if it was fully charged with reduced max acceleration
+at lower battery percentages. i.e. if hover is at 0.5 throttle at 100% battery,
+it will still be 0.5 at 60% battery.
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+| Reboot | minValue | maxValue | increment | default      | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------------ | ---- | --------- |
+| &nbsp; |          |          |           | Disabled (0) |      | &nbsp;    |
+
+### SC_MAN_F_MAX (`FLOAT`) {#SC_MAN_F_MAX}
+
+Manual mode maximum force.
+
+-
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1.0      |           | 1.0     |      | &nbsp;    |
+
+### SC_MAN_T_MAX (`FLOAT`) {#SC_MAN_T_MAX}
+
+Manual mode maximum torque.
+
+-
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0        | 1.0      |           | 1.0     |      | &nbsp;    |
+
+### SC_PITCHRATE_D (`FLOAT`) {#SC_PITCHRATE_D}
+
+Pitch rate D gain.
+
+Pitch rate differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      |          | 0.0005    | 0.003   |      | &nbsp;    |
+
+### SC_PITCHRATE_FF (`FLOAT`) {#SC_PITCHRATE_FF}
+
+Pitch rate feedforward.
+
+Improves tracking performance.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      |          |           | 0.0     |      | &nbsp;    |
+
+### SC_PITCHRATE_I (`FLOAT`) {#SC_PITCHRATE_I}
+
+Pitch rate I gain.
+
+Pitch rate integral gain. Can be set to compensate static thrust difference or gravity center offset.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      |          | 0.01      | 0.2     |      | &nbsp;    |
+
+### SC_PITCHRATE_K (`FLOAT`) {#SC_PITCHRATE_K}
+
+Pitch rate controller gain.
+
+Global gain of the controller.
+
+This gain scales the P, I and D terms of the controller:
+output = SC_PITCHRATE_K _ (SC_PITCHRATE_P _ error
+
+- SC_PITCHRATE_I \* error_integral
+- SC_PITCHRATE_D \* error_derivative)
+  Set SC_PITCHRATE_P=1 to implement a PID in the ideal form.
+  Set SC_PITCHRATE_K=1 to implement a PID in the parallel form.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.01     | 5.0      | 0.0005    | 1.0     |      | &nbsp;    |
+
+### SC_PITCHRATE_P (`FLOAT`) {#SC_PITCHRATE_P}
+
+Pitch rate P gain.
+
+Pitch rate proportional gain, i.e. control output for angular speed error 1 rad/s.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.01     | 0.6      | 0.01      | 0.15    |      | &nbsp;    |
+
+### SC_PR_INT_LIM (`FLOAT`) {#SC_PR_INT_LIM}
+
+Pitch rate integrator limit.
+
+Can be set to increase the amount of integrator available to counteract disturbances or reduced to improve settling time after large pitch moment trim changes.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      |          | 0.01      | 0.3     |      | &nbsp;    |
+
+### SC_ROLLRATE_D (`FLOAT`) {#SC_ROLLRATE_D}
+
+Roll rate D gain.
+
+Roll rate differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      | 0.01     | 0.0005    | 0.003   |      | &nbsp;    |
+
+### SC_ROLLRATE_FF (`FLOAT`) {#SC_ROLLRATE_FF}
+
+Roll rate feedforward.
+
+Improves tracking performance.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      |          |           | 0.0     |      | &nbsp;    |
+
+### SC_ROLLRATE_I (`FLOAT`) {#SC_ROLLRATE_I}
+
+Roll rate I gain.
+
+Roll rate integral gain. Can be set to compensate static thrust difference or gravity center offset.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      |          | 0.01      | 0.2     |      | &nbsp;    |
+
+### SC_ROLLRATE_K (`FLOAT`) {#SC_ROLLRATE_K}
+
+Roll rate controller gain.
+
+Global gain of the controller.
+
+This gain scales the P, I and D terms of the controller:
+output = SC_ROLLRATE_K _ (SC_ROLLRATE_P _ error
+
+- SC_ROLLRATE_I \* error_integral
+- SC_ROLLRATE_D \* error_derivative)
+  Set SC_ROLLRATE_P=1 to implement a PID in the ideal form.
+  Set SC_ROLLRATE_K=1 to implement a PID in the parallel form.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.01     | 5.0      | 0.0005    | 1.0     |      | &nbsp;    |
+
+### SC_ROLLRATE_P (`FLOAT`) {#SC_ROLLRATE_P}
+
+Roll rate P gain.
+
+Roll rate proportional gain, i.e. control output for angular speed error 1 rad/s.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.01     | 0.5      | 0.01      | 0.15    |      | &nbsp;    |
+
+### SC_RR_INT_LIM (`FLOAT`) {#SC_RR_INT_LIM}
+
+Roll rate integrator limit.
+
+Can be set to increase the amount of integrator available to counteract disturbances or reduced to improve settling time after large roll moment trim changes.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      |          | 0.01      | 0.3     |      | &nbsp;    |
+
+### SC_YAWRATE_D (`FLOAT`) {#SC_YAWRATE_D}
+
+Yaw rate D gain.
+
+Yaw rate differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      |          | 0.01      | 0.0     |      | &nbsp;    |
+
+### SC_YAWRATE_FF (`FLOAT`) {#SC_YAWRATE_FF}
+
+Yaw rate feedforward.
+
+Improves tracking performance.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      |          | 0.01      | 0.0     |      | &nbsp;    |
+
+### SC_YAWRATE_I (`FLOAT`) {#SC_YAWRATE_I}
+
+Yaw rate I gain.
+
+Yaw rate integral gain. Can be set to compensate static thrust difference or gravity center offset.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      |          | 0.01      | 0.865   |      | &nbsp;    |
+
+### SC_YAWRATE_K (`FLOAT`) {#SC_YAWRATE_K}
+
+Yaw rate controller gain.
+
+Global gain of the controller.
+
+This gain scales the P, I and D terms of the controller:
+output = SC_YAWRATE_K _ (SC_YAWRATE_P _ error
+
+- SC_YAWRATE_I \* error_integral
+- SC_YAWRATE_D \* error_derivative)
+  Set SC_YAWRATE_P=1 to implement a PID in the ideal form.
+  Set SC_YAWRATE_K=1 to implement a PID in the parallel form.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      | 5.0      | 0.0005    | 1.0     |      | &nbsp;    |
+
+### SC_YAWRATE_P (`FLOAT`) {#SC_YAWRATE_P}
+
+Yaw rate P gain.
+
+Yaw rate proportional gain, i.e. control output for angular speed error 1 rad/s.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      | 10.0     | 0.01      | 10.0    |      | &nbsp;    |
+
+### SC_YR_INT_LIM (`FLOAT`) {#SC_YR_INT_LIM}
+
+Yaw rate integrator limit.
+
+Can be set to increase the amount of integrator available to counteract disturbances or reduced to improve settling time after large yaw moment trim changes.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; | 0.0      |          | 0.01      | 0.2     |      | &nbsp;    |
+
 ## System
 
 ### RPM_CAP_ENABLE (`INT32`) {#RPM_CAP_ENABLE}
@@ -44343,6 +44988,30 @@ Configure on which serial port to run HoTT Telemetry.
 
 ## Testing
 
+### TEST_1 (`INT32`) {#TEST_1}
+
+TEST_1.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 2       |      | &nbsp;    |
+
+### TEST_2 (`INT32`) {#TEST_2}
+
+TEST_2.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 4       |      | &nbsp;    |
+
+### TEST_3 (`FLOAT`) {#TEST_3}
+
+TEST_3.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 5.0     |      | &nbsp;    |
+
 ### TEST_D (`FLOAT`) {#TEST_D}
 
 TEST_D.
@@ -44430,6 +45099,30 @@ TEST_P.
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; |          |          |           | 0.2     |      | &nbsp;    |
+
+### TEST_PARAMS (`INT32`) {#TEST_PARAMS}
+
+TEST_PARAMS.
+
+| Reboot | minValue | maxValue | increment | default  | unit | Read-Only |
+| ------ | -------- | -------- | --------- | -------- | ---- | --------- |
+| &nbsp; |          |          |           | 12345678 |      | &nbsp;    |
+
+### TEST_RC2_X (`INT32`) {#TEST_RC2_X}
+
+TEST_RC2_X.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 16      |      | &nbsp;    |
+
+### TEST_RC_X (`INT32`) {#TEST_RC_X}
+
+TEST_RC_X.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 8       |      | &nbsp;    |
 
 ### TEST_TRIM (`FLOAT`) {#TEST_TRIM}
 
@@ -49479,6 +50172,14 @@ Lightware laser rangefinder Operation Mode.
 | Reboot | minValue | maxValue | increment | default | unit | Read-Only |
 | ------ | -------- | -------- | --------- | ------- | ---- | --------- |
 | &nbsp; | 0        | 2        |           | 1       |      | &nbsp;    |
+
+### SPC_VEHICLE_RESP (`FLOAT`) {#SPC_VEHICLE_RESP}
+
+SPC_VEHICLE_RESP.
+
+| Reboot | minValue | maxValue | increment | default | unit | Read-Only |
+| ------ | -------- | -------- | --------- | ------- | ---- | --------- |
+| &nbsp; |          |          |           | 0.5     |      | &nbsp;    |
 
 ### ZENOH_DOMAIN_ID (`INT32`) {#ZENOH_DOMAIN_ID}
 
