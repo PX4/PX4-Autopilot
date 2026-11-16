@@ -58,11 +58,13 @@
 #include <uORB/topics/pwm_input.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_imu_status.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 
 using namespace time_literals;
@@ -72,6 +74,7 @@ union failure_detector_status_u {
 		uint16_t roll : 1;
 		uint16_t pitch : 1;
 		uint16_t alt : 1;
+		uint16_t rate : 1;
 		uint16_t ext : 1;
 		uint16_t battery : 1;
 		uint16_t imbalanced_prop : 1;
@@ -96,6 +99,7 @@ private:
 	void updateAttitudeStatus(const vehicle_status_s &vehicle_status);
 	void updateAltitudeStatus(const vehicle_status_s &vehicle_status,
 				  const vehicle_control_mode_s &vehicle_control_mode);
+	void updateRateTrackingStatus(const vehicle_status_s &vehicle_status);
 	void updateExternalAtsStatus();
 	void updateImbalancedPropStatus();
 
@@ -104,6 +108,7 @@ private:
 	systemlib::Hysteresis _roll_failure_hysteresis{false};
 	systemlib::Hysteresis _pitch_failure_hysteresis{false};
 	systemlib::Hysteresis _alt_loss_hysteresis{false};
+	systemlib::Hysteresis _rate_failure_hysteresis{false};
 	systemlib::Hysteresis _ext_ats_failure_hysteresis{false};
 
 	float _alt_loss_ref_z{NAN}; // ratcheting NED-z reference for altitude loss detection
@@ -111,6 +116,8 @@ private:
 	hrt_abstime _alt_loss_timestamp_prev{0}; // used to integrate the commanded vertical velocity
 	static constexpr hrt_abstime kAltLossSetpointTimeout{500_ms}; // commanded descent is ignored when older
 	static constexpr float kAltLossDescentRateMargin{2.f}; // [m/s] tolerated descent faster than commanded
+
+	static constexpr hrt_abstime kRateSetpointTimeout{500_ms}; // rate tracking is not checked against an older setpoint
 
 	static constexpr hrt_abstime _imbalanced_prop_lpf_time_constant{5_s};
 	AlphaFilter<float> _imbalanced_prop_lpf{};
@@ -121,6 +128,8 @@ private:
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_local_position_setpoint_sub{ORB_ID(vehicle_local_position_setpoint)};
+	uORB::Subscription _vehicle_rates_setpoint_sub{ORB_ID(vehicle_rates_setpoint)};
+	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _pwm_input_sub{ORB_ID(pwm_input)};
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _vehicle_imu_status_sub{ORB_ID(vehicle_imu_status)};
@@ -139,6 +148,8 @@ private:
 		(ParamInt<px4::params::FD_EXT_ATS_TRIG>) _param_fd_ext_ats_trig,
 		(ParamInt<px4::params::FD_IMB_PROP_THR>) _param_fd_imb_prop_thr,
 		(ParamFloat<px4::params::FD_ALT_LOSS>) _param_fd_alt_loss,
-		(ParamFloat<px4::params::FD_ALT_LOSS_T>) _param_fd_alt_loss_ttri
+		(ParamFloat<px4::params::FD_ALT_LOSS_T>) _param_fd_alt_loss_ttri,
+		(ParamFloat<px4::params::FD_RATE_ERR>) _param_fd_rate_err,
+		(ParamFloat<px4::params::FD_RATE_ERR_T>) _param_fd_rate_err_t
 	)
 };

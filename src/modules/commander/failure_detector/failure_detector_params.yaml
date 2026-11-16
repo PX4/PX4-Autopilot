@@ -114,3 +114,23 @@ parameters:
       max: 5.0
       unit: s
       decimal: 2
+    FD_RATE_ERR:
+      description:
+        short: Roll and pitch rate tracking error threshold
+        long: Multicopter only. A combined roll and pitch rate error above this value for FD_RATE_ERR_T triggers the same action as FD_FAIL_R. Not checked in Acro mode. Set to 0 to disable.
+      type: float
+      default: 0.0
+      min: 0.0
+      max: 1000.0
+      unit: deg/s
+      decimal: 0
+      increment: 5
+    FD_RATE_ERR_T:
+      description:
+        short: Rate tracking failure trigger time
+      type: float
+      default: 0.5
+      min: 0.02
+      max: 5.0
+      unit: s
+      decimal: 2

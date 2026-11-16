@@ -4,6 +4,7 @@ uint64 timestamp                    # time since system start (microseconds)
 bool fd_roll
 bool fd_pitch
 bool fd_alt
+bool fd_rate
 bool fd_ext
 bool fd_arm_escs
 bool fd_battery

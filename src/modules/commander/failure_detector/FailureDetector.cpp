@@ -59,6 +59,7 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 	if (vehicle_control_mode.flag_control_attitude_enabled) {
 		updateAttitudeStatus(vehicle_status);
 		updateAltitudeStatus(vehicle_status, vehicle_control_mode);
+		updateRateTrackingStatus(vehicle_status);
 
 		if (_param_fd_ext_ats_en.get()) {
 			updateExternalAtsStatus();
@@ -68,10 +69,12 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 		_failure_detector_status.flags.roll = false;
 		_failure_detector_status.flags.pitch = false;
 		_failure_detector_status.flags.alt = false;
+		_failure_detector_status.flags.rate = false;
 		_failure_detector_status.flags.ext = false;
 		// Reset altitude loss state so it reinitialises cleanly when altitude control re-engages.
 		_alt_loss_ref_z = NAN;
 		_alt_loss_hysteresis.set_state_and_update(false, hrt_absolute_time());
+		_rate_failure_hysteresis.set_state_and_update(false, hrt_absolute_time());
 	}
 
 	if (_param_fd_imb_prop_thr.get() > 0) {
@@ -89,6 +92,7 @@ void FailureDetector::publishStatus(bool esc_arm_status, uint16_t motor_failure_
 	failure_detector_status.fd_roll = _failure_detector_status.flags.roll;
 	failure_detector_status.fd_pitch = _failure_detector_status.flags.pitch;
 	failure_detector_status.fd_alt = _failure_detector_status.flags.alt;
+	failure_detector_status.fd_rate = _failure_detector_status.flags.rate;
 	failure_detector_status.fd_ext = _failure_detector_status.flags.ext;
 	failure_detector_status.fd_arm_escs = esc_arm_status || (motor_failure_mask != 0);
 	failure_detector_status.fd_battery = _failure_detector_status.flags.battery;
@@ -228,6 +232,31 @@ void FailureDetector::updateAltitudeStatus(const vehicle_status_s &vehicle_statu
 	}
 
 	_failure_detector_status.flags.alt = _alt_loss_hysteresis.get_state();
+}
+
+void FailureDetector::updateRateTrackingStatus(const vehicle_status_s &vehicle_status)
+{
+	const float threshold = math::radians(_param_fd_rate_err.get());
+	const hrt_abstime now = hrt_absolute_time();
+	vehicle_angular_velocity_s angular_velocity;
+
+	if (threshold < FLT_EPSILON || vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+		_rate_failure_hysteresis.set_state_and_update(false, now);
+
+	} else if (_vehicle_angular_velocity_sub.update(&angular_velocity)) {
+		vehicle_rates_setpoint_s rates_setpoint{};
+		_vehicle_rates_setpoint_sub.copy(&rates_setpoint);
+
+		// roll and pitch only: yaw has the least control authority and is given up first, e.g. after a motor failure
+		const float error = matrix::Vector2f(rates_setpoint.roll - angular_velocity.xyz[0],
+						     rates_setpoint.pitch - angular_velocity.xyz[1]).norm();
+		const bool setpoint_fresh = now < rates_setpoint.timestamp + kRateSetpointTimeout;
+
+		_rate_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_rate_err_t.get()));
+		_rate_failure_hysteresis.set_state_and_update(setpoint_fresh && PX4_ISFINITE(error) && error > threshold, now);
+	}
+
+	_failure_detector_status.flags.rate = _rate_failure_hysteresis.get_state();
 }
 
 void FailureDetector::updateExternalAtsStatus()
