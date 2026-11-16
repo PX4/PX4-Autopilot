@@ -120,8 +120,9 @@ static inline void up_dshot_motor_command(unsigned channel, uint16_t command, bo
 
 /**
  * Trigger dshot data transfer.
+ * @return Bitmask of physical output channels submitted for transmission.
  */
-__EXPORT extern void up_dshot_trigger(void);
+__EXPORT extern uint32_t up_dshot_trigger(void);
 
 /**
  * Arm or disarm dshot outputs (This will enable/disable complete timer for safety purpose.).

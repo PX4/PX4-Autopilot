@@ -103,6 +103,10 @@
                             "name": "stab",
                             "description": "Stabilized"
                         },
+                        "65536": {
+                            "name": "turtle",
+                            "description": "Turtle"
+                        },
                         "131072": {
                             "name": "takeoff",
                             "description": "Takeoff"
@@ -674,6 +678,10 @@
                         "27": {
                             "name": "manual_parking",
                             "description": "Manual Parking"
+                        },
+                        "28": {
+                            "name": "turtle",
+                            "description": "Turtle"
                         },
                         "255": {
                             "name": "unknown",

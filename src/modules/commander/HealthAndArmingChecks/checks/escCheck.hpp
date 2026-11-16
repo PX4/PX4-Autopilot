@@ -41,6 +41,9 @@
 #include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/failure_detector_status.h>
+#if defined(CONFIG_MODE_TURTLE)
+#include <uORB/topics/motor_direction_status.h>
+#endif
 
 class EscChecks : public HealthAndArmingCheckBase
 {
@@ -74,6 +77,11 @@ public:
 	 */
 	static uint16_t motorsNotSpinningMask(const esc_status_s &esc_status, const actuator_motors_s &actuator_motors);
 
+#if defined(CONFIG_MODE_TURTLE)
+	/** Required esc_armed_flags bits in logical motor order, excluding motors explicitly commanded to stop. */
+	static uint16_t escsExpectedArmedMask(const esc_status_s &esc_status, const actuator_motors_s &actuator_motors);
+#endif
+
 private:
 	bool checkSpinupAfterArm(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now);
 	uint16_t checkEscOnline(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now);
@@ -84,6 +92,9 @@ private:
 
 	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
 	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
+#if defined(CONFIG_MODE_TURTLE)
+	uORB::Subscription _motor_direction_status_sub {ORB_ID(motor_direction_status)};
+#endif
 
 	const hrt_abstime _start_time{hrt_absolute_time()};
 

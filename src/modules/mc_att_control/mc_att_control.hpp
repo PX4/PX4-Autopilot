@@ -61,6 +61,10 @@
 
 #include <AttitudeControl.hpp>
 
+#if defined(CONFIG_MODE_TURTLE)
+# include "TurtleControl/TurtleControl.hpp"
+#endif
+
 using namespace time_literals;
 
 class MulticopterAttitudeControl : public ModuleBase, public ModuleParams,
@@ -100,6 +104,10 @@ private:
 
 	AttitudeControl _attitude_control; /**< class for attitude control calculations */
 	StickYaw _stick_yaw{this};
+#if defined(CONFIG_MODE_TURTLE)
+	TurtleControl _turtle_control {this};
+	vehicle_status_s _vehicle_status{};
+#endif
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 

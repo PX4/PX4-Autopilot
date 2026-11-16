@@ -40,18 +40,15 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/esc_eeprom_write.h>
+#if defined(CONFIG_MODE_TURTLE)
+#include <uORB/topics/motor_direction_request.h>
+#include <uORB/topics/motor_direction_status.h>
+
+#include "DShotDirection.hpp"
+#endif
 
 #include "DShotCommon.h"
 #include "DShotTelemetry.h"
-#include "DragonflyTurtleCore.hpp"
-#include "DragonflyTurtleInput.hpp"
-#include "DragonflyTurtleMapping.hpp"
-#include "DragonflyTurtleRc.hpp"
-#include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/rc_channels.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_status.h>
 
 using namespace time_literals;
 
@@ -131,11 +128,21 @@ private:
 	}
 
 	uint16_t esc_armed_mask(uint16_t *outputs, uint8_t num_outputs);
+	uint32_t motor_mask_from_channels(uint32_t channels, unsigned num_outputs) const;
 
 	void update_motor_outputs(uint16_t *outputs, int num_outputs);
 	void update_motor_commands(int num_outputs);
 	void select_next_command();
 	void clear_edt_confirmation(int motor_index);
+
+#if defined(CONFIG_MODE_TURTLE)
+	bool motor_direction_active() const { return _direction.active(); }
+	bool update_motor_direction(uint16_t *outputs, unsigned num_outputs);
+	uint16_t supported_direction_mask() const;
+	void publish_direction_status(const motor_direction_request_s *rejected = nullptr);
+#else
+	static constexpr bool motor_direction_active() { return false; }
+#endif
 
 	bool set_next_telemetry_index(); // Returns true when the telemetry index has wrapped, indicating all configured motors have been sampled.
 	bool process_serial_telemetry();
@@ -145,12 +152,6 @@ private:
 
 	uint16_t calculate_output_value(uint16_t raw, int index);
 	uint16_t convert_output_to_3d_scaling(uint16_t output, bool reversible);
-
-	void updateTurtleParameters();
-	void updateTurtleInputs();
-	bool updateTurtleOutputs();
-	bool turtleChannelConflicts(int32_t channel) const;
-	void rejectTurtleCommand(const vehicle_command_s &command);
 
 	void Run() override;
 	void update_params();
@@ -167,46 +168,6 @@ private:
 	// Mixer
 	MixingOutput _mixing_output{PARAM_PREFIX, DSHOT_MAXIMUM_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 
-	dragonfly_trtl::Core _trtl_core{dragonfly_trtl::interlock()};
-	dragonfly_trtl::Config _trtl_config{};
-	dragonfly_trtl::Input _trtl_input{};
-	dragonfly_trtl::Frame _trtl_frame{};
-	dragonfly_mapping::Config _trtl_map_config{};
-	dragonfly_mapping::Resolved _trtl_map{};
-	bool _trtl_loaded{false};
-	bool _trtl_params_pending{true};
-	bool _trtl_map_ok{false};
-	bool _trtl_geometry_ok{false};
-	bool _trtl_rc_conflict{true};
-	bool _trtl_requested{false};
-	bool _trtl_capability_loaded{false};
-	bool _trtl_capable{false};
-	int32_t _trtl_esc_profile{0};
-	bool _trtl_mapping_latched{false};
-	bool _trtl_output_seen{false};
-	bool _trtl_fallback{false};
-	hrt_abstime _trtl_last_params{0};
-	static constexpr unsigned TURTLE_PARAMETER_COUNT = 22;
-	static constexpr unsigned TURTLE_RC_MAPPING_COUNT = 20;
-	param_t _trtl_handles[TURTLE_PARAMETER_COUNT] {};
-	param_t _trtl_rc_handles[TURTLE_RC_MAPPING_COUNT] {};
-	int32_t _trtl_rc_mappings[TURTLE_RC_MAPPING_COUNT] {};
-	bool _trtl_handles_initialized{false};
-	param_t _trtl_enable_handle{PARAM_INVALID};
-	param_t _trtl_esc_handle{PARAM_INVALID};
-	param_t _trtl_mode_buttons_handle{PARAM_INVALID};
-	int32_t _trtl_mode_buttons{-1};
-	uORB::Subscription _turtle_manual_sub{ORB_ID(manual_control_setpoint)};
-	uORB::Subscription _turtle_status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription _turtle_armed_sub{ORB_ID(actuator_armed)};
-	uORB::Subscription _turtle_att_sub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _turtle_rc_sub{ORB_ID(rc_channels)};
-	manual_control_setpoint_s _turtle_manual{};
-	vehicle_status_s _turtle_status{};
-	actuator_armed_s _turtle_armed{};
-	vehicle_attitude_s _turtle_att{};
-	rc_channels_s _turtle_rc_channels{};
-
 	// Actuator-order masks (indexed by output channel)
 	uint32_t _output_mask{0};
 	uint32_t _bdshot_output_mask{0};
@@ -220,6 +181,14 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription _esc_eeprom_write_sub{ORB_ID(esc_eeprom_write)};
+#if defined(CONFIG_MODE_TURTLE)
+	uORB::Subscription _direction_request_sub {ORB_ID(motor_direction_request)};
+	uORB::Publication<motor_direction_status_s> _direction_status_pub{ORB_ID(motor_direction_status)};
+	DShotDirection _direction{};
+	hrt_abstime _last_direction_status{0};
+	uint32_t _initialized_output_mask{0};
+	uint32_t _dshot_timer_channels{0};
+#endif
 
 	uORB::PublicationMultiData<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
 	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};

@@ -375,6 +375,12 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 	if (context.status().arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 		actuator_motors_s actuator_motors{};
 		_actuator_motors_sub.copy(&actuator_motors);
+		uint16_t reverse_mask = actuator_motors.reversible_flags;
+#if defined(CONFIG_MODE_TURTLE)
+		motor_direction_status_s direction {};
+		_motor_direction_status_sub.copy(&direction);
+		reverse_mask |= direction.reversed_mask;
+#endif
 
 		// The detector is indexed by ESC slot, so every ESC is checked even if several share a motor function.
 		// The motor index (actuator_function - MOTOR1) selects the command and is what gets reported.
@@ -402,9 +408,9 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 				continue;
 			}
 
-			// The current model only describes forward thrust: a reversible motor is not evaluated.
-			const bool reversible = (actuator_motors.reversible_flags >> motor) & 1;
-			const float command = reversible ? NAN : actuator_motors.control[motor];
+			// The current model only describes forward thrust. Skip configured reversible motors and temporary reversal.
+			const bool reverse = (reverse_mask >> motor) & 1;
+			const float command = reverse ? NAN : actuator_motors.control[motor];
 
 			// Drive the detector off this ESC's own sample time: esc_status is published whenever any ESC
 			// reports, so the other slots may still hold an older sample, which must not count again.
@@ -470,12 +476,63 @@ void EscChecks::updateParams()
 	_motor_failure_detector.configure(cfg);
 }
 
+#if defined(CONFIG_MODE_TURTLE)
+uint16_t EscChecks::escsExpectedArmedMask(const esc_status_s &esc_status, const actuator_motors_s &actuator_motors)
+{
+	uint16_t expected_mask = 0;
+	int mapped_escs = 0;
+
+	for (int i = 0; i < esc_status_s::CONNECTED_ESC_MAX; ++i) {
+		const uint8_t function = esc_status.esc[i].actuator_function;
+
+		if (!math::isInRange(function, esc_report_s::ACTUATOR_FUNCTION_MOTOR1,
+				     esc_report_s::ACTUATOR_FUNCTION_MOTOR_MAX)) {
+			continue;
+		}
+
+		++mapped_escs;
+		const unsigned motor = function - esc_report_s::ACTUATOR_FUNCTION_MOTOR1;
+
+		// esc_armed_flags is indexed by logical motor, independently of ESC report ordering.
+		if (motor >= actuator_motors_s::NUM_CONTROLS || PX4_ISFINITE(actuator_motors.control[motor])) {
+			expected_mask |= 1u << motor;
+		}
+	}
+
+	const int limited_esc_count = math::min(esc_status.esc_count, esc_status_s::CONNECTED_ESC_MAX);
+
+	if (mapped_escs < limited_esc_count) {
+		// Retain the legacy requirement where a publisher does not identify every connected motor.
+		expected_mask |= (1u << limited_esc_count) - 1;
+	}
+
+	return expected_mask;
+}
+#endif
+
 void EscChecks::updateEscsStatus(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now)
 {
 	if (context.status().arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 		const int limited_esc_count = math::min(esc_status.esc_count, esc_status_s::CONNECTED_ESC_MAX);
 		const int all_escs_armed_mask = (1 << limited_esc_count) - 1;
-		const bool is_all_escs_armed = (all_escs_armed_mask == esc_status.esc_armed_flags);
+		bool is_all_escs_armed = (all_escs_armed_mask == esc_status.esc_armed_flags);
+
+#if defined(CONFIG_MODE_TURTLE)
+
+		if (context.status().nav_state == vehicle_status_s::NAVIGATION_STATE_TURTLE) {
+			actuator_motors_s actuator_motors{};
+
+			if (!_actuator_motors_sub.copy(&actuator_motors) || actuator_motors.timestamp == 0
+			    || actuator_motors.timestamp > now || now - actuator_motors.timestamp > ESC_OFFLINE_TIMEOUT_US) {
+				// Missing or stale commands must not exempt a motor from armed telemetry.
+				actuator_motors = {};
+			}
+
+			const uint16_t expected_mask = escsExpectedArmedMask(esc_status, actuator_motors);
+			is_all_escs_armed = (esc_status.esc_armed_flags & expected_mask) == expected_mask;
+		}
+
+#endif
 
 		_esc_arm_hysteresis.set_hysteresis_time_from(false, ESC_ARMING_TIMEOUT_US);
 		_esc_arm_hysteresis.set_state_and_update(!is_all_escs_armed, now);

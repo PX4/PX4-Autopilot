@@ -263,24 +263,26 @@ MulticopterAttitudeControl::Run()
 		_manual_control_setpoint_sub.update(&_manual_control_setpoint);
 		_vehicle_control_mode_sub.update(&_vehicle_control_mode);
 
-		if (_vehicle_status_sub.updated()) {
-			vehicle_status_s vehicle_status;
+#if defined(CONFIG_MODE_TURTLE)
+		vehicle_status_s &vehicle_status = _vehicle_status;
+#else
+		vehicle_status_s vehicle_status;
+#endif
 
-			if (_vehicle_status_sub.copy(&vehicle_status)) {
-				_vehicle_type_rotary_wing = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-				_vtol = vehicle_status.is_vtol;
-				_vtol_in_transition_mode = vehicle_status.in_transition_mode;
-				_vtol_tailsitter = vehicle_status.is_vtol_tailsitter;
+		if (_vehicle_status_sub.update(&vehicle_status)) {
+			_vehicle_type_rotary_wing = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+			_vtol = vehicle_status.is_vtol;
+			_vtol_in_transition_mode = vehicle_status.in_transition_mode;
+			_vtol_tailsitter = vehicle_status.is_vtol_tailsitter;
 
-				const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+			const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 
-				if (!armed) {
-					_spooled_up = false;
+			if (!armed) {
+				_spooled_up = false;
 
-				} else if (!_spooled_up) {
-					// Keep the spool-up state latched until disarm.
-					_spooled_up = hrt_elapsed_time(&vehicle_status.armed_time) > _param_com_spoolup_time.get() * 1_s;
-				}
+			} else if (!_spooled_up) {
+				// Keep the spool-up state latched until disarm.
+				_spooled_up = hrt_elapsed_time(&vehicle_status.armed_time) > _param_com_spoolup_time.get() * 1_s;
 			}
 		}
 
@@ -300,11 +302,17 @@ MulticopterAttitudeControl::Run()
 			}
 		}
 
+#if defined(CONFIG_MODE_TURTLE)
+		const bool turtle_selected = _turtle_control.update(vehicle_status, _manual_control_setpoint, v_att);
+#else
+		constexpr bool turtle_selected = false;
+#endif
+
 		// during transitions VTOL module generates attitude setpoints
 		const bool is_hovering = (_vehicle_type_rotary_wing && !_vtol_in_transition_mode);
 		const bool is_tailsitter_transition = (_vtol_tailsitter && _vtol_in_transition_mode);
 
-		const bool run_att_ctrl = _vehicle_control_mode.flag_control_attitude_enabled
+		const bool run_att_ctrl = !turtle_selected && _vehicle_control_mode.flag_control_attitude_enabled
 					  && (is_hovering || is_tailsitter_transition);
 
 		if (run_att_ctrl) {

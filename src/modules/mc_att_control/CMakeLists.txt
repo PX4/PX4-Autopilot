@@ -33,6 +33,13 @@
 
 add_subdirectory(AttitudeControl)
 
+set(mc_att_control_module_config mc_att_control_params.yaml)
+set(turtle_control_sources)
+if(CONFIG_MODE_TURTLE)
+	list(APPEND mc_att_control_module_config TurtleControl/TurtleControl_params.yaml)
+	list(APPEND turtle_control_sources TurtleControl/TurtleControl.cpp)
+endif()
+
 px4_add_module(
 	MODULE modules__mc_att_control
 	MAIN mc_att_control
@@ -41,8 +48,9 @@ px4_add_module(
 	SRCS
 		mc_att_control_main.cpp
 		mc_att_control.hpp
+		${turtle_control_sources}
 	MODULE_CONFIG
-		mc_att_control_params.yaml
+		${mc_att_control_module_config}
 	DEPENDS
 		AttitudeControl
 		mathlib
@@ -50,3 +58,8 @@ px4_add_module(
 		Sticks
 		StickYaw
 	)
+
+if(CONFIG_MODE_TURTLE)
+	px4_add_unit_gtest(SRC TurtleControl/TurtleSessionTest.cpp)
+	px4_add_functional_gtest(SRC TurtleControl/TurtleControlTest.cpp LINKLIBS modules__mc_att_control)
+endif()
