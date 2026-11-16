@@ -101,19 +101,20 @@ ControlAllocationPseudoInverse::updateControlAllocationMatrixScale()
 			}
 		}
 
-		float roll_norm_scale = 1.f;
+		float roll_norm_scale = 0.f;
 
 		if (num_non_zero_roll_torque > 0) {
 			roll_norm_scale = sqrtf(_mix.col(0).norm_squared() / (num_non_zero_roll_torque / 2.f));
 		}
 
-		float pitch_norm_scale = 1.f;
+		float pitch_norm_scale = 0.f;
 
 		if (num_non_zero_pitch_torque > 0) {
 			pitch_norm_scale = sqrtf(_mix.col(1).norm_squared() / (num_non_zero_pitch_torque / 2.f));
 		}
 
-		_control_allocation_scale(0) = fmaxf(roll_norm_scale, pitch_norm_scale);
+		const float rp_norm_scale = fmaxf(roll_norm_scale, pitch_norm_scale);
+		_control_allocation_scale(0) = rp_norm_scale > FLT_EPSILON ? rp_norm_scale : 1.f;
 		_control_allocation_scale(1) = _control_allocation_scale(0);
 
 		// Scale yaw separately
