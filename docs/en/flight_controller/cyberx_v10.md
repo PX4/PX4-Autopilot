@@ -45,7 +45,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - **RC input:** SBUS on `S.Bin`, SBUS or PPM on `RCin`, CRSF on `Uart8`
 - **RSSI input:** 1 analog
 - **Analog inputs:** 2 on the `ADC` port (3.3 V and 6.6 V)
-- **Power inputs:** 2 (`PWR1` analog, `PWR2` I2C)
+- **Power inputs:** 1 (`PWR1`, `PWR2` or both, from the same power module)
 - **Parameter storage:** FRAM (FM25V02A) on SPI5
 - **SD card:** microSD card slot
 - **Debug port:** 1 (`DEBUG`, FMU and IO debug)
