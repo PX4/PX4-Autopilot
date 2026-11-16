@@ -131,7 +131,8 @@ Under these conditions all power sources will be used in this order to power the
 Under these conditions the system will not draw any power (will not be operational), but will remain intact.
 
 1. `PWR1`/`PWR2` input (0 V to 6 V undamaged)
-2. **Servo rail input:** `+` (VCC) pins of `M1` to `M16` (0 V to 6 V undamaged)
+2. `USB` input (0 V to 6 V undamaged)
+3. Servo rail input: `+` (VCC) pins of `M1` to `M16` (0 V to 6 V undamaged)
 
 ## PWM Outputs {#pwm_outputs}
 
