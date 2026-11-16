@@ -41,6 +41,7 @@ private:
 	bool st24MalformedLengthTest();
 	bool st24Test();
 	bool sumdTest();
+	bool sumd32Test();
 };
 
 bool RCTest::run_tests()
@@ -55,6 +56,7 @@ bool RCTest::run_tests()
 	ut_run_test(st24MalformedLengthTest);
 	ut_run_test(st24Test);
 	ut_run_test(sumdTest);
+	ut_run_test(sumd32Test);
 
 	return (_tests_failed == 0);
 }
@@ -550,6 +552,76 @@ bool RCTest::sumdTest()
 	}
 
 	ut_test(ret == EOF);
+
+	return true;
+}
+
+/* defined in sumd.cpp, needed here to build a valid frame */
+extern uint16_t sumd_crc16(uint16_t crc, uint8_t value);
+
+bool RCTest::sumd32Test()
+{
+	/* full 32-channel SUMD frame. sumd_data[] used to be one byte short, so
+	 * the last data byte landed in the crc16_high slot: CRC still passed, but
+	 * channel 32 came out with a corrupted low byte. */
+	uint8_t frame[3 + 2 * SUMD_MAX_CHANNELS + 2];
+	frame[0] = SUMD_HEADER_ID;
+	frame[1] = SUMD_ID_SUMD;
+	frame[2] = SUMD_MAX_CHANNELS;
+
+	const uint16_t ch1_raw = 0x32C8;
+	const uint16_t ch32_raw = 0x195A;
+
+	uint16_t crc16 = 0;
+
+	for (unsigned i = 0; i < 3; i++) {
+		crc16 = sumd_crc16(crc16, frame[i]);
+	}
+
+	for (unsigned i = 0; i < 2 * SUMD_MAX_CHANNELS; i++) {
+		uint8_t byte = (uint8_t)(11 * i + 1);
+
+		if (i == 0) {
+			byte = (uint8_t)(ch1_raw >> 8);
+
+		} else if (i == 1) {
+			byte = (uint8_t)(ch1_raw & 0xff);
+
+		} else if (i == 2 * (SUMD_MAX_CHANNELS - 1)) {
+			byte = (uint8_t)(ch32_raw >> 8);
+
+		} else if (i == 2 * (SUMD_MAX_CHANNELS - 1) + 1) {
+			byte = (uint8_t)(ch32_raw & 0xff);
+		}
+
+		frame[3 + i] = byte;
+		crc16 = sumd_crc16(crc16, byte);
+	}
+
+	frame[3 + 2 * SUMD_MAX_CHANNELS] = (uint8_t)(crc16 >> 8);
+	frame[4 + 2 * SUMD_MAX_CHANNELS] = (uint8_t)(crc16 & 0xff);
+
+	/* flush any stale decoder state, then feed the frame */
+	uint8_t rssi = 0;
+	uint8_t rx_count = 0;
+	uint16_t channel_count = 0;
+	uint16_t channels[SUMD_MAX_CHANNELS] {};
+	bool failsafe = true;
+
+	(void)sumd_decode(0x00, &rssi, &rx_count, &channel_count, channels, SUMD_MAX_CHANNELS, &failsafe);
+
+	int ret = 0;
+
+	for (unsigned i = 0; i < sizeof(frame); i++) {
+		ret = sumd_decode(frame[i], &rssi, &rx_count, &channel_count, channels, SUMD_MAX_CHANNELS, &failsafe);
+	}
+
+	/* channels 1-4 get reordered on decode, ch1 lands on index 2 */
+	ut_test(ret == 0);
+	ut_test(channel_count == SUMD_MAX_CHANNELS);
+	ut_test(channels[2] == (ch1_raw >> 3));
+	ut_test(channels[SUMD_MAX_CHANNELS - 1] == (ch32_raw >> 3));
+	ut_test(!failsafe);
 
 	return true;
 }
