@@ -3393,12 +3393,8 @@ The commander module contains the state machine for mode switching and failsafe 
 	PRINT_MODULE_USAGE_COMMAND("land");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("transition", "VTOL transition");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("mode", "Change flight mode");
-	static constexpr char mode_options[] = "manual|acro|offboard|stabilized|altctl|posctl|altitude_cruise|manual_parking|"
-#if defined(CONFIG_MODE_TURTLE)
-					       "turtle|"
-#endif
-					       "position:slow|auto:mission|auto:loiter|auto:course|auto:rtl|auto:takeoff|auto:land|auto:precland|ext1";
-	PRINT_MODULE_USAGE_ARG(mode_options, "Flight mode", false);
+	PRINT_MODULE_USAGE_ARG("manual|acro|offboard|stabilized|altctl|posctl|altitude_cruise|manual_parking|turtle|position:slow|auto:mission|auto:loiter|auto:course|auto:rtl|auto:takeoff|auto:land|auto:precland|ext1",
+			"Flight mode", false);
 	PRINT_MODULE_USAGE_COMMAND("pair");
 	PRINT_MODULE_USAGE_COMMAND("termination");
 	PRINT_MODULE_USAGE_ARG("on|off", "Turn lockdown on or off", false);
