@@ -82,6 +82,7 @@ For more information about selecting a radio system, receiver compatibility, and
 
 The CyberX-v10 is supplied with a PMU Lite power module that supports 2S to 20S lithium batteries.
 The module has both an analog (ADC) and an I2C interface: connect its analog connector to `PWR1` and its I2C connector to `PWR2`.
+Do not connect a different power module to each port.
 
 The CyberX-v10 is configured by default for an analog power monitor on `PWR1`, and an INA228 I2C power monitor on `PWR2` that reports voltage and current.
 The power module's VCC output must provide at least 3 A continuous current, and should be 5.2 V.
