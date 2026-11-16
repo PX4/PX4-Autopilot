@@ -39,6 +39,7 @@
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/actuator_armed.h>
+#include <drivers/drv_hrt.h>
 
 #include <termios.h>
 
@@ -116,6 +117,8 @@ private:
 	bool _vbus_present{false};
 	bool _vbus_present_prev{false};
 	int _ttyacm_fd{-1};
+	int _mavlink_stop_pid{-1};
+	hrt_abstime _mavlink_stop_time{0};
 
 	char _buffer[80] {};
 	int _bytes_read{0};
