@@ -116,12 +116,17 @@ private:
 	 */
 	bool reverseIsFurther() const;
 
+	/** rtl_status.safe_point_index if no rally point was chosen */
+	static constexpr uint8_t RTL_STATUS_NO_SAFE_POINT{UINT8_MAX};
+	static_assert(DM_KEY_SAFE_POINTS_MAX < RTL_STATUS_NO_SAFE_POINT,
+		      "rtl_status.safe_point_index must represent every configured safe-point slot");
+
 	/** Where Return goes and which executor flies there. */
 	struct ReturnSelection {
 		RtlType executor{RtlType::RTL_DIRECT};
 		DestinationType destination_type{DestinationType::DESTINATION_TYPE_HOME};
 		PositionYawSetpoint destination{};
-		uint8_t safe_point_index{UINT8_MAX}; ///< UINT8_MAX if no rally point was chosen
+		uint8_t safe_point_index{RTL_STATUS_NO_SAFE_POINT};
 		bool home_has_land_approach{false}; ///< Home has a VTOL land approach, for the types that look
 		bool rally_point_has_land_approach{false}; ///< A rally point searched for this selection has one
 	};
@@ -134,9 +139,9 @@ private:
 	/** RTL_TYPE 0, 1 and 3: the closest allowed of Home, the mission landing and the rally points. */
 	void selectClosest(int32_t rtl_type, ReturnSelection &selection);
 	/** RTL_TYPE 2 and 4: follow the mission, or go to Home without a valid mission. */
-	void selectMissionPath(ReturnSelection &selection) const;
+	void selectMissionPath(int32_t rtl_type, ReturnSelection &selection) const;
 	/** RTL_TYPE 5: the closest rally point, or the current position. */
-	void selectSafePoint(ReturnSelection &selection);
+	void selectSafePoint(ReturnSelection &selection) const;
 	/** RTL_TYPE 6: Home if the battery reaches it, else the closest rally point. */
 	void selectHomeIfReachable(ReturnSelection &selection);
 
@@ -161,7 +166,7 @@ private:
 	 * @param[out] has_land_approach a rally point looked at has a VTOL land approach
 	 */
 	PositionYawSetpoint findClosestSafePoint(float min_dist, bool skip_near_home, uint8_t &safe_point_index,
-			bool &has_land_approach);
+			bool &has_land_approach) const;
 
 	/**
 	 * @brief Smallest remaining time [s] of the connected batteries, NAN if none reports one.

@@ -56,15 +56,14 @@ using namespace math;
 static constexpr float MIN_DIST_THRESHOLD = 2.f;
 
 // Named constants for RTL_TYPE parameter values (must match value tags in rtl_params.yaml).
+static constexpr int RTL_TYPE_CLOSEST_HOME_OR_SAFE_POINT = 0;
+static constexpr int RTL_TYPE_MISSION_LAND_OR_SAFE_POINT = 1;
 static constexpr int RTL_TYPE_MISSION_FAST = 2;
 static constexpr int RTL_TYPE_DIRECT_WITH_MISSION_LAND = 3;
 static constexpr int RTL_TYPE_MISSION_FAST_OR_REVERSE = 4;
 static constexpr int RTL_TYPE_SAFE_POINT_DIRECT = 5;
 static constexpr int RTL_TYPE_HOME_OR_SAFE_POINT_DIRECT = 6;
 static constexpr hrt_abstime RTL_REPLAN_INTERVAL{2_s};
-static constexpr uint8_t RTL_STATUS_NO_SAFE_POINT{UINT8_MAX};
-static_assert(DM_KEY_SAFE_POINTS_MAX < RTL_STATUS_NO_SAFE_POINT,
-	      "rtl_status.safe_point_index must represent every configured safe-point slot");
 
 
 RTL::RTL(Navigator *navigator) :
@@ -223,14 +222,16 @@ void RTL::setRtlTypeAndDestination()
 
 RTL::ReturnSelection RTL::selectReturn()
 {
+	const int32_t rtl_type = _param_rtl_type.get();
+
 	// Start at Home, the fallback of every type but 5, which keeps only its yaw.
 	ReturnSelection selection{};
 	selection.destination = homeDestination();
 
-	switch (_param_rtl_type.get()) {
+	switch (rtl_type) {
 	case RTL_TYPE_MISSION_FAST:
 	case RTL_TYPE_MISSION_FAST_OR_REVERSE:
-		selectMissionPath(selection);
+		selectMissionPath(rtl_type, selection);
 		break;
 
 	case RTL_TYPE_SAFE_POINT_DIRECT:
@@ -243,7 +244,7 @@ RTL::ReturnSelection RTL::selectReturn()
 
 	default:
 		// 0, 1 and 3, and any other value
-		selectClosest(_param_rtl_type.get(), selection);
+		selectClosest(rtl_type, selection);
 		break;
 	}
 
@@ -260,11 +261,11 @@ PositionYawSetpoint RTL::homeDestination() const
 	return destination;
 }
 
-void RTL::selectMissionPath(ReturnSelection &selection) const
+void RTL::selectMissionPath(int32_t rtl_type, ReturnSelection &selection) const
 {
 	// Without a valid mission, go direct to Home.
 	const bool follow_to_landing = hasMissionLandStart()
-				       && ((_param_rtl_type.get() == RTL_TYPE_MISSION_FAST) || reverseIsFurther());
+				       && ((rtl_type == RTL_TYPE_MISSION_FAST) || reverseIsFurther());
 
 	if (follow_to_landing) {
 		selection.executor = RtlType::RTL_MISSION_FAST;
@@ -299,8 +300,8 @@ void RTL::selectHomeIfReachable(ReturnSelection &selection)
 						       _home_pos_sub.get().lat,
 						       _home_pos_sub.get().lon);
 
-		PositionYawSetpoint safe_point = findClosestSafePoint(min_dist, false, selection.safe_point_index,
-						 selection.rally_point_has_land_approach);
+		PositionYawSetpoint safe_point = findClosestSafePoint(min_dist, /*skip_near_home=*/false,
+						 selection.safe_point_index, selection.rally_point_has_land_approach);
 
 		if (selection.safe_point_index != RTL_STATUS_NO_SAFE_POINT) {
 			selection.destination = safe_point;
@@ -330,12 +331,6 @@ void RTL::applyReturn(const ReturnSelection &selection)
 	const PositionYawSetpoint &destination = selection.destination;
 	const MissionRouteCache &mission_route_cache = _navigator->get_mission_route_cache();
 
-	// Home, unless direct Return uses the destination or its approach below
-	loiter_point_s landing_loiter;
-	landing_loiter.lat = _home_pos_sub.get().lat;
-	landing_loiter.lon = _home_pos_sub.get().lon;
-	landing_loiter.height_m = NAN;
-
 	const float rtl_alt = computeReturnAltitude(destination);
 
 	const bool new_type_is_mission_based = (new_rtl_type == RtlType::RTL_MISSION_FAST)
@@ -363,6 +358,9 @@ void RTL::applyReturn(const ReturnSelection &selection)
 		// A new or kept executor takes the latest altitude at every evaluation until Return starts it.
 		_rtl_mission_type_handle->setRtlAlt(rtl_alt);
 	}
+
+	// Only RtlDirect flies it
+	loiter_point_s landing_loiter{};
 
 	if (new_rtl_type == RtlType::RTL_DIRECT) {
 #if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
@@ -449,7 +447,7 @@ float RTL::worstBatteryTimeRemaining()
 }
 
 PositionYawSetpoint RTL::findClosestSafePoint(float min_dist, bool skip_near_home, uint8_t &safe_point_index,
-		bool &has_land_approach)
+		bool &has_land_approach) const
 {
 #if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
 	const bool vtol_in_fw_mode = _vehicle_status_sub.get().is_vtol
@@ -538,7 +536,7 @@ void RTL::selectClosest(int32_t rtl_type, ReturnSelection &selection)
 					   _home_pos_sub.get().alt);
 #endif
 
-	const bool prioritize_safe_points_over_home = ((rtl_type == 1) && !vtol_in_rw_mode);
+	const bool prioritize_safe_points_over_home = ((rtl_type == RTL_TYPE_MISSION_LAND_OR_SAFE_POINT) && !vtol_in_rw_mode);
 #if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
 	const bool required_approach_missing_for_home = (vtol_in_fw_mode && (_param_rtl_appr_force.get() == 1)
 			&& !selection.home_has_land_approach);
@@ -556,7 +554,7 @@ void RTL::selectClosest(int32_t rtl_type, ReturnSelection &selection)
 	}
 
 	// Mission landing
-	if (((rtl_type == 1) || (rtl_type == RTL_TYPE_DIRECT_WITH_MISSION_LAND)
+	if (((rtl_type == RTL_TYPE_MISSION_LAND_OR_SAFE_POINT) || (rtl_type == RTL_TYPE_DIRECT_WITH_MISSION_LAND)
 	     || (fabsf(FLT_MAX - min_dist) < FLT_EPSILON)) && hasMissionLandStart()) {
 		mission_item_s land_mission_item;
 		int32_t land_index = -1;
@@ -592,7 +590,7 @@ void RTL::selectClosest(int32_t rtl_type, ReturnSelection &selection)
 			const float dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_mission_item.lat, land_mission_item.lon)};
 
 			if ((dist + MIN_DIST_THRESHOLD) < min_dist) {
-				if (rtl_type != 0) {
+				if (rtl_type != RTL_TYPE_CLOSEST_HOME_OR_SAFE_POINT) {
 					min_dist = dist;
 
 				} else {
@@ -608,8 +606,8 @@ void RTL::selectClosest(int32_t rtl_type, ReturnSelection &selection)
 	}
 
 	// Safe/rally points
-	PositionYawSetpoint safe_point = findClosestSafePoint(min_dist, true, selection.safe_point_index,
-					 selection.rally_point_has_land_approach);
+	PositionYawSetpoint safe_point = findClosestSafePoint(min_dist, /*skip_near_home=*/true,
+					 selection.safe_point_index, selection.rally_point_has_land_approach);
 
 	if (selection.safe_point_index != RTL_STATUS_NO_SAFE_POINT) {
 		selection.destination = safe_point;
@@ -618,10 +616,10 @@ void RTL::selectClosest(int32_t rtl_type, ReturnSelection &selection)
 	}
 }
 
-void RTL::selectSafePoint(ReturnSelection &selection)
+void RTL::selectSafePoint(ReturnSelection &selection) const
 {
-	const PositionYawSetpoint safe_point = findClosestSafePoint(FLT_MAX, false, selection.safe_point_index,
-					       selection.rally_point_has_land_approach);
+	const PositionYawSetpoint safe_point = findClosestSafePoint(FLT_MAX, /*skip_near_home=*/false,
+					       selection.safe_point_index, selection.rally_point_has_land_approach);
 
 	if (selection.safe_point_index != RTL_STATUS_NO_SAFE_POINT) {
 		selection.destination = safe_point;
