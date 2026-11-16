@@ -64,12 +64,6 @@ public:
 
 private:
 
-	/**
-	 * Specific to tiltrotor with vertical aligned rear engine/s.
-	 * These engines need to be shut down in fw mode. During the back-transition
-	 * they need to idle otherwise they need too much time to spin up for mc mode.
-	 */
-
 	uORB::Publication<tiltrotor_extra_controls_s>	_tiltrotor_extra_controls_pub{ORB_ID(tiltrotor_extra_controls)};
 
 	float _tilt_control{0.0f};		/**< actuator value for the tilt servo */
