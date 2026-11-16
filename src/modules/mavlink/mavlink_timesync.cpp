@@ -70,7 +70,9 @@ MavlinkTimesync::handle_message(const mavlink_message_t *msg)
 				rsync.ts1 = tsync.ts1;
 				rsync.target_component = msg->compid;
 
+				_mavlink.lock_send();
 				mavlink_msg_send_struct_target(_mavlink.get_channel(), TIMESYNC, &rsync, msg->sysid);
+				_mavlink.unlock_send();
 
 				return;
 
