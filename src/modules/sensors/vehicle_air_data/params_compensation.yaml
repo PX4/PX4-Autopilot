@@ -5,10 +5,9 @@ parameters:
     SENS_BARO_K_XP:
       description:
         short: Static pressure position error coefficient for the positive X axis
-        long: |-
-          Ratio of static pressure error to dynamic pressure from airflow along
-          the positive X body axis. Negative if the baro altitude rises during
-          forward flight.
+        long: Ratio of static pressure error to dynamic pressure from airflow along
+          the positive X body axis. Negative if the baro altitude rises during forward flight.
+          Only used while EKF2 estimates wind and horizontal position. Multicopters estimate wind only with EKF2_DRAG_CTRL.
       type: float
       default: 0.0
       min: -0.5
@@ -17,10 +16,9 @@ parameters:
     SENS_BARO_K_XN:
       description:
         short: Static pressure position error coefficient for the negative X axis
-        long: |-
-          Ratio of static pressure error to dynamic pressure from airflow along
-          the negative X body axis. Negative if the baro altitude rises during
-          backwards flight.
+        long: Ratio of static pressure error to dynamic pressure from airflow along
+          the negative X body axis. Negative if the baro altitude rises during backwards flight.
+          Only used while EKF2 estimates wind and horizontal position. Multicopters estimate wind only with EKF2_DRAG_CTRL.
       type: float
       default: 0.0
       min: -0.5
@@ -29,10 +27,9 @@ parameters:
     SENS_BARO_K_YP:
       description:
         short: Static pressure position error coefficient for the positive Y axis
-        long: |-
-          Ratio of static pressure error to dynamic pressure from airflow along
-          the positive Y body axis. Negative if the baro altitude rises during
-          sideways flight to the right.
+        long: Ratio of static pressure error to dynamic pressure from airflow along
+          the positive Y body axis. Negative if the baro altitude rises during sideways flight to the right.
+          Only used while EKF2 estimates wind and horizontal position. Multicopters estimate wind only with EKF2_DRAG_CTRL.
       type: float
       default: 0.0
       min: -0.5
@@ -41,10 +38,9 @@ parameters:
     SENS_BARO_K_YN:
       description:
         short: Static pressure position error coefficient for the negative Y axis
-        long: |-
-          Ratio of static pressure error to dynamic pressure from airflow along
-          the negative Y body axis. Negative if the baro altitude rises during
-          sideways flight to the left.
+        long: Ratio of static pressure error to dynamic pressure from airflow along
+          the negative Y body axis. Negative if the baro altitude rises during sideways flight to the left.
+          Only used while EKF2 estimates wind and horizontal position. Multicopters estimate wind only with EKF2_DRAG_CTRL.
       type: float
       default: 0.0
       min: -0.5
@@ -54,7 +50,7 @@ parameters:
       description:
         short: Static pressure position error coefficient for the Z axis
         long: Ratio of static pressure error to dynamic pressure from airflow along
-          the Z body axis.
+          the Z body axis. Only used while EKF2 estimates wind and horizontal position. Multicopters estimate wind only with EKF2_DRAG_CTRL.
       type: float
       default: 0.0
       min: -0.5
@@ -72,12 +68,10 @@ parameters:
     SENS_BARO_K_T:
       description:
         short: Baro altitude correction per unit vertical thrust
-        long: |-
-          Compensates the static pressure change the propellers induce at the
-          barometer, proportional to the vertical thrust setpoint magnitude:
-          altitude += SENS_BARO_K_T * |thrust_z|. Negative if the baro altitude
-          rises with thrust. Identify from a hover log with
-          Tools/baro_compensation/baro_thrust_calibration.py.
+        long: Compensates the static pressure change the propellers induce at the
+          barometer. The altitude correction is this value times the magnitude of
+          the vertical thrust setpoint. Negative if the baro altitude rises with
+          thrust. Identify from a hover log with Tools/baro_compensation/baro_thrust_calibration.py.
       type: float
       default: 0.0
       min: -30.0
