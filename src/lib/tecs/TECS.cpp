@@ -580,7 +580,18 @@ float TECSControl::_calcPitchControlSteRate(const STERateLimit &limit,
 	// on the maximum throttle it commands (failed engine, throttle still slewing up, less excess power near stall).
 	// Assume gliding, the minimum total energy rate, in both. If the throttle does deliver in underspeed, the
 	// airspeed recovers faster.
-	return lerp(ste_rate_pair, limit.STE_rate_min, constrain(max(param.fast_descend, _ratio_undersped), 0.f, 1.f));
+	float gliding_ratio = constrain(max(param.fast_descend, _ratio_undersped), 0.f, 1.f);
+
+	// A glider (speed weight 2 with no throttle range, also a gliding waypoint) has no throttle to deliver the
+	// setpoint's total energy rate at all: it always glides. Not applied below speed weight 2, where the throttle
+	// range also closes at the end of the landing flare and the pitch keeps flying the height rate setpoint.
+	const bool no_throttle_range = param.throttle_max - param.throttle_min < FLT_EPSILON;
+
+	if (no_throttle_range && param.pitch_speed_weight > 2.f - FLT_EPSILON) {
+		gliding_ratio = 1.f;
+	}
+
+	return lerp(ste_rate_pair, limit.STE_rate_min, gliding_ratio);
 }
 
 float TECSControl::_calcPitchControlOutput(const Input &input, const ControlValues &seb_rate, float ste_rate_setpoint,
