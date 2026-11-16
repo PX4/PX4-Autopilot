@@ -370,7 +370,7 @@ class SourceParser(object):
                                 'celcius', 'gauss', 'gauss/s', 'gauss^2', 'liters',
                                 'hPa', 'kg', 'kg/m^2', 'kg m^2', 'kg/m^3',
                                 'mm', 'm', 'm/s', 'm^2', 'm/s^2', 'm/s^3', 'm/s^2/sqrt(Hz)', '1/s/sqrt(Hz)', 'm/s/rad', 'g0',
-                                'Ohm', 'V', 'A',
+                                'Ohm', 'V', 'A', 'A/V', 'Pa', 'Pa/V', 'MHz',
                                 'us', 'ms', 's',
                                 'S', 'A/%', '(m/s^2)^2', 'm/m',  'tan(rad)^2', '(m/s)^2', 'm/rad',
                                 'm/s^3/sqrt(Hz)', 'm/s/sqrt(Hz)', 's/(1000*PWM)', '%m/s', 'min', 'us/C',
