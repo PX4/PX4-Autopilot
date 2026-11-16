@@ -32,8 +32,9 @@ jobs:
         id: check
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: |
-          python3 Tools/ci/check_pr_title.py "$PR_TITLE" --markdown-file comment.md && rc=0 || rc=$?
+          python3 Tools/ci/check_pr_title.py "$PR_TITLE" --base-ref "$BASE_REF" --markdown-file comment.md && rc=0 || rc=$?
           echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
 
       - name: Post or clear comment
@@ -57,7 +58,7 @@ jobs:
             # Output the entire content of the comment on the job log as a substitute for the comment.
             tee -a "$GITHUB_STEP_SUMMARY" < comment.md
           else
-            echo "::error::PR title does not follow conventional commits format. See the PR comment for details."
+            echo "::error::PR title check failed. See the PR comment for details."
           fi
           exit 1
 
