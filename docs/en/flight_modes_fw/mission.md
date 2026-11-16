@@ -276,7 +276,7 @@ A fixed-wing mission requires a `Takeoff` mission item to takeoff; if however th
 :::
 
 If the position estimate is lost during the takeoff, the vehicle keeps climbing with wings level until the takeoff item is completed, as it does in [Takeoff mode](../flight_modes_fw/takeoff.md). The takeoff is completed when its altitude is reached, or after [FW_TKO_CLMB_T](../flight_modes_fw/takeoff.md#FW_TKO_CLMB_T) seconds, if that parameter is set.
-Only once the takeoff item is completed does the missing position trigger the failsafe (falling back to [Descend](../flight_modes_fw/descend.md) if no position is available).
+Only then does the missing position trigger the failsafe (falling back to [Descend](../flight_modes_fw/descend.md) if no position is available).
 
 For more infomormation about takeoff behaviour and configuration see [Takeoff mode (FW)](../flight_modes_fw/takeoff.md).
 
