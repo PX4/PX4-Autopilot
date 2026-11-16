@@ -250,7 +250,10 @@ It provides the RPMsg links PX4 depends on:
 PX4 has no local storage.
 `/fs/rpmsg` on the PX4 side is an RPMsg filesystem (rpmsgfs) served by Linux, and it holds the parameters, dataman and the flight logs.
 
-PX4 can only read and write its parameters once Linux has booted and the rpmsgfs server is running.
+::: warning
+This means PX4 depends on Linux for parameter storage: the parameters are only readable and writable once the Linux side has booted and the rpmsgfs server is running.
+Keeping the parameters on the on-board octal NOR flash instead, so the M7 is self-contained, is still work in progress (see [Current Status](#current_status)).
+:::
 
 ### MAVLink and QGroundControl
 
