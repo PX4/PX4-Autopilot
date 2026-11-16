@@ -374,8 +374,7 @@ void EKF2::AdvertiseTopics()
 
 		for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
 			if (_ekf.flowSource(i).params.ctrl) {
-				_optical_flow_pubs[i].aid_src.advertise();
-				_optical_flow_pubs[i].vel.advertise();
+				_ekf.flowSource(i).advertise();
 			}
 		}
 
@@ -889,7 +888,11 @@ void EKF2::Run()
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-			PublishOpticalFlowVel(now);
+
+			for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+				_ekf.flowSource(i).publishFlowVel(_ekf, _replay_mode ? now : hrt_absolute_time());
+			}
+
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 			UpdateAccelCalibration(now);
@@ -1207,8 +1210,7 @@ void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 
 	// optical flow
 	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
-		PublishAidSourceStatus(timestamp, _ekf.aid_src_optical_flow(i), _optical_flow_pubs[i].aid_src_last,
-				       _optical_flow_pubs[i].aid_src);
+		_ekf.flowSource(i).publishAidSource(_replay_mode ? timestamp : hrt_absolute_time(), _instance);
 	}
 
 #endif // CONFIG_EKF2_OPTICAL_FLOW
@@ -2208,41 +2210,6 @@ void EKF2::PublishWindEstimate(const hrt_abstime &timestamp)
 	}
 }
 #endif // CONFIG_EKF2_WIND
-
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-void EKF2::PublishOpticalFlowVel(const hrt_abstime &timestamp)
-{
-	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
-		const hrt_abstime timestamp_sample = _ekf.aid_src_optical_flow(i).timestamp_sample;
-
-		if ((timestamp_sample != 0) && (timestamp_sample > _optical_flow_pubs[i].vel_last)) {
-
-			vehicle_optical_flow_vel_s flow_vel{};
-			flow_vel.timestamp_sample = timestamp_sample;
-
-			_ekf.getFlowVelBody(i).copyTo(flow_vel.vel_body);
-			_ekf.getFlowVelNE(i).copyTo(flow_vel.vel_ne);
-
-			_ekf.getFilteredFlowVelBody(i).copyTo(flow_vel.vel_body_filtered);
-			_ekf.getFilteredFlowVelNE(i).copyTo(flow_vel.vel_ne_filtered);
-
-			_ekf.getFlowUncompensated(i).copyTo(flow_vel.flow_rate_uncompensated);
-			_ekf.getFlowCompensated(i).copyTo(flow_vel.flow_rate_compensated);
-
-			_ekf.getFlowGyro(i).copyTo(flow_vel.gyro_rate);
-
-			_ekf.getFlowGyroBias(i).copyTo(flow_vel.gyro_bias);
-			_ekf.getFlowRefBodyRate(i).copyTo(flow_vel.ref_gyro);
-
-			flow_vel.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
-
-			_optical_flow_pubs[i].vel.publish(flow_vel);
-
-			_optical_flow_pubs[i].vel_last = timestamp_sample;
-		}
-	}
-}
-#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
