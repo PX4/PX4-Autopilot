@@ -437,6 +437,13 @@ int SerialPassthrough::startForDevice(uint8_t device_id, uint32_t baudrate)
 			return -1;
 		}
 
+		// Refuse an unassigned output before stopping a running session, so the request
+		// cannot end a working session and then fail on its own
+		if (motor_index_of_output(esc_channel) < 0) {
+			PX4_ERR("serialpassthrough: output %d is not assigned to a motor", esc_channel + 1);
+			return -1;
+		}
+
 		// The bitbang UART uses a single shared hardware timer and a single
 		// global state struct — only one ESC channel can be active at a time.
 		// Stop any existing bitbang instance and wait for it to exit before
