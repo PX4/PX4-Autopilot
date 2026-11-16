@@ -25,7 +25,7 @@ parameters:
             description:
                 short: The IQUART driver's baud rate
                 long: |
-                    The baud rate (in bits per second) used by the serial port connected with IQUART communication
+                    The baud rate used by the serial port connected with IQUART communication
             type: int32
             unit: bit/s
             reboot_required: true

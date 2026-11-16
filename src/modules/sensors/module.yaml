@@ -225,7 +225,7 @@ parameters:
         CAL_DPRES${i}_OFF:
             description:
                 short: Differential pressure sensor ${i} offset
-                long: The zero-reading of this differential pressure sensor, in Pascal.
+                long: The zero-reading of this differential pressure sensor.
             category: System
             type: float
             unit: Pa

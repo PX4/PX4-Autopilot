@@ -140,7 +140,7 @@ parameters:
       decimal: 2
     UUV_SP_MAX_AGE:
       description:
-        short: Maximum time (in seconds) before resetting setpoint
+        short: Maximum time before resetting setpoint
       type: float
       unit: s
       default: 2.0

@@ -30,7 +30,7 @@ parameters:
       min: 1.0
     FLW_TGT_FA:
       description:
-        short: Follow Angle setting in degrees
+        short: Follow Angle setting
         long: |-
           Angle to follow the target from. 0.0 Equals straight in front of the target's
           course (direction of motion) and the angle increases in clockwise direction,

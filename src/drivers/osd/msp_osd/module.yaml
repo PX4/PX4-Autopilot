@@ -91,9 +91,9 @@ parameters:
         # Scroll Speed
         OSD_SCROLL_RATE:
             description:
-                short: OSD Scroll Rate (ms)
+                short: OSD Scroll Rate
                 long: |
-                    Scroll rate in milliseconds for OSD messages longer than available character width.
+                    Scroll rate for OSD messages longer than available character width.
                     This is lower-bounded by the nominal loop rate of this module.
             type: int32
             unit: ms
@@ -104,9 +104,9 @@ parameters:
         # Dwell TIme
         OSD_DWELL_TIME:
             description:
-                short: OSD Dwell Time (ms)
+                short: OSD Dwell Time
                 long: |
-                    Amount of time in milliseconds to dwell at the beginning of the display, when scrolling.
+                    Amount of time to dwell at the beginning of the display, when scrolling.
             type: int32
             unit: ms
             min: 100

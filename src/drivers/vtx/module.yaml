@@ -65,7 +65,7 @@ parameters:
         default: 0
       VTX_FREQUENCY:
         description:
-          short: VTX frequency in MHz
+          short: VTX frequency
           long: |
             If the VTX frequency is set, it will overwrite the band and channel
             settings. Set to 0 to use band and channel settings.

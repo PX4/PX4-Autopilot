@@ -23,7 +23,7 @@ parameters:
 
         BAT${i}_A_PER_V:
             description:
-                short: Battery ${i} current per volt (A/V)
+                short: Battery ${i} current per volt
                 long: |
                     The voltage seen by the ADC multiplied by this factor
                     will determine the battery current. A value of -1 means to use
