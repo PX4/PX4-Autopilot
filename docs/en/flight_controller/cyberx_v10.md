@@ -7,7 +7,7 @@ PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://int.woocoo.vip/) for hardware support or compliance issues.
 :::
 
-The CyberX-v10 is an advanced autopilot manufactured by [CyberCraft International Limited](https://int.woocoo.vip/).
+The CyberX-v10 is an advanced autopilot manufactured by [CyberCraft International Limited](https://int.woocoo.vip/detail?goodsId=298&name=CyberX-v10).
 
 The autopilot is recommended for commercial system integration, but is also suitable for academic research and other applications.
 It brings you ultimate performance, stability, and reliability in every aspect.
@@ -27,9 +27,9 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Sensors {#sensors}
 
-- **IMU:** ICM-20689 (SPI1), [BMI088](https://www.bosch-sensortec.com/en/products/motion-sensors/imus/bmi088) (SPI3), [ICM-42688-P](https://www.invensense.tdk.com/en-us/products/6-axis/icm-42688-p) (SPI4)
+- **IMU:** [ICM-20689](https://product.tdk.cn/zh/search/sensor/mortion-inertial/imu/info?part_no=ICM-20689) (SPI1), [BMI088](https://www.bosch-sensortec.com/en/products/motion-sensors/imus/bmi088) (SPI3), [ICM-42688-P](https://www.invensense.tdk.com/en-us/products/6-axis/icm-42688-p) (SPI4)
 - **Barometer:** [BMP581](https://www.bosch-sensortec.com/en/products/environmental-sensors/pressure-sensors/bmp581) (SPI2), [ICP-20100](https://www.invensense.tdk.com/en-us/products/smartindustrial/icp-20100) (I2C4)
-- **Magnetometer:** IST8310 (I2C3)
+- **Magnetometer:** [IST8310](https://www.isentek.com/cn/products/oo-MMAw5N5) (I2C3)
 
 ### Interfaces {#interfaces}
 
@@ -42,7 +42,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - **CAN buses:** 2 (`CAN1`, `CAN2`)
 - **Ethernet:** 100 Mbps, with transformer
 - **USB:** Type-C
-- **RC input:** SBUS on `S.Bin`, SBUS or PPM on `RCin`, CRSF on `Uart8`
+- **RC input:** SBUS or PPM on `S.Bin` or `RCin`, CRSF on `Uart8`
 - **RSSI input:** 1 analog
 - **Analog inputs:** 2 on the `ADC` port (3.3 V and 6.6 V)
 - **Power inputs:** 1 (`PWR1`, `PWR2` or both, from the same power module)
@@ -65,7 +65,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Where to Buy {#store}
 
-Order from [CyberCraft International Limited](https://int.woocoo.vip/detail).
+Order from [CyberCraft International Limited](https://int.woocoo.vip/detail?goodsId=298&name=CyberX-v10).
 
 ## Pinouts {#pinouts}
 
@@ -209,13 +209,13 @@ You will need to [select a compatible transmitter/receiver](../getting_started/r
 The board has two RC input paths:
 
 - `S.Bin` (4-pin) and `RCin` (on the servo rail) go to the [IO processor](../modules/modules_driver.md#px4io), which detects the protocol with no configuration.
-  SBUS receivers connect to `S.Bin` or `RCin`, and PPM receivers connect to `RCin`.
+  SBUS/PPM receivers connect to `S.Bin` or `RCin`.
 - `Uart8` (4-pin) goes to the FMU, where the [rc_input](../modules/modules_driver_radio_control.md#rc-input) driver detects the protocol with no configuration.
-  Use it for CRSF receivers, which the IO processor can't decode.
+  Use it for CRSF and GHST receivers, which the IO processor can't decode.
   `Uart8` is full duplex: connect the receiver's `TX` to `RX`, and its `RX` to `TX` for CRSF telemetry.
   [RC_PORT_CONFIG](../advanced_config/parameter_reference.md#RC_PORT_CONFIG) sets the port that `rc_input` uses, and defaults to `Radio Controller` (`Uart8`).
 
-Spektrum/DSM receivers can't be bound from PX4.
+Spektrum/DSM receivers are not supported.
 
 If your receiver outputs individual PWM signals (one wire per channel) it must be connected via a [PPM encoder](../getting_started/rc_transmitter_receiver.md#connecting-receivers).
 
