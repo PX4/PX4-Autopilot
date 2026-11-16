@@ -222,6 +222,7 @@ void StateSharing::Run()
 					if (_state_sharing.data_flags & state_sharing_control_s::DATA_FLAG_ATTITUDE) {
 						memcpy(&_state_sharing.q, &vehicle_odometry.q, sizeof(_state_sharing.q));
 					}
+
 					if (_state_sharing.data_flags & state_sharing_control_s::DATA_FLAG_VELOCITY) {
 						memcpy(&_state_sharing.velocity, &vehicle_odometry.velocity, sizeof(_state_sharing.velocity));
 					}
@@ -389,7 +390,7 @@ int StateSharing::custom_command(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
-	StateSharing *instance = static_cast<StateSharing *>(desc.object.load());
+	StateSharing *instance = get_instance<StateSharing>(desc);
 
 	if (!instance) {
 		return PX4_ERROR;

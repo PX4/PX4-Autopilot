@@ -421,7 +421,7 @@ private:
 #if defined(MAVLINK_MSG_ID_ESC_EEPROM)
 	uORB::Publication<esc_eeprom_write_s>			_esc_eeprom_write_pub {ORB_ID(esc_eeprom_write)};
 #endif
-	uORB::Publication<state_sharing_msg_s>			_in_state_sharing_msg_pub{ORB_ID(incoming_state_sharing)};
+	uORB::Publication<state_sharing_msg_s>			_in_state_sharing_msg_pub {ORB_ID(incoming_state_sharing)};
 	uORB::Publication<state_sharing_control_s>		_in_state_sharing_control_msg_pub{ORB_ID(incoming_state_sharing_control)};
 
 #if !defined(CONSTRAINED_FLASH)
