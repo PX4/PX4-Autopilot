@@ -59,7 +59,7 @@ Set [GPS_2_CONFIG](../advanced_config/parameter_reference.md#GPS_2_CONFIG) to `G
 The GPS/compass should be [mounted on the frame](../assembly/mount_gps_compass.md) as far away from other electronics as possible, with the direction markings towards the front of the vehicle (separating the compass from other electronics will reduce interference).
 
 ::: info
-The safety switch is disabled by default, so it has no effect unless you enable it.
+The safety switch is disabled by default.
 To use it, set [COM_SAFETY_MODE](../advanced_config/parameter_reference.md#COM_SAFETY_MODE) to `Physical safety switch only` or `Safety switch (physical or virtual via MAVLink)` and reboot (see [Finding/Updating Parameters](../advanced_config/parameters.md)).
 When enabled, PX4 will not let you arm the vehicle until you press and hold the safety switch for 1 second.
 For more information see [Arming Sequence: Safety State](../advanced_config/prearm_arm_disarm.md#safety_state).
