@@ -544,15 +544,30 @@ FixedWingModeManager::move_position_setpoint_for_vtol_transition(position_setpoi
 	// TODO: velocity, altitude, or just a heading hold position mode should be used for this, not position
 	// shifting hacks
 
-	if (_vehicle_status.in_transition_to_fw) {
+	// Mission sets the line to the next waypoint: follow it up to that waypoint, never back to it. Other modes can
+	// publish a loiter or a point next to the vehicle, so the transition holds its heading there.
+	bool follow_mission_line = false;
+
+	if (_vehicle_status.in_transition_to_fw && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION
+	    && current_sp.type == position_setpoint_s::SETPOINT_TYPE_POSITION && _position_setpoint_previous_valid) {
+		const Vector2f prev_wp = _global_local_proj_ref.project(_pos_sp_triplet.previous.lat, _pos_sp_triplet.previous.lon);
+		const Vector2f curr_wp = _global_local_proj_ref.project(current_sp.lat, current_sp.lon);
+		const Vector2f line = curr_wp - prev_wp;
+		follow_mission_line = line.norm() > FLT_EPSILON && line.dot(Vector2f(_local_pos.x, _local_pos.y) - curr_wp) < 0.f;
+		_transition_followed_mission_line |= follow_mission_line;
+	}
+
+	if (_vehicle_status.in_transition_to_fw && !follow_mission_line) {
 
 		if (!PX4_ISFINITE(_transition_waypoint(0))) {
 			double lat_transition, lon_transition;
 
 			// Create a virtual waypoint HDG_HOLD_DIST_NEXT meters in front of the vehicle which the path navigation controller can track
 			// during the transition. Use the current yaw setpoint to determine the transition heading, as that one in turn
-			// is set to the transition heading by Navigator, or current yaw if setpoint is not valid.
-			const float transition_heading = PX4_ISFINITE(current_sp.yaw) ? current_sp.yaw : _yaw;
+			// is set to the transition heading by Navigator, or current yaw if setpoint is not valid or the mission line
+			// was already followed.
+			const float transition_heading = PX4_ISFINITE(current_sp.yaw) && !_transition_followed_mission_line ?
+							 current_sp.yaw : _yaw;
 			waypoint_from_heading_and_distance(_current_latitude, _current_longitude, transition_heading, HDG_HOLD_DIST_NEXT,
 							   &lat_transition,
 							   &lon_transition);
@@ -568,6 +583,10 @@ FixedWingModeManager::move_position_setpoint_for_vtol_transition(position_setpoi
 		/* reset transition waypoint, will be set upon entering front transition */
 		_transition_waypoint(0) = static_cast<double>(NAN);
 		_transition_waypoint(1) = static_cast<double>(NAN);
+
+		if (!_vehicle_status.in_transition_to_fw) {
+			_transition_followed_mission_line = false;
+		}
 	}
 }
 
