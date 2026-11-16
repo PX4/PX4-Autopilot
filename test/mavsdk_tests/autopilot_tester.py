@@ -422,16 +422,26 @@ class AutopilotTester:
         pwm_us = PWM_MIN_US + (value + 1.0) / 2.0 * (PWM_MAX_US - PWM_MIN_US)
         self.wait_for_actuator_output(output - 1, pwm_us, timeout_s)
 
+    def wait_for_actuator_output_value(self, index: int, timeout_s: float) -> float:
+        """Return output index (0-based) of ACTUATOR_OUTPUT_STATUS once one has arrived."""
+        def received() -> bool:
+            return index < len(self._telemetry.actuator_output_status().actuator)
+
+        assert self.poll_condition_with_timeout(received, timeout_s), \
+            "No ACTUATOR_OUTPUT_STATUS within {} s".format(timeout_s)
+        return float(self._telemetry.actuator_output_status().actuator[index])
+
     def wait_for_actuator_output(self, index: int, value: float, timeout_s: float,
                                  tolerance: float = 1.0) -> None:
         """Wait until output index (0-based) of ACTUATOR_OUTPUT_STATUS is within tolerance."""
         def reached() -> bool:
-            output = float(self._telemetry.actuator_output_status().actuator[index])
-            return abs(output - value) <= tolerance
+            outputs = self._telemetry.actuator_output_status().actuator
+            # Empty until the first ACTUATOR_OUTPUT_STATUS arrives.
+            return index < len(outputs) and abs(float(outputs[index]) - value) <= tolerance
 
         assert self.poll_condition_with_timeout(reached, timeout_s), \
-            "Actuator output {} not {} within {} s, last {}".format(
-                index, value, timeout_s, self._telemetry.actuator_output_status().actuator[index])
+            "Actuator output {} not {} within {} s, last outputs {}".format(
+                index, value, timeout_s, self._telemetry.actuator_output_status().actuator)
 
     def ensure_motors_stopped(self, stopped_mask: int, num_motors: int) -> None:
         """Check that exactly the motors in stopped_mask (0-based bits) are stopped."""
