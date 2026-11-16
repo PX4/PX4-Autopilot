@@ -163,8 +163,8 @@ parameters:
     FW_T_STE_R_TC:
       description:
         short: Specific total energy rate first order filter time constant
-        long: This filter is applied to the specific total energy rate used for throttle
-          damping.
+        long: This filter is applied to the specific total energy rate error used for the
+          throttle damping and integrator.
       type: float
       default: 0.4
       min: 0.0

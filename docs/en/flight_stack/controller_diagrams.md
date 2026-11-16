@@ -177,8 +177,9 @@ It only converts the energy balance rate to its normalised form, an equivalent f
 
 #### Speed and Altitude Weighting
 
-[FW_T_SPDWEIGHT](../advanced_config/parameter_reference.md#FW_T_SPDWEIGHT) sets how the pitch loop weights speed errors against height errors in the energy balance.
-A value of 0 controls height only, which is also used when flying without an airspeed sensor.
+[FW_T_SPDWEIGHT](../advanced_config/parameter_reference.md#FW_T_SPDWEIGHT) sets how the pitch demand weights speed errors against height errors.
+A value of 0 controls height only.
+Without an airspeed sensor there is no speed error, and the pitch controls height with a weight of 1.
 A value of 2 controls speed only, which is intended for gliders.
 The default of 1 weights both equally.
 

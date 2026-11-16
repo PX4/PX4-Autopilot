@@ -371,7 +371,6 @@ TECSControl::SpecificEnergyWeighting TECSControl::_updateSpeedAltitudeWeights(co
 {
 
 	SpecificEnergyWeighting weight;
-	// Calculate the weight applied to control of specific kinetic energy error
 	float pitch_speed_weight = constrain(param.pitch_speed_weight, 0.0f, 2.0f);
 
 	// Underspeed or fast descend: interpolate speed weight from nominal

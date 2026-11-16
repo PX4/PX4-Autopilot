@@ -239,10 +239,10 @@ public:
 		float airspeed_error_gain;				///< Airspeed error inverse time constant [1/s].
 
 		// Energy control param
-		float ste_rate_time_const;				///< Filter time constant for specific total energy rate (damping path) [s].
+		float ste_rate_time_const;				///< Filter time constant for the specific total energy rate error (throttle feedback) [s].
 
 		// Pitch control param
-		float pitch_speed_weight;				///< Speed control weighting used by pitch demand calculation.
+		float pitch_speed_weight;				///< Speed weight of the energy rate demands [0, 2].
 		float integrator_gain_pitch;				///< Integrator gain used by the pitch demand calculation.
 		float pitch_damping_gain;				///< Damping gain of the pitch demand calculation [s].
 
@@ -397,12 +397,12 @@ private:
 	};
 
 	/**
-	 * @brief Weight factors for specific energy.
+	 * @brief Speed weight w of the energy rate demands, see _calcPitchControlSebRate.
 	 *
 	 */
 	struct SpecificEnergyWeighting {
-		float spe_weighting;	///< Specific potential energy weight.
-		float ske_weighting;	///< Specific kinetic energy weight.
+		float spe_weighting;	///< 2 - w
+		float ske_weighting;	///< w
 	};
 
 private:
@@ -479,11 +479,11 @@ private:
 	 */
 	void _detectUnderspeed(const Input &input, const Param &param, const Flag &flag);
 	/**
-	 * @brief Update specific energy balance weights.
+	 * @brief Update the speed weight of the energy rate demands.
 	 *
 	 * @param param is the control parameters.
 	 * @param flag is the control flags.
-	 * @return Weights used for the specific energy balance.
+	 * @return Speed weight of the energy rate demands.
 	 */
 	SpecificEnergyWeighting _updateSpeedAltitudeWeights(const Param &param, const Flag &flag);
 	/**
@@ -502,9 +502,9 @@ private:
 	/**
 	 * @brief Specific energy rates as seen by the pitch loop.
 	 *
-	 * The airspeed setpoint is capped as in _calcPitchControlSkeRateSetpoint, and between trim airspeed and the
-	 * airspeed setpoint the kinetic energy rate estimate is removed as well, so that pitch does not counter the
-	 * throttle's acceleration.
+	 * The airspeed setpoint is capped as in _calcPitchControlSkeRateSetpoint. Between trim airspeed and the airspeed
+	 * setpoint the kinetic energy rate estimate is the one the throttle gives if it tracks its setpoint, so that pitch
+	 * does not counter a shortfall of the throttle's acceleration.
 	 *
 	 * @param setpoint is the control setpoints.
 	 * @param input is the current input measurement of the UAS.
