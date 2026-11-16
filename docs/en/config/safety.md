@@ -215,6 +215,57 @@ The margin should be at least:
 
 Use a margin above those nominal values to account for possible tailwind, position uncertainty, attitude tracking delay, etc.
 
+### Fixed-Wing Hold After a Breach
+
+<Badge type="tip" text="main (PX4 v2.0)" />
+
+When [GF_ACTION](../advanced_config/parameter_reference.md#GF_ACTION) is `Hold` and a fixed-wing vehicle breaches a horizontal fence, PX4 places the hold loiter inside the fence rather than at the breach point.
+A horizontal fence is the maximum distance from Home ([GF_MAX_HOR_DIST](../advanced_config/parameter_reference.md#GF_MAX_HOR_DIST)) or a polygon or circle from a [Geofence Plan](../flying/geofence.md#geofence-plan).
+
+A loiter centred on the breach point would leave about half of every orbit outside the fence, for as long as the vehicle holds:
+
+![Loiter centred on the breach point: the half of the orbit past the fence is outside it, up to one loiter radius plus the detection delay](../../assets/flying/geofence_hold_fw_breach_point.svg)
+
+Instead, PX4 keeps track of the last position that kept the [fixed-wing geofence margin](#fixed-wing-geofence-margin) ([GF_FW_MARGIN](../advanced_config/parameter_reference.md#GF_FW_MARGIN)) from every horizontal fence.
+After a breach, the vehicle loiters around that position.
+Because the margin itself triggers the breach, this is the position where the margin was breached, a fraction of a second earlier, so the vehicle does not fly back first.
+The stored position is checked against the fences again before it is used.
+A reset of the position estimate discards it, because it no longer marks where the vehicle was.
+
+![Loiter centred where the margin was breached: the margin circle around it touches the fence, and the orbit stays the margin minus the loiter radius inside](../../assets/flying/geofence_hold_fw_margin.svg)
+
+The orbit stays the margin minus the loiter radius ([NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_LOITER_RAD)) inside the fence.
+Choose a margin larger than the loiter radius, with extra room for the turn onto the orbit, tailwind and position uncertainty.
+
+If the margin is 0, or there is no stored position, for example after a position reset close to the fence, the vehicle loiters around the position where the breach was detected.
+
+::: info
+The loiter centre is only moved after a horizontal breach.
+If only an altitude limit is breached, or the vehicle is already established on a loiter, the vehicle keeps loitering where it is.
+Multicopters always hold at the position where the breach was detected.
+Boards with little flash, such as `px4_fmu-v2`, are built without this feature, and fixed-wing vehicles on them also hold at the breach position.
+:::
+
+### Fixed-Wing Geofence Margin
+
+<Badge type="tip" text="main (PX4 v2.0)" />
+
+A fixed-wing vehicle counts as breaching a horizontal fence as soon as it comes closer to it than [GF_FW_MARGIN](../advanced_config/parameter_reference.md#GF_FW_MARGIN).
+[GF_ACTION](../advanced_config/parameter_reference.md#GF_ACTION) then triggers while the vehicle is still inside the fence.
+The margin is 50 m by default, and 200 m on fixed-wing and VTOL airframes. Set it to 0 to trigger at the fence itself.
+
+With `Hold`, the vehicle loiters around the position where the margin was breached, as described [above](#fixed-wing-hold-after-a-breach).
+
+The margin applies everywhere, not only to the breach action:
+
+- Every breach action triggers at the margin, not only `Hold`.
+- An uploaded mission is rejected if any path between its positions, or any loiter circle in it, comes closer to a fence than the margin.
+  This also applies to VTOL vehicles, which may transition to fixed-wing during the mission.
+- Arming is denied while the vehicle is within the margin, for example if Home is close to a fence.
+
+In flight, the margin only applies to a vehicle in fixed-wing mode; multicopters and VTOL vehicles in multicopter mode trigger at the fence itself.
+The parameter has no effect on boards built without geofence path checks, such as `px4_fmu-v2`.
+
 ![Safety - Geofence (QGC)](../../assets/qgc/setup/safety/safety_geofence.png)
 
 :::tip

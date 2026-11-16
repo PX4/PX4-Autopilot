@@ -329,6 +329,15 @@ public:
 
 	void geofence_breach_check();
 
+#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
+	/**
+	 * Store the current position as the fixed-wing geofence hold center if it keeps GF_FW_MARGIN from every fence.
+	 * position_clear_known: position_clear already holds that result for the global position.
+	 */
+	void update_geofence_hold_center(bool breach, bool global_position_valid, float margin, bool position_clear_known,
+					 bool position_clear);
+#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
+
 	// Param access
 	int get_loiter_min_alt() const { return _param_min_ltr_alt.get(); }
 	int get_landing_abort_min_alt() const { return _param_mis_lnd_abrt_alt.get(); }
@@ -430,6 +439,11 @@ private:
 	hrt_abstime _last_geofence_check{0};
 	bool _geofence_reposition_sent{false};	/**< true if a reposition triplet has been sent for the current breach */
 	hrt_abstime _time_loitering_after_gf_breach{0};	/**< latches breach state while loitering, prevents reposition center walking */
+#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
+	double _gf_hold_center_lat = static_cast<double>(NAN);	/**< last fixed-wing position that kept GF_FW_MARGIN from the horizontal fences */
+	double _gf_hold_center_lon = static_cast<double>(NAN);
+	uint8_t _gf_hold_center_reset_counter{0};	/**< global position lat/lon reset counter when the hold center was stored */
+#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 	GeofenceAvoidancePlanner _geofence_avoidance_planner; /**< Return path planner that routes around fences (visibility graph + Dijkstra) */
 	float _last_geofence_avoidance_margin{NAN}; /**< margin used for the last polygon rebuild; rebuild when it changes */

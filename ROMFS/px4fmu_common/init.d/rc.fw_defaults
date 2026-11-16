@@ -33,6 +33,9 @@ param set-default GNSS_REQ_SACC 1
 param set-default GNSS_REQ_VDRIFT 1
 param set-default EKF2_RNG_QLTY_T 3
 
+# Trigger the geofence action early enough that a hold loiter fits inside the fence.
+param set-default GF_FW_MARGIN 200
+
 param set-default RTL_TYPE 1
 param set-default RTL_RETURN_ALT 100
 param set-default RTL_DESCEND_ALT 100

@@ -632,11 +632,26 @@ protected:
 			return false;
 		}
 
+		// These tests check the circles themselves; the fixed-wing margin has its own tests.
+		if (!setMargin(0.f)) {
+			return false;
+		}
+
 		vehicle_status_s status = *_navigator.get_vstatus();
 		status.vehicle_type = type;
 		status.is_vtol = is_vtol;
 		*_navigator.get_vstatus() = status;
 		_status_pub.publish(status);
+		return true;
+	}
+
+	bool setMargin(float margin)
+	{
+		if (param_set(param_find("GF_FW_MARGIN"), &margin) != PX4_OK) {
+			return false;
+		}
+
+		_navigator.updateParams();
 		return true;
 	}
 
@@ -740,6 +755,44 @@ TEST_F(MissionGeofenceLoiterTest, NaNDefaultRadiusRejectsTheEndLoiter)
 	// The mission ends in a loiter whose circle cannot be checked.
 	EXPECT_FALSE(missionFeasible({waypoint({0.f, -500.f}), waypoint({0.f, 0.f})}));
 	EXPECT_TRUE(logContains("geofence path check unavailable"));
+}
+
+TEST_F(MissionGeofenceLoiterTest, FixedWingMarginAppliesToPaths)
+{
+	ASSERT_TRUE(configureVehicle());
+	ASSERT_TRUE(setMargin(0.f));
+	ASSERT_TRUE(loadFence(inclusionSquare()));
+
+	// The middle waypoint is 50 m inside the eastern edge.
+	const std::vector<mission_item_s> items{waypoint({0.f, 800.f}), waypoint({0.f, 950.f}), waypoint({0.f, 800.f})};
+	EXPECT_TRUE(missionFeasible(items));
+
+	ASSERT_TRUE(setMargin(40.f));
+	EXPECT_TRUE(missionFeasible(items));
+
+	ASSERT_TRUE(setMargin(60.f));
+	EXPECT_FALSE(missionFeasible(items));
+	expectPathViolation(2);
+}
+
+TEST_F(MissionGeofenceLoiterTest, FixedWingMarginAppliesToLoiterCircles)
+{
+	ASSERT_TRUE(configureVehicle());
+	ASSERT_TRUE(setMargin(60.f));
+	ASSERT_TRUE(loadFence(inclusionSquare()));
+
+	// A 40 m loiter 100 m inside the edge: the vehicle on the circle keeps 60 m.
+	EXPECT_TRUE(missionFeasible({waypoint({0.f, 800.f}), loiter(890.f, 40.f), waypoint({0.f, 800.f})}));
+	EXPECT_FALSE(missionFeasible({waypoint({0.f, 800.f}), loiter(910.f, 40.f), waypoint({0.f, 800.f})}));
+	expectLoiterViolation(2);
+}
+
+TEST_F(MissionGeofenceLoiterTest, FixedWingMarginIgnoredForMulticopters)
+{
+	ASSERT_TRUE(configureVehicle(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING));
+	ASSERT_TRUE(setMargin(200.f));
+	ASSERT_TRUE(loadFence(inclusionSquare()));
+	EXPECT_TRUE(missionFeasible({waypoint({0.f, 800.f}), waypoint({0.f, 990.f}), waypoint({0.f, 800.f})}));
 }
 
 class MissionGeofenceLoiterBatchTest : public MissionGeofenceLoiterTest,

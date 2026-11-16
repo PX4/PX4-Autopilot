@@ -62,6 +62,8 @@ private:
 		bool is_jump[kGeofencePathBatchSize];
 		size_t count{0};
 	};
+
+	float _geofence_margin{0.f}; ///< GF_FW_MARGIN clearance [m] every path and loiter circle keeps, zero if none
 #endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 
 	enum class JumpTarget { Position, Jump, ReadFailed };

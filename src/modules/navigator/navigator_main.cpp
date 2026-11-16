@@ -1259,21 +1259,42 @@ void Navigator::geofence_breach_check()
 			return;
 		}
 
+		// With GF_FW_MARGIN, a fixed-wing breaches the fence once a circle of the margin around it touches a boundary.
+		bool margin_max_dist_triggered = false;
+		bool margin_custom_fence_triggered = false;
+#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
+		const float margin = _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING ?
+				     _geofence.getFixedWingMargin() : 0.f;
+
+		// While a fence update loads, only the fence itself triggers.
+		const bool margin_checked = margin > 0.f && _geofence.isReadyForPathChecks();
+		const bool margin_clear = margin_checked
+					  && _geofence.isLoiterCircleInside(current_latitude, current_longitude, margin);
+
+		if (margin_checked && !margin_clear) {
+			// The circle check covers both limits; attribute the breach to the maximum distance if it is too close.
+			margin_max_dist_triggered = !_geofence.isCloserThanMaxDistToHome(current_latitude, current_longitude,
+						    current_altitude, margin);
+			margin_custom_fence_triggered = !margin_max_dist_triggered;
+		}
+
+#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
+
 		if (_time_loitering_after_gf_breach > 0) {
 			// while loitering after a breach, only allow new triggers to be set, never cleared.
 			// Prevents the reposition center from walking outward when the vehicle hovers at the fence boundary.
-			_geofence_result.geofence_max_dist_triggered |= !_geofence.isCloserThanMaxDistToHome(current_latitude,
-					current_longitude, current_altitude);
+			_geofence_result.geofence_max_dist_triggered |= margin_max_dist_triggered
+					|| !_geofence.isCloserThanMaxDistToHome(current_latitude, current_longitude, current_altitude);
 			_geofence_result.geofence_max_alt_triggered |= !_geofence.isBelowMaxAltitude(current_altitude);
-			_geofence_result.geofence_custom_fence_triggered |= !_geofence.isInsidePolygonOrCircle(current_latitude,
-					current_longitude, current_altitude);
+			_geofence_result.geofence_custom_fence_triggered |= margin_custom_fence_triggered
+					|| !_geofence.isInsidePolygonOrCircle(current_latitude, current_longitude, current_altitude);
 
 		} else {
-			_geofence_result.geofence_max_dist_triggered = !_geofence.isCloserThanMaxDistToHome(current_latitude,
-					current_longitude, current_altitude);
+			_geofence_result.geofence_max_dist_triggered = margin_max_dist_triggered
+					|| !_geofence.isCloserThanMaxDistToHome(current_latitude, current_longitude, current_altitude);
 			_geofence_result.geofence_max_alt_triggered = !_geofence.isBelowMaxAltitude(current_altitude);
-			_geofence_result.geofence_custom_fence_triggered = !_geofence.isInsidePolygonOrCircle(current_latitude,
-					current_longitude, current_altitude);
+			_geofence_result.geofence_custom_fence_triggered = margin_custom_fence_triggered
+					|| !_geofence.isInsidePolygonOrCircle(current_latitude, current_longitude, current_altitude);
 		}
 
 		const auto now = hrt_absolute_time();
@@ -1299,9 +1320,20 @@ void Navigator::geofence_breach_check()
 				if (is_established_on_loiter(current)) {
 					loiter_center_lat = current.lat;
 					loiter_center_lon = current.lon;
+
+#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
+
+				} else if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+					   && (_geofence_result.geofence_max_dist_triggered || _geofence_result.geofence_custom_fence_triggered)
+					   && _gf_hold_center_reset_counter == _global_pos.lat_lon_reset_counter
+					   && _geofence.isLoiterCircleInside(_gf_hold_center_lat, _gf_hold_center_lon, _geofence.getFixedWingMargin())) {
+					// A fixed-wing orbit centered at the breach point stays half outside the fence.
+					// Return to the last position that kept the margin; keep the current position otherwise.
+					loiter_center_lat = _gf_hold_center_lat;
+					loiter_center_lon = _gf_hold_center_lon;
+#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 				}
 
-				// loiter at the current position; we no longer predict ahead of the vehicle
 				position_setpoint_triplet_s *rep = get_reposition_triplet();
 				rep->current.timestamp = now;
 				rep->current.yaw = NAN;
@@ -1323,9 +1355,42 @@ void Navigator::geofence_breach_check()
 			_geofence_reposition_sent = false;
 		}
 
+#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
+		// The margin check already covers the global position unless the fence uses raw GNSS.
+		update_geofence_hold_center(breach, global_position_valid, margin,
+					    margin_checked && _geofence.getSource() == Geofence::GF_SOURCE_GLOBALPOS, margin_clear);
+#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
+
 		_geofence_result_pub.publish(_geofence_result);
 	}
 }
+
+#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
+void Navigator::update_geofence_hold_center(bool breach, bool global_position_valid, float margin,
+		bool position_clear_known, bool position_clear)
+{
+	// A position reset shifts the estimate relative to the stored center, so it no longer marks where the vehicle was.
+	if (_vstatus.arming_state != vehicle_status_s::ARMING_STATE_ARMED
+	    || _vstatus.vehicle_type != vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+	    || !(margin > 0.f)
+	    || _gf_hold_center_reset_counter != _global_pos.lat_lon_reset_counter) {
+		_gf_hold_center_lat = static_cast<double>(NAN);
+		_gf_hold_center_lon = static_cast<double>(NAN);
+		_gf_hold_center_reset_counter = _global_pos.lat_lon_reset_counter;
+		return;
+	}
+
+	if (breach || _time_loitering_after_gf_breach > 0 || !global_position_valid
+	    || _geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_LOITER) {
+		return;
+	}
+
+	if (position_clear_known ? position_clear : _geofence.isLoiterCircleInside(_global_pos.lat, _global_pos.lon, margin)) {
+		_gf_hold_center_lat = _global_pos.lat;
+		_gf_hold_center_lon = _global_pos.lon;
+	}
+}
+#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 
 int Navigator::run_trampoline(int argc, char *argv[])
 {

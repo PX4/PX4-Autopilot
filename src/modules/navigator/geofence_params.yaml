@@ -57,3 +57,19 @@ parameters:
       min: 0
       max: 10000
       increment: 1
+    GF_FW_MARGIN:
+      description:
+        short: Fixed-wing geofence margin
+        long: |-
+          A fixed-wing vehicle breaches the geofence once it comes closer than this distance to a
+          horizontal fence: a polygon, a circle, or GF_MAX_HOR_DIST. GF_ACTION then triggers while the
+          vehicle is still inside. Uploaded missions must keep the same margin along their paths and around
+          their loiter circles, and arming is denied within it. Disabled if 0. Has no effect on boards
+          built without geofence path checks, such as fmu-v2.
+      type: float
+      default: 50.0
+      unit: m
+      min: 0
+      max: 10000
+      decimal: 0
+      increment: 10

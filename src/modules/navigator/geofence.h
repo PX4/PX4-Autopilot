@@ -104,6 +104,7 @@ public:
 		matrix::Vector2d start; ///< latitude, longitude in degrees
 		matrix::Vector2d end;
 		float end_radius{0.f}; ///< Circle radius at end in metres; zero checks only the path.
+		float margin{0.f}; ///< Clearance in metres the path and the end circle must keep from every boundary.
 	};
 
 	/**
@@ -134,9 +135,10 @@ public:
 	/**
 	 * @brief check if the horizontal distance to Home is greater than the maximum allowed distance
 	 *
+	 * @param margin [m] distance the position must keep from the maximum
 	 * @return true if the horizontal distance to Home is smaller than the maximum allowed distance
 	 */
-	bool isCloserThanMaxDistToHome(double lat, double lon, float altitude);
+	bool isCloserThanMaxDistToHome(double lat, double lon, float altitude, float margin = 0.f);
 
 
 	/**
@@ -153,6 +155,12 @@ public:
 
 	/** Check the polygons and circles only, without the altitude band. */
 	bool isInsideHorizontalFences(double lat, double lon, float altitude);
+
+	/**
+	 * True if a loiter circle lies inside the polygons, circles and maximum distance from Home without
+	 * touching a boundary. The fence altitude band is not checked. Uses cached fence data only, like checkPathBatch().
+	 */
+	bool isLoiterCircleInside(double lat, double lon, float radius);
 
 	bool valid();
 
@@ -202,6 +210,11 @@ public:
 	 * print Geofence status to the console
 	 */
 	void printStatus();
+
+#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
+	/** Distance [m] fixed-wing vehicles keep from every horizontal fence (GF_FW_MARGIN), zero if disabled. */
+	float getFixedWingMargin() const { return math::max(_param_gf_fw_margin.get(), 0.f); }
+#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 
 private:
 	friend class GeofenceTestPeer;
@@ -340,6 +353,7 @@ private:
 		(ParamInt<px4::params::GF_ACTION>)         _param_gf_action,
 		(ParamInt<px4::params::GF_SOURCE>)         _param_gf_source,
 		(ParamFloat<px4::params::GF_MAX_HOR_DIST>) _param_gf_max_hor_dist,
-		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist
+		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist,
+		(ParamFloat<px4::params::GF_FW_MARGIN>)    _param_gf_fw_margin
 	)
 };

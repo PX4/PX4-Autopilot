@@ -665,6 +665,11 @@ protected:
 	{
 		MissionBaseFeasibilityTest::SetUp();
 
+		// the missions fill the small fence, so leave out the fixed-wing geofence margin
+		const float margin = 0.f;
+		ASSERT_EQ(param_set(param_find("GF_FW_MARGIN"), &margin), PX4_OK);
+		_navigator.updateParams();
+
 		// a VTOL hovering above home at mission altitude, facing north
 		_navigator.get_vstatus()->is_vtol = true;
 		_status_pub.publish(*_navigator.get_vstatus());
