@@ -130,7 +130,7 @@ void Tiltrotor::update_transition_state()
 	}
 
 	if (_common_vtol_mode == mode::TRANSITION_TO_FW && !_front_transition_phase_2
-	    && VtolType::isFrontTransitionCompleted()) {
+	    && isFrontTransitionSpeedOrTimeReached()) {
 		// first part done: the plane is ready to go into fixed wing mode, tilt the rotors forward completely
 		_front_transition_phase_2 = true;
 		_trans_finished_ts = hrt_absolute_time();

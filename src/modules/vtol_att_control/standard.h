@@ -71,6 +71,7 @@ private:
 
 	void parameters_update() override;
 
+	bool isFrontTransitionCompleted() override { return isFrontTransitionSpeedOrTimeReached(); }
 	bool isBackTransitionCompleted() override;
 	void onFrontTransitionCompleted() override;
 	void onFrontTransitionAborted() override;

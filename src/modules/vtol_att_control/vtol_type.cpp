@@ -262,7 +262,7 @@ void VtolType::update_transition_state()
 	_last_thr_in_mc = _vehicle_thrust_setpoint_virtual_mc->xyz[2];
 }
 
-bool VtolType::isFrontTransitionCompleted()
+bool VtolType::isFrontTransitionSpeedOrTimeReached()
 {
 	bool ret = isFrontTransitionCompletedBase();
 

@@ -325,7 +325,13 @@ protected:
 	/**
 	 * @return true if the front transition is complete and the vehicle can switch to fixed-wing mode
 	 */
-	virtual bool isFrontTransitionCompleted();
+	virtual bool isFrontTransitionCompleted() = 0;
+
+	/**
+	 * @return true if the front transition condition of the vehicle type is met
+	 * (isFrontTransitionCompletedBase()), or the vehicle is disarmed or landed
+	 */
+	bool isFrontTransitionSpeedOrTimeReached();
 	virtual bool isFrontTransitionCompletedBase();
 
 	/**
