@@ -33,6 +33,8 @@
 
 #include "modeCheck.hpp"
 
+using namespace time_literals;
+
 void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 {
 	if (!context.isArmed()) {
@@ -163,17 +165,42 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 		NavModes nav_modes = rc_disabled ? (NavModes)reporter.failsafeFlags().mode_req_manual_control : NavModes::None;
 		events::LogLevel log_level = rc_disabled ? events::Log::Error : events::Log::Warning;
 
-		/* EVENT
-		 * @description
-		 * Connect and enable stick input or use autonomous mode.
-		 * <profile name="dev">
-		 * Sticks can be enabled via <param>COM_RC_IN_MODE</param> parameter.
-		 * </profile>
-		 */
-		reporter.armingCheckFailure(nav_modes,
-					    health_component_t::remote_control,
-					    events::ID("check_modes_manual_control"),
-					    log_level, "No manual control input");
+		// RC signal is received but RC is not calibrated, and RC is a stick source (not MAVLink only or disabled)
+		rc_channels_s rc_channels;
+		const bool rc_present_not_calibrated = (_param_com_rc_in_mode.get() != 1) && !rc_disabled
+						       && _rc_channels_sub.copy(&rc_channels)
+						       && !rc_channels.signal_lost
+						       && !rc_channels.calibrated
+						       && (hrt_elapsed_time(&rc_channels.timestamp) < 1_s);
+
+		if (rc_present_not_calibrated) {
+			/* EVENT
+			 * @description
+			 * RC frames are received, but the RC is not calibrated, so its stick input is not used.
+			 * Calibrate the RC or use autonomous mode.
+			 * <profile name="dev">
+			 * Requires <param>RC_CHAN_CNT</param> and at least one stick mapping (e.g. <param>RC_MAP_THROTTLE</param>) to be set.
+			 * </profile>
+			 */
+			reporter.armingCheckFailure(nav_modes,
+						    health_component_t::remote_control,
+						    events::ID("check_modes_rc_not_calibrated"),
+						    log_level, "RC input detected but not calibrated");
+
+		} else {
+			/* EVENT
+			 * @description
+			 * Connect and enable stick input or use autonomous mode.
+			 * <profile name="dev">
+			 * Sticks can be enabled via <param>COM_RC_IN_MODE</param> parameter.
+			 * </profile>
+			 */
+			reporter.armingCheckFailure(nav_modes,
+						    health_component_t::remote_control,
+						    events::ID("check_modes_manual_control"),
+						    log_level, "No manual control input");
+		}
+
 		reporter.clearArmingBits((NavModes)reporter.failsafeFlags().mode_req_manual_control);
 		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_manual_control);
 	}
