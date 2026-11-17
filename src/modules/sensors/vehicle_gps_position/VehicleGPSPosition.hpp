@@ -43,6 +43,8 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/estimator_selector_status.h>
+#include <uORB/topics/estimator_status_flags.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gnss.h>
 #include <uORB/topics/vehicle_gnss.h>
@@ -50,11 +52,13 @@
 #include <uORB/topics/vehicle_gnss_heading.h>
 #include <uORB/topics/pps_capture.h>
 #include <uORB/topics/sensors_status_gnss.h>
+#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_status.h>
 #include <lib/gnss/gnss_checks.hpp>
 
 #include "GnssHeadingBaseline.hpp"
+#include "GnssInconsistency.hpp"
 #include "GnssSelector.hpp"
 #include "PpsTimeSync.hpp"
 
@@ -102,6 +106,9 @@ private:
 	// SENS_GNSSn_* slot for a receiver, by device_id or (when no IDs are configured) by sensor_gnss instance
 	const GpsParamSlot *findParamSlot(uint32_t device_id, int instance) const;
 
+	// Antenna position of a receiver, body frame (m), 0 without a SENS_GNSSn_* slot
+	matrix::Vector3f antennaOffset(int instance) const;
+
 	// sensor_gnss instance of the receiver SENS_GNSS_PRIME designates, or of the moving base with -1; -1 for none
 	int resolvePreferredInstance() const;
 
@@ -139,7 +146,10 @@ private:
 		{this, ORB_ID(sensor_gnss), 1},
 	};
 
+	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
+	uORB::Subscription _estimator_status_flags_sub{ORB_ID(estimator_status_flags)};
 	uORB::Subscription _pps_capture_sub{ORB_ID(pps_capture)};
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
@@ -172,6 +182,7 @@ private:
 	GnssChecks _gnss_checks[GPS_MAX_RECEIVERS] {};
 	sensor_gnss_s _latest_sample[GPS_MAX_RECEIVERS] {}; ///< timestamp_sample corrected, timestamp 0 until it publishes
 	uint32_t _selected_device_id{0};
+	int8_t _published_instance{-1}; ///< receiver of the last vehicle_gnss sample, -1 before the first one
 	int8_t _preferred_instance{-1};
 	uint8_t _first_publication[GPS_MAX_RECEIVERS] {}; ///< 1 for the first receiver to publish, 2 for the next, 0 before
 	uint8_t _receivers_published{0};
