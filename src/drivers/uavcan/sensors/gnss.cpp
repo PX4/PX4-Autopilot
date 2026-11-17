@@ -364,6 +364,38 @@ void UavcanGnssBridge::moving_baseline_data_sub_cb(const
 	}
 }
 
+// Fix and Fix2 define UTC = GPS - num_leap_seconds + 9 = TAI - num_leap_seconds - 10, in seconds.
+// Zero means unknown, so a timestamp smaller than the correction must not wrap into a valid-looking time.
+template <typename FixType>
+static uint64_t gnss_time_to_utc_usec(const FixType &msg)
+{
+	int64_t correction_usec = 0;
+
+	switch (msg.gnss_time_standard) {
+	case FixType::GNSS_TIME_STANDARD_UTC:
+		return msg.gnss_timestamp.usec;
+
+	case FixType::GNSS_TIME_STANDARD_GPS:
+		correction_usec = (msg.num_leap_seconds - 9) * 1'000'000LL;
+		break;
+
+	case FixType::GNSS_TIME_STANDARD_TAI:
+		correction_usec = (msg.num_leap_seconds + 10) * 1'000'000LL;
+		break;
+
+	default:
+		return 0;
+	}
+
+	if (msg.num_leap_seconds == FixType::NUM_LEAP_SECONDS_UNKNOWN) {
+		return 0;
+	}
+
+	// gnss_timestamp is uint56, so it fits in int64.
+	const int64_t utc_usec = static_cast<int64_t>(msg.gnss_timestamp.usec) - correction_usec;
+	return utc_usec > 0 ? static_cast<uint64_t>(utc_usec) : 0;
+}
+
 template <typename FixType>
 void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType> &msg,
 				    uint8_t fix_type,
@@ -452,28 +484,7 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 
 	const uint64_t gnss_ts_usec = uavcan::UtcTime(msg.gnss_timestamp).toUSec();
 
-	switch (msg.gnss_time_standard) {
-	case FixType::GNSS_TIME_STANDARD_UTC:
-		sensor_gnss.time_utc_usec = gnss_ts_usec;
-		break;
-
-	case FixType::GNSS_TIME_STANDARD_GPS:
-		if (msg.num_leap_seconds > 0) {
-			sensor_gnss.time_utc_usec = gnss_ts_usec - msg.num_leap_seconds + 9;
-		}
-
-		break;
-
-	case FixType::GNSS_TIME_STANDARD_TAI:
-		if (msg.num_leap_seconds > 0) {
-			sensor_gnss.time_utc_usec = gnss_ts_usec - msg.num_leap_seconds - 10;
-		}
-
-		break;
-
-	default:
-		break;
-	}
+	sensor_gnss.time_utc_usec = gnss_time_to_utc_usec(msg);
 
 	// Recover the navigation epoch in HRT: map msg.timestamp (node send UTC)
 	// into HRT, then subtract (msg.timestamp - msg.gnss_timestamp), which is

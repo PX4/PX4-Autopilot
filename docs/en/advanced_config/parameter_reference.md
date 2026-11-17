@@ -29075,6 +29075,8 @@ Home position enabled.
 
 Set home position automatically if possible.
 
+If disabled, home is only set manually with MAV_CMD_DO_SET_HOME.
+
 During missions, the latitude/longitude of the home position is locked and will not reset during intermediate landings.
 It will only update once the mission is complete or landed outside of a mission.
 However, the altitude is still being adjusted to correct for GNSS vertical drift in the first 2 minutes after takeoff.
@@ -54869,7 +54871,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Sensors
 
-<div class="param-group" style="--param-count: 265">
+<div class="param-group" style="--param-count: 266">
 
 <div class="param">
 
@@ -55051,11 +55053,12 @@ Each threshold value is defined by the parameter indicated next to the check. Dr
 - `9`: Spoofing
 - `10`: GNSS fix type (GNSS_REQ_FIX)
 - `11`: Jamming
+- `12`: Horizontal kinematic consistency (GNSS_REQ_HKIN)
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 4095 |  | 2047 |  | &nbsp;
+&nbsp; | 0 | 8191 |  | 6143 |  | &nbsp;
 
 </div>
 
@@ -55118,6 +55121,21 @@ Maximum horizontal drift speed to use GNSS.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0.1 | 1.0 |  | 0.1 | m/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_REQ_HKIN (`FLOAT`) {#GNSS_REQ_HKIN}
+
+Maximum horizontal kinematic inconsistency to use GNSS.
+
+The rate of change of the reported horizontal position, minus the reported horizontal velocity, filtered over 1 s.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.1 | 20.0 |  | 2.0 | m/s | &nbsp;
 
 </div>
 
