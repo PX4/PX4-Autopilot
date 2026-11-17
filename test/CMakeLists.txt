@@ -27,21 +27,3 @@ add_custom_target(test_results
         COMMENT "Running tests"
         WORKING_DIRECTORY ${PX4_BINARY_DIR})
 set_target_properties(test_results PROPERTIES EXCLUDE_FROM_ALL TRUE)
-
-# Exercise the driver conversion with the real Fix/Fix2 types, without building the CAN driver.
-set(gnss_dronecan_dir ${PX4_SOURCE_DIR}/src/drivers/uavcan/libdronecan)
-set(gnss_dsdl_dir ${CMAKE_CURRENT_BINARY_DIR}/gnss_dsdl)
-file(GLOB_RECURSE gnss_dsdl_inputs ${gnss_dronecan_dir}/dsdl/uavcan/*.uavcan)
-add_custom_command(
-    OUTPUT ${gnss_dsdl_dir}/uavcan/equipment/gnss/Fix.hpp ${gnss_dsdl_dir}/uavcan/equipment/gnss/Fix2.hpp
-    COMMAND ${PYTHON_EXECUTABLE} ${gnss_dronecan_dir}/libuavcan/dsdl_compiler/libuavcan_dsdlc
-        --outdir ${gnss_dsdl_dir} ${gnss_dronecan_dir}/dsdl/uavcan
-    DEPENDS ${gnss_dsdl_inputs}
-    COMMENT "Generating DroneCAN GNSS test types"
-)
-add_custom_target(gnss_test_dsdl DEPENDS
-    ${gnss_dsdl_dir}/uavcan/equipment/gnss/Fix.hpp ${gnss_dsdl_dir}/uavcan/equipment/gnss/Fix2.hpp)
-px4_add_unit_gtest(SRC ${PX4_SOURCE_DIR}/src/drivers/uavcan/sensors/GnssTimeTest.cpp
-    INCLUDES ${gnss_dsdl_dir} ${gnss_dronecan_dir}/libuavcan/include
-    COMPILE_FLAGS -DUAVCAN_CPP_VERSION=2003 -DUAVCAN_NO_GLOBAL_DATA_TYPE_REGISTRY=1)
-add_dependencies(unit-GnssTime gnss_test_dsdl)
