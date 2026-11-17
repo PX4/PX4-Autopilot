@@ -9,9 +9,10 @@ What the detection must achieve, whatever the detector:
 
 Accepted, not required: a headwind stronger than the pusher may be reported as a pusher failure,
 since the vehicle cannot make progress with pusher assist anyway.
-Known gaps of the VT_EF_* detector: a tailwind that keeps the vehicle moving hides the failure
-(tailwind case), and a pusher that fails in hover is only detected on the next pusher-assisted
-leg; a front transition before that is only aborted when airspeed is used (no_airspeed case).
+Known gaps of the VT_EF_* detector: a tailwind that carries the vehicle within VT_EF_VEL_ERR of
+its velocity setpoint hides the failure, and a pusher that fails in hover is only detected on the
+next pusher-assisted leg; a front transition before that is only aborted when airspeed is used
+(no_airspeed case).
 
 The detection times are logged, so detectors can be compared with the same flights:
     test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 10 --model standard_vtol \\
@@ -23,7 +24,7 @@ import pytest
 
 from autopilot_tester_pusher_failure import (PUSHER_QUADCHUTE_EVENT,
                                              AutopilotTesterPusherFailure, FixedWingReached,
-                                             QuadchuteMissing, Wind)
+                                             Wind)
 
 ALTITUDE_M = 20.0
 SETTLE_S = 10.0
@@ -43,13 +44,8 @@ TOO_STRONG_WIND = Wind(from_north_m_s=8.0)
 
 
 @pytest.mark.vtol_pusher_failure
-@pytest.mark.parametrize("wind", [
-    NO_WIND, HEADWIND, CROSSWIND,
-    pytest.param(TAILWIND, marks=pytest.mark.xfail(
-        strict=True, raises=QuadchuteMissing,
-        reason="without the pusher the vehicle drifts at the wind speed, above "
-               "VT_EF_V_THRESH")),
-], ids=["no_wind", "headwind", "crosswind", "tailwind"])
+@pytest.mark.parametrize("wind", [NO_WIND, HEADWIND, CROSSWIND, TAILWIND],
+                         ids=["no_wind", "headwind", "crosswind", "tailwind"])
 def test_pusher_failure_in_multicopter_cruise(
         tester_pusher_failure: AutopilotTesterPusherFailure, wind: Wind) -> None:
     """Requirement 2: the pusher stops on a mission leg flown north."""
