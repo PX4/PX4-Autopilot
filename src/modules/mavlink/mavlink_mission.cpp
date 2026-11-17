@@ -213,11 +213,9 @@ MavlinkMissionManager::update_active_mission(dm_item_t mission_dataman_id, uint1
 {
 	pthread_mutex_lock(&_shared_state_mutex);
 	mission_s mission = update_active_mission_locked(mission_dataman_id, count, seq, crc32);
-	// Publish under the lock so check_active_mission() never sees the shared
-	// state ahead of the topic and rolls it back to the previous mission.
-	_offboard_mission_pub.publish(mission);
-	pthread_mutex_unlock(&_shared_state_mutex);
 
+	// Persist before publishing: once published, navigator may reject the mission
+	// and persist the previous one, which a later write here would overwrite.
 	if (write_to_dataman) {
 		bool success = _dataman_client.writeSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission),
 				sizeof(mission_s));
@@ -226,6 +224,11 @@ MavlinkMissionManager::update_active_mission(dm_item_t mission_dataman_id, uint1
 			PX4_ERR("Can't update mission state in Dataman");
 		}
 	}
+
+	// Publish under the lock so check_active_mission() never sees the shared
+	// state ahead of the topic and rolls it back to the previous mission.
+	_offboard_mission_pub.publish(mission);
+	pthread_mutex_unlock(&_shared_state_mutex);
 }
 
 int
