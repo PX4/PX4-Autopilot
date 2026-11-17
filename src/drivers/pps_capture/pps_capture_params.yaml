@@ -12,11 +12,11 @@ parameters:
       reboot_required: true
     PPS_CAP_GPS_ID:
       description:
-        short: PPS capture GPS receiver device ID
+        short: PPS capture GNSS receiver device ID
         long: |
-          Device ID of the GPS receiver that emits the PPS signal captured on the
+          Device ID of the GNSS receiver that emits the PPS signal captured on the
           configured PWM input pin. When set to 0 (default), the first available
-          GPS instance is used.
+          GNSS instance is used.
 
           The device ID can be obtained from the sensor_gnss publication
           (e.g. via listener sensor_gnss).
