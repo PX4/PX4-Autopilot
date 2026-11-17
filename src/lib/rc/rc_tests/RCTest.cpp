@@ -44,6 +44,7 @@ private:
 	bool sumdTest();
 	bool crossProtocolSharedUnionOobTest();
 	bool sumdSharedBufferTest();
+	bool sumdPx4ioTest();
 };
 
 bool RCTest::run_tests()
@@ -60,6 +61,7 @@ bool RCTest::run_tests()
 	ut_run_test(sumdTest);
 	ut_run_test(crossProtocolSharedUnionOobTest);
 	ut_run_test(sumdSharedBufferTest);
+	ut_run_test(sumdPx4ioTest);
 
 	return (_tests_failed == 0);
 }
@@ -651,6 +653,106 @@ bool RCTest::sumdSharedBufferTest()
 	ut_test(result == 0);
 	ut_test(channel_count == 4);
 	ut_test(channels[0] == 1500);
+	return true;
+}
+
+bool RCTest::sumdPx4ioTest()
+{
+	// Mimic px4io's dsm_port_input(): dsm_input() reads into dsm_buf (part of
+	// rc_decode_buf), then ST24 and SUMD decode the bytes from there.
+	int fds[2];
+	ut_test(pipe(fds) == 0);
+
+	const unsigned num_ch = 16;
+	uint8_t frame[3 + 2 * num_ch + 2];
+	frame[0] = SUMD_HEADER_ID;
+	frame[1] = SUMD_ID_SUMD;
+	frame[2] = num_ch;
+
+	for (unsigned i = 0; i < num_ch; ++i) {
+		const uint16_t raw = (1000 + 50 * i) * 8;
+		frame[3 + 2 * i] = raw >> 8;
+		frame[4 + 2 * i] = raw & 0xff;
+	}
+
+	uint16_t crc = 0;
+
+	for (unsigned i = 0; i < sizeof(frame) - 2; ++i) {
+		crc = sumd_crc16(crc, frame[i]);
+	}
+
+	frame[sizeof(frame) - 2] = crc >> 8;
+	frame[sizeof(frame) - 1] = crc & 0xff;
+
+	// SUMD swaps the first channels on output.
+	uint16_t expected[num_ch];
+	const unsigned order[4] {1, 2, 0, 3};
+
+	for (unsigned i = 0; i < num_ch; ++i) {
+		expected[i] = 1000 + 50 * (i < 4 ? order[i] : i);
+	}
+
+	const unsigned splits[] {32, 24, 16, 8};
+	bool all_ok = true;
+
+	for (const unsigned split : splits) {
+		sumd_reset();
+		st24_reset();
+		bool sumd_locked = false;
+		bool decoded = false;
+		uint16_t channels[18] {};
+		uint16_t channel_count = 0;
+
+		const unsigned chunks[2][2] {{0, split}, {split, (unsigned)sizeof(frame) - split}};
+
+		for (const auto &chunk : chunks) {
+			px4_usleep(chunk[0] == 0 ? 10000 : 1000); // inter-frame gap, then next tick
+			ut_test(write(fds[1], frame + chunk[0], chunk[1]) == (ssize_t)chunk[1]);
+
+			uint16_t dsm_values[18];
+			uint16_t dsm_count = 0;
+			bool dsm_11_bit;
+			uint8_t n_bytes = 0;
+			uint8_t *bytes = nullptr;
+			int8_t rssi;
+			unsigned frame_drops;
+			(void)dsm_input(fds[0], dsm_values, &dsm_count, &dsm_11_bit, &n_bytes, &bytes, &rssi, &frame_drops, 18);
+
+			if (!sumd_locked) {
+				for (unsigned i = 0; i < n_bytes; ++i) {
+					uint8_t st24_rssi, lost_count;
+					uint16_t st24_count;
+					uint16_t st24_values[18];
+					(void)st24_decode(bytes[i], &st24_rssi, &lost_count, &st24_count, st24_values, 18);
+				}
+			}
+
+			for (unsigned i = 0; i < n_bytes; ++i) {
+				uint8_t sumd_rssi, rx_count;
+				bool failsafe;
+
+				if (sumd_decode(bytes[i], &sumd_rssi, &rx_count, &channel_count, channels, 18, &failsafe) == 0) {
+					decoded = true;
+				}
+			}
+		}
+
+		int mismatches = 0;
+
+		for (unsigned i = 0; i < num_ch; ++i) {
+			if (channels[i] != expected[i]) {
+				PX4_ERR("split %u: ch%u = %u, expected %u", split, i + 1, channels[i], expected[i]);
+				mismatches++;
+			}
+		}
+
+		PX4_INFO("split %u: decoded %d, channel_count %u, %d wrong channels", split, decoded, channel_count, mismatches);
+		all_ok = all_ok && decoded && mismatches == 0;
+	}
+
+	close(fds[0]);
+	close(fds[1]);
+	ut_test(all_ok);
 	return true;
 }
 
