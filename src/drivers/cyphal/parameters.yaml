@@ -38,7 +38,7 @@ parameters:
       max: 6143
     UCAN1_GPS0_SUB:
       description:
-        short: GPS 0 subscription port ID
+        short: GNSS 0 subscription port ID
       type: int32
       default: -1
       min: -1
@@ -164,7 +164,7 @@ parameters:
       max: 6143
     UCAN1_GPS_PUB:
       description:
-        short: Cyphal GPS publication port ID
+        short: Cyphal GNSS publication port ID
       type: int32
       default: -1
       min: -1

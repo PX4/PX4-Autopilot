@@ -7,7 +7,7 @@ This is used for automatic rotation detection of external magnetometers and for 
 It should not be used otherwise, and is automatically disabled after [calibration](../config/compass.md) if an external compass is available.
 
 On most vehicles, and in particular on small vehicles, we recommend using a _combined GPS + Compass_ [mounted as far away from the motor/ESC power supply lines as possible](../assembly/mount_gps_compass.md) - typically on a pedestal or wing (for fixed-wing).
-While you can use a [stand-alone external compass](#stand-alone-compass-modules) (as listed below) it is far more common to use a [combined GPS/Compass module](#combined-gnss-compass-modules).
+While you can use a [stand-alone external compass](#stand-alone-compass-modules) (as listed below) it is far more common to use a [combined GNSS/Compass module](#combined-gnss-compass-modules).
 
 Magnetometers support connection to either the I2C/SPI-bus (Pixhawk `GPS1` or `GPS2` ports) or to the CAN bus.
 If a module doesn't include "CAN" in its product name then it is probably an I2C/SPI compass.
@@ -66,7 +66,7 @@ Internal compasses are disabled by default if an external compass is available.
 
 ## Mounting
 
-[Mounting the Compass](../assembly/mount_gps_compass.md) explains how to mount a compass or GPS/Compass module.
+[Mounting the Compass](../assembly/mount_gps_compass.md) explains how to mount a compass or GNSS/Compass module.
 
 ## I2C/SPI Compass Setup
 

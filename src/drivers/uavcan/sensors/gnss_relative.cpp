@@ -42,7 +42,7 @@ UavcanGnssRelativeBridge::UavcanGnssRelativeBridge(uavcan::INode &node, NodeInfo
 	UavcanSensorBridgeBase("uavcan_gnss_relative", ORB_ID(sensor_gnss_relative), node_info_publisher),
 	_sub_rel_pos_heading(node)
 {
-	set_device_type(DRV_GPS_DEVTYPE_UAVCAN);
+	set_device_type(DRV_GNSS_DEVTYPE_UAVCAN);
 }
 
 int
@@ -78,7 +78,7 @@ void UavcanGnssRelativeBridge::rel_pos_heading_sub_cb(const
 
 	sensor_gnss_relative.device_id = make_uavcan_device_id(msg);
 
-	// Register GPS capability with NodeInfoPublisher after first successful message
+	// Register GNSS capability with NodeInfoPublisher after first successful message
 	if (_node_info_publisher != nullptr) {
 		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
 				sensor_gnss_relative.device_id,

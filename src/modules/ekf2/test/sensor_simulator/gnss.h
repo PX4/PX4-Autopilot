@@ -32,11 +32,11 @@
  ****************************************************************************/
 
 /**
- * Feeds Ekf with Gps data
+ * Feeds Ekf with Gnss data
  * @author Kamil Ritz <ka.ritz@hotmail.com>
  */
-#ifndef EKF_GPS_H
-#define EKF_GPS_H
+#ifndef EKF_GNSS_H
+#define EKF_GNSS_H
 
 #include "sensor.h"
 
@@ -47,18 +47,18 @@ namespace sensor_simulator
 namespace sensor
 {
 
-class Gps: public Sensor
+class Gnss: public Sensor
 {
 public:
-	Gps(std::shared_ptr<Ekf> ekf);
-	~Gps();
+	Gnss(std::shared_ptr<Ekf> ekf);
+	~Gnss();
 
 	// Sets both the health time of the checks (GNSS_REQ_TIME) and the EKF's heading reset wait (EKF2_GPS_YAW_RST)
 	void setMinRequiredGnssHealthTime(uint64_t time_us);
 	void setCheckMask(int32_t check_mask);
 	void setData(const gnssSample &gps);
 	void stepHeightByMeters(const float hgt_change);
-	void stepHorizontalPositionByMeters(const Vector2f hpos_change);
+	void stepHorizontalPositionByMeters(const Vector2f &hpos_change);
 	void setPositionRateNED(const Vector3f &rate);
 	void setAltitude(const float alt);
 	void setLatitude(const double lat);
@@ -68,16 +68,16 @@ public:
 	void setNumberOfSatellites(const int num_satellites);
 	void setPdop(const float pdop);
 
-	gnssSample getDefaultGpsData();
-	const gnssSample &getData() const { return _gps_data; }
+	gnssSample getDefaultGnssData();
+	const gnssSample &getData() const { return _gnss_data; }
 
 private:
 	void send(uint64_t time) override;
 
-	static constexpr uint64_t kGpsDelayUs{110000};
+	static constexpr uint64_t kGnssDelayUs{110000};
 
-	gnssSample _gps_data{};
-	Vector3f _gps_pos_rate{};
+	gnssSample _gnss_data{};
+	Vector3f _gnss_pos_rate{};
 
 	// The sensors module's checks, which set usable on every sample
 	GnssChecks _checks{};
@@ -86,4 +86,4 @@ private:
 
 } // namespace sensor
 } // namespace sensor_simulator
-#endif // EKF_GPS_H
+#endif // EKF_GNSS_H

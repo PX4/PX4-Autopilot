@@ -2,7 +2,7 @@
 
 <img src="../../assets/site/position_fixed.svg" title="Position fix required (e.g. GPS)" width="30px" />
 
-The _Hold_ flight mode causes the vehicle to loiter around its current GPS position and maintain its current altitude.
+The _Hold_ flight mode causes the vehicle to loiter around its current GNSS position and maintain its current altitude.
 
 The mode supports a [number of distinct loiter modes](#loiter-modes), which are triggered using different QGC controls or MAVLink commands.
 These allow loitering with circular and figure 8 flight paths.
@@ -15,7 +15,7 @@ It is usually activated with a pre-programmed RC switch.
 ::: info
 
 - Mode is automatic - no user intervention is _required_ to control the vehicle.
-- Mode requires a global 3d position estimate (from GPS or inferred from a [local position](../ros/external_position_estimation.md#enabling-auto-modes-with-a-local-position)).
+- Mode requires a global 3d position estimate (from GNSS or inferred from a [local position](../ros/external_position_estimation.md#enabling-auto-modes-with-a-local-position)).
   - Flying vehicles can't switch to this mode without global position.
   - Flying vehicles will failsafe if they lose the position estimate.
   - Disarmed vehicles can switch to mode without valid position estimate but can't arm.

@@ -54,10 +54,10 @@ public:
 	void disableBaroHeightFusion();
 	bool isIntendingBaroHeightFusion() const;
 
-	void setGpsHeightRef();
-	void enableGpsHeightFusion();
-	void disableGpsHeightFusion();
-	bool isIntendingGpsHeightFusion() const;
+	void setGnssHeightRef();
+	void enableGnssHeightFusion();
+	void disableGnssHeightFusion();
+	bool isIntendingGnssHeightFusion() const;
 
 	void setRangeHeightRef();
 	void enableRangeHeightFusion();
@@ -76,16 +76,16 @@ public:
 
 	bool isIntendingAirspeedFusion() const;
 
-	void enableGpsFusion();
-	void disableGpsFusion();
-	void setGpsEnabled(bool enabled);
-	bool isIntendingGpsFusion() const;
+	void enableGnssFusion();
+	void disableGnssFusion();
+	void setGnssEnabled(bool enabled);
+	bool isIntendingGnssFusion() const;
 	bool isGnssFaultDetected() const;
 	void setGnssDeadReckonMode();
 
-	void enableGpsHeadingFusion();
-	void disableGpsHeadingFusion();
-	bool isIntendingGpsHeadingFusion() const;
+	void enableGnssHeadingFusion();
+	void disableGnssHeadingFusion();
+	bool isIntendingGnssHeadingFusion() const;
 
 	void enableFlowFusion();
 	void disableFlowFusion();

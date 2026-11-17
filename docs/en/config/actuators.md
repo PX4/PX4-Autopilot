@@ -390,7 +390,7 @@ The following functions can only be applied to FMU outputs:
   Enabled when [CAM_CAP_FBACK==0](../advanced_config/parameter_reference.md#CAM_CAP_FBACK).
   Configured via `CAM_CAP_*` parameters.
 - `PPS_Input`: Pulse-per-second input capture.
-  Used for GPS synchronisation.
+  Used for GNSS synchronisation.
   Enabled when [`PPS_CAP_ENABLE==0`](../advanced_config/parameter_reference.md#PPS_CAP_ENABLE)
 
 ::: info

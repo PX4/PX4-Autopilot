@@ -79,8 +79,8 @@ TEST_F(EkfDragFusionTest, testForwardMomentumDrag)
 	const Quatf quat_sim(euler_angles_sim);
 	_sensor_simulator.simulateOrientation(quat_sim);
 
-	_ekf_wrapper.enableGpsFusion();
-	_sensor_simulator.startGps();
+	_ekf_wrapper.enableGnssFusion();
+	_sensor_simulator.startGnss();
 
 	const float bcoef_x = 0.0f;
 	const float bcoef_y = 0.0f;
@@ -117,8 +117,8 @@ TEST_F(EkfDragFusionTest, testLateralMomentumDrag)
 	const Quatf quat_sim(euler_angles_sim);
 	_sensor_simulator.simulateOrientation(quat_sim);
 
-	_ekf_wrapper.enableGpsFusion();
-	_sensor_simulator.startGps();
+	_ekf_wrapper.enableGnssFusion();
+	_sensor_simulator.startGnss();
 
 	// Apply parameter changes required to do drag fusion wind estimation
 	const float bcoef_x = 0.0f;
@@ -158,8 +158,8 @@ TEST_F(EkfDragFusionTest, testForwardBluffBodyDrag)
 	const Quatf quat_sim(euler_angles_sim);
 	_sensor_simulator.simulateOrientation(quat_sim);
 
-	_ekf_wrapper.enableGpsFusion();
-	_sensor_simulator.startGps();
+	_ekf_wrapper.enableGnssFusion();
+	_sensor_simulator.startGnss();
 
 	// Apply parameter changes required to do drag fusion wind estimation
 	const float bcoef_x = 70.0f;
@@ -199,8 +199,8 @@ TEST_F(EkfDragFusionTest, testLateralBluffBodyDrag)
 	const Quatf quat_sim(euler_angles_sim);
 	_sensor_simulator.simulateOrientation(quat_sim);
 
-	_ekf_wrapper.enableGpsFusion();
-	_sensor_simulator.startGps();
+	_ekf_wrapper.enableGnssFusion();
+	_sensor_simulator.startGnss();
 
 	// Apply parameter changes required to do drag fusion wind estimation
 	const float bcoef_x = 70.0f;
@@ -239,8 +239,8 @@ TEST_F(EkfDragFusionTest, testDiagonalBluffBodyDrag)
 	const Quatf quat_sim(euler_angles_sim);
 	_sensor_simulator.simulateOrientation(quat_sim);
 
-	_ekf_wrapper.enableGpsFusion();
-	_sensor_simulator.startGps();
+	_ekf_wrapper.enableGnssFusion();
+	_sensor_simulator.startGnss();
 
 	// Apply parameter changes required to do drag fusion wind estimation
 	const float bcoef_x = 50.0f;

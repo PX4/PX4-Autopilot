@@ -46,14 +46,14 @@ parameters:
         long: |-
           This parameter is not used in normal operation,
           as the declination is looked up based on the
-          GPS coordinates of the vehicle.
+          GNSS coordinates of the vehicle.
       type: float
       default: 0.0
       unit: deg
       decimal: 2
     ATT_MAG_DECL_A:
       description:
-        short: Automatic GPS based declination compensation
+        short: Automatic GNSS based declination compensation
       type: boolean
       default: 1
     ATT_EXT_HDG_M:
@@ -72,7 +72,7 @@ parameters:
       max: 2
     ATT_ACC_COMP:
       description:
-        short: Acceleration compensation based on GPS velocity
+        short: Acceleration compensation based on GNSS velocity
       type: boolean
       default: 0
     ATT_BIAS_MAX:

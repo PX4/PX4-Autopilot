@@ -34,7 +34,7 @@
 /**
  * @file PpsTimeSync.hpp
  *
- * PPS-based time synchronization for GPS timestamp correction
+ * PPS-based time synchronization for GNSS timestamp correction
  */
 
 #pragma once

@@ -15,5 +15,5 @@ PX4_SIM_MODEL=${PX4_SIM_MODEL:=standard_vtol_flow}
 param set-default SIH_OF_EN 1
 param set-default SIH_DISTSNSR_MAX 30
 
-param bitclear EKF2_SENS_EN 3 # disable gps fusion
+param bitclear EKF2_SENS_EN 3 # disable gnss fusion
 param set-default EKF2_HGT_REF 0

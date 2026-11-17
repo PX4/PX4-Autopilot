@@ -89,7 +89,7 @@ protected:
 private:
 	uORB::Publication<led_control_s> _led_control_pub{ORB_ID(led_control)};
 
-	bool _old_gps_lock_valid{false};
+	bool _old_gnss_lock_valid{false};
 	bool _old_home_position_valid{false};
 	bool _low_battery{false};
 	bool _critical_battery{false};

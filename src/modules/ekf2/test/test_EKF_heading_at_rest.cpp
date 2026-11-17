@@ -77,8 +77,8 @@ public:
 		_sensor_simulator.simulateOrientation(Quatf(Eulerf(kTilt, kTilt, kYawTrue)));
 		_sensor_simulator.runSeconds(5);
 
-		_ekf_wrapper.enableGpsFusion();
-		_sensor_simulator.startGps();
+		_ekf_wrapper.enableGnssFusion();
+		_sensor_simulator.startGnss();
 		_sensor_simulator.runSeconds(12);
 	}
 
@@ -105,13 +105,13 @@ public:
 		const float dt = 0.01f;
 
 		for (float t = 0.f; t < duration_s; t += dt) {
-			_sensor_simulator._gps.setVelocity(gnssVelocityError(t));
-			_sensor_simulator._gps.setPositionRateNED(gnssPositionDriftRate(t));
+			_sensor_simulator._gnss.setVelocity(gnssVelocityError(t));
+			_sensor_simulator._gnss.setPositionRateNED(gnssPositionDriftRate(t));
 			_sensor_simulator.runMicroseconds(10'000);
 		}
 
-		_sensor_simulator._gps.setVelocity(Vector3f());
-		_sensor_simulator._gps.setPositionRateNED(Vector3f());
+		_sensor_simulator._gnss.setVelocity(Vector3f());
+		_sensor_simulator._gnss.setPositionRateNED(Vector3f());
 	}
 
 	// Accelerate north, then east, then back: the GNSS velocity now observes the heading
@@ -143,8 +143,8 @@ public:
 					vel_history.push_back(vel_history.back() + accel_world * dt);
 					const size_t n = vel_history.size();
 					const Vector3f vel_gnss = (n > gnss_delay_steps) ? vel_history[n - 1 - gnss_delay_steps] : Vector3f{};
-					_sensor_simulator._gps.setVelocity(vel_gnss);
-					_sensor_simulator._gps.setPositionRateNED(vel_gnss);
+					_sensor_simulator._gnss.setVelocity(vel_gnss);
+					_sensor_simulator._gnss.setPositionRateNED(vel_gnss);
 
 					_sensor_simulator.runMicroseconds(1000);
 				}
@@ -161,7 +161,7 @@ public:
 TEST_F(EkfHeadingAtRestTest, gnssWanderDoesNotMoveHeading)
 {
 	// GIVEN: heading initialized by the mag and GNSS fusion running, at rest
-	ASSERT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+	ASSERT_TRUE(_ekf_wrapper.isIntendingGnssFusion());
 	ASSERT_TRUE(_ekf->control_status_flags().vehicle_at_rest);
 	const float yaw_err_start = yawErrorDeg();
 	const float yaw_var_start = _ekf->getYawVar();
@@ -176,7 +176,7 @@ TEST_F(EkfHeadingAtRestTest, gnssWanderDoesNotMoveHeading)
 	       (double)math::degrees(sqrtf(yaw_var_start)), (double)math::degrees(sqrtf(yaw_var_end)));
 
 	// THEN: GNSS does not make the heading observable and the heading does not move
-	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGnssFusion());
 	EXPECT_FALSE(_ekf->control_status_flags().heading_observable);
 	EXPECT_LT(fabsf(yaw_err_end - yaw_err_start), 0.5f);
 
