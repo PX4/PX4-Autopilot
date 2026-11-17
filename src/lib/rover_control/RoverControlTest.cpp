@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /******************************************************************
- * Test code for the Pure Pursuit algorithm
+ * Test code for the RoverControl library
  * Run this test only using "make tests TESTFILTER=RoverControl"
 ******************************************************************/
 
@@ -225,4 +225,292 @@ TEST(mapSticks, mappings)
 	expectSticks(-1, 0.1f, 0.2f, 0.4f);
 	expectSticks(0, 0.1f, 0.2f, 0.4f);
 	expectSticks(5, 0.1f, 0.2f, 0.4f);
+}
+
+static constexpr float kDt = 0.1f; // Controller update interval used by all tests below [s]
+
+TEST(throttleControl, invalidInputs)
+{
+	SlewRate<float> motor_setpoint;
+	EXPECT_FALSE(PX4_ISFINITE(RoverControl::throttleControl(motor_setpoint, NAN, 0.f, 1.f, 1.f, 2.f, kDt)));
+	EXPECT_FALSE(PX4_ISFINITE(RoverControl::throttleControl(motor_setpoint, 1.f, NAN, 1.f, 1.f, 2.f, kDt)));
+	EXPECT_FALSE(PX4_ISFINITE(RoverControl::throttleControl(motor_setpoint, 1.f, 0.f, 1.f, 1.f, 2.f, NAN)));
+}
+
+TEST(throttleControl, accelerationLimit)
+{
+	const float max_accel = 1.f; // [m/s^2]
+	const float max_decel = 2.f; // [m/s^2], different from max_accel so the test notices if the wrong one is used
+	const float max_thr_spd = 2.f; // [m/s]
+	const float step = max_accel / max_thr_spd * kDt; // Largest throttle change per update
+	SlewRate<float> motor_setpoint(0.f);
+	float throttle = 0.f;
+
+	for (int i = 1; i <= 5; i++) {
+		throttle = RoverControl::throttleControl(motor_setpoint, 1.f, throttle, max_accel, max_decel, max_thr_spd, kDt);
+		EXPECT_NEAR(throttle, step * i, 1e-5f);
+	}
+}
+
+TEST(throttleControl, decelerationLimit)
+{
+	// Same sign only: a setpoint of opposite sign is covered by #29727
+	const float max_accel = 1.f; // [m/s^2]
+	const float max_decel = 2.f; // [m/s^2]
+	const float max_thr_spd = 2.f; // [m/s]
+	const float step = max_decel / max_thr_spd * kDt; // Largest throttle change per update
+	SlewRate<float> motor_setpoint(1.f);
+	float throttle = 1.f;
+
+	for (int i = 1; i <= 3; i++) {
+		throttle = RoverControl::throttleControl(motor_setpoint, 0.5f, throttle, max_accel, max_decel, max_thr_spd, kDt);
+		EXPECT_NEAR(throttle, 1.f - step * i, 1e-5f);
+	}
+}
+
+TEST(throttleControl, noLimitConfigured)
+{
+	SlewRate<float> motor_setpoint(0.f);
+	// No acceleration limit: the output jumps straight to the setpoint
+	EXPECT_FLOAT_EQ(RoverControl::throttleControl(motor_setpoint, 1.f, 0.f, 0.f, 1.f, 2.f, kDt), 1.f);
+
+	// No speed at full throttle: the limits can't be converted, so the output also jumps
+	motor_setpoint.setForcedValue(0.f);
+	EXPECT_FLOAT_EQ(RoverControl::throttleControl(motor_setpoint, 1.f, 0.f, 1.f, 1.f, 0.f, kDt), 1.f);
+}
+
+TEST(throttleControl, reinitializeWhenCurrentIsCloser)
+{
+	// The slew rate state (0) lags far behind the applied throttle (0.9). One limited step would move it
+	// further from the applied throttle than the setpoint is, so it snaps to the setpoint instead.
+	SlewRate<float> motor_setpoint(0.f);
+	EXPECT_FLOAT_EQ(RoverControl::throttleControl(motor_setpoint, 1.f, 0.9f, 1.f, 1.f, 2.f, kDt), 1.f);
+	EXPECT_FLOAT_EQ(motor_setpoint.getState(), 1.f);
+}
+
+TEST(attitudeControl, invalidInputs)
+{
+	SlewRateYaw<float> adjusted_yaw_setpoint;
+	PID pid_yaw;
+	EXPECT_FALSE(PX4_ISFINITE(RoverControl::attitudeControl(adjusted_yaw_setpoint, pid_yaw, 0.f, NAN, 0.f, kDt)));
+	EXPECT_FALSE(PX4_ISFINITE(RoverControl::attitudeControl(adjusted_yaw_setpoint, pid_yaw, 0.f, 0.f, NAN, kDt)));
+	EXPECT_FALSE(PX4_ISFINITE(RoverControl::attitudeControl(adjusted_yaw_setpoint, pid_yaw, 0.f, 0.f, 0.f, NAN)));
+}
+
+TEST(attitudeControl, wrapAround)
+{
+	// Yaw +3.1 rad and setpoint -3.1 rad are 0.083 rad apart across +-pi, not 6.2 rad the long way round
+	SlewRateYaw<float> adjusted_yaw_setpoint;
+	PID pid_yaw;
+	pid_yaw.setGains(1.f, 0.f, 0.f);
+	pid_yaw.setOutputLimit(10.f);
+	const float yaw_rate = RoverControl::attitudeControl(adjusted_yaw_setpoint, pid_yaw, 0.f, 3.1f, -3.1f, kDt);
+	EXPECT_NEAR(yaw_rate, 2.f * M_PI_F - 6.2f, 1e-4f);
+	EXPECT_GT(yaw_rate, 0.f);
+}
+
+TEST(attitudeControl, slewRate)
+{
+	const float yaw_slew_rate = 0.5f; // [rad/s]
+	const float step = yaw_slew_rate * kDt; // Largest change of the adjusted setpoint per update
+	SlewRateYaw<float> adjusted_yaw_setpoint;
+	PID pid_yaw;
+	pid_yaw.setGains(1.f, 0.f, 0.f);
+	pid_yaw.setOutputLimit(10.f);
+
+	for (int i = 1; i <= 3; i++) {
+		const float yaw_rate = RoverControl::attitudeControl(adjusted_yaw_setpoint, pid_yaw, yaw_slew_rate, 0.f, 1.f, kDt);
+		EXPECT_NEAR(adjusted_yaw_setpoint.getState(), step * i, 1e-5f);
+		EXPECT_NEAR(yaw_rate, step * i, 1e-5f); // P gain 1 at yaw 0
+	}
+}
+
+TEST(attitudeControl, noSlewRate)
+{
+	SlewRateYaw<float> adjusted_yaw_setpoint;
+	PID pid_yaw;
+	pid_yaw.setGains(1.f, 0.f, 0.f);
+	pid_yaw.setOutputLimit(10.f);
+	EXPECT_FLOAT_EQ(RoverControl::attitudeControl(adjusted_yaw_setpoint, pid_yaw, 0.f, 0.f, 1.f, kDt), 1.f);
+	EXPECT_FLOAT_EQ(adjusted_yaw_setpoint.getState(), 1.f);
+}
+
+TEST(speedControl, invalidInputs)
+{
+	SlewRate<float> speed_with_rate_limit;
+	PID pid_speed;
+	EXPECT_FALSE(PX4_ISFINITE(RoverControl::speedControl(speed_with_rate_limit, pid_speed, NAN, 0.f, 0.f, 0.f, 2.f, kDt)));
+	EXPECT_FALSE(PX4_ISFINITE(RoverControl::speedControl(speed_with_rate_limit, pid_speed, 1.f, NAN, 0.f, 0.f, 2.f, kDt)));
+	EXPECT_FALSE(PX4_ISFINITE(RoverControl::speedControl(speed_with_rate_limit, pid_speed, 1.f, 0.f, 0.f, 0.f, 2.f, NAN)));
+}
+
+TEST(speedControl, feedForwardOnly)
+{
+	// With all PID gains at 0, half the speed at full throttle maps to half throttle
+	const float max_thr_speed = 2.f; // [m/s]
+	SlewRate<float> speed_with_rate_limit;
+	PID pid_speed;
+	pid_speed.setOutputLimit(1.f);
+	EXPECT_NEAR(RoverControl::speedControl(speed_with_rate_limit, pid_speed, max_thr_speed / 2.f, max_thr_speed / 2.f,
+					       0.f, 0.f, max_thr_speed, kDt), 0.5f, 1e-5f);
+}
+
+TEST(speedControl, feedbackOnly)
+{
+	// Without a speed at full throttle there is no feed-forward, so only the P term acts on the speed error
+	SlewRate<float> speed_with_rate_limit;
+	PID pid_speed;
+	pid_speed.setGains(0.5f, 0.f, 0.f);
+	pid_speed.setOutputLimit(1.f);
+	EXPECT_NEAR(RoverControl::speedControl(speed_with_rate_limit, pid_speed, 1.f, 0.f, 0.f, 0.f, 0.f, kDt), 0.5f,
+		    1e-5f);
+}
+
+TEST(speedControl, zeroSetpointResetsIntegral)
+{
+	SlewRate<float> speed_with_rate_limit;
+	PID pid_speed;
+	pid_speed.setGains(0.f, 1.f, 0.f);
+	pid_speed.setIntegralLimit(1.f);
+	pid_speed.setOutputLimit(1.f);
+
+	RoverControl::speedControl(speed_with_rate_limit, pid_speed, 1.f, 0.f, 0.f, 0.f, 0.f, kDt);
+	EXPECT_NEAR(pid_speed.getIntegral(), 1.f * kDt, 1e-5f); // I gain 1, error 1 m/s for one update
+
+	RoverControl::speedControl(speed_with_rate_limit, pid_speed, 0.f, 0.f, 0.f, 0.f, 0.f, kDt);
+	EXPECT_FLOAT_EQ(pid_speed.getIntegral(), 0.f);
+}
+
+TEST(speedControl, outputClamped)
+{
+	// Full feed-forward plus a positive P term would exceed full throttle
+	SlewRate<float> speed_with_rate_limit;
+	PID pid_speed;
+	pid_speed.setGains(1.f, 0.f, 0.f);
+	pid_speed.setOutputLimit(10.f);
+	EXPECT_FLOAT_EQ(RoverControl::speedControl(speed_with_rate_limit, pid_speed, 1.f, 0.f, 0.f, 0.f, 1.f, kDt), 1.f);
+	EXPECT_FLOAT_EQ(RoverControl::speedControl(speed_with_rate_limit, pid_speed, -1.f, 0.f, 0.f, 0.f, 1.f, kDt), -1.f);
+}
+
+TEST(rateControl, invalidInputs)
+{
+	SlewRate<float> adjusted_yaw_rate_setpoint;
+	PID pid_yaw_rate;
+	EXPECT_FALSE(PX4_ISFINITE(RoverControl::rateControl(adjusted_yaw_rate_setpoint, pid_yaw_rate, NAN, 0.f, 1.f, 1.f,
+				  0.f, 0.f, 0.5f, kDt)));
+	EXPECT_FALSE(PX4_ISFINITE(RoverControl::rateControl(adjusted_yaw_rate_setpoint, pid_yaw_rate, 1.f, NAN, 1.f, 1.f,
+				  0.f, 0.f, 0.5f, kDt)));
+	EXPECT_FALSE(PX4_ISFINITE(RoverControl::rateControl(adjusted_yaw_rate_setpoint, pid_yaw_rate, 1.f, 0.f, 1.f, 1.f,
+				  0.f, 0.f, 0.5f, NAN)));
+}
+
+TEST(rateControl, feedForward)
+{
+	// speed difference = yaw rate * wheel_track / 2 * yaw_rate_corr = 2 * 0.5 / 2 * 1.5 = 0.75 m/s,
+	// which is 0.75 of the speed at full throttle (1 m/s)
+	const float yaw_rate_setpoint = 2.f; // [rad/s]
+	const float wheel_track = 0.5f; // [m]
+	const float yaw_rate_corr = 1.5f;
+	const float max_thr_speed = 1.f; // [m/s]
+	SlewRate<float> adjusted_yaw_rate_setpoint;
+	PID pid_yaw_rate;
+	pid_yaw_rate.setOutputLimit(1.f);
+	EXPECT_NEAR(RoverControl::rateControl(adjusted_yaw_rate_setpoint, pid_yaw_rate, yaw_rate_setpoint,
+					      yaw_rate_setpoint, max_thr_speed, yaw_rate_corr, 0.f, 0.f, wheel_track, kDt), 0.75f, 1e-5f);
+}
+
+TEST(rateControl, feedbackOnly)
+{
+	// Without a wheel track there is no feed-forward, so only the P term acts on the yaw rate error
+	SlewRate<float> adjusted_yaw_rate_setpoint;
+	PID pid_yaw_rate;
+	pid_yaw_rate.setGains(0.5f, 0.f, 0.f);
+	pid_yaw_rate.setOutputLimit(1.f);
+	EXPECT_NEAR(RoverControl::rateControl(adjusted_yaw_rate_setpoint, pid_yaw_rate, 1.f, 0.f, 1.f, 1.f, 0.f, 0.f, 0.f,
+					      kDt), 0.5f, 1e-5f);
+}
+
+TEST(rateControl, zeroSetpointResetsIntegral)
+{
+	SlewRate<float> adjusted_yaw_rate_setpoint;
+	PID pid_yaw_rate;
+	pid_yaw_rate.setGains(0.f, 1.f, 0.f);
+	pid_yaw_rate.setIntegralLimit(1.f);
+	pid_yaw_rate.setOutputLimit(1.f);
+
+	RoverControl::rateControl(adjusted_yaw_rate_setpoint, pid_yaw_rate, 1.f, 0.f, 1.f, 1.f, 0.f, 0.f, 0.f, kDt);
+	EXPECT_NEAR(pid_yaw_rate.getIntegral(), 1.f * kDt, 1e-5f); // I gain 1, error 1 rad/s for one update
+
+	RoverControl::rateControl(adjusted_yaw_rate_setpoint, pid_yaw_rate, 0.f, 0.f, 1.f, 1.f, 0.f, 0.f, 0.f, kDt);
+	EXPECT_FLOAT_EQ(pid_yaw_rate.getIntegral(), 0.f);
+}
+
+TEST(rateControl, outputClamped)
+{
+	// Feed-forward of a full speed difference plus a positive P term would exceed the normalized range
+	const float wheel_track = 2.f; // [m], so a yaw rate of 1 rad/s asks for the full 1 m/s speed difference
+	SlewRate<float> adjusted_yaw_rate_setpoint;
+	PID pid_yaw_rate;
+	pid_yaw_rate.setGains(1.f, 0.f, 0.f);
+	pid_yaw_rate.setOutputLimit(10.f);
+	EXPECT_FLOAT_EQ(RoverControl::rateControl(adjusted_yaw_rate_setpoint, pid_yaw_rate, 1.f, 0.f, 1.f, 1.f, 0.f, 0.f,
+			wheel_track, kDt), 1.f);
+	EXPECT_FLOAT_EQ(RoverControl::rateControl(adjusted_yaw_rate_setpoint, pid_yaw_rate, -1.f, 0.f, 1.f, 1.f, 0.f, 0.f,
+			wheel_track, kDt), -1.f);
+}
+
+static position_setpoint_s waypoint(const bool valid, const double lat, const double lon)
+{
+	position_setpoint_s position_setpoint{};
+	position_setpoint.valid = valid;
+	position_setpoint.lat = lat;
+	position_setpoint.lon = lon;
+	return position_setpoint;
+}
+
+TEST(globalToLocalSetpointTriplet, validTriplet)
+{
+	// Reference point and three nearby waypoints, distinct so a swapped output is caught
+	MapProjection global_ned_proj_ref;
+	global_ned_proj_ref.initReference(47.397742, 8.545594);
+	position_setpoint_triplet_s position_setpoint_triplet{};
+	position_setpoint_triplet.previous = waypoint(true, 47.397742, 8.545594);
+	position_setpoint_triplet.current = waypoint(true, 47.398742, 8.545594);
+	position_setpoint_triplet.next = waypoint(true, 47.398742, 8.546594);
+	Vector2f curr_pos_ned(1.f, 2.f);
+	Vector2f curr_wp_ned, prev_wp_ned, next_wp_ned;
+
+	RoverControl::globalToLocalSetpointTriplet(curr_wp_ned, prev_wp_ned, next_wp_ned, position_setpoint_triplet,
+			curr_pos_ned, global_ned_proj_ref);
+
+	EXPECT_EQ(prev_wp_ned, global_ned_proj_ref.project(47.397742, 8.545594));
+	EXPECT_EQ(curr_wp_ned, global_ned_proj_ref.project(47.398742, 8.545594));
+	EXPECT_EQ(next_wp_ned, global_ned_proj_ref.project(47.398742, 8.546594));
+	EXPECT_GT(curr_wp_ned(0), 100.f); // About 111 m north of the reference
+}
+
+TEST(globalToLocalSetpointTriplet, invalidWaypoints)
+{
+	MapProjection global_ned_proj_ref;
+	global_ned_proj_ref.initReference(47.397742, 8.545594);
+	position_setpoint_triplet_s position_setpoint_triplet{};
+	position_setpoint_triplet.previous = waypoint(true, static_cast<double>(NAN), 8.545594);
+	position_setpoint_triplet.current = waypoint(false, 47.398742, 8.545594);
+	position_setpoint_triplet.next = waypoint(false, 47.398742, 8.546594);
+	Vector2f curr_pos_ned(1.f, 2.f);
+	Vector2f curr_wp_ned, prev_wp_ned, next_wp_ned;
+
+	// Invalid or NaN current and previous waypoints fall back to the current position, an invalid next one is NaN
+	RoverControl::globalToLocalSetpointTriplet(curr_wp_ned, prev_wp_ned, next_wp_ned, position_setpoint_triplet,
+			curr_pos_ned, global_ned_proj_ref);
+	EXPECT_EQ(curr_wp_ned, curr_pos_ned);
+	EXPECT_EQ(prev_wp_ned, curr_pos_ned);
+	EXPECT_FALSE(next_wp_ned.isAllFinite());
+
+	// Without a valid current position there is nothing to fall back to
+	curr_pos_ned = Vector2f(NAN, NAN);
+	RoverControl::globalToLocalSetpointTriplet(curr_wp_ned, prev_wp_ned, next_wp_ned, position_setpoint_triplet,
+			curr_pos_ned, global_ned_proj_ref);
+	EXPECT_FALSE(curr_wp_ned.isAllFinite());
+	EXPECT_FALSE(prev_wp_ned.isAllFinite());
 }
