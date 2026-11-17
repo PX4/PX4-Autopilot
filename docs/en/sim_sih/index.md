@@ -39,6 +39,7 @@ The following vehicle types are supported:
 | Tailsitter VTOL <Badge type="tip" text="PX4 v1.13" />                | `make px4_sitl_sih sihsim_xvert`              | Experimental |
 | Standard VTOL (QuadPlane) <Badge type="tip" text="PX4 v1.16" />      | `make px4_sitl_sih sihsim_standard_vtol`      | Experimental |
 | Ackermann Rover <Badge type="tip" text="PX4 v1.16" />                | `make px4_sitl_sih sihsim_rover_ackermann`    | Experimental |
+| Differential Rover <Badge type="tip" text="PX4 v2.0" />              | `make px4_sitl_sih sihsim_rover_differential` | Experimental |
 | Quadrotor X with optical flow <Badge type="tip" text="PX4 v2.0" />   | `make px4_sitl_sih sihsim_quadx_flow`         | Experimental |
 | Standard VTOL with optical flow <Badge type="tip" text="PX4 v2.0" /> | `make px4_sitl_sih sihsim_standard_vtol_flow` | Experimental |
 
@@ -184,7 +185,7 @@ The terrain is then used for:
 - The `dist_bottom` field of the `vehicle_local_position_groundtruth` topic.
 
 Outside the area covered by the DEM, or over cells without data, the ground is flat at `SIH_LOC_H0` and a warning is printed.
-Terrain is supported for multicopters, VTOLs and fixed-wing vehicles; with any other vehicle type (such as Ackermann rovers), setting `PX4_SIH_TERRAIN` stops SIH from starting with an error.
+Terrain is supported for multicopters, VTOLs and fixed-wing vehicles; with any other vehicle type (such as rovers), setting `PX4_SIH_TERRAIN` stops SIH from starting with an error.
 `simulator_sih status` shows the loaded DEM and whether the vehicle is inside it.
 
 The DEM must be a single-band GeoTIFF whose coordinate reference system has an [EPSG code](https://epsg.io/), either geographic (such as WGS84, `EPSG:4326`) or projected (such as UTM or the Swiss `EPSG:2056`).
@@ -298,7 +299,7 @@ See [SIH on Flight Controller Hardware](hardware.md) for setup instructions.
 You still need to configure your vehicle type and [geometry](../config/actuators.md) (`CA_` parameters) and start any other defaults for that specific vehicle.
 
 ::: warning
-Not every vehicle can be simulated with SIH — there are currently [six supported vehicle types](../advanced_config/parameter_reference.md#SIH_VEHICLE_TYPE) (quadcopter, fixed-wing, tailsitter, standard VTOL, hexacopter, rover), each of which has a relatively rigid implementation in [`sih.cpp`](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/simulation/simulator_sih/sih.cpp).
+Not every vehicle can be simulated with SIH — there are currently [seven supported vehicle types](../advanced_config/parameter_reference.md#SIH_VEHICLE_TYPE) (quadcopter, fixed-wing, tailsitter, standard VTOL, hexacopter, Ackermann rover, differential rover), each of which has a relatively rigid implementation in [`sih.cpp`](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/simulation/simulator_sih/sih.cpp).
 :::
 
 The specific differences for SIH simulation airframes are listed in the sections below.
@@ -350,7 +351,8 @@ The dynamic models for the various vehicles are:
 - Quadrotor: [pdf](https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/simulation/SIH_dynamic_model.pdf)
 - Fixed-wing: based on Khan (2016), see references below
 - Tailsitter: based on Chiappinelli (2018), see references below
-- Rover: bicycle model with linear tire model
+- Ackermann rover: bicycle model with linear tire model
+- Differential rover: unicycle model, each wheel is driven towards its commanded speed up to the traction limit and the wheels do not slip sideways
 
 **Propeller model with advance ratio**
 

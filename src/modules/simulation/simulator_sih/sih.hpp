@@ -232,6 +232,7 @@ private:
 	void generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd, const float thrust_for_prowash);
 	void generate_ts_aerodynamics();
 	void generate_rover_ackermann_dynamics(const float throttle_cmd, const float steering_cmd, const float dt);
+	void generate_rover_differential_dynamics(const float right_cmd, const float left_cmd);
 	void sensor_step();
 
 	void ecefToNed();
@@ -333,7 +334,7 @@ private:
 	float       _Q[NUM_DYN_THRUSTER] {};         // thruster torque (Nm)
 	Thruster    _thruster[NUM_DYN_THRUSTER] {};	// thruster objects
 
-	enum class VehicleType {Quadcopter, FixedWing, TailsitterVTOL, StandardVTOL, Hexacopter, RoverAckermann, First = Quadcopter, Last = RoverAckermann}; // numbering dependent on parameter SIH_VEHICLE_TYPE
+	enum class VehicleType {Quadcopter, FixedWing, TailsitterVTOL, StandardVTOL, Hexacopter, RoverAckermann, RoverDifferential, First = Quadcopter, Last = RoverDifferential}; // numbering dependent on parameter SIH_VEHICLE_TYPE
 	VehicleType _vehicle = VehicleType::Quadcopter;
 
 	// aerodynamic segments for the fixedwing
