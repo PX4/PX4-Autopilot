@@ -458,6 +458,29 @@ The relevant parameters are shown below:
 | <a id="FD_FAIL_P_TTRI"></a>[FD_FAIL_P_TTRI](../advanced_config/parameter_reference.md#FD_FAIL_P_TTRI)    | Time to exceed [FD_FAIL_P](#FD_FAIL_P) for failure detection (default 0.3s).                                                     |
 | <a id="FD_FAIL_R_TTRI"></a>[FD_FAIL_R_TTRI](../advanced_config/parameter_reference.md#FD_FAIL_R_TTRI)    | Time to exceed [FD_FAIL_R](#FD_FAIL_R) for failure detection (default 0.3s).                                                     |
 
+### Rate Tracking Trigger
+
+<Badge type="tip" text="main (PX4 v2.0)" /> <Badge type="tip" text="MC, VTOL only" />
+
+The failure detector can be configured to trigger if a rotary-wing vehicle does not follow its roll and pitch rate setpoint.
+This is the case, for example, when the vehicle has crashed and lies on the ground with the motors still running, or when it has lost a motor.
+It does not require ESC telemetry, and can trigger before the vehicle reaches the limits of the [attitude trigger](#attitude-trigger).
+
+The check triggers if the combined roll and pitch rate error stays above [FD_RATE_ERR](#FD_RATE_ERR) for longer than [FD_RATE_ERR_T](#FD_RATE_ERR_T), and then causes the same action as the attitude trigger.
+Yaw is not checked, because a multicopter gives up yaw control first when its motors saturate.
+
+It is not checked while the vehicle is landed or in a VTOL transition.
+
+The check is disabled by default.
+The threshold must be above the rate error seen in normal aggressive flight, which can be read from the rate setpoint and angular velocity in a flight log.
+It must also be below [MC_ROLLRATE_MAX](../advanced_config/parameter_reference.md#MC_ROLLRATE_MAX) and [MC_PITCHRATE_MAX](../advanced_config/parameter_reference.md#MC_PITCHRATE_MAX) to detect a vehicle that cannot rotate (for example one pinned on the ground after a crash), because the rate setpoint, and therefore the error of a vehicle that does not rotate, is limited to those values.
+A vehicle that rotates when it should not, such as after losing a motor, is detected regardless of these limits.
+
+| Parameter                                                                                          | Description                                                                      |
+| -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| <a id="FD_RATE_ERR"></a>[FD_RATE_ERR](../advanced_config/parameter_reference.md#FD_RATE_ERR)       | Roll and pitch rate tracking error threshold (deg/s). Set to 0 to disable.       |
+| <a id="FD_RATE_ERR_T"></a>[FD_RATE_ERR_T](../advanced_config/parameter_reference.md#FD_RATE_ERR_T) | Time (s) the error must stay above the threshold before the failure is declared. |
+
 ### Motor Failure Trigger
 
 The failure detector can be configured to detect a failed motor (or a lost or broken propeller, a seized bearing, a rubbing blade, and so on).

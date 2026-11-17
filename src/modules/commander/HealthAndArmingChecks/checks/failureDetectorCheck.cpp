@@ -88,6 +88,23 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 		}
 	}
 
+	if (fd_status.fd_rate) {
+		/* EVENT
+		 * @description
+		 * The vehicle is not following the roll and pitch rate setpoint.
+		 *
+		 * <profile name="dev">
+		 * This check can be configured via <param>FD_RATE_ERR</param> parameter.
+		 * </profile>
+		 */
+		reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_failure_detector_rate"),
+					    events::Log::Critical, "Rate tracking failure detected");
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Rate tracking failure");
+		}
+	}
+
 	if (fd_status.fd_ext) {
 		/* EVENT
 		 * @description
@@ -103,7 +120,8 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 		}
 	}
 
-	reporter.failsafeFlags().fd_critical_failure = fd_status.fd_roll || fd_status.fd_pitch || fd_status.fd_ext;
+	reporter.failsafeFlags().fd_critical_failure = fd_status.fd_roll || fd_status.fd_pitch || fd_status.fd_ext
+			|| fd_status.fd_rate;
 	reporter.failsafeFlags().fd_alt_loss = fd_status.fd_alt;
 
 	reporter.failsafeFlags().fd_imbalanced_prop = fd_status.fd_imbalanced_prop;
