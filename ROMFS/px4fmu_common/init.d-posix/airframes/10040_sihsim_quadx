@@ -37,4 +37,10 @@ param set-default PWM_MAIN_FUNC4 104
 param set-default SENS_GNSS0_DELAY 0
 param set-default SENS_GNSS1_DELAY 0
 
+# SIH applies a linear drag SIH_KDV * v (no quadratic term): EKF2_MCOEF = SIH_KDV / SIH_MASS
+param set-default EKF2_DRAG_CTRL 1
+param set-default EKF2_MCOEF 1.0
+param set-default EKF2_BCOEF_X 0.0
+param set-default EKF2_BCOEF_Y 0.0
+
 param set SIH_VEHICLE_TYPE 0
