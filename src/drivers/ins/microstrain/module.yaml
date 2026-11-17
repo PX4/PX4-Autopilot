@@ -27,9 +27,10 @@ parameters:
             description:
                 short: MicroStrain IMU data rate
                 long: |
-                    Accelerometer and Gyroscope data rate (Hz).
+                    Accelerometer and Gyroscope data rate.
                     Valid rates: 0 or any factor of 1000.
             type: int32
+            unit: Hz
             max: 1000
             min: 0
             reboot_required: true
@@ -39,9 +40,10 @@ parameters:
             description:
                 short: MicroStrain magnetometer data rate
                 long: |
-                    Magnetometer data rate (Hz).
+                    Magnetometer data rate.
                     Valid rates: 0 or any factor of 1000.
             type: int32
+            unit: Hz
             max: 1000
             min: 0
             reboot_required: true
@@ -51,9 +53,10 @@ parameters:
             description:
                 short: MicroStrain barometer data rate
                 long: |
-                    Barometer data rate (Hz).
+                    Barometer data rate.
                     Valid rates: 0 or any factor of 1000.
             type: int32
+            unit: Hz
             max: 1000
             min: 0
             reboot_required: true
@@ -63,9 +66,10 @@ parameters:
             description:
                 short: MicroStrain EKF data rate
                 long: |
-                    The rate at which the INS data is published (Hz).
+                    The rate at which the INS data is published.
                     Valid rates: 0 or any factor of 1000.
             type: int32
+            unit: Hz
             max: 1000
             min: 0
             reboot_required: true
@@ -75,9 +79,10 @@ parameters:
             description:
                 short: MicroStrain GNSS data rate
                 long: |
-                    GNSS receiver 1 and 2 data rate (Hz).
+                    GNSS receiver 1 and 2 data rate.
                     Valid rates: 0, 1 or 5.
             type: int32
+            unit: Hz
             max: 5
             min: 0
             reboot_required: true
@@ -213,9 +218,10 @@ parameters:
             description:
                 short: MicroStrain GNSS lever arm offset 1 (X)
                 long: |
-                    Lever arm offset (m) in the X direction for the external GNSS receiver.
+                    Lever arm offset in the X direction for the external GNSS receiver.
                     In the case of a dual antenna setup, this is antenna 1.
             type: float
+            unit: m
             reboot_required: true
             default: 0.0
 
@@ -223,9 +229,10 @@ parameters:
             description:
                 short: MicroStrain GNSS lever arm offset 1 (Y)
                 long: |
-                    Lever arm offset (m) in the Y direction for the external GNSS receiver.
+                    Lever arm offset in the Y direction for the external GNSS receiver.
                     In the case of a dual antenna setup, this is antenna 1.
             type: float
+            unit: m
             reboot_required: true
             default: 0.0
 
@@ -233,9 +240,10 @@ parameters:
             description:
                 short: MicroStrain GNSS lever arm offset 1 (Z)
                 long: |
-                    Lever arm offset (m) in the Z direction for the external GNSS receiver.
+                    Lever arm offset in the Z direction for the external GNSS receiver.
                     In the case of a dual antenna setup, this is antenna 1.
             type: float
+            unit: m
             reboot_required: true
             default: 0.0
 
@@ -243,9 +251,10 @@ parameters:
             description:
                 short: MicroStrain GNSS lever arm offset 2 (X)
                 long: |
-                    Lever arm offset (m) in the X direction for antenna 2
+                    Lever arm offset in the X direction for antenna 2
                     This will only be used if the device supports a dual antenna setup.
             type: float
+            unit: m
             reboot_required: true
             default: 0.0
 
@@ -253,9 +262,10 @@ parameters:
             description:
                 short: MicroStrain GNSS lever arm offset 2 (Y)
                 long: |
-                    Lever arm offset (m) in the Y direction for antenna 2.
+                    Lever arm offset in the Y direction for antenna 2.
                     This will only be used if the device supports a dual antenna setup.
             type: float
+            unit: m
             reboot_required: true
             default: 0.0
 
@@ -263,9 +273,10 @@ parameters:
             description:
                 short: MicroStrain GNSS lever arm offset 2 (Z)
                 long: |
-                    Lever arm offset (m) in the X direction for antenna 2.
+                    Lever arm offset in the Z direction for antenna 2.
                     This will only be used if the device supports a dual antenna setup.
             type: float
+            unit: m
             reboot_required: true
             default: 0.0
 
@@ -273,9 +284,10 @@ parameters:
             description:
                 short: MicroStrain Sensor to vehicle transform (Roll)
                 long: |
-                    The orientation of the device (Radians) with respect to the vehicle frame around the x axis.
+                    The orientation of the device with respect to the vehicle frame around the x axis.
                     Requires MS_SVT_EN to be enabled to be used.
             type: float
+            unit: deg
             reboot_required: true
             default: 0.0
 
@@ -283,9 +295,10 @@ parameters:
             description:
                 short: MicroStrain Sensor to Vehicle Transform (Pitch)
                 long: |
-                    The orientation of the device (Radians) with respect to the vehicle frame around the y axis.
+                    The orientation of the device with respect to the vehicle frame around the y axis.
                     Requires MS_SVT_EN to be enabled to be used.
             type: float
+            unit: deg
             reboot_required: true
             default: 0.0
 
@@ -293,9 +306,10 @@ parameters:
             description:
                 short: MicroStrain Sensor to Vehicle Transform (Yaw)
                 long: |
-                    The orientation of the device (Radians) with respect to the vehicle frame around the z axis.
+                    The orientation of the device with respect to the vehicle frame around the z axis.
                     Requires MS_SVT_EN to be enabled to be used.
             type: float
+            unit: deg
             reboot_required: true
             default: 0.0
 
@@ -303,9 +317,10 @@ parameters:
             description:
                 short: MicroStrain External Magnetometer Orientation (Roll)
                 long: |
-                    The orientation of the device (Radians) with respect to the vehicle frame around the x axis.
+                    The orientation of the device with respect to the vehicle frame around the x axis.
                     Requires MS_EXT_MAG_EN to be enabled to be used.
             type: float
+            unit: rad
             reboot_required: true
             default: 0.0
 
@@ -313,9 +328,10 @@ parameters:
             description:
                 short: MicroStrain External Magnetometer Orientation (Pitch)
                 long: |
-                    The orientation of the device (Radians) with respect to the vehicle frame around the y axis.
+                    The orientation of the device with respect to the vehicle frame around the y axis.
                     Requires MS_EXT_MAG_EN to be enabled to be used.
             type: float
+            unit: rad
             reboot_required: true
             default: 0.0
 
@@ -323,9 +339,10 @@ parameters:
             description:
                 short: MicroStrain External Magnetometer Orientation (Yaw)
                 long: |
-                    The orientation of the device (Radians) with respect to the vehicle frame around the z axis.
+                    The orientation of the device with respect to the vehicle frame around the z axis.
                     Requires MS_EXT_MAG_EN to be enabled to be used.
             type: float
+            unit: rad
             reboot_required: true
             default: 0.0
 
@@ -333,9 +350,10 @@ parameters:
             description:
                 short: MicroStrain optical flow offset (X)
                 long: |
-                    Offset (m) in the X direction if an Optical Flow sensor is connected.
+                    Offset in the X direction if an Optical Flow sensor is connected.
                     Requires MS_OPT_FLOW_EN to be enabled to be used.
             type: float
+            unit: m
             reboot_required: true
             default: 0.0
 
@@ -343,9 +361,10 @@ parameters:
             description:
                 short: MicroStrain optical flow offset (Y)
                 long: |
-                    Offset (m) in the Y direction if an Optical Flow sensor is connected.
+                    Offset in the Y direction if an Optical Flow sensor is connected.
                     Requires MS_OPT_FLOW_EN to be enabled to be used.
             type: float
+            unit: m
             reboot_required: true
             default: 0.0
 
@@ -353,9 +372,10 @@ parameters:
             description:
                 short: MicroStrain optical flow offset (Z)
                 long: |
-                    Offset (m) in the Z direction if an Optical Flow sensor is connected.
+                    Offset in the Z direction if an Optical Flow sensor is connected.
                     Requires MS_OPT_FLOW_EN to be enabled to be used.
             type: float
+            unit: m
             reboot_required: true
             default: 0.0
 
@@ -363,9 +383,10 @@ parameters:
             description:
                 short: MicroStrain External Heading Orientation (Yaw)
                 long: |
-                    The orientation of the device (Radians) with respect to the vehicle frame around the z axis.
+                    The orientation of the device with respect to the vehicle frame around the z axis.
                     Requires MS_EXT_HEAD_EN to be enabled to be used.
             type: float
+            unit: rad
             reboot_required: true
             default: 0.0
 
@@ -373,9 +394,10 @@ parameters:
             description:
                 short: MicroStrain external magnetometer uncertainty
                 long: |
-                    The 1-sigma uncertainty (in Gauss) for all axes, which will remain constant across all aiding measurements.
+                    The 1-sigma uncertainty for all axes, which will remain constant across all aiding measurements.
                     Requires MS_EXT_MAG_EN to be enabled to be used.
             type: float
+            unit: gauss
             reboot_required: true
             default: 0.1
 
@@ -383,9 +405,10 @@ parameters:
             description:
                 short: MicroStrain optical flow uncertainty
                 long: |
-                    The 1-sigma uncertainty (in m/s) for the X and Y axes, which will remain constant across all aiding measurements.
+                    The 1-sigma uncertainty for the X and Y axes, which will remain constant across all aiding measurements.
                     The Z axis is not used for aiding.
                     Requires MS_OPT_FLOW_EN to be enabled to be used.
             type: float
+            unit: m/s
             reboot_required: true
             default: 0.1
