@@ -234,32 +234,32 @@ TEST_F(GnssChecksTest, strictFollowsCheckMask)
 	EXPECT_FALSE(_checks.passedStrict());
 }
 
-class GnssChecksHPosVelTest : public GnssChecksTest
+class GnssChecksKinematicConsistencyTest : public GnssChecksTest
 {
 public:
 	void SetUp() override
 	{
 		GnssChecksTest::SetUp();
 
-		// GIVEN: the default checks, which include the position/velocity consistency, and a receiver that passed them
+		// GIVEN: the default checks, which include the kinematic consistency, and a receiver that passed them
 		runSeconds(2.f, false, false);
 	}
 };
 
-TEST_F(GnssChecksHPosVelTest, failsWhenPositionWandersFromVelocity)
+TEST_F(GnssChecksKinematicConsistencyTest, failsWhenPositionWandersFromVelocity)
 {
 	// WHEN: in flight, the position moves as the velocity says
 	flySeconds(2.f, matrix::Vector3f(8.f, -6.f, 0.f));
 
 	// THEN: it passes the strict checks
-	EXPECT_FALSE(_checks.getStrictFailFlags() & vehicle_gnss_s::CHECK_HPOSVEL);
+	EXPECT_FALSE(_checks.getStrictFailFlags() & vehicle_gnss_s::CHECK_HKIN);
 	EXPECT_TRUE(_checks.passedStrict());
 
 	// WHEN: the position walks off at 3 m/s that the velocity doesn't show, as with multipath
 	flySeconds(5.f, matrix::Vector3f(8.f, -6.f, 0.f), matrix::Vector3f(0.f, 3.f, 0.f));
 
 	// THEN: it fails the strict checks on the consistency, while the relaxed checks still let it be used
-	EXPECT_TRUE(_checks.getStrictFailFlags() & vehicle_gnss_s::CHECK_HPOSVEL);
+	EXPECT_TRUE(_checks.getStrictFailFlags() & vehicle_gnss_s::CHECK_HKIN);
 	EXPECT_FALSE(_checks.passedStrict());
 	EXPECT_TRUE(_checks.passed());
 
@@ -267,11 +267,11 @@ TEST_F(GnssChecksHPosVelTest, failsWhenPositionWandersFromVelocity)
 	flySeconds(5.f, matrix::Vector3f(8.f, -6.f, 0.f));
 
 	// THEN: it passes the strict checks again
-	EXPECT_FALSE(_checks.getStrictFailFlags() & vehicle_gnss_s::CHECK_HPOSVEL);
+	EXPECT_FALSE(_checks.getStrictFailFlags() & vehicle_gnss_s::CHECK_HKIN);
 	EXPECT_TRUE(_checks.passedStrict());
 }
 
-TEST_F(GnssChecksHPosVelTest, skipsPositionStepAtFixTypeChange)
+TEST_F(GnssChecksKinematicConsistencyTest, skipsPositionStepAtFixTypeChange)
 {
 	// WHEN: in flight, the position steps by 3 m in the epoch the receiver starts applying corrections, as it does
 	// when a differential or RTK solution starts or stops
@@ -281,11 +281,11 @@ TEST_F(GnssChecksHPosVelTest, skipsPositionStepAtFixTypeChange)
 	flySeconds(0.1f, matrix::Vector3f(8.f, -6.f, 0.f));
 
 	// THEN: the step doesn't count, and it passes the consistency check
-	EXPECT_FALSE(_checks.getStrictFailFlags() & vehicle_gnss_s::CHECK_HPOSVEL);
+	EXPECT_FALSE(_checks.getStrictFailFlags() & vehicle_gnss_s::CHECK_HKIN);
 
 	// WHEN: the position then walks off at 3 m/s that the velocity doesn't show
 	flySeconds(5.f, matrix::Vector3f(8.f, -6.f, 0.f), matrix::Vector3f(0.f, 3.f, 0.f));
 
 	// THEN: it still fails it
-	EXPECT_TRUE(_checks.getStrictFailFlags() & vehicle_gnss_s::CHECK_HPOSVEL);
+	EXPECT_TRUE(_checks.getStrictFailFlags() & vehicle_gnss_s::CHECK_HKIN);
 }
