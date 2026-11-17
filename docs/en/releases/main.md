@@ -93,6 +93,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   The old values are not migrated because their meaning changed: the new parameters start at their defaults, except that a check disabled for both roll and pitch stays disabled.
   Without a recent attitude setpoint, for example on rovers, the tilt from level is checked instead.
   Vehicles may now fly at any tilt their attitude setpoint asks for, and a large tracking error triggers the check at any tilt.
+  The check is paused for the first 5 s after a VTOL switches to multicopter mode without back-transition, i.e. a quad-chute or an aborted front transition, while the vehicle recovers from fixed-wing flight.
   Limits raised or disabled to allow large tilts, for example roll on fixed-wing vehicles, are no longer needed.
   The check is disabled with `FD_TILT_ERROR` set to -1.
   The `fd_roll` and `fd_pitch` fields of [FailureDetectorStatus](../msg_docs/FailureDetectorStatus.md) are replaced by `fd_tilt`.

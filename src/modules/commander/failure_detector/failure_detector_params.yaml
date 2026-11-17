@@ -12,6 +12,7 @@ parameters:
           which sets outputs to their failsafe values.
           On takeoff the flag triggers lockdown (irrespective of @CBRK_FLIGHTTERM),
           which disarms motors but does not set outputs to failsafe values.
+          The check is paused for the first 5 s after a VTOL quad-chute or aborted front transition.
 
           Set to -1 to disable.
       type: float

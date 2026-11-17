@@ -39,6 +39,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 
 // to run: make tests TESTFILTER=FailureDetectorTilt
 
@@ -117,6 +118,16 @@ public:
 
 	void advance(hrt_abstime dt) { _timestamp += dt; }
 
+	// Publish the VTOL state and run the detector to see it
+	void setVtolState(uint8_t vtol_state)
+	{
+		vtol_vehicle_status_s vtol_vehicle_status{};
+		vtol_vehicle_status.timestamp = _timestamp;
+		vtol_vehicle_status.vehicle_vtol_state = vtol_state;
+		_vtol_vehicle_status_pub.publish(vtol_vehicle_status);
+		update(Quatf());
+	}
+
 	void resetDetector() { update(Quatf(), Quatf(), 0, false); }
 
 	vehicle_status_s _status{};
@@ -127,6 +138,7 @@ private:
 
 	uORB::Publication<vehicle_attitude_s> _attitude_pub{ORB_ID(vehicle_attitude)};
 	uORB::Publication<vehicle_attitude_setpoint_s> _attitude_setpoint_pub{ORB_ID(vehicle_attitude_setpoint)};
+	uORB::Publication<vtol_vehicle_status_s> _vtol_vehicle_status_pub{ORB_ID(vtol_vehicle_status)};
 };
 
 TEST_F(FailureDetectorTiltTest, NoTriggerWhenLevel)
@@ -275,4 +287,34 @@ TEST_F(FailureDetectorTiltTest, TailsitterTransitionSetpointInMulticopterFrame)
 		EXPECT_FALSE(updateAfterTriggerTime(q_transition, q_transition));
 		EXPECT_TRUE(updateAfterTriggerTime(Quatf(), q_transition));
 	}
+}
+
+TEST_F(FailureDetectorTiltTest, PausedAfterSkippedBackTransition)
+{
+	_status.is_vtol = true;
+	setVtolState(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+
+	// Quad-chute: recovering from fixed-wing flight in multicopter mode
+	setVtolState(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC); // t = 0
+	EXPECT_FALSE(update(tilt(90.f)));        // t = 10ms
+	advance(4980_ms);
+	EXPECT_FALSE(update(tilt(90.f)));        // t = 5000ms, pause over, trigger time starts
+	advance(80_ms);
+	EXPECT_FALSE(update(tilt(90.f)));        // t = 5090ms
+	EXPECT_TRUE(update(tilt(90.f)));         // t = 5100ms
+
+	// Aborted front transition
+	setVtolState(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_FW);
+	resetDetector();
+	setVtolState(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+	EXPECT_FALSE(updateAfterTriggerTime(tilt(90.f)));
+}
+
+TEST_F(FailureDetectorTiltTest, NotPausedAfterBackTransition)
+{
+	_status.is_vtol = true;
+	setVtolState(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+	setVtolState(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_MC);
+	setVtolState(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+	EXPECT_TRUE(updateAfterTriggerTime(tilt(90.f)));
 }
