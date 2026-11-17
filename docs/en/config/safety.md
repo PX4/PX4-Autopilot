@@ -458,8 +458,8 @@ The relevant parameters are shown below:
 | Parameter                                                                                                | Description                                                                                                                      |
 | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="CBRK_FLIGHTTERM"></a>[CBRK_FLIGHTTERM](../advanced_config/parameter_reference.md#CBRK_FLIGHTTERM) | Flight termination circuit breaker. Unset from 121212 (default) to enable flight termination due to FailureDetector or FMU loss. |
-| <a id="FD_FAIL_R"></a>[FD_FAIL_R](../advanced_config/parameter_reference.md#FD_FAIL_R)                   | Maximum allowed tilt error (in degrees).                                                                                         |
-| <a id="FD_FAIL_R_TTRI"></a>[FD_FAIL_R_TTRI](../advanced_config/parameter_reference.md#FD_FAIL_R_TTRI)    | Time to exceed [FD_FAIL_R](#FD_FAIL_R) for failure detection (default 1s).                                                       |
+| <a id="FD_TILT_ERROR"></a>[FD_TILT_ERROR](../advanced_config/parameter_reference.md#FD_TILT_ERROR)       | Maximum allowed tilt error (in degrees).                                                                                         |
+| <a id="FD_TILT_ERROR_T"></a>[FD_TILT_ERROR_T](../advanced_config/parameter_reference.md#FD_TILT_ERROR_T) | Time to exceed [FD_TILT_ERROR](#FD_TILT_ERROR) for failure detection (default 1s).                                               |
 
 ### Motor Failure Trigger
 

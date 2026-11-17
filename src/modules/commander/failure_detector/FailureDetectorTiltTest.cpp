@@ -48,7 +48,7 @@ using matrix::Eulerf;
 using matrix::Quatf;
 using matrix::Vector3f;
 
-static constexpr int kMaxTiltErrorDeg = 60;
+static constexpr float kMaxTiltErrorDeg = 60.f;
 
 // Tilt by angle around a horizontal axis, direction 0° tilts around the x-axis (roll), 90° around the y-axis (pitch)
 static Quatf tilt(float angle_deg, float direction_deg = 0.f)
@@ -76,10 +76,10 @@ public:
 		_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 	}
 
-	void setParams(int32_t max_tilt_error_deg, float trigger_time_s)
+	void setParams(float max_tilt_error_deg, float trigger_time_s)
 	{
-		param_set(param_handle(px4::params::FD_FAIL_R), &max_tilt_error_deg);
-		param_set(param_handle(px4::params::FD_FAIL_R_TTRI), &trigger_time_s);
+		param_set(param_handle(px4::params::FD_TILT_ERROR), &max_tilt_error_deg);
+		param_set(param_handle(px4::params::FD_TILT_ERROR_T), &trigger_time_s);
 		updateParams();
 	}
 
@@ -195,11 +195,11 @@ TEST_F(FailureDetectorTiltTest, StaleSetpointFallsBackToLevel)
 
 TEST_F(FailureDetectorTiltTest, NoTriggerWhenDisabled)
 {
-	setParams(-1, 0.1f);
+	setParams(-1.f, 0.1f);
 	EXPECT_FALSE(updateAfterTriggerTime(tilt(180.f)));
 
 	// 0 also disables for backwards compatibility
-	setParams(0, 0.1f);
+	setParams(0.f, 0.1f);
 	EXPECT_FALSE(updateAfterTriggerTime(tilt(180.f)));
 }
 

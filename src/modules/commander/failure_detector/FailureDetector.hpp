@@ -130,8 +130,8 @@ private:
 	failure_injection::MotorFailureMasks _injected_motor_masks{};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::FD_FAIL_R>) _param_fd_fail_r,
-		(ParamFloat<px4::params::FD_FAIL_R_TTRI>) _param_fd_fail_r_ttri,
+		(ParamFloat<px4::params::FD_TILT_ERROR>) _param_fd_tilt_error,
+		(ParamFloat<px4::params::FD_TILT_ERROR_T>) _param_fd_tilt_error_t,
 		(ParamBool<px4::params::FD_EXT_ATS_EN>) _param_fd_ext_ats_en,
 		(ParamInt<px4::params::FD_EXT_ATS_TRIG>) _param_fd_ext_ats_trig,
 		(ParamInt<px4::params::FD_IMB_PROP_THR>) _param_fd_imb_prop_thr,
