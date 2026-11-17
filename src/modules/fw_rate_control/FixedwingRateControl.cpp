@@ -189,7 +189,7 @@ float FixedwingRateControl::get_airspeed_and_update_scaling(float dt)
 	 * For scaling our actuators using anything less than the stall
 	 * speed doesn't make any sense - its the strongest reasonable deflection we
 	 * want to do in flight and it's the baseline a human pilot would choose.
-	 * When landed this is disabled to avoid servo oscillation.
+	 * When landed the scale is limited to >=1 to avoid servo oscillation.
 	 *
 	 * Forcing the scaling to this value allows reasonable handheld tests.
 	 */
