@@ -25,6 +25,7 @@ parameters:
         long: The minimum RPM of the motors. Used to normalize the output of the neural
           network. Actions that ask for less than this idle the motor.
       type: int32
+      unit: rpm
       default: 1000
       min: 0
       max: 80000

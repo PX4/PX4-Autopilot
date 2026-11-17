@@ -273,7 +273,7 @@ parameters:
             description:
                 short: MicroStrain GNSS lever arm offset 2 (Z)
                 long: |
-                    Lever arm offset in the X direction for antenna 2.
+                    Lever arm offset in the Z direction for antenna 2.
                     This will only be used if the device supports a dual antenna setup.
             type: float
             unit: m

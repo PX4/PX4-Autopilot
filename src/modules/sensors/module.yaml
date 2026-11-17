@@ -206,7 +206,6 @@ parameters:
             unit: Pa
             default: 0.0
             decimal: 3
-            #unit: Pa
             volatile: true
             num_instances: *max_num_sensor_instances
             instance_start: 0
