@@ -285,6 +285,9 @@ TEST(speedControl, decelerationLimitOnSignChange)
 	EXPECT_NEAR(step(-2.f, 1.f, 1.f, max_accel, max_decel), 1.f - max_decel * dt, 1e-6f);
 	EXPECT_NEAR(step(-1.f, 1.f, 1.f, no_limit, max_decel), 1.f - max_decel * dt, 1e-6f);
 
+	// Smaller setpoint of the same sign: deceleration limit
+	EXPECT_NEAR(step(0.1f, 0.5f, 0.5f, max_accel, max_decel), 0.5f - max_decel * dt, 1e-6f);
+
 	// Once the sign has changed or from standstill: acceleration limit
 	EXPECT_NEAR(step(-1.f, -0.5f, -0.5f, max_accel, max_decel), -0.5f - max_accel * dt, 1e-6f);
 	EXPECT_NEAR(step(1.f, 0.5f, 0.5f, max_accel, max_decel), 0.5f + max_accel * dt, 1e-6f);
