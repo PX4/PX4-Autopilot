@@ -299,7 +299,7 @@ TECSControl::SpecificEnergyRates TECSControl::_updateOuterLoops(const Setpoint &
 		control_setpoint.altitude_rate_setpoint = _calcAltitudeControlOutput(setpoint, input, param);
 	}
 
-	const SpecificEnergyRates specific_energy_rate{_calcSpecificEnergyRates(control_setpoint, input)};
+	const SpecificEnergyRates specific_energy_rate{_calcSpecificEnergyRates(control_setpoint, input, param)};
 
 	_detectUnderspeed(input, param, flag);
 
@@ -333,7 +333,7 @@ float TECSControl::_calcAirspeedControlOutput(const Setpoint &setpoint, const In
 					      FLT_EPSILON);
 		const float min_tas_rate_sp = (param.fast_descend * 0.5f + 0.5f) * limit.STE_rate_min / math::max(input.tas,
 					      FLT_EPSILON);
-		airspeed_rate_output = constrain((setpoint.tas_setpoint - input.tas) * param.airspeed_error_gain, min_tas_rate_sp,
+		airspeed_rate_output = constrain((setpoint.tas_setpoint - input.tas) * _airspeedErrorGain(param), min_tas_rate_sp,
 						 max_tas_rate_sp);
 	}
 
@@ -351,17 +351,40 @@ float TECSControl::_calcAltitudeControlOutput(const Setpoint &setpoint, const In
 	return altitude_rate_output;
 }
 
+float TECSControl::_calcSpeRateSetpoint(float altitude_rate_setpoint, float ske_rate_setpoint, const Param &param)
+{
+	// Define the ideal, first order energy dynamics in the eigenbasis of the closed loop, with the two eigenvectors:
+	//  - SPE = (1, 0): an altitude error is corrected without creating an airspeed error
+	//  - SEB = (1, -1): a pure exchange error is corrected without changing the total energy
+	//
+	//   [ e_SPE ] = M z       M = inv(M) = [ 1   1 ]
+	//   [ e_SKE ]                          [ 0  -1 ]
+	//
+	// In this basis the control law is diagonal, z' = diag(1/tau_h, 1/tau_v) z. In the (SPE, SKE) basis:
+	//
+	//   [ SPE' ] = M diag(1/tau_h, 1/tau_v) inv(M) [ e_SPE ] = [ 1/tau_h   1/tau_h - 1/tau_v ] [ e_SPE ]
+	//   [ SKE' ]                                   [ e_SKE ]   [    0           1/tau_v       ] [ e_SKE ]
+	//
+	// Summed, the total energy rate setpoint is the total energy error over tau_h. The off-diagonal term is the only
+	// coupling: for tau_v < tau_h a kinetic energy error demands a potential energy rate of opposite sign (pitch down
+	// to accelerate). With tau_v = tau_h it vanishes. The altitude loop provides e_SPE / tau_h including its reference
+	// rate feedforward and climb / sink limits, the airspeed loop e_SKE / tau_v including its limits.
+	const float tau_v_over_tau_h = param.altitude_error_gain / _airspeedErrorGain(param);
+
+	return altitude_rate_setpoint * CONSTANTS_ONE_G + (tau_v_over_tau_h - 1.f) * ske_rate_setpoint;
+}
+
 TECSControl::SpecificEnergyRates TECSControl::_calcSpecificEnergyRates(const OuterLoopSetpoints &control_setpoint,
-		const Input &input) const
+		const Input &input, const Param &param) const
 {
 	SpecificEnergyRates specific_energy_rates;
-	// Calculate specific energy rate demands in units of (m**2/sec**3)
-	specific_energy_rates.spe_rate.setpoint = control_setpoint.altitude_rate_setpoint *
-			CONSTANTS_ONE_G; // potential energy rate of change
 
 	// d/dt(0.5 V^2) = V * dV/dt: use measured TAS, not the TAS setpoint, to keep the airspeed loop linear
 	specific_energy_rates.ske_rate.setpoint = input.tas *
 			control_setpoint.tas_rate_setpoint; // kinetic energy rate of change
+
+	specific_energy_rates.spe_rate.setpoint = _calcSpeRateSetpoint(control_setpoint.altitude_rate_setpoint,
+			specific_energy_rates.ske_rate.setpoint, param);
 
 	// Calculate specific energy rates in units of (m**2/sec**3)
 	specific_energy_rates.spe_rate.estimate = input.altitude_rate * CONSTANTS_ONE_G; // potential energy rate of change
@@ -436,6 +459,11 @@ TECSControl::SpecificEnergyRates TECSControl::_calcPitchControlEnergyRates(const
 	SpecificEnergyRates pitch_specific_energy_rates{specific_energy_rates};
 	pitch_specific_energy_rates.ske_rate.setpoint = _calcPitchControlSkeRateSetpoint(setpoint, input, limit, param, flag,
 			weight);
+
+	// The pitch's potential energy rate setpoint carries the eigenbasis coupling of its own kinetic setpoint, not of
+	// the outer loops' one: the coupling is linear in the kinetic setpoint, so shift it by the difference.
+	pitch_specific_energy_rates.spe_rate.setpoint += _calcSpeRateSetpoint(0.f,
+			pitch_specific_energy_rates.ske_rate.setpoint - specific_energy_rates.ske_rate.setpoint, param);
 
 	// Between trim airspeed and the airspeed setpoint the throttle alone accelerates the vehicle. The capped setpoint
 	// above already removes the kinetic setpoint of the pitch loop there, faded in with speed priority. But the

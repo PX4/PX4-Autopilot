@@ -634,9 +634,13 @@ TEST_F(TECSClosedLoopTest, AirspeedStepDownDefaultTuning)
 // --- Speed weight with unequal time constants -----------------------------------
 //
 // With the pitch and throttle consistent, the speed weight only sets which error the pitch feedback weights, not the
-// closed loop: an airspeed error decays with FW_T_TAS_TC and an altitude error with FW_T_ALT_TC, without coupling,
-// for any speed weight and any combination of the two time constants. Every weight must match the same weight-free
-// first-order responses, so the speed weight has no effect as long as the throttle delivers the total energy rate.
+// closed loop. The energy rate setpoints are formed in the eigenbasis (SPE, SEB) of the energy error dynamics:
+//  - the total energy error decays with FW_T_ALT_TC, the throttle's setpoint is the total energy error over it
+//  - an airspeed error decays with FW_T_TAS_TC, clamped to at most FW_T_ALT_TC, where the pitch trades altitude for it
+//  - an altitude error with the airspeed at its setpoint decays without exciting an airspeed error
+// For FW_T_TAS_TC < FW_T_ALT_TC an airspeed error therefore moves the altitude temporarily (pitch down to accelerate).
+// Every weight must match the same weight-free responses, so the speed weight has no effect as long as the throttle
+// delivers the total energy rate.
 
 struct WeightAndTimeConstants {
 	float speed_weight;
@@ -654,24 +658,91 @@ protected:
 		_params.airspeed_error_gain = 1.f / GetParam().airspeed_time_const;
 	}
 
+	// TECS clamps the airspeed time constant to at most the altitude one
+	float airspeedErrorGain() const { return math::max(_params.airspeed_error_gain, _params.altitude_error_gain); }
+
+	// Total energy error, linearised about the airspeed setpoint. For FW_T_TAS_TC = FW_T_ALT_TC it decays exactly
+	// exponentially; otherwise TECS forms the kinetic error with the measured airspeed, V (V_sp - V), which leaves a
+	// term of second order in the airspeed error.
+	float totalEnergyError() const
+	{
+		return CONSTANTS_ONE_G * (_alt_sp - _state.h) + _V_sp * (_V_sp - _state.V);
+	}
+
+	// The total energy error decays as a first-order response with FW_T_ALT_TC. Compared as the altitude equivalent.
+	void expectTotalEnergyDecay(float error_initial, float t)
+	{
+		const float expected_error = error_initial * expf(-t * _params.altitude_error_gain);
+		EXPECT_NEAR(totalEnergyError() / CONSTANTS_ONE_G, expected_error / CONSTANTS_ONE_G, MAX_NUMERICAL_ERR)
+				<< "at t=" << _t << " s";
+	}
+
+	// Below trim the pitch trades altitude for airspeed: the airspeed error decays with the clamped FW_T_TAS_TC and
+	// the total energy error with FW_T_ALT_TC.
 	void checkAirspeedStep(float step)
 	{
 		run(10.f);
 		setAirspeedSetpoint(_params.equivalent_airspeed_trim + step);
 		resetSimStats();
 
-		// First-order response with FW_T_TAS_TC, up to a small discretisation error
 		const float error_initial = _V_sp - _state.V;
+		const float energy_error_initial = totalEnergyError();
 		const float t_step = _t;
 
 		for (int i = 0; i < 10; i++) {
 			run(2.0f);
-			const float expected_error = error_initial * expf(-(_t - t_step) * _params.airspeed_error_gain);
+			const float expected_error = error_initial * expf(-(_t - t_step) * airspeedErrorGain());
 			EXPECT_NEAR(_V_sp - _state.V, expected_error, MAX_NUMERICAL_ERR) << "at t=" << _t << " s";
+			expectTotalEnergyDecay(energy_error_initial, _t - t_step);
+		}
+	}
+
+	// Above trim, up to a speed weight of 1, the pitch does not trade altitude for airspeed (trim cap) and the throttle
+	// demands only the total energy error over FW_T_ALT_TC: the airspeed error decays with FW_T_ALT_TC and the
+	// altitude holds.
+	void checkAirspeedStepAboveTrim(float step)
+	{
+		run(10.f);
+		setAirspeedSetpoint(_params.equivalent_airspeed_trim + step);
+		resetSimStats();
+
+		const float error_initial = _V_sp - _state.V;
+		const float energy_error_initial = totalEnergyError();
+		const float t_step = _t;
+
+		for (int i = 0; i < 10; i++) {
+			run(2.0f);
+			const float expected_error = error_initial * expf(-(_t - t_step) * _params.altitude_error_gain);
+			EXPECT_NEAR(_V_sp - _state.V, expected_error, MAX_NUMERICAL_ERR) << "at t=" << _t << " s";
+			expectTotalEnergyDecay(energy_error_initial, _t - t_step);
 		}
 
 		// Altitude holds to numerical precision
 		EXPECT_LT(_sim_stats.max_altitude_error, MAX_NUMERICAL_ERR) << "peak at t=" << _sim_stats.t_max_altitude_error << " s";
+	}
+
+	// Above trim with a weight between 1 and 2 the trim cap is partly faded out: the pitch covers only part of the
+	// exchange, and the airspeed error decays between the clamped FW_T_TAS_TC and FW_T_ALT_TC responses.
+	void checkAirspeedStepFadedTrimCap(float step)
+	{
+		run(10.f);
+		setAirspeedSetpoint(_params.equivalent_airspeed_trim + step);
+		resetSimStats();
+
+		const float error_initial = _V_sp - _state.V;
+		const float energy_error_initial = totalEnergyError();
+		const float t_step = _t;
+
+		for (int i = 0; i < 10; i++) {
+			run(2.0f);
+			const float t = _t - t_step;
+			const float error_fast = error_initial * expf(-t * airspeedErrorGain());
+			const float error_slow = error_initial * expf(-t * _params.altitude_error_gain);
+			const float error = _V_sp - _state.V;
+			EXPECT_GE(fabsf(error), fabsf(error_fast) - MAX_NUMERICAL_ERR) << "at t=" << _t << " s";
+			EXPECT_LE(fabsf(error), fabsf(error_slow) + MAX_NUMERICAL_ERR) << "at t=" << _t << " s";
+			expectTotalEnergyDecay(energy_error_initial, t);
+		}
 	}
 
 	void checkAltitudeStep(float step)
@@ -687,8 +758,8 @@ protected:
 		EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
 	}
 
-	// Disturb the plant state with the setpoints unchanged, e.g. a gust: each error decays with its own time
-	// constant and the other one is not excited, whatever the speed weight.
+	// Disturb the plant state with the setpoints unchanged, e.g. a gust: the airspeed error decays with the clamped
+	// FW_T_TAS_TC and the total energy error with FW_T_ALT_TC, whatever the speed weight.
 	void checkDisturbance(float altitude_offset, float airspeed_offset)
 	{
 		run(10.f);
@@ -696,15 +767,15 @@ protected:
 		_state.V += airspeed_offset;
 		resetSimStats();
 
+		const float energy_error_initial = totalEnergyError();
 		const float t_disturbance = _t;
 
 		for (int i = 0; i < 10; i++) {
 			run(2.0f);
 			const float t = _t - t_disturbance;
-			EXPECT_NEAR(_state.h - _alt_sp, altitude_offset * expf(-t * _params.altitude_error_gain), MAX_NUMERICAL_ERR)
+			EXPECT_NEAR(_state.V - _V_sp, airspeed_offset * expf(-t * airspeedErrorGain()), MAX_NUMERICAL_ERR)
 					<< "at t=" << _t << " s";
-			EXPECT_NEAR(_state.V - _V_sp, airspeed_offset * expf(-t * _params.airspeed_error_gain), MAX_NUMERICAL_ERR)
-					<< "at t=" << _t << " s";
+			expectTotalEnergyDecay(energy_error_initial, t);
 		}
 	}
 };
@@ -712,7 +783,16 @@ protected:
 TEST_P(TECSClosedLoopWeightTest, AltitudeDisturbance) { checkDisturbance(2.f, 0.f); }
 TEST_P(TECSClosedLoopWeightTest, AirspeedDisturbance) { checkDisturbance(0.f, -1.f); }
 TEST_P(TECSClosedLoopWeightTest, CombinedDisturbance) { checkDisturbance(-2.f, 1.f); }
-TEST_P(TECSClosedLoopWeightTest, AirspeedStepUp) { checkAirspeedStep(1.f); }
+TEST_P(TECSClosedLoopWeightTest, AirspeedStepUp)
+{
+	// A weight above 1 fades out the trim cap: the pitch trades altitude for airspeed above trim as well
+	if (_params.pitch_speed_weight > 1.f) {
+		checkAirspeedStepFadedTrimCap(1.f);
+
+	} else {
+		checkAirspeedStepAboveTrim(1.f);
+	}
+}
 TEST_P(TECSClosedLoopWeightTest, AirspeedStepDown) { checkAirspeedStep(-1.f); }
 TEST_P(TECSClosedLoopWeightTest, AltitudeStepUp) { checkAltitudeStep(50.f); }
 TEST_P(TECSClosedLoopWeightTest, AltitudeStepDown) { checkAltitudeStep(-50.f); }

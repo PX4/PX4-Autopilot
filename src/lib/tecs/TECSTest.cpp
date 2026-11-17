@@ -1063,7 +1063,8 @@ TEST(TECSControlTest, KineticSetpointAndEstimateFadeEquallyAboveTrim)
 
 	TECSControl::Input input = makeInput();
 	input.tas = 17.f; // between trim (15 m/s) and the setpoint
-	input.tas_rate = (setpoint.tas_setpoint - input.tas) * param.airspeed_error_gain; // the commanded acceleration
+	// The commanded acceleration, with the airspeed time constant clamped to at most the altitude one as in TECS
+	input.tas_rate = (setpoint.tas_setpoint - input.tas) * math::max(param.airspeed_error_gain, param.altitude_error_gain);
 
 	TECSControl control;
 	control.initialize(setpoint, input, param, flag);
