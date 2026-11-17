@@ -36,6 +36,9 @@
 #include "sensor_bridge.hpp"
 #include <stdint.h>
 
+#include <lib/failure_injection/FailureInjection.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
+#include <uORB/topics/sensor_gnss.h>
 #include <uORB/topics/sensor_gnss_relative.h>
 
 #include <ardupilot/gnss/RelPosHeading.hpp>
@@ -55,10 +58,18 @@ private:
 
 	void rel_pos_heading_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::gnss::RelPosHeading> &msg);
 
+	// sensor_gnss instance of the receiver with this device_id, -1 if it hasn't published
+	int gnss_instance(uint32_t device_id);
+
 	typedef uavcan::MethodBinder < UavcanGnssRelativeBridge *,
 		void (UavcanGnssRelativeBridge::*)(const uavcan::ReceivedDataStructure<ardupilot::gnss::RelPosHeading> &) >
 		RelPosHeadingCbBinder;
 
 	uavcan::Subscriber<ardupilot::gnss::RelPosHeading, RelPosHeadingCbBinder> _sub_rel_pos_heading;
+
+	// The GNSS bridge publishes the node's sensor_gnss, whose instance addresses the injected failure
+	uORB::SubscriptionMultiArray<sensor_gnss_s> _sensor_gnss_sub{ORB_ID::sensor_gnss};
+	failure_injection::Config _failure_config;
+	failure_injection::Stuck<sensor_gnss_relative_s> _stuck[DEFAULT_MAX_CHANNELS];
 
 };

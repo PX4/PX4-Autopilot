@@ -262,6 +262,7 @@ private:
 
 	failure_injection::Config _failure_config;
 	failure_injection::Stuck<sensor_gnss_s> _stuck;
+	failure_injection::Stuck<sensor_gnss_relative_s> _stuck_relative;
 
 	float				_rate{0.0f};					///< position update rate
 	unsigned			_num_bytes_read{0}; 				///< counter for number of read bytes from the UART (within update interval)
@@ -1512,7 +1513,19 @@ GPS::publishRelativePosition(sensor_gnss_relative_s &gnss_relative)
 {
 	gnss_relative.device_id = get_device_id();
 	gnss_relative.timestamp = hrt_absolute_time();
-	_sensor_gnss_relative_pub.publish(gnss_relative);
+
+	// The heading fails with the receiver: injection is addressed by its sensor_gnss instance. A stuck injection
+	// replaces the sample, so it works on a copy of the parser's.
+	sensor_gnss_relative_s output = gnss_relative;
+	_failure_config.update();
+
+	if (_sensor_gnss_pub.advertised()
+	    && !failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_GPS,
+					   _sensor_gnss_pub.get_instance(), output, _stuck_relative)) {
+		return;
+	}
+
+	_sensor_gnss_relative_pub.publish(output);
 }
 
 void

@@ -1789,7 +1789,19 @@ void SeptentrioDriver::publish_relative_position(uint32_t tow)
 	relative.time_utc_usec = (_pvt_tow == tow) ? _sensor_gnss.time_utc_usec : 0;
 	relative.device_id = get_device_id();
 	relative.timestamp = hrt_absolute_time();
-	_sensor_gnss_relative_pub.publish(relative);
+
+	// The heading fails with the receiver: injection is addressed by its sensor_gnss instance. A stuck injection
+	// replaces the sample, so it works on a copy of the one the SBF blocks fill in.
+	sensor_gnss_relative_s output = relative;
+	_failure_config.update();
+
+	if (_sensor_gnss_pub.advertised()
+	    && !failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_GPS,
+					   _sensor_gnss_pub.get_instance(), output, _stuck_relative)) {
+		return;
+	}
+
+	_sensor_gnss_relative_pub.publish(output);
 }
 
 void SeptentrioDriver::publish_satellite_info()

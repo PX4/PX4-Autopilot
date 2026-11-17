@@ -70,6 +70,9 @@ TEST(FailureTable, SupportedCatalogueMatchesInventory)
 	EXPECT_TRUE(FailureTable::isSupported(GYRO, GARBAGE));  // IMU noise
 	EXPECT_TRUE(FailureTable::isSupported(GYRO, DRIFT));    // IMU drift
 	EXPECT_TRUE(FailureTable::isSupported(GPS, WRONG));
+	EXPECT_TRUE(FailureTable::isSupported(GPS, failure_injection_s::FAILURE_TYPE_SLOW));
+	EXPECT_FALSE(FailureTable::isSupported(failure_injection_s::FAILURE_UNIT_SENSOR_AIRSPEED,
+					       failure_injection_s::FAILURE_TYPE_SLOW));
 	EXPECT_TRUE(FailureTable::isSupported(MOTOR, OFF));   // detected motor failure
 	EXPECT_TRUE(FailureTable::isSupported(MOTOR, WRONG)); // undetected motor failure
 	EXPECT_TRUE(FailureTable::isSupported(MOTOR, STUCK)); // rotor stuck, ESC healthy

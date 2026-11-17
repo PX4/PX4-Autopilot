@@ -364,7 +364,8 @@ class TestRunnerMavsdk(Runner):
                  mavlink_connection: str,
                  speed_factor: float,
                  verbose: bool,
-                 build_dir: str):
+                 build_dir: str,
+                 px4_rootfs: str):
         super().__init__(log_dir, model, case, verbose)
         self.name = "mavsdk_tests"
         # pytest picks up pytest.ini and conftest.py from here, and the
@@ -378,6 +379,7 @@ class TestRunnerMavsdk(Runner):
                      "-s",
                      "--url", mavlink_connection,
                      "--speed-factor", str(speed_factor),
+                     "--px4-rootfs", px4_rootfs,
                      case]
         self.env["PYTHONUNBUFFERED"] = "1"
 

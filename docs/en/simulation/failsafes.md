@@ -76,7 +76,7 @@ failure gps off
 # Freeze (all) GPS on the last reported position (a "stuck" fix)
 failure gps stuck
 
-# Report a diverging position (offset by ~111 km, trips the GNSS redundancy checks)
+# Report a 2D fix with the position unchanged (SYS_FAIL_GPS_* select the reported fields)
 failure gps wrong
 
 # Restore normal GPS output
@@ -84,6 +84,7 @@ failure gps ok
 ```
 
 :::tip
-To test the [GNSS redundancy failsafe](../advanced_config/parameter_reference.md#COM_GNSSLOSS_ACT) you can simulate a second GPS receiver: set the antenna-offset parameter [SENS_GNSS1_OFFX](../advanced_config/parameter_reference.md#SENS_GNSS1_OFFX) or [SENS_GNSS1_OFFY](../advanced_config/parameter_reference.md#SENS_GNSS1_OFFY) to a non-zero value, and the simulator publishes a second `sensor_gnss` instance offset by that distance (in metres).
+To test receiver failover and the [GNSS redundancy failsafe](../advanced_config/parameter_reference.md#COM_GNSSLOSS_ACT) in SIH, simulate a second receiver with [SIM_GNSS_NUM](../advanced_config/parameter_reference.md#SIM_GNSS_NUM) `2`.
+Each receiver has its own noise and a constant position error set by [SIM_GNSSx_BIAS_N](../advanced_config/parameter_reference.md#SIM_GNSS1_BIAS_N), `_E` and `_D`, and reports its antenna at [SENS_GNSSx_OFFX](../advanced_config/parameter_reference.md#SENS_GNSS1_OFFX), `_OFFY` and `_OFFZ`.
 You can then fail an individual receiver with the `-i` flag (`-i 0` = all instances, `-i 1` = first GPS, `-i 2` = second), for example `failure gps wrong -i 2`.
 :::
