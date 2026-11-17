@@ -33,6 +33,7 @@
 
 #include <px4_platform_common/events.h>
 #include "EKF2.hpp"
+#include <lib/sensor_calibration/Utilities.hpp>
 
 using namespace time_literals;
 using matrix::Eulerf;
@@ -595,15 +596,34 @@ void EKF2::Run()
 						command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 						if (!_ekf.control_status().flags.yaw_align && vehicle_command.from_external) {
-							mavlink_log_critical(&_mavlink_log_pub, "Position not displayed due to uninitialized vehicle heading\t");
+							bool mag_uncalibrated = false;
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+							mag_uncalibrated = (_device_id_mag != 0)
+									   && (calibration::FindCurrentCalibrationIndex("MAG", _device_id_mag) < 0);
+#endif // CONFIG_EKF2_MAGNETOMETER
 
-							/* EVENT
-							* @description
-							* Position reset received while vehicle has unhealy heading
-							* Apply manual heading reset. Recalibrate compass if error persists.
-							*/
-							events::send(events::ID("ekf2_external_pos_reset_no_heading"), events::Log::Warning,
-								     "Position not displayed due to uninitialized vehicle heading");
+							if (mag_uncalibrated) {
+								mavlink_log_critical(&_mavlink_log_pub, "Position not displayed due to uncalibrated compass\t");
+
+								/* EVENT
+								* @description
+								* Position reset received while vehicle heading is not initialized because the compass is uncalibrated.
+								* Calibrate the compass.
+								*/
+								events::send(events::ID("ekf2_external_pos_reset_mag_uncal"), events::Log::Warning,
+									     "Position not displayed due to uncalibrated compass");
+
+							} else {
+								mavlink_log_critical(&_mavlink_log_pub, "Position not displayed due to uninitialized vehicle heading\t");
+
+								/* EVENT
+								* @description
+								* Position reset received while vehicle heading is not initialized.
+								* Apply manual heading reset. Recalibrate compass if error persists.
+								*/
+								events::send(events::ID("ekf2_external_pos_reset_no_heading"), events::Log::Warning,
+									     "Position not displayed due to uninitialized vehicle heading");
+							}
 						}
 
 					} else {

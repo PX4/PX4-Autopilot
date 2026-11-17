@@ -284,6 +284,7 @@ px4_add_module(
 		perf
 		px4_work_queue
 		world_magnetic_model
+		sensor_calibration
 
 		${EKF_LIBS}
 		lat_lon_alt
