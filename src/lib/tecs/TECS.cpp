@@ -227,10 +227,9 @@ void TECSControl::initialize(const Setpoint &setpoint, const Input &input, const
 	const SpecificEnergyWeighting weight{_updateSpeedAltitudeWeights(param, flag)};
 	const SpecificEnergyRates pitch_specific_energy_rate{_calcPitchControlEnergyRates(setpoint, input, limit,
 			specific_energy_rate, param, flag, weight)};
-	const float ste_rate_setpoint_pitch{_calcPitchControlSteRateSetpoint(weight, limit, specific_energy_rate)};
-	ControlValues seb_rate{_calcPitchControlSebRate(weight, limit, specific_energy_rate, pitch_specific_energy_rate)};
+	const ControlValues seb_rate{_calcPitchControlSebRate(pitch_specific_energy_rate)};
 
-	_pitch_setpoint = _calcPitchControlOutput(input, seb_rate, ste_rate_setpoint_pitch, param);
+	_pitch_setpoint = _calcPitchControlOutput(input, seb_rate, pitch_specific_energy_rate.spe_rate.setpoint, param);
 
 	ControlValues ste_rate{_calcThrottleControlSteRate(limit, specific_energy_rate, param)};
 	_ste_rate_error_filter.reset(_getControlError(ste_rate));
@@ -424,70 +423,6 @@ TECSControl::SpecificEnergyRates TECSControl::_calcPitchControlEnergyRates(const
 		const Input &input, const STERateLimit &limit, const SpecificEnergyRates &specific_energy_rates,
 		const Param &param, const Flag &flag, const SpecificEnergyWeighting &weight) const
 {
-	SpecificEnergyRates pitch_specific_energy_rates{specific_energy_rates};
-	pitch_specific_energy_rates.ske_rate.setpoint = _calcPitchControlSkeRateSetpoint(setpoint, input, limit, param, flag,
-			weight);
-
-	// Between trim airspeed and the airspeed setpoint the throttle alone accelerates the vehicle. The capped setpoint
-	// above already removes the kinetic setpoint of the pitch loop there, faded in with speed priority. But if the
-	// throttle falls short of the acceleration, the pitch loop would pitch down to make up for it. In this band the
-	// pitch loop therefore sees the kinetic energy rate the throttle would give with the total energy rate the pitch
-	// assumes from it, with the same fade, so that pitch controls height only.
-	const bool throttle_accelerates = input.tas > param.tas_trim && input.tas < setpoint.tas_setpoint;
-	const float kinetic_estimate_gain = throttle_accelerates ? constrain(weight.ske_weighting - 1.f, 0.f, 1.f) : 1.f;
-	const float ske_rate_throttle_tracking = _calcPitchControlSteRateSetpoint(weight, limit, specific_energy_rates)
-			- specific_energy_rates.spe_rate.estimate;
-	pitch_specific_energy_rates.ske_rate.estimate = lerp(ske_rate_throttle_tracking,
-			pitch_specific_energy_rates.ske_rate.estimate, kinetic_estimate_gain);
-
-	return pitch_specific_energy_rates;
-}
-
-void TECSControl::_calcPitchControl(float dt, const Setpoint &setpoint, const Input &input, const STERateLimit &limit,
-				    const SpecificEnergyRates &specific_energy_rates, const Param &param, const Flag &flag)
-{
-	const SpecificEnergyWeighting weight{_updateSpeedAltitudeWeights(param, flag)};
-
-	const SpecificEnergyRates pitch_specific_energy_rates{_calcPitchControlEnergyRates(setpoint, input, limit,
-			specific_energy_rates, param, flag, weight)};
-
-	const float ste_rate_setpoint_pitch{_calcPitchControlSteRateSetpoint(weight, limit, specific_energy_rates)};
-	ControlValues seb_rate{_calcPitchControlSebRate(weight, limit, specific_energy_rates, pitch_specific_energy_rates)};
-
-	// The balance rate feedback splits a total energy rate other than the assumed one evenly between altitude and
-	// airspeed. Without thrust the integrator sees the estimated total energy rate instead, so that a sink rate other
-	// than the minimum one does not offset the airspeed of the glide.
-	const float ste_rate_error_pitch{ste_rate_setpoint_pitch - (specific_energy_rates.spe_rate.estimate
-					 + specific_energy_rates.ske_rate.estimate)};
-	const float seb_rate_error_integ{_getControlError(seb_rate) - weight.no_thrust * ste_rate_error_pitch};
-
-	_calcPitchControlUpdate(dt, input, seb_rate_error_integ, param);
-	const float pitch_setpoint{_calcPitchControlOutput(input, seb_rate, ste_rate_setpoint_pitch, param)};
-
-	// Comply with the specified vertical acceleration limit by applying a pitch rate limit
-	// NOTE: at zero airspeed, the pitch increment is unbounded
-	const float pitch_increment = dt * param.vert_accel_limit / math::max(input.tas, FLT_EPSILON);
-	_pitch_setpoint = constrain(pitch_setpoint, _pitch_setpoint - pitch_increment,
-				    _pitch_setpoint + pitch_increment);
-	_pitch_setpoint = constrain(_pitch_setpoint, param.pitch_min, param.pitch_max);
-
-	//Debug Output
-	_debug_output.energy_balance_rate_estimate = seb_rate.estimate;
-	_debug_output.energy_balance_rate_sp = seb_rate.setpoint;
-	_debug_output.pitch_integrator = _pitch_integ_state;
-}
-
-float TECSControl::_calcPitchControlSteRateSetpoint(const SpecificEnergyWeighting &weight, const STERateLimit &limit,
-		const SpecificEnergyRates &specific_energy_rates)
-{
-	return lerp(specific_energy_rates.spe_rate.setpoint + specific_energy_rates.ske_rate.setpoint, limit.STE_rate_min,
-		    weight.no_thrust);
-}
-
-TECSControl::ControlValues TECSControl::_calcPitchControlSebRate(const SpecificEnergyWeighting &weight,
-		const STERateLimit &limit, const SpecificEnergyRates &specific_energy_rates,
-		const SpecificEnergyRates &pitch_specific_energy_rates) const
-{
 	/*
 	 * Energy rate demands from the outer loop setpoints, with speed weight w and the share f of the total energy rate
 	 * the pitch assumes to be the minimum (no thrust) instead of the throttle's setpoint:
@@ -504,29 +439,82 @@ TECSControl::ControlValues TECSControl::_calcPitchControlSebRate(const SpecificE
 	 * the kinetic energy rate setpoint is left to the throttle.
 	 */
 	const float f = weight.no_thrust;
-	const float spe_rate_sp = pitch_specific_energy_rates.spe_rate.setpoint;
-	const float ske_rate_sp = pitch_specific_energy_rates.ske_rate.setpoint;
+	const float spe_rate_sp = specific_energy_rates.spe_rate.setpoint;
+	const float ske_rate_sp = _calcPitchControlSkeRateSetpoint(setpoint, input, limit, param, flag, weight);
 	const float ske_rate_sp_throttle_only = specific_energy_rates.ske_rate.setpoint - ske_rate_sp;
 
-	const float spe_rate_demand = weight.spe_weighting * spe_rate_sp - weight.ske_weighting * ske_rate_sp
-				      + f * limit.STE_rate_min;
-	const float ske_rate_demand = (1.f - weight.spe_weighting - f) * spe_rate_sp
-				      + (1.f + weight.ske_weighting - f) * ske_rate_sp + (1.f - f) * ske_rate_sp_throttle_only;
+	SpecificEnergyRates pitch_specific_energy_rates{specific_energy_rates};
+	pitch_specific_energy_rates.spe_rate.setpoint = weight.spe_weighting * spe_rate_sp - weight.ske_weighting * ske_rate_sp
+			+ f * limit.STE_rate_min;
+	pitch_specific_energy_rates.ske_rate.setpoint = (1.f - weight.spe_weighting - f) * spe_rate_sp
+			+ (1.f + weight.ske_weighting - f) * ske_rate_sp + (1.f - f) * ske_rate_sp_throttle_only;
 
-	ControlValues seb_rate;
-	seb_rate.setpoint = spe_rate_demand - ske_rate_demand;
-	seb_rate.estimate = pitch_specific_energy_rates.spe_rate.estimate - pitch_specific_energy_rates.ske_rate.estimate;
+	// Between trim airspeed and the airspeed setpoint the throttle alone accelerates the vehicle. The capped setpoint
+	// above already removes the kinetic setpoint of the pitch loop there, faded in with speed priority. But if the
+	// throttle falls short of the acceleration, the pitch loop would pitch down to make up for it. In this band the
+	// pitch loop therefore sees the kinetic energy rate the throttle would give with the total energy rate the pitch
+	// assumes from it, with the same fade, so that pitch controls height only.
+	const bool throttle_accelerates = input.tas > param.tas_trim && input.tas < setpoint.tas_setpoint;
+	const float kinetic_estimate_gain = throttle_accelerates ? constrain(weight.ske_weighting - 1.f, 0.f, 1.f) : 1.f;
+	const float ske_rate_throttle_tracking = pitch_specific_energy_rates.spe_rate.setpoint
+			+ pitch_specific_energy_rates.ske_rate.setpoint - specific_energy_rates.spe_rate.estimate;
+	pitch_specific_energy_rates.ske_rate.estimate = lerp(ske_rate_throttle_tracking,
+			pitch_specific_energy_rates.ske_rate.estimate, kinetic_estimate_gain);
 
-	return seb_rate;
+	return pitch_specific_energy_rates;
+}
+
+void TECSControl::_calcPitchControl(float dt, const Setpoint &setpoint, const Input &input, const STERateLimit &limit,
+				    const SpecificEnergyRates &specific_energy_rates, const Param &param, const Flag &flag)
+{
+	const SpecificEnergyWeighting weight{_updateSpeedAltitudeWeights(param, flag)};
+
+	const SpecificEnergyRates pitch_specific_energy_rates{_calcPitchControlEnergyRates(setpoint, input, limit,
+			specific_energy_rates, param, flag, weight)};
+
+	const ControlValues seb_rate{_calcPitchControlSebRate(pitch_specific_energy_rates)};
+
+	// The balance rate feedback splits a total energy rate other than the assumed one evenly between altitude and
+	// airspeed. Without thrust the integrator sees the estimated total energy rate instead, so that a sink rate other
+	// than the minimum one does not offset the airspeed of the glide.
+	const float ste_rate_error_pitch{pitch_specific_energy_rates.spe_rate.setpoint
+					 + pitch_specific_energy_rates.ske_rate.setpoint
+					 - specific_energy_rates.spe_rate.estimate - specific_energy_rates.ske_rate.estimate};
+	const float seb_rate_error_integ{_getControlError(seb_rate) - weight.no_thrust * ste_rate_error_pitch};
+
+	_calcPitchControlUpdate(dt, input, seb_rate_error_integ, param);
+	const float pitch_setpoint{_calcPitchControlOutput(input, seb_rate, pitch_specific_energy_rates.spe_rate.setpoint,
+				   param)};
+
+	// Comply with the specified vertical acceleration limit by applying a pitch rate limit
+	// NOTE: at zero airspeed, the pitch increment is unbounded
+	const float pitch_increment = dt * param.vert_accel_limit / math::max(input.tas, FLT_EPSILON);
+	_pitch_setpoint = constrain(pitch_setpoint, _pitch_setpoint - pitch_increment,
+				    _pitch_setpoint + pitch_increment);
+	_pitch_setpoint = constrain(_pitch_setpoint, param.pitch_min, param.pitch_max);
+
+	//Debug Output
+	_debug_output.energy_balance_rate_estimate = seb_rate.estimate;
+	_debug_output.energy_balance_rate_sp = seb_rate.setpoint;
+	_debug_output.pitch_integrator = _pitch_integ_state;
+}
+
+TECSControl::ControlValues TECSControl::_calcPitchControlSebRate(const SpecificEnergyRates
+		&pitch_specific_energy_rates)
+{
+	return ControlValues{
+		.setpoint = pitch_specific_energy_rates.spe_rate.setpoint - pitch_specific_energy_rates.ske_rate.setpoint,
+		.estimate = pitch_specific_energy_rates.spe_rate.estimate - pitch_specific_energy_rates.ske_rate.estimate,
+	};
 }
 
 void TECSControl::_calcPitchControlUpdate(float dt, const Input &input, float seb_rate_error, const Param &param)
 {
 	if (param.integrator_gain_pitch > FLT_EPSILON) {
 
-		// Calculate pitch integrator input term: the balance rate error is a balance rate increment at the current throttle
-		float pitch_integ_input = _sebRateToClimbAngle(seb_rate_error * param.integrator_gain_pitch, 0.f, input,
-					  param);
+		// Calculate pitch integrator input term: at the current throttle a balance rate error is twice a potential
+		// energy rate error
+		float pitch_integ_input = 0.5f * seb_rate_error * param.integrator_gain_pitch / _climbAngleToSpeRate(input, param);
 
 		// Guard against NaN integrator input - discard bad input sample (e.g., exiting offboard velocity mode)
 		if (!PX4_ISFINITE(pitch_integ_input)) {
@@ -554,36 +542,25 @@ void TECSControl::_calcPitchControlUpdate(float dt, const Input &input, float se
 	}
 }
 
-float TECSControl::_sebRateToClimbAngle(float seb_rate, float ste_rate, const Input &input, const Param &param)
+float TECSControl::_climbAngleToSpeRate(const Input &input, const Param &param)
 {
-	// The balance rate depends not only on the climb angle but also on total energy rate.
-	// Working from definitions, with climb angle γ (sin linearised as usual here):
-	//     STE' = total energy rate from the throttle - drag (ideally the STE rate setpoint)
-	//     SPE' = g V γ
-	//     SKE' = STE' - SPE'
-	//     SEB' = SPE' - SKE' = 2 SPE' - STE' = 2 g V γ - STE'
-	// Solving for γ:
-	//     γ = (SEB' + STE') / (2 g V)
-
 	// max() returns its second argument for a NaN first one, so a NaN airspeed falls back to the minimum airspeed
-	const float tas = max(input.tas, param.tas_min, FLT_EPSILON);
-
-	return (seb_rate + ste_rate) / (2.f * tas * CONSTANTS_ONE_G);
+	return max(input.tas, param.tas_min, FLT_EPSILON) * CONSTANTS_ONE_G;
 }
 
-float TECSControl::_calcPitchControlOutput(const Input &input, const ControlValues &seb_rate, float ste_rate_setpoint,
+float TECSControl::_calcPitchControlOutput(const Input &input, const ControlValues &seb_rate, float spe_rate_demand,
 		const Param &param) const
 {
-	// Calculate a specific energy correction that doesn't include the integrator contribution
-	float SEB_rate_correction = _getControlError(seb_rate) * param.pitch_damping_gain + seb_rate.setpoint;
+	// Calculate a potential energy rate correction that doesn't include the integrator contribution: the demand, plus
+	// the damping of the balance rate error, which at the current throttle is twice a potential energy rate error
+	const float SPE_rate_correction = spe_rate_demand + 0.5f * _getControlError(seb_rate) * param.pitch_damping_gain;
 
-	// Convert the balance rate correction to a climb angle and add the level-flight pitch, the angle of attack at
-	// zero climb angle, to get the absolute pitch setpoint. This calculation assumes:
+	// Convert the potential energy rate correction to a climb angle and add the level-flight pitch, the angle of attack
+	// at zero climb angle, to get the absolute pitch setpoint. This calculation assumes:
 	// a) The climb angle follows pitch angle with a lag that is small enough not to destabilise the control loop.
 	// b) The offset between climb angle and pitch angle (angle of attack) is constant and equal to the level-flight
 	// pitch, excluding the effect of pitch transients due to control action or turbulence.
-	float pitch_setpoint_unc = _sebRateToClimbAngle(SEB_rate_correction, ste_rate_setpoint, input, param)
-				   + _pitch_integ_state
+	float pitch_setpoint_unc = SPE_rate_correction / _climbAngleToSpeRate(input, param) + _pitch_integ_state
 				   + param.level_flight_pitch;
 
 	// Guard against a non-finite feedforward/damping contribution (e.g. seb_rate going NaN on the energy/speed
@@ -635,6 +612,8 @@ TECSControl::ControlValues TECSControl::_calcThrottleControlSteRate(const STERat
 		const Param &param) const
 {
 	// Output ste rate values
+	// The speed weight only moves energy between the pitch's demands, which then also sum to this setpoint. The
+	// throttle does not assume no thrust (see _calcPitchControlEnergyRates).
 	ControlValues ste_rate;
 	ste_rate.setpoint = specific_energy_rates.spe_rate.setpoint + specific_energy_rates.ske_rate.setpoint;
 
