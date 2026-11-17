@@ -516,7 +516,7 @@ float VtolType::pusher_assist()
 
 		forward_thrust = (sinf(pitch_setpoint_min) - sinf(pitch_setpoint)) * _param_vt_fwd_thrust_sc.get();
 		// limit forward actuation to [0, 0.9]
-		forward_thrust = math::constrain(forward_thrust, 0.0f, 0.9f);
+		forward_thrust = math::constrain(forward_thrust, 0.0f, kPusherAssistMax);
 
 		// create corrected desired body z axis in heading frame
 		const Dcmf R_tmp = Eulerf(roll_new, pitch_setpoint_min, 0.0f);

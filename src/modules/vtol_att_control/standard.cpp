@@ -62,7 +62,7 @@ Standard::parameters_update()
 	_param_vt_b_trans_ramp.set(math::min(_param_vt_b_trans_ramp.get(), _param_vt_b_trans_dur.get()));
 
 	// disabling the detection in flight overrides a detected pusher failure, e.g. a false positive in strong wind
-	if (_param_vt_ef_time.get() < FLT_EPSILON) {
+	if (!isPusherFailureDetectionEnabled()) {
 		_pusher_failed = false;
 	}
 }
@@ -305,14 +305,21 @@ bool Standard::isPusherFailureDetected()
 {
 	bool pusher_ineffective = false;
 
-	if (_param_vt_ef_time.get() > FLT_EPSILON && _pusher_throttle > _param_vt_ef_throt.get() && _local_pos->v_xy_valid) {
+	// pusher assist that a dead pusher makes the position controller command, see VtolType::pusher_assist()
+	const float pitch_min = math::radians(_param_vt_pitch_min.get());
+	const float tilt_max = math::min(math::radians(_param_mpc_tiltmax_air.get()), kPusherFailureTiltMax);
+	const float pusher_assist_ref = math::min(_param_vt_fwd_thrust_sc.get() * (sinf(pitch_min) + sinf(tilt_max)),
+					kPusherAssistMax);
+
+	if (isPusherFailureDetectionEnabled() && _pusher_throttle > kPusherFailureAssistRatio * pusher_assist_ref
+	    && _local_pos->v_xy_valid) {
 		const Quatf q(_v_att->q);
 		const float forward_vel = q.rotateVectorInverse(Vector3f(_local_pos->vx, _local_pos->vy, _local_pos->vz))(0);
 		const float forward_vel_sp = q.rotateVectorInverse(Vector3f(_local_pos_sp->vx, _local_pos_sp->vy,
 					     _local_pos_sp->vz))(0);
 
-		// NAN velocities fail the comparisons and never detect
-		pusher_ineffective = forward_vel_sp > _param_vt_ef_vsp_thresh.get() && forward_vel < _param_vt_ef_v_thresh.get();
+		// NAN velocities fail the comparison and never detect
+		pusher_ineffective = forward_vel_sp - forward_vel > _param_vt_ef_vel_err.get();
 	}
 
 	_pusher_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * math::max(_param_vt_ef_time.get(), 0.f)));

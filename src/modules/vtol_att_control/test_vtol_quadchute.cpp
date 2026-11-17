@@ -156,16 +156,26 @@ protected:
 	void TearDown() override
 	{
 		param_reset(param_find("VT_EF_TIME"));
+		param_reset(param_find("MPC_TILTMAX_AIR"));
+		param_reset(param_find("VT_FWD_THRUST_SC"));
+		param_reset(param_find("VT_PITCH_MIN"));
 		VtolQuadchutePusherTest::TearDown();
 	}
 
-	// Level hover with a pitch setpoint of -45 deg, which pusher assist replaces with thrust above VT_EF_THROT
-	void setHover(VtolAttitudeControl &attc, float forward_velocity)
+	void setParam(const char *name, float value)
 	{
-		VtolQuadchutePusherTest::setHover(attc, -45.f);
+		param_set(param_find(name), &value);
+	}
+
+	// Level hover, by default with the -45 deg pitch setpoint of MPC_TILTMAX_AIR, which pusher assist replaces
+	// with its highest thrust
+	void setHover(VtolAttitudeControl &attc, float forward_velocity, float forward_velocity_setpoint = 5.f,
+		      float pitch_degrees = -45.f)
+	{
+		VtolQuadchutePusherTest::setHover(attc, pitch_degrees);
 		attc.get_local_pos()->v_xy_valid = true;
 		attc.get_local_pos()->vx = forward_velocity;
-		attc.get_local_pos_sp()->vx = 5.f;
+		attc.get_local_pos_sp()->vx = forward_velocity_setpoint;
 	}
 
 	void commandFrontTransition(VtolAttitudeControl &attc)
@@ -248,12 +258,67 @@ TEST_F(VtolPusherFailureTest, PusherFailureReplacesCommandedQuadchute)
 	EXPECT_FALSE(PX4_ISFINITE(runCycle(attc, standard, true)));
 }
 
-TEST_F(VtolPusherFailureTest, ForwardMotionIsNoPusherFailure)
+TEST_F(VtolPusherFailureTest, ForwardVelocityCloseToSetpointIsNoPusherFailure)
 {
 	VtolAttitudeControl attc;
 	Standard standard(&attc);
-	setHover(attc, 1.f);
+	setHover(attc, 2.f); // 3 m/s below the setpoint, VT_EF_VEL_ERR is 3.5 m/s
 
 	fly(attc, standard, 300_ms);
 	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
+}
+
+TEST_F(VtolPusherFailureTest, MovingBackwardWhenHoldingPositionIsPusherFailure)
+{
+	VtolAttitudeControl attc;
+	Standard standard(&attc);
+	setHover(attc, -4.f, 0.f);
+
+	fly(attc, standard, 2_s);
+	EXPECT_TRUE(attc.is_fixed_wing_system_failure());
+}
+
+TEST_F(VtolPusherFailureTest, PusherAssistBelowItsMaximumIsNoPusherFailure)
+{
+	VtolAttitudeControl attc;
+	Standard standard(&attc);
+	setHover(attc, 0.f, 5.f, -35.f); // 81% of the highest pusher assist, the detection needs 90%
+
+	fly(attc, standard, 300_ms);
+	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
+}
+
+TEST_F(VtolPusherFailureTest, TiltLimitAbove45DegDetectsPusherFailure)
+{
+	// a dead pusher only makes the position controller tilt about 54 deg with a 70 deg limit
+	setParam("MPC_TILTMAX_AIR", 70.f);
+	VtolAttitudeControl attc;
+	Standard standard(&attc);
+	setHover(attc, 0.f, 5.f, -54.f);
+
+	fly(attc, standard, 2_s);
+	EXPECT_TRUE(attc.is_fixed_wing_system_failure());
+}
+
+TEST_F(VtolPusherFailureTest, PusherAssistCappedAt0p9DetectsPusherFailure)
+{
+	setParam("VT_FWD_THRUST_SC", 2.f);
+	VtolAttitudeControl attc;
+	Standard standard(&attc);
+	setHover(attc, 0.f);
+
+	fly(attc, standard, 2_s);
+	EXPECT_TRUE(attc.is_fixed_wing_system_failure());
+}
+
+TEST_F(VtolPusherFailureTest, NegativeMinimumPitchDetectsPusherFailure)
+{
+	// pusher assist only covers the pitch below VT_PITCH_MIN, here 0.37 at most
+	setParam("VT_PITCH_MIN", -10.f);
+	VtolAttitudeControl attc;
+	Standard standard(&attc);
+	setHover(attc, 0.f);
+
+	fly(attc, standard, 2_s);
+	EXPECT_TRUE(attc.is_fixed_wing_system_failure());
 }
