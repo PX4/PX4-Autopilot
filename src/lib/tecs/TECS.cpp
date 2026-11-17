@@ -454,7 +454,14 @@ void TECSControl::_calcPitchControl(float dt, const Setpoint &setpoint, const In
 	const float ste_rate_setpoint_pitch{_calcPitchControlSteRateSetpoint(weight, limit, specific_energy_rates)};
 	ControlValues seb_rate{_calcPitchControlSebRate(weight, limit, specific_energy_rates, pitch_specific_energy_rates)};
 
-	_calcPitchControlUpdate(dt, input, seb_rate, param);
+	// The balance rate feedback splits a total energy rate other than the assumed one evenly between altitude and
+	// airspeed. Without thrust the integrator sees the estimated total energy rate instead, so that a sink rate other
+	// than the minimum one does not offset the airspeed of the glide.
+	const float ste_rate_error_pitch{ste_rate_setpoint_pitch - (specific_energy_rates.spe_rate.estimate
+					 + specific_energy_rates.ske_rate.estimate)};
+	const float seb_rate_error_integ{_getControlError(seb_rate) - weight.no_thrust * ste_rate_error_pitch};
+
+	_calcPitchControlUpdate(dt, input, seb_rate_error_integ, param);
 	const float pitch_setpoint{_calcPitchControlOutput(input, seb_rate, ste_rate_setpoint_pitch, param)};
 
 	// Comply with the specified vertical acceleration limit by applying a pitch rate limit
@@ -513,13 +520,12 @@ TECSControl::ControlValues TECSControl::_calcPitchControlSebRate(const SpecificE
 	return seb_rate;
 }
 
-void TECSControl::_calcPitchControlUpdate(float dt, const Input &input, const ControlValues &seb_rate,
-		const Param &param)
+void TECSControl::_calcPitchControlUpdate(float dt, const Input &input, float seb_rate_error, const Param &param)
 {
 	if (param.integrator_gain_pitch > FLT_EPSILON) {
 
 		// Calculate pitch integrator input term: the balance rate error is a balance rate increment at the current throttle
-		float pitch_integ_input = _sebRateToClimbAngle(_getControlError(seb_rate) * param.integrator_gain_pitch, 0.f, input,
+		float pitch_integ_input = _sebRateToClimbAngle(seb_rate_error * param.integrator_gain_pitch, 0.f, input,
 					  param);
 
 		// Guard against NaN integrator input - discard bad input sample (e.g., exiting offboard velocity mode)

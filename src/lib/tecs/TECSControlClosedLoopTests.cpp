@@ -103,7 +103,7 @@ TECSControl::Param defaultParams()
 
 // Deviations of the plant from the TECS model. The default plant is the TECS model.
 struct PlantModel {
-	bool throttle_failed{false}; // no thrust: the plant sinks at the minimum sink rate
+	bool throttle_failed{false}; // no thrust: the plant sinks at the minimum sink rate (plus the offset below)
 	float pitch_offset{0.f}; // flight path angle at zero pitch is -pitch_offset [rad]
 	float ste_rate_offset{0.f}; // [m²/s³]
 };
@@ -112,7 +112,7 @@ struct PlantModel {
 float steRatePlant(const TECSControl::Param &p, const PlantModel &plant, float throttle)
 {
 	if (plant.throttle_failed) {
-		return -p.min_sink_rate * CONSTANTS_ONE_G;
+		return -p.min_sink_rate * CONSTANTS_ONE_G + plant.ste_rate_offset;
 	}
 
 	const float ste_rate = (throttle >= p.throttle_trim)
@@ -459,6 +459,7 @@ TEST_F(TECSControlClosedLoopTest, GliderTracksAirspeedStepAboveTrim)
 	_params.pitch_speed_weight = 2.f;
 	_params.throttle_max = _params.throttle_min;
 	_plant.throttle_failed = true;
+	_plant.ste_rate_offset = 0.5f * CONSTANTS_ONE_G; // sinks slower than the minimum sink rate
 
 	for (int i = 0; i < static_cast<int>(60.f / DT); i++) {
 		if (i == static_cast<int>(30.f / DT)) {
@@ -479,6 +480,7 @@ TEST_F(TECSControlClosedLoopTest, GliderTracksAirspeedStepAboveTrim)
 TEST_F(TECSControlClosedLoopTest, FastDescendFliesMaximumAirspeedAtMinimumThrottle)
 {
 	run(10.f);
+	_plant.ste_rate_offset = -CONSTANTS_ONE_G; // more drag at maximum airspeed than at trim airspeed
 	_params.fast_descend = 1.f;
 	_V_sp = _params.tas_max;
 	_alt_sp = ALT_INIT - 1000.f;

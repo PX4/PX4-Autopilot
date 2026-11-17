@@ -563,10 +563,10 @@ private:
 	 *
 	 * @param dt is the update time interval in [s].
 	 * @param input is the current input measurement of the UAS.
-	 * @param seb_rate is the specific energy balance rate in [m²/s³].
+	 * @param seb_rate_error is the specific energy balance rate error to integrate in [m²/s³].
 	 * @param param is the control parameters.
 	 */
-	void _calcPitchControlUpdate(float dt, const Input &input, const ControlValues &seb_rate, const Param &param);
+	void _calcPitchControlUpdate(float dt, const Input &input, float seb_rate_error, const Param &param);
 
 	/**
 	 * @brief Climb angle that realises a specific energy balance rate.
