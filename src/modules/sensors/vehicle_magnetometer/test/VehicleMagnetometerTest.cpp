@@ -442,13 +442,23 @@ TEST_F(VehicleMagnetometerTest, BiasEstimateChangeIsCalibrationChange)
 	EXPECT_NE(mag.calibration_count, calibration_count);
 	const uint8_t calibration_count_applied = mag.calibration_count;
 
+	publishBiasEstimate(0, bias + Vector3f{0.02f, 0.f, 0.f}, true, true);
+	runFor(module, 300_ms, [&]() { publishSample(0, _field); });
+
+	ASSERT_TRUE(_vehicle_magnetometer_sub.copy(&mag));
+	EXPECT_EQ(mag.calibration_count, calibration_count_applied) << "once per stable episode";
+	EXPECT_LT((Vector3f{mag.magnetometer_ga} - (_field - bias)).norm(), 1e-3f);
+
+	publishBiasEstimate(0, bias + Vector3f{0.005f, 0.f, 0.f}, true, false);
+	runFor(module, 300_ms, [&]() { publishSample(0, _field); });
 	publishBiasEstimate(0, bias + Vector3f{0.005f, 0.f, 0.f}, true, true);
 	runFor(module, 300_ms, [&]() { publishSample(0, _field); });
 
 	ASSERT_TRUE(_vehicle_magnetometer_sub.copy(&mag));
 	EXPECT_EQ(mag.calibration_count, calibration_count_applied) << "change below the hysteresis";
-	EXPECT_LT((Vector3f{mag.magnetometer_ga} - (_field - bias)).norm(), 1e-3f);
 
+	publishBiasEstimate(0, bias + Vector3f{0.02f, 0.f, 0.f}, true, false);
+	runFor(module, 300_ms, [&]() { publishSample(0, _field); });
 	publishBiasEstimate(0, bias + Vector3f{0.02f, 0.f, 0.f}, true, true);
 	runFor(module, 300_ms, [&]() { publishSample(0, _field); });
 
