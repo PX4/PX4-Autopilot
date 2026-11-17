@@ -74,7 +74,7 @@ public:
 	/**
 	 * @see ModuleBase::print_usage
 	 */
-	int print_status();
+	int print_status() override;
 
 	/**
 	 * @see ModuleBase::task_spawn

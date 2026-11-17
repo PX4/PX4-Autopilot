@@ -72,12 +72,12 @@ int Zenoh_Subscriber::undeclare_subscriber()
 int Zenoh_Subscriber::declare_subscriber(z_owned_session_t s, const char *keyexpr)
 {
 	z_owned_closure_sample_t callback;
-	z_closure(&callback, data_handler_cb, NULL, this);
+	z_closure(&callback, data_handler_cb, nullptr, this);
 
 	z_view_keyexpr_t ke;
 	z_view_keyexpr_from_str(&ke, keyexpr);
 
-	if (z_declare_subscriber(z_loan(s), &_sub, z_loan(ke), z_closure_sample_move(&callback), NULL) < 0) {
+	if (z_declare_subscriber(z_loan(s), &_sub, z_loan(ke), z_closure_sample_move(&callback), nullptr) < 0) {
 		printf("Unable to declare subscriber.\n");
 		exit(-1);
 	}
@@ -96,7 +96,7 @@ void Zenoh_Subscriber::print(const char *type_string, const char *topic_string)
 {
 	const z_loaned_keyexpr_t *ke = z_subscriber_keyexpr(z_loan(_sub));
 
-	if (ke == NULL) {
+	if (ke == nullptr) {
 		printf("Topic: (unavailable) -> %s %s\n", type_string, topic_string);
 		return;
 	}

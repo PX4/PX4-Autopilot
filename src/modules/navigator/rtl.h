@@ -137,6 +137,11 @@ private:
 	PositionYawSetpoint findClosestSafePoint(float min_dist, uint8_t &safe_point_index);
 
 	/**
+	 * @brief Smallest remaining time [s] of the connected batteries, NAN if none reports one.
+	 */
+	float worstBatteryTimeRemaining();
+
+	/**
 	 * @brief Set the position of the land start marker in the planned mission as destination.
 	 *
 	 */
@@ -156,7 +161,10 @@ private:
 	 *
 	 * @return false if the executor could not be allocated
 	 */
-	bool initRtlMissionType(RtlType new_rtl_type, float rtl_alt);
+	bool initRtlMissionType(RtlType new_rtl_type);
+
+	/** Runs the selected executor active, then the other one inactive. */
+	void runExecutors();
 
 	/**
 	 * @brief Update parameters

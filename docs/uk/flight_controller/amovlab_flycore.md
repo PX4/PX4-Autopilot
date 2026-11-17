@@ -329,12 +329,6 @@ No connector is fitted by default.
 
 The UART8 pad pinout is board-specific and does not use a standard fitted connector.
 
-## Підтримувані платформи / Конструкції
-
-The Flycore can be used with airframes supported by the selected PX4 configuration, including multicopters and other vehicles that match the available PWM, CAN, serial, and sensor interfaces.
-
-Amovlab recommends Flycore for the Amovlab SU17 platform.
-
 ## Maintenance
 
 - **Vendor:** Amovlab

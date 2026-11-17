@@ -107,7 +107,7 @@ void ActuatorEffectivenessTilts::updateTorqueSign(const ActuatorEffectivenessRot
 	for (int i = 0; i < geometry.num_rotors; ++i) {
 		int tilt_index = geometry.rotors[i].tilt_index;
 
-		if (tilt_index == -1 || tilt_index >= _count) {
+		if (tilt_index < 0 || tilt_index >= _count) {
 			continue;
 		}
 

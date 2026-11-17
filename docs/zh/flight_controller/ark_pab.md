@@ -69,8 +69,8 @@ Order From [Ark Electronics](https://arkelectron.com/product/ark-pixhawk-autopil
 - 5V input on `POWER1`, `POWER2`, `USB C`, and the `USB JST-GH` connector
   - Input is prioritized in the following order: POWER1 > POWER2 > USB
   - `USB C` and the `USB JST-GH` are in parallel
-  - Overvoltage protection at 5.8V
-  - Undervoltage protection at 3.9V
+  - Overvoltage protection at 5.85V
+  - Undervoltage protection at 3.81V
 - `VDD_5V_HIPOWER` and `VDD_5V_PERIPH` can each provide a total of 1.5A across all the connectors
 
 ## LEDS

@@ -22,6 +22,7 @@ parameters:
       description:
         short: INA220 Power Monitor Battery Max Current
       type: float
+      unit: A
       default: 164.0
       min: 0.1
       max: 500.0
@@ -31,6 +32,7 @@ parameters:
       description:
         short: INA220 Power Monitor Battery Shunt
       type: float
+      unit: Ohm
       default: 0.0005
       min: 1.0e-09
       max: 0.1
@@ -40,6 +42,7 @@ parameters:
       description:
         short: INA220 Power Monitor Regulator Max Current
       type: float
+      unit: A
       default: 164.0
       min: 0.1
       max: 500.0
@@ -49,6 +52,7 @@ parameters:
       description:
         short: INA220 Power Monitor Regulator Shunt
       type: float
+      unit: Ohm
       default: 0.0005
       min: 1.0e-09
       max: 0.1

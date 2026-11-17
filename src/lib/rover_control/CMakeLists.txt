@@ -34,6 +34,8 @@
 px4_add_library(rover_control
 	RoverControl.cpp
 	RoverControl.hpp
+	RoverControllerWorkItem.cpp
+	RoverControllerWorkItem.hpp
 )
 # The library is only linked by the rover modules, so its parameters are only needed with them
 if(CONFIG_MODULES_ROVER_ACKERMANN OR CONFIG_MODULES_ROVER_DIFFERENTIAL OR CONFIG_MODULES_ROVER_MECANUM OR BUILD_TESTING)
@@ -43,3 +45,4 @@ endif()
 target_link_libraries(rover_control PUBLIC PID)
 target_link_libraries(rover_control PUBLIC geo)
 px4_add_unit_gtest(SRC RoverControlTest.cpp LINKLIBS rover_control)
+px4_add_functional_gtest(SRC RoverControllerWorkItemTest.cpp LINKLIBS rover_control)

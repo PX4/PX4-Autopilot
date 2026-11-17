@@ -71,6 +71,7 @@ parameters:
           5: Slow
           6: Delayed
           7: Intermittent
+          8: Drift
       SYS_FAIL_RC_INST:
         description:
           short: Instances failed by the RC switch
@@ -146,3 +147,53 @@ parameters:
           1: Warn
           2: Critical
           3: Emergency
+      SYS_FAIL_G_BIAS:
+        description:
+          short: Gyro bias failure injection offset
+          long: Constant offset added to every axis while a gyro 'wrong' failure injection is active.
+        type: float
+        default: 0.01
+        unit: rad/s
+        decimal: 2
+      SYS_FAIL_G_NOISE:
+        description:
+          short: Gyro noise failure injection magnitude
+          long: Amplitude of the uniform noise added to every axis while a gyro 'garbage' failure injection is active.
+        type: float
+        default: 0.05
+        min: 0
+        unit: rad/s
+        decimal: 2
+      SYS_FAIL_G_DRIFT:
+        description:
+          short: Gyro drift failure injection rate
+          long: Rate at which the offset added to every axis grows while a gyro 'drift' failure injection is active.
+        type: float
+        default: 0.001
+        unit: rad/s^2
+        decimal: 3
+      SYS_FAIL_A_BIAS:
+        description:
+          short: Accel bias failure injection offset
+          long: Constant offset added to every axis while an accel 'wrong' failure injection is active.
+        type: float
+        default: 0.2
+        unit: m/s^2
+        decimal: 2
+      SYS_FAIL_A_NOISE:
+        description:
+          short: Accel noise failure injection magnitude
+          long: Amplitude of the uniform noise added to every axis while an accel 'garbage' failure injection is active.
+        type: float
+        default: 1.0
+        min: 0
+        unit: m/s^2
+        decimal: 2
+      SYS_FAIL_A_DRIFT:
+        description:
+          short: Accel drift failure injection rate
+          long: Rate at which the offset added to every axis grows while an accel 'drift' failure injection is active.
+        type: float
+        default: 0.005
+        unit: m/s^3
+        decimal: 3
