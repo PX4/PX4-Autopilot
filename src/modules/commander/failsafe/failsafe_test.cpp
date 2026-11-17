@@ -1232,3 +1232,44 @@ TEST_F(FailsafeTest, GnssLostRecoversDuringHoldDelay)
 	failsafe.update(time, state, false, false, failsafe_flags);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
 }
+
+TEST_F(FailsafeTest, GnssRecoveryDoesNotAbortRtlWhenAnotherFailsafeStartsADelay)
+{
+	int32_t com_gnssloss_act = 1; // Return
+	param_set(param_handle(px4::params::COM_GNSSLOSS_ACT), &com_gnssloss_act);
+
+	Failsafe failsafe(nullptr);
+
+	failsafe_flags_s failsafe_flags{};
+	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
+
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 5_s;
+
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+
+	// GNSS lost for longer than the Hold delay -> RTL
+	time += 10_ms;
+	failsafe_flags.gnss_lost = true;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
+	time += 6_s;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+
+	// Let the start delay refill, so that a new failsafe starts a delay again
+	time += 8_s;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+
+	// Another failsafe starts a delay on the same update as GNSS recovers: the RTL continues
+	time += 10_ms;
+	failsafe_flags.navigator_failure = true;
+	failsafe_flags.gnss_lost = false;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+}
