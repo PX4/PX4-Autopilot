@@ -697,7 +697,7 @@ protected:
 		}
 	}
 
-	// Above trim, up to a speed weight of 1, the pitch does not trade altitude for airspeed (trim cap) and the throttle
+	// Above trim the pitch does not trade altitude for airspeed (trim cap), whatever the speed weight, and the throttle
 	// demands only the total energy error over FW_T_ALT_TC: the airspeed error decays with FW_T_ALT_TC and the
 	// altitude holds.
 	void checkAirspeedStepAboveTrim(float step)
@@ -719,30 +719,6 @@ protected:
 
 		// Altitude holds to numerical precision
 		EXPECT_LT(_sim_stats.max_altitude_error, MAX_NUMERICAL_ERR) << "peak at t=" << _sim_stats.t_max_altitude_error << " s";
-	}
-
-	// Above trim with a weight between 1 and 2 the trim cap is partly faded out: the pitch covers only part of the
-	// exchange, and the airspeed error decays between the clamped FW_T_TAS_TC and FW_T_ALT_TC responses.
-	void checkAirspeedStepFadedTrimCap(float step)
-	{
-		run(10.f);
-		setAirspeedSetpoint(_params.equivalent_airspeed_trim + step);
-		resetSimStats();
-
-		const float error_initial = _V_sp - _state.V;
-		const float energy_error_initial = totalEnergyError();
-		const float t_step = _t;
-
-		for (int i = 0; i < 10; i++) {
-			run(2.0f);
-			const float t = _t - t_step;
-			const float error_fast = error_initial * expf(-t * airspeedErrorGain());
-			const float error_slow = error_initial * expf(-t * _params.altitude_error_gain);
-			const float error = _V_sp - _state.V;
-			EXPECT_GE(fabsf(error), fabsf(error_fast) - MAX_NUMERICAL_ERR) << "at t=" << _t << " s";
-			EXPECT_LE(fabsf(error), fabsf(error_slow) + MAX_NUMERICAL_ERR) << "at t=" << _t << " s";
-			expectTotalEnergyDecay(energy_error_initial, t);
-		}
 	}
 
 	void checkAltitudeStep(float step)
@@ -783,16 +759,7 @@ protected:
 TEST_P(TECSClosedLoopWeightTest, AltitudeDisturbance) { checkDisturbance(2.f, 0.f); }
 TEST_P(TECSClosedLoopWeightTest, AirspeedDisturbance) { checkDisturbance(0.f, -1.f); }
 TEST_P(TECSClosedLoopWeightTest, CombinedDisturbance) { checkDisturbance(-2.f, 1.f); }
-TEST_P(TECSClosedLoopWeightTest, AirspeedStepUp)
-{
-	// A weight above 1 fades out the trim cap: the pitch trades altitude for airspeed above trim as well
-	if (_params.pitch_speed_weight > 1.f) {
-		checkAirspeedStepFadedTrimCap(1.f);
-
-	} else {
-		checkAirspeedStepAboveTrim(1.f);
-	}
-}
+TEST_P(TECSClosedLoopWeightTest, AirspeedStepUp) { checkAirspeedStepAboveTrim(1.f); }
 TEST_P(TECSClosedLoopWeightTest, AirspeedStepDown) { checkAirspeedStep(-1.f); }
 TEST_P(TECSClosedLoopWeightTest, AltitudeStepUp) { checkAltitudeStep(50.f); }
 TEST_P(TECSClosedLoopWeightTest, AltitudeStepDown) { checkAltitudeStep(-50.f); }

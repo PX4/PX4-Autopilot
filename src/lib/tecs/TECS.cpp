@@ -242,7 +242,7 @@ void TECSControl::initialize(const Setpoint &setpoint, const Input &input, const
 
 	const SpecificEnergyWeighting weight{_updateSpeedAltitudeWeights(param, flag)};
 	const SpecificEnergyRates pitch_specific_energy_rate{_calcPitchControlEnergyRates(setpoint, input, limit,
-			specific_energy_rate, param, flag, weight)};
+			specific_energy_rate, param, flag)};
 	ControlValues seb_rate{_calcPitchControlSebRate(weight, pitch_specific_energy_rate)};
 
 	_pitch_setpoint = _calcPitchControlOutput(input, seb_rate,
@@ -433,20 +433,38 @@ TECSControl::SpecificEnergyWeighting TECSControl::_updateSpeedAltitudeWeights(co
 	return weight;
 }
 
+bool TECSControl::_isGlider(const Param &param)
+{
+	// Speed weight 2 with no throttle range, also a gliding waypoint. Not below speed weight 2, where the throttle
+	// range also closes at the end of the landing flare and the pitch keeps flying the height rate setpoint.
+	const bool no_throttle_range = param.throttle_max - param.throttle_min < FLT_EPSILON;
+	return no_throttle_range && param.pitch_speed_weight > 2.f - FLT_EPSILON;
+}
+
+float TECSControl::_trimCapFadeRatio(const Param &param) const
+{
+	// A glider has no throttle to accelerate above trim either
+	if (_isGlider(param)) {
+		return 1.f;
+	}
+
+	return constrain(max(param.fast_descend, _ratio_undersped), 0.f, 1.f);
+}
+
 float TECSControl::_calcPitchControlSkeRateSetpoint(const Setpoint &setpoint, const Input &input,
-		const STERateLimit &limit, const Param &param, const Flag &flag, const SpecificEnergyWeighting &weight) const
+		const STERateLimit &limit, const Param &param, const Flag &flag) const
 {
 	// Trading altitude for speed with pitch is only wanted up to trim airspeed. Above trim, accelerating is left to
 	// the throttle loop: if it saturates, the vehicle settles at a lower airspeed instead of below the altitude setpoint.
 	// The airspeed setpoint seen by the pitch loop is therefore capped at max(trim, current airspeed). Between trim
 	// and the setpoint the pitch loop holds altitude, while an overspeed above the setpoint is still corrected.
-	// With a speed weight of 2 (speed priority, e.g. gliders, fast descend or underspeed) pitch is the only way to
-	// track the setpoint, so the cap is faded out as the weight goes from 1 to 2.
+	// In fast descend and underspeed the throttle is not relied upon and pitch is the only way to track the setpoint,
+	// so the cap is faded out with their ratio; a glider has no throttle, the cap is off. The speed weight alone does
+	// not fade it.
 	const float tas_setpoint_capped = min(setpoint.tas_setpoint, max(param.tas_trim, input.tas));
 
 	Setpoint pitch_control_setpoint{setpoint};
-	pitch_control_setpoint.tas_setpoint = lerp(tas_setpoint_capped, setpoint.tas_setpoint,
-					      constrain(weight.ske_weighting - 1.f, 0.f, 1.f));
+	pitch_control_setpoint.tas_setpoint = lerp(tas_setpoint_capped, setpoint.tas_setpoint, _trimCapFadeRatio(param));
 
 	// d/dt(0.5 V^2) = V * dV/dt: the measured airspeed, not the setpoint, keeps the airspeed loop linear
 	return input.tas * _calcAirspeedControlOutput(pitch_control_setpoint, input, limit, param, flag);
@@ -454,11 +472,10 @@ float TECSControl::_calcPitchControlSkeRateSetpoint(const Setpoint &setpoint, co
 
 TECSControl::SpecificEnergyRates TECSControl::_calcPitchControlEnergyRates(const Setpoint &setpoint,
 		const Input &input, const STERateLimit &limit, const SpecificEnergyRates &specific_energy_rates,
-		const Param &param, const Flag &flag, const SpecificEnergyWeighting &weight) const
+		const Param &param, const Flag &flag) const
 {
 	SpecificEnergyRates pitch_specific_energy_rates{specific_energy_rates};
-	pitch_specific_energy_rates.ske_rate.setpoint = _calcPitchControlSkeRateSetpoint(setpoint, input, limit, param, flag,
-			weight);
+	pitch_specific_energy_rates.ske_rate.setpoint = _calcPitchControlSkeRateSetpoint(setpoint, input, limit, param, flag);
 
 	// The pitch's potential energy rate setpoint carries the eigenbasis coupling of its own kinetic setpoint, not of
 	// the outer loops' one: the coupling is linear in the kinetic setpoint, so shift it by the difference.
@@ -466,12 +483,12 @@ TECSControl::SpecificEnergyRates TECSControl::_calcPitchControlEnergyRates(const
 			pitch_specific_energy_rates.ske_rate.setpoint - specific_energy_rates.ske_rate.setpoint, param);
 
 	// Between trim airspeed and the airspeed setpoint the throttle alone accelerates the vehicle. The capped setpoint
-	// above already removes the kinetic setpoint of the pitch loop there, faded in with speed priority. But the
+	// above already removes the kinetic setpoint of the pitch loop there, faded out in fast descend and underspeed. But the
 	// throttle's acceleration would still show up in the kinetic energy rate estimate, and the pitch loop would pitch
 	// up to turn it into height. Remove the estimate from the pitch loop in this band as well, with the same fade, so
 	// that pitch controls height only. The setpoint must not be scaled again, or it would be faded twice.
 	const bool throttle_accelerates = input.tas > param.tas_trim && input.tas < setpoint.tas_setpoint;
-	const float kinetic_estimate_gain = throttle_accelerates ? constrain(weight.ske_weighting - 1.f, 0.f, 1.f) : 1.f;
+	const float kinetic_estimate_gain = throttle_accelerates ? _trimCapFadeRatio(param) : 1.f;
 	pitch_specific_energy_rates.ske_rate.estimate *= kinetic_estimate_gain;
 
 	return pitch_specific_energy_rates;
@@ -483,7 +500,7 @@ void TECSControl::_calcPitchControl(float dt, const Setpoint &setpoint, const In
 	const SpecificEnergyWeighting weight{_updateSpeedAltitudeWeights(param, flag)};
 
 	const SpecificEnergyRates pitch_specific_energy_rates{_calcPitchControlEnergyRates(setpoint, input, limit,
-			specific_energy_rates, param, flag, weight)};
+			specific_energy_rates, param, flag)};
 
 	ControlValues seb_rate{_calcPitchControlSebRate(weight, pitch_specific_energy_rates)};
 
@@ -610,12 +627,8 @@ float TECSControl::_calcPitchControlSteRate(const STERateLimit &limit,
 	// airspeed recovers faster.
 	float gliding_ratio = constrain(max(param.fast_descend, _ratio_undersped), 0.f, 1.f);
 
-	// A glider (speed weight 2 with no throttle range, also a gliding waypoint) has no throttle to deliver the
-	// setpoint's total energy rate at all: it always glides. Not applied below speed weight 2, where the throttle
-	// range also closes at the end of the landing flare and the pitch keeps flying the height rate setpoint.
-	const bool no_throttle_range = param.throttle_max - param.throttle_min < FLT_EPSILON;
-
-	if (no_throttle_range && param.pitch_speed_weight > 2.f - FLT_EPSILON) {
+	// A glider has no throttle to deliver the setpoint's total energy rate at all: it always glides
+	if (_isGlider(param)) {
 		gliding_ratio = 1.f;
 	}
 

@@ -520,11 +520,26 @@ private:
 	 * @param limit is the specific total energy rate limits in [m²/s³].
 	 * @param param is the control parameters.
 	 * @param flag is the control flags.
-	 * @param weight is the weighting use of the potential and kinetic energy.
 	 * @return specific kinetic energy rate setpoint in [m²/s³].
 	 */
 	float _calcPitchControlSkeRateSetpoint(const Setpoint &setpoint, const Input &input, const STERateLimit &limit,
-					       const Param &param, const Flag &flag, const SpecificEnergyWeighting &weight) const;
+					       const Param &param, const Flag &flag) const;
+	/**
+	 * @brief Whether the vehicle glides without any throttle: speed weight 2 and no throttle range.
+	 *
+	 * @param param is the control parameters.
+	 * @return true for a glider.
+	 */
+	static bool _isGlider(const Param &param);
+	/**
+	 * @brief Ratio by which the trim cap of the pitch loop's airspeed setpoint is faded out.
+	 *
+	 * Only fast descend and underspeed fade it out, where the throttle is not relied upon, and a glider has no cap.
+	 *
+	 * @param param is the control parameters.
+	 * @return fade ratio, 0 for the full cap, 1 for none [-].
+	 */
+	float _trimCapFadeRatio(const Param &param) const;
 	/**
 	 * @brief Specific energy rates as seen by the pitch loop.
 	 *
@@ -538,12 +553,11 @@ private:
 	 * @param specific_energy_rates is the specific energy rates of the outer loops in [m²/s³].
 	 * @param param is the control parameters.
 	 * @param flag is the control flags.
-	 * @param weight is the weighting use of the potential and kinetic energy.
 	 * @return specific energy rates for the pitch loop in [m²/s³].
 	 */
 	SpecificEnergyRates _calcPitchControlEnergyRates(const Setpoint &setpoint, const Input &input,
 			const STERateLimit &limit, const SpecificEnergyRates &specific_energy_rates, const Param &param,
-			const Flag &flag, const SpecificEnergyWeighting &weight) const;
+			const Flag &flag) const;
 	/**
 	 * @brief Calculate pitch control.
 	 *
