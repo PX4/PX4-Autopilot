@@ -238,7 +238,7 @@ PX4 SITL opens the following UDP ports (all instance-aware, offset by instance n
 | **14540** (+N)        | 14580 (+N)             | MAVSDK, MAVROS, offboard APIs | Yes (capped at 14549 for 10+ instances)   |
 | **14030** (+N)        | 14280 (+N)             | Onboard camera/payload        | Yes                                       |
 | **13280** (+N)        | 13030 (+N)             | Gimbal control                | Yes                                       |
-| **19410** (+N)        | 19450 (+N)             | Hawkeye visualizer (SIH only) | Yes                                       |
+| **19410** (+N)        | 19450 (+N)             | Hawkeye visualizer (SIH only) | Yes (instances 0 to 39 only)              |
 | **8888**              | -                      | uXRCE-DDS / ROS 2             | No (use DDS namespace for multi-instance) |
 
 QGC auto-connects on port **14550** by default. MAVSDK connects on **14540**. No manual port configuration needed for single-instance use.
