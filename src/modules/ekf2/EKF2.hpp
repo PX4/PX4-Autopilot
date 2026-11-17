@@ -89,6 +89,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_gnss_heading.h>
 #include <uORB/topics/yaw_estimator_status.h>
+#include <uORB/topics/wheel_encoders.h>
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 # include <uORB/topics/airspeed.h>
@@ -244,6 +245,10 @@ private:
 	void UpdateRangingBeaconSample(ekf2_timestamps_s &ekf2_timestamps);
 #endif // CONFIG_EKF2_RANGING_BEACON
 
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+	void UpdateWheelEncoderSample(ekf2_timestamps_s &ekf2_timestamps);
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
+
 	void UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateFusionControlFromReplay();
 
@@ -389,6 +394,13 @@ private:
 	hrt_abstime _status_sideslip_pub_last {0};
 #endif // CONFIG_EKF2_SIDESLIP
 
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+	uORB::Subscription _wheel_encoders_sub {ORB_ID(wheel_encoders)};
+	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_wheel_encoders_pub{ORB_ID(estimator_aid_src_wheel_encoders)};
+	hrt_abstime _status_wheel_encoders_pub_last{0};
+	hrt_abstime _last_wheel_encoder_timestamp{0};
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
+
 	orb_advert_t _mavlink_log_pub{nullptr};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -417,6 +429,7 @@ private:
 		MAG    = 1 << 10,
 		ASPD   = 1 << 11,
 		RNGBCN = 1 << 12,
+		WHEEL  = 1 << 13,
 	};
 	bool _prev_armed{false};
 
@@ -660,6 +673,18 @@ private:
 		(ParamExtFloat<px4::params::EKF2_RNGBC_NOISE>) _param_ekf2_rngbc_noise,
 		(ParamExtFloat<px4::params::EKF2_RNGBC_GATE>) _param_ekf2_rngbc_gate,
 #endif // CONFIG_EKF2_RANGING_BEACON
+
+#if defined(CONFIG_EKF2_WHEEL_ENCODERS)
+		// wheel encoder fusion
+		(ParamExtInt<px4::params::EKF2_WHEEL_CTRL>) _param_ekf2_wheel_ctrl,
+		(ParamExtFloat<px4::params::EKF2_WHEEL_NOISE>) _param_ekf2_wheel_noise,
+		(ParamExtFloat<px4::params::EKF2_WHEEL_GATE>) _param_ekf2_wheel_gate,
+		(ParamExtFloat<px4::params::EKF2_WHEEL_TRACK>) _param_ekf2_wheel_track,
+		(ParamExtFloat<px4::params::EKF2_WHEEL_RAD>) _param_ekf2_wheel_rad,
+		(ParamExtFloat<px4::params::EKF2_AXLE_POS_X>) _param_ekf2_axle_pos_x,
+		(ParamExtFloat<px4::params::EKF2_AXLE_POS_Y>) _param_ekf2_axle_pos_y,
+		(ParamExtFloat<px4::params::EKF2_AXLE_POS_Z>) _param_ekf2_axle_pos_z,
+#endif // CONFIG_EKF2_WHEEL_ENCODERS
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 		// vision estimate fusion

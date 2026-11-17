@@ -71,6 +71,7 @@ def generate_px4_function(function_name, output_names):
             line = line.replace("std::min", "math::min")
             line = line.replace("Eigen", "matrix")
             line = line.replace("matrix/Dense", "matrix/math.hpp")
+            line = line.replace("matrix/Core", "matrix/math.hpp")
 
             # don't allow underscore + uppercase identifier naming (always reserved for any use)
             line = re.sub(r'_([A-Z])', lambda x: '_' + x.group(1).lower(), line)

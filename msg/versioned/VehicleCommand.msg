@@ -123,6 +123,7 @@ uint8 FUSION_SOURCE_RNG = 5   # Range Finder (EKF2_RNG_CTRL)
 uint8 FUSION_SOURCE_MAG = 6   # Magnetometer (EKF2_MAG_TYPE)
 uint8 FUSION_SOURCE_ASPD = 7  # Airspeed (EKF2_ARSP_THR)
 uint8 FUSION_SOURCE_RNGBCN = 8 # Ranging Beacon
+uint8 FUSION_SOURCE_WHEEL = 9 # Wheel encoder fusion
 
 # PX4 vehicle commands (beyond 16 bit MAVLink commands).
 uint32 VEHICLE_CMD_PX4_INTERNAL_START = 65537 # Start of PX4 internal only vehicle commands (> UINT16_MAX).
