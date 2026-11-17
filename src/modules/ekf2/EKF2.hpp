@@ -83,6 +83,7 @@
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_imu.h>
+#include <uORB/topics/vehicle_imu_status.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_odometry.h>
@@ -245,6 +246,7 @@ private:
 #endif // CONFIG_EKF2_RANGING_BEACON
 
 	void UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps);
+	void UpdateImuTemperatureSample();
 	void UpdateFusionControlFromReplay();
 
 	// Used to check, save and use learned accel/gyro/mag biases
@@ -395,6 +397,7 @@ private:
 
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
+	uORB::SubscriptionMultiArray<vehicle_imu_status_s> _vehicle_imu_status_subs{ORB_ID::vehicle_imu_status};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _launch_detection_status_sub{ORB_ID(launch_detection_status)};
 
@@ -748,6 +751,8 @@ private:
 		_param_ekf2_abl_gyrlim,	///< Maximum IMU gyro angular rate magnitude that allows IMU bias learning (m/s**2)
 		(ParamExtFloat<px4::params::EKF2_ABL_TAU>)
 		_param_ekf2_abl_tau,	///< Time constant used to inhibit IMU delta velocity bias learning (sec)
+		(ParamExtFloat<px4::params::EKF2_ABIAS_TGRAD>)
+		_param_ekf2_abias_tgrad,	///< Accel Z bias std dev growth per change of the high-passed IMU temperature (m/s**2/K)
 
 		(ParamExtFloat<px4::params::EKF2_GYR_B_LIM>) _param_ekf2_gyr_b_lim,	///< Gyro bias learning limit (rad/s)
 

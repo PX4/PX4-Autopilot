@@ -506,6 +506,7 @@ struct parameters {
 	float ekf2_abl_acclim{25.0f};           ///< learning is disabled if the magnitude of the IMU acceleration vector is greater than this (m/sec**2)
 	float ekf2_abl_gyrlim{3.0f};            ///< learning is disabled if the magnitude of the IMU angular rate vector is greater than this (rad/sec)
 	float ekf2_abl_tau{0.5f};               ///< time constant used to control the decaying envelope filters applied to the accel and gyro magnitudes (sec)
+	float ekf2_abias_tgrad{0.0f};           ///< accel Z bias std dev growth per change of the high-passed IMU temperature (m/sec**2/K)
 
 	float ekf2_gyr_b_lim{0.4f};             ///< maximum gyro bias magnitude (rad/sec)
 

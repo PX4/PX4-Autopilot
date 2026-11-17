@@ -153,6 +153,7 @@ private:
 	std::vector<uint16_t> _distance_sensor_msg_ids;
 	std::vector<uint16_t> _optical_flow_msg_ids;
 	std::vector<uint16_t> _aux_global_position_msg_ids;
+	std::vector<uint16_t> _vehicle_imu_status_msg_ids;
 
 	bool _ekf2_timestamps_exists{false};
 	uint64_t _last_sensor_combined_timestamp{0};
