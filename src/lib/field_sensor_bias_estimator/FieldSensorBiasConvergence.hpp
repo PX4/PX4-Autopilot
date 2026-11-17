@@ -76,8 +76,12 @@ public:
 		_window_time += dt;
 
 		if (_window_time >= kWindowTime) {
+			matrix::SquareMatrix3f excitation_inv;
+			const bool invertible = matrix::inv(matrix::SquareMatrix3f(_excitation + kRegularization * matrix::eye<float, 3>()),
+							    excitation_inv);
+
 			for (int axis = 0; axis < 3; axis++) {
-				_observed[axis] = isObserved(axis);
+				_observed[axis] = invertible && (excitation_inv(axis, axis) * kMinExcitation < 1.f);
 			}
 
 			const bool was_valid = _valid;
@@ -121,23 +125,6 @@ public:
 	const matrix::Vector3f &bias() const { return _bias; }
 
 private:
-	// an axis is observed once the remaining error along it is below exp(-kMinExcitation), ~5%
-	bool isObserved(int axis) const
-	{
-		const int a = (axis + 1) % 3;
-		const int b = (axis + 2) % 3;
-		const float j_ii = _excitation(axis, axis) + kRegularization;
-		const float j_aa = _excitation(a, a) + kRegularization;
-		const float j_bb = _excitation(b, b) + kRegularization;
-		const float j_ia = _excitation(axis, a);
-		const float j_ib = _excitation(axis, b);
-		const float j_ab = _excitation(a, b);
-
-		const float minor = j_aa * j_bb - j_ab * j_ab;
-		const float det = j_ii * minor - j_ia * (j_ia * j_bb - j_ab * j_ib) + j_ib * (j_ia * j_ab - j_aa * j_ib);
-		return det > kMinExcitation * minor;
-	}
-
 	static constexpr float kMinExcitation{3.f};
 	static constexpr float kRegularization{1e-3f};
 	static constexpr float kWindowTime{2.f};		///< [s]
