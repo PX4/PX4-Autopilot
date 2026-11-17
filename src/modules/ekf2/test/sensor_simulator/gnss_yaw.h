@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 /**
- * Feeds Ekf with dual antenna GNSS yaw data, independently of the position/velocity Gps sensor
+ * Feeds Ekf with dual antenna GNSS yaw data, independently of the position/velocity Gnss sensor
  */
 #ifndef EKF_GNSS_YAW_H
 #define EKF_GNSS_YAW_H

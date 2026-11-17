@@ -65,8 +65,8 @@ public:
 
 		_ekf_wrapper.setMagFuseTypeNone();
 		_sensor_simulator.runSeconds(2);
-		_ekf_wrapper.enableGpsFusion();
-		_sensor_simulator.startGps();
+		_ekf_wrapper.enableGnssFusion();
+		_sensor_simulator.startGnss();
 		_sensor_simulator.runSeconds(11);
 	}
 
@@ -135,9 +135,9 @@ TEST_F(EKFYawEstimatorTest, freeRunningYawAfterVelocityFusionStops)
 	const float innov_vn_before = innov_vn[0];
 
 	// GIVEN: a GNSS speed accuracy too poor for the yaw estimator to fuse velocity
-	gnssSample gnss = _sensor_simulator._gps.getData();
+	gnssSample gnss = _sensor_simulator._gnss.getData();
 	gnss.sacc = 5.f;
-	_sensor_simulator._gps.setData(gnss);
+	_sensor_simulator._gnss.setData(gnss);
 
 	// WHEN: the vehicle yaws
 	const float yaw_rate = math::radians(30.f);
@@ -168,9 +168,9 @@ TEST_F(EKFYawEstimatorTest, resetAfterVelocityFusionTimeout)
 	EXPECT_TRUE(_ekf->getDataEKFGSF(&yaw_est, &yaw_est_var, dummy, dummy, dummy, dummy));
 
 	// GIVEN: a GNSS speed accuracy too poor for the yaw estimator to fuse velocity
-	gnssSample gnss = _sensor_simulator._gps.getData();
+	gnssSample gnss = _sensor_simulator._gnss.getData();
 	gnss.sacc = 5.f;
-	_sensor_simulator._gps.setData(gnss);
+	_sensor_simulator._gnss.setData(gnss);
 
 	// WHEN: the estimator dead-reckons for just under the timeout
 	_sensor_simulator.runTrajectorySeconds(59.f);
@@ -187,9 +187,9 @@ TEST_F(EKFYawEstimatorTest, resetAfterVelocityFusionTimeout)
 	EXPECT_TRUE(_ekf->control_status_flags().gnss_pos);
 
 	// AND WHEN: the speed accuracy recovers and the vehicle accelerates again
-	gnss = _sensor_simulator._gps.getData();
+	gnss = _sensor_simulator._gnss.getData();
 	gnss.sacc = 0.2f;
-	_sensor_simulator._gps.setData(gnss);
+	_sensor_simulator._gnss.setData(gnss);
 	_sensor_simulator.setTrajectoryTargetVelocity(Vector3f(-2.f, 2.f, 0.f));
 	_sensor_simulator.runTrajectorySeconds(5.f);
 

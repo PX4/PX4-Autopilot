@@ -61,7 +61,7 @@ public:
 					   CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
 					   &_subj_sub._canard_sub);
 
-		/** TODO: Add additional GPS-data messages: (reg.drone.service.gnss._.0.1.uavcan):
+		/** TODO: Add additional GNSS-data messages: (reg.drone.service.gnss._.0.1.uavcan):
 		 * # A compliant implementation of this service should publish the following subjects:
 		 * #
 		 * #   PUBLISHED SUBJECT NAME      SUBJECT TYPE                                            TYP. RATE [Hz]

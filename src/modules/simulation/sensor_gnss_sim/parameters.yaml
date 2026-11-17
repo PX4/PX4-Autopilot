@@ -1,4 +1,4 @@
-module_name: sensor_gps_sim
+module_name: sensor_gnss_sim
 parameters:
 - group: Sensors
   definitions:

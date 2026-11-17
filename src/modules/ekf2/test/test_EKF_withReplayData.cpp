@@ -61,8 +61,8 @@ TEST_F(EkfReplayTest, irisGps)
 
 	// Start simulation and enable fusion of additional sensor types here
 	// By default the IMU, Baro and Mag sensor simulators are already running
-	_sensor_simulator.startGps();
-	_ekf_wrapper.enableGpsFusion();
+	_sensor_simulator.startGnss();
+	_ekf_wrapper.enableGnssFusion();
 
 	uint8_t logging_rate_hz = 10;
 
@@ -79,8 +79,8 @@ TEST_F(EkfReplayTest, ekfGsfReset)
 
 	// Start simulation and enable fusion of additional sensor types here
 	// By default the IMU, Baro and Mag sensor simulators are already running
-	_sensor_simulator.startGps();
-	_ekf_wrapper.enableGpsFusion();
+	_sensor_simulator.startGnss();
+	_ekf_wrapper.enableGnssFusion();
 	auto params = _ekf->getParamHandle();
 	params->ekf2_gps_v_gate = 1.f;
 	params->ekf2_gps_p_gate = 1.f;

@@ -21,7 +21,7 @@ then
 fi
 if param compare -s SENS_EN_GPSSIM 1
 then
-	sensor_gps_sim start
+	sensor_gnss_sim start
 fi
 if param compare -s SENS_EN_MAGSIM 1
 then

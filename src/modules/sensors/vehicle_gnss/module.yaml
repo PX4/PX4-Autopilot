@@ -1,6 +1,6 @@
-__max_num_gps_instances: &max_num_gps_instances 2
+__max_num_gnss_instances: &max_num_gnss_instances 2
 
-module_name: vehicle_gps_position
+module_name: vehicle_gnss
 
 parameters:
     - group: Sensors
@@ -27,7 +27,7 @@ parameters:
             category: System
             type: int32
             default: 0
-            num_instances: *max_num_gps_instances
+            num_instances: *max_num_gnss_instances
             instance_start: 0
 
         SENS_GNSS${i}_OFFX:
@@ -40,7 +40,7 @@ parameters:
             default: 0.0
             unit: m
             decimal: 3
-            num_instances: *max_num_gps_instances
+            num_instances: *max_num_gnss_instances
             instance_start: 0
 
         SENS_GNSS${i}_OFFY:
@@ -53,7 +53,7 @@ parameters:
             default: 0.0
             unit: m
             decimal: 3
-            num_instances: *max_num_gps_instances
+            num_instances: *max_num_gnss_instances
             instance_start: 0
 
         SENS_GNSS${i}_OFFZ:
@@ -66,7 +66,7 @@ parameters:
             default: 0.0
             unit: m
             decimal: 3
-            num_instances: *max_num_gps_instances
+            num_instances: *max_num_gnss_instances
             instance_start: 0
 
         SENS_GNSS${i}_DELAY:
@@ -82,7 +82,7 @@ parameters:
             unit: ms
             min: 0
             max: 300
-            num_instances: *max_num_gps_instances
+            num_instances: *max_num_gnss_instances
             instance_start: 0
 
         GNSS_CHECK:

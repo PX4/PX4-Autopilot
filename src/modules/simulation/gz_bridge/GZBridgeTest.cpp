@@ -103,7 +103,7 @@ failure_injection_s sensorFailure(uint8_t unit, uint8_t failure_type)
 	return config;
 }
 
-failure_injection_s gpsFailure(uint8_t failure_type)
+failure_injection_s gnssFailure(uint8_t failure_type)
 {
 	return sensorFailure(failure_injection_s::FAILURE_UNIT_SENSOR_GPS, failure_type);
 }
@@ -115,7 +115,7 @@ failure_injection_s vioFailure(uint8_t failure_type)
 
 } // namespace
 
-TEST(GZBridge, AppliesGpsFailureInjectionAtNavSatPublication)
+TEST(GZBridge, AppliesGnssFailureInjectionAtNavSatPublication)
 {
 	GZBridge bridge{"default", "x500"};
 	uORB::Publication<failure_injection_s> failure_pub{ORB_ID(failure_injection)};
@@ -129,7 +129,7 @@ TEST(GZBridge, AppliesGpsFailureInjectionAtNavSatPublication)
 	ASSERT_TRUE(sensor_gnss_sub.update(&baseline));
 	ASSERT_EQ(baseline.fix_type, sensor_gnss_s::FIX_TYPE_3D);
 
-	ASSERT_TRUE(failure_pub.publish(gpsFailure(failure_injection_s::FAILURE_TYPE_STUCK)));
+	ASSERT_TRUE(failure_pub.publish(gnssFailure(failure_injection_s::FAILURE_TYPE_STUCK)));
 	GZBridgeTestPeer::navSatCallback(bridge, navSat(47.407742, 8.555594));
 
 	sensor_gnss_s stuck{};
@@ -137,18 +137,18 @@ TEST(GZBridge, AppliesGpsFailureInjectionAtNavSatPublication)
 	EXPECT_DOUBLE_EQ(stuck.latitude, baseline.latitude);
 	EXPECT_DOUBLE_EQ(stuck.longitude, baseline.longitude);
 
-	ASSERT_TRUE(failure_pub.publish(gpsFailure(failure_injection_s::FAILURE_TYPE_WRONG)));
+	ASSERT_TRUE(failure_pub.publish(gnssFailure(failure_injection_s::FAILURE_TYPE_WRONG)));
 	GZBridgeTestPeer::navSatCallback(bridge, navSat(47.407742, 8.555594));
 
 	sensor_gnss_s wrong{};
 	ASSERT_TRUE(sensor_gnss_sub.update(&wrong));
 	EXPECT_EQ(wrong.fix_type, sensor_gnss_s::FIX_TYPE_2D);
 
-	ASSERT_TRUE(failure_pub.publish(gpsFailure(failure_injection_s::FAILURE_TYPE_OFF)));
+	ASSERT_TRUE(failure_pub.publish(gnssFailure(failure_injection_s::FAILURE_TYPE_OFF)));
 	GZBridgeTestPeer::navSatCallback(bridge, navSat(47.407742, 8.555594));
 	EXPECT_FALSE(sensor_gnss_sub.updated());
 
-	ASSERT_TRUE(failure_pub.publish(gpsFailure(failure_injection_s::FAILURE_TYPE_OK)));
+	ASSERT_TRUE(failure_pub.publish(gnssFailure(failure_injection_s::FAILURE_TYPE_OK)));
 	GZBridgeTestPeer::navSatCallback(bridge, navSat(47.407742, 8.555594));
 
 	sensor_gnss_s recovered{};
@@ -188,8 +188,8 @@ TEST(GZBridge, AppliesVioFailureInjectionAtOdometryPublication)
 	GZBridgeTestPeer::odometryCallback(bridge, odometry(11.0, 12.0, 13.0));
 	EXPECT_FALSE(visual_odometry_sub.updated());
 
-	// A GPS failure must not affect visual odometry.
-	ASSERT_TRUE(failure_pub.publish(gpsFailure(failure_injection_s::FAILURE_TYPE_OFF)));
+	// A GNSS failure must not affect visual odometry.
+	ASSERT_TRUE(failure_pub.publish(gnssFailure(failure_injection_s::FAILURE_TYPE_OFF)));
 	GZBridgeTestPeer::odometryCallback(bridge, odometry(11.0, 12.0, 13.0));
 
 	vehicle_odometry_s unaffected{};

@@ -91,8 +91,8 @@ public:
 		_sensor_simulator.setOrientation(Quatf(Eulerf(0.f, 0.f, yaw)));
 		_ekf->resetHeadingToExternalObservation(yaw, math::radians(yaw_accuracy_deg));
 
-		_ekf_wrapper.enableGpsFusion();
-		_sensor_simulator.startGps();
+		_ekf_wrapper.enableGnssFusion();
+		_sensor_simulator.startGnss();
 		_sensor_simulator.runSeconds(12);
 	}
 
@@ -134,8 +134,8 @@ public:
 			// the receiver's dynamic model limits how fast the reported velocity can change
 			const float v_gnss = math::min(kGnssAccelLimit * t_gnss, v_true);
 
-			_sensor_simulator._gps.setVelocity(dir * v_gnss);
-			_sensor_simulator._gps.setPositionRateNED(dir * v_gnss);
+			_sensor_simulator._gnss.setVelocity(dir * v_gnss);
+			_sensor_simulator._gnss.setPositionRateNED(dir * v_gnss);
 
 			_sensor_simulator.runMicroseconds(1000);
 
@@ -163,7 +163,7 @@ public:
 TEST_F(EkfCatapultLaunchTest, headingPullNorthEast)
 {
 	alignHeadingAndStartGnss(math::radians(45.f), 5.f);
-	ASSERT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+	ASSERT_TRUE(_ekf_wrapper.isIntendingGnssFusion());
 
 	waitOnCatapult(300.f);
 
@@ -184,7 +184,7 @@ TEST_F(EkfCatapultLaunchTest, headingPullNorthEast)
 TEST_F(EkfCatapultLaunchTest, headingPullNorth)
 {
 	alignHeadingAndStartGnss(0.f, 5.f);
-	ASSERT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+	ASSERT_TRUE(_ekf_wrapper.isIntendingGnssFusion());
 
 	waitOnCatapult(300.f);
 

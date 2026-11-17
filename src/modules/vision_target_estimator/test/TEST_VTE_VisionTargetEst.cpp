@@ -134,8 +134,8 @@ class VisionTargetEstTestable : public vte::VisionTargetEst
 public:
 	using vte::VisionTargetEst::_acc_sample_count;
 	using vte::VisionTargetEst::_current_task_ptr;
-	using vte::VisionTargetEst::_gps_pos_is_offset;
-	using vte::VisionTargetEst::_gps_pos_offset_xyz;
+	using vte::VisionTargetEst::_gnss_pos_is_offset;
+	using vte::VisionTargetEst::_gnss_pos_offset_xyz;
 	using vte::VisionTargetEst::_last_acc_reset;
 	using vte::VisionTargetEst::_last_update_pos;
 	using vte::VisionTargetEst::_orientation_estimator_running;
@@ -155,7 +155,7 @@ public:
 	using vte::VisionTargetEst::_vte_position_enabled;
 	using vte::VisionTargetEst::_vte_task_mask;
 	using vte::VisionTargetEst::adjustAidMask;
-	using vte::VisionTargetEst::computeGpsVelocityOffset;
+	using vte::VisionTargetEst::computeGnssVelocityOffset;
 	using vte::VisionTargetEst::isCurrentTaskComplete;
 	using vte::VisionTargetEst::restartTimedOutEstimators;
 	using vte::VisionTargetEst::setNewTaskIfAvailable;
@@ -439,7 +439,7 @@ TEST_F(VisionTargetEstTest, AdjustAidMaskResolvesConflicts)
 {
 	// GIVEN: Mission position and target GNSS aiding are both enabled.
 	vte::SensorFusionMaskU mask{};
-	mask.flags.use_target_gps_pos = 1;
+	mask.flags.use_target_gnss_pos = 1;
 	mask.flags.use_mission_pos = 1;
 
 	// WHEN: The aid mask is sanitized.
@@ -448,7 +448,7 @@ TEST_F(VisionTargetEstTest, AdjustAidMaskResolvesConflicts)
 	adjusted_mask.value = adjusted;
 
 	// THEN: Mission position aiding is dropped in favor of target GNSS.
-	EXPECT_TRUE(adjusted_mask.flags.use_target_gps_pos);
+	EXPECT_TRUE(adjusted_mask.flags.use_target_gnss_pos);
 	EXPECT_FALSE(adjusted_mask.flags.use_mission_pos);
 }
 
@@ -491,11 +491,11 @@ TEST_F(VisionTargetEstTest, AdjustAidMaskMapsHomePositionForPrecisionTakeoff)
 #endif
 
 	// GIVEN: Target GNSS position is enabled as well.
-	home_only.flags.use_target_gps_pos = 1;
+	home_only.flags.use_target_gnss_pos = 1;
 
 	// THEN: Target GNSS wins, home is dropped.
 	adjusted.value = _vte->adjustAidMask(home_only.value);
-	EXPECT_TRUE(adjusted.flags.use_target_gps_pos);
+	EXPECT_TRUE(adjusted.flags.use_target_gnss_pos);
 	EXPECT_FALSE(adjusted.flags.use_mission_pos);
 	EXPECT_FALSE(adjusted.flags.use_home_pos);
 }
@@ -515,58 +515,58 @@ TEST_F(VisionTargetEstTest, AdjustAidMaskDisablesMissionPositionForMovingTarget)
 }
 #endif
 
-// WHY: The active GPS antenna offset comes from vehicle_gnss
+// WHY: The active GNSS antenna offset comes from vehicle_gnss
 // WHAT: Publish non-zero then zero antenna offsets and verify the cached lever arm tracks the topic output.
 TEST_F(VisionTargetEstTest, UpdateGnssAntennaOffsetTracksVehicleGnss)
 {
-	// GIVEN: The vehicle GPS topic reports a non-zero antenna lever arm.
-	const matrix::Vector3f gps_offset_gt{0.2, -0.015, 3.1};
-	publishUavGnss(gps_offset_gt, vte_test::advanceMicroseconds(kStepUs));
+	// GIVEN: The vehicle GNSS topic reports a non-zero antenna lever arm.
+	const matrix::Vector3f gnss_offset_gt{0.2, -0.015, 3.1};
+	publishUavGnss(gnss_offset_gt, vte_test::advanceMicroseconds(kStepUs));
 
-	// WHEN: The module refreshes the cached GPS antenna offset.
+	// WHEN: The module refreshes the cached GNSS antenna offset.
 	ASSERT_TRUE(_vte->updateGnssAntennaOffset());
 
-	// THEN: The cached lever arm matches the published GPS offset.
-	EXPECT_TRUE(_vte->_gps_pos_is_offset);
-	expectVectorNear(_vte->_gps_pos_offset_xyz, gps_offset_gt);
+	// THEN: The cached lever arm matches the published GNSS offset.
+	EXPECT_TRUE(_vte->_gnss_pos_is_offset);
+	expectVectorNear(_vte->_gnss_pos_offset_xyz, gnss_offset_gt);
 
-	// GIVEN: The next GPS sample reports no antenna offset.
+	// GIVEN: The next GNSS sample reports no antenna offset.
 	publishUavGnss(matrix::Vector3f{}, vte_test::advanceMicroseconds(kStepUs));
 
 	// WHEN: The offset cache is refreshed again.
 	ASSERT_TRUE(_vte->updateGnssAntennaOffset());
 
 	// THEN: The cached lever arm is cleared.
-	EXPECT_FALSE(_vte->_gps_pos_is_offset);
-	expectVectorNear(_vte->_gps_pos_offset_xyz, matrix::Vector3f{});
+	EXPECT_FALSE(_vte->_gnss_pos_is_offset);
+	expectVectorNear(_vte->_gnss_pos_offset_xyz, matrix::Vector3f{});
 }
 
 // WHY: Compensate for the rotational velocity if the GNSS antenna is not at the center of mass,
 // i.e. when the drone rotates around the center of mass, the GNSS will record a velocity.
 // WHAT: Expect false without config/data, then true once angular velocity is published.
-TEST_F(VisionTargetEstTest, ComputeGpsVelocityOffsetRequiresOffsetAndData)
+TEST_F(VisionTargetEstTest, ComputeGnssVelocityOffsetRequiresOffsetAndData)
 {
 	// GIVEN: No lever arm or angular velocity samples are available yet.
 	matrix::Vector3f vel_offset{};
 
 	// WHEN: The velocity compensation is computed without prerequisites.
-	EXPECT_FALSE(_vte->computeGpsVelocityOffset(vel_offset));
+	EXPECT_FALSE(_vte->computeGnssVelocityOffset(vel_offset));
 
-	// GIVEN: A GPS antenna lever arm is configured, but angular velocity is still missing.
-	const matrix::Vector3f gps_offset(1.f, 0.f, 0.f);
-	_vte->_gps_pos_is_offset = true;
-	_vte->_gps_pos_offset_xyz = gps_offset;
+	// GIVEN: A GNSS antenna lever arm is configured, but angular velocity is still missing.
+	const matrix::Vector3f gnss_offset(1.f, 0.f, 0.f);
+	_vte->_gnss_pos_is_offset = true;
+	_vte->_gnss_pos_offset_xyz = gnss_offset;
 
 	// WHEN: The compensation is computed again without gyro data.
-	EXPECT_FALSE(_vte->computeGpsVelocityOffset(vel_offset));
+	EXPECT_FALSE(_vte->computeGnssVelocityOffset(vel_offset));
 
 	// GIVEN: Angular velocity data is now available.
 	const matrix::Vector3f ang_vel(0.f, 0.f, 1.f);
 	publishAngularVelocity(ang_vel, vte_test::advanceMicroseconds(kStepUs));
 
 	// WHEN: The velocity compensation is recomputed with all required inputs.
-	EXPECT_TRUE(_vte->computeGpsVelocityOffset(vel_offset));
-	const matrix::Vector3f expected_offset = ang_vel.cross(gps_offset);
+	EXPECT_TRUE(_vte->computeGnssVelocityOffset(vel_offset));
+	const matrix::Vector3f expected_offset = ang_vel.cross(gnss_offset);
 
 	// THEN: The offset matches the rigid-body cross product.
 	expectVectorNear(vel_offset, expected_offset);
@@ -578,13 +578,13 @@ TEST_F(VisionTargetEstTest, PollEstimatorInputKeepsAccelerationUntilAttitudeArri
 	const hrt_abstime sample_time = vte_test::nowUs();
 	const hrt_abstime now = vte_test::advanceMicroseconds(1_ms);
 	publishAcceleration(matrix::Vector3f(1.f, 2.f, -kGravity), now, sample_time);
-	matrix::Vector3f acc_ned{}, gps_offset{}, vel_offset{};
+	matrix::Vector3f acc_ned{}, gnss_offset{}, vel_offset{};
 	matrix::Quaternionf q_att{};
 	bool acc_valid = false;
-	EXPECT_FALSE(_vte->pollEstimatorInput(acc_ned, q_att, gps_offset, vel_offset, false, acc_valid));
+	EXPECT_FALSE(_vte->pollEstimatorInput(acc_ned, q_att, gnss_offset, vel_offset, false, acc_valid));
 
 	publishAttitude(vte_test::identityQuat(), now);
-	ASSERT_TRUE(_vte->pollEstimatorInput(acc_ned, q_att, gps_offset, vel_offset, false, acc_valid));
+	ASSERT_TRUE(_vte->pollEstimatorInput(acc_ned, q_att, gnss_offset, vel_offset, false, acc_valid));
 	EXPECT_TRUE(acc_valid);
 	EXPECT_EQ(_vte->_vehicle_acc_body.timestamp, sample_time);
 	expectVectorNear(acc_ned, matrix::Vector3f(1.f, 2.f, 0.f));
@@ -594,7 +594,7 @@ TEST_F(VisionTargetEstTest, PollEstimatorInputKeepsAccelerationUntilAttitudeArri
 // WHAT: Publish attitude/accel with offsets and verify transformed outputs.
 TEST_F(VisionTargetEstTest, PollEstimatorInputTransformsAccelerationAndOffsets)
 {
-	// GIVEN: Attitude, acceleration, and GPS lever-arm data are all available.
+	// GIVEN: Attitude, acceleration, and GNSS lever-arm data are all available.
 	const hrt_abstime timestamp = vte_test::nowUs();
 	matrix::Quaternionf q{0.f, 0.f, 0.f, 1.f}; // 180 degrees rotation around z-axis
 	const matrix::Vector3f non_rotated_vec{1.f, 2.f, 3.f};
@@ -603,53 +603,53 @@ TEST_F(VisionTargetEstTest, PollEstimatorInputTransformsAccelerationAndOffsets)
 	publishAttitude(q, timestamp);
 	publishAcceleration(non_rotated_vec, timestamp);
 
-	_vte->_gps_pos_is_offset = true;
-	_vte->_gps_pos_offset_xyz = non_rotated_vec;
+	_vte->_gnss_pos_is_offset = true;
+	_vte->_gnss_pos_offset_xyz = non_rotated_vec;
 
 	matrix::Vector3f acc_ned{};
 	matrix::Quaternionf q_att{};
-	matrix::Vector3f gps_offset = non_rotated_vec;
+	matrix::Vector3f gnss_offset = non_rotated_vec;
 	matrix::Vector3f vel_offset = non_rotated_vec;
 	const bool vel_offset_updated = true;
 	bool acc_valid = false;
 
 	// WHEN: The estimator input is polled.
-	ASSERT_TRUE(_vte->pollEstimatorInput(acc_ned, q_att, gps_offset, vel_offset,
+	ASSERT_TRUE(_vte->pollEstimatorInput(acc_ned, q_att, gnss_offset, vel_offset,
 					     vel_offset_updated, acc_valid));
 
 	// THEN: Acceleration and offset vectors are rotated into NED.
 	EXPECT_TRUE(acc_valid);
 	expectVectorNear(acc_ned, matrix::Vector3f(rotated_vec(0), rotated_vec(1), rotated_vec(2) + kGravity));
-	expectVectorNear(gps_offset, rotated_vec);
+	expectVectorNear(gnss_offset, rotated_vec);
 	expectVectorNear(vel_offset, rotated_vec);
 }
 
-// WHY: With GPS offset disabled, offset vectors must be zeroed.
+// WHY: With GNSS offset disabled, offset vectors must be zeroed.
 // WHAT: Disable offset and verify returned GNSS/velocity offsets are zero.
 TEST_F(VisionTargetEstTest, PollEstimatorInputNoOffsetZerosVectors)
 {
-	// GIVEN: Attitude and acceleration are present, but GPS offset compensation is disabled.
+	// GIVEN: Attitude and acceleration are present, but GNSS offset compensation is disabled.
 	const hrt_abstime timestamp = vte_test::nowUs();
 	publishAttitude(vte_test::identityQuat(), timestamp);
 	publishAcceleration(matrix::Vector3f(0.1f, 0.2f, 0.3f), timestamp);
 
-	_vte->_gps_pos_is_offset = false;
-	_vte->_gps_pos_offset_xyz = matrix::Vector3f(1.f, 2.f, 3.f);
+	_vte->_gnss_pos_is_offset = false;
+	_vte->_gnss_pos_offset_xyz = matrix::Vector3f(1.f, 2.f, 3.f);
 
 	matrix::Vector3f acc_ned{};
 	matrix::Quaternionf q_att{};
-	matrix::Vector3f gps_offset{};
+	matrix::Vector3f gnss_offset{};
 	matrix::Vector3f vel_offset(4.f, 5.f, 6.f);
 	const bool vel_offset_updated = true;
 	bool acc_valid = false;
 
 	// WHEN: The estimator input is polled.
-	ASSERT_TRUE(_vte->pollEstimatorInput(acc_ned, q_att, gps_offset, vel_offset,
+	ASSERT_TRUE(_vte->pollEstimatorInput(acc_ned, q_att, gnss_offset, vel_offset,
 					     vel_offset_updated, acc_valid));
 
 	// THEN: Offset vectors are zeroed even if stale values were passed in.
 	EXPECT_TRUE(acc_valid);
-	expectVectorNear(gps_offset, matrix::Vector3f{});
+	expectVectorNear(gnss_offset, matrix::Vector3f{});
 	expectVectorNear(vel_offset, matrix::Vector3f{});
 }
 

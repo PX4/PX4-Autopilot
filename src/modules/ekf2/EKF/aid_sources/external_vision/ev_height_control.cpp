@@ -78,7 +78,7 @@ void Ekf::controlEvHeightFusion(const imuSample &imu_sample, const extVisionSamp
 
 #if defined(CONFIG_EKF2_GNSS)
 
-	// increase minimum variance if GPS active
+	// increase minimum variance if GNSS active
 	if (_control_status.flags.gps_hgt) {
 		measurement_var = math::max(measurement_var, sq(_params.ekf2_gps_p_noise));
 	}

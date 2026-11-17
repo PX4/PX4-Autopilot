@@ -105,8 +105,8 @@ public:
 	// heading is aligned takes this long to fade
 	static constexpr double kMotionStart = 60.0;
 
-	// mirrors the delay Gps::send() subtracts from the sample timestamp
-	static constexpr double kGpsDelay = 0.11;
+	// mirrors the delay Gnss::send() subtracts from the sample timestamp
+	static constexpr double kGnssDelay = 0.11;
 
 	GenNav::Profile profile() const
 	{
@@ -129,8 +129,8 @@ public:
 		_ekf->set_vehicle_at_rest(true);
 
 		_sensor_simulator._imu.setRateHz(1000);
-		_ekf_wrapper.enableGpsFusion();
-		_sensor_simulator.startGps();
+		_ekf_wrapper.enableGnssFusion();
+		_sensor_simulator.startGnss();
 	}
 
 	void setSensorData(double t)
@@ -155,12 +155,12 @@ public:
 					       * Vector3f(get_mag_strength_gauss(latitude_deg, longitude_deg), 0.f, 0.f);
 		_sensor_simulator._mag.setData(_gen_nav.attitude().rotateVectorInverse(mag_field_ned));
 
-		const double t_gps = math::max(t - kGpsDelay, 0.0);
-		const LatLonAlt gps_position = _gen_nav.position(t_gps);
-		_sensor_simulator._gps.setLatitude(gps_position.latitude_deg());
-		_sensor_simulator._gps.setLongitude(gps_position.longitude_deg());
-		_sensor_simulator._gps.setAltitude(gps_position.altitude());
-		_sensor_simulator._gps.setVelocity(Vector3f(_gen_nav.velocityNed(t_gps)));
+		const double t_gnss = math::max(t - kGnssDelay, 0.0);
+		const LatLonAlt gnss_position = _gen_nav.position(t_gnss);
+		_sensor_simulator._gnss.setLatitude(gnss_position.latitude_deg());
+		_sensor_simulator._gnss.setLongitude(gnss_position.longitude_deg());
+		_sensor_simulator._gnss.setAltitude(gnss_position.altitude());
+		_sensor_simulator._gnss.setVelocity(Vector3f(_gen_nav.velocityNed(t_gnss)));
 	}
 
 	// Body rate script relative to the local NED frame, during cruise
@@ -228,7 +228,7 @@ TEST_P(EkfGenNavTest, perfectSensorsTrackTruth)
 {
 	// GIVEN: the vehicle at rest while GNSS becomes healthy and the filter aligns
 	run(kMotionStart);
-	ASSERT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+	ASSERT_TRUE(_ekf_wrapper.isIntendingGnssFusion());
 
 	// WHEN: it accelerates, climbs, cruises and maneuvers in roll, pitch and yaw
 	const Errors max_errors = run(70.0);
@@ -250,10 +250,10 @@ TEST_P(EkfGenNavTest, inertialDeadReckoning)
 	_ekf->getParamHandle()->ekf2_noaid_tout = 1'000'000'000;
 
 	run(kMotionStart);
-	ASSERT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+	ASSERT_TRUE(_ekf_wrapper.isIntendingGnssFusion());
 
 	// WHEN: all aiding stops as the vehicle starts moving
-	_sensor_simulator.stopGps();
+	_sensor_simulator.stopGnss();
 	_sensor_simulator.stopBaro();
 	_sensor_simulator._mag.stop();
 

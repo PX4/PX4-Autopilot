@@ -40,21 +40,21 @@ using namespace time_literals;
 
 void GnssRedundancyChecks::checkAndReport(const Context &context, Report &reporter)
 {
-	bool gps_online[GPS_MAX_INSTANCES] {};
-	bool gnss_healthy[GPS_MAX_INSTANCES] {};
+	bool gnss_online[GNSS_MAX_INSTANCES] {};
+	bool gnss_healthy[GNSS_MAX_INSTANCES] {};
 	uint8_t healthy_count = 0;
 	int selected = -1;
 
 	sensors_status_gnss_s status{};
 	const bool status_valid = _sensors_status_gnss_sub.copy(&status) && (hrt_elapsed_time(&status.timestamp) < 1_s);
 
-	for (int i = 0; i < GPS_MAX_INSTANCES; i++) {
+	for (int i = 0; i < GNSS_MAX_INSTANCES; i++) {
 		sensor_gnss_s gnss{};
 
 		if (_sensor_gnss_sub[i].copy(&gnss)
 		    && (gnss.device_id != 0)
 		    && (hrt_elapsed_time(&gnss.timestamp) < 1_s)) {
-			gps_online[i] = true;
+			gnss_online[i] = true;
 
 			// The sensors module indexes its status by the same sensor_gnss instance
 			if (status_valid && (status.device_ids[i] == gnss.device_id) && status.healthy[i]) {
@@ -81,7 +81,7 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 	bool paired = false;
 	bool unknown = false;
 
-	for (int i = 0; i < GPS_MAX_INSTANCES; i++) {
+	for (int i = 0; i < GNSS_MAX_INSTANCES; i++) {
 		if ((selected < 0) || (i == selected) || !gnss_healthy[i]) {
 			continue;
 		}
@@ -138,7 +138,7 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 		const int expected = below_required ? _param_sys_has_num_gnss.get() : _peak_healthy_count;
 
 		for (int i = 0; i < expected; i++) {
-			if (!gps_online[i]) {
+			if (!gnss_online[i]) {
 				/* EVENT
 				 * @description
 				 * <profile name="dev">

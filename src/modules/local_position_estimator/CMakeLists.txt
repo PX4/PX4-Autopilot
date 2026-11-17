@@ -41,7 +41,7 @@ px4_add_module(
 		sensors/flow.cpp
 		sensors/lidar.cpp
 		sensors/sonar.cpp
-		sensors/gps.cpp
+		sensors/gnss.cpp
 		sensors/baro.cpp
 		sensors/vision.cpp
 		sensors/mocap.cpp
