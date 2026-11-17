@@ -49,13 +49,42 @@ px4_add_module(
 		geo
 	)
 
+# optional terrain from a GeoTIFF DEM, SITL only (requires libtiff, libgeotiff and PROJ)
+if(${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL} STREQUAL "px4_sitl")
+	find_package(TIFF QUIET)
+	find_package(PROJ CONFIG QUIET)
+	find_path(GEOTIFF_INCLUDE_DIR geotiff.h PATH_SUFFIXES geotiff libgeotiff)
+	find_library(GEOTIFF_LIBRARY NAMES geotiff geotiff_i)
+
+	if(TIFF_FOUND AND PROJ_FOUND AND GEOTIFF_INCLUDE_DIR AND GEOTIFF_LIBRARY)
+		message(STATUS "SIH terrain (DEM) support enabled")
+
+		px4_add_library(sih_terrain terrain/TerrainDem.cpp)
+		target_include_directories(sih_terrain PRIVATE ${GEOTIFF_INCLUDE_DIR})
+		target_link_libraries(sih_terrain PRIVATE ${GEOTIFF_LIBRARY} TIFF::TIFF PROJ::proj geo)
+
+		target_link_libraries(modules__simulation__simulator_sih PRIVATE sih_terrain)
+		target_compile_definitions(modules__simulation__simulator_sih PRIVATE SIH_TERRAIN_DEM)
+
+		px4_add_unit_gtest(SRC terrain/TerrainDemTest.cpp
+			INCLUDES ${GEOTIFF_INCLUDE_DIR}
+			LINKLIBS sih_terrain geo ${GEOTIFF_LIBRARY} TIFF::TIFF
+		)
+
+	else()
+		message(STATUS "SIH terrain (DEM) support disabled: libtiff, libgeotiff or PROJ not found")
+	endif()
+endif()
+
 if(PX4_PLATFORM MATCHES "posix")
 	# create targets for sihsim
 	set(models
 		airplane
 		quadx
+		quadx_flow
 		xvert
 		standard_vtol
+		standard_vtol_flow
 		hex
 		rover_ackermann
 	)

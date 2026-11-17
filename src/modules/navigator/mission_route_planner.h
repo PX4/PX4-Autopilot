@@ -63,7 +63,8 @@ public:
 	 * Callers supply path restrictions through the checker; geometry-only callers may omit it.
 	 *
 	 * Planning calls reuse a shared scratch buffer and must not run at the same time.
-	 * Jump targets may include non-position commands before their waypoint. Jump chains are not supported.
+	 * Jump targets may include non-position commands before their waypoint, but no DO_JUMP: the mission check
+	 * rejects those.
 	 */
 	explicit MissionRoutePlanner(const mission_route::Provider &provider,
 				     const mission_route::PathChecker *path_checker = nullptr);

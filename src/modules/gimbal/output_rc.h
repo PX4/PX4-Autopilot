@@ -39,6 +39,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/gimbal_controls.h>
 #include <uORB/topics/gimbal_device_attitude_status.h>
+#include <uORB/topics/gimbal_device_information.h>
 
 namespace gimbal
 {
@@ -60,11 +61,14 @@ private:
 	void _stream_device_attitude_status();
 	float anglesMappedToOutput(const uint8_t index);
 	void _check_gimbal_output_functions_assigned();
+	void _publish_device_information();
 
 	uORB::Publication <gimbal_controls_s>	_gimbal_controls_pub{ORB_ID(gimbal_controls)};
 	uORB::Publication <gimbal_device_attitude_status_s>	_attitude_status_pub{ORB_ID(gimbal_device_attitude_status)};
+	uORB::Publication <gimbal_device_information_s>	_device_information_pub{ORB_ID(gimbal_device_information)};
 
 	bool _gimbal_output_functions_assigned{false};
+	gimbal_device_information_s _device_information{};
 };
 
 } /* namespace gimbal */

@@ -2,6 +2,8 @@
 
 다음 용어, 기호, 문자는 이 안내서 전체의 텍스트와 다이어그램에 활용합니다.
 
+For navigation terms such as heading, course, track, bearing and cross-track error, see [Navigation Terminology](../concept/navigation_terminology.md).
+
 ## 표기법
 
 - Bold face variables indicate vectors or matrices and non-bold face variables represent scalars.

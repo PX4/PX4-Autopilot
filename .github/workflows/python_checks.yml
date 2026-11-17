@@ -54,6 +54,10 @@ jobs:
         python3 -m unittest discover -s ai_review -t . -v
         python3 -m unittest -v test_pr_review_poster
 
+    - name: Test PR title check
+      working-directory: Tools/ci
+      run: python3 -m unittest -v test_check_pr_title
+
     - name: Check ROS workspace tooling
       run: |
         flake8 Tools/ros2/*.py
@@ -61,3 +65,8 @@ jobs:
 
     - name: Test submodule check
       run: python3 -m unittest discover -s Tools -p 'test_check_submodules.py' -v
+
+    - name: Check parameter file migration
+      run: |
+        flake8 Tools/migrate_param_file.py Tools/test_migrate_param_file.py
+        python3 -m unittest discover -s Tools -p 'test_migrate_param_file.py' -v

@@ -284,10 +284,22 @@ public:
 	void fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index,
 					bool constrain_variances = true);
 
+	// Sequential update of one scalar of a vector observation: P is updated now, the state correction is
+	// added to state_correction. innov is the a priori innovation, corrected here for state_correction.
+	// Call applyStateCorrection() once after the last scalar.
+	void accumulateDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index,
+					      VectorState &state_correction, bool constrain_variances = true);
+
 	// Kalman gain P * H / innov_var for a scalar observation with Jacobian H
 	VectorState computeKalmanGain(const VectorState &H, const float innov_var) const;
 
 	bool measurementUpdate(VectorState &K, const VectorState &H, const float R, const float innovation);
+
+	// see accumulateDirectStateMeasurement()
+	bool accumulateMeasurementUpdate(VectorState &K, const VectorState &H, const float R, const float innovation,
+					 VectorState &state_correction);
+
+	void applyStateCorrection(const VectorState &correction);
 
 	// gyro bias
 	const Vector3f &getGyroBias() const { return _state.gyro_bias; } // get the gyroscope bias in rad/s
@@ -474,6 +486,7 @@ public:
 
 	friend class AuxGlobalPosition;
 	friend class AgpSource;
+	friend class EkfFlowFusionOrderTest;
 
 private:
 
@@ -729,7 +742,7 @@ private:
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// ekf sequential fusion of magnetometer measurements
-	bool fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estimator_aid_source3d_s &aid_src,
+	bool fuseMag(const float R_MAG, VectorState &H, estimator_aid_source3d_s &aid_src,
 		     bool update_all_states = false, bool update_tilt = false);
 
 	// fuse magnetometer declination measurement

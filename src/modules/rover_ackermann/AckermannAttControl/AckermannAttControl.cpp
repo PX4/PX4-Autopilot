@@ -35,10 +35,12 @@
 
 using namespace time_literals;
 
-AckermannAttControl::AckermannAttControl(ModuleParams *parent) : ModuleParams(parent)
+AckermannAttControl::AckermannAttControl(ModuleParams *parent) :
+	ModuleParams(parent),
+	RoverControllerWorkItem("rover_ackermann_att_control", ORB_ID(vehicle_attitude))
 {
-	_rover_rate_setpoint_pub.advertise();
-	_rover_attitude_status_pub.advertise();
+	_surface_vehicle_rate_setpoint_pub.advertise();
+	_surface_vehicle_attitude_status_pub.advertise();
 	updateParams();
 }
 
@@ -65,7 +67,8 @@ void AckermannAttControl::updateAttControl()
 
 	hrt_abstime timestamp_prev = _timestamp;
 	_timestamp = hrt_absolute_time();
-	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 10_ms) * 1e-6f;
+	// Runs on every vehicle_attitude publication (EKF2 output predictor at IMU_INTEG_RATE >= 100 Hz), allow for jitter
+	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 50_ms) * 1e-6f;
 
 	if (PX4_ISFINITE(_yaw_setpoint)) {
 		// Calculate yaw rate limit for slew rate
@@ -76,19 +79,19 @@ void AckermannAttControl::updateAttControl()
 		float yaw_rate_setpoint = RoverControl::attitudeControl(_adjusted_yaw_setpoint, _pid_yaw, yaw_slew_rate,
 					  _vehicle_yaw, _yaw_setpoint, dt);
 
-		rover_rate_setpoint_s rover_rate_setpoint{};
-		rover_rate_setpoint.timestamp = _timestamp;
-		rover_rate_setpoint.yaw_rate_setpoint = math::constrain(yaw_rate_setpoint, -_max_yaw_rate, _max_yaw_rate);
-		_rover_rate_setpoint_pub.publish(rover_rate_setpoint);
+		surface_vehicle_rate_setpoint_s surface_vehicle_rate_setpoint{};
+		surface_vehicle_rate_setpoint.timestamp = _timestamp;
+		surface_vehicle_rate_setpoint.yaw_rate_setpoint = math::constrain(yaw_rate_setpoint, -_max_yaw_rate, _max_yaw_rate);
+		_surface_vehicle_rate_setpoint_pub.publish(surface_vehicle_rate_setpoint);
 
 	}
 
 	// Publish attitude controller status (logging only)
-	rover_attitude_status_s rover_attitude_status;
-	rover_attitude_status.timestamp = _timestamp;
-	rover_attitude_status.measured_yaw = _vehicle_yaw;
-	rover_attitude_status.adjusted_yaw_setpoint = matrix::wrap_pi(_adjusted_yaw_setpoint.getState());
-	_rover_attitude_status_pub.publish(rover_attitude_status);
+	surface_vehicle_attitude_status_s surface_vehicle_attitude_status;
+	surface_vehicle_attitude_status.timestamp = _timestamp;
+	surface_vehicle_attitude_status.measured_yaw = _vehicle_yaw;
+	surface_vehicle_attitude_status.adjusted_yaw_setpoint = matrix::wrap_pi(_adjusted_yaw_setpoint.getState());
+	_surface_vehicle_attitude_status_pub.publish(surface_vehicle_attitude_status);
 
 }
 
@@ -109,10 +112,10 @@ void AckermannAttControl::updateSubscriptions()
 					  -_param_ro_max_thr_speed.get(), _param_ro_max_thr_speed.get());
 	}
 
-	if (_rover_attitude_setpoint_sub.updated()) {
-		rover_attitude_setpoint_s rover_attitude_setpoint{};
-		_rover_attitude_setpoint_sub.copy(&rover_attitude_setpoint);
-		_yaw_setpoint = rover_attitude_setpoint.yaw_setpoint;
+	if (_surface_vehicle_attitude_setpoint_sub.updated()) {
+		surface_vehicle_attitude_setpoint_s surface_vehicle_attitude_setpoint{};
+		_surface_vehicle_attitude_setpoint_sub.copy(&surface_vehicle_attitude_setpoint);
+		_yaw_setpoint = surface_vehicle_attitude_setpoint.yaw_setpoint;
 	}
 }
 

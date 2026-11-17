@@ -38,6 +38,9 @@ For this return type the copter:
 - On arrival at its destination, it lands.
   If [RTL_LAND_DELAY](#RTL_LAND_DELAY) is not 0 (the default), it first descends to the "descent altitude" ([RTL_DESCEND_ALT](#RTL_DESCEND_ALT)) and waits there for that time, which may be used for deploying landing gear.
 
+Unless weather vane ([WV_EN](../advanced_config/parameter_reference.md#WV_EN)) is enabled, the copter turns to the heading of the destination (for example the heading of Home) and may wait to reach it before it descends or lands.
+If the heading cannot be reached, for example because a motor failure has left the vehicle without yaw control, it continues without it once [MIS_YAW_TMT](../flight_modes_mc/mission.md#waypoint-heading-timeout) has elapsed since the heading was commanded.
+
 <!-- AUTO-GENERATED: mode_requirements_rotary_wing_auto_rtl -->
 
 ### Mode Requirements

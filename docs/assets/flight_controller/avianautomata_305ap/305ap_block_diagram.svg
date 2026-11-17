@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="680" viewBox="0 0 960 680" font-family="Helvetica, Arial, sans-serif">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#444"/></marker></defs>
+<rect width="960" height="680" fill="#ffffff"/>
+<text x="20" y="28" font-size="14" font-weight="bold">Power</text>
+<rect x="20" y="40" width="110" height="50" rx="6" fill="#fff4d6" stroke="#444" stroke-width="1.5"/>
+<text x="75.0" y="61.0" font-size="13" text-anchor="middle">VBAT</text>
+<text x="75.0" y="78.0" font-size="13" text-anchor="middle">2S-6S</text>
+<rect x="160" y="40" width="140" height="50" rx="6" fill="#fff4d6" stroke="#444" stroke-width="1.5"/>
+<text x="230.0" y="61.0" font-size="13" text-anchor="middle">Fuse, TVS,</text>
+<text x="230.0" y="78.0" font-size="13" text-anchor="middle">ideal diode</text>
+<line x1="130" y1="65" x2="160" y2="65" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="330" y="40" width="90" height="50" rx="6" fill="#fff4d6" stroke="#444" stroke-width="1.5"/>
+<text x="375.0" y="69.5" font-size="13" text-anchor="middle">9 V buck</text>
+<rect x="450" y="40" width="110" height="50" rx="6" fill="#f2f2f2" stroke="#444" stroke-width="1.5"/>
+<text x="505.0" y="61.0" font-size="13" text-anchor="middle">9 V out</text>
+<text x="505.0" y="78.0" font-size="13" text-anchor="middle">(VTX)</text>
+<line x1="420" y1="65" x2="450" y2="65" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="330" y="110" width="90" height="50" rx="6" fill="#fff4d6" stroke="#444" stroke-width="1.5"/>
+<text x="375.0" y="139.6" font-size="13" text-anchor="middle">5 V buck</text>
+<line x1="300" y1="65" x2="315" y2="65" stroke="#444" stroke-width="1.5"/>
+<line x1="315" y1="65" x2="315" y2="135" stroke="#444" stroke-width="1.5"/>
+<line x1="315" y1="65" x2="330" y2="65" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<line x1="315" y1="135" x2="330" y2="135" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="450" y="110" width="110" height="50" rx="6" fill="#fff4d6" stroke="#444" stroke-width="1.5"/>
+<text x="505.0" y="131.1" font-size="13" text-anchor="middle">5 V power</text>
+<text x="505.0" y="148.1" font-size="13" text-anchor="middle">mux</text>
+<line x1="420" y1="135" x2="450" y2="135" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="590" y="40" width="110" height="50" rx="6" fill="#f2f2f2" stroke="#444" stroke-width="1.5"/>
+<text x="645.0" y="61.0" font-size="13" text-anchor="middle">USB-C</text>
+<text x="645.0" y="78.0" font-size="13" text-anchor="middle">5 V</text>
+<line x1="645" y1="90" x2="645" y2="100" stroke="#444" stroke-width="1.5"/>
+<line x1="645" y1="100" x2="505" y2="100" stroke="#444" stroke-width="1.5"/>
+<line x1="505" y1="100" x2="505" y2="110" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="590" y="110" width="110" height="50" rx="6" fill="#fff4d6" stroke="#444" stroke-width="1.5"/>
+<text x="645.0" y="139.6" font-size="13" text-anchor="middle">+5V_BOARD</text>
+<line x1="560" y1="135" x2="590" y2="135" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="730" y="40" width="210" height="36" rx="6" fill="#fff4d6" stroke="#444" stroke-width="1.5"/>
+<text x="835.0" y="62.2" font-size="12" text-anchor="middle">3.3 V buck: MCU, logic</text>
+<rect x="730" y="84" width="210" height="36" rx="6" fill="#fff4d6" stroke="#444" stroke-width="1.5"/>
+<text x="835.0" y="106.2" font-size="12" text-anchor="middle">3.3 V LDO: IMUs, baro, mag</text>
+<rect x="730" y="128" width="210" height="36" rx="6" fill="#fff4d6" stroke="#444" stroke-width="1.5"/>
+<text x="835.0" y="150.2" font-size="12" text-anchor="middle">5 V: CAN, GPS, RC, telem</text>
+<line x1="700" y1="135" x2="730" y2="58" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<line x1="700" y1="135" x2="730" y2="102" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<line x1="700" y1="135" x2="730" y2="146" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="20" y="190" font-size="11" fill="#333">No power-enable GPIOs: every rail, sensor and peripheral is powered whenever the board has power.</text>
+<rect x="340" y="250" width="240" height="250" rx="6" fill="#dbe8ff" stroke="#2a5db0" stroke-width="1.5"/>
+<text x="460.0" y="361.9" font-size="14" text-anchor="middle" font-weight="bold">STM32H743VIH6</text>
+<text x="460.0" y="379.9" font-size="14" text-anchor="middle">Cortex-M7, 480 MHz</text>
+<text x="460.0" y="397.9" font-size="14" text-anchor="middle">2 MB flash, 1 MB RAM</text>
+<text x="20" y="232" font-size="14" font-weight="bold">Onboard sensors</text>
+<rect x="20" y="245" width="200" height="50" rx="6" fill="#e3f5e1" stroke="#444" stroke-width="1.5"/>
+<text x="120.0" y="266.2" font-size="12" text-anchor="middle">Barometer</text>
+<text x="120.0" y="282.2" font-size="12" text-anchor="middle">BMP581</text>
+<line x1="340" y1="270" x2="220" y2="270" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="280" y="265" font-size="11" fill="#333" text-anchor="middle">SPI1</text>
+<rect x="20" y="309" width="200" height="50" rx="6" fill="#e3f5e1" stroke="#444" stroke-width="1.5"/>
+<text x="120.0" y="330.2" font-size="12" text-anchor="middle">IMU 1</text>
+<text x="120.0" y="346.2" font-size="12" text-anchor="middle">LSM6DSV16X or ICM-45686</text>
+<line x1="340" y1="334" x2="220" y2="334" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="280" y="329" font-size="11" fill="#333" text-anchor="middle">SPI2</text>
+<rect x="20" y="373" width="200" height="50" rx="6" fill="#e3f5e1" stroke="#444" stroke-width="1.5"/>
+<text x="120.0" y="394.2" font-size="12" text-anchor="middle">IMU 2</text>
+<text x="120.0" y="410.2" font-size="12" text-anchor="middle">LSM6DSV16X or ICM-45686</text>
+<line x1="340" y1="398" x2="220" y2="398" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="280" y="393" font-size="11" fill="#333" text-anchor="middle">SPI3</text>
+<rect x="20" y="437" width="200" height="50" rx="6" fill="#e3f5e1" stroke="#444" stroke-width="1.5"/>
+<text x="120.0" y="458.2" font-size="12" text-anchor="middle">Magnetometer</text>
+<text x="120.0" y="474.2" font-size="12" text-anchor="middle">MMC5983MA</text>
+<line x1="340" y1="462" x2="220" y2="462" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="280" y="457" font-size="11" fill="#333" text-anchor="middle">I2C1</text>
+<text x="700" y="232" font-size="14" font-weight="bold">Connectors</text>
+<rect x="700" y="245" width="240" height="40" rx="6" fill="#f2f2f2" stroke="#444" stroke-width="1.5"/>
+<text x="820.0" y="261.2" font-size="12" text-anchor="middle">TELEM 1, TELEM 2</text>
+<text x="820.0" y="277.2" font-size="12" text-anchor="middle">(with flow control)</text>
+<line x1="580" y1="265" x2="700" y2="265" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="640" y="260" font-size="11" fill="#333" text-anchor="middle">UART4, UART7</text>
+<rect x="700" y="291" width="240" height="40" rx="6" fill="#f2f2f2" stroke="#444" stroke-width="1.5"/>
+<text x="820.0" y="315.2" font-size="12" text-anchor="middle">GPS</text>
+<line x1="580" y1="311" x2="700" y2="311" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="640" y="306" font-size="11" fill="#333" text-anchor="middle">USART6, I2C4</text>
+<rect x="700" y="337" width="240" height="40" rx="6" fill="#f2f2f2" stroke="#444" stroke-width="1.5"/>
+<text x="820.0" y="361.2" font-size="12" text-anchor="middle">RC IN</text>
+<line x1="580" y1="357" x2="700" y2="357" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="640" y="352" font-size="11" fill="#333" text-anchor="middle">UART5</text>
+<rect x="700" y="383" width="240" height="40" rx="6" fill="#f2f2f2" stroke="#444" stroke-width="1.5"/>
+<text x="820.0" y="407.2" font-size="12" text-anchor="middle">VTX (TEL3, console)</text>
+<line x1="580" y1="403" x2="700" y2="403" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="640" y="398" font-size="11" fill="#333" text-anchor="middle">USART2, USART3</text>
+<rect x="700" y="429" width="240" height="40" rx="6" fill="#f2f2f2" stroke="#444" stroke-width="1.5"/>
+<text x="820.0" y="445.2" font-size="12" text-anchor="middle">2x SIT1044 transceivers</text>
+<text x="820.0" y="461.2" font-size="12" text-anchor="middle">CAN 1, CAN 2</text>
+<line x1="580" y1="449" x2="700" y2="449" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="640" y="444" font-size="11" fill="#333" text-anchor="middle">FDCAN1, FDCAN2</text>
+<rect x="700" y="475" width="240" height="40" rx="6" fill="#f2f2f2" stroke="#444" stroke-width="1.5"/>
+<text x="820.0" y="491.2" font-size="12" text-anchor="middle">External I2C,</text>
+<text x="820.0" y="507.2" font-size="12" text-anchor="middle">external SPI (2 CS)</text>
+<line x1="580" y1="495" x2="700" y2="495" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="640" y="490" font-size="11" fill="#333" text-anchor="middle">I2C2, SPI4</text>
+<rect x="20.0" y="610" width="140" height="50" rx="6" fill="#f2f2f2" stroke="#444" stroke-width="1.5"/>
+<text x="90.0" y="631.2" font-size="12" text-anchor="middle">8x PWM / DShot</text>
+<text x="90.0" y="647.2" font-size="12" text-anchor="middle">motor connector</text>
+<line x1="370.0" y1="500" x2="370.0" y2="530" stroke="#444" stroke-width="1.5"/>
+<line x1="370.0" y1="530" x2="90.0" y2="530" stroke="#444" stroke-width="1.5"/>
+<line x1="90.0" y1="530" x2="90.0" y2="610" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="95.0" y="602" font-size="11" fill="#333">TIM1-TIM4</text>
+<rect x="176.0" y="610" width="140" height="50" rx="6" fill="#f2f2f2" stroke="#444" stroke-width="1.5"/>
+<text x="246.0" y="631.2" font-size="12" text-anchor="middle">ESC telemetry</text>
+<text x="246.0" y="647.2" font-size="12" text-anchor="middle">(motor connector)</text>
+<line x1="406.0" y1="500" x2="406.0" y2="550" stroke="#444" stroke-width="1.5"/>
+<line x1="406.0" y1="550" x2="246.0" y2="550" stroke="#444" stroke-width="1.5"/>
+<line x1="246.0" y1="550" x2="246.0" y2="610" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="251.0" y="602" font-size="11" fill="#333">USART1</text>
+<rect x="332.0" y="610" width="140" height="50" rx="6" fill="#f2f2f2" stroke="#444" stroke-width="1.5"/>
+<text x="402.0" y="631.2" font-size="12" text-anchor="middle">Battery voltage,</text>
+<text x="402.0" y="647.2" font-size="12" text-anchor="middle">current sense input</text>
+<line x1="442.0" y1="500" x2="442.0" y2="570" stroke="#444" stroke-width="1.5"/>
+<line x1="442.0" y1="570" x2="402.0" y2="570" stroke="#444" stroke-width="1.5"/>
+<line x1="402.0" y1="570" x2="402.0" y2="610" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="407.0" y="602" font-size="11" fill="#333">ADC</text>
+<rect x="488.0" y="610" width="140" height="50" rx="6" fill="#f2f2f2" stroke="#444" stroke-width="1.5"/>
+<text x="558.0" y="639.2" font-size="12" text-anchor="middle">microSD</text>
+<line x1="478.0" y1="500" x2="478.0" y2="570" stroke="#444" stroke-width="1.5"/>
+<line x1="478.0" y1="570" x2="558.0" y2="570" stroke="#444" stroke-width="1.5"/>
+<line x1="558.0" y1="570" x2="558.0" y2="610" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="563.0" y="602" font-size="11" fill="#333">SDMMC1</text>
+<rect x="644.0" y="610" width="140" height="50" rx="6" fill="#f2f2f2" stroke="#444" stroke-width="1.5"/>
+<text x="714.0" y="639.2" font-size="12" text-anchor="middle">USB-C</text>
+<line x1="514.0" y1="500" x2="514.0" y2="550" stroke="#444" stroke-width="1.5"/>
+<line x1="514.0" y1="550" x2="714.0" y2="550" stroke="#444" stroke-width="1.5"/>
+<line x1="714.0" y1="550" x2="714.0" y2="610" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="719.0" y="602" font-size="11" fill="#333">USB FS</text>
+<rect x="800.0" y="610" width="140" height="50" rx="6" fill="#f2f2f2" stroke="#444" stroke-width="1.5"/>
+<text x="870.0" y="639.2" font-size="12" text-anchor="middle">RGB LED, buzzer</text>
+<line x1="550.0" y1="500" x2="550.0" y2="530" stroke="#444" stroke-width="1.5"/>
+<line x1="550.0" y1="530" x2="870.0" y2="530" stroke="#444" stroke-width="1.5"/>
+<line x1="870.0" y1="530" x2="870.0" y2="610" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="875.0" y="602" font-size="11" fill="#333">GPIO, TIM5</text>
+</svg>

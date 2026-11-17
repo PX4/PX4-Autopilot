@@ -254,6 +254,13 @@ void RtlDirect::set_rtl_item()
 
 	const bool is_close_to_destination = destination_dist < _param_rtl_min_dist.get();
 
+	// On the land approach loiter force_heading is the fixed-wing exit course, a multicopter would wait for the heading
+	const bool force_exit_course = _force_heading
+				       && _vehicle_status_sub.get().vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+
+	// The item is reused for every state and the setters keep force_heading
+	_mission_item.force_heading = false;
+
 	float altitude_acceptance_radius = static_cast<float>(NAN);
 
 	switch (_rtl_state) {
@@ -386,7 +393,7 @@ void RtlDirect::set_rtl_item()
 			pos_sp_triplet->next.lon = _destination.lon;
 			pos_sp_triplet->next.type = position_setpoint_s::SETPOINT_TYPE_LAND;
 
-			if (_force_heading) {
+			if (force_exit_course) {
 				_mission_item.force_heading = true;
 			}
 
@@ -414,7 +421,7 @@ void RtlDirect::set_rtl_item()
 				/* Set the altitude tracking to best effort but not strictly enforce it */
 				altitude_acceptance_radius = FLT_MAX;
 
-				if (_force_heading) {
+				if (force_exit_course) {
 					_mission_item.force_heading = true;
 				}
 			}
@@ -432,7 +439,6 @@ void RtlDirect::set_rtl_item()
 
 			// Prepare for transition
 			_mission_item.vtol_back_transition = true;
-			_mission_item.force_heading = false;
 
 			// set previous item location to loiter location such that vehicle tracks line between loiter
 			// location and land location after exiting the loiter circle

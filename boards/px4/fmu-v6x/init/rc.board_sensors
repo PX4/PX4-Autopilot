@@ -75,18 +75,27 @@ then
 		iim42652 -s -R 6 start
 		icm45686 -s -R 10 start
 	else
-		# Internal SPI bus 3x ICM45686 or 3x IIM42653
-		if ! icm45686 -b 3 -s -R 0 start
+		# Internal SPI bus 3x ICM45686, IIM42653, or LSM6DSV
+		if ! icm45686 -b 3 -s -R 0 -q start
 		then
-			iim42653 -b 3 -s -R 0 start
+			if ! iim42653 -b 3 -s -R 0 -q start
+			then
+				lsm6dsv -b 3 -s -R 0 start
+			fi
 		fi
-		if ! icm45686 -b 2 -s -R 0 start
+		if ! icm45686 -b 2 -s -R 0 -q start
 		then
-			iim42653 -b 2 -s -R 0 start
+			if ! iim42653 -b 2 -s -R 0 -q start
+			then
+				lsm6dsv -b 2 -s -R 0 start
+			fi
 		fi
-		if ! icm45686 -b 1 -s -R 10 start
+		if ! icm45686 -b 1 -s -R 10 -q start
 		then
-			iim42653 -b 1 -s -R 10 start
+			if ! iim42653 -b 1 -s -R 10 -q start
+			then
+				lsm6dsv -b 1 -s -R 10 start
+			fi
 		fi
 	fi
 else

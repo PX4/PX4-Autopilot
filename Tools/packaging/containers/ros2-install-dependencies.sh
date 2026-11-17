@@ -19,7 +19,8 @@ rm /ros2-apt-source.deb
 apt-get update
 apt-get install -y --no-install-recommends \
     build-essential ccache cmake git ninja-build \
-    python3-empy python3-pip ros-dev-tools "ros-${ROS_DISTRO}-ros-base"
+    python3-empy python3-pip ros-dev-tools "ros-${ROS_DISTRO}-ros-base" \
+    "ros-${ROS_DISTRO}-rmw-zenoh-cpp"
 
 # Keep Ubuntu/ROS Python packages while satisfying PX4's shared requirements.
 # Distro-only versions (e.g. ubuntu suffixes) cannot be pip constraints.

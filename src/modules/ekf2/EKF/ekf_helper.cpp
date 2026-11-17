@@ -1074,8 +1074,8 @@ void Ekf::updateIMUBiasInhibit(const imuSample &imu_delayed)
 	}
 }
 
-void Ekf::fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index,
-				     bool constrain_variances)
+void Ekf::accumulateDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index,
+		VectorState &state_correction, bool constrain_variances)
 {
 	VectorState K;  // Kalman gain vector for any single observation - sequential fusion is used.
 
@@ -1131,8 +1131,18 @@ void Ekf::fuseDirectStateMeasurement(const float innov, const float innov_var, c
 		constrainStateVariances();
 	}
 
-	// apply the state corrections
-	fuse(K, innov);
+	// correct the a priori innovation for the accumulated state correction, then accumulate the
+	// correction of this measurement instead of applying it
+	const float innov_corrected = innov + state_correction(state_index);
+	state_correction -= K * innov_corrected;
+}
+
+void Ekf::fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index,
+				     bool constrain_variances)
+{
+	VectorState state_correction;
+	accumulateDirectStateMeasurement(innov, innov_var, R, state_index, state_correction, constrain_variances);
+	applyStateCorrection(state_correction);
 }
 
 Ekf::VectorState Ekf::computeKalmanGain(const VectorState &H, const float innov_var) const
@@ -1141,7 +1151,8 @@ Ekf::VectorState Ekf::computeKalmanGain(const VectorState &H, const float innov_
 	return multiplySparse(P, H, NonZeroIndices(H)) / innov_var;
 }
 
-bool Ekf::measurementUpdate(VectorState &K, const VectorState &H, const float R, const float innovation)
+bool Ekf::accumulateMeasurementUpdate(VectorState &K, const VectorState &H, const float R, const float innovation,
+				      VectorState &state_correction)
 {
 	clearInhibitedStateKalmanGains(K);
 
@@ -1195,9 +1206,25 @@ bool Ekf::measurementUpdate(VectorState &K, const VectorState &H, const float R,
 
 	constrainStateVariances();
 
-	// apply the state corrections
-	fuse(K, innovation);
+	// correct the a priori innovation for the accumulated state correction, then accumulate the
+	// correction of this measurement instead of applying it
+	const float innov_corrected = innovation + H.dot(state_correction);
+	state_correction -= K * innov_corrected;
 	return true;
+}
+
+bool Ekf::measurementUpdate(VectorState &K, const VectorState &H, const float R, const float innovation)
+{
+	VectorState state_correction;
+	accumulateMeasurementUpdate(K, H, R, innovation, state_correction);
+	applyStateCorrection(state_correction);
+	return true;
+}
+
+void Ekf::applyStateCorrection(const VectorState &correction)
+{
+	// fuse() applies -K * innovation as the correction
+	fuse(correction, -1.f);
 }
 
 void Ekf::resetAidSourceStatusZeroInnovation(estimator_aid_source1d_s &status) const
