@@ -49,6 +49,7 @@
 #include <lib/geo/geo.h>
 #include <px4_platform_common/defines.h>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/geofence_result.h>
 #include <uORB/topics/geofence_status.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -135,10 +136,9 @@ public:
 	/**
 	 * @brief check if the horizontal distance to Home is greater than the maximum allowed distance
 	 *
-	 * @param margin [m] distance the position must keep from the maximum
 	 * @return true if the horizontal distance to Home is smaller than the maximum allowed distance
 	 */
-	bool isCloserThanMaxDistToHome(double lat, double lon, float altitude, float margin = 0.f);
+	bool isCloserThanMaxDistToHome(double lat, double lon, float altitude);
 
 
 	/**
@@ -211,10 +211,24 @@ public:
 	 */
 	void printStatus();
 
+	/**
+	 * Distance [m] the vehicle keeps from every horizontal fence before GF_PRE_ACT triggers (GF_PRE_MARGIN).
+	 * Zero if disabled, including when GF_PRE_ACT is None or the board is built without path checks.
+	 */
+	float getPreGeofenceMargin() const
+	{
 #if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
-	/** Distance [m] fixed-wing vehicles keep from every horizontal fence (GF_FW_MARGIN), zero if disabled. */
-	float getFixedWingMargin() const { return math::max(_param_gf_fw_margin.get(), 0.f); }
+		return _param_gf_pre_act.get() != geofence_result_s::GF_ACTION_NONE ? math::max(_param_gf_pre_margin.get(), 0.f) : 0.f;
+#else
+		return 0.f;
 #endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
+	}
+
+	/** GF_PRE_ACT, or GF_ACTION_NONE while the pre-geofence margin is disabled. */
+	uint8_t getPreGeofenceAction() const
+	{
+		return getPreGeofenceMargin() > 0.f ? static_cast<uint8_t>(_param_gf_pre_act.get()) : geofence_result_s::GF_ACTION_NONE;
+	}
 
 private:
 	friend class GeofenceTestPeer;
@@ -354,6 +368,7 @@ private:
 		(ParamInt<px4::params::GF_SOURCE>)         _param_gf_source,
 		(ParamFloat<px4::params::GF_MAX_HOR_DIST>) _param_gf_max_hor_dist,
 		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist,
-		(ParamFloat<px4::params::GF_FW_MARGIN>)    _param_gf_fw_margin
+		(ParamFloat<px4::params::GF_PRE_MARGIN>)   _param_gf_pre_margin,
+		(ParamInt<px4::params::GF_PRE_ACT>)        _param_gf_pre_act
 	)
 };

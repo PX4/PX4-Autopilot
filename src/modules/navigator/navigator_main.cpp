@@ -415,7 +415,9 @@ void Navigator::run()
 
 				position_setpoint.alt = PX4_ISFINITE(cmd.param7) ? cmd.param7 : get_global_position()->alt;
 
-				if (geofence_allows_position(position_setpoint)) {
+				const bool fence_allows_position = geofence_allows_position(position_setpoint);
+
+				if (fence_allows_position && pre_geofence_allows_target(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 					position_setpoint_triplet_s *curr = get_position_setpoint_triplet();
 
@@ -552,10 +554,15 @@ void Navigator::run()
 
 					_time_loitering_after_gf_breach = 0; // a manual reposition unlatches the post-breach loiter state
 
-				} else {
+				} else if (!fence_allows_position) {
 					mavlink_log_critical(&_mavlink_log_pub, "Reposition is outside geofence\t");
 					events::send(events::ID("navigator_reposition_outside_geofence"), {events::Log::Error, events::LogInternal::Info},
 						     "Reposition is outside geofence");
+
+				} else {
+					mavlink_log_critical(&_mavlink_log_pub, "Reposition is within the pre-geofence margin\t");
+					events::send(events::ID("navigator_reposition_in_pre_geofence_margin"), {events::Log::Error, events::LogInternal::Info},
+						     "Reposition is within the pre-geofence margin");
 				}
 
 				// CMD_DO_REPOSITION is acknowledged by commander
@@ -697,7 +704,9 @@ void Navigator::run()
 				// Wait for vehicle_status before handling the next command, otherwise the setpoint could be overwritten
 				_wait_for_vehicle_status_timestamp = hrt_absolute_time();
 
-				if (geofence_allows_position(position_setpoint)) {
+				const bool fence_allows_position = geofence_allows_position(position_setpoint);
+
+				if (fence_allows_position && pre_geofence_allows_target(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 					rep->current.loiter_radius = get_default_loiter_rad();
@@ -728,8 +737,13 @@ void Navigator::run()
 
 					_time_loitering_after_gf_breach = 0; // a manual reposition unlatches the post-breach loiter state
 
-				} else {
+				} else if (!fence_allows_position) {
 					mavlink_log_critical(&_mavlink_log_pub, "Orbit is outside geofence");
+
+				} else {
+					mavlink_log_critical(&_mavlink_log_pub, "Orbit is within the pre-geofence margin\t");
+					events::send(events::ID("navigator_orbit_in_pre_geofence_margin"), {events::Log::Error, events::LogInternal::Info},
+						     "Orbit is within the pre-geofence margin");
 				}
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_FIGUREEIGHT &&
@@ -745,7 +759,9 @@ void Navigator::run()
 				// Wait for vehicle_status before handling the next command, otherwise the setpoint could be overwritten
 				_wait_for_vehicle_status_timestamp = hrt_absolute_time();
 
-				if (geofence_allows_position(position_setpoint)) {
+				const bool fence_allows_position = geofence_allows_position(position_setpoint);
+
+				if (fence_allows_position && pre_geofence_allows_target(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 					rep->current.loiter_minor_radius = fabsf(get_default_loiter_rad());
@@ -780,8 +796,13 @@ void Navigator::run()
 
 					_time_loitering_after_gf_breach = 0; // a manual reposition unlatches the post-breach loiter state
 
-				} else {
+				} else if (!fence_allows_position) {
 					mavlink_log_critical(&_mavlink_log_pub, "Figure 8 is outside geofence");
+
+				} else {
+					mavlink_log_critical(&_mavlink_log_pub, "Figure 8 is within the pre-geofence margin\t");
+					events::send(events::ID("navigator_figure_eight_in_pre_geofence_margin"), {events::Log::Error, events::LogInternal::Info},
+						     "Figure 8 is within the pre-geofence margin");
 				}
 
 #endif // CONFIG_FIGURE_OF_EIGHT
@@ -1259,43 +1280,36 @@ void Navigator::geofence_breach_check()
 			return;
 		}
 
-		// With GF_FW_MARGIN, a fixed-wing breaches the fence once a circle of the margin around it touches a boundary.
-		bool margin_max_dist_triggered = false;
-		bool margin_custom_fence_triggered = false;
+		// The pre-geofence is breached once a circle of GF_PRE_MARGIN around the vehicle touches a horizontal fence.
+		const float pre_margin = _geofence.getPreGeofenceMargin();
+		bool pre_geofence_triggered = false;
 #if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
-		const float margin = _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING ?
-				     _geofence.getFixedWingMargin() : 0.f;
-
-		// While a fence update loads, only the fence itself triggers.
-		const bool margin_checked = margin > 0.f && _geofence.isReadyForPathChecks();
-		const bool margin_clear = margin_checked
-					  && _geofence.isLoiterCircleInside(current_latitude, current_longitude, margin);
-
-		if (margin_checked && !margin_clear) {
-			// The circle check covers both limits; attribute the breach to the maximum distance if it is too close.
-			margin_max_dist_triggered = !_geofence.isCloserThanMaxDistToHome(current_latitude, current_longitude,
-						    current_altitude, margin);
-			margin_custom_fence_triggered = !margin_max_dist_triggered;
-		}
-
+		// While a fence update loads, only the geofence itself is checked.
+		pre_geofence_triggered = pre_margin > 0.f && _geofence.isReadyForPathChecks()
+					 && !_geofence.isLoiterCircleInside(current_latitude, current_longitude, pre_margin);
 #endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 
 		if (_time_loitering_after_gf_breach > 0) {
 			// while loitering after a breach, only allow new triggers to be set, never cleared.
 			// Prevents the reposition center from walking outward when the vehicle hovers at the fence boundary.
-			_geofence_result.geofence_max_dist_triggered |= margin_max_dist_triggered
-					|| !_geofence.isCloserThanMaxDistToHome(current_latitude, current_longitude, current_altitude);
+			_geofence_result.geofence_max_dist_triggered |= !_geofence.isCloserThanMaxDistToHome(current_latitude,
+					current_longitude, current_altitude);
 			_geofence_result.geofence_max_alt_triggered |= !_geofence.isBelowMaxAltitude(current_altitude);
-			_geofence_result.geofence_custom_fence_triggered |= margin_custom_fence_triggered
-					|| !_geofence.isInsidePolygonOrCircle(current_latitude, current_longitude, current_altitude);
+			_geofence_result.geofence_custom_fence_triggered |= !_geofence.isInsidePolygonOrCircle(current_latitude,
+					current_longitude, current_altitude);
+			_geofence_result.pre_geofence_triggered |= pre_geofence_triggered;
 
 		} else {
-			_geofence_result.geofence_max_dist_triggered = margin_max_dist_triggered
-					|| !_geofence.isCloserThanMaxDistToHome(current_latitude, current_longitude, current_altitude);
+			_geofence_result.geofence_max_dist_triggered = !_geofence.isCloserThanMaxDistToHome(current_latitude,
+					current_longitude, current_altitude);
 			_geofence_result.geofence_max_alt_triggered = !_geofence.isBelowMaxAltitude(current_altitude);
-			_geofence_result.geofence_custom_fence_triggered = margin_custom_fence_triggered
-					|| !_geofence.isInsidePolygonOrCircle(current_latitude, current_longitude, current_altitude);
+			_geofence_result.geofence_custom_fence_triggered = !_geofence.isInsidePolygonOrCircle(current_latitude,
+					current_longitude, current_altitude);
+			_geofence_result.pre_geofence_triggered = pre_geofence_triggered;
 		}
+
+		// Disabling the margin releases its breach, also while loitering after it.
+		_geofence_result.pre_geofence_triggered &= pre_margin > 0.f;
 
 		const auto now = hrt_absolute_time();
 
@@ -1303,15 +1317,24 @@ void Navigator::geofence_breach_check()
 
 		_geofence_result.timestamp = now;
 		_geofence_result.geofence_action = _geofence.getGeofenceAction();
+		_geofence_result.pre_geofence_action = _geofence.getPreGeofenceAction();
 
 		const bool breach = _geofence_result.geofence_max_dist_triggered
 				    || _geofence_result.geofence_max_alt_triggered
 				    || _geofence_result.geofence_custom_fence_triggered;
 
-		if (breach) {
-			if (!_geofence_reposition_sent && global_position_valid && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED
-			    && _geofence.getGeofenceAction() == geofence_result_s::GF_ACTION_LOITER) {
+		// Navigator only takes part in Hold: it sets where to hold. Each level asks for it once per breach,
+		// so a vehicle that was taken over after the pre-geofence breach is still held at the geofence.
+		const bool geofence_hold = breach && _geofence_result.geofence_action == geofence_result_s::GF_ACTION_LOITER;
+		const bool geofence_action_active = breach && _geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE;
+		const bool pre_geofence_hold = !geofence_action_active && _geofence_result.pre_geofence_triggered
+					       && _geofence_result.pre_geofence_action == geofence_result_s::GF_ACTION_LOITER;
 
+		if (((geofence_hold && !_geofence_reposition_sent) || (pre_geofence_hold && !_pre_geofence_reposition_sent))
+		    && global_position_valid && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+
+			// A vehicle already holding after the pre-geofence breach is not moved out to where it breaches the geofence.
+			if (_time_loitering_after_gf_breach == 0) {
 				const position_setpoint_s current = get_position_setpoint_triplet()->current;
 				double loiter_center_lat = _global_pos.lat;
 				double loiter_center_lon = _global_pos.lon;
@@ -1320,20 +1343,9 @@ void Navigator::geofence_breach_check()
 				if (is_established_on_loiter(current)) {
 					loiter_center_lat = current.lat;
 					loiter_center_lon = current.lon;
-
-#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
-
-				} else if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
-					   && (_geofence_result.geofence_max_dist_triggered || _geofence_result.geofence_custom_fence_triggered)
-					   && _gf_hold_center_reset_counter == _global_pos.lat_lon_reset_counter
-					   && _geofence.isLoiterCircleInside(_gf_hold_center_lat, _gf_hold_center_lon, _geofence.getFixedWingMargin())) {
-					// A fixed-wing orbit centered at the breach point stays half outside the fence.
-					// Return to the last position that kept the margin; keep the current position otherwise.
-					loiter_center_lat = _gf_hold_center_lat;
-					loiter_center_lon = _gf_hold_center_lon;
-#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 				}
 
+				// loiter at the current position; we no longer predict ahead of the vehicle
 				position_setpoint_triplet_s *rep = get_reposition_triplet();
 				rep->current.timestamp = now;
 				rep->current.yaw = NAN;
@@ -1347,50 +1359,24 @@ void Navigator::geofence_breach_check()
 				rep->current.acceptance_radius = get_acceptance_radius();
 				rep->current.cruising_speed = get_cruising_speed();
 
-				_geofence_reposition_sent = true;
 				_time_loitering_after_gf_breach = now;
 			}
 
-		} else {
+			_geofence_reposition_sent |= geofence_hold;
+			_pre_geofence_reposition_sent |= pre_geofence_hold;
+		}
+
+		if (!breach) {
 			_geofence_reposition_sent = false;
 		}
 
-#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
-		// The margin check already covers the global position unless the fence uses raw GNSS.
-		update_geofence_hold_center(breach, global_position_valid, margin,
-					    margin_checked && _geofence.getSource() == Geofence::GF_SOURCE_GLOBALPOS, margin_clear);
-#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
+		if (!_geofence_result.pre_geofence_triggered) {
+			_pre_geofence_reposition_sent = false;
+		}
 
 		_geofence_result_pub.publish(_geofence_result);
 	}
 }
-
-#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
-void Navigator::update_geofence_hold_center(bool breach, bool global_position_valid, float margin,
-		bool position_clear_known, bool position_clear)
-{
-	// A position reset shifts the estimate relative to the stored center, so it no longer marks where the vehicle was.
-	if (_vstatus.arming_state != vehicle_status_s::ARMING_STATE_ARMED
-	    || _vstatus.vehicle_type != vehicle_status_s::VEHICLE_TYPE_FIXED_WING
-	    || !(margin > 0.f)
-	    || _gf_hold_center_reset_counter != _global_pos.lat_lon_reset_counter) {
-		_gf_hold_center_lat = static_cast<double>(NAN);
-		_gf_hold_center_lon = static_cast<double>(NAN);
-		_gf_hold_center_reset_counter = _global_pos.lat_lon_reset_counter;
-		return;
-	}
-
-	if (breach || _time_loitering_after_gf_breach > 0 || !global_position_valid
-	    || _geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_LOITER) {
-		return;
-	}
-
-	if (position_clear_known ? position_clear : _geofence.isLoiterCircleInside(_global_pos.lat, _global_pos.lon, margin)) {
-		_gf_hold_center_lat = _global_pos.lat;
-		_gf_hold_center_lon = _global_pos.lon;
-	}
-}
-#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 
 int Navigator::run_trampoline(int argc, char *argv[])
 {
@@ -1933,6 +1919,27 @@ bool Navigator::geofence_allows_position(const vehicle_global_position_s &pos)
 	return true;
 }
 
+bool Navigator::pre_geofence_allows_target(const vehicle_global_position_s &target)
+{
+#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
+	const uint8_t action = _geofence.getPreGeofenceAction();
+
+	// A command without a position targets the vehicle position, which keeps the vehicle where it is.
+	// Only the target itself is checked, not the path to it or a loiter around it.
+	const bool keeps_position = fabs(target.lat - _global_pos.lat) < DBL_EPSILON
+				    && fabs(target.lon - _global_pos.lon) < DBL_EPSILON;
+
+	if (keeps_position || action == geofence_result_s::GF_ACTION_NONE || action == geofence_result_s::GF_ACTION_WARN
+	    || !_geofence.isReadyForPathChecks()) {
+		return true;
+	}
+
+	return _geofence.isLoiterCircleInside(target.lat, target.lon, _geofence.getPreGeofenceMargin());
+#else
+	return true;
+#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
+}
+
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 float Navigator::geofence_avoidance_margin() const
 {
@@ -1940,16 +1947,19 @@ float Navigator::geofence_avoidance_margin() const
 	// If re-using the enlarged polygons for a predictive geofence failsafe feature, additionally ensure
 	// that the margin is large enough to turn around / stop / carry out the desired failsafe action in time.
 
+	// Return also keeps the pre-geofence margin, so its route does not trigger GF_PRE_ACT.
+	const float pre_margin = _geofence.getPreGeofenceMargin();
+
 	if (_vstatus.is_vtol || _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 
 		// Use FW loiter radius even for VTOL in MC -- changing the
 		// margin on transition is confusing and RTLing in MC as a VTOL
 		// is a very rare edge case
-		return get_default_loiter_rad();
+		return pre_margin + get_default_loiter_rad();
 	}
 
 	// MC, rover, unspecified
-	return 2.0f * get_default_acceptance_radius();
+	return pre_margin + 2.0f * get_default_acceptance_radius();
 }
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 

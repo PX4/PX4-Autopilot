@@ -632,11 +632,6 @@ protected:
 			return false;
 		}
 
-		// These tests check the circles themselves; the fixed-wing margin has its own tests.
-		if (!setMargin(0.f)) {
-			return false;
-		}
-
 		vehicle_status_s status = *_navigator.get_vstatus();
 		status.vehicle_type = type;
 		status.is_vtol = is_vtol;
@@ -647,7 +642,7 @@ protected:
 
 	bool setMargin(float margin)
 	{
-		if (param_set(param_find("GF_FW_MARGIN"), &margin) != PX4_OK) {
+		if (param_set(param_find("GF_PRE_MARGIN"), &margin) != PX4_OK) {
 			return false;
 		}
 
@@ -757,10 +752,9 @@ TEST_F(MissionGeofenceLoiterTest, NaNDefaultRadiusRejectsTheEndLoiter)
 	EXPECT_TRUE(logContains("geofence path check unavailable"));
 }
 
-TEST_F(MissionGeofenceLoiterTest, FixedWingMarginAppliesToPaths)
+TEST_F(MissionGeofenceLoiterTest, PreGeofenceMarginAppliesToPaths)
 {
-	ASSERT_TRUE(configureVehicle());
-	ASSERT_TRUE(setMargin(0.f));
+	ASSERT_TRUE(configureVehicle(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING));
 	ASSERT_TRUE(loadFence(inclusionSquare()));
 
 	// The middle waypoint is 50 m inside the eastern edge.
@@ -775,7 +769,7 @@ TEST_F(MissionGeofenceLoiterTest, FixedWingMarginAppliesToPaths)
 	expectPathViolation(2);
 }
 
-TEST_F(MissionGeofenceLoiterTest, FixedWingMarginAppliesToLoiterCircles)
+TEST_F(MissionGeofenceLoiterTest, PreGeofenceMarginAppliesToLoiterCircles)
 {
 	ASSERT_TRUE(configureVehicle());
 	ASSERT_TRUE(setMargin(60.f));
@@ -787,10 +781,13 @@ TEST_F(MissionGeofenceLoiterTest, FixedWingMarginAppliesToLoiterCircles)
 	expectLoiterViolation(2);
 }
 
-TEST_F(MissionGeofenceLoiterTest, FixedWingMarginIgnoredForMulticopters)
+TEST_F(MissionGeofenceLoiterTest, PreGeofenceMarginNeedsAnAction)
 {
 	ASSERT_TRUE(configureVehicle(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING));
 	ASSERT_TRUE(setMargin(200.f));
+	const int32_t none = geofence_result_s::GF_ACTION_NONE;
+	ASSERT_EQ(param_set(param_find("GF_PRE_ACT"), &none), PX4_OK);
+	_navigator.updateParams();
 	ASSERT_TRUE(loadFence(inclusionSquare()));
 	EXPECT_TRUE(missionFeasible({waypoint({0.f, 800.f}), waypoint({0.f, 990.f}), waypoint({0.f, 800.f})}));
 }

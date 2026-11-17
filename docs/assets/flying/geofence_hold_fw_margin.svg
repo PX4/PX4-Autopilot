@@ -37,7 +37,7 @@ text{font-family:"JetBrains Mono","Menlo","Consolas","DejaVu Sans Mono",monospac
 <text x="200.0" y="216.0" text-anchor="middle" class="hi">margin breached</text>
 <text x="200.0" y="252.0" text-anchor="middle" class="muted hi">= loiter centre</text>
 <text x="200.0" y="418.0" text-anchor="middle" class="muted hi">margin circle</text>
-<line class="dim" x1="200.0" y1="350.0" x2="400.0" y2="350.0" marker-start="url(#ad)" marker-end="url(#ad)"/><text x="300.0" y="342.0" text-anchor="middle" class="hi">GF_FW_MARGIN</text>
+<line class="dim" x1="200.0" y1="350.0" x2="400.0" y2="350.0" marker-start="url(#ad)" marker-end="url(#ad)"/><text x="300.0" y="342.0" text-anchor="middle" class="hi">GF_PRE_MARGIN</text>
 <line class="dim" x1="280.0" y1="110.0" x2="400.0" y2="110.0" marker-start="url(#ad)" marker-end="url(#ad)"/><text x="272.0" y="114.0" text-anchor="end" class="hi">margin − R clear</text>
 <line class="dim" x1="280.0" y1="102.0" x2="280.0" y2="220.0" stroke-dasharray="2 3"/>
 </svg>

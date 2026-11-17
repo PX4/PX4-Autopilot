@@ -657,7 +657,16 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 			       ActionOptions(Action::Hold).clearOn(ClearCondition::OnModeChangeOrDisarm));
 	}
 
-	CHECK_FAILSAFE(status_flags, geofence_breached, fromGfActParam(_param_gf_action.get()).cannotBeDeferred());
+	if (status_flags.gf_breached) {
+		// The geofence action replaces the pre-geofence action, including one still latched after its breach cleared.
+		discardFailsafe((int)offsetof(failsafe_flags_s, pre_gf_breached));
+	}
+
+	CHECK_FAILSAFE(status_flags, gf_breached, fromGfActParam(_param_gf_action.get()).cannotBeDeferred());
+
+	if (!status_flags.gf_breached) {
+		CHECK_FAILSAFE(status_flags, pre_gf_breached, fromGfActParam(_param_gf_pre_act.get()).cannotBeDeferred());
+	}
 
 	const hrt_abstime spoolup = static_cast<hrt_abstime>(_param_com_spoolup_time.get() * 1_s);
 

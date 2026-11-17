@@ -131,8 +131,8 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 	const vehicle_status_s &status = *_navigator->get_vstatus();
 	// A VTOL may transition to fixed-wing after upload.
 	const bool circling_vehicle = status.is_vtol || status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
-	// The fixed-wing margin is a breach in flight, so the mission must keep it everywhere.
-	_geofence_margin = circling_vehicle ? geofence.getFixedWingMargin() : 0.f;
+	// Entering the pre-geofence margin triggers GF_PRE_ACT in flight, so the mission must keep it everywhere.
+	_geofence_margin = geofence.getPreGeofenceMargin();
 
 	/* Check mission positions and the paths between them. */
 	static GeofencePathBatch batch{}; // keep the shared batch off the stack.

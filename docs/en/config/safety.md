@@ -207,64 +207,51 @@ In its simplest form, the perimeter is set up as a cylinder centered around the 
 If the vehicle moves outside the radius or above the altitude the specified _Failsafe Action_ will trigger.
 
 Note that the failsafe action will only trigger once the vehicle has already breached the geofence.
-If you have a strict no-fly zone for safety or legal reasons, set [GF_ACTION](../advanced_config/parameter_reference.md#GF_ACTION) to `Hold` and include a safety margin in your geofences.
-The margin should be at least:
+If you have a strict no-fly zone for safety or legal reasons, set a [pre-geofence margin](#pre-geofence-margin), or set [GF_ACTION](../advanced_config/parameter_reference.md#GF_ACTION) to `Hold` and include a safety margin in your geofences.
+Either margin should be at least:
 
 - **Fixed-Wing**: The loiter radius [NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_LOITER_RAD).
 - **Multicopter**: The stopping distance (`v^2 / 2a` with `v`=[MPC_XY_VEL_MAX](../advanced_config/parameter_reference.md#MPC_XY_VEL_MAX) and `a`=[MPC_ACC_HOR_MAX](../advanced_config/parameter_reference.md#MPC_ACC_HOR_MAX)).
 
 Use a margin above those nominal values to account for possible tailwind, position uncertainty, attitude tracking delay, etc.
 
-### Fixed-Wing Hold After a Breach
+### Pre-Geofence Margin
 
 <Badge type="tip" text="main (PX4 v2.0)" />
 
-When [GF_ACTION](../advanced_config/parameter_reference.md#GF_ACTION) is `Hold` and a fixed-wing vehicle breaches a horizontal fence, PX4 places the hold loiter inside the fence rather than at the breach point.
-A horizontal fence is the maximum distance from Home ([GF_MAX_HOR_DIST](../advanced_config/parameter_reference.md#GF_MAX_HOR_DIST)) or a polygon or circle from a [Geofence Plan](../flying/geofence.md#geofence-plan).
+A pre-geofence margin triggers a separate action before the vehicle reaches the geofence.
+Set [GF_PRE_MARGIN](../advanced_config/parameter_reference.md#GF_PRE_MARGIN) to the distance the vehicle must keep from every horizontal fence: the maximum distance from Home ([GF_MAX_HOR_DIST](../advanced_config/parameter_reference.md#GF_MAX_HOR_DIST)) and each polygon and circle of the [Geofence Plan](../flying/geofence.md#geofence-plan).
+Once the vehicle comes closer to a fence than this distance, [GF_PRE_ACT](../advanced_config/parameter_reference.md#GF_PRE_ACT) triggers (`Hold` by default), while the vehicle is still inside the geofence.
+The margin is disabled by default, and also when `GF_PRE_ACT` is `None`.
 
-A loiter centred on the breach point would leave about half of every orbit outside the fence, for as long as the vehicle holds:
+[GF_ACTION](../advanced_config/parameter_reference.md#GF_ACTION) still triggers at the geofence itself.
+If the vehicle reaches the geofence, for example after the pilot took over from the pre-geofence action, `GF_ACTION` replaces the pre-geofence action.
+The altitude limits have no margin.
 
-![Loiter centred on the breach point: the half of the orbit past the fence is outside it, up to one loiter radius plus the detection delay](../../assets/flying/geofence_hold_fw_breach_point.svg)
+The margin is a single distance added to the geofence on the vehicle: there is only one fence to plan and upload.
+It applies to all vehicle types, and everywhere the geofence is checked:
 
-Instead, PX4 keeps track of the last position that kept the [fixed-wing geofence margin](#fixed-wing-geofence-margin) ([GF_FW_MARGIN](../advanced_config/parameter_reference.md#GF_FW_MARGIN)) from every horizontal fence.
-After a breach, the vehicle loiters around that position.
-Because the margin itself triggers the breach, this is the position where the margin was breached, a fraction of a second earlier, so the vehicle does not fly back first.
-The stored position is checked against the fences again before it is used.
-A reset of the position estimate discards it, because it no longer marks where the vehicle was.
+- Arming is denied while the vehicle is within the margin, for example if Home is close to a fence.
+- An uploaded mission is rejected if any path between its positions, or any loiter circle in it, comes closer to a fence than the margin.
+- A reposition ("Go to"), orbit or figure-eight target within the margin is refused, unless `GF_PRE_ACT` is `Warning`.
+- [Return mode](../flight_modes/return.md) plans its route around the fence with the margin added, so it does not trigger the pre-geofence action.
+
+The margin has no effect on boards built without geofence path checks, such as `px4_fmu-v2`.
+
+#### Hold at the Margin
+
+With `Hold`, the vehicle holds at the position where the margin was breached.
+A multicopter stops there, so choose a margin larger than its stopping distance.
+
+A fixed-wing vehicle cannot stop: it loiters around that position, so the orbit reaches up to one loiter radius ([NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_LOITER_RAD)) closer to the fence.
+The orbit stays the margin minus the loiter radius inside the fence, less the distance flown until the breach is detected.
+Choose a margin larger than the loiter radius, with extra room for the turn onto the orbit, tailwind and position uncertainty.
 
 ![Loiter centred where the margin was breached: the margin circle around it touches the fence, and the orbit stays the margin minus the loiter radius inside](../../assets/flying/geofence_hold_fw_margin.svg)
 
-The orbit stays the margin minus the loiter radius ([NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_LOITER_RAD)) inside the fence.
-Choose a margin larger than the loiter radius, with extra room for the turn onto the orbit, tailwind and position uncertainty.
+Without the margin, the same loiter at the geofence itself leaves about half of every orbit outside the fence:
 
-If the margin is 0, or there is no stored position, for example after a position reset close to the fence, the vehicle loiters around the position where the breach was detected.
-
-::: info
-The loiter centre is only moved after a horizontal breach.
-If only an altitude limit is breached, or the vehicle is already established on a loiter, the vehicle keeps loitering where it is.
-Multicopters always hold at the position where the breach was detected.
-Boards with little flash, such as `px4_fmu-v2`, are built without this feature, and fixed-wing vehicles on them also hold at the breach position.
-:::
-
-### Fixed-Wing Geofence Margin
-
-<Badge type="tip" text="main (PX4 v2.0)" />
-
-A fixed-wing vehicle counts as breaching a horizontal fence as soon as it comes closer to it than [GF_FW_MARGIN](../advanced_config/parameter_reference.md#GF_FW_MARGIN).
-[GF_ACTION](../advanced_config/parameter_reference.md#GF_ACTION) then triggers while the vehicle is still inside the fence.
-The margin is 50 m by default, and 200 m on fixed-wing and VTOL airframes. Set it to 0 to trigger at the fence itself.
-
-With `Hold`, the vehicle loiters around the position where the margin was breached, as described [above](#fixed-wing-hold-after-a-breach).
-
-The margin applies everywhere, not only to the breach action:
-
-- Every breach action triggers at the margin, not only `Hold`.
-- An uploaded mission is rejected if any path between its positions, or any loiter circle in it, comes closer to a fence than the margin.
-  This also applies to VTOL vehicles, which may transition to fixed-wing during the mission.
-- Arming is denied while the vehicle is within the margin, for example if Home is close to a fence.
-
-In flight, the margin only applies to a vehicle in fixed-wing mode; multicopters and VTOL vehicles in multicopter mode trigger at the fence itself.
-The parameter has no effect on boards built without geofence path checks, such as `px4_fmu-v2`.
+![Loiter centred on the breach point: the half of the orbit past the fence is outside it, up to one loiter radius plus the detection delay](../../assets/flying/geofence_hold_fw_breach_point.svg)
 
 ![Safety - Geofence (QGC)](../../assets/qgc/setup/safety/safety_geofence.png)
 

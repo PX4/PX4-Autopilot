@@ -398,6 +398,15 @@ bool FailsafeBase::checkFailsafe(int caller_id, bool last_state_failure, bool cu
 	return cur_state_failure;
 }
 
+void FailsafeBase::discardFailsafe(int caller_id)
+{
+	for (ActionOptions &action : _actions) {
+		if (action.id == caller_id) {
+			action.setInvalid();
+		}
+	}
+}
+
 void FailsafeBase::removeAction(ActionOptions &action) const
 {
 	// If failsafes are being deferred and the action can be deferred, remove it immediately independent of the

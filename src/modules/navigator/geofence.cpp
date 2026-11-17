@@ -871,7 +871,7 @@ bool Geofence::checkCirclePaths(const PolygonInfo &polygon, const PathCheck *pat
 	return true;
 }
 
-bool Geofence::isCloserThanMaxDistToHome(double lat, double lon, float altitude, float margin)
+bool Geofence::isCloserThanMaxDistToHome(double lat, double lon, float altitude)
 {
 	bool inside_fence = true;
 
@@ -883,7 +883,7 @@ bool Geofence::isCloserThanMaxDistToHome(double lat, double lon, float altitude,
 		get_distance_to_point_global_wgs84(lat, lon, altitude, _navigator->get_home_position()->lat,
 						   _navigator->get_home_position()->lon, _navigator->get_home_position()->alt, &dist_xy, &dist_z);
 
-		inside_fence = dist_xy + margin < _param_gf_max_hor_dist.get();
+		inside_fence = dist_xy < _param_gf_max_hor_dist.get();
 	}
 
 	return inside_fence;

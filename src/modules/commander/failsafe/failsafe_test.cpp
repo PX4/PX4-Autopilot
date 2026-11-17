@@ -1218,3 +1218,73 @@ TEST_F(FailsafeTest, BatteryFailsafeUsesLowBatActParam)
 	EXPECT_EQ(selectedActionFor(4, kEmergency, false), FailsafeBase::Action::Terminate);
 	EXPECT_EQ(selectedActionFor(6, kEmergency, false), FailsafeBase::Action::Terminate);
 }
+
+TEST_F(FailsafeTest, PreGeofenceUsesPreGeofenceActParam)
+{
+	// Each param value is exercised on its own fresh Failsafe instance, to avoid
+	// action hysteresis/clear-conditions from one value leaking into the next.
+	auto selectedActionFor = [](int32_t gf_pre_act) {
+		param_set(param_handle(px4::params::GF_PRE_ACT), &gf_pre_act);
+
+		// Disable the generic user-takeover hold delay (set to 5s in SetUp()) so a newly
+		// triggered RTL/Land is selected immediately instead of Hold-then-RTL/Land.
+		float com_fail_act_t = 0.f;
+		param_set(param_handle(px4::params::COM_FAIL_ACT_T), &com_fail_act_t);
+
+		Failsafe failsafe(nullptr);
+
+		failsafe_flags_s failsafe_flags{};
+		mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
+		failsafe_flags.pre_gf_breached = true;
+
+		FailsafeBase::State state{};
+		state.armed = true;
+		state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+
+		failsafe.update(5_s, state, false, false, failsafe_flags);
+		return failsafe.selectedAction();
+	};
+
+	EXPECT_EQ(selectedActionFor(1), FailsafeBase::Action::Warn); // Warning
+	EXPECT_EQ(selectedActionFor(2), FailsafeBase::Action::Hold); // Hold mode
+	EXPECT_EQ(selectedActionFor(3), FailsafeBase::Action::RTL); // Return mode
+	EXPECT_EQ(selectedActionFor(4), FailsafeBase::Action::Terminate); // Terminate
+	EXPECT_EQ(selectedActionFor(5), FailsafeBase::Action::Land); // Land mode
+
+	param_reset(param_handle(px4::params::GF_PRE_ACT));
+}
+
+TEST_F(FailsafeTest, GeofenceBreachReplacesPreGeofenceAction)
+{
+	const int32_t gf_pre_act = 5; // Land
+	const int32_t gf_action = 2; // Hold, less severe than the pre-geofence action
+	const float com_fail_act_t = 0.f;
+	param_set(param_handle(px4::params::GF_PRE_ACT), &gf_pre_act);
+	param_set(param_handle(px4::params::GF_ACTION), &gf_action);
+	param_set(param_handle(px4::params::COM_FAIL_ACT_T), &com_fail_act_t);
+
+	Failsafe failsafe(nullptr);
+	failsafe_flags_s flags{};
+	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, flags);
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+
+	failsafe.update(5_s, state, false, false, flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+
+	flags.pre_gf_breached = true;
+	failsafe.update(5_s + 10_ms, state, false, false, flags);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Land);
+
+	// The geofence breach replaces the latched Land with GF_ACTION.
+	flags.gf_breached = true;
+	failsafe.update(5_s + 20_ms, state, false, false, flags);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
+	failsafe.update(5_s + 30_ms, state, false, false, flags);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
+
+	param_reset(param_handle(px4::params::GF_PRE_ACT));
+	param_reset(param_handle(px4::params::GF_ACTION));
+}

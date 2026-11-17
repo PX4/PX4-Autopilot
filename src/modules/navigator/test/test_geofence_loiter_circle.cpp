@@ -124,7 +124,7 @@ TEST_F(GeofenceLoiterCircleTest, RejectsInvalidInput)
 	EXPECT_FALSE(circleInside(0.f, 0.f, 0.f));
 }
 
-// Paths that must keep a margin from every boundary, as for GF_FW_MARGIN.
+// Paths that must keep a margin from every boundary, as for GF_PRE_MARGIN.
 class GeofencePathMarginTest : public GeofenceLoiterCircleTest
 {
 protected:
@@ -177,10 +177,6 @@ TEST_F(GeofencePathMarginTest, MaximumDistanceFromHome)
 	EXPECT_TRUE(pathClear({0.f, 0.f}, {400.f, 0.f}, 80.f));
 	EXPECT_FALSE(pathClear({0.f, 0.f}, {400.f, 0.f}, 120.f));
 	EXPECT_FALSE(pathClear({400.f, 0.f}, {0.f, 0.f}, 120.f)); // the start keeps the margin too
-
-	const matrix::Vector2d at = position(400.f, 0.f);
-	EXPECT_TRUE(_fence.isCloserThanMaxDistToHome(at(0), at(1), 0.f, 80.f));
-	EXPECT_FALSE(_fence.isCloserThanMaxDistToHome(at(0), at(1), 0.f, 120.f));
 }
 
 TEST_F(GeofencePathMarginTest, LoiterCircleAddsTheMargin)

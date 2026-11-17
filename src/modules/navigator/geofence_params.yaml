@@ -57,19 +57,33 @@ parameters:
       min: 0
       max: 10000
       increment: 1
-    GF_FW_MARGIN:
+    GF_PRE_MARGIN:
       description:
-        short: Fixed-wing geofence margin
-        long: |-
-          A fixed-wing vehicle breaches the geofence once it comes closer than this distance to a
-          horizontal fence: a polygon, a circle, or GF_MAX_HOR_DIST. GF_ACTION then triggers while the
-          vehicle is still inside. Uploaded missions must keep the same margin along their paths and around
-          their loiter circles, and arming is denied within it. Disabled if 0. Has no effect on boards
-          built without geofence path checks, such as fmu-v2.
+        short: Pre-geofence margin
+        long: The vehicle breaches the pre-geofence once it comes closer than this distance to a horizontal
+          fence (polygon, circle or GF_MAX_HOR_DIST), which triggers GF_PRE_ACT. Uploaded missions and
+          commanded positions must keep the margin, and arming is denied within it. Set to 0 to disable.
+          Has no effect on boards built without geofence path checks, e.g. fmu-v2.
       type: float
-      default: 50.0
+      default: 0.0
       unit: m
       min: 0
       max: 10000
       decimal: 0
       increment: 10
+    GF_PRE_ACT:
+      description:
+        short: Pre-geofence violation action
+        long: Only used when GF_PRE_MARGIN is enabled. GF_ACTION takes precedence once the geofence itself is
+          breached.
+      type: enum
+      values:
+        0: None
+        1: Warning
+        2: Hold mode
+        3: Return mode
+        4: Terminate
+        5: Land mode
+      default: 2
+      min: 0
+      max: 5

@@ -42,6 +42,7 @@ px4_add_functional_gtest(SRC test_geofence_paths.cpp LINKLIBS modules__navigator
 px4_add_functional_gtest(SRC test_geofence_loiter_circle.cpp LINKLIBS modules__navigator modules__dataman)
 if(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
 	px4_add_functional_gtest(SRC test_mission_feasibility_geofence.cpp LINKLIBS modules__navigator modules__dataman)
+	px4_add_functional_gtest(SRC test_pre_geofence_breach.cpp LINKLIBS modules__navigator modules__dataman)
 endif()
 
 if(CONFIG_MODULES_VISION_TARGET_ESTIMATOR)

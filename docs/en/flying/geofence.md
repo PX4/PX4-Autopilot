@@ -50,8 +50,8 @@ In summary:
 1. Set the breach action in the [Geofence Failsafe](../config/safety.md#geofence-failsafe).
 
 ::: tip
-With the `Hold` breach action, a fixed-wing vehicle loiters inside the fence rather than at the breach point.
-See [Safety > Fixed-Wing Hold After a Breach](../config/safety.md#fixed-wing-hold-after-a-breach).
+To trigger an action before the vehicle reaches the fence, set a pre-geofence margin.
+See [Safety > Pre-Geofence Margin](../config/safety.md#pre-geofence-margin).
 :::
 
 ::: info
