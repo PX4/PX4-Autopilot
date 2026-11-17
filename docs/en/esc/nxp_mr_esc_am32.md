@@ -19,14 +19,19 @@ Order this module from:
 ## Hardware Specifications
 
 - Battery Voltage: 2-6s
-  - 5.5V Minimum
-  - 24V Maximum
+  - 6V Minimum
+  - 25.2V Maximum
 - Current Rating: 25A continuous, 50A peak
 - Input Protocols (auto-detected)
-  - DShot
-  - Bidirectional DShot
-  - PWM
+  - DShot (300, 600)
+  - Bidirectional DShot (300, 600)
+  - PWM (up to 400 Hz)
 - 6 Pin JST-SH Debug
+- Motor & Battery Connectors
+  - Battery power leads — 3.5mm bullet male
+  - BLDC motor phase — 3.5mm bullet female connectors
+- Signal
+  - Ground and signal pads are connected to 3-pin Dupont connector
 - Dimensions
   - Size: approx. 42mm x 24mm
 
@@ -36,6 +41,12 @@ Order this module from:
 
 Connect the ESC signal and ground wires to an FMU PWM output on your flight controller.
 On the [NXP MR-VMU-RT1176](../flight_controller/nxp_mr_vmu_rt1176.md) shown below, ground is the top row of **FMU PWM OUT**, and DShot is available on outputs 1–8.
+
+::: warning
+The board has no reverse polarity protection and no input fuse. Wrong polarity on the battery pads destroys it. Double-check battery polarity before applying power.
+
+The signal input is 3.3V logic. Do not connect it to a 5V PWM source without a level shifter.
+:::
 
 ![NXP MR-ESC-AM32 port labels](../../assets/hardware/esc/nxp/mr_esc_am32_port_labels.webp)
 
