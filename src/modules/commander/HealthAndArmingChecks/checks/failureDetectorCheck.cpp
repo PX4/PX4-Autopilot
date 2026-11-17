@@ -50,7 +50,7 @@ void FailureDetectorChecks::checkAndReport(const Context &context, Report &repor
 		 * The vehicle tilt deviated from the attitude setpoint, by more than the configured angle.
 		 *
 		 * <profile name="dev">
-		 * This check can be configured via <param>FD_FAIL_R</param> parameter.
+		 * This check can be configured via <param>FD_TILT_ERROR</param> parameter.
 		 * </profile>
 		 */
 		reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_failure_detector_tilt"),

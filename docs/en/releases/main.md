@@ -89,12 +89,12 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - **Re-check the motor failure trigger thresholds.**
   `MOTFAIL_OFF` and `MOTFAIL_TIME` are replaced by a separate band and trigger time per direction ([MOTFAIL_OVER](../advanced_config/parameter_reference.md#MOTFAIL_OVER)/[MOTFAIL_OVR_TIME](../advanced_config/parameter_reference.md#MOTFAIL_OVR_TIME) and [MOTFAIL_UNDER](../advanced_config/parameter_reference.md#MOTFAIL_UNDER)/[MOTFAIL_UND_TIME](../advanced_config/parameter_reference.md#MOTFAIL_UND_TIME)), and are not migrated: the new parameters start at their defaults. The check now compares a low-pass filtered current residual instead of the instantaneous value, so the thresholds are worth re-deriving: see [Motor Failure Detection > Upgrading from PX4 v1.18](../config/motor_failure_detection.md#upgrading-from-px4-v1-18). ([PX4-Autopilot#27917](https://github.com/PX4/PX4-Autopilot/pull/27917))
 - **The failure detector attitude trigger checks the tilt error instead of roll and pitch separately.**
-  [FD_FAIL_R](../advanced_config/parameter_reference.md#FD_FAIL_R) is now the maximum angle between the vehicle tilt and the attitude setpoint tilt, in any direction, and [FD_FAIL_R_TTRI](../advanced_config/parameter_reference.md#FD_FAIL_R_TTRI) the time it has to be exceeded (default now 1 s instead of 0.3 s).
+  [FD_TILT_ERROR](../advanced_config/parameter_reference.md#FD_TILT_ERROR) replaces `FD_FAIL_R` and `FD_FAIL_P` and is the maximum angle between the vehicle tilt and the attitude setpoint tilt, in any direction. [FD_TILT_ERROR_T](../advanced_config/parameter_reference.md#FD_TILT_ERROR_T) replaces `FD_FAIL_R_TTRI` and `FD_FAIL_P_TTRI` and is the time it has to be exceeded (default now 1 s instead of 0.3 s).
+  The old values are not migrated because their meaning changed: the new parameters start at their defaults, except that a check disabled for both roll and pitch stays disabled.
   Without a recent attitude setpoint, for example on rovers, the tilt from level is checked instead.
   Vehicles may now fly at any tilt their attitude setpoint asks for, and a large tracking error triggers the check at any tilt.
-  `FD_FAIL_P` and `FD_FAIL_P_TTRI` have been removed and are not migrated.
-  If you raised `FD_FAIL_R` or `FD_FAIL_R_TTRI` to allow larger tilts, consider resetting them to their defaults.
-  The check is now disabled with `FD_FAIL_R` set to -1; 0 still disables it.
+  Limits raised or disabled to allow large tilts, for example roll on fixed-wing vehicles, are no longer needed.
+  The check is disabled with `FD_TILT_ERROR` set to -1.
   The `fd_roll` and `fd_pitch` fields of [FailureDetectorStatus](../msg_docs/FailureDetectorStatus.md) are replaced by `fd_tilt`.
 
 ## Other changes

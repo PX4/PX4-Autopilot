@@ -92,4 +92,4 @@ param set-default PWM_MAIN_FUNC8 108
 param set-default CA_METHOD 0
 
 # disable attitude failure detection
-param set-default FD_FAIL_R -1
+param set-default FD_TILT_ERROR -1

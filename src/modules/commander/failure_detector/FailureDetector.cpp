@@ -123,14 +123,11 @@ void FailureDetector::updateAttitudeStatus(const vehicle_status_s &vehicle_statu
 			z_setpoint = matrix::Quatf(attitude_setpoint.q_d).dcm_z();
 		}
 
-		// angle between body z-axis and setpoint z-axis
+		const float max_tilt_error_deg = _param_fd_tilt_error.get();
 		const float tilt_error = acosf(math::constrain(q.dcm_z().dot(z_setpoint), -1.f, 1.f));
-		// -1 disables, 0 as well for backwards compatibility
-		const int max_tilt_error_deg = _param_fd_fail_r.get();
-		const bool tilt_status = (max_tilt_error_deg > 0)
-					 && (tilt_error > math::radians(static_cast<float>(max_tilt_error_deg)));
+		const bool tilt_status = (max_tilt_error_deg > 0.f) && (tilt_error > math::radians(max_tilt_error_deg));
 
-		_tilt_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_fail_r_ttri.get()));
+		_tilt_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_tilt_error_t.get()));
 		_tilt_failure_hysteresis.set_state_and_update(tilt_status, attitude.timestamp);
 		_failure_detector_status.flags.tilt = _tilt_failure_hysteresis.get_state();
 	}
