@@ -446,7 +446,7 @@
 *(.text._ZN13NavigatorMode3runEb)
 *(.text._ZL19param_find_internalPKcb)
 *(.text.uart_datasent)
-*(.text._ZN17OpticalFlowSource14publishFlowVelERK3Ekfy)
+*(.text._ZN17OpticalFlowSource7publishERK3Ekf)
 *(.text.nxsem_destroy)
 *(.text._ZN21MavlinkStreamAltitude4sendEv)
 *(.text._ZN7sensors14VehicleAirData12UpdateStatusEv)

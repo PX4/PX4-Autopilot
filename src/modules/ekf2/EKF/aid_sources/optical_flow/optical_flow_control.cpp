@@ -410,6 +410,9 @@ void OpticalFlowSource::update(Ekf &ekf, const imuSample &imu_delayed, const boo
 			}
 		}
 
+#if defined(MODULE_NAME)
+		publish(ekf);
+#endif // MODULE_NAME
 
 	} else if (_active && ekf.isTimedOut(_sample_delayed.time_us, ekf._params.reset_timeout_max)) {
 		stop();

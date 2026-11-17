@@ -66,6 +66,9 @@ void OpticalFlowSource::updateParams()
 		return;
 	}
 
+	_aid_src_pub.advertise();
+	_vel_pub.advertise();
+
 	if (_param_handles.gyr_src == PARAM_INVALID) {
 		char param_name[20] {};
 
@@ -109,51 +112,32 @@ float OpticalFlowSource::delayMs() const
 	return delay_ms;
 }
 
-void OpticalFlowSource::advertise()
+void OpticalFlowSource::publish(const Ekf &ekf)
 {
-	_aid_src_pub.advertise();
-	_vel_pub.advertise();
-}
+	const hrt_abstime now = hrt_absolute_time();
 
-void OpticalFlowSource::publishAidSource(uint64_t timestamp, uint8_t estimator_instance)
-{
-	if (_aid_src.timestamp_sample > _aid_src_pub_last) {
-		estimator_aid_source2d_s aid_src{_aid_src};
-		aid_src.estimator_instance = estimator_instance;
-		aid_src.timestamp = timestamp;
-		_aid_src_pub.publish(aid_src);
+	_aid_src.timestamp = now;
+	_aid_src_pub.publish(_aid_src);
 
-		_aid_src_pub_last = _aid_src.timestamp_sample;
-	}
-}
+	vehicle_optical_flow_vel_s flow_vel{};
+	flow_vel.timestamp_sample = _aid_src.timestamp_sample;
 
-void OpticalFlowSource::publishFlowVel(const Ekf &ekf, uint64_t timestamp)
-{
-	const uint64_t timestamp_sample = _aid_src.timestamp_sample;
+	_vel_body.copyTo(flow_vel.vel_body);
+	ekf.getFlowVelNE(_slot).copyTo(flow_vel.vel_ne);
 
-	if ((timestamp_sample != 0) && (timestamp_sample > _vel_pub_last)) {
-		vehicle_optical_flow_vel_s flow_vel{};
-		flow_vel.timestamp_sample = timestamp_sample;
+	_vel_body_lpf.getState().copyTo(flow_vel.vel_body_filtered);
+	ekf.getFilteredFlowVelNE(_slot).copyTo(flow_vel.vel_ne_filtered);
 
-		_vel_body.copyTo(flow_vel.vel_body);
-		ekf.getFlowVelNE(_slot).copyTo(flow_vel.vel_ne);
+	_sample_delayed.flow_rate.copyTo(flow_vel.flow_rate_uncompensated);
+	_rate_compensated.copyTo(flow_vel.flow_rate_compensated);
 
-		_vel_body_lpf.getState().copyTo(flow_vel.vel_body_filtered);
-		ekf.getFilteredFlowVelNE(_slot).copyTo(flow_vel.vel_ne_filtered);
+	_sample_delayed.gyro_rate.copyTo(flow_vel.gyro_rate);
 
-		_sample_delayed.flow_rate.copyTo(flow_vel.flow_rate_uncompensated);
-		_rate_compensated.copyTo(flow_vel.flow_rate_compensated);
+	_gyro_bias.copyTo(flow_vel.gyro_bias);
+	_ref_body_rate.copyTo(flow_vel.ref_gyro);
 
-		_sample_delayed.gyro_rate.copyTo(flow_vel.gyro_rate);
-
-		_gyro_bias.copyTo(flow_vel.gyro_bias);
-		_ref_body_rate.copyTo(flow_vel.ref_gyro);
-
-		flow_vel.timestamp = timestamp;
-		_vel_pub.publish(flow_vel);
-
-		_vel_pub_last = timestamp_sample;
-	}
+	flow_vel.timestamp = now;
+	_vel_pub.publish(flow_vel);
 }
 
 bool OpticalFlowSource::updateSample(Ekf &ekf, vehicle_optical_flow_s &optical_flow)

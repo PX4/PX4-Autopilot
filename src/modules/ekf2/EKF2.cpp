@@ -370,16 +370,6 @@ void EKF2::AdvertiseTopics()
 
 #endif // CONFIG_EKF2_MAGNETOMETER
 
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-
-		for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
-			if (_ekf.flowSource(i).params.ctrl) {
-				_ekf.flowSource(i).advertise();
-			}
-		}
-
-#endif // CONFIG_EKF2_OPTICAL_FLOW
-
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 
 		// RNG advertise
@@ -887,14 +877,6 @@ void EKF2::Run()
 			PublishYawEstimatorStatus(now);
 #endif // CONFIG_EKF2_GNSS
 
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-
-			for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
-				_ekf.flowSource(i).publishFlowVel(_ekf, _replay_mode ? now : hrt_absolute_time());
-			}
-
-#endif // CONFIG_EKF2_OPTICAL_FLOW
-
 			UpdateAccelCalibration(now);
 			UpdateGyroCalibration(now);
 #if defined(CONFIG_EKF2_MAGNETOMETER)
@@ -1206,14 +1188,6 @@ void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 	PublishAidSourceStatus(timestamp, _ekf.aid_src_aux_vel(), _status_aux_vel_pub_last, _estimator_aid_src_aux_vel_pub);
 #endif // CONFIG_EKF2_AUXVEL
 
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-
-	// optical flow
-	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
-		_ekf.flowSource(i).publishAidSource(_replay_mode ? timestamp : hrt_absolute_time(), _instance);
-	}
-
-#endif // CONFIG_EKF2_OPTICAL_FLOW
 }
 
 void EKF2::PublishAttitude(const hrt_abstime &timestamp)
