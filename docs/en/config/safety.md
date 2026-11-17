@@ -452,6 +452,7 @@ The failure detector can be configured to trigger if the vehicle tilt deviates f
 Without a recent attitude setpoint, for example on rovers, the tilt away from level is checked instead.
 Before arming the attitude setpoint is level, so a vehicle lying on its side or upside down cannot arm.
 The check only runs in modes that control attitude, so it is not active in [Acro mode](../flight_modes_mc/acro.md).
+It is paused for the first 5 seconds after a VTOL switches to multicopter mode without back-transition, i.e. a [quad-chute](#quad-chute-failsafe) or an aborted front transition, while the vehicle recovers from fixed-wing flight.
 
 The relevant parameters are shown below:
 

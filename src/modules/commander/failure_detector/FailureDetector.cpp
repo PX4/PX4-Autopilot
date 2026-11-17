@@ -125,12 +125,34 @@ void FailureDetector::updateAttitudeStatus(const vehicle_status_s &vehicle_statu
 
 		const float max_tilt_error_deg = _param_fd_tilt_error.get();
 		const float tilt_error = acosf(math::constrain(q.dcm_z().dot(z_setpoint), -1.f, 1.f));
-		const bool tilt_status = (max_tilt_error_deg > 0.f) && (tilt_error > math::radians(max_tilt_error_deg));
+		const bool vtol_skipped_back_transition = checkVtolSkippedBackTransition(attitude.timestamp);
+		const bool tilt_status = (max_tilt_error_deg > 0.f) && !vtol_skipped_back_transition
+					 && (tilt_error > math::radians(max_tilt_error_deg));
 
 		_tilt_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_tilt_error_t.get()));
 		_tilt_failure_hysteresis.set_state_and_update(tilt_status, attitude.timestamp);
 		_failure_detector_status.flags.tilt = _tilt_failure_hysteresis.get_state();
 	}
+}
+
+// True for 5 s after a VTOL switched to multicopter without back-transition, i.e. a quad-chute or an aborted
+// front transition, while it recovers from fixed-wing flight with a large tilt error
+bool FailureDetector::checkVtolSkippedBackTransition(hrt_abstime now)
+{
+	vtol_vehicle_status_s vtol_vehicle_status;
+
+	if (_vtol_vehicle_status_sub.update(&vtol_vehicle_status)) {
+		const bool from_fixed_wing = (_vtol_state_prev == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW)
+					     || (_vtol_state_prev == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_FW);
+
+		if (from_fixed_wing && (vtol_vehicle_status.vehicle_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC)) {
+			_vtol_skipped_back_transition_timestamp = vtol_vehicle_status.timestamp;
+		}
+
+		_vtol_state_prev = vtol_vehicle_status.vehicle_vtol_state;
+	}
+
+	return (_vtol_skipped_back_transition_timestamp != 0) && (now < _vtol_skipped_back_transition_timestamp + 5_s);
 }
 
 void FailureDetector::updateAltitudeStatus(const vehicle_status_s &vehicle_status,

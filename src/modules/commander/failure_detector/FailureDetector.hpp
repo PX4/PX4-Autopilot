@@ -64,6 +64,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 
 using namespace time_literals;
 
@@ -101,6 +102,9 @@ private:
 	failure_detector_status_u _failure_detector_status{};
 
 	systemlib::Hysteresis _tilt_failure_hysteresis{false};
+	bool checkVtolSkippedBackTransition(hrt_abstime now);
+	uint8_t _vtol_state_prev{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED};
+	hrt_abstime _vtol_skipped_back_transition_timestamp{0}; // last switch to multicopter without back-transition, e.g. quad-chute
 	systemlib::Hysteresis _alt_loss_hysteresis{false};
 	systemlib::Hysteresis _ext_ats_failure_hysteresis{false};
 
@@ -123,6 +127,7 @@ private:
 	uORB::Subscription _pwm_input_sub{ORB_ID(pwm_input)};
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _vehicle_imu_status_sub{ORB_ID(vehicle_imu_status)};
+	uORB::Subscription _vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
 
 	uORB::Publication<failure_detector_status_s> _failure_detector_status_pub{ORB_ID(failure_detector_status)};
 
