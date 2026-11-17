@@ -635,7 +635,7 @@ void TECSControl::_calcThrottleControlUpdate(float dt, const STERateLimit &limit
 		_throttle_integ_state = PX4_ISFINITE(throttle_integ_input) ? _throttle_integ_state + throttle_integ_input : 0.f;
 
 		// Constrain the value to remain positive in airspeedless flight.
-		if (flag.airspeed_enabled) {
+		if (!flag.airspeed_enabled) {
 			_throttle_integ_state = math::max(_throttle_integ_state, 0.0f);
 		}
 
