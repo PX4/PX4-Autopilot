@@ -25,8 +25,9 @@ parameters:
             description:
                 short: The IQUART driver's baud rate
                 long: |
-                    The baud rate (in bits per second) used by the serial port connected with IQUART communication
+                    The baud rate used by the serial port connected with IQUART communication
             type: int32
+            unit: bit/s
             reboot_required: true
             default: 115200
         VTQ_NUM_CVS:
@@ -124,6 +125,7 @@ parameters:
                 long: |
                     Only relevant in Voltage Mode. This is the voltage the controller will command at full throttle.
             type: float
+            unit: V
             default: 0
         VTQ_MOTOR_DIR:
             description:
@@ -187,6 +189,7 @@ parameters:
                 long: |
                     This sets the max pulsing voltage limit when in Voltage Limit Mode.
             type: float
+            unit: V
             default: 0
         VTQ_X_CVI:
             description:
