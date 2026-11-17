@@ -615,30 +615,32 @@ void TECSControl::_calcThrottleControlUpdate(float dt, const STERateLimit &limit
 	const float STE_rate_to_throttle = _steRateToThrottle(limit);
 
 	// Integral handling
-	if (flag.airspeed_enabled) {
-		if (param.integrator_gain_throttle > FLT_EPSILON) {
-			// underspeed conditions zero out integration
-			float throttle_integ_input = (_getControlError(ste_rate) * param.integrator_gain_throttle) * dt *
-						     STE_rate_to_throttle * (1.0f - _ratio_undersped);
+	if (param.integrator_gain_throttle > FLT_EPSILON) {
+		// underspeed conditions zero out integration
+		float throttle_integ_input = (_getControlError(ste_rate) * param.integrator_gain_throttle) * dt *
+						STE_rate_to_throttle * (1.0f - _ratio_undersped);
 
-			// only allow integrator propagation into direction which unsaturates throttle
-			if (_throttle_setpoint >= param.throttle_max) {
-				throttle_integ_input = math::min(0.f, throttle_integ_input);
+		// only allow integrator propagation into direction which unsaturates throttle
+		if (_throttle_setpoint >= param.throttle_max) {
+			throttle_integ_input = math::min(0.f, throttle_integ_input);
 
-			}
-
-			if (_throttle_setpoint <= param.throttle_min) {
-				throttle_integ_input = math::max(0.f, throttle_integ_input);
-			}
-
-			// Calculate a throttle demand from the integrated total energy rate error
-			// This will be added to the total throttle demand to compensate for steady state errors
-			_throttle_integ_state = PX4_ISFINITE(throttle_integ_input) ? _throttle_integ_state + throttle_integ_input : 0.f;
-
-		} else {
-			_throttle_integ_state = 0.0f;
 		}
 
+		if (_throttle_setpoint <= param.throttle_min) {
+			throttle_integ_input = math::max(0.f, throttle_integ_input);
+		}
+
+		// Calculate a throttle demand from the integrated total energy rate error
+		// This will be added to the total throttle demand to compensate for steady state errors
+		_throttle_integ_state = PX4_ISFINITE(throttle_integ_input) ? _throttle_integ_state + throttle_integ_input : 0.f;
+
+		// Constrain the value to remain positive in airspeedless flight.
+		if (flag.airspeed_enabled) {
+			_throttle_integ_state = math::max(_throttle_integ_state, 0.0f);
+		}
+
+	} else {
+		_throttle_integ_state = 0.0f;
 	}
 }
 
