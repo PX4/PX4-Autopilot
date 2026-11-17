@@ -213,6 +213,7 @@
       - [AP-H743-R1](flight_controller/x-mav_ap-h743r1.md)
       - [VOLOLAND NarinFC-H7](flight_controller/vololand_narinfc_h7.md)
       - [ZenFC H743](flight_controller/zenfc_h743.md)
+      - [ZeroOne M9](flight_controller/zeroone_m9.md)
       - [SIYI-UniFC-6-PICO](flight_controller/siyi-unifc-6-pico.md)
     - [Experimental Autopilots](flight_controller/autopilot_experimental.md)
       - [AIFoundry Erbium](flight_controller/aifoundry_erbium.md)
