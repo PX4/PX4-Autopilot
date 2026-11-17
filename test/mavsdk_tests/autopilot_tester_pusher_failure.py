@@ -1,7 +1,7 @@
 """AutopilotTester for the pusher failure detection of the SIH standard VTOL with pusher assist.
 
 The pusher is stopped with an undetected motor failure (`failure motor wrong`): its output is cut,
-but it stays in the control allocation and no motor failure is reported, like a pusher without
+but it stays in the control allocation and no motor failure is reported, as with a pusher without
 ESC telemetry. The checks only use what the vehicle reports (quad-chute events, VTOL state,
 outputs), not how a failure is detected, so any detector can be measured with the same flights.
 """
@@ -21,18 +21,22 @@ from autopilot_tester import (MAV_CMD_NAV_LAND, MAV_CMD_NAV_WAYPOINT,
 # The pusher is motor 5 (1-based failure instance) on output channel 8.
 PUSHER_MOTOR_INSTANCE = 5
 PUSHER_OUTPUT_INDEX = 7
-# Outputs are 1000 + 1000 * throttle, a stopped or unused pusher reads 900.
+# Outputs are 1000 + 1000 * throttle; a stopped or unused pusher reads 900.
 PUSHER_PUSHING_OUTPUT = 1100.0
 PUSHER_STOPPED_OUTPUT = 901.0
 
 QUADCHUTE_EVENT_PREFIX = "vtol_att_ctrl_quadchute"
 PUSHER_QUADCHUTE_EVENT = "vtol_att_ctrl_quadchute_fwd_prop"
 
-# The VTOL state is sampled, fast enough not to miss a short fixed-wing phase.
+# Sample the VTOL state fast enough not to miss a short fixed-wing phase.
 VTOL_STATE_RATE_HZ = 10.0
 
 
 class FixedWingReached(AssertionError):
+    pass
+
+
+class QuadchuteMissing(AssertionError):
     pass
 
 
@@ -75,7 +79,7 @@ class AutopilotTesterPusherFailure(AutopilotTester):
         self.set_param_int("SYS_FAILURE_EN", 1)
         # The control allocation only applies injected motor stops with a failure mode set.
         self.set_param_int("CA_FAILURE_MODE", 1)
-        # Airspeed-less setup (vtol_without_airspeed_sensor.md), the sensor stays installed.
+        # Airspeed-less setup as in vtol_without_airspeed_sensor.md; the sensor stays installed.
         self.set_param_int("FW_USE_AIRSPD", 1 if use_airspeed else 0)
         self.enable_actuator_output_status()
         self._telemetry.set_rate_vtol_state(VTOL_STATE_RATE_HZ)
@@ -124,7 +128,7 @@ class AutopilotTesterPusherFailure(AutopilotTester):
         return float(self._telemetry.actuator_output_status().actuator[PUSHER_OUTPUT_INDEX])
 
     def check_pusher_pushing(self) -> None:
-        """Precondition of the flights with a working pusher, otherwise they test nothing."""
+        """Check that pusher assist is pushing, otherwise the flight tests nothing."""
         output = self._pusher_output()
         assert output >= PUSHER_PUSHING_OUTPUT, \
             "Pusher output {:.0f}, expected pusher assist to push".format(output)
@@ -149,9 +153,10 @@ class AutopilotTesterPusherFailure(AutopilotTester):
     def wait_for_quadchute(self, since_s: float, timeout_s: float,
                            expected_event: Optional[str] = None) -> float:
         """Wait for the first quad-chute after since_s, return its delay."""
-        assert self.poll_condition_with_timeout(
-            lambda: bool(self._quadchutes_since(since_s)), timeout_s), \
-            "No quad-chute within {} s".format(timeout_s)
+        received = self.poll_condition_with_timeout(
+            lambda: bool(self._quadchutes_since(since_s)), timeout_s)
+        if not received:
+            raise QuadchuteMissing("No quad-chute within {} s".format(timeout_s))
 
         quadchute = self._quadchutes_since(since_s)[0]
         if expected_event is not None:
@@ -160,21 +165,20 @@ class AutopilotTesterPusherFailure(AutopilotTester):
 
         delay_s = quadchute.time_s - since_s
         log("Quad-chute {} after {:.1f} s".format(quadchute.event_name, delay_s))
-        assert delay_s <= timeout_s, "Quad-chute after {:.1f} s, expected within {} s".format(
-            delay_s, timeout_s)
+        if delay_s > timeout_s:
+            raise QuadchuteMissing("Quad-chute after {:.1f} s, expected within {} s".format(
+                delay_s, timeout_s))
         return delay_s
 
     def wait_for_pusher_quadchute(self, timeout_s: float) -> float:
         """Wait for the pusher failure quad-chute after fail_pusher(), return the detection
         time."""
         assert self._pusher_failure_time_s is not None, "fail_pusher() was not called"
-        detection_time_s = self.wait_for_quadchute(
+        return self.wait_for_quadchute(
             self._pusher_failure_time_s, timeout_s, PUSHER_QUADCHUTE_EVENT)
-        log("Detection time: {:.1f} s".format(detection_time_s))
-        return detection_time_s
 
     def try_transition_to_fixedwing(self) -> None:
-        """Command a front transition once, it may be denied."""
+        """Command a front transition once; it may be denied."""
         try:
             self.transition_to_fixedwing()
         except ActionError as e:
@@ -199,7 +203,7 @@ class AutopilotTesterPusherFailure(AutopilotTester):
             "No front transition started within {} s".format(timeout_s)
 
     def check_never_fixed_wing_since(self, since_s: float, duration_s: float) -> None:
-        """Watch the VTOL state for duration_s more."""
+        """Fail if fixed-wing mode is reached between since_s and duration_s from now."""
         self.sleep_for(duration_s)
         if VtolState.FW in self._vtol_states_since(since_s):
             raise FixedWingReached("Fixed-wing mode reached")
