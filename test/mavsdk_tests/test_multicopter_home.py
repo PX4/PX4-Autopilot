@@ -19,11 +19,15 @@ def test_home_yaw_captured_when_local_position_invalid(tester: AutopilotTester) 
     tester.sleep_for(10)
     ground_yaw_deg = float(tester.get_attitude_euler().yaw_deg)
 
-    # Degraded GPS: good enough for the home position, too few satellites for EKF fusion, so the
+    # A GPS fix the estimator doesn't use: home is set from the receiver's usable samples while the
     # local position stays invalid. This is the exact condition under which the buggy code left
     # home yaw at 0.
-    tester.set_param_int("SIM_GPS_USED", 5)
-    tester.sleep_for(6)
+    sens_en_gnss0 = 1
+    tester.set_param_int("EKF2_SENS_EN", tester.get_param_int("EKF2_SENS_EN") & ~sens_en_gnss0)
+    tester.set_param_int("SIM_GPS_USED", 10)
+
+    # The receiver's samples are usable once its checks passed for GNSS_REQ_TIME (10 s by default)
+    tester.sleep_for(15)
 
     q = tester.get_home_position()["q"]
     home_yaw_deg = math.degrees(yaw_from_quaternion(q[0], q[1], q[2], q[3]))

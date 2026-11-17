@@ -11,7 +11,6 @@ from pyulog import ULog
 from analysis.detectors import InAirDetector, PreconditionError
 from analysis.metrics import calculate_ecl_ekf_metrics
 from analysis.checks import perform_ecl_ekf_checks
-from analysis.post_processing import get_gps_check_fail_flags
 
 def analyse_ekf(
         ulog: ULog, check_levels: Dict[str, float], multi_instance: int = 0,
@@ -65,8 +64,6 @@ def analyse_ekf(
     airtime_info = {
         'in_air_transition_time': round(in_air.take_off + in_air.log_start, 2),
         'on_ground_transition_time': round(in_air.landing + in_air.log_start, 2)}
-
-    gps_fail_flags = get_gps_check_fail_flags(estimator_status)
 
     sensor_checks, innov_fail_checks = find_checks_that_apply(
         estimator_status_flags, estimator_status,
