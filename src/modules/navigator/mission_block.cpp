@@ -686,6 +686,10 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 
 	if (item.frame == NAV_FRAME::NAV_FRAME_LOCAL_NED) {
 
+		// lat/lon are meaningless in this frame; NaN them rather than leaving a stale value,
+		// since some consumers check PX4_ISFINITE(lat/lon) without checking frame.
+		sp->lat = static_cast<double>(NAN);
+		sp->lon = static_cast<double>(NAN);
 		sp->x = item.x;
 		sp->y = item.y;
 		sp->alt = item.altitude;
@@ -761,6 +765,9 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 	// but some tools (e.g. QGroundControl's NAV_CMD_LOITER_TO_ALT) use NAV_FRAME_MISSION even
 	// though lat/lon are real coordinates, so this stays the permissive default instead of an
 	// exhaustive whitelist, matching the pre-local-frame behaviour of this function.
+	// x/y are meaningless in this frame; NaN them rather than leaving a stale value.
+	sp->x = NAN;
+	sp->y = NAN;
 	sp->lat = item.lat;
 	sp->lon = item.lon;
 	sp->alt = get_absolute_altitude_for_item(item);
