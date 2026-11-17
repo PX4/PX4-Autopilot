@@ -287,7 +287,7 @@ parameters:
                     The orientation of the device with respect to the vehicle frame around the x axis.
                     Requires MS_SVT_EN to be enabled to be used.
             type: float
-            unit: rad
+            unit: deg
             reboot_required: true
             default: 0.0
 
@@ -298,7 +298,7 @@ parameters:
                     The orientation of the device with respect to the vehicle frame around the y axis.
                     Requires MS_SVT_EN to be enabled to be used.
             type: float
-            unit: rad
+            unit: deg
             reboot_required: true
             default: 0.0
 
@@ -309,7 +309,7 @@ parameters:
                     The orientation of the device with respect to the vehicle frame around the z axis.
                     Requires MS_SVT_EN to be enabled to be used.
             type: float
-            unit: rad
+            unit: deg
             reboot_required: true
             default: 0.0
 
