@@ -75,91 +75,42 @@ static bool isConfigurationFrame(uint32_t can_id)
 	return static_cast<uint16_t>(id >> 8) == uavcan::protocol::NodeStatus::DefaultDataTypeID;
 }
 
-ForwardingCanDriver::ForwardingCanDriver(uavcan::ICanDriver &inner) : _inner(inner)
+void CanForwarder::init(uavcan::Dispatcher &dispatcher)
 {
-	_num_ifaces = math::min(inner.getNumIfaces(), static_cast<uint8_t>(uavcan::MaxCanIfaces));
-
-	for (uint8_t i = 0; i < _num_ifaces; i++) {
-		_ifaces[i].owner = this;
-		_ifaces[i].index = i;
-	}
-}
-
-uavcan::ICanIface *ForwardingCanDriver::getIface(uint8_t iface_index)
-{
-	if (iface_index >= _num_ifaces) {
-		return nullptr;
-	}
-
-	_ifaces[iface_index].inner = _inner.getIface(iface_index);
-	return (_ifaces[iface_index].inner != nullptr) ? &_ifaces[iface_index] : nullptr;
-}
-
-int16_t ForwardingCanDriver::Iface::send(const uavcan::CanFrame &frame, uavcan::MonotonicTime tx_deadline,
-		uavcan::CanIOFlags flags)
-{
-	CanForwarder *forwarder = owner->_forwarder;
-
-	if (flags & CanIOFlagForwarded) {
-		if (forwarder == nullptr || !forwarder->allowInject(index)) {
-			return 1;
-		}
-
-		return inner->send(frame, tx_deadline, flags & ~CanIOFlagForwarded);
-	}
-
-	const int16_t res = inner->send(frame, tx_deadline, flags);
-
-	if (res > 0 && forwarder != nullptr) {
-		forwarder->mirror(index, frame);
-	}
-
-	return res;
-}
-
-int16_t ForwardingCanDriver::Iface::receive(uavcan::CanFrame &out_frame, uavcan::MonotonicTime &out_ts_monotonic,
-		uavcan::UtcTime &out_ts_utc, uavcan::CanIOFlags &out_flags)
-{
-	const int16_t res = inner->receive(out_frame, out_ts_monotonic, out_ts_utc, out_flags);
-
-	if (res > 0 && !(out_flags & uavcan::CanIOFlagLoopback) && owner->_forwarder != nullptr) {
-		owner->_forwarder->mirror(index, out_frame);
-	}
-
-	return res;
-}
-
-void CanForwarder::init(ForwardingCanDriver *driver, bool config_only)
-{
-	_driver = driver;
-	_config_only = config_only;
-
-	if (_driver != nullptr) {
-		_driver->setForwarder(this);
-		_tx_sub.registerCallback();
-	}
+	_dispatcher = &dispatcher;
+	_param_can_fwd = param_find("UAVCAN_CAN_FWD");
+	_tx_sub.registerCallback();
 }
 
 void CanForwarder::deinit()
 {
 	_tx_sub.unregisterCallback();
 
-	if (_driver != nullptr) {
-		_driver->setForwarder(nullptr);
-		_driver = nullptr;
+	if (_dispatcher != nullptr) {
+		_session.stop();
+		applySession(hrt_absolute_time());
+		_dispatcher = nullptr;
 	}
-
-	_bus = -1;
 }
 
-void CanForwarder::mirror(uint8_t bus, const uavcan::CanFrame &frame)
+void CanForwarder::handleRxFrame(const uavcan::CanRxFrame &frame, uavcan::CanIOFlags flags)
 {
-	if (bus != _bus || !_filter.matches(frame.id)) {
-		return;
+	if (!(flags & uavcan::CanIOFlagLoopback) && frame.iface_index == _session.bus()) {
+		mirror(frame);
 	}
+}
 
-	if (_rx_batch.count > 0 && _rx_batch.bus != bus) {
-		flushRx(hrt_absolute_time());
+void CanForwarder::handleTxFrame(const uavcan::CanFrame &frame, uint8_t iface_mask)
+{
+	if (_session.active() && (iface_mask & (1U << _session.bus()))) {
+		mirror(frame);
+	}
+}
+
+void CanForwarder::mirror(const uavcan::CanFrame &frame)
+{
+	if (!_filter.matches(frame.id)) {
+		return;
 	}
 
 	const uint8_t i = _rx_batch.count;
@@ -168,7 +119,7 @@ void CanForwarder::mirror(uint8_t bus, const uavcan::CanFrame &frame)
 		_rx_batch.timestamp = hrt_absolute_time();
 	}
 
-	_rx_batch.bus = bus;
+	_rx_batch.bus = _session.bus();
 	_rx_batch.id[i] = frame.id;
 	// the CAN drivers pass the DLC of the wire, up to 15
 	_rx_batch.len[i] = math::min(frame.dlc, can_forward::CanMaxDataLen);
@@ -199,52 +150,71 @@ void CanForwarder::flushRx(hrt_abstime now)
 
 void CanForwarder::handleCommand(const vehicle_command_s &cmd, hrt_abstime now)
 {
+	int32_t mode = 0;
+	(void)param_get(_param_can_fwd, &mode);
+	_config_only = (mode != 2);
+
+	const int bus = PX4_ISFINITE(cmd.param1) ? static_cast<int>(roundf(cmd.param1)) : -1;
+	const bool allowed = mode != 0 && bus > 0 && bus <= _dispatcher->getCanIOManager().getNumIfaces()
+			     && _dispatcher->getCanIOManager().getCanDriver().getIface(bus - 1) != nullptr;
+
 	vehicle_command_ack_s ack{};
 	ack.command = cmd.command;
 	ack.target_system = cmd.source_system;
 	ack.target_component = cmd.source_component;
-	ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
-
-	const int bus = PX4_ISFINITE(cmd.param1) ? static_cast<int>(roundf(cmd.param1)) : -1;
-
-	const bool held_by_other = active() && now <= _last_keepalive + KeepaliveTimeout
-				   && (cmd.source_system != _client_system || cmd.source_component != _client_component);
-
-	if (held_by_other) {
-		// the session belongs to another client until it stops it or its keepalive times out
-
-	} else if (bus == 0) {
-		if (active()) {
-			mavlink_log_info(&_mavlink_log_pub, "CAN forwarding stopped");
-		}
-
-		_bus = -1;
-		ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
-
-	} else if (!_armed && _driver != nullptr && bus > 0 && bus <= _driver->getNumIfaces() && _driver->getIface(bus - 1) != nullptr) {
-		if (_bus != bus - 1) {
-			mavlink_log_info(&_mavlink_log_pub, "CAN forwarding active on CAN%d", bus);
-			_bus = bus - 1;
-			_filter.clear();
-		}
-
-		_last_keepalive = now;
-		_client_system = cmd.source_system;
-		_client_component = cmd.source_component;
-		ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
-	}
-
+	ack.result = _session.handleCommand(bus, cmd.source_system, cmd.source_component, allowed, now)
+		     ? vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED : vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
 	ack.timestamp = hrt_absolute_time();
 	_ack_pub.publish(ack);
 }
 
-void CanForwarder::update(hrt_abstime now, uavcan::CanIOManager &canio)
+void CanForwarder::applySession(hrt_abstime now)
 {
+	const bool active = _session.active();
+	const bool same = _session.bus() == _status.bus && _session.system() == _status.client_system
+			  && _session.component() == _status.client_component;
+
+	if (active == _status.active && (!active || same)) {
+		return;
+	}
+
+	// nothing is kept for the next bus or client
+	_filter.clear();
+	_rx_batch.count = 0;
+
+	if (active) {
+		// the CAN path is only touched during a session, which cannot be active while armed
+		_dispatcher->installRxFrameListener(this);
+		_dispatcher->installTxFrameListener(this);
+		mavlink_log_info(&_mavlink_log_pub, "CAN forwarding active on CAN%d", _session.bus() + 1);
+
+	} else {
+		_dispatcher->removeRxFrameListener();
+		_dispatcher->removeTxFrameListener();
+		mavlink_log_info(&_mavlink_log_pub, "CAN forwarding stopped");
+	}
+
+	_status.active = active;
+	_status.bus = active ? _session.bus() : 0;
+	_status.client_system = _session.system();
+	_status.client_component = _session.component();
+	_status.timestamp = now;
+	_status_pub.publish(_status);
+}
+
+void CanForwarder::update(hrt_abstime now)
+{
+	if (_dispatcher == nullptr) {
+		return;
+	}
+
 	actuator_armed_s armed;
 
 	if (_armed_sub.update(&armed)) {
 		_armed = armed.armed;
 	}
+
+	_session.update(now, _armed);
 
 	vehicle_command_s cmd;
 
@@ -254,24 +224,17 @@ void CanForwarder::update(hrt_abstime now, uavcan::CanIOManager &canio)
 		}
 	}
 
-	if (_driver == nullptr) {
-		return;
-	}
-
-	if (active() && now > _last_keepalive + KeepaliveTimeout) {
-		mavlink_log_info(&_mavlink_log_pub, "CAN forwarding timed out");
-		_bus = -1;
-	}
+	applySession(now);
 
 	can_forward_filter_s filter;
 
 	while (_filter_sub.update(&filter)) {
-		if (filter.bus == _bus) {
+		if (filter.bus == _session.bus()) {
 			_filter.apply(filter.operation, filter.ids, math::min(filter.num_ids, static_cast<uint8_t>(16)));
 		}
 	}
 
-	pushFramesToBus(now, canio);
+	pushFramesToBus(now);
 }
 
 bool CanForwarder::nextTxBatch()
@@ -292,15 +255,16 @@ bool CanForwarder::nextTxBatch()
 	return true;
 }
 
-void CanForwarder::pushFramesToBus(hrt_abstime now, uavcan::CanIOManager &canio)
+void CanForwarder::pushFramesToBus(hrt_abstime now)
 {
+	uavcan::CanIOManager &canio = _dispatcher->getCanIOManager();
 	uint8_t sent = 0;
 
 	while (_tx_pending || nextTxBatch()) {
 		const uint8_t count = math::min(_tx_batch.count, can_forward_frames_s::MAX_FRAMES);
 		const uint8_t bus = _tx_batch.bus;
 
-		if (!allowInject(bus) || now > _tx_batch.timestamp + MaxBatchAge) {
+		if (bus != _session.bus() || now > _tx_batch.timestamp + MaxBatchAge) {
 			_dropped_from_gcs += count - _tx_index;
 			_tx_pending = false;
 			continue;
@@ -322,7 +286,7 @@ void CanForwarder::pushFramesToBus(hrt_abstime now, uavcan::CanIOManager &canio)
 			const uint8_t len = math::min(_tx_batch.len[_tx_index], can_forward::CanMaxDataLen);
 			const uavcan::CanFrame frame(_tx_batch.id[_tx_index], &_tx_batch.data[_tx_index * 8], len);
 			(void)canio.send(frame, uavcan::MonotonicTime::fromUSec(now + TxDeadline), uavcan::MonotonicTime(),
-					 static_cast<uint8_t>(1U << bus), uavcan::CanTxQueue::Persistent, ForwardingCanDriver::CanIOFlagForwarded);
+					 static_cast<uint8_t>(1U << bus), uavcan::CanTxQueue::Persistent, 0);
 
 			_tx_index++;
 			_frames_from_gcs++;
@@ -335,19 +299,13 @@ void CanForwarder::pushFramesToBus(hrt_abstime now, uavcan::CanIOManager &canio)
 
 void CanForwarder::printStatus() const
 {
-	if (_driver == nullptr) {
-		printf("CAN forwarding over MAVLink: disabled (UAVCAN_CAN_FWD)\n");
-		return;
-	}
-
-	if (active()) {
-		printf("CAN forwarding over MAVLink: CAN%d%s", _bus + 1, _armed ? " (armed, monitor only)" : "");
+	if (_session.active()) {
+		printf("CAN forwarding over MAVLink: CAN%d%s, client %" PRIu32 "/%u\n", _session.bus() + 1,
+		       _config_only ? " (configuration only)" : "", _session.system(), unsigned(_session.component()));
 
 	} else {
-		printf("CAN forwarding over MAVLink: idle");
+		printf("CAN forwarding over MAVLink: idle\n");
 	}
-
-	printf("%s\n", _config_only ? " (configuration only)" : "");
 
 	printf("\tto GCS: %" PRIu32 ", from GCS: %" PRIu32 ", dropped from GCS: %" PRIu32 ", lost batches from GCS: %" PRIu32
 	       ", filter IDs: %u\n", _frames_to_gcs, _frames_from_gcs, _dropped_from_gcs, _lost_from_gcs, unsigned(_filter.size()));

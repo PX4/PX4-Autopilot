@@ -158,4 +158,62 @@ private:
 	uint8_t _size{0};
 };
 
+/// MAV_CMD_CAN_FORWARD session: one client at a time, ended by the client, a keepalive timeout or arming
+class Session
+{
+public:
+	static constexpr uint64_t KeepaliveTimeout = 5'000'000;
+
+	/// call before handleCommand()
+	void update(uint64_t now, bool armed)
+	{
+		_armed = armed;
+
+		if (armed || now > _last_keepalive + KeepaliveTimeout) {
+			_bus = -1;
+		}
+	}
+
+	/// @param bus 1-based, 0 stops forwarding
+	/// @param allowed forwarding is enabled and the bus exists
+	/// @return true if the command is accepted
+	bool handleCommand(int bus, uint32_t system, uint16_t component, bool allowed, uint64_t now)
+	{
+		if (active() && (system != _system || component != _component)) {
+			// the session belongs to another client until it stops it or its keepalive times out
+			return false;
+		}
+
+		_bus = -1;
+
+		if (bus == 0) {
+			return true;
+		}
+
+		if (_armed || !allowed) {
+			return false;
+		}
+
+		_bus = static_cast<int8_t>(bus - 1);
+		_system = system;
+		_component = component;
+		_last_keepalive = now;
+		return true;
+	}
+
+	void stop() { _bus = -1; }
+
+	bool active() const { return _bus >= 0; }
+	int8_t bus() const { return _bus; } ///< 0-based, -1 without a session
+	uint32_t system() const { return _system; }
+	uint16_t component() const { return _component; }
+
+private:
+	int8_t _bus{-1};
+	uint32_t _system{0};
+	uint16_t _component{0};
+	uint64_t _last_keepalive{0};
+	bool _armed{false};
+};
+
 } // namespace can_forward

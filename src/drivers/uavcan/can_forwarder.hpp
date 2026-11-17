@@ -42,69 +42,23 @@
 #include <lib/can_forward/CanForward.hpp>
 
 #include <drivers/drv_hrt.h>
+#include <lib/parameters/param.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
-#include <uavcan/driver/can.hpp>
-#include <uavcan/transport/can_io.hpp>
+#include <uavcan/transport/dispatcher.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/can_forward_filter.h>
 #include <uORB/topics/can_forward_frames.h>
+#include <uORB/topics/can_forward_status.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
-class CanForwarder;
-
-/// Mirrors bus and own frames to the forwarder and sends frames from the GCS
-class ForwardingCanDriver : public uavcan::ICanDriver
+/// Owns the session and moves frames between the bus and the mavlink module. Listens on the bus only during a session
+class CanForwarder : private uavcan::IRxFrameListener, private uavcan::ITxFrameListener
 {
 public:
-	static constexpr uavcan::CanIOFlags CanIOFlagForwarded = 1U << 15;
-
-	explicit ForwardingCanDriver(uavcan::ICanDriver &inner);
-
-	void setForwarder(CanForwarder *forwarder) { _forwarder = forwarder; }
-
-	uavcan::ICanIface *getIface(uint8_t iface_index) override;
-	uint8_t getNumIfaces() const override { return _num_ifaces; }
-
-	int16_t select(uavcan::CanSelectMasks &inout_masks, const uavcan::CanFrame * (&pending_tx)[uavcan::MaxCanIfaces],
-		       uavcan::MonotonicTime blocking_deadline) override
-	{
-		return _inner.select(inout_masks, pending_tx, blocking_deadline);
-	}
-
-private:
-	class Iface : public uavcan::ICanIface
-	{
-	public:
-		int16_t send(const uavcan::CanFrame &frame, uavcan::MonotonicTime tx_deadline, uavcan::CanIOFlags flags) override;
-		int16_t receive(uavcan::CanFrame &out_frame, uavcan::MonotonicTime &out_ts_monotonic, uavcan::UtcTime &out_ts_utc,
-				uavcan::CanIOFlags &out_flags) override;
-		int16_t configureFilters(const uavcan::CanFilterConfig *filter_configs, uint16_t num_configs) override
-		{
-			return inner->configureFilters(filter_configs, num_configs);
-		}
-		uint16_t getNumFilters() const override { return inner->getNumFilters(); }
-		uint64_t getErrorCount() const override { return inner->getErrorCount(); }
-
-		ForwardingCanDriver *owner{nullptr};
-		uavcan::ICanIface *inner{nullptr};
-		uint8_t index{0};
-	};
-
-	uavcan::ICanDriver &_inner;
-	Iface _ifaces[uavcan::MaxCanIfaces];
-	uint8_t _num_ifaces{0};
-	CanForwarder *_forwarder{nullptr};
-};
-
-/// Session handling and frame transport between the bus and the mavlink module
-class CanForwarder
-{
-public:
-	static constexpr hrt_abstime KeepaliveTimeout = 5'000'000;
 	static constexpr hrt_abstime TxDeadline = 100'000;
 	static constexpr hrt_abstime MaxBatchAge = 1'000'000;
 	static constexpr hrt_abstime RxBatchAge = 10'000;
@@ -113,36 +67,33 @@ public:
 	explicit CanForwarder(px4::WorkItem *work_item) : _tx_sub{work_item, ORB_ID(can_forward_tx)} {}
 	~CanForwarder() { deinit(); }
 
-	void init(ForwardingCanDriver *driver, bool config_only);
+	void init(uavcan::Dispatcher &dispatcher);
 	void deinit();
 
 	/// call before the node spins
-	void update(hrt_abstime now, uavcan::CanIOManager &canio);
+	void update(hrt_abstime now);
 
 	/// call after the node spins
 	void publish(hrt_abstime now);
 
-	/// a session blocks arming
-	bool active() const { return _bus >= 0; }
-
 	void printStatus() const;
 
-	bool allowInject(uint8_t bus) const { return _bus == bus && !_armed; }
-	void mirror(uint8_t bus, const uavcan::CanFrame &frame);
-
 private:
+	void handleRxFrame(const uavcan::CanRxFrame &frame, uavcan::CanIOFlags flags) override;
+	void handleTxFrame(const uavcan::CanFrame &frame, uint8_t iface_mask) override;
+
 	void handleCommand(const vehicle_command_s &cmd, hrt_abstime now);
-	void pushFramesToBus(hrt_abstime now, uavcan::CanIOManager &canio);
+	void applySession(hrt_abstime now);
+	void mirror(const uavcan::CanFrame &frame);
+	void pushFramesToBus(hrt_abstime now);
 	bool nextTxBatch();
 	void flushRx(hrt_abstime now);
 
-	ForwardingCanDriver *_driver{nullptr};
+	uavcan::Dispatcher *_dispatcher{nullptr};
+	param_t _param_can_fwd{PARAM_INVALID};
 
-	int8_t _bus{-1};
-	hrt_abstime _last_keepalive{0};
-	uint32_t _client_system{0};
-	uint16_t _client_component{0};
-	bool _armed{false};
+	can_forward::Session _session;
+	can_forward_status_s _status{};
 	bool _config_only{true};
 	can_forward::Filter _filter;
 
@@ -151,9 +102,12 @@ private:
 	uORB::Subscription _filter_sub{ORB_ID(can_forward_filter)};
 	uORB::SubscriptionCallbackWorkItem _tx_sub;
 	uORB::Publication<can_forward_frames_s> _rx_pub{ORB_ID(can_forward_rx)};
+	uORB::Publication<can_forward_status_s> _status_pub{ORB_ID(can_forward_status)};
 	uORB::Publication<vehicle_command_ack_s> _ack_pub{ORB_ID(vehicle_command_ack)};
 
 	orb_advert_t _mavlink_log_pub{nullptr};
+
+	bool _armed{false};
 
 	can_forward_frames_s _rx_batch{};
 	can_forward_frames_s _tx_batch{};

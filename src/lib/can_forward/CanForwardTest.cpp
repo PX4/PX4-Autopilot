@@ -104,3 +104,97 @@ TEST(CanForwardTest, FilterFull)
 	EXPECT_FALSE(filter.apply(Filter::Add, ids, Filter::Capacity + 1));
 	EXPECT_EQ(filter.size(), Filter::Capacity);
 }
+
+static constexpr uint64_t Timeout = Session::KeepaliveTimeout;
+
+TEST(CanForwardTest, SessionStartAndStop)
+{
+	Session session;
+	session.update(1, false);
+	EXPECT_FALSE(session.active());
+
+	EXPECT_TRUE(session.handleCommand(2, 255, 190, true, 1));
+	EXPECT_TRUE(session.active());
+	EXPECT_EQ(session.bus(), 1);
+	EXPECT_EQ(session.system(), 255u);
+	EXPECT_EQ(session.component(), 190);
+
+	EXPECT_TRUE(session.handleCommand(0, 255, 190, true, 2));
+	EXPECT_FALSE(session.active());
+
+	// stop without a session
+	EXPECT_TRUE(session.handleCommand(0, 1, 1, true, 3));
+}
+
+TEST(CanForwardTest, SessionOtherClientIsDenied)
+{
+	Session session;
+	session.update(1, false);
+	EXPECT_TRUE(session.handleCommand(1, 255, 190, true, 1));
+
+	EXPECT_FALSE(session.handleCommand(1, 255, 191, true, 2));
+	EXPECT_FALSE(session.handleCommand(2, 254, 190, true, 2));
+	EXPECT_FALSE(session.handleCommand(0, 254, 190, true, 2));
+	EXPECT_EQ(session.bus(), 0);
+	EXPECT_EQ(session.component(), 190);
+
+	// a denied command does not extend the session
+	session.update(1 + Timeout + 1, false);
+	EXPECT_FALSE(session.active());
+	EXPECT_TRUE(session.handleCommand(1, 255, 191, true, 1 + Timeout + 1));
+}
+
+TEST(CanForwardTest, SessionKeepalive)
+{
+	Session session;
+	session.update(1, false);
+	EXPECT_TRUE(session.handleCommand(1, 255, 190, true, 1));
+
+	session.update(1 + Timeout, false);
+	EXPECT_TRUE(session.active());
+	EXPECT_TRUE(session.handleCommand(1, 255, 190, true, 1 + Timeout));
+
+	session.update(1 + 2 * Timeout, false);
+	EXPECT_TRUE(session.active());
+
+	session.update(2 + 2 * Timeout, false);
+	EXPECT_FALSE(session.active());
+}
+
+TEST(CanForwardTest, SessionChangesBus)
+{
+	Session session;
+	session.update(1, false);
+	EXPECT_TRUE(session.handleCommand(1, 255, 190, true, 1));
+	EXPECT_TRUE(session.handleCommand(2, 255, 190, true, 2));
+	EXPECT_EQ(session.bus(), 1);
+}
+
+TEST(CanForwardTest, SessionNotAllowed)
+{
+	Session session;
+	session.update(1, false);
+	EXPECT_FALSE(session.handleCommand(1, 255, 190, false, 1));
+	EXPECT_FALSE(session.active());
+
+	// disabled or invalid bus during a session: the session ends
+	EXPECT_TRUE(session.handleCommand(1, 255, 190, true, 2));
+	EXPECT_FALSE(session.handleCommand(1, 255, 190, false, 3));
+	EXPECT_FALSE(session.active());
+}
+
+TEST(CanForwardTest, SessionEndsWhenArmed)
+{
+	Session session;
+	session.update(1, false);
+	EXPECT_TRUE(session.handleCommand(1, 255, 190, true, 1));
+
+	session.update(2, true);
+	EXPECT_FALSE(session.active());
+	EXPECT_FALSE(session.handleCommand(1, 255, 190, true, 2));
+	EXPECT_TRUE(session.handleCommand(0, 255, 190, true, 2));
+
+	session.update(3, false);
+	EXPECT_FALSE(session.active());
+	EXPECT_TRUE(session.handleCommand(1, 255, 190, true, 3));
+}

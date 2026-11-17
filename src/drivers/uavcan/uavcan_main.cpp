@@ -76,11 +76,6 @@ UavcanNode *UavcanNode::_instance;
 
 static UavcanNode::CanInitHelper *can = nullptr;
 
-#if defined(CONFIG_UAVCAN_CAN_FORWARD)
-static ForwardingCanDriver *can_forward_driver = nullptr;
-static bool can_forward_config_only = true; // kept with the driver: UAVCAN_CAN_FWD is reset at the first start
-#endif
-
 UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock, uavcan::NodeID node_id, uint32_t bitrate) :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::uavcan),
 	ModuleParams(nullptr),
@@ -444,35 +439,10 @@ UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 
 	}
 
-	uavcan::ICanDriver *node_driver = &can->driver;
-
-#if defined(CONFIG_UAVCAN_CAN_FORWARD)
-
-	const param_t can_fwd_handle = param_find("UAVCAN_CAN_FWD");
-	int32_t can_fwd = 0;
-	(void)param_get(can_fwd_handle, &can_fwd);
-
-	// forwarding for this boot only: remove to keep UAVCAN_CAN_FWD across reboots
-	if (can_fwd != 0) {
-		const int32_t off = 0;
-		(void)param_set(can_fwd_handle, &off);
-	}
-
-	if (can_fwd != 0 && can_forward_driver == nullptr) {
-		can_forward_driver = new ForwardingCanDriver(can->driver);
-		can_forward_config_only = (can_fwd != 2);
-	}
-
-	if (can_forward_driver != nullptr) {
-		node_driver = can_forward_driver;
-	}
-
-#endif
-
 	/*
 	 * Node init
 	 */
-	_instance = new UavcanNode(*node_driver, UAVCAN_DRIVER::SystemClock::instance(), node_id, bitrate);
+	_instance = new UavcanNode(can->driver, UAVCAN_DRIVER::SystemClock::instance(), node_id, bitrate);
 
 	if (_instance == nullptr) {
 		PX4_ERR("Out of memory");
@@ -480,7 +450,7 @@ UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	}
 
 #if defined(CONFIG_UAVCAN_CAN_FORWARD)
-	_instance->_can_forwarder.init(can_forward_driver, can_forward_config_only);
+	_instance->_can_forwarder.init(_instance->_node.getDispatcher());
 #endif
 
 	_instance->ScheduleOnInterval(ScheduleIntervalMs * 1000);
@@ -849,7 +819,7 @@ UavcanNode::Run()
 #if defined(CONFIG_UAVCAN_CAN_FORWARD)
 
 	if (_node.isStarted()) {
-		_can_forwarder.update(hrt_absolute_time(), _node.getDispatcher().getCanIOManager());
+		_can_forwarder.update(hrt_absolute_time());
 	}
 
 #endif
@@ -878,17 +848,16 @@ UavcanNode::Run()
 
 	publish_node_statuses();
 
-	bool pending = _servers != nullptr && _servers->hasPendingFirmwareUpdates();
-#if defined(CONFIG_UAVCAN_CAN_FORWARD)
-	pending = pending || _can_forwarder.active();
-#endif
+	if (_servers != nullptr) {
+		const bool pending = _servers->hasPendingFirmwareUpdates();
 
-	if (pending != _fw_update_pending_last) {
-		_fw_update_pending_last = pending;
-		uavcan_firmware_update_s fw_update{};
-		fw_update.timestamp = hrt_absolute_time();
-		fw_update.pending_updates = pending;
-		_fw_update_pub.publish(fw_update);
+		if (pending != _fw_update_pending_last) {
+			_fw_update_pending_last = pending;
+			uavcan_firmware_update_s fw_update{};
+			fw_update.timestamp = hrt_absolute_time();
+			fw_update.pending_updates = pending;
+			_fw_update_pub.publish(fw_update);
+		}
 	}
 
 	// check for parameter updates
@@ -1387,7 +1356,7 @@ UavcanNode::print_info()
 	for (unsigned i = 0; i < _node.getDispatcher().getCanIOManager().getCanDriver().getNumIfaces(); i++) {
 		printf("CAN%u status:\n", unsigned(i + 1));
 
-		uavcan::ICanIface *iface = can->driver.getIface(i);
+		auto iface = _node.getDispatcher().getCanIOManager().getCanDriver().getIface(i);
 
 		if (iface) {
 #if defined(UAVCAN_SOCKETCAN_NUTTX)

@@ -128,7 +128,7 @@ parameters:
       description:
         short: CAN forwarding over MAVLink
         long: |-
-          Lets a ground station reach the CAN bus through MAVLink while disarmed. Reset to 0 at startup, so it applies to the next boot only. Arming is not possible while forwarding is active.
+          Lets a ground station reach the CAN bus through MAVLink while disarmed. Arming is not possible while forwarding is active.
           Configuration only: read node info, read and write node parameters, restart nodes and update their firmware.
           Unrestricted: any frame, including actuator commands.
       type: enum
@@ -139,7 +139,6 @@ parameters:
       default: 0
       min: 0
       max: 2
-      reboot_required: true
     UAVCAN_PUB_RTCM:
       description:
         short: publish RTCM stream

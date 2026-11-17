@@ -591,6 +591,10 @@ public:
 			if (log_download_active()) {
 				++active;
 			}
+
+			if (_can_forward_active.load()) {
+				++active;
+			}
 		}
 
 		return active;
@@ -684,6 +688,9 @@ private:
 	float			_rate_mult{1.0f};
 	px4::atomic_bool	_ftp_burst_active{false};       /**< True while an FTP burst is streaming */
 	px4::atomic_bool	_log_download_active{false};    /**< True while LOG_DATA is streaming */
+	px4::atomic_bool	_can_forward_active{false};     /**< True while this link carries a CAN forwarding session */
+	hrt_abstime		_can_forward_last_update{0};
+	float			_can_forward_credit{0.f};       /**< [bytes] earned behind a radio */
 
 	float			_streams_const_rate{0.f};	///< theoretical bandwidth of the constant-rate streams, B/s
 	float			_streams_rate{0.f};		///< theoretical bandwidth of the other streams, B/s
@@ -839,7 +846,8 @@ private:
 
 	void handleSerialPassthroughOutput();
 
-	void handleCanForwardOutput();
+	/** send lock held */
+	void handleCanForwardOutput(const hrt_abstime &t);
 
 	/**
 	 * Reconfigure a SiK radio if requested by MAV_SIK_RADIO_ID

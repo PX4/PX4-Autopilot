@@ -196,4 +196,23 @@ void SystemChecks::checkAndReport(const Context &context, Report &reporter)
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: UAVCAN firmware update in progress");
 		}
 	}
+
+#if defined(CONFIG_UAVCAN_CAN_FORWARD)
+	can_forward_status_s can_forward_status {};
+
+	if (_can_forward_status_sub.copy(&can_forward_status) && can_forward_status.active) {
+		/* EVENT
+		 * @description
+		 * A ground station has access to the CAN bus (MAV_CMD_CAN_FORWARD). Close the DroneCAN tool to arm.
+		 */
+		reporter.armingCheckFailure(NavModes::All, health_component_t::system,
+					    events::ID("check_system_can_forward_active"),
+					    events::Log::Warning, "CAN forwarding over MAVLink active");
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: CAN forwarding over MAVLink active");
+		}
+	}
+
+#endif
 }

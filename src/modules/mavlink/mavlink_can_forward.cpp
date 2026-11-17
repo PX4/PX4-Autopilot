@@ -37,42 +37,38 @@
 #include <lib/can_forward/CanForward.hpp>
 #include <lib/mathlib/mathlib.h>
 
-px4::atomic<MavlinkCanForward *> MavlinkCanForward::_owner{nullptr};
-px4::atomic<hrt_abstime> MavlinkCanForward::_last_keepalive{0};
+px4::atomic<MavlinkCanForward *> MavlinkCanForward::_link{nullptr};
 
 MavlinkCanForward::~MavlinkCanForward()
 {
 	MavlinkCanForward *self = this;
-	_owner.compare_exchange(&self, nullptr);
+	_link.compare_exchange(&self, nullptr);
 }
 
-bool MavlinkCanForward::isOwner(hrt_abstime now) const
+bool MavlinkCanForward::claimLink()
 {
-	return _owner.load() == this && now < _last_keepalive.load() + OwnerTimeout;
+	MavlinkCanForward *expected = nullptr;
+	return _link.compare_exchange(&expected, this) || expected == this;
 }
 
-bool MavlinkCanForward::handleCommand(uint32_t sysid, uint8_t compid, float param1, hrt_abstime now)
+bool MavlinkCanForward::isClient(uint8_t system, uint8_t component) const
 {
-	MavlinkCanForward *owner = _owner.load();
-	const bool held = owner != nullptr && now < _last_keepalive.load() + OwnerTimeout;
-	const bool mine = owner == this && _client.load() == client(sysid, compid);
+	return _receiver_status.active && _receiver_status.client_system == system
+	       && _receiver_status.client_component == component;
+}
 
-	if (held && !mine) {
-		return false;
+bool MavlinkCanForward::handleCommand(float param1, uint8_t system, uint8_t component)
+{
+	_receiver_status_sub.update(&_receiver_status);
+
+	if (_receiver_status.active) {
+		// the session stays on its link: a keepalive from another link would keep it alive there
+		return isClient(system, component) ? claimLink() : _link.load() == this;
 	}
 
 	if (param1 >= 0.5f) {
-		// keepalive first: a concurrent claim on another link then sees the session as held
-		_last_keepalive.store(now);
-
-		if (!mine && !_owner.compare_exchange(&owner, this)) {
-			return false;
-		}
-
-		_client.store(client(sysid, compid));
-
-	} else if (mine && param1 < 0.5f) {
-		_owner.compare_exchange(&owner, nullptr);
+		// the first link to ask carries the session, if the driver accepts it
+		claimLink();
 	}
 
 	return true;
@@ -80,7 +76,9 @@ bool MavlinkCanForward::handleCommand(uint32_t sysid, uint8_t compid, float para
 
 void MavlinkCanForward::handleMessage(const mavlink_message_t &msg)
 {
-	if (!isOwner(hrt_absolute_time()) || _client.load() != client(msg.sysid, msg.compid)) {
+	_receiver_status_sub.update(&_receiver_status);
+
+	if (!isClient(msg.sysid, msg.compid) || !claimLink()) {
 		return;
 	}
 
@@ -153,13 +151,44 @@ void MavlinkCanForward::flushToBus()
 	}
 }
 
-void MavlinkCanForward::dropFrames()
+bool MavlinkCanForward::update()
 {
+	_status_sub.update(&_status);
+
+	if (_link.load() == this) {
+		if (_status.active) {
+			_carried = true;
+			_claimed_since = 0;
+			return true;
+		}
+
+		const hrt_abstime now = hrt_absolute_time();
+
+		if (_claimed_since == 0) {
+			_claimed_since = now;
+		}
+
+		// free the link for the next session: when this one ended, or when the request was not accepted
+		if (_carried || now > _claimed_since + ClaimTimeout) {
+			MavlinkCanForward *self = this;
+			_link.compare_exchange(&self, nullptr);
+			_carried = false;
+			_claimed_since = 0;
+		}
+
+	} else {
+		_carried = false;
+		_claimed_since = 0;
+	}
+
+	// not for this link: drop
 	_rx_pending = false;
 
 	while (_rx_sub.update(&_rx_batch)) {
 		_rx_seen = true;
 	}
+
+	return false;
 }
 
 bool MavlinkCanForward::nextRxBatch()
@@ -180,28 +209,24 @@ bool MavlinkCanForward::nextRxBatch()
 	return true;
 }
 
-void MavlinkCanForward::sendToGcs(mavlink_channel_t channel, unsigned free_tx_buf)
+void MavlinkCanForward::sendToGcs(mavlink_channel_t channel, unsigned message_size, unsigned &budget)
 {
-	static constexpr unsigned MessageSize = MAVLINK_MSG_ID_CAN_FRAME_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-
-	const uint64_t requester = _client.load();
-
 	while (_rx_pending || nextRxBatch()) {
 		const uint8_t count = math::min(_rx_batch.count, can_forward_frames_s::MAX_FRAMES);
 
 		for (; _rx_index < count; _rx_index++) {
-			if (free_tx_buf < MessageSize) {
+			if (budget < message_size) {
 				return;
 			}
 
 			mavlink_can_frame_t msg{};
-			msg.target_component = static_cast<uint8_t>(requester);
+			msg.target_component = static_cast<uint8_t>(_status.client_component);
 			msg.bus = _rx_batch.bus;
 			msg.id = _rx_batch.id[_rx_index];
 			msg.len = math::min(_rx_batch.len[_rx_index], static_cast<uint8_t>(sizeof(msg.data)));
 			memcpy(msg.data, &_rx_batch.data[_rx_index * 8], msg.len);
-			mavlink_msg_send_struct_target(channel, CAN_FRAME, &msg, static_cast<uint32_t>(requester >> 8));
-			free_tx_buf -= MessageSize;
+			mavlink_msg_send_struct_target(channel, CAN_FRAME, &msg, _status.client_system);
+			budget -= message_size;
 		}
 
 		_rx_pending = false;
