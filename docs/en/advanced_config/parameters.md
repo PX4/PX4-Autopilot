@@ -64,7 +64,7 @@ There are two options to solve this problem:
 
 - Check if you can update your board to run FMUv3 firmware, which includes all modules: [Firmware > FMUv2 Bootloader Update](../config/firmware.md#bootloader)
 - If your board can only run FMUv2 firmware you will need to [rebuild PX4](../dev_setup/building_px4.md) with the missing modules enabled.
-  You need reconfigure the PX4 firmware itself through make px4_fmuv2_default boardconfig where you can enabled/disable modules.
+  You need reconfigure the PX4 firmware itself through `make px4_fmu-v2_default boardconfig` where you can enabled/disable modules.
 
   ::: info
   You may also need to disable other modules in order to fit the rebuilt firmware into 1MB flash.
