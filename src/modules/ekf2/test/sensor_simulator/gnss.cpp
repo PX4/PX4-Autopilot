@@ -1,11 +1,13 @@
 #include "gnss.h"
 
+#include <utility>
+
 namespace sensor_simulator
 {
 namespace sensor
 {
 
-Gnss::Gnss(std::shared_ptr<Ekf> ekf): Sensor(ekf)
+Gnss::Gnss(std::shared_ptr<Ekf> ekf): Sensor(std::move(ekf))
 {
 	// The defaults the EKF used before the checks moved to the sensors module
 	_check_params.check_mask = 1045;
@@ -124,7 +126,7 @@ void Gnss::stepHeightByMeters(const float hgt_change)
 	_gnss_data.alt += hgt_change;
 }
 
-void Gnss::stepHorizontalPositionByMeters(const Vector2f hpos_change)
+void Gnss::stepHorizontalPositionByMeters(const Vector2f &hpos_change)
 {
 	float hposN_curr {0.f};
 	float hposE_curr {0.f};

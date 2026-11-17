@@ -58,7 +58,7 @@ public:
 	void setCheckMask(int32_t check_mask);
 	void setData(const gnssSample &gps);
 	void stepHeightByMeters(const float hgt_change);
-	void stepHorizontalPositionByMeters(const Vector2f hpos_change);
+	void stepHorizontalPositionByMeters(const Vector2f &hpos_change);
 	void setPositionRateNED(const Vector3f &rate);
 	void setAltitude(const float alt);
 	void setLatitude(const double lat);
