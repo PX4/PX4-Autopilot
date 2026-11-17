@@ -1,0 +1,12 @@
+#!/bin/sh
+#
+# board specific defaults
+#------------------------------------------------------------------------------
+param set-default BAT1_A_PER_V 40.2
+param set-default BAT1_V_DIV 21.12
+
+param set-default MAV_2_CONFIG 104
+param set-default SER_TEL4_BAUD 115200
+
+param set-default MSP_OSD_CONFIG 102
+param set-default CBRK_SUPPLY_CHK 894281
