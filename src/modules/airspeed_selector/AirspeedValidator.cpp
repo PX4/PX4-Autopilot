@@ -63,7 +63,8 @@ AirspeedValidator::update_airspeed_validator(const airspeed_validator_update_dat
 	check_first_principle(input_data.timestamp, input_data.fixed_wing_throttle_filtered,
 			      input_data.fixed_wing_tecs_throttle_trim, input_data.tecs_timestamp, input_data.q_att);
 	check_transition_lift(input_data.timestamp, input_data.in_transition_to_fw, input_data.accel_z,
-			      input_data.lift_thrust_z, input_data.hover_thrust, input_data.hover_thrust_valid);
+			      input_data.lift_thrust_z, input_data.hover_thrust, input_data.hover_thrust_valid,
+			      input_data.ground_velocity, input_data.gnss_valid, input_data.q_att);
 	update_airspeed_valid_status(input_data.timestamp);
 }
 
@@ -341,13 +342,13 @@ AirspeedValidator::check_first_principle(const uint64_t timestamp, const float t
 
 void
 AirspeedValidator::check_transition_lift(const uint64_t timestamp, const bool in_transition_to_fw,
-		const float accel_z, const float lift_thrust_z, const float hover_thrust, const bool hover_thrust_valid)
+		const float accel_z, const float lift_thrust_z, const float hover_thrust, const bool hover_thrust_valid,
+		const Vector3f &ground_velocity, const bool ground_velocity_valid, const Quatf &q_att)
 {
 	// During a front transition, estimate the airspeed from the share of the weight carried by the wing and
 	// check that the measured airspeed is not far below it. Catches under-reading sensors (e.g. partial pitot
 	// blockage) that delay the end of the transition while the vehicle overspeeds and climbs.
-	// Only valid during the front transition, where pitch is held by the transition logic so the
-	// lift coefficient is roughly constant.
+	// Only run during the front transition, where the lift motors carry the part of the weight the wing does not.
 
 	if (!_transition_lift_check_enabled || !(_transition_lift_vref > FLT_EPSILON) || !in_transition_to_fw) {
 		_transition_lift_check_failed = false;
@@ -359,6 +360,7 @@ AirspeedValidator::check_transition_lift(const uint64_t timestamp, const bool in
 		// restart the filters at the start of each front transition
 		_wing_load_fraction_filtered.reset(0.f);
 		_CAS_transition_filtered.reset(_CAS);
+		_angle_of_attack_initialized = false;
 		_time_last_transition_lift_check = timestamp;
 		_in_transition_to_fw_prev = true;
 	}
@@ -381,16 +383,71 @@ AirspeedValidator::check_transition_lift(const uint64_t timestamp, const bool in
 		_CAS_transition_filtered.update(_CAS, dt);
 	}
 
+	bool angle_of_attack_valid = false;
+
+	if (ground_velocity_valid) {
+		angle_of_attack_valid = update_angle_of_attack(dt, ground_velocity, q_att);
+
+	} else {
+		_angle_of_attack_initialized = false;
+	}
+
 	const float wing_load_fraction_filtered = _wing_load_fraction_filtered.getState();
 
 	if (wing_load_fraction_filtered > kTransitionLiftMinWingLoad) {
-		// lift scales with CAS squared at constant lift coefficient
-		const float cas_expected = _transition_lift_vref * sqrtf(wing_load_fraction_filtered);
+		// Lift scales with CAS squared and with the lift coefficient, which is linear in the angle of attack
+		// above the zero-lift angle. FW_PSP_OFF is the angle of attack at trim airspeed in level flight, so
+		// CL_trim / CL = (FW_PSP_OFF - alpha0) / (alpha - alpha0). The ratio is 1 (lift coefficient at trim)
+		// without a usable angle of attack.
+		float lift_coefficient_ratio = 1.f;
+		const float trim_angle_above_zero_lift = _param_psp_off - _zero_lift_angle_of_attack;
+
+		if (angle_of_attack_valid && trim_angle_above_zero_lift > FLT_EPSILON) {
+			const float angle_above_zero_lift = _angle_of_attack_filtered.getState() - _zero_lift_angle_of_attack;
+
+			// Close to or below the zero-lift angle the ratio is limited instead of skipping the check:
+			// an overspeeding, climbing vehicle ends up there.
+			lift_coefficient_ratio = (angle_above_zero_lift * kTransitionLiftMaxLiftCoefficientRatio > trim_angle_above_zero_lift)
+						 ? trim_angle_above_zero_lift / angle_above_zero_lift
+						 : kTransitionLiftMaxLiftCoefficientRatio;
+		}
+
+		const float cas_expected = _transition_lift_vref * sqrtf(wing_load_fraction_filtered * lift_coefficient_ratio);
 		_transition_lift_check_failed = _CAS_transition_filtered.getState() < _transition_lift_ratio * cas_expected;
 
 	} else {
 		_transition_lift_check_failed = false;
 	}
+}
+
+bool
+AirspeedValidator::update_angle_of_attack(const float dt, const Vector3f &ground_velocity, const Quatf &q_att)
+{
+	// There is no wind estimate during the transition. Assume the air velocity points along the heading
+	// (no sideslip) with a horizontal magnitude of max(ground speed, TAS): with a headwind the ground speed alone
+	// exaggerates the flight path angle, and an under-reading sensor cannot make the airspeed lower than the
+	// ground speed. The vertical air velocity is taken from the ground velocity (no vertical wind).
+	const float heading = matrix::Eulerf(q_att).psi();
+	const float horizontal_airspeed = fmaxf(Vector2f(ground_velocity.xy()).norm(), PX4_ISFINITE(_TAS) ? _TAS : 0.f);
+	const Vector3f air_velocity{horizontal_airspeed * cosf(heading), horizontal_airspeed * sinf(heading), ground_velocity(2)};
+	const Vector3f air_velocity_body = q_att.rotateVectorInverse(air_velocity);
+
+	if (!(air_velocity_body(0) > kTransitionLiftMinForwardAirspeed)) {
+		_angle_of_attack_initialized = false;
+		return false;
+	}
+
+	const float angle_of_attack = atan2f(air_velocity_body(2), air_velocity_body(0));
+
+	if (!_angle_of_attack_initialized) {
+		_angle_of_attack_filtered.reset(angle_of_attack);
+		_angle_of_attack_initialized = true;
+
+	} else if (dt > FLT_EPSILON && dt < 1.f) {
+		_angle_of_attack_filtered.update(angle_of_attack, dt);
+	}
+
+	return true;
 }
 
 void

@@ -251,6 +251,7 @@ private:
 		(ParamFloat<px4::params::ASPD_WERR_THR>) _param_wind_sigma_max_synth_tas,
 		(ParamFloat<px4::params::ASPD_FP_T_WINDOW>) _aspd_fp_t_window,
 		(ParamFloat<px4::params::ASPD_TR_RATIO>) _param_aspd_tr_ratio,
+		(ParamFloat<px4::params::ASPD_TR_A0>) _param_aspd_tr_a0,
 
 		// external parameters
 		(ParamFloat<px4::params::FW_AIRSPD_STALL>) _param_fw_airspd_stall,
@@ -572,9 +573,9 @@ void AirspeedModule::update_params()
 {
 	updateParams();
 
-	// Transition lift check reference: the front transition ends at FW_PSP_OFF, the level flight pitch at
-	// FW_AIRSPD_TRIM, so the wing carries the full weight at trim airspeed. FW_AIRSPD_TRIM is defined at
-	// WEIGHT_BASE, the lift-equivalent airspeed scales with sqrt(weight).
+	// Transition lift check reference: in level flight at FW_AIRSPD_TRIM the angle of attack is FW_PSP_OFF and the
+	// wing carries the full weight. FW_AIRSPD_TRIM is defined at WEIGHT_BASE, the lift-equivalent airspeed scales
+	// with sqrt(weight). The validator scales it to the current angle of attack using ASPD_TR_A0.
 	// The weight parameters are looked up by handle since they only exist on builds with the FW performance model.
 	float weight_ratio = 1.f;
 	float weight_base = 0.f;
@@ -649,6 +650,7 @@ void AirspeedModule::update_params()
 				CheckTypeBits::CHECK_TYPE_TRANSITION_LIFT_BIT);
 		_airspeed_validator[i].set_transition_lift_vref(transition_lift_vref);
 		_airspeed_validator[i].set_transition_lift_ratio(_param_aspd_tr_ratio.get());
+		_airspeed_validator[i].set_zero_lift_angle_of_attack(math::radians(_param_aspd_tr_a0.get()));
 	}
 }
 

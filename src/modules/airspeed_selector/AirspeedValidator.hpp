@@ -127,6 +127,7 @@ public:
 	void set_enable_transition_lift_check(bool enable) { _transition_lift_check_enabled = enable; }
 	void set_transition_lift_vref(float vref) { _transition_lift_vref = vref; }
 	void set_transition_lift_ratio(float ratio) { _transition_lift_ratio = ratio; }
+	void set_zero_lift_angle_of_attack(float angle) { _zero_lift_angle_of_attack = angle; }
 	void set_psp_off_param(float psp_off_param) { _param_psp_off = psp_off_param; }
 	void set_throttle_max_param(float throttle_max_param) { _param_throttle_max = throttle_max_param; }
 	void set_fp_t_window(float t_window) { _aspd_fp_t_window = t_window; }
@@ -192,13 +193,18 @@ private:
 	static constexpr float kTransitionLiftFilterTimeConstant{0.5f}; ///< [s] same time constant on both sides of the comparison
 	static constexpr float kTransitionLiftMinWingLoad{0.3f}; ///< wing load fraction below which the estimate is too noisy
 	static constexpr float kTransitionLiftMinHoverThrust{0.05f}; ///< hover thrust below which the estimate is not usable
+	static constexpr float kTransitionLiftMinForwardAirspeed{5.f}; ///< [m/s] body x airspeed below which the angle of attack is not usable
+	static constexpr float kTransitionLiftMaxLiftCoefficientRatio{4.f}; ///< limits the expected CAS increase from the angle of attack to 2x
 	bool _transition_lift_check_failed{false}; ///< transition lift check has detected failure
-	float _transition_lift_vref{0.f}; ///< [m/s] CAS at which the wing alone carries the weight at transition pitch (weight-scaled trim airspeed)
+	float _transition_lift_vref{0.f}; ///< [m/s] CAS at which the wing alone carries the weight at the trim angle of attack (weight-scaled trim airspeed)
 	float _transition_lift_ratio{0.7f}; ///< check fails if measured CAS is below this fraction of the expected CAS
+	float _zero_lift_angle_of_attack{0.f}; ///< [rad] angle of attack (body x-axis) at which the wing produces no lift
 	bool _in_transition_to_fw_prev{false};
+	bool _angle_of_attack_initialized{false};
 	hrt_abstime _time_last_transition_lift_check{0};
 	AlphaFilter<float> _wing_load_fraction_filtered{kTransitionLiftFilterTimeConstant};
 	AlphaFilter<float> _CAS_transition_filtered{kTransitionLiftFilterTimeConstant};
+	AlphaFilter<float> _angle_of_attack_filtered{kTransitionLiftFilterTimeConstant};
 
 	// states of airspeed valid declaration
 	bool _airspeed_valid{true}; ///< airspeed valid (pitot or groundspeed-windspeed)
@@ -230,7 +236,9 @@ private:
 	void check_first_principle(const uint64_t timestamp, const float throttle, const float throttle_trim,
 				   const uint64_t tecs_timestamp, const Quatf &att_q);
 	void check_transition_lift(const uint64_t timestamp, const bool in_transition_to_fw, const float accel_z,
-				   const float lift_thrust_z, const float hover_thrust, const bool hover_thrust_valid);
+				   const float lift_thrust_z, const float hover_thrust, const bool hover_thrust_valid,
+				   const matrix::Vector3f &ground_velocity, const bool ground_velocity_valid, const Quatf &q_att);
+	bool update_angle_of_attack(const float dt, const matrix::Vector3f &ground_velocity, const Quatf &q_att);
 	void update_airspeed_valid_status(const uint64_t timestamp);
 	void reset();
 	void reset_CAS_scale_check();

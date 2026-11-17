@@ -122,33 +122,41 @@ n_wing = −a_z / g − T_mc / T_hover
 ```
 
 where `a_z` is the vertical specific force measured by the accelerometer (body frame, z down), `T_mc` the lift motor thrust and `T_hover` the hover thrust estimate.
-During the transition pitch is held by the transition logic, so the lift coefficient is roughly constant and lift grows with the square of the calibrated airspeed.
-The transition ends at [FW_PSP_OFF](#fw_psp_off_table), the pitch in level flight at [FW_AIRSPD_TRIM](#fw_airspd_trim_table), so the wing alone carries the weight at trim airspeed:
+Lift grows with the square of the calibrated airspeed and with the lift coefficient, which is linear in the angle of attack `α` above the zero-lift angle of attack [ASPD_TR_A0](#aspd_tr_a0_table).
+In level flight at [FW_AIRSPD_TRIM](#fw_airspd_trim_table) the angle of attack is [FW_PSP_OFF](#fw_psp_off_table) and the wing alone carries the weight, so:
 
 ```txt
-CAS_expected = FW_AIRSPD_TRIM · sqrt(WEIGHT_GROSS / WEIGHT_BASE) · sqrt(n_wing)
+CAS_expected = FW_AIRSPD_TRIM · sqrt(WEIGHT_GROSS / WEIGHT_BASE) · sqrt(n_wing · (FW_PSP_OFF − ASPD_TR_A0) / (α − ASPD_TR_A0))
 ```
 
 The weight term is only applied if both [WEIGHT_BASE](#weight_base_table) and [WEIGHT_GROSS](#weight_gross_table) are set (it is clamped to 0.5–2), otherwise it is 1.
 Burned fuel ([WEIGHT_FUEL](../advanced_config/parameter_reference.md#WEIGHT_FUEL)) is not taken into account.
+
+The angle of attack matters because the pitch is not constant during the transition: it ramps up to `FW_PSP_OFF` as the transition blends to fixed-wing control.
+When the vehicle overspeeds and climbs, the flight path angle grows and the angle of attack drops, so the wing needs a much higher airspeed to carry the same weight.
+The angle of attack is computed from the attitude and the ground velocity.
+There is no wind estimate during the transition, so the horizontal airspeed is assumed to point along the heading with the larger of the ground speed and the measured true airspeed.
+The lift coefficient term is limited to 4 (twice the expected airspeed) close to the zero-lift angle, and is 1 without a valid velocity estimate or below 5 m/s forward airspeed.
 
 The check fails if the measured calibrated airspeed is below [ASPD_TR_RATIO](#aspd_tr_ratio_table) times `CAS_expected`.
 Both values are low-pass filtered with the same time constant, and the check only runs while the wing carries more than 30% of the weight.
 
 When the sensor is declared invalid, the VTOL continues the transition without airspeed (see [VT_F_TR_OL_TM](../advanced_config/parameter_reference.md#VT_F_TR_OL_TM)).
 
-Before the blend airspeed the pitch setpoint is below `FW_PSP_OFF`, so the wing produces less lift than at trim and `CAS_expected` is slightly low.
-This errs towards missed detections, not false failures.
-To verify the configuration, compute `CAS / sqrt(n_wing)` on several healthy transitions: it should be close to `FW_AIRSPD_TRIM`.
-Use [ASPD_TR_RATIO](#aspd_tr_ratio_table) to leave a margin below the lowest ratio seen.
+To find `ASPD_TR_A0`, fit `n / CAS²` (proportional to the lift coefficient) against the angle of attack on steady fixed-wing flight at several airspeeds with a healthy sensor, where `n` is the vertical load factor `−a_z / g`.
+The angle of attack where the fitted line reaches zero lift is `ASPD_TR_A0`.
+Gusts make the angle of attack noisy, which flattens a least-squares fit of `n / CAS²` on the angle of attack and pushes the result too low: fit the angle of attack on `n / CAS²` instead.
+To verify the configuration, compare `CAS_expected` with the measured airspeed on several healthy transitions, and use [ASPD_TR_RATIO](#aspd_tr_ratio_table) to leave a margin below the lowest ratio seen.
 
 Common failure causes:
 
 - Faulty or blocked airspeed sensor (_sensor fault_)
 - `FW_AIRSPD_TRIM` and `FW_PSP_OFF` not consistent, i.e. `FW_PSP_OFF` is not the level flight pitch at trim airspeed (_configuration issue_)
+- `ASPD_TR_A0` too close to `FW_PSP_OFF` (_configuration issue_)
+- Strong vertical gusts at low airspeed, which make the angle of attack unreliable
 - Weight change not reflected in `WEIGHT_GROSS` (_configuration issue_)
 
-Relevant parameters: [FW_AIRSPD_TRIM](#fw_airspd_trim_table), [FW_PSP_OFF](#fw_psp_off_table), [ASPD_TR_RATIO](#aspd_tr_ratio_table), [WEIGHT_BASE](#weight_base_table), [WEIGHT_GROSS](#weight_gross_table)
+Relevant parameters: [FW_AIRSPD_TRIM](#fw_airspd_trim_table), [FW_PSP_OFF](#fw_psp_off_table), [ASPD_TR_A0](#aspd_tr_a0_table), [ASPD_TR_RATIO](#aspd_tr_ratio_table), [WEIGHT_BASE](#weight_base_table), [WEIGHT_GROSS](#weight_gross_table)
 
 ## Additional Configuration
 
@@ -242,6 +250,7 @@ Listed below are all the relevant parameters.
 | <a id="aspd_fp_t_window_table"></a>[ASPD_FP_T_WINDOW](../advanced_config/parameter_reference.md#ASPD_FP_T_WINDOW) | Time window for evaluating airspeed trend in First Principle Check.                                      | [First Principle Check](#first-principle-check)  |
 | <a id="fw_airspd_trim_table"></a>[FW_AIRSPD_TRIM](../advanced_config/parameter_reference.md#FW_AIRSPD_TRIM)       | Trim airspeed, at which the wing alone carries the weight at `FW_PSP_OFF`.                               | [Transition Lift Check](#transition-lift-check)  |
 | <a id="aspd_tr_ratio_table"></a>[ASPD_TR_RATIO](../advanced_config/parameter_reference.md#ASPD_TR_RATIO)          | Fraction of the expected airspeed below which the measured airspeed fails the check.                     | [Transition Lift Check](#transition-lift-check)  |
+| <a id="aspd_tr_a0_table"></a>[ASPD_TR_A0](../advanced_config/parameter_reference.md#ASPD_TR_A0)                   | Zero-lift angle of attack, used to scale the expected airspeed with the angle of attack.                 | [Transition Lift Check](#transition-lift-check)  |
 | <a id="weight_base_table"></a>[WEIGHT_BASE](../advanced_config/parameter_reference.md#WEIGHT_BASE)                | Weight at which `FW_AIRSPD_TRIM` is defined.                                                             | [Transition Lift Check](#transition-lift-check)  |
 | <a id="weight_gross_table"></a>[WEIGHT_GROSS](../advanced_config/parameter_reference.md#WEIGHT_GROSS)             | Actual vehicle weight, used to scale `FW_AIRSPD_TRIM`.                                                   | [Transition Lift Check](#transition-lift-check)  |
 | <a id="aspd_fs_t_start_table"></a>[ASPD_FS_T_START](../advanced_config/parameter_reference.md#ASPD_FS_T_START)    | Delay after passing validation before using sensor data. Affects how soon a recovered sensor is trusted. | All Checks                                       |
