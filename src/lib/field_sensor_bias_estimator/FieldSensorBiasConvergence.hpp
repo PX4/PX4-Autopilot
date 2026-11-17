@@ -88,13 +88,17 @@ public:
 
 				const bool quiet = !(bias - _window_start_bias).longerThan(fmaxf(kQuietAbs, kQuietRel * bias.norm()));
 				const bool consistent = field_norm_std < kMaxFieldNormStd;
-				_valid = bias.isAllFinite() && bias.longerThan(kMinBias) && !bias.longerThan(kMaxBias)
+				matrix::Vector3f observed_bias;
+
+				for (int axis = 0; axis < 3; axis++) {
+					observed_bias(axis) = _observed[axis] ? bias(axis) : 0.f;
+				}
+
+				_valid = observed_bias.isAllFinite() && observed_bias.longerThan(kMinBias) && !observed_bias.longerThan(kMaxBias)
 					 && quiet && consistent && _observed[0] && _observed[1];
 
 				if (_valid) {
-					for (int axis = 0; axis < 3; axis++) {
-						_bias(axis) = _observed[axis] ? bias(axis) : 0.f;
-					}
+					_bias = observed_bias;
 				}
 
 				_valid_time = (_valid && was_valid) ? fminf(_valid_time + _window_time, kStableTime) : 0.f;
