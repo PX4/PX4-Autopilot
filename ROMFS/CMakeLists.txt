@@ -134,6 +134,7 @@ add_custom_command(
 		${PX4_SOURCE_DIR}/Tools/px4airframes/srcscanner.py
 		${PX4_SOURCE_DIR}/Tools/px4airframes/xmlout.py
 		${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
+		${PX4_SOURCE_DIR}/Tools/module_config/output_groups_from_timer_config.py
 	)
 
 
@@ -155,7 +156,7 @@ add_custom_command(
 		--rc-dir ${romfs_gen_root_dir}/init.d
 		--serial-ports ${board_serial_ports} ${added_arguments}
 		--config-files ${module_config_files}
-		--board-config ${PX4_BINARY_DIR}/px4_boardconfig.h #--verbose
+		--board-config ${BOARD_CONFIG} #--verbose
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/filepaths/generate_config.py
 		--rc-dir ${romfs_gen_root_dir}/init.d
 		--params-file ${CONFIG_BOARD_PARAM_FILE}

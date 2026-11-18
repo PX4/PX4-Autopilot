@@ -5,6 +5,9 @@ import argparse
 import os
 import sys
 
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../module_config'))
+from output_groups_from_timer_config import load_board_config
+
 try:
     from jinja2 import Environment, FileSystemLoader
 except ImportError as e:
@@ -163,7 +166,7 @@ parser.add_argument('--params-file', type=str, action='store',
 parser.add_argument('--ethernet', action='store_true',
                     help='Ethernet support')
 parser.add_argument('--board-config', type=str, action='store', default=None,
-                    help='px4_boardconfig.h, for Kconfig instance counts')
+                    help='board Kconfig boardconfig file, for Kconfig instance counts')
 parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
                     help='Verbose Output')
 
@@ -202,17 +205,6 @@ if ethernet_supported:
         'label': "Ethernet",
         'index': 1000
         })
-
-def load_board_config(file_name):
-    """ CONFIG_* values from px4_boardconfig.h """
-    config = {}
-    if file_name is not None:
-        with open(file_name, 'r') as stream:
-            for line in stream:
-                fields = line.split(None, 2)
-                if len(fields) == 3 and fields[0] == '#define':
-                    config[fields[1]] = fields[2].strip().strip('"')
-    return config
 
 board_config = load_board_config(args.board_config)
 
@@ -289,7 +281,9 @@ for serial_command in serial_commands:
         default_port = 0 # disabled
         if 'default' in port_config:
             if type(port_config['default']) == list:
-                # instances past the end of the list take its last entry
+                # with a Kconfig count, instances past the end of the list take its last entry
+                if not isinstance(num_instances_config, dict):
+                    assert len(port_config['default']) == num_instances
                 default_port_str = port_config['default'][min(i, len(port_config['default']) - 1)]
             else:
                 default_port_str = port_config['default']

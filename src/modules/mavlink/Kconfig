@@ -15,10 +15,11 @@ menuconfig MAVLINK_NUM_CONFIG_INSTANCES
 depends on MODULES_MAVLINK
 	int "Number of MAVLink instance configurations"
 	default 3
-	range 1 6
+	range 1 3 if BOARD_CONSTRAINED_MEMORY
+	range 1 5
 	---help---
 		Number of MAV_x_* parameter sets. At most 6 MAVLink instances can
-		run at once (4 on constrained-memory boards), including USB.
+		run at once (4 on constrained-memory boards), and USB takes one.
 
 menuconfig MAVLINK_UAVCAN_PARAMETERS
 depends on MODULES_MAVLINK && DRIVERS_UAVCAN
