@@ -107,8 +107,8 @@ For optical flow fusion using EKF2, set [EKF2_OF0_CTRL](../advanced_config/param
 
 If your optical flow sensor is offset from the vehicle centre, you can set this using the following parameters.
 
-| Parameter                                                                                          | Description                                                             |
-| -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Parameter                                                                                                   | Description                                                             |
+| ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
 | <a id="SENS_FLOW0_POS_X"></a>[SENS_FLOW0_POS_X](../advanced_config/parameter_reference.md#SENS_FLOW0_POS_X) | X position of optical flow focal point in body frame (default is 0.0m). |
 | <a id="SENS_FLOW0_POS_Y"></a>[SENS_FLOW0_POS_Y](../advanced_config/parameter_reference.md#SENS_FLOW0_POS_Y) | Y position of optical flow focal point in body frame (default is 0.0m). |
 | <a id="SENS_FLOW0_POS_Z"></a>[SENS_FLOW0_POS_Z](../advanced_config/parameter_reference.md#SENS_FLOW0_POS_Z) | Z position of optical flow focal point in body frame (default is 0.0m). |

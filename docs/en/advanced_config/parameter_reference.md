@@ -30890,7 +30890,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## EKF2
 
-<div class="param-group" style="--param-count: 154">
+<div class="param-group" style="--param-count: 157">
 
 <div class="param">
 
@@ -32503,11 +32503,11 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### EKF2_OF_CTRL (`INT32`) {#EKF2_OF_CTRL}
+### EKF2_OF0_CTRL (`INT32`) {#EKF2_OF0_CTRL}
 
-Optical flow aiding.
+Optical flow sensor 0 aiding.
 
-Enable optical flow fusion.
+Enable optical flow fusion for sensor slot 0.
 
 
 **Values:**
@@ -32523,26 +32523,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### EKF2_OF_DELAY (`FLOAT`) {#EKF2_OF_DELAY}
+### EKF2_OF0_GATE (`FLOAT`) {#EKF2_OF0_GATE}
 
-Optical flow measurement delay relative to IMU measurements.
-
-Assumes measurement is timestamped at trailing edge of integration
-period. The default matches a DroneCAN flow node, whose frame reaches
-the flight controller about 7 ms after its integration window closes.
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 300 |  | 7 | ms | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_OF_GATE (`FLOAT`) {#EKF2_OF_GATE}
-
-Gate size for optical flow fusion.
+Gate size for optical flow sensor 0 fusion.
 
 Sets the number of standard deviations used by the innovation consistency test.
 
@@ -32555,9 +32538,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### EKF2_OF_GYR_SRC (`INT32`) {#EKF2_OF_GYR_SRC}
+### EKF2_OF0_GYR_SRC (`INT32`) {#EKF2_OF0_GYR_SRC}
 
-Optical flow angular rate compensation source.
+Optical flow sensor 0 angular rate compensation source.
 
 Auto: use gyro from optical flow message if available, internal gyro otherwise. Internal: always use internal gyro
 
@@ -32576,9 +32559,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### EKF2_OF_N_MAX (`FLOAT`) {#EKF2_OF_N_MAX}
+### EKF2_OF0_N_MAX (`FLOAT`) {#EKF2_OF0_N_MAX}
 
-Optical flow maximum noise.
+Optical flow sensor 0 maximum noise.
 
 Measurement noise for the optical flow sensor when it's reported quality metric is at the minimum
 
@@ -32591,9 +32574,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### EKF2_OF_N_MIN (`FLOAT`) {#EKF2_OF_N_MIN}
+### EKF2_OF0_N_MIN (`FLOAT`) {#EKF2_OF0_N_MIN}
 
-Optical flow minimum noise.
+Optical flow sensor 0 minimum noise.
 
 Measurement noise for the optical flow sensor when it's reported quality metric is at the maximum
 
@@ -32606,56 +32589,11 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### EKF2_OF_POS_X (`FLOAT`) {#EKF2_OF_POS_X}
+### EKF2_OF0_QMIN (`INT32`) {#EKF2_OF0_QMIN}
 
-X position of optical flow focal point in body frame.
+In air optical flow sensor 0 minimum quality.
 
-Forward axis with origin relative to vehicle centre of gravity
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.0 | m | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_OF_POS_Y (`FLOAT`) {#EKF2_OF_POS_Y}
-
-Y position of optical flow focal point in body frame.
-
-Forward axis with origin relative to vehicle centre of gravity
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.0 | m | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_OF_POS_Z (`FLOAT`) {#EKF2_OF_POS_Z}
-
-Z position of optical flow focal point in body frame.
-
-Forward axis with origin relative to vehicle centre of gravity
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.0 | m | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_OF_QMIN (`INT32`) {#EKF2_OF_QMIN}
-
-In air optical flow minimum quality.
-
-Optical Flow data will only be used in air if the sensor reports a quality metric >= EKF2_OF_QMIN
+Optical Flow data will only be used in air if the sensor reports a quality metric >= EKF2_OF0_QMIN
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -32666,11 +32604,127 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### EKF2_OF_QMIN_GND (`INT32`) {#EKF2_OF_QMIN_GND}
+### EKF2_OF0_QMINGND (`INT32`) {#EKF2_OF0_QMINGND}
 
-On ground optical flow minimum quality.
+On ground optical flow sensor 0 minimum quality.
 
-Optical Flow data will only be used on the ground if the sensor reports a quality metric >= EKF2_OF_QMIN_GND
+Optical Flow data will only be used on the ground if the sensor reports a quality metric >= EKF2_OF0_QMINGND
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 255 |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### EKF2_OF1_CTRL (`INT32`) {#EKF2_OF1_CTRL}
+
+Optical flow sensor 1 aiding.
+
+Enable optical flow fusion for sensor slot 1.
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | Disabled (0) |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### EKF2_OF1_GATE (`FLOAT`) {#EKF2_OF1_GATE}
+
+Gate size for optical flow sensor 1 fusion.
+
+Sets the number of standard deviations used by the innovation consistency test.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 1.0 |  |  | 3.0 | SD | &nbsp;
+
+</div>
+
+<div class="param">
+
+### EKF2_OF1_GYR_SRC (`INT32`) {#EKF2_OF1_GYR_SRC}
+
+Optical flow sensor 1 angular rate compensation source.
+
+Auto: use gyro from optical flow message if available, internal gyro otherwise. Internal: always use internal gyro
+
+
+**Values:**
+
+- `0`: Auto
+- `1`: Internal
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### EKF2_OF1_N_MAX (`FLOAT`) {#EKF2_OF1_N_MAX}
+
+Optical flow sensor 1 maximum noise.
+
+Measurement noise for the optical flow sensor when it's reported quality metric is at the minimum
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.05 |  |  | 0.5 | rad/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### EKF2_OF1_N_MIN (`FLOAT`) {#EKF2_OF1_N_MIN}
+
+Optical flow sensor 1 minimum noise.
+
+Measurement noise for the optical flow sensor when it's reported quality metric is at the maximum
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.05 |  |  | 0.15 | rad/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### EKF2_OF1_QMIN (`INT32`) {#EKF2_OF1_QMIN}
+
+In air optical flow sensor 1 minimum quality.
+
+Optical Flow data will only be used in air if the sensor reports a quality metric >= EKF2_OF1_QMIN
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 255 |  | 1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### EKF2_OF1_QMINGND (`INT32`) {#EKF2_OF1_QMINGND}
+
+On ground optical flow sensor 1 minimum quality.
+
+Optical Flow data will only be used on the ground if the sensor reports a quality metric >= EKF2_OF1_QMINGND
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -51878,7 +51932,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Sensor Calibration
 
-<div class="param-group" style="--param-count: 157">
+<div class="param-group" style="--param-count: 170">
 
 <div class="param">
 
@@ -54783,9 +54837,27 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SENS_FLOW_MAXHGT (`FLOAT`) {#SENS_FLOW_MAXHGT}
+### SENS_FLOW0_DELAY (`FLOAT`) {#SENS_FLOW0_DELAY}
 
-Maximum height above ground when reliant on optical flow.
+Optical flow sensor 0 measurement delay relative to IMU.
+
+Assumes measurement is timestamped at trailing edge of integration
+period. Applied to timestamp_sample of the published data. The default
+matches a DroneCAN flow node, whose frame reaches the flight controller
+about 7 ms after its integration window closes.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; | 0 | 300 |  | 7.0 | ms | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_FLOW0_HMAX (`FLOAT`) {#SENS_FLOW0_HMAX}
+
+Maximum height above ground when reliant on optical flow 0.
 
 This parameter defines the maximum distance from ground at which the optical flow sensor operates reliably.
 The height setpoint will be limited to be no greater than this value when the navigation system
@@ -54801,9 +54873,40 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SENS_FLOW_MAXR (`FLOAT`) {#SENS_FLOW_MAXR}
+### SENS_FLOW0_HMIN (`FLOAT`) {#SENS_FLOW0_HMIN}
 
-Max angular flow rate measurable by sensor.
+Minimum height above ground when reliant on optical flow 0.
+
+This parameter defines the minimum distance from ground at which the optical flow sensor operates reliably.
+The sensor may be usable below this height, but accuracy will progressively reduce to loss of focus.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 1.0 | 0.1 | 0.08 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_FLOW0_ID (`INT32`) {#SENS_FLOW0_ID}
+
+Optical flow sensor 0 ID.
+
+Device ID of the flow sensor configured by the SENS_FLOW0_* parameters. Set to 0 to automatically bind the first unbound sensor reporting data.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_FLOW0_MAXR (`FLOAT`) {#SENS_FLOW0_MAXR}
+
+Max angular flow rate measurable by sensor 0.
 
 Magnitude of maximum angular flow rate reliably measurable by the optical flow sensor
 
@@ -54820,9 +54923,90 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SENS_FLOW_MINHGT (`FLOAT`) {#SENS_FLOW_MINHGT}
+### SENS_FLOW0_POS_X (`FLOAT`) {#SENS_FLOW0_POS_X}
 
-Minimum height above ground when reliant on optical flow.
+X position of optical flow sensor 0 focal point in body frame.
+
+Forward axis with origin relative to vehicle centre of gravity
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_FLOW0_POS_Y (`FLOAT`) {#SENS_FLOW0_POS_Y}
+
+Y position of optical flow sensor 0 focal point in body frame.
+
+Right axis with origin relative to vehicle centre of gravity
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_FLOW0_POS_Z (`FLOAT`) {#SENS_FLOW0_POS_Z}
+
+Z position of optical flow sensor 0 focal point in body frame.
+
+Down axis with origin relative to vehicle centre of gravity
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_FLOW1_DELAY (`FLOAT`) {#SENS_FLOW1_DELAY}
+
+Optical flow sensor 1 measurement delay relative to IMU.
+
+Assumes measurement is timestamped at trailing edge of integration
+period. Applied to timestamp_sample of the published data. The default
+matches a DroneCAN flow node, whose frame reaches the flight controller
+about 7 ms after its integration window closes.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; | 0 | 300 |  | 7.0 | ms | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_FLOW1_HMAX (`FLOAT`) {#SENS_FLOW1_HMAX}
+
+Maximum height above ground when reliant on optical flow 1.
+
+This parameter defines the maximum distance from ground at which the optical flow sensor operates reliably.
+The height setpoint will be limited to be no greater than this value when the navigation system
+is completely reliant on optical flow data and the height above ground estimate is valid.
+The sensor may be usable above this height, but accuracy will progressively degrade.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 1.0 | 100.0 | 0.1 | 100.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_FLOW1_HMIN (`FLOAT`) {#SENS_FLOW1_HMIN}
+
+Minimum height above ground when reliant on optical flow 1.
 
 This parameter defines the minimum distance from ground at which the optical flow sensor operates reliably.
 The sensor may be usable below this height, but accuracy will progressively reduce to loss of focus.
@@ -54834,11 +55018,90 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 </div>
 
+<div class="param">
+
+### SENS_FLOW1_ID (`INT32`) {#SENS_FLOW1_ID}
+
+Optical flow sensor 1 ID.
+
+Device ID of the flow sensor configured by the SENS_FLOW1_* parameters. Set to 0 to automatically bind the first unbound sensor reporting data.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_FLOW1_MAXR (`FLOAT`) {#SENS_FLOW1_MAXR}
+
+Max angular flow rate measurable by sensor 1.
+
+Magnitude of maximum angular flow rate reliably measurable by the optical flow sensor
+
+Optical flow data will not fused by the estimators if the magnitude of the flow rate exceeds this value and
+control loops will be instructed to limit ground speed such that the flow rate produced by movement over ground
+is less than 50% of this value.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 1.0 |  |  | 8.0 | rad/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_FLOW1_POS_X (`FLOAT`) {#SENS_FLOW1_POS_X}
+
+X position of optical flow sensor 1 focal point in body frame.
+
+Forward axis with origin relative to vehicle centre of gravity
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_FLOW1_POS_Y (`FLOAT`) {#SENS_FLOW1_POS_Y}
+
+Y position of optical flow sensor 1 focal point in body frame.
+
+Right axis with origin relative to vehicle centre of gravity
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_FLOW1_POS_Z (`FLOAT`) {#SENS_FLOW1_POS_Z}
+
+Z position of optical flow sensor 1 focal point in body frame.
+
+Down axis with origin relative to vehicle centre of gravity
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 | m | &nbsp;
+
+</div>
+
 </div>
 
 ## Sensors
 
-<div class="param-group" style="--param-count: 266">
+<div class="param-group" style="--param-count: 269">
 
 <div class="param">
 
@@ -58396,9 +58659,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SENS_FLOW_RATE (`FLOAT`) {#SENS_FLOW_RATE}
+### SENS_FLOW0_RATE (`FLOAT`) {#SENS_FLOW0_RATE}
 
-Optical flow max rate.
+Optical flow 0 max rate.
 
 Optical flow data maximum publication rate. This is an upper bound,
 actual optical flow data rate is still dependent on the sensor.
@@ -58412,9 +58675,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SENS_FLOW_ROT (`INT32`) {#SENS_FLOW_ROT}
+### SENS_FLOW0_ROT (`INT32`) {#SENS_FLOW0_ROT}
 
-Optical flow rotation.
+Optical flow 0 rotation.
 
 This parameter defines the yaw rotation of the optical flow relative to the vehicle body frame.
 Zero rotation is defined as X on flow board pointing towards front of vehicle.
@@ -58440,9 +58703,65 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SENS_FLOW_SCALE (`FLOAT`) {#SENS_FLOW_SCALE}
+### SENS_FLOW0_SCALE (`FLOAT`) {#SENS_FLOW0_SCALE}
 
-Optical flow scale factor.
+Optical flow 0 scale factor.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.5 | 1.5 |  | 1.0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_FLOW1_RATE (`FLOAT`) {#SENS_FLOW1_RATE}
+
+Optical flow 1 max rate.
+
+Optical flow data maximum publication rate. This is an upper bound,
+actual optical flow data rate is still dependent on the sensor.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; | 1 | 200 |  | 70.0 | Hz | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_FLOW1_ROT (`INT32`) {#SENS_FLOW1_ROT}
+
+Optical flow 1 rotation.
+
+This parameter defines the yaw rotation of the optical flow relative to the vehicle body frame.
+Zero rotation is defined as X on flow board pointing towards front of vehicle.
+
+
+**Values:**
+
+- `0`: No rotation
+- `1`: Yaw 45°
+- `2`: Yaw 90°
+- `3`: Yaw 135°
+- `4`: Yaw 180°
+- `5`: Yaw 225°
+- `6`: Yaw 270°
+- `7`: Yaw 315°
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_FLOW1_SCALE (`FLOAT`) {#SENS_FLOW1_SCALE}
+
+Optical flow 1 scale factor.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
