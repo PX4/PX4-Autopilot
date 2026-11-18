@@ -124,6 +124,7 @@ void Sih::run()
 	_airspeed_time = task_start;
 	_dist_snsr_time = task_start;
 	_optical_flow_time = task_start;
+	_terrain_time = task_start;
 	_ranging_beacon_time = task_start;
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
@@ -363,9 +364,33 @@ void Sih::sensor_step()
 		send_ranging_beacon(now);
 	}
 
+	// terrain inputs republished at 1 Hz, since the logger's first burst of samples on fmu-v6c overruns
+	// the file buffer and a topic published once is lost there
+	if (now - _terrain_time >= 1_s) {
+		_terrain_time = now;
+		publish_terrain();
+	}
+
 	publish_ground_truth(now);
 
 	perf_end(_loop_perf);
+}
+
+void Sih::publish_terrain()
+{
+	// the formula names the row of rules in the library header, generator 1 version 1 reports its amplitude,
+	// wavelength and octaves in the first three inputs
+	const terrain_sim::Rules &rules = *terrain_sim::rules_for(terrain_sim::formula());
+	sih_terrain_s terrain{};
+	// the ground in force, as parameters_updated() chose it, so a viewer learns what is under the vehicle
+	terrain.mode = (_ground == &_synthetic) ? TERR_MODE_SYNTHETIC : (_ground == &_terrain) ? TERR_MODE_DEM : TERR_MODE_FLAT;
+	terrain.formula = rules.formula;
+	terrain.seed = _sih_terr_seed.get();
+	terrain.params[0] = (terrain.mode == TERR_MODE_SYNTHETIC) ? rules.amplitude_m : 0.f;
+	terrain.params[1] = rules.wavelength_m;
+	terrain.params[2] = (float)rules.octaves;
+	terrain.timestamp = hrt_absolute_time();
+	_sih_terrain_pub.publish(terrain);
 }
 
 void Sih::parameters_updated()
@@ -408,17 +433,50 @@ void Sih::parameters_updated()
 		}
 	}
 
+	// the ground in force: flat at the reference altitude, the elevation data from the file given with -t, or the
+	// synthetic terrain from the seed with the newest row of rules, zero at home so the vehicle spawns on the ground
+	const int32_t mode = _sih_terr_mode.get();
+	terrain_sim::set_formula(terrain_sim::kFormula, _sih_terr_seed.get(), mode == TERR_MODE_SYNTHETIC);
+	_ground = &_flat;
+
+	if (mode == TERR_MODE_SYNTHETIC) {
+		_ground = &_synthetic;
+
+	} else if (mode == TERR_MODE_DEM) {
+#if defined(SIH_TERRAIN_DEM)
+
+		if (_terrain.loaded()) {
+			_ground = &_terrain;
+
+		} else {
+			PX4_WARN("SIH_TERR_MODE 1 needs a terrain file, start sih with -t <file>, flat ground used");
+		}
+
+#else
+		PX4_WARN("SIH_TERR_MODE 1 needs the DEM terrain, not in this build, flat ground used");
+#endif
+	}
+
+#if defined(SIH_TERRAIN_DEM)
+
+	if (_terrain.loaded() && mode != TERR_MODE_DEM) {
+		PX4_INFO("terrain file loaded, SIH_TERR_MODE 1 selects it");
+	}
+
+#endif
+
 	if (!_lpos_ref.isInitialized()
 	    || (fabsf(static_cast<float>(_lpos_ref.getProjectionReferenceLat()) - _sih_lat0.get()) > FLT_EPSILON)
 	    || (fabsf(static_cast<float>(_lpos_ref.getProjectionReferenceLon()) - _sih_lon0.get()) > FLT_EPSILON)
-	    || (fabsf(_terrain.defaultAltitude() - _sih_h0.get()) > FLT_EPSILON)) {
+	    || (fabsf(_ground->defaultAltitude() - _sih_h0.get()) > FLT_EPSILON)) {
 		const double lat0 = static_cast<double>(_sih_lat0.get());
 		const double lon0 = static_cast<double>(_sih_lon0.get());
 		_lpos_ref.initReference(lat0, lon0);
+		_synthetic.setReference(lat0, lon0);
 
 		// start on the ground: flat at SIH_LOC_H0, or on the terrain model
-		_terrain.setDefaultAltitude(_sih_h0.get());
-		_lpos_ref_alt = _terrain.vehicleGroundAltitude(lat0, lon0);
+		_ground->setDefaultAltitude(_sih_h0.get());
+		_lpos_ref_alt = _ground->vehicleGroundAltitude(lat0, lon0);
 		_ground_alt = _lpos_ref_alt;
 
 		// Reset earth position, velocity and attitude
@@ -453,6 +511,8 @@ void Sih::parameters_updated()
 	_px4_rangefinder.set_max_distance(_distance_snsr_max);
 
 	_optical_flow_interval_us = static_cast<hrt_abstime>(roundf(1e6f / math::max(_sih_optical_flow_rate.get(), 1.f)));
+
+	publish_terrain();
 
 	_T_TAU = _sih_thrust_tau.get();
 
@@ -825,7 +885,7 @@ void Sih::equations_of_motion(const float dt)
 	ecefToNed();
 
 	// ground below the new position, for the next contact check and the sensors
-	_ground_alt = _terrain.vehicleGroundAltitude(_lla.latitude_deg(), _lla.longitude_deg());
+	_ground_alt = _ground->vehicleGroundAltitude(_lla.latitude_deg(), _lla.longitude_deg());
 
 	// the ground force only stops the vertical motion, keep the vehicle from sinking into rising terrain
 	static constexpr float MAX_PENETRATION = 0.05f; // [m]
@@ -961,7 +1021,7 @@ void Sih::orient_step(const hrt_abstime &now, const float dt)
 
 float Sih::ground_distance(float max_distance) const
 {
-	return _terrain.rayDistance(_lla.latitude_deg(), _lla.longitude_deg(), _lla.altitude(), _q.dcm_z(), max_distance);
+	return _ground->rayDistance(_lla.latitude_deg(), _lla.longitude_deg(), _lla.altitude(), _q.dcm_z(), max_distance);
 }
 
 void Sih::ecefToNed()
@@ -1070,13 +1130,24 @@ void Sih::send_dist_snsr(const hrt_abstime &time_now_us)
 			signal_quality = 0;
 
 		} else {
-			current_distance = math::max(true_distance + generate_wgn() * _distance_snsr_noise, 0.f);
+			// the surface under the beam's hit point stretches the range the noise law is read at, the module
+			// makes the one Gaussian draw per reading
+			const Vector3f down_N = _q.dcm_z();
+			const int band = terrain_sim::surface_band(_lpos(0) + true_distance * down_N(0),
+					 _lpos(1) + true_distance * down_N(1));
+			current_distance = terrain_sim::rangefinder_reading(true_distance, band, generate_wgn(),
+					   _distance_snsr_noise, kDistSnsrNoiseAt25M, _distance_snsr_max, _faults);
 
 			// the returned signal gets weaker as the target moves away
 			const float derate_start = DISTSNSR_QUALITY_DERATE * _distance_snsr_max;
 			const float derate_span = _distance_snsr_max - derate_start;
 
-			if (true_distance > derate_start && derate_span > FLT_EPSILON) {
+			if (current_distance > _distance_snsr_max) {
+				// a draw past the limit reads as out of range
+				current_distance = DISTSNSR_OUT_OF_RANGE;
+				signal_quality = 0;
+
+			} else if (true_distance > derate_start && derate_span > FLT_EPSILON) {
 				const float derated = (true_distance - derate_start) / derate_span;
 				signal_quality = static_cast<int8_t>(constrain(roundf(100.f - 99.f * derated), 1.f, 100.f));
 
@@ -1142,7 +1213,7 @@ void Sih::send_optical_flow(const hrt_abstime &time_now_us)
 
 	if (tracking) {
 		// white noise on the flow rate estimate, integrated over the interval
-		pixel_flow += Vector2f(generate_wgn(), generate_wgn()) * (_sih_optical_flow_noise.get() * integration_time);
+		pixel_flow += Vector2f(math::generate_wgn(), math::generate_wgn()) * (_sih_optical_flow_noise.get() * integration_time);
 		flow.quality = UINT8_MAX;
 
 	} else {
@@ -1296,6 +1367,34 @@ void Sih::publish_ground_truth(const hrt_abstime &time_now_us)
 	}
 }
 
+float Sih::generate_wgn()   // generate white Gaussian noise sample with std=1
+{
+	// polar method on xorshift32 draws, since NuttX rand() repeats as a fixed multiple of the last
+	// value and patterns the noise
+	static uint32_t rng = 1234u;
+	static float V1, V2, S;
+	static bool phase = true;
+	float X;
+
+	if (phase) {
+		do {
+			float U1 = terrain_sim::rand_uniform(rng);
+			float U2 = terrain_sim::rand_uniform(rng);
+			V1 = 2.0f * U1 - 1.0f;
+			V2 = 2.0f * U2 - 1.0f;
+			S = V1 * V1 + V2 * V2;
+		} while (S >= 1.0f || fabsf(S) < 1e-8f);
+
+		X = V1 * float(sqrtf(-2.0f * float(logf(S)) / S));
+
+	} else {
+		X = V2 * float(sqrtf(-2.0f * float(logf(S)) / S));
+	}
+
+	phase = !phase;
+	return X;
+}
+
 int Sih::print_status()
 {
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
@@ -1331,7 +1430,7 @@ int Sih::print_status()
 		PX4_INFO("Rover Ackermann");
 	}
 
-	_terrain.printStatus();
+	_ground->printStatus();
 
 	PX4_INFO("ground altitude: %.2f m", (double)_ground_alt);
 	PX4_INFO("vehicle landed: %d", _grounded);

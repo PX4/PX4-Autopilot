@@ -55,6 +55,7 @@
  */
 #pragma once
 
+#include <lib/terrain_sim/terrain_sim.h>
 #include <mathlib/math/WhiteGaussianNoise.hpp>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/module.h>
@@ -82,11 +83,14 @@
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_optical_flow.h>
+#include <uORB/topics/sih_terrain.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/ranging_beacon.h>
+
+#include "terrain/TerrainSynthetic.hpp"
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 #include <sys/time.h>
@@ -131,8 +135,16 @@ public:
 	/** @see ModuleBase::run() */
 	void run() override;
 
+	// anchor for the range noise law, the spread at 25 m over grass
+	// set it to your rangefinder's figure and the square law scales the rest
+	static constexpr float kDistSnsrNoiseAt25M = 0.10f;
+
+	// white Gaussian noise sample with std=1 for the distance sensor, on its own generator
+	static float generate_wgn();
+
 private:
 	void parameters_updated();
+	void publish_terrain();
 	void updateFailureConfig();
 
 	// simulated sensors
@@ -143,6 +155,7 @@ private:
 	uORB::Publication<ranging_beacon_s>      _ranging_beacon_pub{ORB_ID(ranging_beacon)};
 	uORB::Publication<esc_status_s>          _esc_status_pub{ORB_ID(esc_status)};
 	uORB::Publication<sensor_optical_flow_s> _optical_flow_pub{ORB_ID(sensor_optical_flow)};
+	uORB::Publication<sih_terrain_s>         _sih_terrain_pub{ORB_ID(sih_terrain)};
 
 	// groundtruth
 	uORB::Publication<vehicle_angular_velocity_s> _angular_velocity_ground_truth_pub{ORB_ID(vehicle_angular_velocity_groundtruth)};
@@ -268,6 +281,9 @@ private:
 #endif
 
 	static inline Terrain _terrain{}; // loaded by task_spawn(), the SIH task stack is too small for the terrain libraries
+	static inline TerrainSynthetic _synthetic{}; // terrain from SIH_TERR_SEED
+	static inline TerrainFlat _flat{}; // flat ground at the reference altitude
+	TerrainFlat *_ground{&_flat}; // the ground in force, chosen by SIH_TERR_MODE: flat, the elevation data from the file, or the synthetic terrain
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	void lockstep_loop();
@@ -288,6 +304,7 @@ private:
 	hrt_abstime _last_actuator_output_time{0};
 	hrt_abstime _airspeed_time{0};
 	hrt_abstime _dist_snsr_time{0};
+	hrt_abstime _terrain_time{0};
 	hrt_abstime _ranging_beacon_time{0};
 	uint8_t _ranging_beacon_idx{0};
 
@@ -378,10 +395,15 @@ private:
 
 	float _distance_snsr_min, _distance_snsr_max, _distance_snsr_override, _distance_snsr_noise;
 	hrt_abstime _optical_flow_interval_us{20_ms};
+	terrain_sim::RangefinderFaults _faults{};
 
 	esc_status_s _esc_status{};
 
 	// parameters defined in sih_params.c
+	static constexpr int32_t TERR_MODE_FLAT = 0;      // SIH_TERR_MODE values
+	static constexpr int32_t TERR_MODE_DEM = 1;       // terrain from the elevation data file given with -t
+	static constexpr int32_t TERR_MODE_SYNTHETIC = 2; // synthetic terrain from SIH_TERR_SEED
+
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _imu_gyro_ratemax,
 		(ParamInt<px4::params::IMU_INTEG_RATE>) _imu_integration_rate,
@@ -411,6 +433,8 @@ private:
 		(ParamFloat<px4::params::SIH_OF_RATE>) _sih_optical_flow_rate,
 		(ParamFloat<px4::params::SIH_OF_NOISE>) _sih_optical_flow_noise,
 		(ParamFloat<px4::params::SIH_OF_H_MAX>) _sih_optical_flow_h_max,
+		(ParamInt<px4::params::SIH_TERR_MODE>) _sih_terr_mode,
+		(ParamInt<px4::params::SIH_TERR_SEED>) _sih_terr_seed,
 		(ParamFloat<px4::params::SIH_T_TAU>) _sih_thrust_tau,
 		// forward propeller
 		(ParamFloat<px4::params::SIH_F_T_MAX>) _sih_f_thrust_max,

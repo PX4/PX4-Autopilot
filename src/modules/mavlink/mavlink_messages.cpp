@@ -141,6 +141,9 @@
 #ifdef MAVLINK_MSG_ID_AVAILABLE_MODES // Only defined if development.xml is used
 #include "streams/AVAILABLE_MODES.hpp"
 #include "streams/CURRENT_MODE.hpp"
+#if defined(MAVLINK_MSG_ID_SIH_TERRAIN)
+#include "streams/SIH_TERRAIN.hpp"
+#endif
 #endif
 
 #ifdef MAVLINK_MSG_ID_ESC_EEPROM // Only defined if development.xml is used
@@ -541,6 +544,9 @@ static constexpr StreamListItem streams_list[] = {
 #if defined(CURRENT_MODE_HPP)
 	create_stream_list_item<MavlinkStreamCurrentMode>(),
 #endif // CURRENT_MODE_HPP
+#if defined(SIH_TERRAIN_HPP)
+	create_stream_list_item<MavlinkStreamSihTerrain>(),
+#endif // SIH_TERRAIN_HPP
 #if defined(GLOBAL_POSITION_SENSOR_HPP)
 	create_stream_list_item<MavlinkStreamGlobalPositionSensor>(),
 #endif // GLOBAL_POSITION_SENSOR_HPP

@@ -6,7 +6,7 @@ import pytest
 pytest.register_assert_rewrite("autopilot_tester", "autopilot_tester_calibration",
                                "autopilot_tester_flow", "autopilot_tester_follow_me",
                                "autopilot_tester_loiter", "autopilot_tester_rtl",
-                               "autopilot_tester_vision_target")
+                               "autopilot_tester_terrain", "autopilot_tester_vision_target")
 
 from autopilot_tester import AutopilotTester  # noqa: E402
 from autopilot_tester_calibration import AutopilotTesterCalibration  # noqa: E402
@@ -14,6 +14,7 @@ from autopilot_tester_flow import AutopilotTesterFlow  # noqa: E402
 from autopilot_tester_follow_me import AutopilotTesterFollowMe  # noqa: E402
 from autopilot_tester_loiter import AutopilotTesterLoiter  # noqa: E402
 from autopilot_tester_rtl import AutopilotTesterRtl  # noqa: E402
+from autopilot_tester_terrain import AutopilotTesterTerrain  # noqa: E402
 from autopilot_tester_vision_target import AutopilotTesterVisionTarget  # noqa: E402
 
 T = TypeVar("T", bound=AutopilotTester)
@@ -76,6 +77,12 @@ def tester_flow(request: pytest.FixtureRequest) -> Iterator[AutopilotTesterFlow]
 def tester_follow_me(request: pytest.FixtureRequest) -> Iterator[AutopilotTesterFollowMe]:
     """A tester with follow-me support, connected to the vehicle."""
     yield from connected_tester(request, AutopilotTesterFollowMe)
+
+
+@pytest.fixture
+def tester_terrain(request: pytest.FixtureRequest) -> Iterator[AutopilotTesterTerrain]:
+    """A tester sampling the distance sensor over SIH terrain, connected to the vehicle."""
+    yield from connected_tester(request, AutopilotTesterTerrain)
 
 
 @pytest.fixture

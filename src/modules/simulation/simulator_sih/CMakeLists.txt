@@ -47,6 +47,7 @@ px4_add_module(
 		drivers_rangefinder
 		failure_injection
 		geo
+		terrain_sim
 	)
 
 # optional terrain from a GeoTIFF DEM, SITL only (requires libtiff, libgeotiff and PROJ)
@@ -135,3 +136,6 @@ if(PX4_PLATFORM MATCHES "posix")
 	endforeach()
 
 endif()
+
+# synthetic terrain from a seed behind the same terrain interface, every target
+px4_add_unit_gtest(SRC terrain/TerrainSyntheticTest.cpp LINKLIBS terrain_sim geo)

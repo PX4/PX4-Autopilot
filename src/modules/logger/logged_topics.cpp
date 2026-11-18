@@ -104,6 +104,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("offboard_control_mode", 100);
 	add_topic("onboard_computer_status", 10);
 	add_topic("parameter_update");
+	add_topic("sih_terrain");
 	add_topic("position_controller_status", 500);
 	add_topic("position_controller_landing_status", 100);
 	add_optional_topic("pure_pursuit_status", 100);
