@@ -305,14 +305,7 @@ bool Standard::isPusherFailureDetected()
 {
 	bool pusher_ineffective = false;
 
-	// pusher assist that a dead pusher makes the position controller command, see VtolType::pusher_assist()
-	const float pitch_min = math::radians(_param_vt_pitch_min.get());
-	const float tilt_max = math::min(math::radians(_param_mpc_tiltmax_air.get()), kPusherFailureTiltMax);
-	const float pusher_assist_ref = math::min(_param_vt_fwd_thrust_sc.get() * (sinf(pitch_min) + sinf(tilt_max)),
-					kPusherAssistMax);
-
-	if (isPusherFailureDetectionEnabled() && _pusher_throttle > kPusherFailureAssistRatio * pusher_assist_ref
-	    && _local_pos->v_xy_valid) {
+	if (isPusherFailureDetectionEnabled() && _pusher_throttle > _param_vt_ef_throt.get() && _local_pos->v_xy_valid) {
 		const Quatf q(_v_att->q);
 		const float forward_vel = q.rotateVectorInverse(Vector3f(_local_pos->vx, _local_pos->vy, _local_pos->vz))(0);
 		const float forward_vel_sp = q.rotateVectorInverse(Vector3f(_local_pos_sp->vx, _local_pos_sp->vy,

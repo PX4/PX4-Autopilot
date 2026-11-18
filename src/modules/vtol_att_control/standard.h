@@ -82,11 +82,6 @@ private:
 	hrt_abstime _last_time_pusher_transition_update{0};
 	float _front_transition_pitch{NAN};
 
-	// A dead pusher makes the position controller tilt settle around 40 to 60 deg, even if MPC_TILTMAX_AIR
-	// allows more, as pusher assist keeps the vehicle level. The reference tilt is therefore capped at 45 deg.
-	static constexpr float kPusherFailureAssistRatio = 0.9f;
-	static constexpr float kPusherFailureTiltMax = math::radians(45.f);
-
 	systemlib::Hysteresis _pusher_failure_hysteresis{false};
 	bool _pusher_failed{false}; ///< latched until reboot or until the detection is disabled
 
@@ -94,7 +89,7 @@ private:
 
 	bool isPusherFailureDetectionEnabled() const { return _param_vt_ef_time.get() > FLT_EPSILON; }
 
-	/** Pusher assist close to its maximum, but the forward velocity stays below its setpoint */
+	/** Pusher assist above VT_EF_THROT, but the forward velocity stays below its setpoint */
 	bool isPusherFailureDetected();
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(VtolType,
@@ -102,8 +97,8 @@ private:
 					(ParamFloat<px4::params::VT_B_TRANS_RAMP>) _param_vt_b_trans_ramp,
 					(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off,
 					(ParamFloat<px4::params::VT_EF_TIME>) _param_vt_ef_time,
-					(ParamFloat<px4::params::VT_EF_VEL_ERR>) _param_vt_ef_vel_err,
-					(ParamFloat<px4::params::MPC_TILTMAX_AIR>) _param_mpc_tiltmax_air
+					(ParamFloat<px4::params::VT_EF_THROT>) _param_vt_ef_throt,
+					(ParamFloat<px4::params::VT_EF_VEL_ERR>) _param_vt_ef_vel_err
 				       )
 };
 #endif

@@ -50,7 +50,6 @@
 
 static constexpr float kFlapSlewRateVtol = 1.f; // minimum time from none to full flap deflection [s]
 static constexpr float kSpoilerSlewRateVtol = 1.f; // minimum time from none to full spoiler deflection [s]
-static constexpr float kPusherAssistMax = 0.9f; // highest pusher assist throttle (standard) or tilt (tiltrotor)
 
 
 // Has to match 1:1 msg/vtol_vehicle_status.msg
