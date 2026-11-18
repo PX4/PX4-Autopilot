@@ -202,7 +202,8 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 		if (point_valid) {
 			if (!have_previous_position) {
 				// Check polygon membership once; the paths check all later positions.
-				point_valid = geofence.checkPointAgainstAllGeofences(missionitem.lat, missionitem.lon, missionitem.altitude);
+				point_valid = geofence.checkPointAgainstAllGeofences(missionitem.lat, missionitem.lon, missionitem.altitude)
+					      && geofence.isInsideContGeofenceAreas(missionitem.lat, missionitem.lon);
 
 			} else {
 				// Home-distance and altitude limits are separate from the horizontal fence shapes.
@@ -215,7 +216,8 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 #else
 		// Without path checks every position is checked against the whole fence.
 		point_valid = point_valid && geofence.checkPointAgainstAllGeofences(missionitem.lat, missionitem.lon,
-				missionitem.altitude);
+				missionitem.altitude)
+			      && geofence.isInsideContGeofenceAreas(missionitem.lat, missionitem.lon);
 #endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 
 		// As for the emergency geofence in both branches above, the contingency geofence distance to Home is

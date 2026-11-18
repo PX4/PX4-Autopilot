@@ -6,7 +6,7 @@ parameters:
       description:
         short: Contingency geofence horizontal margin
         long: Triggers GF_CONT_ACTION within this horizontal distance of GF_MAX_HOR_DIST, or of a polygon
-          or circle of the geofence plan. Disabled if 0.
+          or circle of the geofence plan if the plan has no contingency geofence areas. Disabled if 0.
       type: float
       default: 0.0
       unit: m

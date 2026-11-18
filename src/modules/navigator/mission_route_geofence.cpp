@@ -130,13 +130,16 @@ bool GeofencePathChecker::pruneCandidates(ProjectionReferenceBatch &batch) const
 			}
 
 		} else if (!_geofence.checkPointAgainstAllGeofences(anchor.lat, anchor.lon, anchor.alt)
-			   || !_geofence.isCloserThanContMaxDistToHome(anchor.lat, anchor.lon)) {
+			   || !_geofence.isCloserThanContMaxDistToHome(anchor.lat, anchor.lon)
+			   || !_geofence.isInsideContGeofenceAreas(anchor.lat, anchor.lon)) {
 			// A safe point outside the allowed area keeps no candidates: a segment entirely inside an exclusion
 			// area would cross no boundary. Neither does one closer to GF_MAX_HOR_DIST than the margin.
+			// The paths are checked against both levels, so the point is too.
 			continue;
 		}
 
-		// Segments keep GF_CONT_H_MARGIN from the polygons and circles, like the legs of a mission.
+		// Segments keep GF_CONT_H_MARGIN from the polygons and circles, like the legs of a mission. Drawn contingency
+		// areas replace the margin.
 		const bool emergency_only = is_vehicle && vehicleOutsideContGeofence(anchor);
 		const float margin = emergency_only ? 0.f : _geofence.getContGeofencePlanMargin();
 

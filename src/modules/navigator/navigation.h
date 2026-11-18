@@ -201,6 +201,17 @@ struct mission_stats_entry_s {
 	uint8_t padding[1];
 };
 
+/** Level of a geofence area (param 3 of the MAV_CMD_NAV_FENCE_* polygon and circle commands). */
+enum class FenceLevel : uint8_t {
+	Emergency = 0,	/**< emergency geofence, breached with GF_ACTION */
+	Contingency = 1		/**< contingency geofence, breached with GF_CONT_ACTION */
+};
+
+static constexpr uint16_t kMinFencePolygonVertices = 3;
+// Keep the existing 64-point limit for the emergency geofence and give the contingency geofence the same.
+// This also keeps individual polygons within the planner's existing 64-vertex input buffer.
+static constexpr uint16_t kMaxFencePointsPerLevel = 64;
+
 /**
  * Geofence vertex point.
  * Corresponds to the DM_KEY_FENCE_POINTS_0 dataman item
@@ -218,7 +229,9 @@ struct mission_fence_point_s {
 	uint16_t nav_cmd;				/**< navigation command (one of MAV_CMD_NAV_FENCE_*) */
 	uint8_t frame;					/**< MAV_FRAME */
 
-	uint8_t _padding0[5];				/**< padding struct size to alignment boundary  */
+	FenceLevel fence_level;				/**< emergency or contingency geofence */
+
+	uint8_t _padding0[4];				/**< padding struct size to alignment boundary  */
 };
 
 /**

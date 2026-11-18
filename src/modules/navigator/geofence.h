@@ -109,7 +109,7 @@ public:
 	};
 
 	/**
-	 * Check 1..MAX_PATH_CHECKS paths and optional circles at their ends against horizontal fences.
+	 * Check 1..MAX_PATH_CHECKS paths and optional circles at their ends against horizontal fences (both levels).
 	 * Circles are also checked against the maximum distance from Home, less GF_CONT_H_MARGIN.
 	 * A path's margin makes coming closer than it to a polygon or circle boundary a breach too.
 	 * Boundary contact is a breach, including contact by a circle. Callers choose the circles;
@@ -160,9 +160,10 @@ public:
 	/** Check the altitude band from a loaded fence file, if configured. */
 	bool isWithinAltitudeBand(float altitude);
 
+	/** Check the emergency geofence: its polygons and circles and the fence-file altitude band. */
 	virtual bool isInsidePolygonOrCircle(double lat, double lon, float altitude);
 
-	/** Check the polygons and circles only, without the altitude band. */
+	/** Check the polygons and circles only (both levels), without the altitude band. */
 	bool isInsideHorizontalFences(double lat, double lon, float altitude);
 
 	/**
@@ -177,7 +178,7 @@ public:
 
 	/**
 	 * GF_CONT_H_MARGIN [m], the horizontal distance the contingency geofence keeps from the emergency geofence:
-	 * from the maximum distance to Home and from the polygons and circles. Zero disables the contingency geofence.
+	 * from the maximum distance to Home and from the polygons and circles. Zero if disabled.
 	 * The polygons and circles need the path checks, so boards built without them have no such parameter.
 	 */
 	float getContGeofenceMargin() const
@@ -189,15 +190,25 @@ public:
 #endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 	}
 
-	/** GF_CONT_H_MARGIN as applied to the polygons and circles of the geofence plan, not to the distance from Home. */
-	float getContGeofencePlanMargin() const { return getContGeofenceMargin(); }
+	/** The margin kept from the polygons and circles: GF_CONT_H_MARGIN, unless contingency geofence areas are drawn. */
+	float getContGeofencePlanMargin() const { return _has_cont_geofence_areas ? 0.f : getContGeofenceMargin(); }
 
-	/** True if the position keeps GF_CONT_H_MARGIN from the polygons and circles, or the margin is disabled. */
+	/**
+	 * Check the contingency geofence of the plan: its drawn areas if it has any, GF_CONT_H_MARGIN from the polygons
+	 * and circles of the emergency geofence otherwise. True if neither is set.
+	 */
 	bool isInsideContGeofence(double lat, double lon)
 	{
+		if (_has_cont_geofence_areas) {
+			return isInsideContGeofenceAreas(lat, lon);
+		}
+
 		const float margin = getContGeofencePlanMargin();
 		return margin <= FLT_EPSILON || isCircleInside(lat, lon, margin);
 	}
+
+	/** Check the drawn contingency geofence areas only, not the margin. True if the plan has none. */
+	bool isInsideContGeofenceAreas(double lat, double lon) { return isInsideFenceLevel(lat, lon, 0.f, FenceLevel::Contingency); }
 
 	bool valid();
 
@@ -228,13 +239,15 @@ public:
 	int getGeofenceAction() { return _param_gf_action.get(); }
 
 	/**
-	 * GF_CONT_ACTION, or None while the contingency geofence is disabled.
+	 * GF_CONT_ACTION, or None while the contingency geofence is disabled: no margin and no drawn areas.
 	 * The value is passed on as set: commander decides what a breach triggers and keeps Terminate out, see
 	 * Failsafe::fromGfContActParam().
 	 */
 	int getContGeofenceAction() const
 	{
-		return getContGeofenceMargin() > FLT_EPSILON ? _param_gf_cont_action.get() : geofence_result_s::GF_ACTION_NONE;
+		// The loaded areas stay in place while a new fence loads.
+		const bool enabled = getContGeofenceMargin() > FLT_EPSILON || _has_cont_geofence_areas;
+		return enabled ? _param_gf_cont_action.get() : geofence_result_s::GF_ACTION_NONE;
 	}
 
 	float getMaxHorDistanceHome() { return _param_gf_max_hor_dist.get(); }
@@ -290,6 +303,7 @@ private:
 	bool _fence_loaded{false}; ///< Used by live point checks; may remain true while an update is pending.
 	bool _path_check_ready{false}; ///< Update succeeded with no newer request pending.
 	uint8_t _path_pieces[MAX_PATH_CHECKS] {}; ///< Pieces per path of the batch in checkPaths(), off the stack
+	bool _has_cont_geofence_areas{false}; ///< A loaded area has the contingency geofence level.
 	bool _initiate_fence_updated{true}; ///< flag indicating if fence updated is needed
 	hrt_abstime _fence_retry_time{0}; ///< Next retry of a failed load; zero when none is scheduled.
 	uint8_t _fence_load_failures{0}; ///< Consecutive failed load attempts.
@@ -365,6 +379,8 @@ private:
 	bool checkPolygonPaths(const PolygonInfo &polygon, const PathCheck *paths, const uint8_t *pieces, size_t num_paths,
 			       bool *results);
 	bool checkCirclePaths(const PolygonInfo &polygon, const PathCheck *paths, size_t num_paths, bool *results);
+
+	bool isInsideFenceLevel(double lat, double lon, float altitude, FenceLevel level);
 
 	/**
 	 * Check if a single point is within a polygon or circle

@@ -52,6 +52,7 @@ namespace mission_route
  * - Outside the emergency geofence (outside an inclusion area or inside an exclusion area): the segment is not
  *   checked, so that the vehicle can fly back in. This is the recovery. It applies to every checkPath() segment.
  * A segment that starts at a safe point always keeps the contingency geofence, also while the vehicle recovers.
+ * Drawn contingency geofence areas replace the margin: segments then have to stay inside these areas instead.
  *
  * The altitude and Home limits are not checked on segments, and a vehicle that only breaches these is not in
  * recovery. Mission legs passed them in the mission check and the limits are convex, so points on the legs are
