@@ -437,6 +437,34 @@ TEST(GeofenceUtilsTest, AddApproxCircleRejectsOutOfBounds)
 
 }
 
+// Routes run along the edges of the k-gon, so the edges, not only the vertices, must keep the margin.
+TEST(GeofenceUtilsTest, ApproxCircleKeepsTheMarginAlongItsEdges)
+{
+	static constexpr float kRadius = 50.f;
+	static constexpr float kMargin = 104.f;
+	static constexpr double kRounding = 0.02; // nodes are stored in cm
+
+	geofence_utils::PlannerPolygons exclusion;
+	ASSERT_EQ(exclusion.addApproxCircle(matrix::Vector2f(0.f, 0.f), kRadius, kMargin, false), AddResult::Success);
+	ASSERT_EQ(exclusion.numVertices(), geofence_utils::PlannerPolygons::kCircleApproxVertices);
+
+	for (int i = 0; i < exclusion.numVertices(); i++) {
+		const matrix::Vector2f start = exclusion.node(1 + i);
+		const matrix::Vector2f end = exclusion.node(1 + (i + 1) % exclusion.numVertices());
+		const double distance = sqrt(geofence_utils::pointToSegmentDistanceSquared(matrix::Vector2d{},
+					     matrix::Vector2d{start(0), start(1)}, matrix::Vector2d{end(0), end(1)}));
+		EXPECT_GE(distance, static_cast<double>(kRadius + kMargin) - kRounding) << "edge " << i;
+	}
+
+	// An inclusion circle is shrunk, its vertices are the points closest to the fence.
+	geofence_utils::PlannerPolygons inclusion;
+	ASSERT_EQ(inclusion.addApproxCircle(matrix::Vector2f(0.f, 0.f), 500.f, kMargin, true), AddResult::Success);
+
+	for (int i = 0; i < inclusion.numVertices(); i++) {
+		EXPECT_LE(inclusion.node(1 + i).norm(), 500.f - kMargin + static_cast<float>(kRounding)) << "vertex " << i;
+	}
+}
+
 // ===========================================================================
 // addPolygon rejects non-simple input
 // ===========================================================================

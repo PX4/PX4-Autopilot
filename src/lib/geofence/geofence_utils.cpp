@@ -270,7 +270,7 @@ PlannerPolygons::AddResult PlannerPolygons::addApproxCircle(const matrix::Vector
 	//  - under-approximation of circle shrunk by margin, if inclusion
 	const float k_gon_radius = is_inclusion_zone
 				   ? circle_radius - margin
-				   : circle_radius / cosf(M_PI_F / kCircleApproxVertices) + margin;
+				   : (circle_radius + margin) / cosf(M_PI_F / kCircleApproxVertices);
 
 	if (k_gon_radius <= FLT_EPSILON) { // Negative radius - circle empty
 		return AddResult::Degenerate;

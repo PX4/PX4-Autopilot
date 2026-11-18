@@ -34,6 +34,7 @@
 #include <gtest/gtest.h>
 #include "geofence_avoidance_planner.h"
 #include <navigator/navigation.h>
+#include <lib/geo/geo.h>
 
 class FakeGeofence : public GeofenceInterface
 {
@@ -60,6 +61,29 @@ private:
 	const matrix::Vector2<double> *_vertices;
 	int _num_vertices;
 	uint16_t _fence_type;
+};
+
+// One exclusion circle.
+class FakeCircleGeofence : public GeofenceInterface
+{
+public:
+	FakeCircleGeofence(const matrix::Vector2<double> &center, float radius) : _center(center), _radius(radius) {}
+
+	PolygonInfo getPolygonInfoByIndex(int index) override
+	{
+		PolygonInfo info{};
+		info.fence_type = NAV_CMD_FENCE_CIRCLE_EXCLUSION;
+		info.circle_radius = _radius;
+		return info;
+	}
+
+	matrix::Vector2<double> getPolygonVertexByIndex(int poly_idx, int vertex_idx) override { return _center; }
+
+	int getNumPolygons() const override { return 1; }
+
+private:
+	matrix::Vector2<double> _center;
+	float _radius;
 };
 
 class GeofenceAvoidancePlannerTest : public ::testing::Test
@@ -200,6 +224,45 @@ TEST_F(GeofenceAvoidancePlannerTest, PathAroundExclusionZone)
 	const Vector2d last_wp = _planner.waypointAtIndex(num_waypoints - 1);
 	EXPECT_NEAR(last_wp(0), vertices[2](0), 1e-3);
 	EXPECT_NEAR(last_wp(1), vertices[2](1), 1e-3);
+}
+
+// The legs of a route around an exclusion circle keep the margin, not only its waypoints.
+TEST_F(GeofenceAvoidancePlannerTest, PathAroundExclusionCircleKeepsTheMargin)
+{
+	using namespace matrix;
+	static constexpr float kRadius = 50.f;
+	static constexpr float kMargin = 104.f; // wide enough for the missing clearance to show
+
+	const Vector2d center(47.3552, 8.5192);
+	const MapProjection projection(center(0), center(1));
+	Vector2d start;
+	Vector2d destination;
+	projection.reproject(400.f, 10.f, start(0), start(1));
+	projection.reproject(-400.f, 10.f, destination(0), destination(1));
+
+	FakeCircleGeofence fake(center, kRadius);
+	_planner.updateGraphFromGeofence(fake, kMargin);
+	_planner.updateDestination(destination);
+
+	const int num_waypoints = _planner.updateStartAndFillPath(start);
+	ASSERT_GE(num_waypoints, 2);
+	EXPECT_FALSE(_planner.needsStraightLineFallback());
+
+	// From the start over the waypoints to the destination.
+	Vector2d previous{400., 10.};
+	double clearance = INFINITY;
+
+	for (int i = 0; i <= num_waypoints; i++) {
+		const Vector2d waypoint = (i < num_waypoints) ? _planner.waypointAtIndex(i) : destination;
+		Vector2f local;
+		projection.project(waypoint(0), waypoint(1), local(0), local(1));
+		const Vector2d next{local(0), local(1)};
+		const double distance = sqrt(geofence_utils::pointToSegmentDistanceSquared(Vector2d{}, previous, next));
+		clearance = fmin(clearance, distance - static_cast<double>(kRadius));
+		previous = next;
+	}
+
+	EXPECT_GE(clearance, static_cast<double>(kMargin) - 0.1);
 }
 
 TEST_F(GeofenceAvoidancePlannerTest, RebuildingDifferentFenceRestoresOriginalPath)
