@@ -107,8 +107,6 @@ Heater::Heater(uint8_t instance) :
 	ModuleParams(nullptr),
 	_instance(instance)
 {
-	initialize_heater_io();
-
 	char name[32];
 
 	// Dynamically locate the parameter handle corresponding to the current instance
@@ -363,6 +361,9 @@ bool Heater::initialize_topics()
 		 (unsigned)_instance, use_hygro ? "hygrometer" : "accel",
 		 selected_instance, (unsigned long)_sensor_device_id);
 
+	// Called from Run(), so the PX4IO fd is opened on the work queue thread.
+	initialize_heater_io();
+
 	return true;
 }
 
@@ -371,18 +372,22 @@ bool Heater::initialize_topics()
 void Heater::Run()
 {
 	if (_should_exit) {
-#if defined(HEATER_PX4IO)
-
-		// must be closed from wq thread
-		if (_io_fd >= 0) {
-			px4_close(_io_fd);
-		}
-
-#endif
 		ScheduleClear();
 
 		// Ensure heating is turned off (avoid leaving it in the ON position).
 		heater_off();
+		disable_heater();
+
+#if defined(HEATER_PX4IO)
+
+		// File descriptors are per task group, so the PX4IO fd is only valid
+		// on the work queue thread: open, use and close it only from here.
+		if (_io_fd >= 0) {
+			px4_close(_io_fd);
+			_io_fd = -1;
+		}
+
+#endif
 
 		delete Heater::g_heater[_instance - 1];
 		Heater::g_heater[_instance - 1] = nullptr;
@@ -562,8 +567,9 @@ int Heater::start()
 
 void Heater::stop()
 {
+	// Turning the heater off is done in Run() on the work queue thread,
+	// which owns the PX4IO file descriptor.
 	_should_exit = true;
-	heater_off();
 	ScheduleNow();
 }
 

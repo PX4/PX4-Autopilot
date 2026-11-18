@@ -709,6 +709,14 @@ void UavcanNode::Run()
 
 	if (_task_should_exit.load()) {
 		ScheduleClear();
+
+#if defined(CONFIG_UAVCANNODE_COMMAND_SHELL)
+		// The shell pipes were opened on this work queue and file descriptors
+		// are per task group, so close them here rather than in the destructor
+		// (which runs in the shell calling stop). Closing gives the shell EOF.
+		close_shell();
+#endif // CONFIG_UAVCANNODE_COMMAND_SHELL
+
 		_instance = nullptr;
 	}
 }
