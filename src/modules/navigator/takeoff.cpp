@@ -275,8 +275,8 @@ Takeoff::set_takeoff_position()
 					 "Using default takeoff altitude: %.1f m\t", (double)_navigator->get_param_mis_takeoff_alt());
 
 			events::send<float>(events::ID("navigator_local_takeoff_default_alt"), {events::Log::Info, events::LogInternal::Info},
-				    	"Using default takeoff altitude: {1:.2m}",
-				    	_navigator->get_param_mis_takeoff_alt());
+					    "Using default takeoff altitude: {1:.2m}",
+					    _navigator->get_param_mis_takeoff_alt());
 		}
 
 		if (takeoff_height > _navigator->get_local_position()->z) {
@@ -284,7 +284,7 @@ Takeoff::set_takeoff_position()
 			takeoff_height = _navigator->get_local_position()->z;
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Already higher than takeoff altitude\t");
 			events::send(events::ID("navigator_local_takeoff_already_higher"), {events::Log::Error, events::LogInternal::Info},
-			     	"Already higher than takeoff altitude (not descending)");
+				     "Already higher than takeoff altitude (not descending)");
 		}
 
 		set_local_takeoff_item(&_mission_item, takeoff_height);
