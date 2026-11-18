@@ -248,7 +248,6 @@ struct IOPacket {
 extern "C" {
 #endif
 
-extern const uint8_t crc8_tab[256];
 uint8_t crc_packet(struct IOPacket *pkt);
 
 #ifdef __cplusplus
