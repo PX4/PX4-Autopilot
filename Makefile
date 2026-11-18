@@ -340,19 +340,20 @@ uorb_graphs:
 # toolchain, so regenerate it in the px4-dev image used by the check_px4io CI job
 # (.github/workflows/checks.yml):
 #   PX4_DOCKER_REPO=<that image> ./Tools/docker_run.sh 'make px4io_update'
-.PHONY: px4io_update check_px4io
-PX4IO_FIRMWARE_BINS := \
-	boards/px4/io-v2/extras/px4_io-v2_default.bin \
-	boards/cubepilot/io-v2/extras/cubepilot_io-v2_default.bin
+.PHONY: px4io_build px4io_update check_px4io
 
-px4io_update:
+px4io_build:
 	@$(MAKE) --no-print-directory px4_io-v2_default
 	@$(MAKE) --no-print-directory cubepilot_io-v2_default
+
+px4io_update: px4io_build
 	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/io-v2/extras/
 	cp build/cubepilot_io-v2_default/cubepilot_io-v2_default.bin boards/cubepilot/io-v2/extras/
 
-check_px4io: px4io_update
-	@git diff --exit-code --stat -- $(PX4IO_FIRMWARE_BINS) \
+# compares without touching the committed binaries
+check_px4io: px4io_build
+	@cmp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/io-v2/extras/px4_io-v2_default.bin \
+		&& cmp build/cubepilot_io-v2_default/cubepilot_io-v2_default.bin boards/cubepilot/io-v2/extras/cubepilot_io-v2_default.bin \
 		|| { echo "px4io firmware is out of date, regenerate it with 'make px4io_update' (see Makefile)"; exit 1; }
 
 bootloaders_update: \
