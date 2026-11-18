@@ -279,3 +279,169 @@ TEST_F(VtolPusherFailureTest, PusherAssistBelowThresholdIsNoPusherFailure)
 	fly(attc, standard, 300_ms);
 	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
 }
+
+// Pusher failures detected in fixed-wing mode from the battery current, latched like the multicopter detection.
+class VtolFixedWingPusherFailureTest : public VtolPusherFailureTest
+{
+protected:
+	static constexpr float kCurrentThreshold = 5.f; // [A] VT_EF_CURR
+
+	void SetUp() override
+	{
+		VtolPusherFailureTest::SetUp();
+
+		const float ef_curr = kCurrentThreshold;
+		param_set(param_find("VT_EF_CURR"), &ef_curr);
+		const float ef_curr_time = 0.1f;
+		param_set(param_find("VT_EF_CURR_TIME"), &ef_curr_time);
+	}
+
+	void TearDown() override
+	{
+		param_reset(param_find("VT_EF_CURR"));
+		param_reset(param_find("VT_EF_CURR_TIME"));
+		VtolPusherFailureTest::TearDown();
+	}
+
+	// Disarmed, the front transition completes at once
+	void transitionToFixedWing(VtolAttitudeControl &attc, Standard &standard)
+	{
+		commandFrontTransition(attc);
+		standard.update_vtol_state();
+		standard.update_vtol_state();
+		ASSERT_EQ(standard.get_mode(), mode::FIXED_WING);
+	}
+
+	void publishBattery(float current, uint8_t source = battery_status_s::SOURCE_POWER_MODULE,
+			    hrt_abstime age = 0)
+	{
+		battery_status_s battery{};
+		battery.timestamp = hrt_absolute_time() - age;
+		battery.connected = true;
+		battery.current_a = current;
+		battery.source = source;
+		ASSERT_TRUE(_battery_pub.publish(battery));
+	}
+
+	// Fly fixed-wing mode with the given throttle and battery current until the quad-chute or the timeout,
+	// returns the flight time
+	hrt_abstime fly(VtolAttitudeControl &attc, Standard &standard, float throttle, float current,
+			hrt_abstime timeout, uint8_t source = battery_status_s::SOURCE_POWER_MODULE, hrt_abstime age = 0)
+	{
+		const hrt_abstime start = hrt_absolute_time();
+		attc.get_vehicle_thrust_setpoint_virtual_fw()->xyz[0] = throttle;
+
+		while (!attc.is_fixed_wing_system_failure() && hrt_elapsed_time(&start) < timeout) {
+			publishBattery(current, source, age);
+			standard.update_vtol_state();
+
+			if (standard.get_mode() == mode::FIXED_WING) {
+				standard.update_fw_state();
+			}
+
+			standard.fill_actuator_outputs();
+			px4_usleep(10_ms);
+		}
+
+		return hrt_elapsed_time(&start);
+	}
+
+	uORB::Publication<battery_status_s> _battery_pub{ORB_ID(battery_status)};
+};
+
+TEST_F(VtolFixedWingPusherFailureTest, NoCurrentAtHighThrottleIsPusherFailure)
+{
+	VtolAttitudeControl attc;
+	Standard standard(&attc);
+	transitionToFixedWing(attc, standard);
+
+	const hrt_abstime flight_time = fly(attc, standard, 0.8f, 1.f, 2_s);
+	EXPECT_TRUE(attc.is_fixed_wing_system_failure());
+	EXPECT_GE(flight_time, 100_ms); // not before VT_EF_CURR_TIME
+
+	// switches to multicopter and stops the pusher (NAN)
+	standard.update_vtol_state();
+	EXPECT_EQ(standard.get_mode(), mode::ROTARY_WING);
+	standard.fill_actuator_outputs();
+	EXPECT_FALSE(PX4_ISFINITE(attc.get_thrust_setpoint_0()->xyz[0]));
+}
+
+TEST_F(VtolFixedWingPusherFailureTest, PusherFailureBlocksFrontTransitions)
+{
+	VtolAttitudeControl attc;
+	Standard standard(&attc);
+	transitionToFixedWing(attc, standard);
+	fly(attc, standard, 0.8f, 1.f, 2_s);
+	ASSERT_TRUE(attc.is_fixed_wing_system_failure());
+
+	// a front transition command clears the reason, the next update detects the latched pusher failure again
+	commandFrontTransition(attc);
+	ASSERT_FALSE(attc.is_quadchute_active());
+	standard.update_vtol_state();
+	EXPECT_TRUE(attc.is_fixed_wing_system_failure());
+	EXPECT_EQ(standard.get_mode(), mode::ROTARY_WING);
+
+	// VT_EF_CURR set to 0 in flight allows front transitions again
+	const float ef_curr = 0.f;
+	param_set(param_find("VT_EF_CURR"), &ef_curr);
+	static_cast<VtolType &>(standard).parameters_update();
+	commandFrontTransition(attc);
+	standard.update_vtol_state();
+	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
+	EXPECT_EQ(standard.get_mode(), mode::TRANSITION_TO_FW);
+}
+
+TEST_F(VtolFixedWingPusherFailureTest, CurrentAboveThresholdIsNoPusherFailure)
+{
+	VtolAttitudeControl attc;
+	Standard standard(&attc);
+	transitionToFixedWing(attc, standard);
+
+	fly(attc, standard, 0.8f, kCurrentThreshold + 10.f, 300_ms);
+	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
+	EXPECT_EQ(standard.get_mode(), mode::FIXED_WING);
+}
+
+TEST_F(VtolFixedWingPusherFailureTest, LowThrottleIsNoPusherFailure)
+{
+	VtolAttitudeControl attc;
+	Standard standard(&attc);
+	transitionToFixedWing(attc, standard);
+
+	fly(attc, standard, 0.2f, 1.f, 300_ms); // gliding, VT_EF_CURR_THROT is 0.4
+	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
+}
+
+TEST_F(VtolFixedWingPusherFailureTest, EscMeasuredCurrentIsIgnored)
+{
+	VtolAttitudeControl attc;
+	Standard standard(&attc);
+	transitionToFixedWing(attc, standard);
+
+	fly(attc, standard, 0.8f, 1.f, 300_ms, battery_status_s::SOURCE_ESCS);
+	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
+}
+
+TEST_F(VtolFixedWingPusherFailureTest, StaleOrInvalidCurrentIsIgnored)
+{
+	VtolAttitudeControl attc;
+	Standard standard(&attc);
+	transitionToFixedWing(attc, standard);
+
+	fly(attc, standard, 0.8f, 1.f, 300_ms, battery_status_s::SOURCE_POWER_MODULE, 2_s);
+	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
+
+	fly(attc, standard, 0.8f, -1.f, 300_ms);
+	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
+}
+
+TEST_F(VtolFixedWingPusherFailureTest, DisabledByDefault)
+{
+	param_reset(param_find("VT_EF_CURR"));
+	VtolAttitudeControl attc;
+	Standard standard(&attc);
+	transitionToFixedWing(attc, standard);
+
+	fly(attc, standard, 0.8f, 0.f, 300_ms);
+	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
+}

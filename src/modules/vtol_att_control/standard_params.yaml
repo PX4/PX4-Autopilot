@@ -98,3 +98,40 @@ parameters:
       max: 10.0
       increment: 0.1
       decimal: 1
+    VT_EF_CURR:
+      description:
+        short: Fixed-wing pusher failure detection current
+        long: A pusher failure is detected in fixed-wing mode when, for VT_EF_CURR_TIME, the
+          pusher throttle is above VT_EF_CURR_THROT, but the summed current of all batteries
+          stays below this value. It is handled like the multicopter pusher failure, see
+          VT_EF_TIME. Set it above the current drawn without the pusher, and below the pusher
+          current at VT_EF_CURR_THROT. Only for electric pushers on a battery with current
+          measurement, batteries measured by ESC telemetry are ignored. Set to 0 to disable.
+      type: float
+      default: 0.0
+      unit: A
+      min: 0.0
+      max: 200.0
+      increment: 0.1
+      decimal: 1
+    VT_EF_CURR_THROT:
+      description:
+        short: Fixed-wing pusher failure detection throttle threshold
+        long: Only used when VT_EF_CURR is enabled.
+      type: float
+      default: 0.4
+      min: 0.05
+      max: 1.0
+      increment: 0.01
+      decimal: 2
+    VT_EF_CURR_TIME:
+      description:
+        short: Fixed-wing pusher failure detection time
+        long: Only used when VT_EF_CURR is enabled.
+      type: float
+      default: 1.0
+      unit: s
+      min: 0.1
+      max: 10.0
+      increment: 0.1
+      decimal: 1

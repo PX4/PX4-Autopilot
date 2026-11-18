@@ -401,10 +401,13 @@ The parameters that control when the quad-chute will trigger are listed in the t
 | <a id="VT_FW_QC_R"></a>[VT_FW_QC_R](../advanced_config/parameter_reference.md#VT_FW_QC_R)                   | Absolute roll threshold for quad-chute triggering in FW mode.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | <a id="VT_FW_QC_P"></a>[VT_FW_QC_P](../advanced_config/parameter_reference.md#VT_FW_QC_P)                   | Absolute pitch threshold for quad-chute triggering in FW mode.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | <a id="VT_EF_TIME"></a>[VT_EF_TIME](../advanced_config/parameter_reference.md#VT_EF_TIME)                   | Pusher failure detection time for standard VTOLs using pusher assist ([VT_FWD_THRUST_EN]). In multicopter mode, the failure detection triggers if, for this time, the pusher assist throttle is above [VT_EF_THROT] but the forward velocity stays more than [VT_EF_VEL_ERR] below its setpoint. It blocks front transitions until reboot. A working pusher that cannot keep up, as in a strong headwind, may be reported too. A failure is only detected once pusher assist is needed. Prior to detection, a front transition will still be executed but fail. Set to 0 to disable; in flight this allows front transitions again.                                                                                                  |
+| <a id="VT_EF_CURR"></a>[VT_EF_CURR](../advanced_config/parameter_reference.md#VT_EF_CURR)                   | Fixed-wing pusher failure detection current for standard VTOLs with an electric pusher. In fixed-wing mode, the failure detection triggers if, for [VT_EF_CURR_TIME], the pusher throttle is above [VT_EF_CURR_THROT] but the summed battery current stays below this value. It needs no ESC telemetry, and ignores batteries measured by ESCs. It is handled like a pusher failure detected in multicopter mode. Set to 0 (default) to disable; in flight this allows front transitions again.                                                                                                                                                                                                                                      |
 
 [VT_FWD_THRUST_EN]: ../advanced_config/parameter_reference.md#VT_FWD_THRUST_EN
 [VT_EF_THROT]: ../advanced_config/parameter_reference.md#VT_EF_THROT
 [VT_EF_VEL_ERR]: ../advanced_config/parameter_reference.md#VT_EF_VEL_ERR
+[VT_EF_CURR_THROT]: ../advanced_config/parameter_reference.md#VT_EF_CURR_THROT
+[VT_EF_CURR_TIME]: ../advanced_config/parameter_reference.md#VT_EF_CURR_TIME
 
 ### Pusher Failure Detection Tuning
 
@@ -425,6 +428,21 @@ To check them in flight:
    The position controller does not always demand the full `MPC_TILTMAX_AIR` tilt, especially when it is large, so the pusher assist throttle can stay below the estimate.
 
 In the logs of normal flights, including flights in the strongest wind you fly in, both conditions should only hold together for much less than `VT_EF_TIME`.
+
+### Fixed-Wing Pusher Failure Detection Tuning
+
+In fixed-wing mode the multicopter motors are stopped, so the battery current is mostly the pusher current.
+A failed pusher, or one that lost its propeller, leaves only the current of the avionics, servos and payload.
+
+From the logs of normal fixed-wing flights (`battery_status.current_a` and `vehicle_thrust_setpoint` instance 0, `xyz[0]`):
+
+- [VT_EF_CURR_THROT]: below the throttle of your fixed-wing cruise, so that a failure in cruise is detected.
+  Gliding and descending below it are never reported.
+- [VT_EF_CURR](#VT_EF_CURR): between the highest current without the pusher, with all payloads on, and the lowest current at `VT_EF_CURR_THROT` or more.
+- [VT_EF_CURR_TIME]: longer than the motor takes to spin up after a throttle step, as the current lags the throttle.
+
+The battery current has to come from a power module or an external battery monitor (`BATx_SOURCE` not set to ESC telemetry).
+To check the detection in flight, stop the pusher in fixed-wing mode with `failure motor wrong -i <n>` as described above.
 
 ## High Wind Failsafe
 

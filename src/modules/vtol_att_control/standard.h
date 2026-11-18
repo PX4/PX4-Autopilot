@@ -48,6 +48,8 @@
 #include "vtol_type.h"
 
 #include <lib/hysteresis/hysteresis.h>
+#include <uORB/SubscriptionMultiArray.hpp>
+#include <uORB/topics/battery_status.h>
 
 class Standard : public VtolType
 {
@@ -82,15 +84,28 @@ private:
 	hrt_abstime _last_time_pusher_transition_update{0};
 	float _front_transition_pitch{NAN};
 
+	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{ORB_ID::battery_status};
+
 	systemlib::Hysteresis _pusher_failure_hysteresis{false};
-	bool _pusher_failed{false}; ///< latched until reboot or until the detection is disabled
+	systemlib::Hysteresis _pusher_current_failure_hysteresis{false};
+
+	// each latched until reboot or until its detection is disabled
+	bool _pusher_failed_multicopter{false};
+	bool _pusher_failed_fixed_wing{false};
 
 	void parameters_update() override;
 
 	bool isPusherFailureDetectionEnabled() const { return _param_vt_ef_time.get() > FLT_EPSILON; }
+	bool isPusherCurrentFailureDetectionEnabled() const { return _param_vt_ef_curr.get() > FLT_EPSILON; }
 
 	/** Pusher assist above VT_EF_THROT, but the forward velocity stays below its setpoint */
 	bool isPusherFailureDetected();
+
+	/** Fixed-wing throttle above VT_EF_CURR_THROT, but the battery current stays below VT_EF_CURR */
+	bool isPusherCurrentFailureDetected();
+
+	/** Summed current of all fresh, connected batteries not measured by ESCs, NAN if there is none */
+	float getBatteryCurrent(hrt_abstime now);
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(VtolType,
 					(ParamFloat<px4::params::VT_PSHER_SLEW>) _param_vt_psher_slew,
@@ -98,7 +113,10 @@ private:
 					(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off,
 					(ParamFloat<px4::params::VT_EF_TIME>) _param_vt_ef_time,
 					(ParamFloat<px4::params::VT_EF_THROT>) _param_vt_ef_throt,
-					(ParamFloat<px4::params::VT_EF_VEL_ERR>) _param_vt_ef_vel_err
+					(ParamFloat<px4::params::VT_EF_VEL_ERR>) _param_vt_ef_vel_err,
+					(ParamFloat<px4::params::VT_EF_CURR>) _param_vt_ef_curr,
+					(ParamFloat<px4::params::VT_EF_CURR_THROT>) _param_vt_ef_curr_throt,
+					(ParamFloat<px4::params::VT_EF_CURR_TIME>) _param_vt_ef_curr_time
 				       )
 };
 #endif

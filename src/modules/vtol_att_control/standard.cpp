@@ -48,6 +48,8 @@
 
 using namespace matrix;
 
+static constexpr hrt_abstime BATTERY_STATUS_TIMEOUT{1_s}; ///< older battery current is not used for detection
+
 Standard::Standard(VtolAttitudeControl *attc) :
 	VtolType(attc)
 {
@@ -61,9 +63,13 @@ Standard::parameters_update()
 	// make sure that pusher ramp in backtransition is smaller than back transition (max) duration
 	_param_vt_b_trans_ramp.set(math::min(_param_vt_b_trans_ramp.get(), _param_vt_b_trans_dur.get()));
 
-	// disabling the detection in flight overrides a detected pusher failure, e.g. a false positive in strong wind
+	// disabling a detection in flight overrides the pusher failure it detected, e.g. a false positive in strong wind
 	if (!isPusherFailureDetectionEnabled()) {
-		_pusher_failed = false;
+		_pusher_failed_multicopter = false;
+	}
+
+	if (!isPusherCurrentFailureDetectionEnabled()) {
+		_pusher_failed_fixed_wing = false;
 	}
 }
 
@@ -75,7 +81,7 @@ void Standard::update_vtol_state()
 	 */
 
 	// without pusher a front transition would fail too, so this quad-chute stays until reboot
-	if (_pusher_failed) {
+	if (_pusher_failed_multicopter || _pusher_failed_fixed_wing) {
 		_attc->quadchute(QuadchuteReason::PusherFailure);
 	}
 
@@ -146,6 +152,9 @@ void Standard::update_vtol_state()
 
 			if (isFrontTransitionCompleted()) {
 				_vtol_mode = vtol_mode::FW_MODE;
+
+				// the fixed-wing pusher failure detection restarts with each fixed-wing flight
+				_pusher_current_failure_hysteresis.set_state_and_update(false, hrt_absolute_time());
 
 				// don't set pusher throttle here as it's being ramped up elsewhere
 				_trans_finished_ts = hrt_absolute_time();
@@ -298,7 +307,7 @@ void Standard::update_mc_state()
 
 	_pusher_throttle = VtolType::pusher_assist();
 
-	_pusher_failed = _pusher_failed || isPusherFailureDetected();
+	_pusher_failed_multicopter = _pusher_failed_multicopter || isPusherFailureDetected();
 }
 
 bool Standard::isPusherFailureDetected()
@@ -324,6 +333,47 @@ bool Standard::isPusherFailureDetected()
 void Standard::update_fw_state()
 {
 	VtolType::update_fw_state();
+
+	_pusher_failed_fixed_wing = _pusher_failed_fixed_wing || isPusherCurrentFailureDetected();
+}
+
+bool Standard::isPusherCurrentFailureDetected()
+{
+	const hrt_abstime now = hrt_absolute_time();
+	const float pusher_throttle = _vehicle_thrust_setpoint_virtual_fw->xyz[0];
+	bool pusher_without_current = false;
+
+	if (isPusherCurrentFailureDetectionEnabled() && PX4_ISFINITE(pusher_throttle)
+	    && pusher_throttle > _param_vt_ef_curr_throt.get()) {
+		// NAN without a valid battery current fails the comparison and never detects
+		pusher_without_current = getBatteryCurrent(now) < _param_vt_ef_curr.get();
+	}
+
+	_pusher_current_failure_hysteresis.set_hysteresis_time_from(false,
+			(hrt_abstime)(1_s * math::max(_param_vt_ef_curr_time.get(), 0.f)));
+	_pusher_current_failure_hysteresis.set_state_and_update(pusher_without_current, now);
+
+	return _pusher_current_failure_hysteresis.get_state();
+}
+
+float Standard::getBatteryCurrent(hrt_abstime now)
+{
+	float current = NAN;
+
+	for (auto &battery_sub : _battery_status_subs) {
+		battery_status_s battery;
+
+		// ESC-measured current would make the detection depend on the ESC telemetry of the failed pusher
+		if (battery_sub.copy(&battery) && battery.connected
+		    && battery.source != battery_status_s::SOURCE_ESCS
+		    && now < battery.timestamp + BATTERY_STATUS_TIMEOUT
+		    && battery.current_a >= 0.f) { // -1 when invalid
+
+			current = PX4_ISFINITE(current) ? current + battery.current_a : battery.current_a;
+		}
+	}
+
+	return current;
 }
 
 /**
