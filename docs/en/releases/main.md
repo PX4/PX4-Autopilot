@@ -208,6 +208,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 - After a [quad-chute](../config/safety.md#quad-chute-failsafe), Mission and VTOL Takeoff mode no longer command forward transitions and continue in multicopter mode. Before, a resumed mission commanded the next transition again, which also cleared the quad-chute, and with [COM_QC_ACT](../advanced_config/parameter_reference.md#COM_QC_ACT) set to Warning a quad-chute during a mission transition left the mission waiting at that item.
 - A [quad-chute](../config/safety.md#quad-chute-failsafe) commanded with `MAV_CMD_DO_VTOL_TRANSITION` (`param2` = 1) now only switches to multicopter mode, as it is not caused by a failure. It no longer executes [COM_QC_ACT](../advanced_config/parameter_reference.md#COM_QC_ACT) or requires a reboot before the next arming.
+- Standard VTOLs using pusher assist ([VT_FWD_THRUST_EN](../advanced_config/parameter_reference.md#VT_FWD_THRUST_EN)) now detect a pusher failure in multicopter mode, when the forward velocity stays well below its setpoint although the pusher assist throttle is above [VT_EF_THROT](../advanced_config/parameter_reference.md#VT_EF_THROT). A detected failure is handled as a [quad-chute](../config/safety.md#quad-chute-failsafe) that blocks front transitions until reboot. Setting [VT_EF_TIME](../advanced_config/parameter_reference.md#VT_EF_TIME) to 0 disables the detection and, in flight, allows front transitions again.
 
 ### Fixed-wing
 
