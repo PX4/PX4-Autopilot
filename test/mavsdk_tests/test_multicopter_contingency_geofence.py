@@ -107,7 +107,7 @@ def test_contingency_geofence_refuses_arming_missions_and_targets(
 
     tester.set_param_float("GF_CONT_H_MARGIN", 40.0)
     tester.sleep_for(2)
-    assert tester.arming_is_denied(), "Armed within the contingency geofence margin"
+    tester.check_arming_is_denied()
 
     tester.set_param_float("GF_CONT_H_MARGIN", 10.0)
     tester.sleep_for(2)
@@ -116,7 +116,8 @@ def test_contingency_geofence_refuses_arming_missions_and_targets(
     # 5 m from the northern edge: the mission is rejected, so Mission mode cannot be armed.
     tester.upload_mission_to(25.0, options)
     tester.select_mission_mode()
-    assert tester.arming_is_denied(), "Armed with a mission into the margin"
+    tester.wait_for_flight_mode(FlightMode.MISSION, 5)
+    tester.check_arming_is_denied()
 
     # 15 m from the northern edge.
     tester.upload_mission_to(15.0, options)

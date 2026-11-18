@@ -42,6 +42,7 @@ def test_more_severe_action_wins_after_contingency_geofence_hold(
     tester.wait_for_flight_mode(FlightMode.MISSION, 1)
 
     # The vehicle is closer to the fence than the margin that is set now.
+    assert tester.home_distance_m() < 400.0, "The margin is set too late"
     tester.start_tracking()
     tester.set_param_float("GF_CONT_H_MARGIN", MARGIN_M)
     tester.wait_for_flight_mode(FlightMode.HOLD, 10)

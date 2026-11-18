@@ -8,18 +8,18 @@ import math
 import threading
 from typing import Any, List, Optional, Tuple
 
-from mavsdk.plugins.action import ActionError  # type: ignore
 from mavsdk.plugins.telemetry import FlightMode  # type: ignore
 
 from autopilot_tester import (
-    MANUAL_CONTROL_RATE_HZ, MAV_CMD_NAV_WAYPOINT, MAV_FRAME_GLOBAL_INT,
-    MAV_FRAME_GLOBAL_RELATIVE_ALT, MissionOptions, log, raw_mission_item)
+    MANUAL_CONTROL_RATE_HZ, MAV_CMD_COMPONENT_ARM_DISARM, MAV_CMD_NAV_WAYPOINT,
+    MAV_FRAME_GLOBAL_INT, MAV_FRAME_GLOBAL_RELATIVE_ALT, MissionOptions, log, raw_mission_item)
 from autopilot_tester_loiter import AutopilotTesterLoiter
 from geometry import CoordinateTransformation
 
 MAV_CMD_NAV_VTOL_TAKEOFF = 84
 MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION = 5001
 MAV_MISSION_TYPE_FENCE = 1
+MAV_RESULT_TEMPORARILY_REJECTED = 1
 
 # Values of GF_ACTION and GF_CONT_ACTION.
 ACTION_WARNING = 1
@@ -89,14 +89,11 @@ class AutopilotTesterGeofence(AutopilotTesterLoiter):
         """Switch to Mission mode. A disarmed vehicle accepts that even with a rejected mission."""
         assert self._try_start_mission(), "Could not switch to Mission mode"
 
-    def arming_is_denied(self) -> bool:
-        """One arming attempt, without the retries of arm()."""
-        try:
-            self._action.arm()
-        except ActionError as e:
-            log("Arming denied: {}".format(e))
-            return True
-        return False
+    def check_arming_is_denied(self) -> None:
+        """One arming attempt, without the retries of arm(). Sent as a command, because
+        MAVSDK's arm() first switches a vehicle in Mission mode to Hold."""
+        self.send_command_long(MAV_CMD_COMPONENT_ARM_DISARM, param1=1.0,
+                               expected_result=MAV_RESULT_TEMPORARILY_REJECTED)
 
     def fly_in_position_mode_until_hold(self, forward: float, throttle: float,
                                         timeout_s: float) -> None:
