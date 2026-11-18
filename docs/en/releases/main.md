@@ -102,6 +102,10 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   A front transition in which the vehicle accelerates forward less than [VT_EF_FT_ACC](../advanced_config/parameter_reference.md#VT_EF_FT_ACC) (0.8 m/s² by default at the transition throttle, scaled with the pusher thrust while the throttle ramps up) now triggers a [quad-chute](../config/safety.md#quad-chute-failsafe) that blocks front transitions until reboot.
   Check that your front transitions accelerate more, or set `VT_EF_FT_ACC` to `0` to disable the check.
 
+- **Standard VTOLs keep pusher assist after a quad-chute.**
+  Only a detected forward propulsion failure turns pusher assist off now, see [quad-chute](../config/safety.md#quad-chute-failsafe).
+  With the forward propulsion failure detection disabled ([VT_EF_TIME](../advanced_config/parameter_reference.md#VT_EF_TIME), [VT_EF_FT_ACC](../advanced_config/parameter_reference.md#VT_EF_FT_ACC) and [COM_EF_CURR](../advanced_config/parameter_reference.md#COM_EF_CURR) at `0`), a failed pusher keeps pusher assist too, and the vehicle may not make progress in multicopter mode.
+
 ## Other changes
 
 - Fast mission Return modes ([RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 2 and 4) now skip `DO_JUMP` commands (loops) while following the mission path. ([PX4-Autopilot#26993: fix(navigator): goToNextPositionItem skip loops when required](https://github.com/PX4/PX4-Autopilot/pull/26993))
@@ -215,6 +219,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - A [quad-chute](../config/safety.md#quad-chute-failsafe) commanded with `MAV_CMD_DO_VTOL_TRANSITION` (`param2` = 1) now only switches to multicopter mode, as it is not caused by a failure. It no longer executes [COM_QC_ACT](../advanced_config/parameter_reference.md#COM_QC_ACT) or requires a reboot before the next arming.
 - Standard VTOLs and tiltrotors using pusher assist ([VT_FWD_THRUST_EN](../advanced_config/parameter_reference.md#VT_FWD_THRUST_EN)) now detect a forward propulsion failure in multicopter mode, when the forward velocity stays well below its setpoint although the pusher assist (the pusher throttle, or the forward tilt of a tiltrotor) is above [VT_EF_THROT](../advanced_config/parameter_reference.md#VT_EF_THROT). A detected failure is handled as a [quad-chute](../config/safety.md#quad-chute-failsafe) that blocks front transitions until reboot. Setting [VT_EF_TIME](../advanced_config/parameter_reference.md#VT_EF_TIME) to 0 disables the detection and, in flight, allows front transitions again.
 - Standard VTOLs now also detect a pusher failure at the start of a front transition, when the vehicle accelerates forward less than [VT_EF_FT_ACC](../advanced_config/parameter_reference.md#VT_EF_FT_ACC) at the transition throttle, scaled with the pusher thrust while the throttle ramps up. This works with or without airspeed sensor, and also without pusher assist. Before, the transition timed out with an airspeed sensor, and without one it completed into fixed-wing flight with a dead pusher. See the [Upgrade Guide](#upgrade-guide).
+- Standard VTOLs keep pusher assist after a [quad-chute](../config/safety.md#quad-chute-failsafe) other than a detected forward propulsion failure. Before, every detected quad-chute turned pusher assist off for the rest of the flight, so the vehicle flew home pitched forward like a multicopter. A pusher failure detected after another quad-chute is now also reported.
 
 ### Fixed-wing
 

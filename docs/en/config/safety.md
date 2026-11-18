@@ -383,6 +383,10 @@ If the failsafe is triggered, the vehicle will immediately switch to multicopter
 
 On standard VTOLs, the [fixed-wing propulsion failure trigger](#fixed-wing-propulsion-failure-trigger) also triggers the forward propulsion failure quad-chute.
 
+After a quad-chute, a standard VTOL keeps pusher assist ([VT_FWD_THRUST_EN]) in multicopter mode, unless a forward propulsion failure was detected.
+With the forward propulsion failure detection disabled, a failed pusher keeps pusher assist too.
+A tiltrotor turns its tilt assist off after any detected quad-chute.
+
 After a quad-chute, Mission and VTOL Takeoff mode no longer command forward transitions, as the next one would likely fail too: they skip them and fly on in multicopter mode, which has much less range.
 A forward transition commanded by the pilot or ground station allows them again; otherwise this lasts until the vehicle is rebooted.
 

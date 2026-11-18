@@ -13,6 +13,9 @@ parameters:
           Descend mode is treated as Landing too.
 
           Only active (if enabled) in height-rate controlled modes.
+
+          After a quad-chute, a standard VTOL keeps it unless a forward propulsion failure was detected.
+          A tiltrotor turns it off after any detected quad-chute.
       type: enum
       values:
         0: Disabled

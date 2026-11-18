@@ -35,7 +35,8 @@
  * @file test_vtol_quadchute.cpp
  *
  * A quad-chute commanded by the user only switches to multicopter and keeps pusher assist. A detected one is a
- * fixed-wing failure, which triggers the quad-chute failsafe action, blocks arming and stops pusher assist.
+ * fixed-wing failure, which triggers the quad-chute failsafe action and blocks arming. On a standard VTOL, only a
+ * detected forward propulsion failure stops pusher assist.
  */
 
 #include <gtest/gtest.h>
@@ -88,6 +89,8 @@ protected:
 	void TearDown() override
 	{
 		param_reset(param_find("VT_FWD_THRUST_EN"));
+		param_reset(param_find("VT_EF_TIME"));
+		param_reset(param_find("VT_EF_FT_ACC"));
 		param_control_autosave(true);
 	}
 
@@ -127,7 +130,7 @@ TEST_F(VtolQuadchutePusherTest, CommandedQuadchuteKeepsPusherAssist)
 	EXPECT_FLOAT_EQ(runCycle(attc, standard, false), pusher);
 }
 
-TEST_F(VtolQuadchutePusherTest, DetectedQuadchuteStopsPusherAssist)
+TEST_F(VtolQuadchutePusherTest, DetectedQuadchuteKeepsPusherAssist)
 {
 	VtolAttitudeControl attc;
 	Standard standard(&attc);
@@ -135,10 +138,45 @@ TEST_F(VtolQuadchutePusherTest, DetectedQuadchuteStopsPusherAssist)
 	attc.quadchute(QuadchuteReason::ExternalCommand);
 	EXPECT_GT(runCycle(attc, standard, true), 0.1f);
 
-	// a detected quad-chute stops the pusher at once and keeps pusher assist off (NAN stops the pusher)
+	// not a forward propulsion failure: no stop and start
 	attc.quadchute(QuadchuteReason::TransitionTimeout);
-	EXPECT_FALSE(PX4_ISFINITE(runCycle(attc, standard, false)));
-	EXPECT_FALSE(PX4_ISFINITE(runCycle(attc, standard, true)));
+	ASSERT_TRUE(attc.is_fixed_wing_system_failure());
+	const float pusher = runCycle(attc, standard, false);
+	EXPECT_GT(pusher, 0.1f);
+	EXPECT_FLOAT_EQ(runCycle(attc, standard, true), pusher);
+}
+
+TEST_F(VtolQuadchutePusherTest, DetectedQuadchuteKeepsPusherAssistWithoutForwardPropulsionFailureDetection)
+{
+	const float disabled = 0.f;
+	param_set(param_find("VT_EF_TIME"), &disabled);
+	param_set(param_find("VT_EF_FT_ACC"), &disabled);
+	VtolAttitudeControl attc;
+	Standard standard(&attc);
+	setHover(attc);
+	attc.quadchute(QuadchuteReason::ExternalCommand);
+	EXPECT_GT(runCycle(attc, standard, true), 0.1f);
+
+	attc.quadchute(QuadchuteReason::TransitionTimeout);
+	EXPECT_GT(runCycle(attc, standard, false), 0.1f);
+	EXPECT_GT(runCycle(attc, standard, true), 0.1f);
+}
+
+TEST_F(VtolQuadchutePusherTest, DetectedQuadchuteStopsTiltAssist)
+{
+	VtolAttitudeControl attc;
+	Tiltrotor tiltrotor(&attc);
+	setHover(attc);
+
+	// pusher assist replaces the nose-down pitch of the attitude setpoint, set it again before each call
+	const Quatf nose_down(Eulerf(0.f, math::radians(-30.f), 0.f));
+	nose_down.copyTo(attc.get_att_sp()->q_d);
+	EXPECT_GT(tiltrotor.pusher_assist(), 0.1f);
+
+	// a tiltrotor checks its tilt only in multicopter mode, so any detected quad-chute turns tilt assist off
+	attc.quadchute(QuadchuteReason::TransitionTimeout);
+	nose_down.copyTo(attc.get_att_sp()->q_d);
+	EXPECT_FLOAT_EQ(tiltrotor.pusher_assist(), 0.f);
 }
 
 // Forward propulsion failures detected in multicopter mode block front transitions until VT_EF_TIME is set to 0 or reboot.
@@ -282,6 +320,25 @@ TEST_F(VtolForwardPropulsionFailureTest, FixedWingPropulsionFailureIsForwardProp
 	standard.update_vtol_state();
 	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
 	EXPECT_EQ(standard.get_mode(), mode::TRANSITION_TO_FW);
+}
+
+TEST_F(VtolForwardPropulsionFailureTest, ForwardPropulsionFailureAfterAnotherQuadchuteIsReported)
+{
+	VtolAttitudeControl attc;
+	Standard standard(&attc);
+	setHover(attc, 0.f);
+	attc.quadchute(QuadchuteReason::UncommandedDescent);
+
+	// pusher assist stays, then the multicopter check catches the pusher that caused the altitude loss
+	const hrt_abstime start = hrt_absolute_time();
+
+	while (quadchuteReason(attc) != QuadchuteReason::ForwardPropulsionFailure && hrt_elapsed_time(&start) < 2_s) {
+		runCycle(attc, standard, true);
+		px4_usleep(10_ms);
+	}
+
+	EXPECT_EQ(quadchuteReason(attc), QuadchuteReason::ForwardPropulsionFailure);
+	EXPECT_FALSE(PX4_ISFINITE(runCycle(attc, standard, true)));
 }
 
 TEST_F(VtolForwardPropulsionFailureTest, ForwardPropulsionFailureReplacesCommandedQuadchute)
@@ -691,4 +748,35 @@ TEST_F(VtolFrontTransitionPusherTest, FixedWingPropulsionFailureWaitsBelowQuadch
 	standard.update_vtol_state();
 	EXPECT_EQ(quadchuteReason(attc), QuadchuteReason::ForwardPropulsionFailure);
 	publishFixedWingPropulsionFailure(attc, false);
+}
+
+TEST_F(VtolFrontTransitionPusherTest, PusherFailureStopsPusherAssist)
+{
+	VtolAttitudeControl attc;
+	Standard standard(&attc);
+	startFrontTransition(attc, standard);
+	flyFrontTransition(attc, standard, 0.f, 3_s);
+	ASSERT_EQ(quadchuteReason(attc), QuadchuteReason::ForwardPropulsionFailure);
+
+	setHover(attc, 5.f);
+	EXPECT_FALSE(PX4_ISFINITE(runCycle(attc, standard, true)));
+}
+
+TEST_F(VtolFrontTransitionPusherTest, QuadchuteInTransitionStopsThePusherOnceThenAssists)
+{
+	VtolAttitudeControl attc;
+	Standard standard(&attc);
+	startFrontTransition(attc, standard);
+	setHover(attc, 5.f, 5.f, -30.f); // pusher assist 0.35, below VT_EF_THROT
+	flyFrontTransition(attc, standard, 1.f, 50_ms);
+	standard.fill_actuator_outputs();
+	ASSERT_GT(attc.get_thrust_setpoint_0()->xyz[0], 0.5f); // transition throttle
+
+	attc.quadchute(QuadchuteReason::TransitionTimeout);
+	EXPECT_FALSE(PX4_ISFINITE(runCycle(attc, standard, false)));
+	EXPECT_EQ(standard.get_mode(), mode::ROTARY_WING);
+
+	const float pusher = runCycle(attc, standard, true);
+	EXPECT_GT(pusher, 0.1f);
+	EXPECT_FLOAT_EQ(runCycle(attc, standard, false), pusher);
 }

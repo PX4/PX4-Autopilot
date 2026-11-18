@@ -429,6 +429,11 @@ void VtolType::clearForwardPropulsionFailureIfDisabled()
 	}
 }
 
+bool VtolType::isPusherAssistBlocked() const
+{
+	return _attc->is_fixed_wing_system_failure();
+}
+
 float VtolType::pusher_assist()
 {
 	// Altitude above ground is local z-position or altitude above home or distance sensor altitude depending on what's available
@@ -503,8 +508,7 @@ float VtolType::pusher_assist()
 		return 0.0f;
 	}
 
-	// Do not engage pusher assist after a detected quad-chute (could be a problem with the fixed wing drive)
-	if (_attc->is_fixed_wing_system_failure()) {
+	if (isPusherAssistBlocked()) {
 		return 0.0f;
 	}
 
