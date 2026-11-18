@@ -84,6 +84,7 @@ TEST_F(GeofenceChecksTest, PreGeofenceSetsItsOwnFlagAndDeniesArming)
 	bool geofence_result_s::*const triggers[] = {
 		&geofence_result_s::pre_geofence_max_dist_triggered,
 		&geofence_result_s::pre_geofence_max_alt_triggered,
+		&geofence_result_s::pre_geofence_custom_fence_triggered,
 	};
 
 	for (const auto trigger : triggers) {

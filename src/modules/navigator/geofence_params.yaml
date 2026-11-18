@@ -60,7 +60,7 @@ parameters:
     GF_PRE_ACTION:
       description:
         short: Pre-geofence violation action
-        long: Only used when GF_PRE_MAX_HDIST or GF_PRE_MAX_VDIST is enabled.
+        long: Only used when GF_PRE_MAX_HDIST, GF_PRE_MAX_VDIST or GF_PRE_MARGIN is enabled.
           If the geofence is breached as well, the more severe of the two actions is taken.
       type: enum
       values:
@@ -93,3 +93,16 @@ parameters:
       min: 0
       max: 10000
       increment: 1
+    GF_PRE_MARGIN:
+      description:
+        short: Pre-geofence margin to the geofence plan
+        long: Triggers GF_PRE_ACTION once the vehicle is closer than this distance to a polygon or circle of
+          the geofence plan. A mission that is already uploaded is not checked again when this changes.
+          Has no effect on boards built without geofence path checks, e.g. fmu-v2. Set to 0 to disable.
+      type: float
+      default: 0.0
+      unit: m
+      min: 0
+      max: 10000
+      decimal: 0
+      increment: 10

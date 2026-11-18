@@ -104,11 +104,13 @@ public:
 		matrix::Vector2d start; ///< latitude, longitude in degrees
 		matrix::Vector2d end;
 		float end_radius{0.f}; ///< Circle radius at end in metres; zero checks only the path.
+		float margin{0.f}; ///< Distance in metres the path and the end circle keep from every polygon and circle.
 	};
 
 	/**
 	 * Check 1..MAX_PATH_CHECKS paths and optional circles at their ends against horizontal fences.
 	 * Circles are also checked against the maximum distance from Home.
+	 * A path's margin makes coming closer than it to a polygon or circle boundary a breach too.
 	 * Boundary contact is a breach, including contact by a circle. Callers choose the circles;
 	 * a fixed-wing waypoint turned into a loiter to reach its altitude cannot be predicted here.
 	 * At least one endpoint of each path must be valid under the existing point check.
@@ -159,6 +161,35 @@ public:
 
 	/** Check the polygons and circles only, without the altitude band. */
 	bool isInsideHorizontalFences(double lat, double lon, float altitude);
+
+	/**
+	 * True if a circle lies inside the polygons and circles without touching a boundary.
+	 * The Home and altitude limits are not checked.
+	 * Uses the loaded fence like the point checks, so it also answers while a fence update is pending.
+	 *
+	 * @param radius Circle radius in metres; zero checks the centre only.
+	 */
+	bool isCircleInside(double lat, double lon, float radius);
+
+	/**
+	 * GF_PRE_MARGIN [m], the distance the pre-geofence keeps from the polygons and circles. Zero if disabled.
+	 * Boards built without geofence path checks leave the margin out as well, to save flash.
+	 */
+	float getPreGeofenceMargin() const
+	{
+#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
+		return math::max(_param_gf_pre_margin.get(), 0.f);
+#else
+		return 0.f;
+#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
+	}
+
+	/** True if the position keeps GF_PRE_MARGIN from the polygons and circles, or the margin is disabled. */
+	bool isInsidePreGeofence(double lat, double lon)
+	{
+		const float margin = getPreGeofenceMargin();
+		return margin <= FLT_EPSILON || isCircleInside(lat, lon, margin);
+	}
 
 	bool valid();
 
@@ -356,6 +387,7 @@ private:
 		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist,
 		(ParamInt<px4::params::GF_PRE_ACTION>)     _param_gf_pre_action,
 		(ParamFloat<px4::params::GF_PRE_MAX_HDIST>) _param_gf_pre_max_hdist,
-		(ParamFloat<px4::params::GF_PRE_MAX_VDIST>) _param_gf_pre_max_vdist
+		(ParamFloat<px4::params::GF_PRE_MAX_VDIST>) _param_gf_pre_max_vdist,
+		(ParamFloat<px4::params::GF_PRE_MARGIN>)   _param_gf_pre_margin
 	)
 };

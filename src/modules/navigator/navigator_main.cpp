@@ -1275,9 +1275,11 @@ void Navigator::geofence_breach_check()
 		// Disabling the pre-geofence releases its breach, also without a position or while holding after it.
 		if (pre_geofence_action == geofence_result_s::GF_ACTION_NONE
 		    && (_geofence_result.pre_geofence_max_dist_triggered || _geofence_result.pre_geofence_max_alt_triggered
+			|| _geofence_result.pre_geofence_custom_fence_triggered
 			|| _geofence_result.pre_geofence_action != geofence_result_s::GF_ACTION_NONE)) {
 			_geofence_result.pre_geofence_max_dist_triggered = false;
 			_geofence_result.pre_geofence_max_alt_triggered = false;
+			_geofence_result.pre_geofence_custom_fence_triggered = false;
 			_geofence_result.pre_geofence_action = geofence_result_s::GF_ACTION_NONE;
 			_pre_geofence_reposition_sent = false;
 			_geofence_result.timestamp = hrt_absolute_time();
@@ -1309,6 +1311,7 @@ void Navigator::geofence_breach_check()
 
 		const bool pre_max_dist_breached = !_geofence.isCloserThanPreMaxDistToHome(current_latitude, current_longitude);
 		const bool pre_max_alt_breached = !_geofence.isBelowPreMaxAltitude(current_altitude);
+		const bool pre_custom_fence_breached = !_geofence.isInsidePreGeofence(current_latitude, current_longitude);
 
 		if (_time_loitering_after_gf_breach > 0) {
 			// while loitering after a breach, only allow new triggers to be set, never cleared.
@@ -1320,6 +1323,7 @@ void Navigator::geofence_breach_check()
 					current_longitude, current_altitude);
 			_geofence_result.pre_geofence_max_dist_triggered |= pre_max_dist_breached;
 			_geofence_result.pre_geofence_max_alt_triggered |= pre_max_alt_breached;
+			_geofence_result.pre_geofence_custom_fence_triggered |= pre_custom_fence_breached;
 
 		} else {
 			_geofence_result.geofence_max_dist_triggered = !_geofence.isCloserThanMaxDistToHome(current_latitude,
@@ -1329,6 +1333,7 @@ void Navigator::geofence_breach_check()
 					current_longitude, current_altitude);
 			_geofence_result.pre_geofence_max_dist_triggered = pre_max_dist_breached;
 			_geofence_result.pre_geofence_max_alt_triggered = pre_max_alt_breached;
+			_geofence_result.pre_geofence_custom_fence_triggered = pre_custom_fence_breached;
 		}
 
 		const auto now = hrt_absolute_time();
@@ -1343,7 +1348,8 @@ void Navigator::geofence_breach_check()
 				    || _geofence_result.geofence_max_alt_triggered
 				    || _geofence_result.geofence_custom_fence_triggered;
 		const bool pre_breach = _geofence_result.pre_geofence_max_dist_triggered
-					|| _geofence_result.pre_geofence_max_alt_triggered;
+					|| _geofence_result.pre_geofence_max_alt_triggered
+					|| _geofence_result.pre_geofence_custom_fence_triggered;
 
 		// Navigator only takes part in Hold: it sets where to hold. Each level asks for it once per breach,
 		// so a vehicle that was taken over after the pre-geofence breach is still held at the geofence.
@@ -1961,7 +1967,8 @@ bool Navigator::pre_geofence_allows_target(const vehicle_global_position_s &targ
 				    && fabs(target.lon - _global_pos.lon) < DBL_EPSILON;
 	const bool keeps_altitude = fabsf(target.alt - _global_pos.alt) < FLT_EPSILON;
 
-	return (keeps_position || _geofence.isCloserThanPreMaxDistToHome(target.lat, target.lon))
+	return (keeps_position || (_geofence.isCloserThanPreMaxDistToHome(target.lat, target.lon)
+				   && _geofence.isInsidePreGeofence(target.lat, target.lon)))
 	       && (keeps_altitude || _geofence.isBelowPreMaxAltitude(target.alt));
 }
 
@@ -1972,16 +1979,19 @@ float Navigator::geofence_avoidance_margin() const
 	// If re-using the enlarged polygons for a predictive geofence failsafe feature, additionally ensure
 	// that the margin is large enough to turn around / stop / carry out the desired failsafe action in time.
 
+	// Return also keeps the pre-geofence margin, so its route does not trigger GF_PRE_ACTION.
+	const float pre_margin = _geofence.getPreGeofenceMargin();
+
 	if (_vstatus.is_vtol || _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 
 		// Use FW loiter radius even for VTOL in MC -- changing the
 		// margin on transition is confusing and RTLing in MC as a VTOL
 		// is a very rare edge case
-		return get_default_loiter_rad();
+		return pre_margin + get_default_loiter_rad();
 	}
 
 	// MC, rover, unspecified
-	return 2.0f * get_default_acceptance_radius();
+	return pre_margin + 2.0f * get_default_acceptance_radius();
 }
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 

@@ -143,7 +143,14 @@ protected:
 
 	static bool preGeofenceBreached(const geofence_result_s &result)
 	{
-		return result.pre_geofence_max_dist_triggered || result.pre_geofence_max_alt_triggered;
+		return result.pre_geofence_max_dist_triggered || result.pre_geofence_max_alt_triggered
+		       || result.pre_geofence_custom_fence_triggered;
+	}
+
+	// A 1000 m square inclusion fence centred on Home.
+	FencePoints inclusionSquare() const
+	{
+		return polygon(true, {{-500.f, -500.f}, {500.f, -500.f}, {500.f, 500.f}, {-500.f, 500.f}});
 	}
 
 	const position_setpoint_s &reposition() { return _navigator.get_reposition_triplet()->current; }
@@ -232,7 +239,27 @@ TEST_F(PreGeofenceBreachTest, PreGeofenceLimitsNeedHome)
 	setParam("GF_PRE_MAX_VDIST", 0.f);
 	setParam("GF_PRE_MAX_HDIST", 400.f);
 	EXPECT_TRUE(_fence.isHomeRequired());
+
+	// The margin is relative to the plan, so only its Return action needs Home.
+	setParam("GF_PRE_MAX_HDIST", 0.f);
+	setParam("GF_PRE_MARGIN", 100.f);
+	EXPECT_TRUE(_fence.isHomeRequired());
+	setParam("GF_PRE_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_LOITER));
+	EXPECT_FALSE(_fence.isHomeRequired());
 }
+
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+// Return routes around the fences with the margin added, so that it does not trigger the pre-geofence action.
+TEST_F(PreGeofenceBreachTest, ReturnKeepsTheMargin)
+{
+	const float without_margin = _navigator.geofence_avoidance_margin();
+	setParam("GF_PRE_MARGIN", 100.f);
+	EXPECT_FLOAT_EQ(_navigator.geofence_avoidance_margin(), without_margin + 100.f);
+
+	setVehicle(vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	EXPECT_FLOAT_EQ(_navigator.geofence_avoidance_margin(), _navigator.get_default_loiter_rad() + 100.f);
+}
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 // A command without a position or an altitude keeps the vehicle's own, also outside the pre-geofence.
 TEST_F(PreGeofenceBreachTest, TargetsKeepTheVehiclePositionAndAltitude)
@@ -255,6 +282,7 @@ TEST_F(PreGeofenceBreachTest, TargetsKeepTheVehiclePositionAndAltitude)
 enum class Source {
 	HomeDistance, // GF_PRE_MAX_HDIST 400 m inside GF_MAX_HOR_DIST 500 m
 	HomeAltitude, // GF_PRE_MAX_VDIST 80 m below GF_MAX_VER_DIST 100 m
+	Margin, // GF_PRE_MARGIN 100 m inside a 1000 m square plan fence
 };
 
 static std::ostream &operator<<(std::ostream &os, Source source)
@@ -263,6 +291,8 @@ static std::ostream &operator<<(std::ostream &os, Source source)
 	case Source::HomeDistance: return os << "HomeDistance";
 
 	case Source::HomeAltitude: return os << "HomeAltitude";
+
+	case Source::Margin: return os << "Margin";
 	}
 
 	return os;
@@ -285,6 +315,11 @@ protected:
 			setParam("GF_MAX_VER_DIST", 100.f);
 			setParam("GF_PRE_MAX_VDIST", 80.f + extra);
 			break;
+
+		case Source::Margin:
+			ASSERT_TRUE(loadFence(inclusionSquare()));
+			setParam("GF_PRE_MARGIN", 100.f - extra);
+			break;
 		}
 	}
 
@@ -292,6 +327,7 @@ protected:
 	{
 		setParam("GF_PRE_MAX_HDIST", 0.f);
 		setParam("GF_PRE_MAX_VDIST", 0.f);
+		setParam("GF_PRE_MARGIN", 0.f);
 	}
 
 	// Inside both, outside the pre-geofence only, and outside both.
@@ -312,10 +348,16 @@ protected:
 	{
 		switch (GetParam()) {
 		case Source::HomeDistance:
-			return result.pre_geofence_max_dist_triggered && !result.pre_geofence_max_alt_triggered;
+			return result.pre_geofence_max_dist_triggered && !result.pre_geofence_max_alt_triggered
+			       && !result.pre_geofence_custom_fence_triggered;
 
 		case Source::HomeAltitude:
-			return result.pre_geofence_max_alt_triggered && !result.pre_geofence_max_dist_triggered;
+			return result.pre_geofence_max_alt_triggered && !result.pre_geofence_max_dist_triggered
+			       && !result.pre_geofence_custom_fence_triggered;
+
+		case Source::Margin:
+			return result.pre_geofence_custom_fence_triggered && !result.pre_geofence_max_dist_triggered
+			       && !result.pre_geofence_max_alt_triggered;
 		}
 
 		return false;
@@ -557,7 +599,7 @@ TEST_P(PreGeofenceSourceTest, EnablingAgainDoesNotRestoreAReleasedBreach)
 
 	// The new limit contains the vehicle.
 	setParam("GF_PRE_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_LAND));
-	enablePreGeofence(GetParam() == Source::HomeDistance ? 50.f : 15.f);
+	enablePreGeofence(GetParam() == Source::HomeAltitude ? 15.f : 50.f);
 	const geofence_result_s result = checkAt(between());
 	EXPECT_EQ(result.pre_geofence_action, geofence_result_s::GF_ACTION_LAND);
 	EXPECT_FALSE(preGeofenceBreached(result));
@@ -584,5 +626,6 @@ TEST_P(PreGeofenceSourceTest, CommandedTargetsMustStayInside)
 	EXPECT_FALSE(targetAllowed(between()));
 }
 
-INSTANTIATE_TEST_SUITE_P(Sources, PreGeofenceSourceTest, ::testing::Values(Source::HomeDistance, Source::HomeAltitude),
+INSTANTIATE_TEST_SUITE_P(Sources, PreGeofenceSourceTest,
+			 ::testing::Values(Source::HomeDistance, Source::HomeAltitude, Source::Margin),
 			 ::testing::PrintToStringParamName());

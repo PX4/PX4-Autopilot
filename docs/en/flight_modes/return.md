@@ -269,6 +269,8 @@ The figures below show an exclusion zone and an inclusion zone.
 - The safety margin in the [Shortest-path Calculation](#shortest-path-calculation) above may not be appropriate for all vehicles.
   It is derived from [NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_LOITER_RAD) for fixed-wing and VTOL vehicles, and from twice [NAV_ACC_RAD](../advanced_config/parameter_reference.md#NAV_ACC_RAD) for multicopters.
   It is not directly configurable.
+- A [pre-geofence margin](../config/safety.md#pre-geofence) ([GF_PRE_MARGIN](../advanced_config/parameter_reference.md#GF_PRE_MARGIN)) is added to the safety margin, so that the route does not trigger the pre-geofence action.
+  A wide margin makes it more likely that a region is cut off, or that the destination lies within the margin: keep Home and the rally points well clear of it, because the autopilot then falls back to a direct path.
 
 ### Geofence Awareness Messages
 

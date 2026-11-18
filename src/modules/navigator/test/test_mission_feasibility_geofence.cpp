@@ -658,6 +658,16 @@ protected:
 		return true;
 	}
 
+	bool setMargin(float margin)
+	{
+		if (param_set(param_find("GF_PRE_MARGIN"), &margin) != PX4_OK) {
+			return false;
+		}
+
+		_navigator.updateParams();
+		return true;
+	}
+
 	mission_item_s loiter(float east, float radius, uint16_t command = NAV_CMD_LOITER_UNLIMITED) const
 	{
 		mission_item_s item = waypoint({0.f, east});
@@ -770,6 +780,39 @@ TEST_F(MissionGeofenceLoiterTest, CircleMustFitTheTighterHomeDistanceLimit)
 	setLimits(400.f, 500.f);
 	EXPECT_TRUE(missionFeasible({loiter(330.f, 60.f)}));
 	EXPECT_FALSE(missionFeasible({loiter(350.f, 60.f)}));
+}
+
+TEST_F(MissionGeofenceLoiterTest, PreGeofenceMarginAppliesToPositionsAndPaths)
+{
+	ASSERT_TRUE(configureVehicle(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING));
+	ASSERT_TRUE(loadFence(inclusionSquare()));
+
+	// The middle waypoint is 50 m inside the eastern edge.
+	const std::vector<mission_item_s> items{waypoint({0.f, 800.f}), waypoint({0.f, 950.f}), waypoint({0.f, 800.f})};
+	EXPECT_TRUE(missionFeasible(items));
+
+	ASSERT_TRUE(setMargin(40.f));
+	EXPECT_TRUE(missionFeasible(items));
+
+	ASSERT_TRUE(setMargin(60.f));
+	EXPECT_FALSE(missionFeasible(items));
+	expectPathViolation(2);
+
+	// A first position within the margin fails the point check.
+	EXPECT_FALSE(missionFeasible({waypoint({0.f, 950.f})}));
+	EXPECT_TRUE(waypointEvent(events::ID("navigator_mis_geofence_violation"), 1));
+}
+
+TEST_F(MissionGeofenceLoiterTest, PreGeofenceMarginAppliesToLoiterCircles)
+{
+	ASSERT_TRUE(configureVehicle());
+	ASSERT_TRUE(setMargin(60.f));
+	ASSERT_TRUE(loadFence(inclusionSquare()));
+
+	// A 40 m loiter 100 m inside the edge: the vehicle on the circle keeps 60 m.
+	EXPECT_TRUE(missionFeasible({waypoint({0.f, 800.f}), loiter(890.f, 40.f), waypoint({0.f, 800.f})}));
+	EXPECT_FALSE(missionFeasible({waypoint({0.f, 800.f}), loiter(910.f, 40.f), waypoint({0.f, 800.f})}));
+	expectLoiterViolation(2);
 }
 
 TEST_F(MissionGeofenceLoiterTest, NaNDefaultRadiusRejectsTheEndLoiter)

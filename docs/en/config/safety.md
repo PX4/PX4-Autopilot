@@ -256,6 +256,13 @@ A limit that is set to 0 is disabled, and the pre-geofence is off while all of t
 | Pre-geofence action       | [GF_PRE_ACTION](../advanced_config/parameter_reference.md#GF_PRE_ACTION)       | Warning, Hold mode (default), Return mode, or Land mode.                      |
 | Pre-geofence max radius   | [GF_PRE_MAX_HDIST](../advanced_config/parameter_reference.md#GF_PRE_MAX_HDIST) | Horizontal distance from Home. Set it below `GF_MAX_HOR_DIST`. Disabled if 0. |
 | Pre-geofence max altitude | [GF_PRE_MAX_VDIST](../advanced_config/parameter_reference.md#GF_PRE_MAX_VDIST) | Altitude above Home. Set it below `GF_MAX_VER_DIST`. Disabled if 0.           |
+| Pre-geofence margin       | [GF_PRE_MARGIN](../advanced_config/parameter_reference.md#GF_PRE_MARGIN)       | Distance from the polygons and circles of the Geofence Plan. Disabled if 0.   |
+
+The margin applies to every inclusion and exclusion area of the [Geofence Plan](../flying/geofence.md#geofence-plan): the vehicle breaches the pre-geofence once it comes closer to one of them than `GF_PRE_MARGIN`.
+It is a single distance for the whole plan, so there is only one fence to draw and upload.
+The margin has no effect on flight controllers built without geofence path checks, such as `px4_fmu-v2`.
+
+![Top view of a geofence with the pre-geofence at the distance GF_PRE_MARGIN inside it: a fixed-wing vehicle that comes closer to the geofence than the margin holds and loiters there, instead of flying on and breaching the geofence](../../assets/config/safety/pre_geofence_margin.svg)
 
 Leave enough room between the pre-geofence and the geofence for the vehicle to stop or turn around.
 The gap should be at least:
@@ -274,8 +281,11 @@ PX4 does not check the setup:
 - The pre-geofence action should be the milder of the two.
   It has no `None`, because the pre-geofence is disabled through its limits, and no `Terminate`, which is left to the geofence.
 - Keep the Return altitude ([RTL_RETURN_ALT](../advanced_config/parameter_reference.md#RTL_RETURN_ALT)) below `GF_PRE_MAX_VDIST`.
-- A mission that is already uploaded is not checked again when these parameters change.
+- A mission that is already uploaded is not checked again when these parameters change, only the next time Mission mode is activated.
   Upload it again after changing them.
+  A mission that is being flown keeps its result.
+- The pre-geofence never makes a geofence plan invalid.
+  If the vehicle is already outside the pre-geofence when the plan is uploaded or a parameter changes, the action is triggered at once.
 
 :::
 
@@ -295,8 +305,10 @@ When the vehicle breaches the pre-geofence:
 PX4 also keeps planned flight inside the pre-geofence:
 
 - A mission is rejected if one of its positions is outside the pre-geofence.
+  It is also rejected if a leg between positions or a fixed-wing loiter circle comes closer to the plan than the margin.
 - The target of a _Go to location_ ([reposition](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_REPOSITION)) or of an altitude change, and the centre of a fixed-wing orbit or figure-eight, is refused if it lies outside the pre-geofence (unless the action is `Warning`).
   Only the target is checked, not the path to it or the loiter circle around it.
+- [Return mode](../flight_modes/return.md#geofence_awareness) plans its route around the Geofence Plan with the margin added, so that it does not trigger the pre-geofence action.
 
 ## Position Estimation Failsafes
 

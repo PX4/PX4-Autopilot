@@ -363,6 +363,8 @@ bool MissionFeasibilityChecker::addGeofencePath(GeofencePathBatch &batch, const 
 	path.start = start;
 	path.end = end;
 	path.end_radius = end_radius;
+	// The pre-geofence margin triggers GF_PRE_ACTION in flight, so paths and loiter circles keep it too.
+	path.margin = _navigator->get_geofence().getPreGeofenceMargin();
 	batch.is_jump[batch.count] = is_jump;
 	batch.mission_indices[batch.count++] = static_cast<uint16_t>(mission_index);
 	return batch.count < kGeofencePathBatchSize || checkGeofencePathBatch(batch);
