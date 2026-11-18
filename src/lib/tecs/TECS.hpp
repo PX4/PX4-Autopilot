@@ -463,13 +463,39 @@ private:
 	SpecificEnergyRates _updateOuterLoops(const Setpoint &setpoint, const Input &input, const STERateLimit &limit,
 					      const Param &param, const Flag &flag);
 	/**
+	 * @brief Airspeed error gain, the inverse airspeed time constant, clamped to at least the altitude error gain.
+	 *
+	 * A slower airspeed than total energy loop would pitch up on an acceleration demand to hold back the throttle.
+	 *
+	 * @param param is the control parameters.
+	 * @return airspeed error gain in [1/s].
+	 */
+	static float _airspeedErrorGain(const Param &param) { return math::max(param.airspeed_error_gain, param.altitude_error_gain); }
+	/**
 	 * @brief Calculate specific energy rates.
+	 *
+	 * The setpoints are formed in the eigenbasis (SPE, SEB) of the energy error dynamics: a potential energy error
+	 * decays with the altitude time constant without exciting an airspeed error, and an exchange error (SEB) decays
+	 * with the airspeed time constant without changing the total energy.
 	 *
 	 * @param control_setpoint is the controlled altitude and airspeed rate setpoints.
 	 * @param input is the current input measurement of the UAS.
+	 * @param param is the control parameters.
 	 * @return Specific energy rates in [m²/s³].
 	 */
-	SpecificEnergyRates _calcSpecificEnergyRates(const OuterLoopSetpoints &control_setpoint, const Input &input) const;
+	SpecificEnergyRates _calcSpecificEnergyRates(const OuterLoopSetpoints &control_setpoint, const Input &input,
+			const Param &param) const;
+	/**
+	 * @brief Potential energy rate setpoint coupled to a kinetic energy rate setpoint in the (SPE, SEB) eigenbasis.
+	 *
+	 * SPE' = e_SPE / tau_h + (1 / tau_h - 1 / tau_v) e_SKE = g h'_sp + (tau_v / tau_h - 1) SKE'_sp
+	 *
+	 * @param altitude_rate_setpoint is the altitude rate setpoint of the altitude loop in [m/s].
+	 * @param ske_rate_setpoint is the kinetic energy rate setpoint e_SKE / tau_v in [m²/s³].
+	 * @param param is the control parameters.
+	 * @return specific potential energy rate setpoint in [m²/s³].
+	 */
+	static float _calcSpeRateSetpoint(float altitude_rate_setpoint, float ske_rate_setpoint, const Param &param);
 	/**
 	 * @brief Detect underspeed.
 	 *
@@ -494,11 +520,26 @@ private:
 	 * @param limit is the specific total energy rate limits in [m²/s³].
 	 * @param param is the control parameters.
 	 * @param flag is the control flags.
-	 * @param weight is the weighting use of the potential and kinetic energy.
 	 * @return specific kinetic energy rate setpoint in [m²/s³].
 	 */
 	float _calcPitchControlSkeRateSetpoint(const Setpoint &setpoint, const Input &input, const STERateLimit &limit,
-					       const Param &param, const Flag &flag, const SpecificEnergyWeighting &weight) const;
+					       const Param &param, const Flag &flag) const;
+	/**
+	 * @brief Whether the vehicle glides without any throttle: speed weight 2 and no throttle range.
+	 *
+	 * @param param is the control parameters.
+	 * @return true for a glider.
+	 */
+	static bool _isGlider(const Param &param);
+	/**
+	 * @brief Ratio by which the trim cap of the pitch loop's airspeed setpoint is faded out.
+	 *
+	 * Only fast descend and underspeed fade it out, where the throttle is not relied upon, and a glider has no cap.
+	 *
+	 * @param param is the control parameters.
+	 * @return fade ratio, 0 for the full cap, 1 for none [-].
+	 */
+	float _trimCapFadeRatio(const Param &param) const;
 	/**
 	 * @brief Specific energy rates as seen by the pitch loop.
 	 *
@@ -512,12 +553,11 @@ private:
 	 * @param specific_energy_rates is the specific energy rates of the outer loops in [m²/s³].
 	 * @param param is the control parameters.
 	 * @param flag is the control flags.
-	 * @param weight is the weighting use of the potential and kinetic energy.
 	 * @return specific energy rates for the pitch loop in [m²/s³].
 	 */
 	SpecificEnergyRates _calcPitchControlEnergyRates(const Setpoint &setpoint, const Input &input,
 			const STERateLimit &limit, const SpecificEnergyRates &specific_energy_rates, const Param &param,
-			const Flag &flag, const SpecificEnergyWeighting &weight) const;
+			const Flag &flag) const;
 	/**
 	 * @brief Calculate pitch control.
 	 *

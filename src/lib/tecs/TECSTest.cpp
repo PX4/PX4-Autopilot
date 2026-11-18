@@ -914,11 +914,17 @@ namespace
 {
 
 // Pitch setpoint after holding altitude for a while with the given airspeed, airspeed setpoint and airspeed rate.
-float pitchSetpointAtSpeed(float tas, float tas_setpoint, float pitch_speed_weight, float tas_rate = 0.f)
+float pitchSetpointAtSpeed(float tas, float tas_setpoint, float pitch_speed_weight, float tas_rate = 0.f,
+			   bool no_throttle_range = false)
 {
 	TECSControl control;
 	TECSControl::Param param = makeParam();
 	param.pitch_speed_weight = pitch_speed_weight;
+
+	if (no_throttle_range) {
+		param.throttle_max = param.throttle_min;
+	}
+
 	const TECSControl::Flag flag = makeFlag();
 
 	TECSControl::Input input = makeInput();
@@ -1006,11 +1012,12 @@ TEST(TECSControlTest, PitchDownToAccelerateBelowTrim)
 	EXPECT_NEAR(pitch_setpoint_above_trim, pitch_setpoint_at_trim, 1e-4f);
 }
 
-// With full speed priority (e.g. gliders), pitch is the only way to track the airspeed setpoint.
+// A glider (full speed priority, no throttle range) has no throttle: pitch is the only way to track the airspeed
+// setpoint, also above trim.
 TEST(TECSControlTest, PitchDownToAccelerateAboveTrimWithSpeedPriority)
 {
-	// WHEN flying above trim airspeed with a higher airspeed setpoint and full speed priority
-	const float pitch = pitchSetpointAtSpeed(20.f, 30.f, 2.f);
+	// WHEN a glider flies above trim airspeed with a higher airspeed setpoint
+	const float pitch = pitchSetpointAtSpeed(20.f, 30.f, 2.f, 0.f, true);
 
 	// THEN the pitch loop pitches down to accelerate
 	EXPECT_LT(pitch, 0.f);
@@ -1049,8 +1056,9 @@ TEST(TECSControlTest, PitchUpOnOverspeed)
 	EXPECT_GT(pitch, 0.f);
 }
 
-// Between trim airspeed and the setpoint, a speed weight between 1 and 2 must fade the pitch loop's kinetic setpoint
-// and estimate equally: accelerating exactly as commanded while holding altitude leaves no energy balance error.
+// Between trim airspeed and the setpoint the pitch loop's kinetic setpoint and estimate are removed equally, also with
+// a speed weight above 1, which does not fade the trim cap: accelerating exactly as commanded while holding altitude
+// leaves no energy balance error.
 TEST(TECSControlTest, KineticSetpointAndEstimateFadeEquallyAboveTrim)
 {
 	TECSControl::Param param = makeParam();
@@ -1063,7 +1071,8 @@ TEST(TECSControlTest, KineticSetpointAndEstimateFadeEquallyAboveTrim)
 
 	TECSControl::Input input = makeInput();
 	input.tas = 17.f; // between trim (15 m/s) and the setpoint
-	input.tas_rate = (setpoint.tas_setpoint - input.tas) * param.airspeed_error_gain; // the commanded acceleration
+	// The commanded acceleration, with the airspeed time constant clamped to at most the altitude one as in TECS
+	input.tas_rate = (setpoint.tas_setpoint - input.tas) * math::max(param.airspeed_error_gain, param.altitude_error_gain);
 
 	TECSControl control;
 	control.initialize(setpoint, input, param, flag);
