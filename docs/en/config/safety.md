@@ -316,6 +316,8 @@ Loss of a single GPS when none are required is handled by other GPS health check
 When `COM_GNSSLOSS_ACT` is set to `Warning`, both triggers produce a warning only and never block arming.
 When set to `Warning, block arming`, both triggers block arming and only produce a warning in flight.
 When set to `Return`, `Land`, or `Terminate`, both triggers block arming and fire the configured in-flight failsafe action (subject to the `SYS_HAS_NUM_GNSS` condition above).
+If the failure clears during the [COM_FAIL_ACT_T](#COM_FAIL_ACT_T) Hold, `Return` and `Land` are skipped and the vehicle continues in its previous mode (e.g. the mission resumes).
+Once `Return` or `Land` has started, it continues even if the GNSS failure clears.
 
 | Parameter                                                                                                   | Description                                                                                                                                                                               |
 | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
