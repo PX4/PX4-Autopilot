@@ -260,7 +260,8 @@ A limit that is set to 0 is disabled, and the pre-geofence is off while all of t
 
 The margin applies to every inclusion and exclusion area of the [Geofence Plan](../flying/geofence.md#geofence-plan): the vehicle breaches the pre-geofence once it comes closer to one of them than `GF_PRE_MARGIN`.
 It is a single distance for the whole plan, so there is only one fence to draw and upload.
-The margin has no effect on flight controllers built without geofence path checks, such as `px4_fmu-v2`.
+`GF_PRE_MARGIN` is only available on flight controllers that [check the mission flight path](#mission-feasibility-checks) against the geofence (not on `px4_fmu-v2`, for example).
+On the others, draw the geofence with the gap below already taken off and set its action to `Hold`.
 
 ![Top view of a geofence with the pre-geofence at the distance GF_PRE_MARGIN inside it: a fixed-wing vehicle that comes closer to the geofence than the margin holds and loiters there, instead of flying on and breaching the geofence](../../assets/config/safety/pre_geofence_margin.svg)
 

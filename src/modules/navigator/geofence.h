@@ -174,7 +174,7 @@ public:
 
 	/**
 	 * GF_PRE_MARGIN [m], the distance the pre-geofence keeps from the polygons and circles. Zero if disabled.
-	 * Boards built without geofence path checks leave the margin out as well, to save flash.
+	 * The margin is checked with the path checks, so boards built without them have no such parameter.
 	 */
 	float getPreGeofenceMargin() const
 	{
@@ -388,7 +388,9 @@ private:
 		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist,
 		(ParamInt<px4::params::GF_PRE_ACTION>)     _param_gf_pre_action,
 		(ParamFloat<px4::params::GF_PRE_MAX_HDIST>) _param_gf_pre_max_hdist,
-		(ParamFloat<px4::params::GF_PRE_MAX_VDIST>) _param_gf_pre_max_vdist,
-		(ParamFloat<px4::params::GF_PRE_MARGIN>)   _param_gf_pre_margin
+#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
+		(ParamFloat<px4::params::GF_PRE_MARGIN>)   _param_gf_pre_margin,
+#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
+		(ParamFloat<px4::params::GF_PRE_MAX_VDIST>) _param_gf_pre_max_vdist
 	)
 };
