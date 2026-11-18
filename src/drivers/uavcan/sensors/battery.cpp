@@ -331,6 +331,11 @@ void
 UavcanBatteryBridge::filterData(const uavcan::ReceivedDataStructure<uavcan::equipment::power::BatteryInfo> &msg,
 				uint8_t instance)
 {
+	// Skip a non-finite voltage sample
+	if (!PX4_ISFINITE(msg.voltage)) {
+		return;
+	}
+
 	_battery[instance]->setConnected(true);
 	_battery[instance]->updateVoltage(msg.voltage);
 	_battery[instance]->updateCurrent(msg.current);

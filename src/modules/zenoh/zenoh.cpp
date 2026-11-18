@@ -325,10 +325,10 @@ int ZENOH::setupSession()
 			sleep(5); // Wait 5 seconds when doing a retry
 		}
 
-	} while ((ret = z_open(&_s, z_move(config), NULL)) < 0);
+	} while ((ret = z_open(&_s, z_move(config), nullptr)) < 0);
 
 	// Start read and lease tasks for zenoh-pico
-	if (zp_start_read_task(z_loan_mut(_s), NULL) < 0 || zp_start_lease_task(z_loan_mut(_s), NULL) < 0) {
+	if (zp_start_read_task(z_loan_mut(_s), nullptr) < 0 || zp_start_lease_task(z_loan_mut(_s), nullptr) < 0) {
 		PX4_ERR("Unable to start read and lease tasks");
 		ret = -EINVAL;
 	}
@@ -364,7 +364,7 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 
 		z_owned_liveliness_token_t token;
 
-		if (z_liveliness_declare_token(z_loan(_s), &token, z_loan(ke), NULL) < 0) {
+		if (z_liveliness_declare_token(z_loan(_s), &token, z_loan(ke), nullptr) < 0) {
 			PX4_ERR("Unable to create liveliness token!\n");
 			return -1;
 		}
@@ -373,8 +373,12 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 #endif
 
 #ifdef Z_SUBSCRIBE
-	_zenoh_subscribers = (Zenoh_Subscriber **)malloc(sizeof(Zenoh_Subscriber *)*_sub_count);
-	memset(_zenoh_subscribers, 0x0, sizeof(Zenoh_Subscriber *)*_sub_count);
+	_zenoh_subscribers = (Zenoh_Subscriber **)calloc(_sub_count, sizeof(Zenoh_Subscriber *));
+
+	if (_sub_count > 0 && !_zenoh_subscribers) {
+		PX4_ERR("Failed to allocate subscribers");
+		return -1;
+	}
 
 	if (_zenoh_subscribers) {
 		char topic[TOPIC_INFO_SIZE];
@@ -386,7 +390,7 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 				_zenoh_subscribers[i] = genSubscriber(type, instance_no);
 				const uint8_t *rihs_hash = getRIHS01_Hash(type);
 
-				if (rihs_hash != NULL && _zenoh_subscribers[i] != 0 &&
+				if (rihs_hash != nullptr && _zenoh_subscribers[i] != nullptr &&
 				    generate_rmw_zenoh_topic_keyexpr(topic, rihs_hash, type, keyexpr) > 0) {
 					_zenoh_subscribers[i]->declare_subscriber(_s, keyexpr);
 #ifdef CONFIG_ZENOH_RMW_LIVELINESS
@@ -401,7 +405,7 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 
 						z_owned_liveliness_token_t token;
 
-						if (z_liveliness_declare_token(z_loan(_s), &token, z_loan(ke), NULL) < 0) {
+						if (z_liveliness_declare_token(z_loan(_s), &token, z_loan(ke), nullptr) < 0) {
 							PX4_ERR("Unable to create liveliness token!\n");
 							return -1;
 						}
@@ -410,12 +414,12 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 #endif
 
 				} else {
-					_zenoh_subscribers[i] = NULL;
+					_zenoh_subscribers[i] = nullptr;
 					PX4_ERR("Could not create a subscriber for type %s", type);
 				}
 
 			} else {
-				_zenoh_subscribers[i] = NULL;
+				_zenoh_subscribers[i] = nullptr;
 				PX4_ERR("Error parsing publisher config at index %i", i);
 			}
 		}
@@ -430,8 +434,12 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 #endif
 
 #ifdef Z_PUBLISH
-	_zenoh_publishers = (uORB_Zenoh_Publisher **)malloc(_pub_count * sizeof(uORB_Zenoh_Publisher *));
-	memset(_zenoh_publishers, 0x0, _pub_count * sizeof(uORB_Zenoh_Publisher *));
+	_zenoh_publishers = (uORB_Zenoh_Publisher **)calloc(_pub_count, sizeof(uORB_Zenoh_Publisher *));
+
+	if (_pub_count > 0 && !_zenoh_publishers) {
+		PX4_ERR("Failed to allocate publishers");
+		return -1;
+	}
 
 	if (_zenoh_publishers) {
 		char topic[TOPIC_INFO_SIZE];
@@ -462,7 +470,7 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 				_zenoh_publishers[i] = genPublisher(type, instance);
 				const uint8_t *rihs_hash = getRIHS01_Hash(type);
 
-				if (rihs_hash && _zenoh_publishers[i] != 0 &&
+				if (rihs_hash && _zenoh_publishers[i] != nullptr &&
 				    generate_rmw_zenoh_topic_keyexpr(topic, rihs_hash, type, keyexpr) > 0) {
 #ifdef CONFIG_ZENOH_PUB_OPTION_OVERRIDE
 					_zenoh_publishers[i]->declare_publisher(_s, keyexpr, (uint8_t *)&_px4_guid, &pub_opts);
@@ -482,7 +490,7 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 
 						z_owned_liveliness_token_t token;
 
-						if (z_liveliness_declare_token(z_loan(_s), &token, z_loan(ke), NULL) < 0) {
+						if (z_liveliness_declare_token(z_loan(_s), &token, z_loan(ke), nullptr) < 0) {
 							PX4_ERR("Unable to create liveliness token!\n");
 							return -1;
 						}
@@ -491,12 +499,12 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 #endif
 
 				} else {
-					_zenoh_publishers[i] = NULL;
+					_zenoh_publishers[i] = nullptr;
 					PX4_ERR("Could not create a publisher for type %s", type);
 				}
 
 			} else {
-				_zenoh_publishers[i] = NULL;
+				_zenoh_publishers[i] = nullptr;
 				PX4_ERR("Error parsing publisher config at index %i", i);
 			}
 		}

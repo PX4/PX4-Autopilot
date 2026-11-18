@@ -680,7 +680,7 @@ static void setup_serial_port(int baud, struct g_mod_t *g_mod, struct cli_args_t
 	tcsetattr(g_mod->_fd, TCSANOW, &newtio);
 
 	/* enable/disable rs485 direction control */
-	if (ioctl(g_mod->_fd, TIOCGRS485, (int) &rs485) < 0) {
+	if (ioctl(g_mod->_fd, TIOCGRS485, (unsigned long)(uintptr_t) &rs485) < 0) {
 		if (g_cl->_rs485_delay >= 0) {
 			/* error could be because hardware is missing rs485 support so only print when actually trying to activate it */
 			perror("Error getting RS-485 mode");
@@ -691,7 +691,7 @@ static void setup_serial_port(int baud, struct g_mod_t *g_mod, struct cli_args_t
 		rs485.delay_rts_after_send = g_cl->_rs485_delay;
 		rs485.delay_rts_before_send = 0;
 
-		if (ioctl(g_mod->_fd, TIOCSRS485, (int) &rs485) < 0) {
+		if (ioctl(g_mod->_fd, TIOCSRS485, (unsigned long)(uintptr_t) &rs485) < 0) {
 			perror("Error setting RS-485 mode");
 		}
 
@@ -700,7 +700,7 @@ static void setup_serial_port(int baud, struct g_mod_t *g_mod, struct cli_args_t
 		rs485.delay_rts_after_send = 0;
 		rs485.delay_rts_before_send = 0;
 
-		if (ioctl(g_mod->_fd, TIOCSRS485, (int) &rs485) < 0) {
+		if (ioctl(g_mod->_fd, TIOCSRS485, (unsigned long)(uintptr_t) &rs485) < 0) {
 			perror("Error setting RS-232 mode");
 		}
 	}

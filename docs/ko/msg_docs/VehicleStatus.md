@@ -39,7 +39,7 @@ Encodes the system state of the vehicle published by commander.
 | <a id="fld_in_transition_mode"></a>in_transition_mode                                                               | `bool`   |                                                                  |            | True if VTOL is doing a transition                                                                                                                                          |
 | <a id="fld_in_transition_to_fw"></a>in_transition_to_fw                                        | `bool`   |                                                                  |            | True if VTOL is doing a transition from MC to FW                                                                                                                            |
 | <a id="fld_system_type"></a>system_type                                                                                                  | `uint8`  |                                                                  |            | system type, contains mavlink MAV_TYPE                                                                                                                 |
-| <a id="fld_system_id"></a>system_id                                                                                                      | `uint8`  |                                                                  |            | system id, contains MAVLink's system ID field                                                                                                                               |
+| <a id="fld_system_id"></a>system_id                                                                                                      | `uint32` |                                                                  |            | system id, contains MAVLink's system ID field                                                                                                                               |
 | <a id="fld_component_id"></a>component_id                                                                                                | `uint8`  |                                                                  |            | subsystem / component id, contains MAVLink's component ID field                                                                                                             |
 | <a id="fld_safety_button_available"></a>safety_button_available                                                     | `bool`   |                                                                  |            | Set to true if a safety button is connected                                                                                                                                 |
 | <a id="fld_safety_off"></a>safety_off                                                                                                    | `bool`   |                                                                  |            | Set to true if safety is off                                                                                                                                                |
@@ -58,7 +58,7 @@ Encodes the system state of the vehicle published by commander.
 
 | 명칭                                                                                                                                                                          | 형식       | Value | 설명                                                                                    |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ----- | ------------------------------------------------------------------------------------- |
-| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                                                                                          | `uint32` | 4     |                                                                                       |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                                                                                          | `uint32` | 5     |                                                                                       |
 | <a id="#ARMING_STATE_DISARMED"></a> ARMING_STATE_DISARMED                                                                         | `uint8`  | 1     |                                                                                       |
 | <a id="#ARMING_STATE_ARMED"></a> ARMING_STATE_ARMED                                                                               | `uint8`  | 2     |                                                                                       |
 | <a id="#ARM_DISARM_REASON_STICK_GESTURE"></a> ARM_DISARM_REASON_STICK_GESTURE           | `uint8`  | 1     |                                                                                       |
@@ -123,7 +123,7 @@ Click here to see original file
 ```c
 # Encodes the system state of the vehicle published by commander
 
-uint32 MESSAGE_VERSION = 4
+uint32 MESSAGE_VERSION = 5
 
 uint64 timestamp # time since system start (microseconds)
 
@@ -225,7 +225,7 @@ bool in_transition_to_fw # True if VTOL is doing a transition from MC to FW
 
 # MAVLink identification
 uint8 system_type  # system type, contains mavlink MAV_TYPE
-uint8 system_id	   # system id, contains MAVLink's system ID field
+uint32 system_id	   # system id, contains MAVLink's system ID field
 uint8 component_id # subsystem / component id, contains MAVLink's component ID field
 
 bool safety_button_available # Set to true if a safety button is connected

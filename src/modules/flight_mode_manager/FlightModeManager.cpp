@@ -428,19 +428,6 @@ FlightTaskError FlightModeManager::switchTask(int new_task_index)
 	return FlightTaskError::InvalidTask;
 }
 
-const char *FlightModeManager::errorToString(const FlightTaskError error)
-{
-	switch (error) {
-	case FlightTaskError::NoError: return "No Error";
-
-	case FlightTaskError::InvalidTask: return "Invalid Task";
-
-	case FlightTaskError::ActivationFailed: return "Activation Failed";
-	}
-
-	return "This error is not mapped to a string or is unknown.";
-}
-
 int FlightModeManager::task_spawn(int argc, char *argv[])
 {
 	FlightModeManager *instance = new FlightModeManager();

@@ -38,6 +38,9 @@
 
 #include <gtest/gtest.h>
 #include "RoverControl.hpp"
+#include <drivers/drv_hrt.h>
+
+using namespace time_literals;
 
 TEST(calcWaypointTransitionAngle, invalidInputs)
 {
@@ -112,4 +115,187 @@ TEST(calcWaypointTransitionAngle, validInputs)
 	next_wp_ned = Vector2f(10.f, 0.f);
 	const float angle6 = RoverControl::calcWaypointTransitionAngle(prev_wp_ned, curr_wp_ned, next_wp_ned);
 	EXPECT_FALSE(PX4_ISFINITE(angle6));
+}
+
+static vehicle_local_position_s localPosition(const float vx, const float vy, const float heading,
+		const hrt_abstime timestamp)
+{
+	vehicle_local_position_s vehicle_local_position{};
+	vehicle_local_position.timestamp = timestamp;
+	vehicle_local_position.v_xy_valid = true;
+	vehicle_local_position.vx = vx;
+	vehicle_local_position.vy = vy;
+	vehicle_local_position.heading = heading;
+	vehicle_local_position.evh = 0.1f;
+	return vehicle_local_position;
+}
+
+TEST(DriftAngleEstimator, zeroUntilEstimated)
+{
+	RoverControl::DriftAngleEstimator drift_angle_estimator;
+	EXPECT_FLOAT_EQ(drift_angle_estimator.getDriftAngle(), 0.f);
+
+	// Too slow, backwards, without velocity or without heading the velocity direction says nothing about the drift
+	drift_angle_estimator.update(localPosition(0.3f, 0.1f, 0.f, 1_s));
+	drift_angle_estimator.update(localPosition(-2.f, 0.5f, 0.f, 2_s));
+	vehicle_local_position_s no_velocity = localPosition(2.f, 0.5f, 0.f, 3_s);
+	no_velocity.v_xy_valid = false;
+	drift_angle_estimator.update(no_velocity);
+	drift_angle_estimator.update(localPosition(2.f, 0.5f, NAN, 4_s));
+	EXPECT_FLOAT_EQ(drift_angle_estimator.getDriftAngle(), 0.f);
+
+	// Forward speed below the velocity uncertainty
+	vehicle_local_position_s uncertain = localPosition(2.f, 0.5f, 0.f, 5_s);
+	uncertain.evh = 1.f;
+	drift_angle_estimator.update(uncertain);
+	EXPECT_FLOAT_EQ(drift_angle_estimator.getDriftAngle(), 0.f);
+}
+
+TEST(DriftAngleEstimator, angleFromHeadingToCourse)
+{
+	RoverControl::DriftAngleEstimator drift_angle_estimator;
+
+	// Heading north, moving north with a drift to the east: the course is to the right of the heading
+	drift_angle_estimator.update(localPosition(2.f, 0.2f, 0.f, 1_s));
+	EXPECT_NEAR(drift_angle_estimator.getDriftAngle(), atan2f(0.2f, 2.f), 1e-5f);
+
+	// The same drift relative to a heading east
+	RoverControl::DriftAngleEstimator rotated;
+	rotated.update(localPosition(-0.2f, 2.f, M_PI_2_F, 1_s));
+	EXPECT_NEAR(rotated.getDriftAngle(), atan2f(0.2f, 2.f), 1e-5f);
+
+	// Limited
+	RoverControl::DriftAngleEstimator limited;
+	limited.update(localPosition(1.f, 5.f, 0.f, 1_s));
+	EXPECT_FLOAT_EQ(limited.getDriftAngle(), RoverControl::DriftAngleEstimator::MAX_DRIFT_ANGLE);
+}
+
+TEST(DriftAngleEstimator, filteredAndReset)
+{
+	RoverControl::DriftAngleEstimator drift_angle_estimator;
+	drift_angle_estimator.update(localPosition(2.f, 0.f, 0.f, 1_s));
+	EXPECT_FLOAT_EQ(drift_angle_estimator.getDriftAngle(), 0.f);
+
+	// A new drift is approached, not jumped to
+	hrt_abstime timestamp = 1_s;
+
+	for (int i = 0; i < 10; i++) {
+		timestamp += 10_ms;
+		drift_angle_estimator.update(localPosition(2.f, 0.4f, 0.f, timestamp));
+	}
+
+	const float drift_angle = atan2f(0.4f, 2.f);
+	EXPECT_GT(drift_angle_estimator.getDriftAngle(), 0.f);
+	EXPECT_LT(drift_angle_estimator.getDriftAngle(), drift_angle);
+
+	for (int i = 0; i < 1000; i++) {
+		timestamp += 10_ms;
+		drift_angle_estimator.update(localPosition(2.f, 0.4f, 0.f, timestamp));
+	}
+
+	EXPECT_NEAR(drift_angle_estimator.getDriftAngle(), drift_angle, 1e-3f);
+
+	drift_angle_estimator.reset();
+	EXPECT_FLOAT_EQ(drift_angle_estimator.getDriftAngle(), 0.f);
+}
+
+TEST(mapSticks, mappings)
+{
+	manual_control_setpoint_s manual_control_setpoint{};
+	manual_control_setpoint.throttle = 0.1f;
+	manual_control_setpoint.yaw = 0.2f;
+	manual_control_setpoint.pitch = 0.3f;
+	manual_control_setpoint.roll = 0.4f;
+
+	const auto expectSticks = [&](int32_t stick_map, float forward, float lateral, float yaw) {
+		const RoverControl::ManualSticks sticks = RoverControl::mapSticks(manual_control_setpoint, stick_map);
+		EXPECT_FLOAT_EQ(sticks.forward, forward);
+		EXPECT_FLOAT_EQ(sticks.lateral, lateral);
+		EXPECT_FLOAT_EQ(sticks.yaw, yaw);
+	};
+
+	// Sticks of a mode 2 transmitter: throttle = left vertical, yaw = left horizontal,
+	// pitch = right vertical, roll = right horizontal
+	expectSticks(1, 0.1f, 0.4f, 0.2f); // Left: forward & yaw, right: lateral
+	expectSticks(2, 0.3f, 0.4f, 0.2f); // Left: yaw, right: forward & lateral
+	expectSticks(3, 0.1f, 0.2f, 0.4f); // Left: forward & lateral, right: yaw
+	expectSticks(4, 0.3f, 0.2f, 0.4f); // Left: lateral, right: forward & yaw
+
+	// Out of range values fall back to the default mapping (mode 3)
+	expectSticks(-1, 0.1f, 0.2f, 0.4f);
+	expectSticks(0, 0.1f, 0.2f, 0.4f);
+	expectSticks(5, 0.1f, 0.2f, 0.4f);
+}
+
+TEST(throttleControl, decelerationLimitOnSignChange)
+{
+	// Distinct limits so the applied one can be read from a single step
+	const float max_accel = 1.f; // [m/s^2]
+	const float max_decel = 4.f; // [m/s^2]
+	const float no_limit = -1.f;
+	const float max_thr_spd = 2.f; // [m/s]
+	const float dt = 0.1f; // [s]
+	const float accel_step = max_accel / max_thr_spd * dt;
+	const float decel_step = max_decel / max_thr_spd * dt;
+	SlewRate<float> motor_setpoint;
+
+	const auto step = [&](float throttle_setpoint, float current_motor_setpoint, float accel, float decel) {
+		motor_setpoint.setForcedValue(current_motor_setpoint);
+		return RoverControl::throttleControl(motor_setpoint, throttle_setpoint, current_motor_setpoint, accel, decel,
+						     max_thr_spd, dt);
+	};
+
+	// Full reverse while driving forwards (and vice versa) brakes towards zero first: deceleration limit
+	EXPECT_NEAR(step(-1.f, 0.5f, max_accel, max_decel), 0.5f - decel_step, 1e-6f);
+	EXPECT_NEAR(step(1.f, -0.5f, max_accel, max_decel), -0.5f + decel_step, 1e-6f);
+	EXPECT_NEAR(step(-0.2f, 0.5f, max_accel, max_decel), 0.5f - decel_step, 1e-6f);
+	EXPECT_NEAR(step(-1.f, 0.5f, no_limit, max_decel), 0.5f - decel_step, 1e-6f);
+
+	// Once the sign has changed or from standstill: acceleration limit
+	EXPECT_NEAR(step(-1.f, -0.2f, max_accel, max_decel), -0.2f - accel_step, 1e-6f);
+	EXPECT_NEAR(step(1.f, 0.2f, max_accel, max_decel), 0.2f + accel_step, 1e-6f);
+	EXPECT_NEAR(step(-1.f, 0.f, max_accel, max_decel), -accel_step, 1e-6f);
+
+	// Without a deceleration limit the acceleration limit applies as before
+	EXPECT_NEAR(step(-1.f, 0.5f, max_accel, no_limit), 0.5f - accel_step, 1e-6f);
+}
+
+TEST(speedControl, decelerationLimitOnSignChange)
+{
+	// Distinct limits so the applied one can be read from a single step
+	const float max_accel = 1.f; // [m/s^2]
+	const float max_decel = 4.f; // [m/s^2]
+	const float no_limit = -1.f;
+	const float max_thr_speed = 0.f; // [m/s] No feed forward, only the rate limited speed setpoint is checked
+	const float dt = 0.1f; // [s]
+	SlewRate<float> speed_with_rate_limit;
+	PID pid_speed;
+
+	// One update starting from the rate limited setpoint adjusted_speed
+	const auto step = [&](float speed_setpoint, float vehicle_speed, float adjusted_speed, float accel, float decel) {
+		speed_with_rate_limit.setForcedValue(adjusted_speed);
+		RoverControl::speedControl(speed_with_rate_limit, pid_speed, speed_setpoint, vehicle_speed, accel, decel,
+					   max_thr_speed, dt);
+		return speed_with_rate_limit.getState();
+	};
+
+	// Reverse setpoint while driving forwards (and vice versa) brakes towards zero first: deceleration limit
+	EXPECT_NEAR(step(-1.f, 1.f, 1.f, max_accel, max_decel), 1.f - max_decel * dt, 1e-6f);
+	EXPECT_NEAR(step(1.f, -1.f, -1.f, max_accel, max_decel), -1.f + max_decel * dt, 1e-6f);
+	EXPECT_NEAR(step(-2.f, 1.f, 1.f, max_accel, max_decel), 1.f - max_decel * dt, 1e-6f);
+	EXPECT_NEAR(step(-1.f, 1.f, 1.f, no_limit, max_decel), 1.f - max_decel * dt, 1e-6f);
+
+	// Smaller setpoint of the same sign: deceleration limit
+	EXPECT_NEAR(step(0.1f, 0.5f, 0.5f, max_accel, max_decel), 0.5f - max_decel * dt, 1e-6f);
+
+	// Once the sign has changed or from standstill: acceleration limit
+	EXPECT_NEAR(step(-1.f, -0.5f, -0.5f, max_accel, max_decel), -0.5f - max_accel * dt, 1e-6f);
+	EXPECT_NEAR(step(1.f, 0.5f, 0.5f, max_accel, max_decel), 0.5f + max_accel * dt, 1e-6f);
+	EXPECT_NEAR(step(-1.f, 0.f, 0.f, max_accel, max_decel), -max_accel * dt, 1e-6f);
+
+	// The rate limited setpoint has changed sign while the vehicle speed lags behind: acceleration limit
+	EXPECT_NEAR(step(-1.f, 0.5f, -0.1f, max_accel, max_decel), -0.1f - max_accel * dt, 1e-6f);
+
+	// Without a deceleration limit the acceleration limit applies as before
+	EXPECT_NEAR(step(-1.f, 1.f, 1.f, max_accel, no_limit), 1.f - max_accel * dt, 1e-6f);
 }

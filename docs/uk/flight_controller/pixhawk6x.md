@@ -274,11 +274,6 @@ The pinouts and connector comply with the [Pixhawk Debug Full](../debug/swd_debu
 - [Holybro GPS & RTK Systems](https://holybro.com/collections/gps-rtk-systems)
 - [Power Modules & PDBs](https://holybro.com/collections/power-modules-pdbs)
 
-## Підтримувані платформи / Конструкції
-
-Будь-який мультикоптер / літак / наземна платформа / човен, який може керуватися звичайними RC сервоприводами або сервоприводами Futaba S-Bus.
-The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
-
 ## Подальша інформація
 
 - [Holybro Docs](https://docs.holybro.com/) (Holybro)

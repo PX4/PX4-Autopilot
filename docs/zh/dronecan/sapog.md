@@ -36,7 +36,7 @@ Refer to the [project page](https://github.com/PX4/sapog) to learn more, includi
 
 ## Flight Controller Setup
 
-### Enabling DroneCAN
+### 启用 DroneCAN
 
 Connect the ESCs to the Pixhawk CAN bus. Power up the entire vehicle using a battery or power supply (not just the flight controller over USB) and enable the DroneCAN driver by setting the parameter [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) to '3' to enable both dynamic node ID allocation and DroneCAN ESC output.
 

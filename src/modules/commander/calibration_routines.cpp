@@ -38,8 +38,8 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/defines.h>
-#include <px4_platform_common/events.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/time.h>
 
@@ -54,7 +54,6 @@
 #include <uORB/Publication.hpp>
 #include <uORB/SubscriptionBlocking.hpp>
 #include <uORB/topics/vehicle_acceleration.h>
-#include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
 #include "calibration_routines.h"
@@ -90,6 +89,10 @@ enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub,
 	uORB::SubscriptionBlocking<vehicle_acceleration_s> vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 
 	while (true) {
+		if (calibrate_cancel_check(mavlink_log_pub)) {
+			return ORIENTATION_ERROR;
+		}
+
 		// Yield CPU — updateBlocking() returns immediately when data is
 		// already available, so with high-rate sensors the loop never blocks.
 		px4_usleep(1000);
@@ -225,14 +228,13 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 		bool side_data_collected[detect_orientation_side_count], calibration_from_orientation_worker_t calibration_worker,
 		void *worker_data, bool lenient_still_position)
 {
-	const hrt_abstime calibration_started = hrt_absolute_time();
 	calibrate_return result = calibrate_return_ok;
 
 	unsigned orientation_failures = 0;
 
 	// Rotate through all requested orientation
 	while (true) {
-		if (calibrate_cancel_check(mavlink_log_pub, calibration_started)) {
+		if (calibrate_cancel_check(mavlink_log_pub)) {
 			result = calibrate_return_cancelled;
 			break;
 		}
@@ -273,6 +275,11 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 		calibration_log_info(mavlink_log_pub, "[cal] hold vehicle still on a pending side");
 		px4_usleep(20000);
 		enum detect_orientation_return orient = detect_orientation(mavlink_log_pub, lenient_still_position);
+
+		if (calibrate_cancel_check(mavlink_log_pub)) {
+			result = calibrate_return_cancelled;
+			break;
+		}
 
 		if (orient == ORIENTATION_ERROR) {
 			orientation_failures++;
@@ -322,53 +329,83 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 	return result;
 }
 
-bool calibrate_cancel_check(orb_advert_t *mavlink_log_pub, const hrt_abstime &calibration_started)
+// Commander hands a GCS cancel to the calibration running on the worker thread, which sends the only ack for it
+enum class CancelState : int {
+	Closed,		///< nothing running that can be cancelled
+	Open,		///< a calibration that checks for a cancel is running
+	Requested,	///< a cancel was handed over and not acted on yet
+	Cancelled	///< the calibration stopped and acked the cancel
+};
+
+static px4::atomic_int cancel_state{(int)CancelState::Closed};
+
+// Only written by Commander while Open, only read by the calibration once Requested
+static vehicle_command_s cancel_cmd{};
+
+static void send_cancel_ack(const vehicle_command_s &cmd, uint8_t result)
 {
-	bool ret = false;
+	vehicle_command_ack_s command_ack{};
+	command_ack.command = cmd.command;
+	command_ack.result = result;
+	command_ack.target_system = cmd.source_system;
+	command_ack.target_component = cmd.source_component;
+	command_ack.timestamp = hrt_absolute_time();
 
-	uORB::Subscription vehicle_command_sub{ORB_ID(vehicle_command)};
-	vehicle_command_s cmd;
+	uORB::Publication<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
+	command_ack_pub.publish(command_ack);
+}
 
-	while (vehicle_command_sub.update(&cmd)) {
-		if (cmd.command == vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION) {
-			// only handle commands sent after calibration started from external sources
-			if ((cmd.timestamp > calibration_started) && cmd.from_external) {
+void calibrate_cancel_open()
+{
+	cancel_state.store((int)CancelState::Open);
+}
 
-				vehicle_command_ack_s command_ack{};
+void calibrate_cancel_close()
+{
+	int state = cancel_state.load();
 
-				if ((int)cmd.param1 == 0 &&
-				    (int)cmd.param2 == 0 &&
-				    (int)cmd.param3 == 0 &&
-				    (int)cmd.param4 == 0 &&
-				    (int)cmd.param5 == 0 &&
-				    (int)cmd.param6 == 0) {
+	while (!cancel_state.compare_exchange(&state, (int)CancelState::Closed)) {}
 
-					command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
-					mavlink_log_critical(mavlink_log_pub, CAL_QGC_CANCELLED_MSG);
-					tune_positive(true);
-					ret = true;
+	if (state == (int)CancelState::Requested) {
+		// the calibration finished before it got to the cancel
+		send_cancel_ack(cancel_cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
+	}
+}
 
-				} else {
-					command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
-					mavlink_log_critical(mavlink_log_pub, "command denied during calibration: %" PRIu32 "\t", cmd.command);
-					events::send<uint32_t>(events::ID("commander_cal_cmd_denied"), {events::Log::Error, events::LogInternal::Info},
-							       "Command denied during calibration: {1}", cmd.command);
-					tune_negative(true);
-					ret = false;
-				}
+void calibrate_cancel_request(const vehicle_command_s &cmd)
+{
+	int state = cancel_state.load();
 
-				command_ack.command = cmd.command;
-				command_ack.target_system = cmd.source_system;
-				command_ack.target_component = cmd.source_component;
-				command_ack.timestamp = hrt_absolute_time();
+	if (state == (int)CancelState::Open) {
+		cancel_cmd = cmd;
 
-				uORB::Publication<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
-				command_ack_pub.publish(command_ack);
-
-				return ret;
-			}
+		if (cancel_state.compare_exchange(&state, (int)CancelState::Requested)) {
+			return;
 		}
 	}
 
-	return ret;
+	if (state == (int)CancelState::Closed) {
+		tune_negative(true);
+		send_cancel_ack(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
+
+	} else if (state == (int)CancelState::Cancelled) {
+		// a retry of a cancel already acted on
+		send_cancel_ack(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
+	}
+
+	// a retry while Requested is answered by the ack still to come for the first cancel
+}
+
+bool calibrate_cancel_check(orb_advert_t *mavlink_log_pub)
+{
+	int state = (int)CancelState::Requested;
+
+	if (cancel_state.compare_exchange(&state, (int)CancelState::Cancelled)) {
+		mavlink_log_critical(mavlink_log_pub, CAL_QGC_CANCELLED_MSG);
+		tune_positive(true);
+		send_cancel_ack(cancel_cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
+		return true;
+	}
+
+	return state == (int)CancelState::Cancelled;
 }

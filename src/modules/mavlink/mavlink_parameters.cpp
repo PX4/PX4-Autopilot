@@ -263,15 +263,18 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				} else if (!((set.param_type == MAV_PARAM_TYPE_INT32) || (set.param_type == MAV_PARAM_TYPE_REAL32))) {
 					PX4_ERR("param type unsupported: %s", name);
 					send_error(MAV_PARAM_ERROR_TYPE_UNSUPPORTED, name, -1, msg->sysid, msg->compid);
+					send_param(param);
 
 				} else if (!((param_type(param) == PARAM_TYPE_INT32 && set.param_type == MAV_PARAM_TYPE_INT32) ||
 					     (param_type(param) == PARAM_TYPE_FLOAT && set.param_type == MAV_PARAM_TYPE_REAL32))) {
 					PX4_ERR("param types mismatch param: %s", name);
 					send_error(MAV_PARAM_ERROR_TYPE_MISMATCH, name, -1, msg->sysid, msg->compid);
+					send_param(param);
 
 				} else if (param_is_readonly(param)) {
 					PX4_WARN("param %s is read-only", name);
 					send_error(MAV_PARAM_ERROR_READ_ONLY, name, -1, msg->sysid, msg->compid);
+					send_param(param);
 
 				} else {
 					// According to the mavlink spec we should always acknowledge a write operation.

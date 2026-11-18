@@ -68,8 +68,7 @@ At high level all vehicle types behave in the same way when MISSION mode is enga
 6. The mission will only reset when the vehicle is disarmed or when a new mission is uploaded.
 
    :::tip
-   To automatically disarm the vehicle after it lands, in _QGroundControl_ go to [Vehicle Setup > Safety](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/safety.html), navigate to _Land Mode Settings_ and check the box labeled _Disarm after_.
-   Enter the time to wait after landing before disarming the vehicle.
+   To automatically disarm the vehicle after it lands, in _QGroundControl_ go to [Vehicle Setup > Return & Land](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/setup_view/px4/return_land.html#landing) and set the _Touchdown_ disarm delay (a value of 0 or less disables it).
 
 :::
 
@@ -156,8 +155,10 @@ Mission Items:
 - [MAV_CMD_DO_JUMP](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_JUMP)
   - _Param1_ (sequence number) must refer to an earlier mission item.
     A mission is rejected if a jump targets itself or a later item, even if its repeat count is 0.
+    It is also rejected if the items from the target reach a `DO_JUMP` before a waypoint, the jump itself included, even if its repeat count is 0: a jump cannot target another jump, and a loop needs a waypoint.
   - _Param2_ (repeat count) must be from 0 to 65535.
     A mission with a negative or larger repeat count is rejected.
+  - Up to 9 `DO_JUMP` items in a row are supported: with more, the mission ends there once the first 9 have used up their repeats.
 - [MAV_CMD_NAV_ROI](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_ROI)
 - [MAV_CMD_DO_SET_ROI](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_ROI)
 - [MAV_CMD_DO_SET_ROI_LOCATION](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_ROI_LOCATION)

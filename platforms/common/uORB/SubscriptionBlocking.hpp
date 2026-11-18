@@ -60,6 +60,9 @@ public:
 
 	virtual ~SubscriptionBlocking()
 	{
+		// before call()'s mutex and condition variable go
+		this->unregisterCallback();
+
 		pthread_mutex_destroy(&_mutex);
 		pthread_cond_destroy(&_cv);
 	}

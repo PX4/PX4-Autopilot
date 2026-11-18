@@ -38,6 +38,7 @@
 #include "GZMixingInterfaceWheel.hpp"
 #include "GZGimbal.hpp"
 
+#include <mathlib/math/WhiteGaussianNoise.hpp>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
@@ -139,8 +140,6 @@ private:
 	static void rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::math::Quaterniond q_FLU_to_ENU);
 	std::string buildBaseTopic(std::string sensor_link = "base_link");
 
-	static float generate_wgn();
-
 	void addGpsNoise(double &latitude, double &longitude, double &altitude,
 			 float &vel_north, float &vel_east, float &vel_down, uint8_t instance_index);
 
@@ -188,6 +187,7 @@ private:
 
 	failure_injection::Config _failure_config;
 	failure_injection::Stuck<sensor_gnss_s> _gnss_stuck[_MAX_GNSS_SENSORS];
+	failure_injection::Stuck<vehicle_odometry_s> _visual_odometry_stuck{};
 
 	GZMixingInterfaceESC   _mixing_interface_esc{_node};
 	GZMixingInterfaceServo _mixing_interface_servo{_node};
@@ -205,6 +205,7 @@ private:
 
 	const std::string _world_name;
 	const std::string _model_name;
+	gz::math::Quaterniond _lidar_link_q{gz::math::Quaterniond::Identity};
 
 	float _temperature{15.0f}; // default temperature in Celsius
 

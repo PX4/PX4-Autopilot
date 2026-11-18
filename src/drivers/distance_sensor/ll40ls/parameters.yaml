@@ -22,3 +22,17 @@ parameters:
       reboot_required: true
       min: 0
       max: 254
+    SENS_LL40LS_MAX:
+      description:
+        short: Lidar-Lite (LL40LS) maximum distance
+        long: |-
+          Maximum distance the driver reports as valid. Set to 0 to use the driver's built-in
+          limit for the detected hardware version.
+      type: float
+      unit: m
+      default: 0
+      min: 0
+      max: 100
+      decimal: 1
+      increment: 0.5
+      reboot_required: true

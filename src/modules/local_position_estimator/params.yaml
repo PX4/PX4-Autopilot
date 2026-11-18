@@ -98,7 +98,7 @@ parameters:
       unit: m/s^2/sqrt(Hz)
       min: 1.0e-05
       max: 2
-      decimal: 4
+      decimal: 5
     LPE_ACC_Z:
       description:
         short: Accelerometer z noise density
@@ -108,7 +108,7 @@ parameters:
       unit: m/s^2/sqrt(Hz)
       min: 1.0e-05
       max: 2
-      decimal: 4
+      decimal: 5
     LPE_BAR_Z:
       description:
         short: Barometric pressure altitude z standard deviation
@@ -369,7 +369,7 @@ parameters:
       unit: m^2
       min: 0.0
       max: 10
-      decimal: 2
+      decimal: 4
     LPE_FUSION:
       description:
         short: Integer bitmask controlling data fusion

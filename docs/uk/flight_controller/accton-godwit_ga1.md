@@ -68,7 +68,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 ## Where to Buy {#store}
 
 - [Accton-IoT Godwit](https://www.accton-iot.com/godwit/)
-- [sales@accton-iot.com](sales@accton-iot.com)
+- [sales@accton-iot.com](mailto:sales@accton-iot.com)
 
 ## Схема розташування виводів
 
@@ -149,5 +149,5 @@ make accton-godwit_ga1
 ## More Information and Support
 
 - [Accton-IoT Godwit](https://www.accton-iot.com/godwit/)
-- [sales@accton-iot.com](sales@accton-iot.com)
+- [sales@accton-iot.com](mailto:sales@accton-iot.com)
 - [support@accton-iot.com](mailto:support@accton-iot.com)

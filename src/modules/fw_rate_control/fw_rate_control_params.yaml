@@ -324,7 +324,7 @@ parameters:
       type: float
       default: 0.0
       min: 0.0
-      decimal: 1
+      decimal: 2
       increment: 0.01
     FW_SPOILERS_MAN:
       description:

@@ -325,6 +325,48 @@ bool GZBridge::subscribeDistanceSensor(bool required)
 {
 	std::string lidar_sensor = buildBaseTopic("lidar_sensor_link") + "lidar/scan";
 
+	// Find the lidar link orientation relative to the base_link
+	gz::msgs::Empty req;
+	gz::msgs::Scene scene;
+	bool result = false;
+
+	// Without the link orientation a down-facing lidar would be reported as forward-facing, so publish nothing
+	if (!_node.Request("/world/" + _world_name + "/scene/info", req, 1000, scene, result) || !result) {
+		PX4_WARN("scene/info request failed, lidar orientation unknown, not publishing distance_sensor");
+		return required ? false : true;
+	}
+
+	const auto model = std::find_if(scene.model().begin(), scene.model().end(),
+	[this](const gz::msgs::Model & m) { return m.name() == _model_name; });
+
+	if (model == scene.model().end()) {
+		PX4_WARN("%s not found in scene/info, lidar orientation unknown, not publishing distance_sensor", _model_name.c_str());
+		return required ? false : true;
+	}
+
+	// link poses are relative to the model frame
+	gz::math::Quaterniond q_model_base{gz::math::Quaterniond::Identity};
+	gz::math::Quaterniond q_model_lidar{gz::math::Quaterniond::Identity};
+	bool lidar_found = false;
+
+	for (const auto &link : model->link()) {
+		if (link.name() == "base_link") {
+			q_model_base = gz::msgs::Convert(link.pose()).Rot();
+
+		} else if (link.name() == "lidar_sensor_link") {
+			q_model_lidar = gz::msgs::Convert(link.pose()).Rot();
+			lidar_found = true;
+		}
+	}
+
+	// models without a lidar have no lidar_sensor_link, nothing to subscribe to
+	if (!lidar_found) {
+		return true;
+	}
+
+	_lidar_link_q = q_model_base.Inverse() * q_model_lidar;
+
+	// subscribe only once _lidar_link_q is set, so the callback never reads it mid-update
 	if (!_node.Subscribe(lidar_sensor, &GZBridge::laserScantoLidarSensorCallback, this)) {
 		PX4_WARN("failed to subscribe to %s", lidar_sensor.c_str());
 		return required ? false : true;
@@ -736,53 +778,28 @@ void GZBridge::odometryCallback(const gz::msgs::OdometryWithCovariance &msg)
 	report.velocity_variance[2] = msg.twist_with_covariance().covariance().data(14); // Z  row 2, col 2
 
 	// report.reset_counter = vpe.reset_counter;
-	_visual_odometry_pub.publish(report);
-}
 
-float GZBridge::generate_wgn()
-{
-	// generate white Gaussian noise sample with std=1
+	_failure_config.update();
 
-	// algorithm 1:
-	// float temp=((float)(rand()+1))/(((float)RAND_MAX+1.0f));
-	// return sqrtf(-2.0f*logf(temp))*cosf(2.0f*M_PI_F*rand()/RAND_MAX);
-	// algorithm 2: from BlockRandGauss.hpp
-	static float V1, V2, S;
-	static bool phase = true;
-	float X;
-
-	if (phase) {
-		do {
-			float U1 = (float)rand() / (float)RAND_MAX;
-			float U2 = (float)rand() / (float)RAND_MAX;
-			V1 = 2.0f * U1 - 1.0f;
-			V2 = 2.0f * U2 - 1.0f;
-			S = V1 * V1 + V2 * V2;
-		} while (S >= 1.0f || fabsf(S) < 1e-8f);
-
-		X = V1 * float(sqrtf(-2.0f * float(logf(S)) / S));
-
-	} else {
-		X = V2 * float(sqrtf(-2.0f * float(logf(S)) / S));
+	if (failure_injection::process(_failure_config, failure_injection_s::FAILURE_UNIT_SENSOR_VIO, 0, report,
+				       _visual_odometry_stuck)) {
+		_visual_odometry_pub.publish(report);
 	}
-
-	phase = !phase;
-	return X;
 }
 
 void GZBridge::addGpsNoise(double &latitude, double &longitude, double &altitude,
 			   float &vel_north, float &vel_east, float &vel_down, uint8_t instance_index)
 {
 	_gnss_pos_noise_n[instance_index] = _pos_markov_time * _gnss_pos_noise_n[instance_index] +
-					    _pos_random_walk * generate_wgn() * _pos_noise_amplitude -
+					    _pos_random_walk * math::generate_wgn() * _pos_noise_amplitude -
 					    0.02f * _gnss_pos_noise_n[instance_index];
 
 	_gnss_pos_noise_e[instance_index] = _pos_markov_time * _gnss_pos_noise_e[instance_index] +
-					    _pos_random_walk * generate_wgn() * _pos_noise_amplitude -
+					    _pos_random_walk * math::generate_wgn() * _pos_noise_amplitude -
 					    0.02f * _gnss_pos_noise_e[instance_index];
 
 	_gnss_pos_noise_d[instance_index] = _pos_markov_time * _gnss_pos_noise_d[instance_index] +
-					    _pos_random_walk * generate_wgn() * _pos_noise_amplitude * 1.5f -
+					    _pos_random_walk * math::generate_wgn() * _pos_noise_amplitude * 1.5f -
 					    0.02f * _gnss_pos_noise_d[instance_index];
 
 	latitude += math::degrees((double)_gnss_pos_noise_n[instance_index] / CONSTANTS_RADIUS_OF_EARTH);
@@ -790,13 +807,13 @@ void GZBridge::addGpsNoise(double &latitude, double &longitude, double &altitude
 	altitude += (double)_gnss_pos_noise_d[instance_index];
 
 	_gnss_vel_noise_n[instance_index] = _vel_markov_time * _gnss_vel_noise_n[instance_index] +
-					    _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
+					    _vel_noise_density * math::generate_wgn() * _vel_noise_amplitude;
 
 	_gnss_vel_noise_e[instance_index] = _vel_markov_time * _gnss_vel_noise_e[instance_index] +
-					    _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
+					    _vel_noise_density * math::generate_wgn() * _vel_noise_amplitude;
 
 	_gnss_vel_noise_d[instance_index] = _vel_markov_time * _gnss_vel_noise_d[instance_index] +
-					    _vel_noise_density * generate_wgn() * _vel_noise_amplitude * 1.2f;
+					    _vel_noise_density * math::generate_wgn() * _vel_noise_amplitude * 1.2f;
 
 	vel_north += _gnss_vel_noise_n[instance_index];
 	vel_east += _gnss_vel_noise_e[instance_index];
@@ -904,6 +921,8 @@ void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &msg)
 	_px4_rangefinder.set_max_distance(static_cast<float>(msg.range_max()));
 	_px4_rangefinder.set_rangefinder_type(distance_sensor_s::MAV_DISTANCE_SENSOR_LASER);
 
+	// despite its name, world_pose is the sensor pose relative to its parent link (lidar_sensor_link),
+	// which is why it is composed with _lidar_link_q below to get the orientation in the body frame
 	gz::msgs::Quaternion pose_orientation = msg.world_pose().orientation();
 	gz::math::Quaterniond q_sensor = gz::math::Quaterniond(
 			pose_orientation.w(),
@@ -911,33 +930,49 @@ void GZBridge::laserScantoLidarSensorCallback(const gz::msgs::LaserScan &msg)
 			pose_orientation.y(),
 			pose_orientation.z());
 
-	const gz::math::Quaterniond q_left(0.7071068, 0, 0, -0.7071068);
-
-	const gz::math::Quaterniond q_front(0.7071068, 0.7071068, 0, 0);
-
-	const gz::math::Quaterniond q_down(0, 1, 0, 0);
-
 	const float distance = static_cast<float>(msg.ranges()[0]);
 
-	if (q_sensor.Equal(q_front, 0.03)) {
+	const gz::math::Quaterniond q_body_flu = _lidar_link_q * q_sensor;
+
+	// Gazebo uses FLU, distance_sensor.q is expected in FRD (rotate 180 deg about x on both sides)
+	const gz::math::Quaterniond q_body(q_body_flu.W(), q_body_flu.X(), -q_body_flu.Y(), -q_body_flu.Z());
+	const gz::math::Vector3d dir = q_body.RotateVector(gz::math::Vector3d::UnitX);
+
+	auto points_like = [&](const gz::math::Vector3d & ref) {
+		return dir.Dot(ref) > std::cos(3.0 * M_PI / 180.0);
+	};
+
+	if (points_like(gz::math::Vector3d::UnitX)) {
 		_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_FORWARD_FACING);
 		_px4_rangefinder.update(hrt_absolute_time(), distance);
 
-	} else if (q_sensor.Equal(q_down, 0.03)) {
+	} else if (points_like(gz::math::Vector3d::UnitZ)) {
 		_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_DOWNWARD_FACING);
 		_px4_rangefinder.update(hrt_absolute_time(), distance);
 
-	} else if (q_sensor.Equal(q_left, 0.03)) {
+	} else if (points_like(-gz::math::Vector3d::UnitZ)) {
+		_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_UPWARD_FACING);
+		_px4_rangefinder.update(hrt_absolute_time(), distance);
+
+	} else if (points_like(-gz::math::Vector3d::UnitY)) {
 		_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_LEFT_FACING);
+		_px4_rangefinder.update(hrt_absolute_time(), distance);
+
+	} else if (points_like(gz::math::Vector3d::UnitY)) {
+		_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_RIGHT_FACING);
+		_px4_rangefinder.update(hrt_absolute_time(), distance);
+
+	} else if (points_like(-gz::math::Vector3d::UnitX)) {
+		_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_BACKWARD_FACING);
 		_px4_rangefinder.update(hrt_absolute_time(), distance);
 
 	} else {
 		_px4_rangefinder.set_orientation(distance_sensor_s::ROTATION_CUSTOM);
 		const float q[4] = {
-			static_cast<float>(q_sensor.W()),
-			static_cast<float>(q_sensor.X()),
-			static_cast<float>(q_sensor.Y()),
-			static_cast<float>(q_sensor.Z())
+			static_cast<float>(q_body.W()),
+			static_cast<float>(q_body.X()),
+			static_cast<float>(q_body.Y()),
+			static_cast<float>(q_body.Z())
 		};
 		_px4_rangefinder.update(hrt_absolute_time(), distance, -1, q, 4);
 	}

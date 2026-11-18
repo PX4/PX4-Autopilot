@@ -498,7 +498,7 @@ div.frame_variant td, div.frame_variant th {
 </table>
 </div>
 
-## Plane
+## 飞机
 
 ### Flying Wing
 

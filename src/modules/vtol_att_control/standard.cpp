@@ -60,6 +60,11 @@ Standard::parameters_update()
 
 	// make sure that pusher ramp in backtransition is smaller than back transition (max) duration
 	_param_vt_b_trans_ramp.set(math::min(_param_vt_b_trans_ramp.get(), _param_vt_b_trans_dur.get()));
+
+	// disabling the detection in flight overrides a detected pusher failure, e.g. a false positive in strong wind
+	if (!isPusherFailureDetectionEnabled()) {
+		_pusher_failed = false;
+	}
 }
 
 void Standard::update_vtol_state()
@@ -69,12 +74,20 @@ void Standard::update_vtol_state()
 	 * For the back transition the pusher motor is immediately stopped and rotors reactivated.
 	 */
 
+	// without pusher a front transition would fail too, so this quad-chute stays until reboot
+	if (_pusher_failed) {
+		_attc->quadchute(QuadchuteReason::PusherFailure);
+	}
+
 	float mc_weight = _mc_roll_weight;
 
-	if (_vtol_vehicle_status->fixed_wing_system_failure) {
+	if (_attc->is_quadchute_active()) {
 		// Failsafe event, engage mc motors immediately
+		if (_vtol_mode != vtol_mode::MC_MODE || _attc->is_fixed_wing_system_failure()) {
+			_pusher_throttle = 0.0f; // a commanded quad-chute keeps pusher assist once in multicopter mode
+		}
+
 		_vtol_mode = vtol_mode::MC_MODE;
-		_pusher_throttle = 0.0f;
 
 	} else if (!_attc->is_fixed_wing_requested()) {
 
@@ -172,6 +185,9 @@ void Standard::update_transition_state()
 	float mc_weight = 1.0f;
 
 	VtolType::update_transition_state();
+
+	// the pusher failure detection restarts in multicopter mode
+	_pusher_failure_hysteresis.set_state_and_update(false, now);
 
 	// we get attitude setpoint from a multirotor flighttask if climbrate is controlled.
 	// in any other case the fixed wing attitude controller publishes attitude setpoint from manual stick input.
@@ -281,6 +297,28 @@ void Standard::update_mc_state()
 	VtolType::update_mc_state();
 
 	_pusher_throttle = VtolType::pusher_assist();
+
+	_pusher_failed = _pusher_failed || isPusherFailureDetected();
+}
+
+bool Standard::isPusherFailureDetected()
+{
+	bool pusher_ineffective = false;
+
+	if (isPusherFailureDetectionEnabled() && _pusher_throttle > _param_vt_ef_throt.get() && _local_pos->v_xy_valid) {
+		const Quatf q(_v_att->q);
+		const float forward_vel = q.rotateVectorInverse(Vector3f(_local_pos->vx, _local_pos->vy, _local_pos->vz))(0);
+		const float forward_vel_sp = q.rotateVectorInverse(Vector3f(_local_pos_sp->vx, _local_pos_sp->vy,
+					     _local_pos_sp->vz))(0);
+
+		// NAN velocities fail the comparison and never detect
+		pusher_ineffective = forward_vel_sp - forward_vel > _param_vt_ef_vel_err.get();
+	}
+
+	_pusher_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * math::max(_param_vt_ef_time.get(), 0.f)));
+	_pusher_failure_hysteresis.set_state_and_update(pusher_ineffective, hrt_absolute_time());
+
+	return _pusher_failure_hysteresis.get_state();
 }
 
 void Standard::update_fw_state()

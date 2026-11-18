@@ -2,6 +2,8 @@
 
 Наступні терміни, символи та декоратори використовуються в тексті та діаграмах протягом цього керівництва.
 
+For navigation terms such as heading, course, track, bearing and cross-track error, see [Navigation Terminology](../concept/navigation_terminology.md).
+
 ## Записка
 
 - Жирним шрифтом позначаються вектори або матриці, а нежирним - скаляри.

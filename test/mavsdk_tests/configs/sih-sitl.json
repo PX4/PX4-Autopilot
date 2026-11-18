@@ -33,6 +33,11 @@
         },
         {
             "model": "quadx",
+            "test_filter": "calibration",
+            "timeout_min": 10
+        },
+        {
+            "model": "quadx",
             "test_filter": "sih_home_yaw",
             "timeout_min": 10,
             "env": {
@@ -44,6 +49,21 @@
             "model": "hex",
             "test_filter": "motor_failure_injection",
             "timeout_min": 15
+        },
+        {
+            "model": "quadx",
+            "test_filter": "imu_failure_injection",
+            "timeout_min": 15
+        },
+        {
+            "model": "quadx_flow",
+            "test_filter": "optical_flow",
+            "timeout_min": 10
+        },
+        {
+            "model": "standard_vtol_flow",
+            "test_filter": "optical_flow_vtol",
+            "timeout_min": 10
         },
         {
             "model": "standard_vtol",

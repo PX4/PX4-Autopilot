@@ -198,11 +198,6 @@ The pinouts and connector comply with the [Pixhawk Debug Mini](../debug/swd_debu
   - [Holybro XBP9X Telemetry Radio](../telemetry/holybro_xbp9x_radio.md)
 - [Rangefinders/Distance sensors](../sensor/rangefinders.md)
 
-## Підтримувані платформи / Конструкції
-
-Будь-який мультикоптер / літак / наземна платформа / човен, який може керуватися звичайними RC сервоприводами або сервоприводами Futaba S-Bus.
-The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
-
 ## Дивіться також
 
 - [Holybro Docs](https://docs.holybro.com/) (Holybro)

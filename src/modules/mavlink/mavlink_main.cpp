@@ -172,6 +172,18 @@ mavlink_message_t *Mavlink::get_buffer()
 void Mavlink::lock_send() { if (_instance_id >= 0) { pthread_mutex_lock(&mavlink_channel_send_mutexes[_instance_id]); } }
 void Mavlink::unlock_send() { if (_instance_id >= 0) { pthread_mutex_unlock(&mavlink_channel_send_mutexes[_instance_id]); } }
 
+void Mavlink::check_signing_key_dirty()
+{
+	if (_signing_key_dirty.load()) {
+		_signing_key_dirty.store(false);
+
+		// The sender thread signs outgoing messages with this key under the send lock.
+		lock_send();
+		_sign_control.reload_key();
+		unlock_send();
+	}
+}
+
 static bool accept_unsigned_callback(const mavlink_status_t *status, uint32_t message_id)
 {
 	// Use link_id to index directly: the callback fires on the instance's own
@@ -778,6 +790,15 @@ Mavlink::mavlink_open_uart(const int baud, const char *uart_name, const FLOW_CON
 	cfmakeraw(&uart_config);
 #endif
 
+	if (_raw_mode) {
+		/* no input/output processing, 8N1, no modem control; keep the baud rate */
+		memset(&uart_config, 0, sizeof(uart_config));
+		uart_config.c_cflag = CS8 | CREAD | CLOCAL;
+		uart_config.c_cc[VMIN] = 1;
+		cfsetispeed(&uart_config, speed);
+		cfsetospeed(&uart_config, speed);
+	}
+
 	if ((termios_state = tcsetattr(_uart_fd, TCSANOW, &uart_config)) < 0) {
 		PX4_WARN("ERR SET CONF %s\n", uart_name);
 		::close(_uart_fd);
@@ -1224,7 +1245,10 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 			return;
 		}
 
+		// The sender thread signs outgoing messages with this key under the send lock.
+		lock_send();
 		MavlinkSignControl::SetupSigningResult result = _sign_control.check_for_signing(msg);
+		unlock_send();
 
 		switch (result) {
 		case MavlinkSignControl::KEY_ACCEPTED:
@@ -1308,8 +1332,7 @@ Mavlink::send_autopilot_capabilities()
 	if (vehicle_status_sub.copy(&status)) {
 		mavlink_autopilot_version_t msg{};
 
-		msg.capabilities = MAV_PROTOCOL_CAPABILITY_MISSION_FLOAT;
-		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_MISSION_INT;
+		msg.capabilities = MAV_PROTOCOL_CAPABILITY_MISSION_INT;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_PARAM_FLOAT;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_COMMAND_INT;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_PARAM_ENCODE_BYTEWISE;
@@ -1791,6 +1814,9 @@ constexpr StreamRateDefault streams_mode_normal[] = {
 	{"VFR_HUD", 4.0f},
 	{"VIBRATION", 0.1f},
 	{"WIND_COV", 0.5f},
+#if defined(CONFIG_MODULES_ROVER_ACKERMANN) || defined(CONFIG_MODULES_ROVER_DIFFERENTIAL) || defined(CONFIG_MODULES_ROVER_MECANUM)
+	{"WHEEL_DISTANCE", 1.0f},
+#endif
 
 #if !defined(CONSTRAINED_FLASH)
 	{"DEBUG", 1.0f},
@@ -1874,6 +1900,9 @@ constexpr StreamRateDefault streams_mode_onboard[] = {
 	{"VFR_HUD", 10.0f},
 	{"VIBRATION", 0.5f},
 	{"WIND_COV", 10.0f},
+#if defined(CONFIG_MODULES_ROVER_ACKERMANN) || defined(CONFIG_MODULES_ROVER_DIFFERENTIAL) || defined(CONFIG_MODULES_ROVER_MECANUM)
+	{"WHEEL_DISTANCE", 1.0f},
+#endif
 
 #if !defined(CONSTRAINED_FLASH)
 	{"DEBUG", 10.0f},
@@ -2049,6 +2078,9 @@ constexpr StreamRateDefault streams_mode_config[] = {
 	{"VFR_HUD", 20.0f},
 	{"VIBRATION", 2.5f},
 	{"WIND_COV", 10.0f},
+#if defined(CONFIG_MODULES_ROVER_ACKERMANN) || defined(CONFIG_MODULES_ROVER_DIFFERENTIAL) || defined(CONFIG_MODULES_ROVER_MECANUM)
+	{"WHEEL_DISTANCE", 1.0f},
+#endif
 
 #if !defined(CONSTRAINED_FLASH)
 	{"DEBUG", 50.0f},
@@ -2395,7 +2427,7 @@ Mavlink::task_main(int argc, char *argv[])
 	int temp_int_arg;
 #endif
 
-	while ((ch = px4_getopt(argc, argv, "b:r:d:n:u:o:m:t:c:F:fswxzZp", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "b:r:d:n:u:o:m:t:c:F:fswxzZpa", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
 			if (px4_get_parameter_value(myoptarg, _baudrate) != 0) {
@@ -2467,7 +2499,17 @@ Mavlink::task_main(int argc, char *argv[])
 		case 't':
 			_src_addr.sin_family = AF_INET;
 
-			if (inet_aton(myoptarg, &_src_addr.sin_addr)) {
+			if (strncmp(myoptarg, "p:", 2) == 0) {
+				if (px4_get_parameter_value(myoptarg, temp_int_arg) != 0) {
+					PX4_ERR("invalid partner ip");
+					err_flag = true;
+
+				} else {
+					_src_addr.sin_addr.s_addr = htonl(static_cast<uint32_t>(temp_int_arg));
+					_src_addr_initialized = true;
+				}
+
+			} else if (inet_aton(myoptarg, &_src_addr.sin_addr)) {
 				_src_addr_initialized = true;
 
 			} else {
@@ -2627,6 +2669,10 @@ Mavlink::task_main(int argc, char *argv[])
 
 		case 'Z':
 			_flow_control = FLOW_CONTROL_OFF;
+			break;
+
+		case 'a':
+			_raw_mode = true;
 			break;
 
 		default:
@@ -2994,6 +3040,12 @@ Mavlink::task_main(int argc, char *argv[])
 	}
 
 	_receiver.stop();
+
+	// the receiver, which opens the shell, has stopped: free the shell for the next instance
+	{
+		const LockGuard lg{_mavlink_shell_mutex};
+		close_shell();
+	}
 
 	delete[] _subscribe_to_stream.load();
 	_subscribe_to_stream.store(nullptr);
@@ -3622,16 +3674,14 @@ Mavlink::display_status()
 		printf("UDP (%hu, remote port: %hu)\n", _network_port, _remote_port);
 		printf("\tBroadcast enabled: %s\n",
 		       broadcast_enabled() ? "YES" : "NO");
-#if defined(CONFIG_NET_IGMP) && defined(CONFIG_NET_ROUTE)
-		printf("\tMulticast enabled: %s\n",
-		       multicast_enabled() ? "YES" : "NO");
-#endif
-#ifdef __PX4_POSIX
 
 		if (get_client_source_initialized()) {
 			printf("\tpartner IP: %s\n", inet_ntoa(get_client_source_address().sin_addr));
 		}
 
+#if defined(CONFIG_NET_IGMP) && defined(CONFIG_NET_ROUTE)
+		printf("\tMulticast enabled: %s\n",
+		       multicast_enabled() ? "YES" : "NO");
 #endif
 		break;
 #endif // MAVLINK_UDP
@@ -3985,7 +4035,8 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_PARAM_FLAG('p', "Enable Broadcast", true);
 	PRINT_MODULE_USAGE_PARAM_INT('u', 14556, 0, 65536, "Select UDP Network Port (local)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('o', 14550, 0, 65536, "Select UDP Network Port (remote)", true);
-	PRINT_MODULE_USAGE_PARAM_STRING('t', "127.0.0.1", nullptr, "Partner IP (broadcasting can be enabled via -p flag)", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('t', "127.0.0.1", nullptr,
+					 "Partner IP, can also be p:<param_name> (broadcasting can be enabled via -p flag)", true);
 #endif
 	PRINT_MODULE_USAGE_PARAM_STRING('m', "normal", "custom|camera|onboard|osd|magic|config|iridium|minimal|extvision|extvisionmin|gimbal|onboard_low_bandwidth|uavionix|low_bandwidth|distance_sensor",
 					"Mode: sets default streams and rates", true);
@@ -3999,6 +4050,7 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_PARAM_FLAG('x', "Enable FTP", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('z', "Force hardware flow control always on", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('Z', "Force hardware flow control always off", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('a', "Configure serial port in raw mode (8N1, no termios processing), e.g. for NuttX RPMsg ttys", true);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop-all", "Stop all instances");
 

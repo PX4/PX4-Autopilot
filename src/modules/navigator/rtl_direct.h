@@ -110,7 +110,8 @@ public:
 	void setReturnAltMin(bool min) { _enforce_rtl_alt = min; }
 	void setRtlAlt(float alt) {_rtl_alt = alt;};
 
-	void setRtlPosition(const PositionYawSetpoint &position, const loiter_point_s &loiter_pos);
+	void setRtlPosition(const PositionYawSetpoint &position, const loiter_point_s &loiter_pos,
+			    bool destination_is_current_position = false);
 
 	bool isLanding() { return (_rtl_state != RTLState::IDLE) && (_rtl_state >= RTLState::LOITER_DOWN);};
 
@@ -170,10 +171,14 @@ private:
 	 */
 	bool geofenceAvoidanceActive() const;
 
+	/** RTL_LAND_DELAY, or indefinite where a pure fixed-wing cannot land. */
+	float landDelay() const;
+
 	void setLoiterPosition();
 
 	bool _enforce_rtl_alt{false};
 	bool _force_heading{false};
+	bool _destination_is_current_position{false}; ///< No landing altitude is known for a stop at the current position.
 	position_setpoint_s _setpoint_on_activation{}; ///< snapshot of the current setpoint taken before reset on activation, used to continue an established loiter through the climb
 	RtlTimeEstimator _rtl_time_estimator;
 

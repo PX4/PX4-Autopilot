@@ -41,6 +41,7 @@ px4_add_module(
 	MODULE_CONFIG
 		parameters.yaml
 	DEPENDS
+		mathlib
 		failure_injection
 		px4_work_queue
 	)

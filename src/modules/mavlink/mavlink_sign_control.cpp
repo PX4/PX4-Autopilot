@@ -41,13 +41,23 @@
 #include "mavlink_sign_control.h"
 #include <sys/stat.h>
 
+// Shared by all instances so that a signed message cannot be replayed on another link.
+// Guarded by _streams_mutex.
 static mavlink_signing_streams_t global_mavlink_signing_streams = {};
 
-// Messages accepted without signing per MAVLink spec recommendation.
+pthread_mutex_t MavlinkSignControl::_streams_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+// Messages accepted without signing on every link, per MAVLink spec recommendation.
 // HEARTBEAT is required for link discovery/interop but allows spoofed phantom vehicles on GCS.
 static const uint32_t unsigned_messages[] = {
 	MAVLINK_MSG_ID_HEARTBEAT,
-	MAVLINK_MSG_ID_RADIO_STATUS,
+	MAVLINK_MSG_ID_RADIO_STATUS
+};
+
+// Traffic messages, accepted without signing only on a link configured for a traffic
+// receiver. Receivers generally cannot sign, but anyone on another link could use these
+// to inject phantom aircraft into traffic avoidance.
+static const uint32_t unsigned_traffic_messages[] = {
 	MAVLINK_MSG_ID_ADSB_VEHICLE,
 	MAVLINK_MSG_ID_COLLISION
 };
@@ -220,7 +230,7 @@ void MavlinkSignControl::write_key_and_timestamp()
 	}
 }
 
-bool MavlinkSignControl::accept_unsigned(uint32_t message_id)
+bool MavlinkSignControl::accept_unsigned(uint32_t message_id, bool traffic_link)
 {
 	if (!_is_signing_initialized) {
 		return true;
@@ -229,6 +239,14 @@ bool MavlinkSignControl::accept_unsigned(uint32_t message_id)
 	for (unsigned i = 0; i < sizeof(unsigned_messages) / sizeof(unsigned_messages[0]); i++) {
 		if (unsigned_messages[i] == message_id) {
 			return true;
+		}
+	}
+
+	if (traffic_link) {
+		for (unsigned i = 0; i < sizeof(unsigned_traffic_messages) / sizeof(unsigned_traffic_messages[0]); i++) {
+			if (unsigned_traffic_messages[i] == message_id) {
+				return true;
+			}
 		}
 	}
 

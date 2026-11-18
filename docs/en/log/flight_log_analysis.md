@@ -238,6 +238,6 @@ Key features:
 - Actions and Triggers to automate custom post-flight analysis and generate reports.
 - Interactive visualization for time-series data, maps, events, and console logs.
 
-See [Working with PX4 Logs](https://docs.roboto.ai/user-guides/working-with-px4-logs.html) for an introduction.
+See [Working with PX4 Logs](https://www.roboto.ai/docs/user-guides/working-with-px4-logs) for an introduction.
 
 ![Roboto](../../assets/flight_log_analysis/roboto/roboto-px4-flight-log-analysis.jpg)

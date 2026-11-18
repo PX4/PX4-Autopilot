@@ -462,8 +462,9 @@ void MavlinkFTP::_constructPath(char *dst, int dst_len, const char *path) const
 	strncpy(dst, _root_dir, dst_len);
 	int root_dir_len = _root_dir_len;
 
-	// If neither the root ends nor the given path starts with a '/', add a separating '/' in between
-	if (dst[0] != '\0' && dst[strlen(dst) - 1] != '/' && path[0] != '/') {
+	// If neither the root ends nor the given path starts with a '/', add a separating '/' in between,
+	// which also makes the path absolute with an empty root, for file systems without a current directory
+	if ((dst[0] == '\0' || dst[strlen(dst) - 1] != '/') && path[0] != '/') {
 		strncat(dst, "/", dst_len);
 		++root_dir_len;
 	}
@@ -477,7 +478,10 @@ void MavlinkFTP::_constructPath(char *dst, int dst_len, const char *path) const
 void
 MavlinkFTP::_statDirent(const char *name, uint32_t &size, uint32_t &mtime)
 {
-	int ret = snprintf(_work_buffer2, _work_buffer2_len, "%s/%s", _work_buffer1, name);
+	// No double slash in the root directory, which not all file systems resolve
+	const size_t dir_len = strlen(_work_buffer1);
+	const char *separator = (dir_len > 0 && _work_buffer1[dir_len - 1] == '/') ? "" : "/";
+	int ret = snprintf(_work_buffer2, _work_buffer2_len, "%s%s%s", _work_buffer1, separator, name);
 
 	if ((ret > 0) && (ret < _work_buffer2_len)) {
 		struct stat st;

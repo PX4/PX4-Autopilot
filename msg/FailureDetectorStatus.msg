@@ -1,8 +1,7 @@
 uint64 timestamp                    # time since system start (microseconds)
 
 # FailureDetector status
-bool fd_roll
-bool fd_pitch
+bool fd_tilt
 bool fd_alt
 bool fd_ext
 bool fd_arm_escs

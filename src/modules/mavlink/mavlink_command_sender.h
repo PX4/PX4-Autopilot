@@ -41,6 +41,7 @@
 #pragma once
 
 #include <px4_platform_common/tasks.h>
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/sem.h>
 #include <drivers/drv_hrt.h>
 
@@ -124,6 +125,7 @@ private:
 	};
 
 	TimestampedList<command_item_s, 3> _commands{};
+	px4::atomic<int> _num_commands{0}; ///< number of commands in the list, written under the lock, read without it
 
 	bool _debug_enabled = false;
 	static constexpr uint8_t RETRIES = 3;

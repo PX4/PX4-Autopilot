@@ -189,6 +189,7 @@ float FixedwingRateControl::get_airspeed_and_update_scaling(float dt)
 	 * For scaling our actuators using anything less than the stall
 	 * speed doesn't make any sense - its the strongest reasonable deflection we
 	 * want to do in flight and it's the baseline a human pilot would choose.
+	 * When landed the scale is limited to >=1 to avoid servo oscillation.
 	 *
 	 * Forcing the scaling to this value allows reasonable handheld tests.
 	 */
@@ -198,6 +199,10 @@ float FixedwingRateControl::get_airspeed_and_update_scaling(float dt)
 		const float min_airspeed = math::max(_param_fw_airspd_stall.get(), 0.1f);
 		const float airspeed_constrained = math::max(airspeed, min_airspeed);
 		_airspeed_scaling = _param_fw_airspd_trim.get() / airspeed_constrained;
+
+		if (_landed) {
+			_airspeed_scaling = math::min(_airspeed_scaling, 1.f);
+		}
 
 	} else {
 		_airspeed_scaling = 1.0f;

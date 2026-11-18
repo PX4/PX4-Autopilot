@@ -38,6 +38,7 @@
 
 // Library includes
 #include <lib/rover_control/RoverControl.hpp>
+#include <lib/rover_control/RoverControllerWorkItem.hpp>
 #include <lib/pid/PID.hpp>
 #include <lib/slew_rate/SlewRateYaw.hpp>
 #include <math.h>
@@ -46,16 +47,16 @@
 // uORB includes
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/rover_rate_setpoint.h>
+#include <uORB/topics/surface_vehicle_rate_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/rover_attitude_status.h>
-#include <uORB/topics/rover_attitude_setpoint.h>
+#include <uORB/topics/surface_vehicle_attitude_status.h>
+#include <uORB/topics/surface_vehicle_attitude_setpoint.h>
 #include <uORB/topics/actuator_motors.h>
 
 /**
  * @brief Class for ackermann attitude control.
  */
-class AckermannAttControl : public ModuleParams
+class AckermannAttControl : public ModuleParams, public RoverControllerWorkItem
 {
 public:
 	/**
@@ -66,7 +67,7 @@ public:
 	~AckermannAttControl() = default;
 
 	/**
-	 * @brief Generate and publish roverRateSetpoint from roverAttitudeSetpoint.
+	 * @brief Generate and publish surfaceVehicleRateSetpoint from surfaceVehicleAttitudeSetpoint.
 	 */
 	void updateAttControl();
 
@@ -88,6 +89,9 @@ protected:
 	void updateParams() override;
 
 private:
+	void runController() override { updateAttControl(); }
+	void onEnable() override { _timestamp = hrt_absolute_time(); } // The first dt after (re-)enabling must not span the time spent disabled
+
 	/**
 	 * @brief Update uORB subscriptions used in attitude controller.
 	 */
@@ -96,11 +100,11 @@ private:
 	// uORB subscriptions
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
-	uORB::Subscription _rover_attitude_setpoint_sub{ORB_ID(rover_attitude_setpoint)};
+	uORB::Subscription _surface_vehicle_attitude_setpoint_sub{ORB_ID(surface_vehicle_attitude_setpoint)};
 
 	// uORB publications
-	uORB::Publication<rover_rate_setpoint_s>     _rover_rate_setpoint_pub{ORB_ID(rover_rate_setpoint)};
-	uORB::Publication<rover_attitude_status_s>   _rover_attitude_status_pub{ORB_ID(rover_attitude_status)};
+	uORB::Publication<surface_vehicle_rate_setpoint_s>     _surface_vehicle_rate_setpoint_pub{ORB_ID(surface_vehicle_rate_setpoint)};
+	uORB::Publication<surface_vehicle_attitude_status_s>   _surface_vehicle_attitude_status_pub{ORB_ID(surface_vehicle_attitude_status)};
 
 	// Variables
 	float _vehicle_yaw{0.f};

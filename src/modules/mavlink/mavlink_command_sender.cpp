@@ -129,6 +129,7 @@ int MavlinkCommandSender::handle_vehicle_command(const vehicle_command_s &comman
 		new_item.num_sent_per_channel[channel] = 0;
 		new_item.last_time_sent_us = hrt_absolute_time();
 		_commands.put(new_item);
+		_num_commands.store(_commands.count());
 	}
 
 	unlock();
@@ -165,6 +166,14 @@ void MavlinkCommandSender::check_timeout(mavlink_channel_t channel)
 	// holding the lock, skip this cycle — we'll retry on the next update.
 	// This prevents lock convoys that can stall the MAVLink sender and
 	// receiver threads, causing heartbeat loss under high load.
+	//
+	// Nothing to do without a pending command, which is the case on most
+	// iterations: the count is read without the lock, a command added
+	// after the read is checked on the next iteration.
+	if (_num_commands.load() == 0) {
+		return;
+	}
+
 	if (!try_lock()) {
 		return;
 	}
@@ -185,6 +194,7 @@ void MavlinkCommandSender::check_timeout(mavlink_channel_t channel)
 		for (unsigned i = 0; i < MAVLINK_COMM_NUM_BUFFERS; ++i) {
 			if (item->num_sent_per_channel[i] == -2) {
 				_commands.drop_current();
+				_num_commands.store(_commands.count());
 				dropped_command = true;
 				break;
 			}
@@ -237,6 +247,7 @@ void MavlinkCommandSender::check_timeout(mavlink_channel_t channel)
 			if (item->num_sent_per_channel[channel] + 1 > RETRIES) {
 				CMD_DEBUG("command %" PRIu16 " dropped", item->command.command);
 				_commands.drop_current();
+				_num_commands.store(_commands.count());
 				continue;
 			}
 

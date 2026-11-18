@@ -103,7 +103,7 @@ public:
 		const float max_flow_rate = 5.f;
 		const float min_ground_distance = 0.f;
 		const float max_ground_distance = 50.f;
-		_ekf->set_optical_flow_limits(max_flow_rate, min_ground_distance, max_ground_distance);
+		_ekf->flowSource(0).setLimits(max_flow_rate, min_ground_distance, max_ground_distance);
 		_sensor_simulator.startFlow();
 
 		_ekf->set_in_air_status(true);

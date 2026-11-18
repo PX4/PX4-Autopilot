@@ -64,13 +64,13 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 
 using namespace time_literals;
 
 union failure_detector_status_u {
 	struct {
-		uint16_t roll : 1;
-		uint16_t pitch : 1;
+		uint16_t tilt : 1;
 		uint16_t alt : 1;
 		uint16_t ext : 1;
 		uint16_t battery : 1;
@@ -101,13 +101,18 @@ private:
 
 	failure_detector_status_u _failure_detector_status{};
 
-	systemlib::Hysteresis _roll_failure_hysteresis{false};
-	systemlib::Hysteresis _pitch_failure_hysteresis{false};
+	systemlib::Hysteresis _tilt_failure_hysteresis{false};
+	bool checkVtolSkippedBackTransition(hrt_abstime now);
+	uint8_t _vtol_state_prev{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_UNDEFINED};
+	hrt_abstime _vtol_skipped_back_transition_timestamp{0}; // last switch to multicopter without back-transition, e.g. quad-chute
 	systemlib::Hysteresis _alt_loss_hysteresis{false};
 	systemlib::Hysteresis _ext_ats_failure_hysteresis{false};
 
 	float _alt_loss_ref_z{NAN}; // ratcheting NED-z reference for altitude loss detection
 	uint8_t _alt_loss_z_reset_counter{0}; // tracks EKF z resets to avoid false altitude loss triggers
+	hrt_abstime _alt_loss_timestamp_prev{0}; // used to integrate the commanded vertical velocity
+	static constexpr hrt_abstime kAltLossSetpointTimeout{500_ms}; // commanded descent is ignored when older
+	static constexpr float kAltLossDescentRateMargin{2.f}; // [m/s] tolerated descent faster than commanded
 
 	static constexpr hrt_abstime _imbalanced_prop_lpf_time_constant{5_s};
 	AlphaFilter<float> _imbalanced_prop_lpf{};
@@ -116,11 +121,13 @@ private:
 
 
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _vehicle_attitude_setpoint_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_local_position_setpoint_sub{ORB_ID(vehicle_local_position_setpoint)};
 	uORB::Subscription _pwm_input_sub{ORB_ID(pwm_input)};
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _vehicle_imu_status_sub{ORB_ID(vehicle_imu_status)};
+	uORB::Subscription _vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
 
 	uORB::Publication<failure_detector_status_s> _failure_detector_status_pub{ORB_ID(failure_detector_status)};
 
@@ -128,10 +135,8 @@ private:
 	failure_injection::MotorFailureMasks _injected_motor_masks{};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::FD_FAIL_P>) _param_fd_fail_p,
-		(ParamInt<px4::params::FD_FAIL_R>) _param_fd_fail_r,
-		(ParamFloat<px4::params::FD_FAIL_R_TTRI>) _param_fd_fail_r_ttri,
-		(ParamFloat<px4::params::FD_FAIL_P_TTRI>) _param_fd_fail_p_ttri,
+		(ParamFloat<px4::params::FD_TILT_ERROR>) _param_fd_tilt_error,
+		(ParamFloat<px4::params::FD_TILT_ERROR_T>) _param_fd_tilt_error_t,
 		(ParamBool<px4::params::FD_EXT_ATS_EN>) _param_fd_ext_ats_en,
 		(ParamInt<px4::params::FD_EXT_ATS_TRIG>) _param_fd_ext_ats_trig,
 		(ParamInt<px4::params::FD_IMB_PROP_THR>) _param_fd_imb_prop_thr,

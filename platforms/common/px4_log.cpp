@@ -77,7 +77,7 @@ void px4_log_initialize(void)
 	orb_log_message_pub = orb_advertise(ORB_ID(log_message), &log_message);
 }
 
-__EXPORT void px4_log_modulename(int level, const char *module_name, const char *fmt, ...)
+__EXPORT void px4_log_modulename_va(int level, const char *module_name, const char *fmt, va_list args)
 {
 	static constexpr ssize_t max_length = sizeof(log_message_s::text);
 
@@ -129,7 +129,7 @@ __EXPORT void px4_log_modulename(int level, const char *module_name, const char 
 #endif // PX4_LOG_COLORIZED_OUTPUT
 
 		va_list argptr;
-		va_start(argptr, fmt);
+		va_copy(argptr, args);
 		pos += vsnprintf(buf + pos, math::max(max_length - pos, (ssize_t)0), fmt, argptr);
 		va_end(argptr);
 
@@ -159,7 +159,7 @@ __EXPORT void px4_log_modulename(int level, const char *module_name, const char 
 		if (use_color) {
 			pos = snprintf(buf, max_length, __px4__log_level_fmt, __px4_log_level_str[level]);
 			pos += snprintf(buf + pos, math::max(max_length - pos, (ssize_t)0), __px4__log_modulename_pfmt, module_name);
-			va_start(argptr, fmt);
+			va_copy(argptr, args);
 			pos += vsnprintf(buf + pos, math::max(max_length - pos, (ssize_t)0), fmt, argptr);
 			va_end(argptr);
 			pos += snprintf(buf + math::min(pos, max_length - (ssize_t)1), 2, "\n");
@@ -194,13 +194,46 @@ __EXPORT void px4_log_modulename(int level, const char *module_name, const char 
 		ssize_t pos = snprintf((char *)log_message.text, max_length, __px4__log_modulename_pfmt, module_name);
 
 		va_list argptr;
-		va_start(argptr, fmt);
+		va_copy(argptr, args);
 		pos += vsnprintf((char *)log_message.text + pos, math::max(max_length - pos, (ssize_t)0), fmt, argptr);
 		va_end(argptr);
 		log_message.text[max_length - 1] = 0; //ensure 0-termination
 		log_message.timestamp = hrt_absolute_time();
 		orb_publish(ORB_ID(log_message), orb_log_message_pub, &log_message);
 	}
+}
+
+__EXPORT void px4_log_modulename(int level, const char *module_name, const char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	px4_log_modulename_va(level, module_name, fmt, args);
+	va_end(args);
+}
+
+// One entry point per level keeps the level argument out of every PX4_INFO/WARN/ERR call site
+__EXPORT void px4_log_info(const char *module_name, const char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	px4_log_modulename_va(_PX4_LOG_LEVEL_INFO, module_name, fmt, args);
+	va_end(args);
+}
+
+__EXPORT void px4_log_warn(const char *module_name, const char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	px4_log_modulename_va(_PX4_LOG_LEVEL_WARN, module_name, fmt, args);
+	va_end(args);
+}
+
+__EXPORT void px4_log_error(const char *module_name, const char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	px4_log_modulename_va(_PX4_LOG_LEVEL_ERROR, module_name, fmt, args);
+	va_end(args);
 }
 
 __EXPORT void px4_log_raw(int level, const char *fmt, ...)

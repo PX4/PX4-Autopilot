@@ -77,7 +77,6 @@ void DataValidator::put(uint64_t timestamp, const float val[dimensions], uint32_
 				float delta_val = lp_val - _mean[i];
 				_mean[i] += delta_val / _event_count;
 				_M2[i] += delta_val * (lp_val - _mean[i]);
-				_rms[i] = sqrtf(_M2[i] / (_event_count - 1));
 
 				if (fabsf(_value[i] - val[i]) < 0.000001f) {
 					_value_equal_count++;
@@ -148,8 +147,10 @@ void DataValidator::print()
 		return;
 	}
 
+	const float *rms_values = rms();
+
 	for (unsigned i = 0; i < dimensions; i++) {
 		PX4_INFO_RAW("\tval: %8.4f, lp: %8.4f mean dev: %8.4f RMS: %8.4f conf: %8.4f\n", (double)_value[i],
-			     (double)_lp[i], (double)_mean[i], (double)_rms[i], (double)confidence(hrt_absolute_time()));
+			     (double)_lp[i], (double)_mean[i], (double)rms_values[i], (double)confidence(hrt_absolute_time()));
 	}
 }
