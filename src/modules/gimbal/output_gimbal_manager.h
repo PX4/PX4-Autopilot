@@ -53,7 +53,9 @@ namespace gimbal
 // for control, while it lasts we stream GIMBAL_MANAGER_SET_PITCHYAW, and when
 // it ends we release control. If another client has taken control, the manager
 // ignores our setpoints. We only ask again while the manager reports that nobody
-// is in control (e.g. after it restarted).
+// is in control (e.g. after it restarted), and release again while it reports
+// that we are in control without onboard intent (e.g. a lost release, or a
+// retried acquire that reached the manager after the release).
 class OutputToGimbalManager : public OutputBase
 {
 public:
@@ -68,6 +70,7 @@ private:
 	void _update_manager_status();
 	void _send_configure(bool acquire);
 	bool _nobody_in_control() const;
+	bool _we_are_in_control() const;
 	void _publish_set_pitchyaw();
 
 	uORB::Subscription _status_sub{ORB_ID(external_gimbal_manager_status)};
