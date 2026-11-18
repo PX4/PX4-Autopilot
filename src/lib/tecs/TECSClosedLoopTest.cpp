@@ -527,9 +527,10 @@ TEST_F(TECSClosedLoopTest, AirspeedStepDownDefaultTuning)
 
 	setAirspeedSetpoint(_params.equivalent_airspeed_trim - 1.f);
 
-	// Capture the rough shape of the airspeed step response. This one
-	// is not a nice first order response, because the throttle and pitch
-	// loop both interact, including the pitch integrator.
+	// Capture the rough shape of the airspeed step response. It is not first
+	// order: the SEB rate to pitch conversion ignores the total energy rate, so
+	// the pitch feedforward climbs with the kinetic energy the throttle is
+	// already removing, and the pitch integrator has to take it out again.
 	run(5.0f); EXPECT_NEAR(_state.V, _V_sp, 0.3f) << "at t=" << _t << " s";
 	run(5.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f) << "at t=" << _t << " s";
 	run(5.0f); EXPECT_NEAR(_state.V, _V_sp, 0.1f) << "at t=" << _t << " s";
