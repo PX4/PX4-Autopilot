@@ -62,6 +62,10 @@ Standard::parameters_update()
 	_param_vt_b_trans_ramp.set(math::min(_param_vt_b_trans_ramp.get(), _param_vt_b_trans_dur.get()));
 
 	clearForwardPropulsionFailureIfDisabled();
+
+	if (!isFtPusherCheckEnabled()) {
+		_ft_pusher_failed = false;
+	}
 }
 
 void Standard::update_vtol_state()
@@ -72,7 +76,7 @@ void Standard::update_vtol_state()
 	 */
 
 	// without forward propulsion a front transition would fail too, so this quad-chute stays until reboot
-	if (_forward_propulsion_failed) {
+	if (_forward_propulsion_failed || _ft_pusher_failed) {
 		_attc->quadchute(QuadchuteReason::ForwardPropulsionFailure);
 	}
 
@@ -132,6 +136,16 @@ void Standard::update_vtol_state()
 			/* NOTE: The failsafe transition to fixed-wing was removed because it can result in an
 			 * unsafe flying state. */
 			resetTransitionStates();
+
+			// Not checked when the front transition interrupts a back transition, as the pusher just flew the vehicle,
+			// or when pusher assist already gives half of the transition thrust: the rest is too small to tell from gusts.
+			static constexpr float kMinAddedThrust = 0.5f; // share of the transition thrust
+			_ft_check = {};
+			_ft_check.transition_throttle = getFrontTransitionThrottle();
+			_ft_check.done = (_vtol_mode == vtol_mode::TRANSITION_TO_MC)
+					 || (math::sq(_pusher_throttle) >= (1.f - kMinAddedThrust) * math::sq(_ft_check.transition_throttle));
+			_ft_check.start_throttle = _pusher_throttle;
+
 			_vtol_mode = vtol_mode::TRANSITION_TO_FW;
 
 		} else if (_vtol_mode == vtol_mode::FW_MODE) {
@@ -230,6 +244,8 @@ void Standard::update_transition_state()
 			_last_time_pusher_transition_update = now;
 		}
 
+		_ft_pusher_failed = _ft_pusher_failed || isPusherFailureDetectedInFrontTransition();
+
 		_airspeed_trans_blend_margin = getTransitionAirspeed() - getBlendAirspeed();
 
 		// do blending of mc and fw controls if a blending airspeed has been provided and the minimum transition time has passed
@@ -293,6 +309,48 @@ void Standard::update_mc_state()
 	_pusher_throttle = VtolType::pusher_assist();
 
 	_forward_propulsion_failed = _forward_propulsion_failed || isForwardPropulsionFailureDetected(_pusher_throttle);
+}
+
+bool Standard::isPusherFailureDetectedInFrontTransition()
+{
+	vehicle_acceleration_s vehicle_acceleration;
+
+	if (!isFtPusherCheckEnabled() || !_vehicle_acceleration_sub.update(&vehicle_acceleration)) {
+		return false;
+	}
+
+	// integrate only between consecutive samples, not over gaps
+	static constexpr hrt_abstime kMaxSampleGap = 100_ms;
+	const hrt_abstime last_sample = _ft_check.last_sample;
+	_ft_check.last_sample = vehicle_acceleration.timestamp_sample;
+	const bool consecutive = (last_sample != 0) && (vehicle_acceleration.timestamp_sample > last_sample)
+				 && (vehicle_acceleration.timestamp_sample - last_sample < kMaxSampleGap);
+
+	if (_ft_check.done || !consecutive || can_transition_on_ground()) {
+		return false;
+	}
+
+	// thrust grows with the throttle squared: share of the transition thrust added since the transition started
+	const float start_thrust = math::sq(_ft_check.start_throttle / _ft_check.transition_throttle);
+	const float added_thrust = math::max(math::sq(_pusher_throttle / _ft_check.transition_throttle) - start_thrust, 0.f);
+
+	// Least-squares fit of the forward acceleration (pusher thrust minus drag, divided by the mass) to the added
+	// thrust: each sample counts with its thrust, so the low throttle at the start of the ramp weighs little.
+	const float dt = (vehicle_acceleration.timestamp_sample - last_sample) * 1e-6f;
+	_ft_check.weighted_speed_gain += added_thrust * vehicle_acceleration.xyz[0] * dt;
+	_ft_check.weighted_time += added_thrust * added_thrust * dt;
+
+	// [s] decide once the samples weigh as much as this time at the transition throttle
+	static constexpr float kCheckTime = 1.f;
+
+	if (_ft_check.weighted_time < math::sq(1.f - start_thrust) * kCheckTime) {
+		return false;
+	}
+
+	_ft_check.done = true;
+
+	// fitted acceleration at the transition throttle below VT_EF_FT_ACC
+	return _ft_check.weighted_speed_gain < _param_vt_ef_ft_acc.get() * _ft_check.weighted_time;
 }
 
 void Standard::update_fw_state()

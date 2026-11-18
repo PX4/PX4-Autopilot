@@ -47,6 +47,9 @@
 #define STANDARD_H
 #include "vtol_type.h"
 
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/vehicle_acceleration.h>
+
 class Standard : public VtolType
 {
 
@@ -80,12 +83,32 @@ private:
 	hrt_abstime _last_time_pusher_transition_update{0};
 	float _front_transition_pitch{NAN};
 
+	// front transition (ft) check: forward acceleration fitted to the pusher thrust added since the start
+	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
+
+	struct FtPusherCheck {
+		hrt_abstime last_sample{0};
+		float transition_throttle{0.f}; ///< when the front transition started
+		float start_throttle{0.f}; ///< pusher assist throttle when the front transition started
+		float weighted_speed_gain{0.f}; ///< [m/s] forward acceleration integrated, weighted by the added thrust
+		float weighted_time{0.f}; ///< [s] time integrated, weighted by the added thrust squared
+		bool done{true}; ///< checked in this front transition, or not needed
+	} _ft_check{};
+
+	bool _ft_pusher_failed{false}; ///< latched until reboot or until VT_EF_FT_ACC is set to 0
+
 	void parameters_update() override;
+
+	bool isFtPusherCheckEnabled() const { return _param_vt_ef_ft_acc.get() > FLT_EPSILON; }
+
+	/** Forward acceleration, fitted to the added pusher thrust, below VT_EF_FT_ACC at the front transition throttle */
+	bool isPusherFailureDetectedInFrontTransition();
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(VtolType,
 					(ParamFloat<px4::params::VT_PSHER_SLEW>) _param_vt_psher_slew,
 					(ParamFloat<px4::params::VT_B_TRANS_RAMP>) _param_vt_b_trans_ramp,
-					(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off
+					(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off,
+					(ParamFloat<px4::params::VT_EF_FT_ACC>) _param_vt_ef_ft_acc
 				       )
 };
 #endif
