@@ -110,7 +110,6 @@ int SagetechMXS::task_spawn(int argc, char *argv[])
 
 bool SagetechMXS::init()
 {
-	ScheduleOnInterval(UPDATE_INTERVAL_US);	// 50Hz
 	mxs_state.initialized = false;
 	mxs_state.init_failed = false;
 
@@ -131,6 +130,11 @@ bool SagetechMXS::init()
 
 		list_size_allocated = _adsb_list_max.get();
 	}
+
+	// Schedule only once init succeeded: on failure the instance is deleted in
+	// the shell, which must not happen after Run() opened the serial port on the
+	// work queue (file descriptors are per task group on NuttX).
+	ScheduleOnInterval(UPDATE_INTERVAL_US);	// 50Hz
 
 	return true;
 }
