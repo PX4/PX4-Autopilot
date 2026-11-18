@@ -458,6 +458,26 @@ The relevant parameters are shown below:
 | <a id="FD_FAIL_P_TTRI"></a>[FD_FAIL_P_TTRI](../advanced_config/parameter_reference.md#FD_FAIL_P_TTRI)    | Time to exceed [FD_FAIL_P](#FD_FAIL_P) for failure detection (default 0.3s).                                                     |
 | <a id="FD_FAIL_R_TTRI"></a>[FD_FAIL_R_TTRI](../advanced_config/parameter_reference.md#FD_FAIL_R_TTRI)    | Time to exceed [FD_FAIL_R](#FD_FAIL_R) for failure detection (default 0.3s).                                                     |
 
+### Impact Trigger {#impact-trigger}
+
+<Badge type="tip" text="MC only" />
+
+The failure detector can be configured to trigger if a multicopter hits the ground or an obstacle while airborne.
+An impact is detected when the specific force measured by the IMU, low-pass filtered with a 20 ms time constant, exceeds [FD_IMPACT_THR](#FD_IMPACT_THR).
+This is a larger force than the rotors can produce, so it can only come from a collision.
+
+An impact is handled like the [attitude trigger](#attitude-trigger):
+
+- In flight it triggers [flight termination](../advanced_config/flight_termination.md) (if enabled with [CBRK_FLIGHTTERM=0](#CBRK_FLIGHTTERM)), which sets the outputs to their failsafe values.
+- During takeoff it triggers the [disarm action](#act_disarm), irrespective of `CBRK_FLIGHTTERM`.
+  This kills the motors but does not set the outputs to their failsafe values.
+
+The impact flag stays set until the vehicle disarms.
+
+| Parameter                                                                                          | Description                                                                              |
+| -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| <a id="FD_IMPACT_THR"></a>[FD_IMPACT_THR](../advanced_config/parameter_reference.md#FD_IMPACT_THR) | Specific force threshold (m/s^2) above which an impact is detected. Set to 0 to disable. |
+
 ### Motor Failure Trigger
 
 The failure detector can be configured to detect a failed motor (or a lost or broken propeller, a seized bearing, a rubbing blade, and so on).

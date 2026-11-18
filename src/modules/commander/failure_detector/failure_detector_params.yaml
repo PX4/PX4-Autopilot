@@ -114,3 +114,15 @@ parameters:
       max: 5.0
       unit: s
       decimal: 2
+    FD_IMPACT_THR:
+      description:
+        short: Impact detection threshold
+        long: |-
+          Specific force above which an impact is detected in flight. Multicopter only. Set to 0 to disable.
+      type: float
+      default: 0.0
+      min: 0.0
+      max: 300.0
+      unit: m/s^2
+      decimal: 0
+      increment: 5
