@@ -565,12 +565,16 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 		// Otherwise, we move directly from vehicle position to loiter.
 		matrix::Vector2d pos_before_loiter{_global_pos_sub.get().lat, _global_pos_sub.get().lon};
 
+		// Altitude at which the vehicle starts moving to the loiter
+		float alt_before_loiter = _global_pos_sub.get().alt;
+
 		// Sum up time estimate for various segments of the landing procedure
 		switch (start_state_for_estimate) {
 		case RTLState::CLIMBING: {
 				// Climb segment is only relevant if the drone is below return altitude
 				if ((_global_pos_sub.get().alt < _rtl_alt) || _enforce_rtl_alt) {
 					_rtl_time_estimator.addVertDistance(_rtl_alt - _global_pos_sub.get().alt);
+					alt_before_loiter = _rtl_alt;
 				}
 			}
 
@@ -598,7 +602,8 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 					move_to_land_dist = max(0.f, move_to_land_dist - land_approach.loiter_radius_m);
 				}
 
-				_rtl_time_estimator.addDistance(move_to_land_dist, direction, 0.f);
+				// Above the return altitude, e.g. limited by RTL_MAX_ALT, the vehicle descends on the way
+				_rtl_time_estimator.addDistance(move_to_land_dist, direction, _rtl_alt - alt_before_loiter);
 			}
 
 		// FALLTHROUGH

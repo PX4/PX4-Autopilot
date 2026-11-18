@@ -3424,3 +3424,111 @@ TEST_F(RTLTest, Type6BeyondBatteryTakesOnlyCloserRallyPoint)
 
 	orb_unadvertise(battery_pub);
 }
+
+struct MaxReturnAltitudeCase {
+	const char *test_name;
+	bool is_vtol;
+	uint8_t vehicle_type;
+	float max_alt;
+	float start_height;
+	float expected_height;
+};
+
+class RTLMaxReturnAltitudeTest :
+	public RTLTest,
+	public ::testing::WithParamInterface<MaxReturnAltitudeCase>
+{
+protected:
+	void setVehicle(bool is_vtol, uint8_t vehicle_type, const PositionYawSetpoint &position)
+	{
+		publishVehicleStatus(is_vtol, vehicle_type, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
+		_navigator.get_vstatus()->is_vtol = is_vtol;
+		_navigator.get_vstatus()->vehicle_type = vehicle_type;
+
+		publishGlobalPosition(position);
+		_navigator.get_global_position()->lat = position.lat;
+		_navigator.get_global_position()->lon = position.lon;
+		_navigator.get_global_position()->alt = position.alt;
+
+		publishLandDetected(false);
+		_navigator.get_land_detected()->landed = false;
+	}
+
+	void setReturnAltitudes(float max_alt)
+	{
+		int32_t rtl_type = 0; // home or rally point, directly
+		int32_t cone_angle = 0; // return altitude from RTL_RETURN_ALT only
+		float return_alt = kReturnAlt;
+		ASSERT_EQ(param_set(param_find("RTL_TYPE"), &rtl_type), PX4_OK);
+		ASSERT_EQ(param_set(param_find("RTL_CONE_ANG"), &cone_angle), PX4_OK);
+		ASSERT_EQ(param_set(param_find("RTL_RETURN_ALT"), &return_alt), PX4_OK);
+		ASSERT_EQ(param_set(param_find("RTL_MAX_ALT"), &max_alt), PX4_OK);
+		_rtl.updateParamsForTest();
+	}
+
+	static constexpr float kReturnAlt = 50.f;
+	static constexpr float kHomeDistance = 1000.f;
+};
+
+// WHY: Return flies back at its current altitude when above RTL_RETURN_ALT, so a multicopter high above Home
+// spends the whole descent over Home, which can exhaust the battery before it lands.
+// WHAT: With RTL_MAX_ALT a vehicle in multicopter mode above it flies back at max(RTL_MAX_ALT, RTL_RETURN_ALT) above Home, so it
+// descends on the way. Below it, and in fixed-wing mode, the return altitude is unchanged.
+TEST_P(RTLMaxReturnAltitudeTest, DirectReturnFliesAtMostAtTheMaxReturnAltitude)
+{
+	const MaxReturnAltitudeCase &test_case = GetParam();
+
+	// GIVEN: Home 1 km away and the vehicle the given height above it
+	setReturnAltitudes(test_case.max_alt);
+	loadSafePointsIntoRouteCache({});
+	setVehicle(test_case.is_vtol, test_case.vehicle_type,
+		   makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, kHomeDistance, 0.f, kAlt + test_case.start_height));
+
+	// WHEN: Return starts
+	_rtl.on_activation();
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
+
+	// THEN: it climbs to or flies back at the expected height above Home
+	navigator_mission_item_s mission_item{};
+	ASSERT_TRUE(uORB::Subscription{ORB_ID(navigator_mission_item)}.copy(&mission_item));
+	EXPECT_NEAR(mission_item.altitude, kAlt + test_case.expected_height, 0.1f);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+	ReturnAltitudes, RTLMaxReturnAltitudeTest,
+	::testing::Values(
+		MaxReturnAltitudeCase{"MulticopterAboveDescends", false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, 100.f, 300.f, 100.f},
+		MaxReturnAltitudeCase{"MulticopterBelowKeepsAltitude", false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, 100.f, 80.f, 80.f},
+		MaxReturnAltitudeCase{"MulticopterBelowReturnAltClimbs", false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, 100.f, 30.f, 50.f},
+		MaxReturnAltitudeCase{"MaxBelowReturnAltUsesReturnAlt", false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, 30.f, 300.f, 50.f},
+		MaxReturnAltitudeCase{"DisabledKeepsAltitude", false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, -1.f, 300.f, 300.f},
+		MaxReturnAltitudeCase{"VtolInHoverDescends", true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, 100.f, 300.f, 100.f},
+		MaxReturnAltitudeCase{"VtolInFixedWingKeepsAltitude", true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING, 100.f, 300.f, 300.f},
+		MaxReturnAltitudeCase{"FixedWingKeepsAltitude", false, vehicle_status_s::VEHICLE_TYPE_FIXED_WING, 100.f, 300.f, 300.f}
+	),
+	[](const ::testing::TestParamInfo<RTLMaxReturnAltitudeTest::ParamType> &param_info) { return std::string(param_info.param.test_name); });
+
+// WHY: The remaining flight time checks use the Return time estimate, which counted the whole descent after
+// arriving over Home.
+// WHAT: Above RTL_MAX_ALT the estimate counts the descent to it alongside the return leg, so it is shorter.
+TEST_F(RTLMaxReturnAltitudeTest, EstimateCountsTheDescentAlongTheReturnLeg)
+{
+	// GIVEN: a multicopter 1 km from Home, 300 m above it
+	loadSafePointsIntoRouteCache({});
+	setVehicle(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING,
+		   makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, kHomeDistance, 0.f, kAlt + 300.f));
+
+	// WHEN: Return is estimated without and with RTL_MAX_ALT
+	setReturnAltitudes(-1.f);
+	_rtl.evaluateReturnTypeForTest(0);
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
+	const rtl_time_estimate_s estimate_without_limit = _rtl.directEstimateForTest();
+
+	setReturnAltitudes(100.f);
+	_rtl.evaluateReturnTypeForTest(0);
+	const rtl_time_estimate_s estimate_with_limit = _rtl.directEstimateForTest();
+
+	// THEN: the descent from 300 m to 100 m runs alongside the return leg
+	ASSERT_TRUE(estimate_without_limit.valid && estimate_with_limit.valid);
+	EXPECT_LT(estimate_with_limit.time_estimate, estimate_without_limit.time_estimate);
+}
