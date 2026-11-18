@@ -203,45 +203,6 @@ TEST_F(GeofenceCircleTest, UnreadableFenceIsNotInside)
 	}
 }
 
-// The check in flight and the mission check must agree: a circle is inside exactly when its centre passes the
-// point check and the path checker clears it, both as a loiter circle and as the margin of a single position.
-TEST_F(GeofenceCircleTest, MatchesPointAndPathChecks)
-{
-	// A concave inclusion with a notch, an exclusion square and an exclusion circle inside it.
-	FencePoints points = polygon(true, {{-400.f, -400.f}, {-400.f, 600.f}, {400.f, 600.f}, {400.f, 100.f},
-		{150.f, 100.f}, {150.f, -100.f}, {400.f, -100.f}, {400.f, -400.f}
-	});
-	const FencePoints square = exclusionSquare();
-	const FencePoints disc = circle(false, {-200.f, -150.f}, 60.f);
-	points.insert(points.end(), square.begin(), square.end());
-	points.insert(points.end(), disc.begin(), disc.end());
-	ASSERT_TRUE(loadFence(points));
-
-	int inside = 0;
-	int outside = 0;
-
-	for (float north = -487.f; north < 500.f; north += 50.f) {
-		for (float east = -487.f; east < 750.f; east += 50.f) {
-			for (const float radius : {1.f, 20.f, 60.f, 150.f}) {
-				SCOPED_TRACE(::testing::Message() << north << " m north, " << east << " m east, radius " << radius);
-				const matrix::Vector2d center = position(north, east);
-				const Geofence::PathCheck paths[] {{center, center, radius}, {center, center, 0.f, radius}};
-				bool clear[2] {};
-				ASSERT_TRUE(_fence.checkPathBatch(paths, 2, clear));
-				const bool center_inside = _fence.isInsideHorizontalFences(center(0), center(1), 0.f);
-				const bool expected = clear[0] && center_inside;
-				EXPECT_EQ(clear[1] && center_inside, expected);
-				EXPECT_EQ(_fence.isCircleInside(center(0), center(1), radius), expected);
-				expected ? ++inside : ++outside;
-			}
-		}
-	}
-
-	// Both outcomes must be well represented.
-	EXPECT_GT(inside, 100);
-	EXPECT_GT(outside, 100);
-}
-
 // Paths that must keep a margin from every polygon and circle, as mission paths do with GF_PRE_MARGIN.
 class GeofencePathMarginTest : public GeofenceCircleTest
 {

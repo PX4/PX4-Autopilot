@@ -108,11 +108,20 @@ static double edgeLongitudeShift(const matrix::Vector2d &start, const matrix::Ve
 	return 360.0 * round((0.5 * (start(1) + end(1)) - reference_lon) / 360.0);
 }
 
-// Whether a straight piece of a path comes within the margin of a fence edge that it does not cross.
-// The closest points then include an end of the piece or of the edge. Same flat frame as circleTouchesEdge().
-static bool pieceNearEdge(const matrix::Vector2d &piece_start, const matrix::Vector2d &piece_end,
-			  const matrix::Vector2d &edge_start, const matrix::Vector2d &edge_end, double margin)
+// Whether a straight piece of a path crosses a fence edge or comes within the margin of it. Boundary contact counts.
+// Two segments that do not cross are closest at an end of one of them. Fixed metre-per-degree scales keep the
+// edge straight in a frame at the piece, and the longitude scale at its poleward side never overstates a distance.
+static bool pieceTouchesEdge(const matrix::Vector2d &piece_start, const matrix::Vector2d &piece_end,
+			     const matrix::Vector2d &edge_start, const matrix::Vector2d &edge_end, double margin)
 {
+	if (geofence_utils::segmentsIntersectInclusive(piece_start, piece_end, edge_start, edge_end)) {
+		return true;
+	}
+
+	if (!(margin > 0.0)) {
+		return false;
+	}
+
 	const double north_scale = math::radians(1.0) * CONSTANTS_RADIUS_OF_EARTH;
 	const double max_lat = math::radians(math::max(fabs(piece_start(0)), fabs(piece_end(0))));
 	const double east_scale = north_scale * cos(math::min(max_lat + margin / CONSTANTS_RADIUS_OF_EARTH, kHalfPi));
@@ -146,8 +155,7 @@ static bool pathTouchesEdge(const Geofence::PathCheck &path, unsigned pieces, co
 	const double margin = static_cast<double>(path.margin);
 
 	if (pieces == 1) {
-		return geofence_utils::segmentsIntersectInclusive(path.start, path_end, shifted_start, shifted_end)
-		       || (margin > 0.0 && pieceNearEdge(path.start, path_end, shifted_start, shifted_end, margin));
+		return pieceTouchesEdge(path.start, path_end, shifted_start, shifted_end, margin);
 	}
 
 	// The whole arc's bow is at most pieces^2 * kMaxPieceBow. Expand the latitude bounds by that
@@ -186,8 +194,7 @@ static bool pathTouchesEdge(const Geofence::PathCheck &path, unsigned pieces, co
 			piece_end = {lat, path.start(1) + matrix::wrap(lon - path.start(1), -180.0, 180.0)};
 		}
 
-		if (geofence_utils::segmentsIntersectInclusive(piece_start, piece_end, shifted_start, shifted_end)
-		    || (margin > 0.0 && pieceNearEdge(piece_start, piece_end, shifted_start, shifted_end, margin))) {
+		if (pieceTouchesEdge(piece_start, piece_end, shifted_start, shifted_end, margin)) {
 			return true;
 		}
 
@@ -197,32 +204,14 @@ static bool pathTouchesEdge(const Geofence::PathCheck &path, unsigned pieces, co
 	return false;
 }
 
-// Boundary contact counts, so a circle touches the edge when the distance is at most its radius.
-static bool circleTouchesEdge(const matrix::Vector2d &center, double radius, const matrix::Vector2d &edge_start,
-			      const matrix::Vector2d &edge_end)
+// The circle at the path end is a piece without length that keeps its radius, and the margin, as its margin.
+// Not inlined: its temporaries would otherwise stay on the checkPolygonPaths() stack.
+static __attribute__((noinline)) bool circleTouchesEdge(const Geofence::PathCheck &path,
+		const matrix::Vector2d &edge_start, const matrix::Vector2d &edge_end)
 {
-	// Fixed metre-per-degree scales keep the edge straight in a frame centred on the circle. The longitude
-	// scale at the circle's poleward edge never overstates a distance within the radius.
-	const double north_scale = math::radians(1.0) * CONSTANTS_RADIUS_OF_EARTH;
-	const double east_scale = north_scale * cos(math::min(math::radians(fabs(center(0))) + radius / CONSTANTS_RADIUS_OF_EARTH,
-				  kHalfPi));
-	const double shift = edgeLongitudeShift(edge_start, edge_end, center(1));
-	const matrix::Vector2d a{(edge_start(0) - center(0)) *north_scale, (edge_start(1) - shift - center(1)) *east_scale};
-	const matrix::Vector2d b{(edge_end(0) - center(0)) *north_scale, (edge_end(1) - shift - center(1)) *east_scale};
-	return geofence_utils::pointToSegmentDistanceSquared(matrix::Vector2d {}, a, b) <= math::sq(radius);
-}
-
-// True if a circle keeps clear of a fence circle's boundary, on its allowed side. Boundary contact counts.
-// The offset runs from the fence centre to the circle centre, in metres.
-static bool circleClearsFenceCircle(bool inclusion, const matrix::Vector2d &offset, double fence_radius, double radius)
-{
-	if (inclusion) {
-		const double remaining_radius = fence_radius - radius;
-		return remaining_radius > 0.0 && offset.norm_squared() < remaining_radius * remaining_radius;
-	}
-
-	const double clearance = fence_radius + radius;
-	return offset.norm_squared() > clearance * clearance;
+	const double shift = edgeLongitudeShift(edge_start, edge_end, path.end(1));
+	return pieceTouchesEdge(path.end, path.end, {edge_start(0), edge_start(1) - shift}, {edge_end(0), edge_end(1) - shift},
+				static_cast<double>(path.end_radius + path.margin));
 }
 
 static uint32_t crc32_for_fence_point(const mission_fence_point_s &fence_point, uint32_t prev_crc32)
@@ -815,9 +804,7 @@ bool Geofence::checkPolygonPaths(const PolygonInfo &polygon, const PathCheck *pa
 
 		for (size_t i = 0; i < num_paths; ++i) {
 			if (results[i] && (pathTouchesEdge(paths[i], pieces[i], previous, next)
-					   || (paths[i].end_radius > 0.f
-					       && circleTouchesEdge(paths[i].end, static_cast<double>(paths[i].end_radius + paths[i].margin),
-							       previous, next)))) {
+					   || (paths[i].end_radius > 0.f && circleTouchesEdge(paths[i], previous, next)))) {
 				results[i] = false;
 			}
 		}
@@ -843,7 +830,7 @@ bool Geofence::checkCirclePaths(const PolygonInfo &polygon, const PathCheck *pat
 
 	matrix::Vector2f center;
 	_projection_reference.project(point.lat, point.lon, center(0), center(1));
-	const double fence_radius = static_cast<double>(point.circle_radius);
+	const double radius = static_cast<double>(point.circle_radius);
 	const float point_radius_squared = point.circle_radius * point.circle_radius;
 
 	for (size_t i = 0; i < num_paths; ++i) {
@@ -870,8 +857,11 @@ bool Geofence::checkCirclePaths(const PolygonInfo &polygon, const PathCheck *pat
 		if (polygon.fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION) {
 			// The double checks reject boundary contact rounded inside by the float point check.
 			// The disk is convex, so a path keeps its margin if both ends do.
-			results[i] = start_inside && end_inside && circleClearsFenceCircle(true, a, fence_radius, margin)
-				     && circleClearsFenceCircle(true, b, fence_radius, end_radius);
+			const double start_radius = radius - margin;
+			const double remaining_radius = radius - end_radius;
+			results[i] = start_inside && end_inside
+				     && start_radius > 0.0 && a.norm_squared() < start_radius * start_radius
+				     && remaining_radius > 0.0 && b.norm_squared() < remaining_radius * remaining_radius;
 
 		} else if (start_inside || end_inside) {
 			results[i] = false;
@@ -879,9 +869,9 @@ bool Geofence::checkCirclePaths(const PolygonInfo &polygon, const PathCheck *pat
 		} else {
 			const double distance_squared = geofence_utils::pointToSegmentDistanceSquared(
 								matrix::Vector2d(center), matrix::Vector2d(start), matrix::Vector2d(end));
-			const double path_clearance = fence_radius + margin;
-			results[i] = distance_squared > path_clearance * path_clearance
-				     && circleClearsFenceCircle(false, b, fence_radius, end_radius);
+			const double path_clearance = radius + margin;
+			const double clearance = radius + end_radius;
+			results[i] = distance_squared > path_clearance * path_clearance && b.norm_squared() > clearance * clearance;
 		}
 	}
 
@@ -1007,82 +997,18 @@ bool Geofence::isInsideHorizontalFences(double lat, double lon, float altitude)
 
 bool Geofence::isCircleInside(double lat, double lon, float radius)
 {
-	if (!PX4_ISFINITE(lat) || !PX4_ISFINITE(lon) || !(radius >= 0.f)) {
-		return false;
-	}
-
-	// The checks below only detect boundary contact, so the centre must be on the allowed side as well.
+	// The path checks only detect boundary contact, so the centre must be on the allowed side as well.
 	if (!isInsideHorizontalFences(lat, lon, 0.f)) {
 		return false;
 	}
 
-	if (isEmpty()) {
-		return true;
-	}
-
-	const matrix::Vector2d center{lat, lon};
-
-	for (int p = 0; p < _num_polygons; ++p) {
-		const PolygonInfo &polygon = _polygons[p];
-		mission_fence_point_s point{};
-
-		// A fence that cannot be read cannot clear the circle.
-		if (!_readFencePoint(polygon.dataman_index, point)) {
-			return false;
-		}
-
-		switch (polygon.fence_type) {
-		case NAV_CMD_FENCE_CIRCLE_INCLUSION:
-		case NAV_CMD_FENCE_CIRCLE_EXCLUSION: {
-				if (!_projection_reference.isInitialized()) {
-					_projection_reference.initReference(lat, lon, hrt_absolute_time());
-				}
-
-				matrix::Vector2f fence_center, circle_center;
-				_projection_reference.project(point.lat, point.lon, fence_center(0), fence_center(1));
-				_projection_reference.project(lat, lon, circle_center(0), circle_center(1));
-				const matrix::Vector2d offset = matrix::Vector2d(circle_center) - matrix::Vector2d(fence_center);
-
-				// An offset that is not finite does not clear the fence either.
-				if (!circleClearsFenceCircle(polygon.fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION, offset,
-							     static_cast<double>(point.circle_radius), static_cast<double>(radius))) {
-					return false;
-				}
-			}
-			break;
-
-		case NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION:
-		case NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION: {
-				const matrix::Vector2d first{point.lat, point.lon};
-				matrix::Vector2d previous = first;
-
-				// Read each vertex once, then reuse the first vertex to close the polygon.
-				for (unsigned v = 1; v <= polygon.vertex_count; ++v) {
-					matrix::Vector2d next = first;
-
-					if (v < polygon.vertex_count) {
-						if (!_readFencePoint(polygon.dataman_index + v, point)) {
-							return false;
-						}
-
-						next = matrix::Vector2d {point.lat, point.lon};
-					}
-
-					if (circleTouchesEdge(center, static_cast<double>(radius), previous, next)) {
-						return false;
-					}
-
-					previous = next;
-				}
-			}
-			break;
-
-		default:
-			return false;
-		}
-	}
-
-	return true;
+	// A path without length that keeps the radius as its margin.
+	PathCheck path{};
+	path.start = matrix::Vector2d{lat, lon};
+	path.end = path.start;
+	path.margin = radius;
+	bool clear = false;
+	return checkPaths(&path, 1, &clear) && clear;
 }
 
 bool Geofence::checkPointAgainstPolygonCircle(const PolygonInfo &polygon, double lat, double lon, float altitude)

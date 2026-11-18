@@ -165,7 +165,8 @@ public:
 	/**
 	 * True if a circle lies inside the polygons and circles without touching a boundary.
 	 * The Home and altitude limits are not checked.
-	 * Uses the loaded fence like the point checks, so it also answers while a fence update is pending.
+	 * Checked like a mission path without length, on the loaded fence: like the point checks,
+	 * it also answers while a fence update is pending.
 	 *
 	 * @param radius Circle radius in metres; zero checks the centre only.
 	 */
