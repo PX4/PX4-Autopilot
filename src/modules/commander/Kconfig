@@ -11,11 +11,16 @@ config PACKAGE_CORE
 	imply MODULES_NAVIGATOR
 	imply MODULES_RC_UPDATE
 	imply MODULES_SENSORS
+	imply SYSTEMCMDS_PARAM
+	imply SYSTEMCMDS_REBOOT
+	imply SYSTEMCMDS_TUNE_CONTROL
+	imply SYSTEMCMDS_VER
 	---help---
-		Modules rcS starts for every vehicle type.
+		Modules rcS starts and commands rcS runs for every vehicle type.
 
-		Modules are implied: each one defaults to enabled and can
-		still be disabled individually with CONFIG_MODULES_<NAME>=n.
+		Modules and commands are implied: each one defaults to enabled
+		and can still be disabled individually, e.g. with
+		CONFIG_MODULES_<NAME>=n or CONFIG_SYSTEMCMDS_<NAME>=n.
 
 menuconfig MODULES_COMMANDER
 	bool "commander"
