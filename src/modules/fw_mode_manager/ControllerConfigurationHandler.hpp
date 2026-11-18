@@ -43,7 +43,7 @@
 #include <uORB/Publication.hpp>
 #include <lib/mathlib/mathlib.h>
 
-static constexpr longitudinal_control_configuration_s empty_longitudinal_control_configuration = {.timestamp = 0, .pitch_min = NAN, .pitch_max = NAN, .throttle_min = NAN, .throttle_max = NAN, .climb_rate_target = NAN, .sink_rate_target = NAN, .speed_weight = NAN, .enforce_low_height_condition = false, .disable_underspeed_protection = false };
+static constexpr longitudinal_control_configuration_s empty_longitudinal_control_configuration = {.timestamp = 0, .pitch_min = NAN, .pitch_max = NAN, .throttle_min = NAN, .throttle_max = NAN, .climb_rate_target = NAN, .sink_rate_target = NAN, .enforce_low_height_condition = false, .disable_underspeed_protection = false };
 static constexpr lateral_control_configuration_s empty_lateral_control_configuration = {.timestamp = 0, .lateral_accel_max = NAN};
 
 
@@ -60,8 +60,6 @@ public:
 	void setThrottleMax(float throttle_max);
 
 	void setThrottleMin(float throttle_min);
-
-	void setSpeedWeight(float speed_weight);
 
 	void setPitchMin(const float pitch_min);
 

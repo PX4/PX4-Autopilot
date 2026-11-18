@@ -123,7 +123,6 @@ FwLateralLongitudinalControl::parameters_update()
 	_tecs.set_altitude_rate_ff(_param_fw_t_hrate_ff.get());
 	_tecs.set_airspeed_error_time_constant(_param_fw_t_tas_error_tc.get());
 	_tecs.set_ste_rate_time_const(_param_ste_rate_time_const.get());
-	_tecs.set_seb_rate_ff_gain(_param_seb_rate_ff.get());
 	_tecs.set_level_flight_pitch(radians(_param_fw_psp_off.get()));
 
 	_roll_slew_rate.setSlewRate(radians(_param_fw_pn_r_slew_max.get()));
@@ -161,7 +160,6 @@ void FwLateralLongitudinalControl::Run()
 
 		updateControllerConfiguration(now);
 
-		_tecs.set_speed_weight(_long_configuration.speed_weight);
 		updateTECSAltitudeTimeConstant(checkLowHeightConditions()
 					       || _long_configuration.enforce_low_height_condition, control_interval);
 		_tecs.set_altitude_error_time_constant(_tecs_alt_time_const_slew_rate.getState());
@@ -912,12 +910,6 @@ void FwLateralLongitudinalControl::updateLongitudinalControlConfiguration(const 
 		_long_configuration.sink_rate_target = math::max(0.0f, configuration_in.sink_rate_target);
 	} else {
 		_long_configuration.sink_rate_target = _param_sinkrate_target.get();
-	}
-
-	if (PX4_ISFINITE(configuration_in.speed_weight)) {
-		_long_configuration.speed_weight = math::constrain(configuration_in.speed_weight, 0.f, 2.f);
-	} else {
-		_long_configuration.speed_weight = _param_t_spdweight.get();
 	}
 
 	// the landing sets this to scale the TECS altitude time constant by FW_LND_THRTC_SC

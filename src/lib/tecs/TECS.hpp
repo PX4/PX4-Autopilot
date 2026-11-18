@@ -210,6 +210,13 @@ class TECSControl
 {
 public:
 	/**
+	 * Form the kinetic energy error as V (V_sp - V), which keeps the airspeed loop linear
+	 * as today at the expense of a kinetic energy loop with a gain of 2V / (V_sp + V), or as 0.5 (V_sp^2 - V^2),
+	 * linear in kinetic energy, which makes a pure energy exchange exactly throttle-neutral.
+	 */
+	static constexpr bool kAirspeedLinearKineticError = true;
+
+	/**
 	 * @brief The control parameters.
 	 *
 	 */
@@ -240,10 +247,8 @@ public:
 
 		// Energy control param
 		float ste_rate_time_const;				///< Filter time constant for specific total energy rate (damping path) [s].
-		float seb_rate_ff;					///< Specific energy balance rate feedforward gain.
 
 		// Pitch control param
-		float pitch_speed_weight;				///< Speed control weighting used by pitch demand calculation.
 		float integrator_gain_pitch;				///< Integrator gain used by the pitch demand calculation.
 		float pitch_damping_gain;				///< Damping gain of the pitch demand calculation [s].
 
@@ -263,8 +268,8 @@ public:
 	 *
 	 */
 	struct DebugOutput {
-		float altitude_rate_control;			///< Altitude rate setpoint from altitude control loop [m/s].
-		float true_airspeed_derivative_control;		///< Airspeed rate setpoint from airspeed control loop [m/s²].
+		float altitude_rate_control;			///< Altitude rate the potential energy rate setpoint demands [m/s].
+		float true_airspeed_derivative_control;		///< Airspeed rate the kinetic energy rate setpoint demands [m/s²].
 		float total_energy_rate_estimate;		///< Total energy rate estimate [m²/s³].
 		float total_energy_rate_sp;			///< Total energy rate setpoint [m²/s³].
 		float energy_balance_rate_estimate;		///< Energy balance rate estimate [m²/s³].
@@ -359,6 +364,8 @@ private:
 	// safety reset in _calcPitchControlUpdate, which the public update() path cannot
 	// reach on its own because the integrator-input guard rejects bad input first.
 	FRIEND_TEST(TECSControlTest, PitchIntegratorResetsCorruptedState);
+	// Allows the pitch energy allocation to be tested directly, on setpoints only.
+	friend class TECSPitchAllocationTest;
 
 	/**
 	 * @brief Specific total energy rate limit.
@@ -389,21 +396,12 @@ private:
 	};
 
 	/**
-	 * @brief Altitude rate and airspeed setpoints from the outer loops, from which the energy rate setpoints follow.
+	 * @brief Pitch loop values: balance rate and the total energy rate the balance rate is converted with.
 	 *
 	 */
-	struct OuterLoopSetpoints {
-		float altitude_rate_setpoint;	///< Controlled altitude rate setpoint [m/s].
-		float tas_rate_setpoint;	///< Controlled true airspeed rate setpoint [m/s²].
-	};
-
-	/**
-	 * @brief Weight factors for specific energy.
-	 *
-	 */
-	struct SpecificEnergyWeighting {
-		float spe_weighting;	///< Specific potential energy weight.
-		float ske_weighting;	///< Specific kinetic energy weight.
+	struct PitchControlValues {
+		ControlValues seb_rate;	///< Specific energy balance rate [m²/s³].
+		float ste_rate;		///< Specific total energy rate the pitch loop relies on [m²/s³].
 	};
 
 private:
@@ -428,18 +426,7 @@ private:
 	 * @return throttle per specific total energy rate [s³/m²].
 	 */
 	static float _steRateToThrottle(const STERateLimit &limit) { return 1.0f / (limit.STE_rate_max - limit.STE_rate_min); }
-	/**
-	 * @brief calculate airspeed control proportional output.
-	 *
-	 * @param setpoint is the control setpoints.
-	 * @param input	is the current input measurement of the UAS.
-	 * @param limit is the specific total energy rate limits in [m²/s³].
-	 * @param param	is the control parameters.
-	 * @param flag	is the control flags.
-	 * @return controlled airspeed rate setpoint in [m/s²].
-	 */
-	float _calcAirspeedControlOutput(const Setpoint &setpoint, const Input &input, const STERateLimit &limit,
-					 const Param &param, const Flag &flag) const;
+
 	/**
 	 * @brief calculate altitude control proportional output.
 	 *
@@ -450,7 +437,7 @@ private:
 	 */
 	float _calcAltitudeControlOutput(const Setpoint &setpoint, const Input &input, const Param &param) const;
 	/**
-	 * @brief Run the airspeed and altitude outer loops and the underspeed detection.
+	 * @brief Run the outer loops (energy rate setpoints) and the underspeed detection.
 	 *
 	 * Uses the direct height rate setpoint if it is finite, the altitude loop otherwise.
 	 *
@@ -464,13 +451,27 @@ private:
 	SpecificEnergyRates _updateOuterLoops(const Setpoint &setpoint, const Input &input, const STERateLimit &limit,
 					      const Param &param, const Flag &flag);
 	/**
-	 * @brief Calculate specific energy rates.
+	 * @brief Energy rate setpoints of the energy mode law.
 	 *
-	 * @param control_setpoint is the controlled altitude and airspeed rate setpoints.
+	 * Decomposes the (SPE, SKE) error into the SPE direction and the SEB direction, lets each decay with its own
+	 * time constant, and converts back to the (SPE, SKE) rate pair the throttle and the pitch realise together.
+	 *
+	 * @param setpoint is the control setpoint; the airspeed setpoint is capped by the caller for the pitch loop.
 	 * @param input is the current input measurement of the UAS.
+	 * @param limit is the specific total energy rate limits.
+	 * @param param is the control parameters.
+	 * @param flag is the control flags.
 	 * @return Specific energy rates in [m²/s³].
 	 */
-	SpecificEnergyRates _calcSpecificEnergyRates(const OuterLoopSetpoints &control_setpoint, const Input &input) const;
+	SpecificEnergyRates _calcEnergyModeRates(const Setpoint &setpoint, const Input &input, const STERateLimit &limit,
+			const Param &param, const Flag &flag) const;
+	/**
+	 * @brief Share of the total energy rate limits the airspeed demand may use.
+	 *
+	 * @param param is the control parameters.
+	 * @return share [0.5, 1]: half nominally, all in fast descend and underspeed recovery.
+	 */
+	float _airspeedShareOfEnergyRateLimits(const Param &param) const;
 	/**
 	 * @brief Detect underspeed.
 	 *
@@ -479,46 +480,6 @@ private:
 	 * @param flag is the control flags.
 	 */
 	void _detectUnderspeed(const Input &input, const Param &param, const Flag &flag);
-	/**
-	 * @brief Update specific energy balance weights.
-	 *
-	 * @param param is the control parameters.
-	 * @param flag is the control flags.
-	 * @return Weights used for the specific energy balance.
-	 */
-	SpecificEnergyWeighting _updateSpeedAltitudeWeights(const Param &param, const Flag &flag);
-	/**
-	 * @brief Calculate the specific kinetic energy rate setpoint used by the pitch loop.
-	 *
-	 * @param setpoint is the control setpoints.
-	 * @param input is the current input measurement of the UAS.
-	 * @param limit is the specific total energy rate limits in [m²/s³].
-	 * @param param is the control parameters.
-	 * @param flag is the control flags.
-	 * @param weight is the weighting use of the potential and kinetic energy.
-	 * @return specific kinetic energy rate setpoint in [m²/s³].
-	 */
-	float _calcPitchControlSkeRateSetpoint(const Setpoint &setpoint, const Input &input, const STERateLimit &limit,
-					       const Param &param, const Flag &flag, const SpecificEnergyWeighting &weight) const;
-	/**
-	 * @brief Specific energy rates as seen by the pitch loop.
-	 *
-	 * The airspeed setpoint is capped as in _calcPitchControlSkeRateSetpoint, and between trim airspeed and the
-	 * airspeed setpoint the kinetic energy rate estimate is removed as well, so that pitch does not counter the
-	 * throttle's acceleration.
-	 *
-	 * @param setpoint is the control setpoints.
-	 * @param input is the current input measurement of the UAS.
-	 * @param limit is the specific total energy rate limits in [m²/s³].
-	 * @param specific_energy_rates is the specific energy rates of the outer loops in [m²/s³].
-	 * @param param is the control parameters.
-	 * @param flag is the control flags.
-	 * @param weight is the weighting use of the potential and kinetic energy.
-	 * @return specific energy rates for the pitch loop in [m²/s³].
-	 */
-	SpecificEnergyRates _calcPitchControlEnergyRates(const Setpoint &setpoint, const Input &input,
-			const STERateLimit &limit, const SpecificEnergyRates &specific_energy_rates, const Param &param,
-			const Flag &flag, const SpecificEnergyWeighting &weight) const;
 	/**
 	 * @brief Calculate pitch control.
 	 *
@@ -534,14 +495,28 @@ private:
 			       const SpecificEnergyRates &specific_energy_rate, const Param &param, const Flag &flag);
 
 	/**
-	 * @brief Calculate pitch control specific energy balance rates.
+	 * @brief Specific energy balance rate setpoint and estimate of the pitch loop.
 	 *
-	 * @param weight is the weighting use of the potential and kinetic energy.
-	 * @param specific_energy_rate is the specific energy rates in [m²/s³].
-	 * @return specific energy balance rate values in [m²/s³].
+	 * @param setpoint is the control setpoint.
+	 * @param input is the current input measurement of the UAS.
+	 * @param limit is the specific total energy rate limits.
+	 * @param specific_energy_rates is the specific energy rates of the throttle loop in [m²/s³].
+	 * @param param is the control parameters.
+	 * @param flag is the control flags.
+	 * @return specific energy balance rate values and the total energy rate the pitch loop relies on, in [m²/s³].
 	 */
-	ControlValues _calcPitchControlSebRate(const SpecificEnergyWeighting &weight,
-					       const SpecificEnergyRates &specific_energy_rate) const;
+	PitchControlValues _calcPitchControlSebRateValues(const Setpoint &setpoint, const Input &input,
+			const STERateLimit &limit, const SpecificEnergyRates &specific_energy_rates, const Param &param, const Flag &flag);
+
+	/**
+	 * @brief How much the throttle is overridden or without authority (fast descend, underspeed, no throttle range).
+	 * The pitch then flies airspeed only.
+	 *
+	 * @param param is the control parameters.
+	 * @param flag is the control flags.
+	 * @return forced kinetic priority [0,1].
+	 */
+	float _calcForcedKineticPriority(const Param &param, const Flag &flag) const;
 
 	/**
 	 * @brief Calculate the pitch control update function.
@@ -555,26 +530,34 @@ private:
 	void _calcPitchControlUpdate(float dt, const Input &input, const ControlValues &seb_rate, const Param &param);
 
 	/**
-	 * @brief Derivative of the specific energy balance rate with respect to the climb angle.
+	 * @brief Climb angle that realises a specific energy balance rate.
+	 *
+	 * The balance rate depends on the throttle as well as on the climb angle, SEB rate = 2 g V gamma - STE rate,
+	 * so the total energy rate the throttle flies has to be added back: gamma = (SEB rate + STE rate) / (2 g V).
+	 * For a balance rate increment at unchanged throttle pass a zero total energy rate.
 	 *
 	 * Uses the filtered true airspeed, which is trim airspeed without a valid measurement, floored at the minimum
 	 * airspeed so the conversion stays well conditioned at low or invalid airspeed.
 	 *
+	 * @param seb_rate is the specific energy balance rate to realise in [m²/s³].
+	 * @param ste_rate is the specific total energy rate the throttle flies in [m²/s³].
 	 * @param input is the current input measurement of the UAS.
 	 * @param param is the control parameters.
-	 * @return climb angle to specific energy balance rate gain in [m²/s³/rad].
+	 * @return climb angle in [rad].
 	 */
-	static float _climbAngleToSebRate(const Input &input, const Param &param);
+	static float _sebRateToClimbAngle(float seb_rate, float ste_rate, const Input &input, const Param &param);
 
 	/**
 	 * @brief Calculate the pitch control output function.
 	 *
 	 * @param input is the current input measurement of the UAS.
 	 * @param seb_rate is the specific energy balance rate in [m²/s³].
+	 * @param ste_rate_setpoint is the specific total energy rate setpoint the throttle flies in [m²/s³].
 	 * @param param is the control parameters.
 	 * @return absolute pitch setpoint [rad].
 	 */
-	float _calcPitchControlOutput(const Input &input, const ControlValues &seb_rate, const Param &param) const;
+	float _calcPitchControlOutput(const Input &input, const ControlValues &seb_rate, float ste_rate_setpoint,
+				      const Param &param) const;
 
 	/**
 	 * @brief Update controlled throttle setpoint.
@@ -626,7 +609,7 @@ private:
 
 private:
 	// State
-	AlphaFilter<float> _ste_rate_estimate_filter;		///< Low pass filter for the specific total energy rate.
+	AlphaFilter<float> _ste_rate_error_filter;		///< Low pass filter for the specific total energy rate error (feedback path).
 	float _pitch_integ_state{0.0f};				///< Pitch integrator state [rad].
 	float _fast_descend_prev{0.0f};				///< Fast descend ratio of the last update [0,1].
 	float _throttle_integ_state{0.0f};			///< Throttle integrator state [-].
@@ -731,7 +714,6 @@ public:
 	void set_pitch_damping(float damping) { _control_param.pitch_damping_gain = damping; }
 	void set_vertical_accel_limit(float limit) { _reference_param.vert_accel_limit = limit; _control_param.vert_accel_limit = limit; }
 
-	void set_speed_weight(float weight) { _control_param.pitch_speed_weight = weight; }
 	void set_airspeed_error_time_constant(float time_const) { _control_param.airspeed_error_gain = 1.0f / math::max(time_const, 0.1f); }
 
 	void set_throttle_damp(float throttle_damp) { _control_param.throttle_damping_gain = throttle_damp; }
@@ -741,8 +723,6 @@ public:
 	void set_load_factor(float load_factor) { _control_param.load_factor = load_factor; }
 
 	void set_ste_rate_time_const(float time_const) { _control_param.ste_rate_time_const = time_const; }
-
-	void set_seb_rate_ff_gain(float ff_gain) { _control_param.seb_rate_ff = ff_gain; }
 
 	/**
 	 * Set the pitch angle in level flight at trim airspeed [rad], fed forward as the pitch at zero climb angle
@@ -860,8 +840,6 @@ private:
 		.altitude_setpoint_gain_ff = 0.0f,
 		.airspeed_error_gain = 0.1f,
 		.ste_rate_time_const = 0.1f,
-		.seb_rate_ff = 1.0f,
-		.pitch_speed_weight = 1.0f,
 		.integrator_gain_pitch = 0.0f,
 		.pitch_damping_gain = 0.0f,
 		.integrator_gain_throttle = 0.0f,

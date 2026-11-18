@@ -835,7 +835,6 @@ FixedWingModeManager::control_auto_position(const float control_interval, const 
 		/* enable gliding with this waypoint */
 		throttle_min = 0.0;
 		throttle_max = 0.0;
-		_ctrl_configuration_handler.setSpeedWeight(2.f);
 	}
 
 	_ctrl_configuration_handler.setThrottleMax(throttle_max);
@@ -894,7 +893,6 @@ FixedWingModeManager::control_auto_velocity(const float control_interval, const 
 	if (pos_sp_curr.gliding_enabled) {
 		_ctrl_configuration_handler.setThrottleMin(0.0f);
 		_ctrl_configuration_handler.setThrottleMax(0.0f);
-		_ctrl_configuration_handler.setSpeedWeight(2.0f);
 	}
 }
 
@@ -994,7 +992,6 @@ FixedWingModeManager::control_auto_loiter(const float control_interval, const Ve
 	if (pos_sp_curr.gliding_enabled) {
 		_ctrl_configuration_handler.setThrottleMin(0.0f);
 		_ctrl_configuration_handler.setThrottleMax(0.0f);
-		_ctrl_configuration_handler.setSpeedWeight(2.0f);
 	}
 
 	_ctrl_configuration_handler.setEnforceLowHeightCondition(enforce_low_height);
@@ -1042,7 +1039,6 @@ FixedWingModeManager::controlAutoFigureEight(const float control_interval, const
 	if (pos_sp_curr.gliding_enabled) {
 		_ctrl_configuration_handler.setThrottleMin(0.0f);
 		_ctrl_configuration_handler.setThrottleMax(0.0f);
-		_ctrl_configuration_handler.setSpeedWeight(2.0f);
 	}
 }
 
@@ -1099,7 +1095,6 @@ FixedWingModeManager::control_auto_path(const float control_interval, const Vect
 	if (pos_sp_curr.gliding_enabled) {
 		_ctrl_configuration_handler.setThrottleMin(0.0f);
 		_ctrl_configuration_handler.setThrottleMax(0.0f);
-		_ctrl_configuration_handler.setSpeedWeight(2.0f);
 	}
 }
 
@@ -2330,9 +2325,6 @@ FixedWingModeManager::Run()
 		// by default no flaps/spoilers, is overwritten below in certain modes
 		_flaps_setpoint = 0.f;
 		_spoilers_setpoint = 0.f;
-
-		// by default set speed weight to the param value, can be overwritten inside the methods below
-		_ctrl_configuration_handler.setSpeedWeight(_param_t_spdweight.get());
 
 		if (_control_mode_current != FW_POSCTRL_MODE_AUTO_LANDING_STRAIGHT
 		    && _control_mode_current != FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR) {

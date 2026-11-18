@@ -52,8 +52,6 @@ void CombinedControllerConfigurationHandler::update(const hrt_abstime now)
 				 _longitudinal_publisher.get().throttle_min);
 	_longitudinal_updated |= floatValueChanged(_longitudinal_configuration_current_cycle.throttle_max,
 				 _longitudinal_publisher.get().throttle_max);
-	_longitudinal_updated |= floatValueChanged(_longitudinal_configuration_current_cycle.speed_weight,
-				 _longitudinal_publisher.get().speed_weight);
 	_longitudinal_updated |= floatValueChanged(_longitudinal_configuration_current_cycle.climb_rate_target,
 				 _longitudinal_publisher.get().climb_rate_target);
 	_longitudinal_updated |= floatValueChanged(_longitudinal_configuration_current_cycle.sink_rate_target,
@@ -91,11 +89,6 @@ void CombinedControllerConfigurationHandler::setThrottleMax(float throttle_max)
 void CombinedControllerConfigurationHandler::setThrottleMin(float throttle_min)
 {
 	_longitudinal_configuration_current_cycle.throttle_min = throttle_min;
-}
-
-void CombinedControllerConfigurationHandler::setSpeedWeight(float speed_weight)
-{
-	_longitudinal_configuration_current_cycle.speed_weight = speed_weight;
 }
 
 void CombinedControllerConfigurationHandler::setPitchMin(const float pitch_min)
