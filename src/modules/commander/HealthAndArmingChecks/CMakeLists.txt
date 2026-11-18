@@ -79,6 +79,12 @@ if(CONFIG_NAVIGATOR_ADSB)
 	list(APPEND health_and_arming_checks_srcs checks/daaCheck.cpp)
 endif()
 
+# fixed-wing flight, also of VTOLs
+if(CONFIG_MODULES_FW_ATT_CONTROL OR CONFIG_MODULES_VTOL_ATT_CONTROL)
+	list(APPEND health_and_arming_checks_srcs checks/fixedWingPropulsionCheck.cpp)
+	set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/fw_propulsion_check_params.yaml)
+endif()
+
 px4_add_library(health_and_arming_checks ${health_and_arming_checks_srcs})
 
 set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/esc_check_params.yaml)
@@ -95,3 +101,7 @@ px4_add_functional_gtest(SRC escChecksTest.cpp LINKLIBS health_and_arming_checks
 px4_add_functional_gtest(SRC batteryChecksTest.cpp LINKLIBS health_and_arming_checks mode_util)
 
 px4_add_functional_gtest(SRC trafficAvoidanceCheckTest.cpp LINKLIBS health_and_arming_checks mode_util)
+
+if(CONFIG_MODULES_FW_ATT_CONTROL OR CONFIG_MODULES_VTOL_ATT_CONTROL)
+	px4_add_functional_gtest(SRC fixedWingPropulsionChecksTest.cpp LINKLIBS health_and_arming_checks mode_util)
+endif()

@@ -120,6 +120,15 @@ void VtolAttitudeControl::vehicle_status_poll()
 	_nav_state_prev = _vehicle_status.nav_state;
 }
 
+void VtolAttitudeControl::failsafe_flags_poll()
+{
+	failsafe_flags_s failsafe_flags;
+
+	if (_failsafe_flags_sub.update(&failsafe_flags)) {
+		_fw_propulsion_failure = failsafe_flags.fd_fw_motor;
+	}
+}
+
 void VtolAttitudeControl::action_request_poll()
 {
 	while (_action_request_sub.updated()) {
@@ -401,6 +410,7 @@ VtolAttitudeControl::Run()
 		vehicle_status_poll();
 		action_request_poll();
 		vehicle_cmd_poll();
+		failsafe_flags_poll();
 
 		// a commanded quad-chute ends on disarm, a detected one stays until the next front transition command
 		if (!_vehicle_control_mode.flag_armed && _quadchute_reason == QuadchuteReason::ExternalCommand) {
