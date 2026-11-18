@@ -159,34 +159,7 @@ void VtolType::update_vtol_state()
 		onQuadchute();
 		_common_vtol_mode = mode::ROTARY_WING;
 
-	} else if (!_attc->is_fixed_wing_requested()) {
-
-		switch (_common_vtol_mode) {
-		case mode::ROTARY_WING:
-			break;
-
-		case mode::FIXED_WING:
-			// regular back transition
-			resetTransitionStates();
-			onTransitionStart();
-			_common_vtol_mode = mode::TRANSITION_TO_MC;
-			break;
-
-		case mode::TRANSITION_TO_FW:
-			// abort into hover
-			onFrontTransitionAborted();
-			_common_vtol_mode = mode::ROTARY_WING;
-			break;
-
-		case mode::TRANSITION_TO_MC:
-			if (isBackTransitionCompleted()) {
-				_common_vtol_mode = mode::ROTARY_WING;
-			}
-
-			break;
-		}
-
-	} else {
+	} else if (_attc->is_fixed_wing_requested()) {
 
 		switch (_common_vtol_mode) {
 		case mode::ROTARY_WING:
@@ -221,6 +194,33 @@ void VtolType::update_vtol_state()
 				resetTransitionStates();
 				onTransitionStart();
 				_common_vtol_mode = mode::TRANSITION_TO_FW;
+			}
+
+			break;
+		}
+
+	} else {
+
+		switch (_common_vtol_mode) {
+		case mode::ROTARY_WING:
+			break;
+
+		case mode::FIXED_WING:
+			// regular back transition
+			resetTransitionStates();
+			onTransitionStart();
+			_common_vtol_mode = mode::TRANSITION_TO_MC;
+			break;
+
+		case mode::TRANSITION_TO_FW:
+			// abort into hover
+			onFrontTransitionAborted();
+			_common_vtol_mode = mode::ROTARY_WING;
+			break;
+
+		case mode::TRANSITION_TO_MC:
+			if (isBackTransitionCompleted()) {
+				_common_vtol_mode = mode::ROTARY_WING;
 			}
 
 			break;
