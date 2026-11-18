@@ -324,7 +324,7 @@ OSDatxxxx::enable_screen()
 	int ret = PX4_OK;
 
 	ret |= readRegister(0x00, &data, 1);
-	ret |= writeRegister(0x00, data | 0x48);
+	ret |= writeRegister(0x00, data | 0x08);
 
 	return ret;
 }
