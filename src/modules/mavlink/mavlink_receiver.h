@@ -50,6 +50,7 @@
 #include "MavlinkStatustextHandler.hpp"
 #include "mavlink_timesync.h"
 #include "tune_publisher.h"
+#include "mavlink_extension_handlers.h"
 
 #include <lib/gnss/rtcm.h>
 #include <geo/geo.h>
@@ -324,6 +325,12 @@ private:
 	MavlinkParametersManager	_parameters_manager;
 	MavlinkTimesync			_mavlink_timesync;
 	MavlinkStatustextHandler	_mavlink_statustext_handler;
+
+	// The message handlers other modules add with px4_add_mavlink_extension(), one of each per instance.
+	// They are named by index, as a class name can carry a namespace.
+#define MAVLINK_EXTENSION_HANDLER_MEMBER(handler, index) handler _extension_handler_##index{_mavlink};
+	MAVLINK_EXTENSION_HANDLERS(MAVLINK_EXTENSION_HANDLER_MEMBER)
+#undef MAVLINK_EXTENSION_HANDLER_MEMBER
 
 	mavlink_status_t		_status{}; ///< receiver status, used for mavlink_parse_char()
 

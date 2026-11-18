@@ -470,6 +470,11 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	/* handle packet with parent object */
 	_mavlink.handle_message(msg);
+
+	/* handle packet with the handlers other modules add */
+#define MAVLINK_EXTENSION_HANDLER_CALL(handler, index) _extension_handler_##index.handle_message(msg);
+	MAVLINK_EXTENSION_HANDLERS(MAVLINK_EXTENSION_HANDLER_CALL)
+#undef MAVLINK_EXTENSION_HANDLER_CALL
 }
 
 static bool gimbal_mode_command_allowed(uint16_t command)

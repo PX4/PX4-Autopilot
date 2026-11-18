@@ -172,6 +172,9 @@
 # include "streams/WHEEL_DISTANCE.hpp"
 #endif // !CONSTRAINED_FLASH
 
+// The streams other modules add with px4_add_mavlink_extension()
+#include "mavlink_extension_streams.h"
+
 // ensure PX4 rotation enum and MAV_SENSOR_ROTATION align
 static_assert(MAV_SENSOR_ROTATION_NONE == static_cast<MAV_SENSOR_ORIENTATION>(ROTATION_NONE),
 	      "Roll: 0, Pitch: 0, Yaw: 0");
@@ -547,6 +550,9 @@ static constexpr StreamListItem streams_list[] = {
 #if defined(WHEEL_DISTANCE_HPP)
 	create_stream_list_item<MavlinkStreamWheelDistance>(),
 #endif // WHEEL_DISTANCE_HPP
+#define MAVLINK_EXTENSION_STREAM_ITEM(stream, index) create_stream_list_item<stream>(),
+	MAVLINK_EXTENSION_STREAMS(MAVLINK_EXTENSION_STREAM_ITEM)
+#undef MAVLINK_EXTENSION_STREAM_ITEM
 
 };
 

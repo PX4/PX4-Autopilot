@@ -11,6 +11,15 @@ depends on MODULES_MAVLINK
 	---help---
 		Select the Mavlink dialect to generate and use.
 
+menuconfig MAVLINK_EXTENSION_EXAMPLE
+depends on MODULES_MAVLINK
+	bool "Example MAVLink extension"
+	default n
+	---help---
+		Build the example of px4_add_mavlink_extension(): a handler that counts the
+		MEMORY_VECT messages PX4 receives on any MAVLink instance, and a MEMORY_VECT
+		stream that reports the count.
+
 menuconfig MAVLINK_UAVCAN_PARAMETERS
 depends on MODULES_MAVLINK && DRIVERS_UAVCAN
         bool "Mavlink UAVCAN parameter support"
