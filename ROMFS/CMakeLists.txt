@@ -296,18 +296,27 @@ foreach(board_extra_file ${OPTIONAL_BOARD_EXTRAS})
 			# remove bootloader from extras
 			list(REMOVE_ITEM OPTIONAL_BOARD_EXTRAS ${board_extra_file})
 		endif()
-	elseif(${extra_file_base_name} MATCHES "_io-v[0-9]+_default\\.bin$")
-		# px4io firmware: only the px4io driver can use it
-		if(NOT CONFIG_DRIVERS_PX4IO)
-			list(REMOVE_ITEM OPTIONAL_BOARD_EXTRAS ${board_extra_file})
-		endif()
 	endif()
 endforeach()
+
+# px4io firmware (optional)
+#  - the binary is kept once per IO board, in boards/<vendor>/<model>/extras/<CONFIG_BOARD_IO>.bin
+#  - regenerate it with "make px4io_update", CI checks it with "make check_px4io"
+if(CONFIG_DRIVERS_PX4IO AND CONFIG_BOARD_IO)
+	if(NOT CONFIG_BOARD_IO MATCHES "^([^_]+)_(.+)_([^_]+)$")
+		message(FATAL_ERROR "BOARD_IO '${CONFIG_BOARD_IO}' is not of the form <vendor>_<model>_<label>")
+	endif()
+	set(px4io_firmware_bin ${PX4_SOURCE_DIR}/boards/${CMAKE_MATCH_1}/${CMAKE_MATCH_2}/extras/${CONFIG_BOARD_IO}.bin)
+	if(NOT EXISTS ${px4io_firmware_bin})
+		message(FATAL_ERROR "px4io firmware not found at: ${px4io_firmware_bin} (run make px4io_update)")
+	endif()
+	list(APPEND OPTIONAL_BOARD_EXTRAS ${px4io_firmware_bin})
+endif()
 
 foreach(board_extra_file ${OPTIONAL_BOARD_EXTRAS})
 
 	if(EXISTS "${board_extra_file}")
-		file(RELATIVE_PATH extra_file_base_name ${PX4_BOARD_DIR}/extras/ ${board_extra_file})
+		get_filename_component(extra_file_base_name ${board_extra_file} NAME)
 		file(RELATIVE_PATH extra_file_relative_source ${PX4_SOURCE_DIR} ${board_extra_file})
 		message(STATUS "ROMFS:  Adding ${extra_file_relative_source} -> /etc/extras/${extra_file_base_name}")
 
@@ -315,7 +324,7 @@ foreach(board_extra_file ${OPTIONAL_BOARD_EXTRAS})
 			OUTPUT
 				${romfs_gen_root_dir}/extras/${extra_file_base_name}
 				${extra_file_base_name}.stamp
-			COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PX4_BOARD_DIR}/extras/${extra_file_base_name} ${romfs_gen_root_dir}/extras/${extra_file_base_name}
+			COMMAND ${CMAKE_COMMAND} -E copy_if_different ${board_extra_file} ${romfs_gen_root_dir}/extras/${extra_file_base_name}
 			COMMAND ${CMAKE_COMMAND} -E touch ${extra_file_base_name}.stamp
 			DEPENDS
 				${board_extra_file}
