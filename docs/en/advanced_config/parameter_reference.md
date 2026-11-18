@@ -44025,7 +44025,7 @@ before takeoff using gyro data.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  |  | Enabled (1) |  | &nbsp;
+&check; |  |  |  | Disabled (0) |  | &nbsp;
 
 </div>
 
@@ -59313,7 +59313,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Magnetometer auto calibration.
 
-Automatically initialize magnetometer calibration from bias estimate if available. The estimate only captures hard-iron offsets, so a full calibration is still recommended. Mainly intended for remote nodes (e.g. CAN GPS units) that cannot be calibrated from a ground station.
+Automatically initialize magnetometer calibration from bias estimate if available. The estimate only captures hard-iron offsets, so a full calibration is still recommended.
 
 
 **Values:**
