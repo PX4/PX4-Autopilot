@@ -568,7 +568,7 @@ TEST(rateControl, nanYawRateSetpoint)
 
 	// WHEN: the yaw rate setpoint is NaN
 	const float speed_diff_normalized = RoverControl::rateControl(adjusted_yaw_rate_setpoint, pid_yaw_rate, NAN, 0.f, 1.f, 1.f,
-				 0.f, 0.f, 0.5f, kDt);
+					    0.f, 0.f, 0.5f, kDt);
 
 	// THEN: the output is NaN and the adjusted setpoint is left unchanged
 	EXPECT_FALSE(PX4_ISFINITE(speed_diff_normalized));
@@ -583,7 +583,7 @@ TEST(rateControl, nanVehicleYawRate)
 
 	// WHEN: the vehicle yaw rate is NaN
 	const float speed_diff_normalized = RoverControl::rateControl(adjusted_yaw_rate_setpoint, pid_yaw_rate, 1.f, NAN, 1.f, 1.f,
-				 0.f, 0.f, 0.5f, kDt);
+					    0.f, 0.f, 0.5f, kDt);
 
 	// THEN: the output is NaN and the adjusted setpoint is left unchanged
 	EXPECT_FALSE(PX4_ISFINITE(speed_diff_normalized));
@@ -598,7 +598,7 @@ TEST(rateControl, nanDt)
 
 	// WHEN: the update interval is NaN
 	const float speed_diff_normalized = RoverControl::rateControl(adjusted_yaw_rate_setpoint, pid_yaw_rate, 1.f, 0.f, 1.f, 1.f,
-				 0.f, 0.f, 0.5f, NAN);
+					    0.f, 0.f, 0.5f, NAN);
 
 	// THEN: the output is NaN and the adjusted setpoint is left unchanged
 	EXPECT_FALSE(PX4_ISFINITE(speed_diff_normalized));
@@ -618,7 +618,7 @@ TEST(rateControl, feedForward)
 
 	// WHEN: a yaw rate of 2 rad/s is requested
 	const float speed_diff_normalized = RoverControl::rateControl(adjusted_yaw_rate_setpoint, pid_yaw_rate, yaw_rate_setpoint,
-				 yaw_rate_setpoint, max_thr_speed, yaw_rate_corr, 0.f, 0.f, wheel_track, kDt);
+					    yaw_rate_setpoint, max_thr_speed, yaw_rate_corr, 0.f, 0.f, wheel_track, kDt);
 
 	// THEN: the speed difference is yaw rate * wheel_track / 2 * yaw_rate_corr = 2 * 0.5 / 2 * 1.5 = 0.75 m/s,
 	// which is 0.75 of the speed at full throttle (1 m/s)
@@ -635,7 +635,7 @@ TEST(rateControl, feedbackOnly)
 
 	// WHEN: a yaw rate of 1 rad/s is requested
 	const float speed_diff_normalized = RoverControl::rateControl(adjusted_yaw_rate_setpoint, pid_yaw_rate, 1.f, 0.f, 1.f, 1.f,
-				 0.f, 0.f, 0.f, kDt);
+					    0.f, 0.f, 0.f, kDt);
 
 	// THEN: only the P term acts on the 1 rad/s yaw rate error
 	EXPECT_NEAR(speed_diff_normalized, 0.5f, 1e-5f);
@@ -671,7 +671,7 @@ TEST(rateControl, outputClampedPositive)
 
 	// WHEN: a yaw rate of 1 rad/s is requested, so full feed-forward plus the P term exceed the normalized range
 	const float speed_diff_normalized = RoverControl::rateControl(adjusted_yaw_rate_setpoint, pid_yaw_rate, 1.f, 0.f, 1.f, 1.f,
-				 0.f, 0.f, wheel_track, kDt);
+					    0.f, 0.f, wheel_track, kDt);
 
 	// THEN: the output is clamped to 1
 	EXPECT_FLOAT_EQ(speed_diff_normalized, 1.f);
@@ -689,7 +689,7 @@ TEST(rateControl, outputClampedNegative)
 
 	// WHEN: a yaw rate of -1 rad/s is requested, so full feed-forward plus the P term exceed the normalized range
 	const float speed_diff_normalized = RoverControl::rateControl(adjusted_yaw_rate_setpoint, pid_yaw_rate, -1.f, 0.f, 1.f, 1.f,
-				 0.f, 0.f, wheel_track, kDt);
+					    0.f, 0.f, wheel_track, kDt);
 
 	// THEN: the output is clamped to -1
 	EXPECT_FLOAT_EQ(speed_diff_normalized, -1.f);
