@@ -175,6 +175,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 - jMAVSim has been removed in favour of [SIH](../sim_sih/index.md) with the [Hawkeye](../sim_hawkeye/index.md) visualizer. See the [Upgrade Guide](#upgrade-guide).
 - Gazebo: the GNSS failure injection commands (`failure gps off`, `stuck` and `wrong`) now apply to the NavSat data published by the gz bridge, consistent with the other simulator paths. ([PX4-Autopilot#28398](https://github.com/PX4/PX4-Autopilot/pull/28398))
+- [SIH](../sim_sih/index.md) can simulate ESC and battery current: with [SIM_BAT_I_MOT](../advanced_config/parameter_reference.md#SIM_BAT_I_MOT) set, each ESC reports that current times its motor output to the power of 1.5, and the simulated batteries share their sum plus [SIM_BAT_I_IDLE](../advanced_config/parameter_reference.md#SIM_BAT_I_IDLE).
 
 ### Debug & Logging
 

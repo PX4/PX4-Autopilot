@@ -370,6 +370,13 @@ void Sih::sensor_step()
 
 void Sih::parameters_updated()
 {
+	// motor current at full output from the battery simulator, none without it
+	const param_t sim_bat_i_mot = param_find("SIM_BAT_I_MOT");
+
+	if (sim_bat_i_mot == PARAM_INVALID || param_get(sim_bat_i_mot, &_motor_current_max) != PX4_OK) {
+		_motor_current_max = 0.f;
+	}
+
 	_T_MAX = _sih_t_max.get();
 	_Q_MAX = _sih_q_max.get();
 	_L_ROLL = _sih_l_roll.get();
@@ -546,6 +553,9 @@ void Sih::publish_esc_status()
 		_esc_status.esc[motor_idx].actuator_function = esc_report_s::ACTUATOR_FUNCTION_MOTOR1 + motor_idx;
 		_esc_status.esc[motor_idx].esc_temperature = 50.f;
 		_esc_status.esc[motor_idx].esc_rpm = (int32_t)roundf(Thruster::throttle_to_rpm(_u[i], max_rpm));
+		// shaft power, so the current at constant voltage, grows with the propeller speed cubed
+		const float speed_ratio = Thruster::throttle_to_speed_ratio(fabsf(_u[i]));
+		_esc_status.esc[motor_idx].esc_current = _motor_current_max * speed_ratio * speed_ratio * speed_ratio;
 		_esc_status.esc_online_flags |= 1u << motor_idx;
 
 		if (_u[i] > FLT_EPSILON) {
