@@ -288,6 +288,7 @@
       - [CUAV C-RTK](gps_compass/rtk_gps_cuav_c-rtk.md)
       - [CUAV C-RTK2 PPK/RTK GNSS](gps_compass/rtk_gps_cuav_c-rtk2.md)
       - [CUAV C-RTK 9Ps](gps_compass/rtk_gps_cuav_c-rtk-9ps.md)
+      - [CubePilot Here4 (CAN)](dronecan/cubepilot_here4.md)
       - [DATAGNSS NANO HRTK GNSS](gps_compass/rtk_gps_datagnss_nano_hrtk.md)
       - [DATAGNSS GEM1305 RTK GNSS](gps_compass/rtk_gps_gem1305.md)
       - [Femtones MINI2 Receiver](gps_compass/rtk_gps_fem_mini2.md)
