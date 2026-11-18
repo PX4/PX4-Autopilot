@@ -427,6 +427,7 @@ private:
 		(ParamInt<px4::params::SIH_VEHICLE_TYPE>) _sih_vtype,
 		(ParamFloat<px4::params::SIH_WIND_N>) _sih_wind_n,
 		(ParamFloat<px4::params::SIH_WIND_E>) _sih_wind_e,
+		(ParamFloat<px4::params::SIH_PLAT_VN>) _sih_plat_vn,
 		(ParamFloat<px4::params::SIH_RNGBC_NOISE>) _sih_ranging_beacon_noise
 	)
 };

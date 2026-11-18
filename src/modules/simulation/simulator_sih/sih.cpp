@@ -429,6 +429,7 @@ void Sih::parameters_updated()
 
 		const Dcmf R_E2N = _lla.computeRotEcefToNed();
 		_R_N2E = R_E2N.transpose();
+		_v_N = Vector3f(_sih_plat_vn.get(), 0.f, 0.f); // start on the platform
 		_v_E = _R_N2E * _v_N;
 		_q = Quatf(Eulerf(0.f, 0.f, _sih_yaw0.get()));
 		_q_E = Quatf(_R_N2E) * _q;
@@ -764,38 +765,26 @@ void Sih::equations_of_motion(const float dt)
 	const float force_down = Vector3f(_R_N2E.transpose() * sum_of_forces_E)(2);
 	Vector3f ground_force_E;
 
-	if (_lla.altitude() < _ground_alt && force_down > 0.f) {
+	const bool ground_contact = (_lla.altitude() < _ground_alt) && (force_down > 0.f);
+
+	if (ground_contact) {
 		if (_vehicle == VehicleType::Quadcopter
 		    || _vehicle == VehicleType::Hexacopter
 		    || _vehicle == VehicleType::TailsitterVTOL
 		    || _vehicle == VehicleType::StandardVTOL) {
-			ground_force_E = -sum_of_forces_E;
-
-			if (!_grounded) {
-				// if we just hit the floor
-				// compute the force that will stop the vehicle in one time step
-				ground_force_E += -_v_E / dt * _MASS;
-			}
-
-			_grounded = true;
+			// cancel all forces and match the velocity of the ground, which moves north with SIH_PLAT_VN
+			const Vector3f platform_velocity_N(_sih_plat_vn.get(), 0.f, 0.f);
+			ground_force_E = -sum_of_forces_E + (_R_N2E * platform_velocity_N - _v_E) / dt * _MASS;
 
 		} else if (_vehicle == VehicleType::FixedWing
 			   || _vehicle == VehicleType::RoverAckermann) {
 			Vector3f down_u = _R_N2E.col(2);
-			ground_force_E = -down_u * sum_of_forces_E * down_u;
-
-			if (!_grounded) {
-				// if we just hit the floor
-				// compute the force that will stop the vehicle in one time step
-				ground_force_E += down_u * (-_v_N(2) / dt) * _MASS;
-			}
-
-			_grounded = true;
+			// cancel the vertical forces and stop the vertical motion within one time step
+			ground_force_E = -down_u * sum_of_forces_E * down_u + down_u * (-_v_N(2) / dt) * _MASS;
 		}
-
-	} else {
-		_grounded = false;
 	}
+
+	_grounded = ground_contact;
 
 	sum_of_forces_E += ground_force_E;
 	const Vector3f acceleration_E = sum_of_forces_E / _MASS;
