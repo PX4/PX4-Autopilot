@@ -49,10 +49,24 @@ BatterySimulator::BatterySimulator() :
 
 		char param_name[17]; // 16 chars for parameter name + null terminator
 
-		snprintf(param_name, sizeof(param_name), "SIM_BAT%d_DRAIN", i + 1);
-		_drain_handles[i] = param_find(param_name);
+		snprintf(param_name, sizeof(param_name), "SIM_BAT%d_I_IDLE", i + 1);
+		_i_idle_handles[i] = param_find(param_name);
 
-		if (_drain_handles[i] == PARAM_INVALID) {
+		if (_i_idle_handles[i] == PARAM_INVALID) {
+			PX4_ERR("Could not find parameter with name %s", param_name);
+		}
+
+		snprintf(param_name, sizeof(param_name), "SIM_BAT%d_I_MOT_A", i + 1);
+		_i_mot_a_handles[i] = param_find(param_name);
+
+		if (_i_mot_a_handles[i] == PARAM_INVALID) {
+			PX4_ERR("Could not find parameter with name %s", param_name);
+		}
+
+		snprintf(param_name, sizeof(param_name), "SIM_BAT%d_I_MOT_B", i + 1);
+		_i_mot_b_handles[i] = param_find(param_name);
+
+		if (_i_mot_b_handles[i] == PARAM_INVALID) {
 			PX4_ERR("Could not find parameter with name %s", param_name);
 		}
 
@@ -62,8 +76,6 @@ BatterySimulator::BatterySimulator() :
 		if (_min_pct_handles[i] == PARAM_INVALID) {
 			PX4_ERR("Could not find parameter with name %s", param_name);
 		}
-
-		_battery_percentage[i] = 1.f;
 	}
 
 	updateParams();
@@ -117,40 +129,65 @@ void BatterySimulator::Run()
 		}
 	}
 
-	const hrt_abstime now_us = hrt_absolute_time();
+	updateMotorLoad();
 
-	const float ibatt = -1.0f; // no current sensor in simulation
+	const hrt_abstime now_us = hrt_absolute_time();
+	const bool disarmed_now = _was_armed && !_armed;
+	_was_armed = _armed;
 
 	for (int i = 0; i < battery_status_s::MAX_INSTANCES; i++) {
-		// Limit to +1.0 s to guard against division by 0
-		const float discharge_interval_us = math::max(fullDischargeTime(i), 1.0f) * 1000 * 1000;
-
-		if (_armed) {
-			if (_last_integration_us != 0) {
-				_battery_percentage[i] -= (now_us - _last_integration_us) / discharge_interval_us;
-			}
-
-		} else {
-			_battery_percentage[i] = 1.f;
-		}
-
-		_battery_percentage[i] = math::max(_battery_percentage[i], minimumPercentage(i) / 100.f);
-
 		Battery &battery = *_batteries[i];
 
-		float vbatt = math::interpolate(_battery_percentage[i], 0.f, 1.f, battery.empty_cell_voltage(),
-						battery.full_cell_voltage());
+		// The Battery library does the coulomb counting on the published current, its discharged capacity is the
+		// simulated state. Without a capacity the battery cannot drain.
+		const float capacity = battery.getCapacity();
+		const float min_percentage = minimumPercentage(i) / 100.f;
+		const bool min_percentage_raised = min_percentage > _last_min_percentage[i];
+		_last_min_percentage[i] = min_percentage;
 
-		vbatt *= battery.cell_count();
+		if (capacity > 0.f) {
+			const float min_percentage_discharged_mah = (1.f - min_percentage) * capacity;
+
+			if (disarmed_now) {
+				// Fresh battery for the next flight
+				battery.resetDischargedMah();
+
+			} else if (min_percentage_raised && battery.getDischargedMah() > min_percentage_discharged_mah) {
+				// Regain capacity, e.g. to simulate inaccurate state estimation or in-air charging
+				battery.resetDischargedMah(min_percentage_discharged_mah);
+			}
+		}
+
+		const float percentage = (capacity > 0.f) ? math::max(1.f - battery.getDischargedMah() / capacity, min_percentage) : 1.f;
+
+		// No current while disarmed or once the floor is reached, so the coulomb count stops at SIM_BAT_MIN_PCT
+		float ibatt = 0.f;
+
+		// Open circuit voltage from the state of charge
+		const float v_open_circuit = math::interpolate(percentage, 0.f, 1.f, battery.empty_cell_voltage(),
+					     battery.full_cell_voltage()) * battery.cell_count();
+
+		if (_armed && (capacity <= 0.f || percentage > min_percentage)) {
+			// The current depends on the voltage and the voltage on the current: break the loop with the voltage of the
+			// previous iteration, the open circuit voltage before the first one
+			const float previous_voltage = (_last_voltage[i] > 0.f) ? _last_voltage[i] : v_open_circuit;
+			ibatt = current(i, now_us, previous_voltage);
+
+			if (ibatt > 0.f && capacity <= 0.f && battery.isSourceSelected() && !_capacity_warned[i]) {
+				PX4_WARN("BAT%d_CAPACITY not set, simulated battery %d will not drain", i + 1, i + 1);
+				_capacity_warned[i] = true;
+			}
+		}
+
+		// Minus the load drop the Battery library compensates for
+		const float vbatt = v_open_circuit - battery.internal_resistance() * battery.cell_count() * math::max(ibatt, 0.f);
+		_last_voltage[i] = vbatt;
 
 		battery.setConnected(true);
 		battery.updateVoltage(vbatt);
 		battery.updateCurrent(ibatt);
 		battery.updateAndPublishBatteryStatus(now_us);
 	}
-
-	// All batteries integrate over the same interval, so this is only advanced once they are all done
-	_last_integration_us = _armed ? now_us : 0;
 
 	perf_end(_loop_perf);
 }
@@ -160,8 +197,16 @@ void BatterySimulator::updateParams()
 	ModuleParams::updateParams();
 
 	for (int i = 0; i < battery_status_s::MAX_INSTANCES; i++) {
-		if (_drain_handles[i] != PARAM_INVALID) {
-			param_get(_drain_handles[i], &_drain_override_s[i]);
+		if (_i_idle_handles[i] != PARAM_INVALID) {
+			param_get(_i_idle_handles[i], &_i_idle_override[i]);
+		}
+
+		if (_i_mot_a_handles[i] != PARAM_INVALID) {
+			param_get(_i_mot_a_handles[i], &_i_mot_a_override[i]);
+		}
+
+		if (_i_mot_b_handles[i] != PARAM_INVALID) {
+			param_get(_i_mot_b_handles[i], &_i_mot_b_override[i]);
 		}
 
 		if (_min_pct_handles[i] != PARAM_INVALID) {
@@ -170,10 +215,48 @@ void BatterySimulator::updateParams()
 	}
 }
 
-float BatterySimulator::fullDischargeTime(int battery_index) const
+void BatterySimulator::updateMotorLoad()
 {
-	// A non-positive override means: use the drain time shared by all batteries
-	return (_drain_override_s[battery_index] > 0.f) ? _drain_override_s[battery_index] : _param_sim_bat_drain.get();
+	actuator_motors_s actuator_motors;
+
+	if (_actuator_motors_sub.update(&actuator_motors)) {
+		// The rotor speed follows the command times the voltage, ω ~ uV, and the aerodynamic power its cube,
+		// P ~ ω³ ~ u³V³, hence the current I = P/V ~ u³V². The linear term covers the losses growing with the command.
+		_motor_load_linear = 0.f;
+		_motor_load_cubic = 0.f;
+
+		for (const float control : actuator_motors.control) {
+			if (PX4_ISFINITE(control)) {
+				const float u = fabsf(control);
+				_motor_load_linear += u;
+				_motor_load_cubic += u * u * u;
+			}
+		}
+
+		_actuator_motors_timestamp = actuator_motors.timestamp;
+	}
+}
+
+float BatterySimulator::current(int battery_index, hrt_abstime now_us, float voltage) const
+{
+	// A negative override means: use the value shared by all batteries
+	const float i_idle = (_i_idle_override[battery_index] >= 0.f) ? _i_idle_override[battery_index] :
+			     _param_sim_bat_i_idle.get();
+
+	// Without recent motor commands, e.g. right after startup, only the idle current is drawn
+	const bool motors_valid = (_actuator_motors_timestamp != 0) && (now_us < _actuator_motors_timestamp + 500_ms);
+
+	if (!motors_valid) {
+		return i_idle;
+	}
+
+	const float i_mot_a = (_i_mot_a_override[battery_index] >= 0.f) ? _i_mot_a_override[battery_index] :
+			      _param_sim_bat_i_mot_a.get();
+	const float i_mot_b = (_i_mot_b_override[battery_index] >= 0.f) ? _i_mot_b_override[battery_index] :
+			      _param_sim_bat_i_mot_b.get();
+
+	// I = I_idle + a·Σu + b·Σu³V²
+	return i_idle + i_mot_a * _motor_load_linear + i_mot_b * _motor_load_cubic * voltage * voltage;
 }
 
 float BatterySimulator::minimumPercentage(int battery_index) const

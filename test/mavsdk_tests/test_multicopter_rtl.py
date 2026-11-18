@@ -16,6 +16,8 @@ def test_rtl_type_6_no_rally_points(tester_rtl: AutopilotTesterRtl) -> None:
     tester.wait_until_ready()
     tester.store_home()
     tester.set_rtl_type(6)
+    # SITL sets a default BAT1_CAPACITY, unset it so time_remaining_s is NaN
+    tester.set_param_float("BAT1_CAPACITY", -1.0)
     tester.arm()
     tester.takeoff()
     tester.wait_until_hovering()
@@ -30,6 +32,8 @@ def test_rtl_type_6_home_is_closest(tester_rtl: AutopilotTesterRtl) -> None:
     tester.wait_until_ready()
     tester.store_home()
     tester.set_rtl_type(6)
+    # SITL sets a default BAT1_CAPACITY, unset it so time_remaining_s is NaN
+    tester.set_param_float("BAT1_CAPACITY", -1.0)
     # The rally point is farther away than home, and the vehicle is above home after takeoff,
     # so home wins on distance.
     tester.add_local_rally_point(100.0, -100.0)
@@ -48,6 +52,8 @@ def test_rtl_type_6_home_is_not_closest(tester_rtl: AutopilotTesterRtl) -> None:
     tester.wait_until_ready()
     tester.store_home()
     tester.set_rtl_type(6)
+    # SITL sets a default BAT1_CAPACITY, unset it so time_remaining_s is NaN
+    tester.set_param_float("BAT1_CAPACITY", -1.0)
     # The rally point is between the vehicle and home, so it wins on distance.
     tester.add_local_rally_point(300.0, 0.0)
     tester.upload_rally_points()

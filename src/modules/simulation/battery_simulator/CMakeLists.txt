@@ -45,3 +45,5 @@ px4_add_module(
 		mathlib
 		px4_work_queue
 	)
+
+px4_add_functional_gtest(SRC BatterySimulatorTest.cpp LINKLIBS modules__simulation__battery_simulator)

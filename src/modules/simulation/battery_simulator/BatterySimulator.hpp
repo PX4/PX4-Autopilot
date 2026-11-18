@@ -43,6 +43,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
@@ -68,12 +69,17 @@ public:
 
 	bool init();
 
-private:
-	void Run() override;
+protected:
 	void updateParams() override;
 
-	// Time in seconds for the given battery to drain from 100% to 0% while armed
-	float fullDischargeTime(int battery_index) const;
+	// Read the latest motor commands into the motor load
+	void updateMotorLoad();
+
+	// Current in A drawn from the given battery, computed from the motor commands and the battery voltage in V
+	float current(int battery_index, hrt_abstime now_us, float voltage) const;
+
+private:
+	void Run() override;
 
 	// Lowest state of charge in percent the given battery drains down to
 	float minimumPercentage(int battery_index) const;
@@ -83,26 +89,40 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
 
 	// A battery only publishes if its BAT<N>_SOURCE is set to "Power Module / Analog".
 	// Allocated once in the constructor: Battery is not copyable and older compilers (GCC < 9) do not elide the copy
 	// when constructing an array of them in place.
 	Battery *_batteries[battery_status_s::MAX_INSTANCES] {};
 
-	// Per-battery overrides of SIM_BAT_DRAIN and SIM_BAT_MIN_PCT, negative when unset
-	param_t _drain_handles[battery_status_s::MAX_INSTANCES] {};
+	// Per-battery overrides of SIM_BAT_I_IDLE, SIM_BAT_I_MOT_A, SIM_BAT_I_MOT_B, and SIM_BAT_MIN_PCT, negative when unset
+	param_t _i_idle_handles[battery_status_s::MAX_INSTANCES] {};
+	param_t _i_mot_a_handles[battery_status_s::MAX_INSTANCES] {};
+	param_t _i_mot_b_handles[battery_status_s::MAX_INSTANCES] {};
 	param_t _min_pct_handles[battery_status_s::MAX_INSTANCES] {};
-	float _drain_override_s[battery_status_s::MAX_INSTANCES] {};
+	float _i_idle_override[battery_status_s::MAX_INSTANCES] {};
+	float _i_mot_a_override[battery_status_s::MAX_INSTANCES] {};
+	float _i_mot_b_override[battery_status_s::MAX_INSTANCES] {};
 	float _min_pct_override[battery_status_s::MAX_INSTANCES] {};
 
-	uint64_t _last_integration_us{0};
-	float _battery_percentage[battery_status_s::MAX_INSTANCES] {};
+	float _motor_load_linear{0.f}; // Sum over all motors of |u|
+	float _motor_load_cubic{0.f}; // Sum over all motors of |u|³
+	hrt_abstime _actuator_motors_timestamp{0};
+
+	float _last_voltage[battery_status_s::MAX_INSTANCES] {}; // Voltage of the previous iteration in V, 0 before the first
+
+	float _last_min_percentage[battery_status_s::MAX_INSTANCES] {};
+	bool _capacity_warned[battery_status_s::MAX_INSTANCES] {};
 	bool _armed{false};
+	bool _was_armed{false};
 
 	perf_counter_t	_loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _param_sim_bat_drain, ///< battery drain interval
+		(ParamFloat<px4::params::SIM_BAT_I_IDLE>) _param_sim_bat_i_idle, ///< battery current with motors stopped
+		(ParamFloat<px4::params::SIM_BAT_I_MOT_A>) _param_sim_bat_i_mot_a, ///< motor current coefficient linear in the command
+		(ParamFloat<px4::params::SIM_BAT_I_MOT_B>) _param_sim_bat_i_mot_b, ///< motor current coefficient of u³V²
 		(ParamFloat<px4::params::SIM_BAT_MIN_PCT>) _param_bat_min_pct //< minimum battery percentage
 	)
 };
