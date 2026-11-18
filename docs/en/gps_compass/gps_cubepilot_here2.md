@@ -1,7 +1,8 @@
 # CubePilot Here2 GPS (Discontinued)
 
 ::: warning
-This has been superseded by the [Cube Here 3](https://cubepilot.org/#/here/here3)
+This has been superseded by newer CubePilot [DroneCAN](../dronecan/index.md) GNSS modules such as the [Here4](../dronecan/cubepilot_here4.md).
+See [RTK GNSS](../gps_compass/rtk_gps.md#supported-devices) for the current CubePilot modules.
 :::
 
 The _Here2 GPS receiver_ is an update to the Here GPS module from CubePilot.
