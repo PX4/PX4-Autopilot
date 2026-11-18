@@ -235,11 +235,12 @@ MissionBlock::is_mission_item_reached_or_completed()
 			   && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 
 			const float takeoff_height = _mission_item.altitude;
+			const float takeoff_climb_height = _navigator->get_home_position()->z - takeoff_height;
 			float altitude_acceptance_radius = _navigator->get_altitude_acceptance_radius();
 
 			/* It should be safe to just use half of the takoeff_alt as an acceptance radius. */
-			if (fabsf(takeoff_height) < altitude_acceptance_radius) {
-				altitude_acceptance_radius = fabsf(takeoff_height) / 2.0f;
+			if (fabsf(takeoff_climb_height) < altitude_acceptance_radius) {
+				altitude_acceptance_radius = fabsf(takeoff_climb_height) / 2.0f;
 			}
 
 			if (fabsf(_navigator->get_local_position()->z - takeoff_height) < altitude_acceptance_radius) {
