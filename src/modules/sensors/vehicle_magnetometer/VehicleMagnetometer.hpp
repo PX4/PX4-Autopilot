@@ -52,7 +52,6 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/estimator_sensor_bias.h>
-#include <uORB/topics/magnetometer_bias_estimate.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/sensor_preflight_mag.h>
@@ -98,7 +97,6 @@ private:
 	 */
 	void calcMagInconsistency();
 
-	void UpdateMagBiasEstimate();
 	void UpdateMagCalibration();
 	void UpdatePowerCompensation();
 
@@ -119,7 +117,6 @@ private:
 
 	uORB::Subscription _vehicle_thrust_setpoint_0_sub{ORB_ID(vehicle_thrust_setpoint), 0};
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status), 0};
-	uORB::Subscription _magnetometer_bias_estimate_sub{ORB_ID(magnetometer_bias_estimate)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 
 	// Used to check, save and use learned magnetometer biases
@@ -139,10 +136,6 @@ private:
 		{this, ORB_ID(sensor_mag), 2},
 		{this, ORB_ID(sensor_mag), 3}
 	};
-
-	hrt_abstime _last_calibration_update{0};
-
-	matrix::Vector3f _calibration_estimator_bias[MAX_SENSOR_COUNT] {};
 
 	calibration::Magnetometer _calibration[MAX_SENSOR_COUNT];
 
@@ -186,7 +179,6 @@ private:
 		(ParamInt<px4::params::CAL_MAG_COMP_TYP>) _param_mag_comp_typ,
 		(ParamBool<px4::params::SENS_MAG_MODE>) _param_sens_mag_mode,
 		(ParamFloat<px4::params::SENS_MAG_RATE>) _param_sens_mag_rate,
-		(ParamBool<px4::params::SENS_MAG_AUTOCAL>) _param_sens_mag_autocal,
 		(ParamInt<px4::params::CAL_MAG_SIDES>) _param_cal_mag_sides,
 		(ParamInt<px4::params::SENS_MAG_SIDES>) _param_sens_mag_sides
 	)

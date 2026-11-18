@@ -109,7 +109,6 @@ SCOPES = (
         'src/modules/local_position_estimator/**',
         'src/modules/attitude_estimator_q/**',
         'src/modules/landing_target_estimator/**',
-        'src/modules/mag_bias_estimator/**',
         'src/modules/gyro_calibration/**',
         'src/modules/gyro_fft/**',
         'Tools/ecl_ekf/**',
