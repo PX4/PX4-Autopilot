@@ -57,6 +57,16 @@ parameters:
       min: 0.1
       decimal: 1
       reboot_required: true
+    LNDFW_AGL_MAX:
+      description:
+        short: 'Fixed-wing land detector: Max height above ground without airspeed'
+        long: After takeoff, a landing without airspeed (no sensor, or the sensor data got invalid in flight) with the throttle above half of FW_THR_TRIM is only detected while the distance to the ground, or the altitude difference to the takeoff point when no distance sensor is available, is below this value. With the throttle below that a landing is detected as before. Raise it if the landing site can be further than this above or below the takeoff point, or if the engine idles above half of FW_THR_TRIM. Set to 0 to disable.
+      type: float
+      default: 15.0
+      unit: m
+      min: 0
+      max: 500
+      decimal: 1
     LNDFW_ROT_MAX:
       description:
         short: 'Fixed-wing land detector: max rotational speed'
