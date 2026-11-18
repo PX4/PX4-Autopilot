@@ -67,6 +67,7 @@ public:
 	void waiting_on_tecs() override;
 	void blendThrottleAfterFrontTransition(float scale) override;
 	void blendPitchAfterFrontTransition(float scale) override;
+	bool isPusherAssistBlocked() const override;
 
 private:
 

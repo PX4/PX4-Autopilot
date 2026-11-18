@@ -90,9 +90,9 @@ void Standard::update_vtol_state()
 	float mc_weight = _mc_roll_weight;
 
 	if (_attc->is_quadchute_active()) {
-		// Failsafe event, engage mc motors immediately
-		if (_vtol_mode != vtol_mode::MC_MODE || _attc->is_fixed_wing_system_failure()) {
-			_pusher_throttle = 0.0f; // a commanded quad-chute keeps pusher assist once in multicopter mode
+		// Failsafe event, engage mc motors immediately. Then pusher assist takes over, unless it is blocked.
+		if (_vtol_mode != vtol_mode::MC_MODE || isPusherAssistBlocked()) {
+			_pusher_throttle = 0.0f;
 		}
 
 		_vtol_mode = vtol_mode::MC_MODE;
@@ -339,6 +339,12 @@ bool Standard::isPusherFailureDetected()
 	_pusher_failure_hysteresis.set_state_and_update(pusher_ineffective, hrt_absolute_time());
 
 	return _pusher_failure_hysteresis.get_state();
+}
+
+bool Standard::isPusherAssistBlocked() const
+{
+	// only a detected pusher failure, other quad-chutes keep pusher assist
+	return _pusher_failed || _ft_pusher_failed || _attc->is_fw_propulsion_failure();
 }
 
 bool Standard::isPusherFailureDetectedInFrontTransition()

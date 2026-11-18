@@ -219,6 +219,12 @@ public:
 	 */
 	float pusher_assist();
 
+	/**
+	 * Whether a quad-chute turns pusher assist off: by default every detected one, as it could come from a failed
+	 * forward drive
+	 */
+	virtual bool isPusherAssistBlocked() const;
+
 	virtual void blendThrottleAfterFrontTransition(float scale) {};
 	virtual void blendPitchAfterFrontTransition(float scale) {};
 
