@@ -50640,7 +50640,7 @@ Return mode destination and flight path (home location, rally point, mission lan
 
 - 5 (Direct to rally point only): Return directly to safe landing point (do not consider mission landing and Home).
 
-- 6 (Home if battery allows, else rally point): Return to home if time estimate to home is less than battery remaining estimate, else return to the closest rally point. If battery remaining estimate is not available, return to the closest safe point (home or rally point).
+- 6 (Home if battery allows, else rally point): Return to home if time estimate to home is less than battery remaining estimate. Otherwise, or if battery remaining estimate is not available, return to the closest safe point (home or rally point).
 
 
 **Values:**
