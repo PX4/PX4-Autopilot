@@ -1,0 +1,37 @@
+module_name: HealthAndArmingChecks
+parameters:
+- group: Commander
+  definitions:
+    COM_EF_CURR:
+      description:
+        short: Fixed-wing propulsion failure current
+        long: In fixed-wing flight, the propulsion has failed if the battery current stays
+          below this for COM_EF_TIME above COM_EF_THROT. Set to 0 to disable.
+      type: float
+      default: 0.0
+      min: 0.0
+      max: 200.0
+      unit: A
+      decimal: 1
+      increment: 0.5
+    COM_EF_THROT:
+      description:
+        short: Fixed-wing propulsion failure throttle threshold
+        long: About 80% of the cruise throttle.
+      type: float
+      default: 0.5
+      min: 0.0
+      max: 1.0
+      unit: norm
+      decimal: 2
+      increment: 0.01
+    COM_EF_TIME:
+      description:
+        short: Fixed-wing propulsion failure detection time
+      type: float
+      default: 5.0
+      min: 0.5
+      max: 60.0
+      unit: s
+      decimal: 1
+      increment: 0.5

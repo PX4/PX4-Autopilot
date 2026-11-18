@@ -54,6 +54,9 @@
 #include "checks/escCheck.hpp"
 #include "checks/estimatorCheck.hpp"
 #include "checks/failureDetectorCheck.hpp"
+#if (defined(CONFIG_MODULES_FW_ATT_CONTROL) && CONFIG_MODULES_FW_ATT_CONTROL) || (defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL)
+#include "checks/fixedWingPropulsionCheck.hpp"
+#endif
 #include "checks/navigatorCheck.hpp"
 #include "checks/gyroCheck.hpp"
 #include "checks/imuConsistencyCheck.hpp"
@@ -149,6 +152,9 @@ private:
 	EscChecks _esc_checks;
 	EstimatorChecks _estimator_checks;
 	FailureDetectorChecks _failure_detector_checks;
+#if (defined(CONFIG_MODULES_FW_ATT_CONTROL) && CONFIG_MODULES_FW_ATT_CONTROL) || (defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL)
+	FixedWingPropulsionChecks _fixed_wing_propulsion_checks;
+#endif
 	NavigatorChecks _navigator_checks;
 	GyroChecks _gyro_checks;
 	ImuConsistencyChecks _imu_consistency_checks;
@@ -196,6 +202,9 @@ private:
 		&_esc_checks,
 		&_estimator_checks,
 		&_failure_detector_checks,
+#if (defined(CONFIG_MODULES_FW_ATT_CONTROL) && CONFIG_MODULES_FW_ATT_CONTROL) || (defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL)
+		&_fixed_wing_propulsion_checks,
+#endif
 		&_navigator_checks,
 		&_gyro_checks,
 		&_imu_consistency_checks,

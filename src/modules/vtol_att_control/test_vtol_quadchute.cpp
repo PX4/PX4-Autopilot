@@ -194,6 +194,16 @@ protected:
 
 	QuadchuteReason quadchuteReason(const VtolAttitudeControl &attc) const { return attc._quadchute_reason; }
 
+	void publishFixedWingPropulsionFailure(VtolAttitudeControl &attc, bool failure)
+	{
+		failsafe_flags_s failsafe_flags{};
+		failsafe_flags.timestamp = hrt_absolute_time();
+		failsafe_flags.fd_fw_motor = failure;
+		uORB::Publication<failsafe_flags_s> failsafe_flags_pub{ORB_ID(failsafe_flags)};
+		ASSERT_TRUE(failsafe_flags_pub.publish(failsafe_flags));
+		attc.failsafe_flags_poll();
+	}
+
 	// Fly multicopter mode until the quad-chute or the timeout, returns the flight time
 	hrt_abstime fly(VtolAttitudeControl &attc, VtolType &vtol, hrt_abstime timeout)
 	{
@@ -243,6 +253,32 @@ TEST_F(VtolForwardPropulsionFailureTest, DisablingDetectionAllowsFrontTransition
 	commandFrontTransition(attc);
 	ASSERT_TRUE(attc.is_fixed_wing_requested());
 	ASSERT_FALSE(attc.is_quadchute_active());
+	standard.update_vtol_state();
+	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
+	EXPECT_EQ(standard.get_mode(), mode::TRANSITION_TO_FW);
+}
+
+TEST_F(VtolForwardPropulsionFailureTest, FixedWingPropulsionFailureIsForwardPropulsionFailure)
+{
+	VtolAttitudeControl attc;
+	Standard standard(&attc);
+	setHover(attc, 5.f); // forward velocity at its setpoint, the multicopter check stays quiet
+	EXPECT_GT(runCycle(attc, standard, true), 0.1f);
+
+	// commander detected the failure in fixed-wing flight: quad-chute, pusher assist off
+	publishFixedWingPropulsionFailure(attc, true);
+	EXPECT_FALSE(PX4_ISFINITE(runCycle(attc, standard, true)));
+	EXPECT_EQ(quadchuteReason(attc), QuadchuteReason::ForwardPropulsionFailure);
+
+	// it stays while commander reports it
+	commandFrontTransition(attc);
+	standard.update_vtol_state();
+	EXPECT_TRUE(attc.is_fixed_wing_system_failure());
+	EXPECT_EQ(standard.get_mode(), mode::ROTARY_WING);
+
+	// cleared in commander (COM_EF_CURR set to 0), front transitions are allowed again
+	publishFixedWingPropulsionFailure(attc, false);
+	commandFrontTransition(attc);
 	standard.update_vtol_state();
 	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
 	EXPECT_EQ(standard.get_mode(), mode::TRANSITION_TO_FW);
@@ -360,6 +396,7 @@ protected:
 	{
 		param_reset(param_find("VT_PSHER_SLEW"));
 		param_reset(param_find("VT_TRANS_MIN_TM"));
+		param_reset(param_find("VT_FW_QC_HMAX"));
 		param_reset(param_find("VT_F_TRANS_THR"));
 		param_reset(param_find("VT_EF_FT_ACC"));
 		VtolForwardPropulsionFailureTest::TearDown();
@@ -628,4 +665,30 @@ TEST_F(VtolFrontTransitionPusherTest, FrontTransitionFromBackTransitionIsNotChec
 	setCalibratedAirspeed(attc, 9.f);
 	flyFrontTransition(attc, standard, 0.f, 1500_ms);
 	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
+}
+
+TEST_F(VtolFrontTransitionPusherTest, FixedWingPropulsionFailureWaitsBelowQuadchuteMaxHeight)
+{
+	const float transition_min_time = 0.1f;
+	param_set(param_find("VT_TRANS_MIN_TM"), &transition_min_time);
+	const int32_t quadchute_max_height = 100;
+	param_set(param_find("VT_FW_QC_HMAX"), &quadchute_max_height);
+	VtolAttitudeControl attc;
+	Standard standard(&attc);
+	static_cast<VtolType &>(standard).parameters_update();
+	attc.get_local_pos()->z = -150.f;
+	startFrontTransition(attc, standard, 12.f);
+	flyFrontTransition(attc, standard, 3.f, 500_ms);
+	ASSERT_EQ(standard.get_mode(), mode::FIXED_WING);
+
+	// above VT_FW_QC_HMAX the vehicle keeps flying fixed-wing, as with the other quad-chutes
+	publishFixedWingPropulsionFailure(attc, true);
+	standard.update_vtol_state();
+	EXPECT_FALSE(attc.is_quadchute_active());
+	EXPECT_EQ(standard.get_mode(), mode::FIXED_WING);
+
+	attc.get_local_pos()->z = -50.f;
+	standard.update_vtol_state();
+	EXPECT_EQ(quadchuteReason(attc), QuadchuteReason::ForwardPropulsionFailure);
+	publishFixedWingPropulsionFailure(attc, false);
 }
