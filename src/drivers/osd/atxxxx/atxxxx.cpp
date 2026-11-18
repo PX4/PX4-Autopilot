@@ -174,23 +174,14 @@ int
 OSDatxxxx::add_character_to_screen(char c, uint8_t pos_x, uint8_t pos_y)
 {
 	uint16_t position = (OSD_CHARS_PER_ROW * pos_y) + pos_x;
-	uint8_t position_lsb = 0;
-	int ret = PX4_ERROR;
 
-	if (position > 0xFF) {
-		position_lsb = static_cast<uint8_t>(position) - 0xFF;
-		ret = writeRegister(0x05, 0x01); //DMAH
-
-	} else {
-		position_lsb = static_cast<uint8_t>(position);
-		ret = writeRegister(0x05, 0x00); //DMAH
-	}
+	int ret = writeRegister(0x05, position > 0xFF ? 0x01 : 0x00); //DMAH
 
 	if (ret != 0) {
 		return ret;
 	}
 
-	ret = writeRegister(0x06, position_lsb); //DMAL
+	ret = writeRegister(0x06, static_cast<uint8_t>(position)); //DMAL
 
 	if (ret != 0) {
 		return ret;
