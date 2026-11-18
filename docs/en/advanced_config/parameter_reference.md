@@ -29034,6 +29034,7 @@ Triggers when the active GNSS count drops below SYS_HAS_NUM_GNSS (disabled
 when SYS_HAS_NUM_GNSS=0), or when two receivers report positions inconsistent
 with their reported accuracy and SYS_HAS_NUM_GNSS=2 (otherwise warning only).
 The reported accuracy of each receiver is floored with EKF2_GPS_P_NOISE.
+Return and Land are skipped if the failure clears during the COM_FAIL_ACT_T Hold.
 Any value above Warning also blocks arming.
 
 
