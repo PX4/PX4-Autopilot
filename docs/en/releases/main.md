@@ -192,6 +192,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - [SYS_STATUS](https://mavlink.io/en/messages/common.html#SYS_STATUS) now sets the [MAV_SYS_STATUS_EXTENSION_USED](https://mavlink.io/en/messages/common.html#MAV_SYS_STATUS_EXTENSION_USED) flag in `onboard_control_sensors_present` when extended sensor fields are used.
 - [TIME_ESTIMATE_TO_TARGET](https://mavlink.io/en/messages/common.html#TIME_ESTIMATE_TO_TARGET) reports `safe_return` as `-1` (landed or no estimate) when Return has no time estimate: before Home is set, on the ground unless Return would follow a mission landing, and with [RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 2 or 4 and a valid mission.
   It used to send `0`, or an undefined value with `RTL_TYPE` 2 and 4.
+- The number of [MAVLink instances](../peripherals/mavlink_peripherals.md#mavlink-instances) can now be set per board, and the [Agam Autopilot v6X-RT](../flight_controller/agam_v6xrt.md) has five (`MAV_0_CONFIG` to `MAV_4_CONFIG`). ([PX4-Autopilot#29573](https://github.com/PX4/PX4-Autopilot/pull/29573))
 
 ### RC
 
