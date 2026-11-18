@@ -41,6 +41,22 @@
  */
 PARAM_DEFINE_INT32(SER_{{ serial_device.tag }}_BAUD, {{ serial_device.default_baudrate }});
 
+{% if serial_config_enabled -%}
+/**
+ * Swap RX and TX pins on {{ serial_device.label }}
+ *
+ * Apply hardware RX/TX pin swapping before starting the service assigned to
+ * this port. Requires serial_config and hardware/serial driver support.
+ * Does not invert signal levels or bypass external inverters/transceivers.
+ * Manual driver starts do not apply this parameter automatically.
+ *
+ * @boolean
+ * @group Serial
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(SER_{{ serial_device.tag }}_SWAP, 0);
+
+{% endif -%}
 {% endfor %}
 
 
