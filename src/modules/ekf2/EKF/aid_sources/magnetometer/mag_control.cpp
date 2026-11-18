@@ -240,7 +240,10 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 					// declination angle over time.
 					const bool update_all_states = _control_status.flags.mag_3D || _control_status.flags.mag_hdg;
 					const bool update_tilt = _control_status.flags.mag_3D;
-					fuseMag(R_MAG, H, aid_src, update_all_states, update_tilt);
+
+					if (fuseMag(R_MAG, H, aid_src, update_all_states, update_tilt)) {
+						updateMagBiasObservability();
+					}
 
 					// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
 					if (update_all_states && update_tilt) {
@@ -373,6 +376,17 @@ void Ekf::stopMagFusion()
 		_fault_status.flags.bad_mag_z = false;
 
 		_fault_status.flags.bad_mag_decl = false;
+	}
+}
+
+void Ekf::updateMagBiasObservability()
+{
+	// Yawing separates the body-fixed bias from the earth field
+	static constexpr float heading_change_min = math::radians(90.f);
+	const float heading_change = wrap_pi(getEulerYaw(_R_to_earth) - _mag_bias_reset_heading);
+
+	if (fabsf(heading_change) > heading_change_min) {
+		_mag_bias_observable = true;
 	}
 }
 

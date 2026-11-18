@@ -3002,6 +3002,7 @@ void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 
 	const bool bias_valid = (_ekf.fault_status().value == 0)
 				&& _ekf.control_status_flags().yaw_align
+				&& _ekf.isMagBiasObservable()
 				&& mag_bias_var.longerThan(0.f) && !mag_bias_var.longerThan(0.02f);
 
 	const bool learning_valid = bias_valid && _ekf.control_status_flags().mag;

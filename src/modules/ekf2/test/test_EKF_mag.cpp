@@ -981,3 +981,99 @@ TEST_F(EkfMagTest, gnssStartAfterMagLossInFlightResetsReversedHeading)
 	// THEN: the GNSS data is rejected and a single yaw emergency reset recovers the heading
 	checkGnssStartAfterMagLossInFlight(radians(180.f), 1);
 }
+
+TEST_F(EkfMagTest, magBiasObservableAfterYawing)
+{
+	// GIVEN: a vehicle hovering after the in-flight alignment
+	const Vector3f mag_earth_wmm = getWmmEarthField();
+	_sensor_simulator._mag.setData(mag_earth_wmm);
+	alignOnGroundWithWmmThenLoseGnss();
+	ASSERT_NO_FATAL_FAILURE(climbToInFlightAlignment(Vector3f()));
+	_sensor_simulator.runSeconds(30);
+
+	ASSERT_FALSE(_ekf->isMagBiasObservable());
+
+	// WHEN: it yaws by 100 degrees
+	float heading = 0.f;
+	yawAtConstantRate(radians(10.f), 10.f, mag_earth_wmm, heading);
+
+	// THEN: the mag bias is observable
+	EXPECT_TRUE(_ekf->isMagBiasObservable());
+
+	// AND: it stays so when the vehicle yaws back
+	yawAtConstantRate(radians(-10.f), 10.f, mag_earth_wmm, heading);
+	EXPECT_TRUE(_ekf->isMagBiasObservable());
+}
+
+TEST_F(EkfMagTest, magBiasNotObservableWhenYawingBackAndForth)
+{
+	// GIVEN: a vehicle hovering after the in-flight alignment
+	const Vector3f mag_earth_wmm = getWmmEarthField();
+	_sensor_simulator._mag.setData(mag_earth_wmm);
+	alignOnGroundWithWmmThenLoseGnss();
+	ASSERT_NO_FATAL_FAILURE(climbToInFlightAlignment(Vector3f()));
+
+	// WHEN: it keeps yawing back and forth by 5 degrees
+	float heading = 0.f;
+
+	for (int i = 0; i < 20; i++) {
+		yawAtConstantRate(radians(10.f), 0.5f, mag_earth_wmm, heading);
+		yawAtConstantRate(radians(-10.f), 1.f, mag_earth_wmm, heading);
+		yawAtConstantRate(radians(10.f), 0.5f, mag_earth_wmm, heading);
+	}
+
+	// THEN: the mag bias is not observable
+	EXPECT_FALSE(_ekf->isMagBiasObservable());
+}
+
+TEST_F(EkfMagTest, fusionFailingMakesMagBiasUnobservable)
+{
+	// GIVEN: a vehicle flying without North-East aiding, that yawed a full turn
+	const Vector3f mag_earth_wmm = getWmmEarthField();
+	_sensor_simulator._mag.setData(mag_earth_wmm);
+	alignOnGroundWithWmmThenLoseGnss();
+	ASSERT_NO_FATAL_FAILURE(climbToInFlightAlignment(Vector3f()));
+	float heading = 0.f;
+	yawAtConstantRate(radians(20.f), 18.f, mag_earth_wmm, heading);
+
+	ASSERT_TRUE(_ekf->isMagBiasObservable());
+
+	// WHEN: the measured field suddenly rotates by 90 degrees, so that the fusion fails and the
+	// error is attributed to the mag bias
+	const Vector3f disturbance = Dcmf(Eulerf(0.f, 0.f, radians(90.f))).transpose() * mag_earth_wmm - mag_earth_wmm;
+	_sensor_simulator._mag.setBias(disturbance);
+	_sensor_simulator.runSeconds(30);
+
+	ASSERT_TRUE(isEqual(_ekf->getMagBias(), disturbance, 0.01f));
+
+	// THEN: the new mag bias is not observable
+	EXPECT_FALSE(_ekf->isMagBiasObservable());
+
+	// AND: it becomes observable once the vehicle yaws again
+	yawAtConstantRate(radians(10.f), 10.f, mag_earth_wmm, heading);
+	EXPECT_TRUE(_ekf->isMagBiasObservable());
+}
+
+TEST_F(EkfMagTest, headingResetDoesNotMakeMagBiasObservable)
+{
+	// GIVEN: a vehicle hovering after the in-flight alignment
+	const Vector3f mag_earth_wmm = getWmmEarthField();
+	_sensor_simulator._mag.setData(mag_earth_wmm);
+	alignOnGroundWithWmmThenLoseGnss();
+	ASSERT_NO_FATAL_FAILURE(climbToInFlightAlignment(Vector3f()));
+
+	ASSERT_FALSE(_ekf->isMagBiasObservable());
+
+	// WHEN: the heading is reset by 120 degrees without the vehicle rotating, and the mag is fused
+	// at the new heading
+	const float heading = radians(120.f);
+	_ekf->resetHeadingToExternalObservation(heading, radians(2.f));
+	_sensor_simulator._mag.setData(Dcmf(Eulerf(0.f, 0.f, heading)).transpose() * mag_earth_wmm);
+	_sensor_simulator.runSeconds(5);
+
+	ASSERT_NEAR(_ekf_wrapper.getYawAngle(), heading, radians(2.f));
+	ASSERT_TRUE(_ekf->aid_src_mag().fused);
+
+	// THEN: the mag bias is not observable
+	EXPECT_FALSE(_ekf->isMagBiasObservable());
+}
