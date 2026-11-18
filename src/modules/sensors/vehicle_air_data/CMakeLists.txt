@@ -36,6 +36,10 @@ px4_add_library(vehicle_air_data
 	VehicleAirData.hpp
 )
 set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/params.yaml)
+
+if(CONFIG_SENSORS_BARO_COMPENSATION)
+	set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/params_compensation.yaml)
+endif()
 target_link_libraries(vehicle_air_data
 	PRIVATE
 		data_validator

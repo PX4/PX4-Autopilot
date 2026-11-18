@@ -57,6 +57,9 @@ def getAllData(logfile):
 
     dist_bottom = getData(log, 'vehicle_local_position', 'dist_bottom')
     baro = getData(log, 'vehicle_air_data', 'baro_alt_meter')
+    # the logged altitude is already compensated when the firmware does so; fit on the raw one
+    if hasField(log, 'vehicle_air_data', 'baro_alt_correction'):
+        baro = baro - getData(log, 'vehicle_air_data', 'baro_alt_correction')
     t_baro = ms2s(getData(log, 'vehicle_air_data', 'timestamp'))
 
     q = np.matrix([getData(log, 'vehicle_attitude', 'q[0]'),
@@ -130,6 +133,12 @@ def getData(log, topic_name, variable_name, instance=0):
 
     return variable_data
 
+def hasField(log, topic_name, variable_name, instance=0):
+    for elem in log.data_list:
+        if elem.name == topic_name and instance == elem.multi_id:
+            return variable_name in elem.data
+    return False
+
 def ms2s(time_ms):
     return time_ms * 1e-6
 
@@ -185,11 +194,11 @@ def run(logfile, w_hpf):
     pcoef_yp = res.x[3] * g
     pcoef_z = res.x[4] * g
 
-    print(f"param set EKF2_PCOEF_XN {pcoef_xn:.3f}")
-    print(f"param set EKF2_PCOEF_XP {pcoef_xp:.3f}")
-    print(f"param set EKF2_PCOEF_YN {pcoef_yn:.3f}")
-    print(f"param set EKF2_PCOEF_YP {pcoef_yp:.3f}")
-    print(f"param set EKF2_PCOEF_Z {pcoef_z:.3f}")
+    print(f"param set SENS_BARO_K_XN {pcoef_xn:.3f}")
+    print(f"param set SENS_BARO_K_XP {pcoef_xp:.3f}")
+    print(f"param set SENS_BARO_K_YN {pcoef_yn:.3f}")
+    print(f"param set SENS_BARO_K_YP {pcoef_yp:.3f}")
+    print(f"param set SENS_BARO_K_Z {pcoef_z:.3f}")
 
     # Plot data
     plt.figure(1)
