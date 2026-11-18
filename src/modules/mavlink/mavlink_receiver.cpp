@@ -4283,6 +4283,9 @@ MavlinkReceiver::run()
 			_tune_publisher->publish_next_tune(t);
 		}
 	}
+
+	// Release files opened by this thread while still in its task group (see close_files())
+	_mavlink_log_handler.close_files();
 }
 
 MavlinkReceiver::FrameCheck MavlinkReceiver::check_frame(uint8_t framing, const mavlink_message_t &message)

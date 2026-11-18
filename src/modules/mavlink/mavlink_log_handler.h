@@ -59,6 +59,15 @@ public:
 	void send();
 	void handle_message(const mavlink_message_t *msg);
 
+	/**
+	 * Close any open log file. Must be called from the thread that handles the
+	 * log messages (the receiver thread): on NuttX a FILE belongs to the task
+	 * group that opened it, and fclose() from another task (e.g. the destructor
+	 * running in 'mavlink stop') frees it while it stays linked in the owner's
+	 * stream list, which then frees it again on exit (double free).
+	 */
+	void close_files();
+
 	/// True while LOG_DATA is streaming out.
 	bool sending_data() const { return _state == LogHandlerState::SendingData; }
 

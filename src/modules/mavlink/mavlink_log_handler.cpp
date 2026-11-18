@@ -122,6 +122,12 @@ void MavlinkLogHandler::state_idle()
 	}
 }
 
+void MavlinkLogHandler::close_files()
+{
+	close_current_entry();
+	_state = LogHandlerState::Idle;
+}
+
 void MavlinkLogHandler::close_current_entry()
 {
 	if (_current_entry.fp) {
