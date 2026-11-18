@@ -25,7 +25,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Processor {#processor}
 
-- **Main FMU processor:** [STM32H753VIH6](https://www.st.com/en/microcontrollers-microprocessors/stm32h753vi.html) (Arm® Cortex®-M7 at 480 MHz, 2 MB flash, 1 MB RAM)
+- **Main FMU processor:** [STM32H753VIH6](https://www.st.com/en/microcontrollers-microprocessors/stm32h753vi.html) (Arm® Cortex®-M7 at 480MHz, 2MB flash, 1MB RAM)
 
 ### Sensors {#sensors}
 
@@ -53,15 +53,15 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 ### Electrical Data {#electrical_data}
 
 - **Input voltage:** Up to 12S LiPo
-- **Current draw:** 110 mA at 5 V (static), plus about 67 mA (0.33 W, calculated) with the IMU heater on
-- **BEC output:** 5 V/3 A and 12 V/3 A (12 V output [switchable](#power))
+- **Current draw:** 110mA at 5V (static), plus about 67mA (0.33W, calculated) with the IMU heater on
+- **BEC output:** 5V/3A and 12V/3A (12V output [switchable](#power))
 - **Power monitoring:** 1 battery, analog voltage and current (current needs [setup](#power))
 
 ### Mechanical Data {#mechanical_data}
 
-- **Dimensions:** 36 x 42 x 8.63 mm
-- **Weight:** 10.6 g
-- **Mounting hole spacing:** 30.5 x 30.5 mm, M4
+- **Dimensions:** 36 x 42 x 8.63mm
+- **Weight:** 10.6g
+- **Mounting hole spacing:** 30.5 x 30.5mm, M4
 
 ## Where to Buy {#store}
 
@@ -91,15 +91,15 @@ Refer to the [Godwit G-FH7 product page](https://www.accton-iot.com/godwit/g-fh7
 
 The block diagram below shows the main components (sensors and power supply) and how they connect to the STM32H753 FMU.
 
-![Accton Godwit G-FH7 block diagram: the STM32H753 FMU with its IMUs, barometer, magnetometer, OSD co-processor, power supply (battery input, 12 V and 5 V BECs, 3.3 V LDO), and connectors](../../assets/flight_controller/accton-godwit_gfh7/block_diagram.svg "Accton Godwit G-FH7 Block Diagram")
+![Accton Godwit G-FH7 block diagram: the STM32H753 FMU with its IMUs, barometer, magnetometer, OSD co-processor, power supply (battery input, 12V and 5V BECs, 3.3V LDO), and connectors](../../assets/flight_controller/accton-godwit_gfh7/block_diagram.svg "Accton Godwit G-FH7 Block Diagram")
 
 ## Power {#power}
 
 The board is powered from the battery through the `VBAT` pins on the `ESC` connector (JST-SH 10P), which also carries the ESC's battery current signal (`CURRENT` pin).
-Onboard BECs supply 5 V/3 A and 12 V/3 A to peripherals.
+Onboard BECs supply 5V/3A and 12V/3A to peripherals.
 
-The 12 V output is on at boot.
-To switch it from your transmitter, [assign](../advanced_config/parameters.md) an RC switch to [RC_MAP_PAY_SW](../advanced_config/parameter_reference.md#RC_MAP_PAY_SW): the 12 V output then stays off until the switch is set to on.
+The 12V output is on at boot.
+To switch it from your transmitter, [assign](../advanced_config/parameters.md) an RC switch to [RC_MAP_PAY_SW](../advanced_config/parameter_reference.md#RC_MAP_PAY_SW): the 12V output then stays off until the switch is set to on.
 
 Battery voltage monitoring is configured by default ([BAT1_V_DIV](../advanced_config/parameter_reference.md#BAT1_V_DIV) is set to `17.0`).
 Current monitoring depends on the ESC's current sensor, so you must set [BAT1_A_PER_V](../advanced_config/parameter_reference.md#BAT1_A_PER_V) as described in [Battery and Power Module Setup](../config/battery.md).
@@ -112,18 +112,18 @@ The board can be powered from the battery input (`VBAT` pins on the `ESC` connec
 
 Under these conditions all power sources will be used in this order to power the system:
 
-1. **Battery** input (up to 12S LiPo, 50.4 V maximum)
-2. **USB** input (4.75 V to 5.25 V)
+1. **Battery** input (up to 12S LiPo, 50.4V maximum)
+2. **USB** input (4.75V to 5.25V)
 
 ### Absolute Maximum Ratings
 
 Under these conditions the system will not draw any power (will not be operational), but will remain intact.
 
-1. **Battery** input (65 V)
+1. **Battery** input (65V)
 
 ::: info
-The flight controller keeps working below 13 V on the battery input.
-The 12 V output for the camera and video transmitter (VTX) is generated from the battery input and needs about 13 V or more to stay at 12 V.
+The flight controller keeps working below 13V on the battery input.
+The 12V output for the camera and video transmitter (VTX) is generated from the battery input and needs about 13V or more to stay at 12V.
 Below that, the camera and VTX lose power.
 :::
 
@@ -150,11 +150,11 @@ See [SD Cards](../getting_started/px4_basic_concepts.md#sd-cards-removable-memor
 
 ## IMU Heater {#imu_heater}
 
-The board has a resistive IMU heater, which draws about 67 mA (0.33 W, calculated from the heater resistor value) from the 5 V supply.
+The board has a resistive IMU heater, which draws about 67mA (0.33W, calculated from the heater resistor value) from the 5V supply.
 
 The heater is off by default.
 To enable it, set [SENS_EN_THERMAL](../advanced_config/parameter_reference.md#SENS_EN_THERMAL) to `1` and reboot.
-The target temperature is set by [HEATER1_TEMP](../advanced_config/parameter_reference.md#HEATER1_TEMP), which this board sets to 45 °C.
+The target temperature is set by [HEATER1_TEMP](../advanced_config/parameter_reference.md#HEATER1_TEMP), which this board sets to 45°C.
 
 If you enable the heater, run the [accelerometer calibration](../config/accelerometer.md) only after `heater status` (in the [MAVLink Shell](../debug/mavlink_shell.md)) shows that the sensor temperature has reached the target temperature.
 
@@ -210,7 +210,7 @@ The board has two receiver connectors (JST-SH 4P), both wired to FMU UARTs:
 
 The other built-in protocols, DSM and GHST (TBS Ghost), are enabled by setting [RC_DSM_PRT_CFG](../advanced_config/parameter_reference.md#RC_DSM_PRT_CFG) or [RC_GHST_PRT_CFG](../advanced_config/parameter_reference.md#RC_GHST_PRT_CFG) to the port the receiver is connected to, and `RC_CRSF_PRT_CFG` to `Disabled`.
 DSM receivers can't be bound from PX4 or _QGroundControl_ on this board, so bind the receiver using its own bind procedure.
-The `ELRS` and `SBUS` connectors supply 5 V, so power a 3.3 V DSM receiver from a separate 3.3 V supply.
+The `ELRS` and `SBUS` connectors supply 5V, so power a 3.3V DSM receiver from a separate 3.3V supply.
 Only one protocol can be active on a port.
 PPM receivers are not supported, so PWM receivers can't be used either, even with a PPM encoder.
 
@@ -276,21 +276,21 @@ The `R V G C D` pad group is the [SWD interface](../debug/swd_debug.md) of the S
 
 | Pad | Signal    | Voltage |
 | --- | --------- | ------- |
-| `R` | ST_RST_L  | 3.3 V   |
-| `V` | VDD3V3    | 3.3 V   |
+| `R` | ST_RST_L  | 3.3V    |
+| `V` | VDD3V3    | 3.3V    |
 | `G` | GND       | GND     |
-| `C` | FMU_SWCLK | 3.3 V   |
-| `D` | FMU_SWDIO | 3.3 V   |
+| `C` | FMU_SWCLK | 3.3V    |
+| `D` | FMU_SWDIO | 3.3V    |
 
 The `R C D G V` pad group is the SWD interface of the OSD co-processor (STM32G431), which PX4 doesn't use:
 
 | Pad | Signal     | Voltage |
 | --- | ---------- | ------- |
-| `R` | OSD_NRST   | 3.3 V   |
-| `C` | G431_SWCLK | 3.3 V   |
-| `D` | G431_SWDIO | 3.3 V   |
+| `R` | OSD_NRST   | 3.3V    |
+| `C` | G431_SWCLK | 3.3V    |
+| `D` | G431_SWDIO | 3.3V    |
 | `G` | GND        | GND     |
-| `V` | VDD3V3     | 3.3 V   |
+| `V` | VDD3V3     | 3.3V    |
 
 These pads are not general user interfaces: only connect an SWD debug probe to them, and do not apply power to them or use them as GPIO, UART, or I2C interfaces.
 
