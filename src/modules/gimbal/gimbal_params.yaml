@@ -198,12 +198,13 @@ parameters:
       description:
         short: Time constant for open-loop AUX gimbal control
         long: |-
-          Alpha filter time constant defining the convergence rate (in seconds) for open-loop AUX mount control
+          Alpha filter time constant defining the convergence rate for open-loop AUX mount control
 
           Use when no angular position feedback is available.
           With MNT_MODE_OUT set to AUX, the mount operates in open-loop and directly commands the servo output.
           Parameters must be tuned for the specific servo to approximate its speed and response.
       type: float
+      unit: s
       default: 0.3
       min: 0.0
     MNT_RC_IN_MODE:

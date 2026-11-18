@@ -148,8 +148,8 @@ private:
 	float _course_speed{NAN}; // Guided Course speed [m/s], NAN until latched from the forward speed on the first course setpoint
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_limit,
-		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
+		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_lim,
+		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_lim,
 		(ParamFloat<px4::params::RA_WHEEL_BASE>)    _param_ra_wheel_base,
 		(ParamFloat<px4::params::RA_MAX_STR_ANG>)   _param_ra_max_str_ang,
 		(ParamFloat<px4::params::NAV_ACC_RAD>)      _param_nav_acc_rad,

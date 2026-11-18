@@ -316,6 +316,8 @@ Loss of a single GPS when none are required is handled by other GPS health check
 When `COM_GNSSLOSS_ACT` is set to `Warning`, both triggers produce a warning only and never block arming.
 When set to `Warning, block arming`, both triggers block arming and only produce a warning in flight.
 When set to `Return`, `Land`, or `Terminate`, both triggers block arming and fire the configured in-flight failsafe action (subject to the `SYS_HAS_NUM_GNSS` condition above).
+If the failure clears during the [COM_FAIL_ACT_T](#COM_FAIL_ACT_T) Hold, `Return` and `Land` are skipped and the vehicle continues in its previous mode (e.g. the mission resumes).
+Once `Return` or `Land` has started, it continues even if the GNSS failure clears.
 
 | Parameter                                                                                                   | Description                                                                                                                                                                               |
 | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -398,6 +400,31 @@ The parameters that control when the quad-chute will trigger are listed in the t
 | <a id="VT_FW_MIN_ALT"></a>[VT_FW_MIN_ALT](../advanced_config/parameter_reference.md#VT_FW_MIN_ALT)          | Minimum altitude above Home for fixed-wing flight. When the altitude drops below this value in fixed-wing flight the vehicle a quad-chute is triggered.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | <a id="VT_FW_QC_R"></a>[VT_FW_QC_R](../advanced_config/parameter_reference.md#VT_FW_QC_R)                   | Absolute roll threshold for quad-chute triggering in FW mode.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | <a id="VT_FW_QC_P"></a>[VT_FW_QC_P](../advanced_config/parameter_reference.md#VT_FW_QC_P)                   | Absolute pitch threshold for quad-chute triggering in FW mode.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| <a id="VT_EF_TIME"></a>[VT_EF_TIME](../advanced_config/parameter_reference.md#VT_EF_TIME)                   | Pusher failure detection time for standard VTOLs using pusher assist ([VT_FWD_THRUST_EN]). In multicopter mode, the failure detection triggers if, for this time, the pusher assist throttle is above [VT_EF_THROT] but the forward velocity stays more than [VT_EF_VEL_ERR] below its setpoint. It blocks front transitions until reboot. A working pusher that cannot keep up, as in a strong headwind, may be reported too. A failure is only detected once pusher assist is needed. Prior to detection, a front transition will still be executed but fail. Set to 0 to disable; in flight this allows front transitions again.                                                                                                  |
+
+[VT_FWD_THRUST_EN]: ../advanced_config/parameter_reference.md#VT_FWD_THRUST_EN
+[VT_EF_THROT]: ../advanced_config/parameter_reference.md#VT_EF_THROT
+[VT_EF_VEL_ERR]: ../advanced_config/parameter_reference.md#VT_EF_VEL_ERR
+
+### Pusher Failure Detection Tuning
+
+First estimates for the pusher failure detection parameters:
+
+- [VT_EF_THROT]: about 80% of the highest pusher assist throttle, `VT_FWD_THRUST_SC * (sin(VT_PITCH_MIN) + sin(MPC_TILTMAX_AIR))` (at most 0.9).
+  With the defaults this is `0.7 * (sin(0°) + sin(45°)) = 0.49`, which gives the default of 0.4.
+- [VT_EF_VEL_ERR]: below the speed of your multicopter legs, as a failed pusher leaves the vehicle far below its velocity setpoint.
+- [VT_EF_TIME](#VT_EF_TIME): longer than the gusts and accelerations of normal flight.
+
+To check them in flight:
+
+1. Set [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) and [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) to 1 for the test (motor failure injection requires both), and back to 0 afterwards.
+2. Fly a multicopter leg with pusher assist at your usual speed and at a safe altitude, for example in a mission.
+3. Stop the pusher with `failure motor wrong -i <n>` (see [System Failure Injection](../debug/failure_injection.md)), where `<n>` is the motor number of the pusher in the [actuator configuration](../config/actuators.md).
+   A pusher failure should be reported `VT_EF_TIME` after the vehicle has slowed down.
+4. In the [flight log](../log/flight_log_analysis.md), check that after the failure the pusher assist throttle (`vehicle_thrust_setpoint` instance 0, `xyz[0]`) rises above `VT_EF_THROT`, and the forward velocity (along the heading) falls more than `VT_EF_VEL_ERR` below its setpoint (`vx` and `vy` of `vehicle_local_position` and `vehicle_local_position_setpoint`).
+   The position controller does not always demand the full `MPC_TILTMAX_AIR` tilt, especially when it is large, so the pusher assist throttle can stay below the estimate.
+
+In the logs of normal flights, including flights in the strongest wind you fly in, both conditions should only hold together for much less than `VT_EF_TIME`.
 
 ## High Wind Failsafe
 
@@ -446,17 +473,19 @@ The reference altitude depends on what the vehicle is commanded to do:
 
 ### Attitude Trigger
 
-The failure detector can be configured to trigger if the vehicle attitude exceeds predefined pitch and roll values for longer than a specified time.
+The failure detector can be configured to trigger if the vehicle tilt deviates from the attitude setpoint by more than a predefined angle, in any direction, for longer than a specified time.
+Without a recent attitude setpoint, for example on rovers, the tilt away from level is checked instead.
+Before arming the attitude setpoint is level, so a vehicle lying on its side or upside down cannot arm.
+The check only runs in modes that control attitude, so it is not active in [Acro mode](../flight_modes_mc/acro.md).
+It is paused for the first 5 seconds after a VTOL switches to multicopter mode without back-transition, i.e. a [quad-chute](#quad-chute-failsafe) or an aborted front transition, while the vehicle recovers from fixed-wing flight.
 
 The relevant parameters are shown below:
 
 | Parameter                                                                                                | Description                                                                                                                      |
 | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | <a id="CBRK_FLIGHTTERM"></a>[CBRK_FLIGHTTERM](../advanced_config/parameter_reference.md#CBRK_FLIGHTTERM) | Flight termination circuit breaker. Unset from 121212 (default) to enable flight termination due to FailureDetector or FMU loss. |
-| <a id="FD_FAIL_P"></a>[FD_FAIL_P](../advanced_config/parameter_reference.md#FD_FAIL_P)                   | Maximum allowed pitch (in degrees).                                                                                              |
-| <a id="FD_FAIL_R"></a>[FD_FAIL_R](../advanced_config/parameter_reference.md#FD_FAIL_R)                   | Maximum allowed roll (in degrees).                                                                                               |
-| <a id="FD_FAIL_P_TTRI"></a>[FD_FAIL_P_TTRI](../advanced_config/parameter_reference.md#FD_FAIL_P_TTRI)    | Time to exceed [FD_FAIL_P](#FD_FAIL_P) for failure detection (default 0.3s).                                                     |
-| <a id="FD_FAIL_R_TTRI"></a>[FD_FAIL_R_TTRI](../advanced_config/parameter_reference.md#FD_FAIL_R_TTRI)    | Time to exceed [FD_FAIL_R](#FD_FAIL_R) for failure detection (default 0.3s).                                                     |
+| <a id="FD_TILT_ERROR"></a>[FD_TILT_ERROR](../advanced_config/parameter_reference.md#FD_TILT_ERROR)       | Maximum allowed tilt error (in degrees).                                                                                         |
+| <a id="FD_TILT_ERROR_T"></a>[FD_TILT_ERROR_T](../advanced_config/parameter_reference.md#FD_TILT_ERROR_T) | Time to exceed [FD_TILT_ERROR](#FD_TILT_ERROR) for failure detection (default 1s).                                               |
 
 ### Motor Failure Trigger
 

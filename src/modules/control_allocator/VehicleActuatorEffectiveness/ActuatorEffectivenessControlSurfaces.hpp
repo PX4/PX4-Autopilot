@@ -114,6 +114,6 @@ private:
 	SlewRate<float> _flaps_setpoint_with_slewrate;
 	SlewRate<float> _spoilers_setpoint_with_slewrate;
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::CA_SV_FLAP_SLEW>) _param_ca_flap_slew
+		(ParamFloat<px4::params::CA_SV_FLAP_SLEW>) _param_ca_sv_flap_slew
 	)
 };

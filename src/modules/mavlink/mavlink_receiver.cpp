@@ -2814,10 +2814,10 @@ MavlinkReceiver::publish_hil_battery()
 
 	hil_battery_status.timestamp = hrt_absolute_time();
 
-	hil_battery_status.cell_count = _param_bat_cells_count.get();
+	hil_battery_status.cell_count = _param_bat1_n_cells.get();
 	hil_battery_status.remaining = 0.70f;
-	float cells_v = _param_bat_v_empty.get() * (1.f - hil_battery_status.remaining)
-			+ hil_battery_status.remaining * _param_bat_v_charged.get();
+	float cells_v = _param_bat1_v_empty.get() * (1.f - hil_battery_status.remaining)
+			+ hil_battery_status.remaining * _param_bat1_v_charged.get();
 
 	hil_battery_status.voltage_v = hil_battery_status.cell_count * cells_v;
 	hil_battery_status.current_a = 10.0f;
@@ -4283,6 +4283,9 @@ MavlinkReceiver::run()
 			_tune_publisher->publish_next_tune(t);
 		}
 	}
+
+	// Release files opened by this thread while still in its task group (see close_files())
+	_mavlink_log_handler.close_files();
 }
 
 MavlinkReceiver::FrameCheck MavlinkReceiver::check_frame(uint8_t framing, const mavlink_message_t &message)

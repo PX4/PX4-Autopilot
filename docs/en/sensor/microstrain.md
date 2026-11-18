@@ -106,7 +106,7 @@ To use the MicroStrain driver:
      - [MS_OFLW_OFF_X](../advanced_config/parameter_reference.md#MS_OFLW_OFF_X)
      - [MS_OFLW_OFF_Y](../advanced_config/parameter_reference.md#MS_OFLW_OFF_Y)
      - [MS_OFLW_OFF_Z](../advanced_config/parameter_reference.md#MS_OFLW_OFF_Z)
-     - [SENS_FLOW_ROT](../advanced_config/parameter_reference.md#SENS_FLOW_ROT)
+     - [SENS_FLOW0_ROT](../advanced_config/parameter_reference.md#SENS_FLOW0_ROT)
 
    - The uncertainty for optical flow and external magnetometer aiding must be specified using the following parameters:
      - [MS_EMAG_UNCERT](../advanced_config/parameter_reference.md#MS_EMAG_UNCERT)

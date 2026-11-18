@@ -75,7 +75,7 @@ AFBRS50::AFBRS50():
 	px4_sem_init(&_wake_sem, 0, 0);
 	px4_sem_setprotocol(&_wake_sem, SEM_PRIO_NONE);
 
-	int32_t rotation = _p_sens_afbr_rot.get();
+	int32_t rotation = _param_sens_afbr_rot.get();
 
 	// Valid orientations from distance_sensor_s: ROTATION_YAW_* (0-7), ROTATION_UPWARD_FACING (24), ROTATION_DOWNWARD_FACING (25).
 	const bool is_yaw = (rotation >= 0 && rotation <= 7);
@@ -226,7 +226,7 @@ int AFBRS50::init()
 
 	// A negative mode parameter selects the module's default measurement mode
 	// as defined by the API; a mode the API rejects falls back to it as well.
-	int32_t mode_param = _p_sens_afbr_mode.get();
+	int32_t mode_param = _param_sens_afbr_mode.get();
 
 	if (mode_param > 4) {
 		PX4_ERR("Invalid SENS_AFBR_MODE %ld, using module default mode", (long)mode_param);
@@ -427,7 +427,7 @@ void AFBRS50::run_state_configure()
 	}
 
 	status_t status = STATUS_OK;
-	const int32_t dfm_param = _p_sens_afbr_dfm.get();
+	const int32_t dfm_param = _param_sens_afbr_dfm.get();
 
 	if (dfm_param >= 0 && dfm_param <= DFM_MODE_8X) {
 		status = setDfm(static_cast<argus_dfm_mode_t>(dfm_param));
@@ -446,7 +446,7 @@ void AFBRS50::run_state_configure()
 	}
 
 	if (status == STATUS_OK) {
-		const int32_t rate_param = _p_sens_afbr_rate.get();
+		const int32_t rate_param = _param_sens_afbr_rate.get();
 		uint32_t rate_hz = (rate_param > 0) ? (uint32_t)rate_param : defaultRate();
 
 		if (rate_hz > 0) {
@@ -488,7 +488,7 @@ void AFBRS50::run_state_configure()
 		return;
 	}
 
-	int32_t snm_mode = _p_sens_afbr_snm.get();
+	int32_t snm_mode = _param_sens_afbr_snm.get();
 
 	if (snm_mode < 0 || snm_mode > SNM_MODE_DYNAMIC_PLUS) {
 		PX4_ERR("Invalid SENS_AFBR_SNM %ld, using dynamic plus", (long)snm_mode);
@@ -507,8 +507,8 @@ void AFBRS50::run_state_configure()
 	// calibration loaded at init. Zero means "not calibrated": leave the
 	// factory global offsets untouched. The smallest representable offset is
 	// 1/32768 m, so the epsilon separates a real calibration from 0.0.
-	const float ofs_lo = _p_sens_afbr_ofs_lo.get();
-	const float ofs_hi = _p_sens_afbr_ofs_hi.get();
+	const float ofs_lo = _param_sens_afbr_ofs_lo.get();
+	const float ofs_hi = _param_sens_afbr_ofs_hi.get();
 
 	if ((fabsf(ofs_lo) > 1e-6f) || (fabsf(ofs_hi) > 1e-6f)) {
 		// Non-fatal: a rejected offset write must not block measurements.
@@ -615,7 +615,7 @@ void AFBRS50::run_state_collect()
 		float distance = static_cast<float>(result_mm) / 1000.f;
 		int8_t quality = res.Bin.SignalQuality;
 
-		if ((_p_sens_afbr_qmin.get() > 0) && (quality < _p_sens_afbr_qmin.get())) {
+		if ((_param_sens_afbr_qmin.get() > 0) && (quality < _param_sens_afbr_qmin.get())) {
 			perf_count(_quality_gated_perf);
 			quality = 0;
 		}
@@ -819,7 +819,7 @@ status_t AFBRS50::setRate(uint32_t rate_hz)
 
 const AFBRS50::RateDfmProfile *AFBRS50::profile() const
 {
-	int32_t index = _p_sens_afbr_prof.get();
+	int32_t index = _param_sens_afbr_prof.get();
 
 	if ((index < 0) || (index >= (int32_t)kProfileCount)) {
 		index = 0;
@@ -873,7 +873,7 @@ void AFBRS50::updateMaxDistanceFromApi()
 
 argus_mode_t AFBRS50::argusModeFromParameter()
 {
-	int32_t mode_param = _p_sens_afbr_mode.get();
+	int32_t mode_param = _param_sens_afbr_mode.get();
 	argus_mode_t mode = ARGUS_MODE_SHORT_RANGE;
 
 	if (mode_param < 0 || mode_param > 4) {
@@ -938,7 +938,7 @@ int AFBRS50::print_status()
 	}
 
 	PX4_INFO_RAW("profile: %ld   quality gate: %ld\n",
-		     (long)_p_sens_afbr_prof.get(), (long)_p_sens_afbr_qmin.get());
+		     (long)_param_sens_afbr_prof.get(), (long)_param_sens_afbr_qmin.get());
 	PX4_INFO_RAW("distance: %.3fm\n", (double)_current_distance);
 	PX4_INFO_RAW("rate: %u Hz\n", (uint)(1000000 / _measurement_inverval));
 

@@ -228,14 +228,14 @@ private:
 	uint32_t _measurement_inverval {1000000 / 50}; // 50Hz
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SENS_AFBR_MODE>)     _p_sens_afbr_mode,
-		(ParamInt<px4::params::SENS_AFBR_RATE>)     _p_sens_afbr_rate,
-		(ParamInt<px4::params::SENS_AFBR_DFM>)      _p_sens_afbr_dfm,
-		(ParamInt<px4::params::SENS_AFBR_SNM>)      _p_sens_afbr_snm,
-		(ParamInt<px4::params::SENS_AFBR_ROT>)      _p_sens_afbr_rot,
-		(ParamInt<px4::params::SENS_AFBR_PROF>)     _p_sens_afbr_prof,
-		(ParamInt<px4::params::SENS_AFBR_QMIN>)     _p_sens_afbr_qmin,
-		(ParamFloat<px4::params::SENS_AFBR_OFS_LO>) _p_sens_afbr_ofs_lo,
-		(ParamFloat<px4::params::SENS_AFBR_OFS_HI>) _p_sens_afbr_ofs_hi
+		(ParamInt<px4::params::SENS_AFBR_MODE>)     _param_sens_afbr_mode,
+		(ParamInt<px4::params::SENS_AFBR_RATE>)     _param_sens_afbr_rate,
+		(ParamInt<px4::params::SENS_AFBR_DFM>)      _param_sens_afbr_dfm,
+		(ParamInt<px4::params::SENS_AFBR_SNM>)      _param_sens_afbr_snm,
+		(ParamInt<px4::params::SENS_AFBR_ROT>)      _param_sens_afbr_rot,
+		(ParamInt<px4::params::SENS_AFBR_PROF>)     _param_sens_afbr_prof,
+		(ParamInt<px4::params::SENS_AFBR_QMIN>)     _param_sens_afbr_qmin,
+		(ParamFloat<px4::params::SENS_AFBR_OFS_LO>) _param_sens_afbr_ofs_lo,
+		(ParamFloat<px4::params::SENS_AFBR_OFS_HI>) _param_sens_afbr_ofs_hi
 	);
 };
