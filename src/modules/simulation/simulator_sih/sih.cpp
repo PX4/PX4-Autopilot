@@ -773,6 +773,7 @@ void Sih::generate_rover_differential_dynamics(const float right_cmd, const floa
 	const float v_right = v_B(0) - yaw_rate * WHEEL_TRACK / 2.f;
 	const float v_left = v_B(0) + yaw_rate * WHEEL_TRACK / 2.f;
 
+	// Longitudinal force [N]: force per wheel
 	const float wheel_gain = _MASS / (2.f * WHEEL_SPEED_TAU); // [N/(m/s)] per wheel, the forward speed responds with WHEEL_SPEED_TAU
 	const float max_wheel_force = MU * _MASS * CONSTANTS_ONE_G / 2.f; // [N] the weight is shared by both sides
 	const float F_right = constrain(wheel_gain * (MAX_WHEEL_SPEED * right_cmd - v_right), -max_wheel_force, max_wheel_force);
@@ -782,10 +783,10 @@ void Sih::generate_rover_differential_dynamics(const float right_cmd, const floa
 	const float max_lateral_force = MU * _MASS * CONSTANTS_ONE_G;
 	const float F_y = constrain(_MASS * (yaw_rate * v_B(0) - v_B(1) / LATERAL_TAU), -max_lateral_force, max_lateral_force);
 
-	_T_B = Vector3f(F_right + F_left, F_y, 0.f);
-	_Mt_B = Vector3f(0.f, 0.f, (F_left - F_right) * WHEEL_TRACK / 2.f);
+	_T_B = Vector3f(F_right + F_left, F_y, 0.f); // Forces [N]
+	_Mt_B = Vector3f(0.f, 0.f, (F_left - F_right) * WHEEL_TRACK / 2.f); // Moments [Nm]
 
-	_Fa_E = Vector3f(); // [N] rolling resistance is part of the wheel speed response, no aerodynamic drag at rover speeds
+	_Fa_E = Vector3f(); // [N] Second order drag and friction: rolling resistance is part of the wheel speed response, no aerodynamic drag at rover speeds
 	_Ma_B = -_KDW * _w_B; // [Nm] First order angular damper
 }
 
