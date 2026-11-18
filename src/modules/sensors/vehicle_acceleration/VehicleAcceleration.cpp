@@ -202,6 +202,7 @@ void VehicleAcceleration::ParametersUpdate(bool force)
 		updateParams();
 
 		_calibration.ParametersUpdate();
+		_median.ParametersUpdate();
 
 		CheckAndUpdateFilters();
 	}
@@ -242,9 +243,12 @@ void VehicleAcceleration::Run()
 		if (accel_raw.isAllFinite()) {
 			// Apply calibration and filter
 			//  - calibration offsets, scale factors, and thermal scale (if available)
+			//  - median of all IMUs (SENS_IMU_MODE 2)
 			//  - estimated in run bias (if available)
 			//  - biquad low-pass filter
-			const Vector3f accel_corrected = _calibration.Correct(accel_raw) - _bias;
+			const Vector3f accel_calibrated = _calibration.Correct(accel_raw);
+			const Vector3f accel_corrected = ((_param_sens_imu_mode.get() == 2) ? _median.Apply(sensor_data,
+							  accel_calibrated) : accel_calibrated) - _bias;
 			const Vector3f accel_filtered = _lp_filter.apply(accel_corrected);
 
 			_acceleration_prev = accel_corrected;

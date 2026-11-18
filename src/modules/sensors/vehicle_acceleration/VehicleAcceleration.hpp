@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include <SensorMedian.hpp>
 #include <lib/sensor_calibration/Accelerometer.hpp>
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
@@ -89,6 +90,8 @@ private:
 
 	calibration::Accelerometer _calibration{};
 
+	SensorMedian<sensor_accel_s, calibration::Accelerometer> _median{ORB_ID::sensor_accel};
+
 	matrix::Vector3f _bias{};
 
 	matrix::Vector3f _acceleration_prev{};
@@ -99,7 +102,8 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::IMU_ACCEL_CUTOFF>) _param_imu_accel_cutoff,
-		(ParamInt<px4::params::IMU_INTEG_RATE>) _param_imu_integ_rate
+		(ParamInt<px4::params::IMU_INTEG_RATE>) _param_imu_integ_rate,
+		(ParamInt<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode
 	)
 };
 
