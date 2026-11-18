@@ -184,16 +184,8 @@ class AutopilotTesterPusherFailure(AutopilotTester):
         except ActionError as e:
             log("Front transition denied: {}".format(e))
 
-    def log_quadchutes_since(self, since_s: float) -> None:
-        quadchutes = self._quadchutes_since(since_s)
-        if not quadchutes:
-            log("No quad-chute")
-        for quadchute in quadchutes:
-            log("Quad-chute {} after {:.1f} s".format(
-                quadchute.event_name, quadchute.time_s - since_s))
-
-    def check_no_quadchute(self, allowed_event: Optional[str] = None) -> None:
-        quadchutes = [q for q in self._quadchutes_since(0.0) if q.event_name != allowed_event]
+    def check_no_quadchute(self) -> None:
+        quadchutes = self._quadchutes_since(0.0)
         assert not quadchutes, "Quad-chute {} at {:.1f} s".format(
             quadchutes[0].event_name, quadchutes[0].time_s)
 
