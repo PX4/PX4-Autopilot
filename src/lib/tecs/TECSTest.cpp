@@ -65,7 +65,6 @@ TECSControl::Param makeParam()
 	param.altitude_setpoint_gain_ff = 0.f;
 	param.airspeed_error_gain = 0.1f;
 	param.ste_rate_time_const = 0.1f;
-	param.seb_rate_ff = 1.f;
 	param.pitch_speed_weight = 1.f;
 	param.integrator_gain_pitch = 0.4f;
 	param.pitch_damping_gain = 0.1f;
@@ -732,6 +731,8 @@ TEST(TECSControlTest, LevelFlightPitchIsFedForward)
 }
 
 // Pitch limits are absolute: a level-flight pitch above the maximum pitch must not lift the command past it.
+// The envelope clip reduces the altitude rate demand to the sink the pitch limit can fly, so the feedforward
+// lands on the limit and the feedback on the (static) altitude rate error pulls the command slightly below it.
 TEST(TECSControlTest, PitchLimitsAreAbsolute)
 {
 	TECSControl::Param param = makeParam();
@@ -742,14 +743,15 @@ TEST(TECSControlTest, PitchLimitsAreAbsolute)
 
 	TECSControl control;
 	control.initialize(makeSetpoint(), input, param, flag);
-	EXPECT_FLOAT_EQ(control.getPitchSetpoint(), param.pitch_max);
+	EXPECT_LE(control.getPitchSetpoint(), param.pitch_max);
+	EXPECT_NEAR(control.getPitchSetpoint(), param.pitch_max, radians(1.f));
 
 	for (int i = 0; i < 100; i++) {
 		control.update(kDt, makeSetpoint(), input, param, flag);
 		EXPECT_LE(control.getPitchSetpoint(), param.pitch_max) << "update " << i;
 	}
 
-	EXPECT_FLOAT_EQ(control.getPitchSetpoint(), param.pitch_max);
+	EXPECT_NEAR(control.getPitchSetpoint(), param.pitch_max, radians(1.f));
 }
 
 // A non-finite demand falls back to the integrator on top of the level-flight pitch, not to the bare integrator.
@@ -766,6 +768,61 @@ TEST(TECSControlTest, NonFiniteDemandFallsBackToLevelFlightPitch)
 	control.initialize(bad_setpoint, makeInput(), param, flag); // integrator reset to zero
 
 	EXPECT_FLOAT_EQ(control.getPitchSetpoint(), param.level_flight_pitch);
+}
+
+// A single non-finite frame must not stay in the filtered states: once the inputs are finite again, pitch and
+// throttle return to those of a controller that never saw the bad frame, instead of a non-finite throttle and a pitch
+// stuck on its non-finite fallback until the controller is reinitialised.
+TEST(TECSControlTest, RecoversFromSingleNonFiniteFrame)
+{
+	using Corrupt = void (*)(TECSControl::Setpoint &, TECSControl::Input &);
+	const struct {
+		const char *name;
+		Corrupt corrupt;
+	} cases[] = {
+		{"tas_setpoint", [](TECSControl::Setpoint & s, TECSControl::Input &) { s.tas_setpoint = NAN; }},
+		{"altitude_reference", [](TECSControl::Setpoint & s, TECSControl::Input &) { s.altitude_reference.alt = NAN; }},
+		{"tas", [](TECSControl::Setpoint &, TECSControl::Input & i) { i.tas = NAN; }},
+		{"tas_rate", [](TECSControl::Setpoint &, TECSControl::Input & i) { i.tas_rate = NAN; }},
+		{"altitude", [](TECSControl::Setpoint &, TECSControl::Input & i) { i.altitude = NAN; }},
+		{"altitude_rate", [](TECSControl::Setpoint &, TECSControl::Input & i) { i.altitude_rate = NAN; }},
+	};
+
+	const TECSControl::Param param = makeParam();
+	const TECSControl::Flag flag = makeFlag();
+	const TECSControl::Input input = makeInput();
+	TECSControl::Setpoint setpoint = makeSetpoint();
+	setpoint.altitude_reference.alt = 150.f; // climb at full throttle, so that kinetic priority is active
+
+	for (const auto &c : cases) {
+		SCOPED_TRACE(c.name);
+
+		TECSControl reference;
+		TECSControl control;
+		reference.initialize(makeSetpoint(), input, param, flag);
+		control.initialize(makeSetpoint(), input, param, flag);
+
+		for (int i = 0; i < 100; i++) {
+			reference.update(kDt, setpoint, input, param, flag);
+			control.update(kDt, setpoint, input, param, flag);
+		}
+
+		// WHEN a single frame is non-finite
+		TECSControl::Setpoint bad_setpoint = setpoint;
+		TECSControl::Input bad_input = input;
+		c.corrupt(bad_setpoint, bad_input);
+		reference.update(kDt, setpoint, input, param, flag);
+		control.update(kDt, bad_setpoint, bad_input, param, flag);
+
+		for (int i = 0; i < 500; i++) {
+			reference.update(kDt, setpoint, input, param, flag);
+			control.update(kDt, setpoint, input, param, flag);
+		}
+
+		// THEN the controller is back to the reference
+		EXPECT_NEAR(control.getThrottleSetpoint(), reference.getThrottleSetpoint(), 1e-3f);
+		EXPECT_NEAR(control.getPitchSetpoint(), reference.getPitchSetpoint(), 1e-3f);
+	}
 }
 
 // Underspeed starts at 1/3 stall + 2/3 min, leaving a margin below tas_min itself
