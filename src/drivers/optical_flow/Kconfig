@@ -2,11 +2,11 @@ menu "Optical flow"
     menuconfig COMMON_OPTICAL_FLOW
         bool "Common Optical flow"
         default n
-        select DRIVERS_OPTICAL_FLOW_PAA3905
-        select DRIVERS_OPTICAL_FLOW_PAW3902
-        select DRIVERS_OPTICAL_FLOW_PMW3901
-        select DRIVERS_OPTICAL_FLOW_PX4FLOW
-        select DRIVERS_OPTICAL_FLOW_THONEFLOW
+        imply DRIVERS_OPTICAL_FLOW_PAA3905
+        imply DRIVERS_OPTICAL_FLOW_PAW3902
+        imply DRIVERS_OPTICAL_FLOW_PMW3901
+        imply DRIVERS_OPTICAL_FLOW_PX4FLOW
+        imply DRIVERS_OPTICAL_FLOW_THONEFLOW
         ---help---
             Enable default set of optical flow drivers
     rsource "*/Kconfig"

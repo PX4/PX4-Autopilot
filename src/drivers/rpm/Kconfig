@@ -2,8 +2,8 @@ menu "RPM"
     menuconfig COMMON_RPM
         bool "Common RPM drivers"
         default n
-        select DRIVERS_RPM_PCF8583
-        select DRIVERS_RPM_RPM_SIMULATOR
+        imply DRIVERS_RPM_PCF8583
+        imply DRIVERS_RPM_RPM_SIMULATOR
         ---help---
             Enable default set of RPM drivers
     rsource "*/Kconfig"
