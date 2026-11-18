@@ -75,7 +75,6 @@ private:
 	float moveLinear(float start, float stop, float progress);
 
 	void blendThrottleDuringBacktransition(const float scale, const float target_throttle);
-	bool isFrontTransitionCompletedBase() override;
 	bool isFrontTransitionCompleted() override;
 	bool isBackTransitionCompleted() override;
 	// switch to fixed-wing at once only while the rotors are still tilted forward enough for the wing. Once they are

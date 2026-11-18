@@ -130,7 +130,8 @@ void Tiltrotor::update_transition_state()
 	}
 
 	if (_common_vtol_mode == mode::TRANSITION_TO_FW && !_front_transition_phase_2
-	    && isFrontTransitionSpeedOrTimeReached()) {
+	    && ((isFrontTransitionSpeedOrTimeReached() && _tilt_control >= _param_vt_tilt_trans.get())
+		|| can_transition_on_ground())) {
 		// first part done: the plane is ready to go into fixed wing mode, tilt the rotors forward completely
 		_front_transition_phase_2 = true;
 		_trans_finished_ts = hrt_absolute_time();
@@ -344,9 +345,4 @@ float Tiltrotor::timeUntilMotorsAreUp()
 float Tiltrotor::moveLinear(float start, float stop, float progress)
 {
 	return start + progress * (stop - start);
-}
-
-bool Tiltrotor::isFrontTransitionCompletedBase()
-{
-	return VtolType::isFrontTransitionCompletedBase() && _tilt_control >= _param_vt_tilt_trans.get();
 }

@@ -262,14 +262,7 @@ void VtolType::update_transition_state()
 	_last_thr_in_mc = _vehicle_thrust_setpoint_virtual_mc->xyz[2];
 }
 
-bool VtolType::isFrontTransitionSpeedOrTimeReached()
-{
-	bool ret = isFrontTransitionCompletedBase();
-
-	return ret || can_transition_on_ground();
-}
-
-bool VtolType::isFrontTransitionCompletedBase()
+bool VtolType::isFrontTransitionSpeedOrTimeReached() const
 {
 	// continue the transition to fw mode while monitoring airspeed for a final switch to fw mode
 	const bool airspeed_triggers_transition = PX4_ISFINITE(_attc->get_calibrated_airspeed());

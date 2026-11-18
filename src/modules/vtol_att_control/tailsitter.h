@@ -82,7 +82,7 @@ private:
 
 	void parameters_update() override;
 
-	bool isFrontTransitionCompletedBase() override;
+	bool isFrontTransitionCompleted() override;
 	bool isBackTransitionCompleted() override;
 	void onTransitionStart() override { _flag_was_in_trans_mode = false; }
 	void onQuadchute() override;

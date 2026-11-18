@@ -325,14 +325,13 @@ protected:
 	/**
 	 * @return true if the front transition is complete and the vehicle can switch to fixed-wing mode
 	 */
-	virtual bool isFrontTransitionCompleted() { return isFrontTransitionSpeedOrTimeReached(); }
+	virtual bool isFrontTransitionCompleted() { return isFrontTransitionSpeedOrTimeReached() || can_transition_on_ground(); }
 
 	/**
-	 * @return true if the front transition condition of the vehicle type is met
-	 * (isFrontTransitionCompletedBase()), or the vehicle is disarmed or landed
+	 * @return true if the transition airspeed is reached after the minimum front transition time, or, without
+	 * airspeed, the open-loop front transition time has elapsed
 	 */
-	bool isFrontTransitionSpeedOrTimeReached();
-	virtual bool isFrontTransitionCompletedBase();
+	bool isFrontTransitionSpeedOrTimeReached() const;
 
 	/**
 	 * @return true if the back transition is complete and the vehicle can switch to hover mode

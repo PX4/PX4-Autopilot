@@ -297,7 +297,7 @@ void Tailsitter::fill_actuator_outputs()
 }
 
 
-bool Tailsitter::isFrontTransitionCompletedBase()
+bool Tailsitter::isFrontTransitionCompleted()
 {
 	const bool airspeed_triggers_transition = PX4_ISFINITE(_attc->get_calibrated_airspeed());
 
@@ -313,7 +313,7 @@ bool Tailsitter::isFrontTransitionCompletedBase()
 		}
 	}
 
-	return transition_to_fw;
+	return transition_to_fw || can_transition_on_ground();
 }
 
 void Tailsitter::blendThrottleAfterFrontTransition(float scale)
