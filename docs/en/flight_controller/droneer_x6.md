@@ -7,7 +7,7 @@ PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://droneer.com/) for hardware support or compliance issues.
 :::
 
-The [Droneer X6](https://droneer.com/6x-flight-controller/) is a flight controller manufactured by Droneer.
+The [Droneer X6](https://droneer.com/x6-smart-controller/) is a flight controller manufactured by Droneer.
 It is based on the open-source [Pixhawk FMUv6X](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-012%20Pixhawk%20Autopilot%20v6X%20Standard.pdf) reference design and the [Pixhawk Autopilot Bus](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-010%20Pixhawk%20Autopilot%20Bus%20Standard.pdf) specification.
 
 ![Droneer X6](../../assets/flight_controller/droneer_x6/droneerx6_v1.jpg)
@@ -20,15 +20,15 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Processor {#processor}
 
-- **Main FMU processor:** [STM32H753](https://www.st.com/en/microcontrollers-microprocessors/stm32h753vi.html) (32-bit Arm® Cortex®-M7, 480 MHz, 2 MB flash, 1 MB RAM)
-- **IO processor:** [STM32F103](https://www.st.com/en/microcontrollers-microprocessors/stm32f103) (32-bit Arm® Cortex®-M3, 72 MHz, 20 KB SRAM)
+- **Main FMU processor:** [STM32H753](https://www.st.com/en/microcontrollers-microprocessors/stm32h753vi.html) (32-bit Arm® Cortex®-M7, 480MHz, 2MB flash, 1MB RAM)
+- **IO processor:** [STM32F103](https://www.st.com/en/microcontrollers-microprocessors/stm32f103) (32-bit Arm® Cortex®-M3, 72MHz, 20KB SRAM)
 
 ### Sensors {#sensors}
 
 - **IMU:** 3x [ICM-45686](https://www.invensense.tdk.com/en-us/products/6-axis/icm-45686) (SPI1, SPI2, SPI3), vibration-isolated on SPI2 and SPI3
 - **Barometer:** 2x [ICP-20100](https://www.invensense.tdk.com/en-us/products/smartpressure/icp-20100) (I2C4 and I2C2)
 - **Magnetometer:** [RM3100](https://www.pnisensor.com/rm3100/) (I2C4)
-- **Heater:** 1 W, controlled by the PX4 heater driver (enable with [SENS_EN_THERMAL](../advanced_config/parameter_reference.md#SENS_EN_THERMAL) set to `1`)
+- **Heater:** 1W, controlled by the PX4 heater driver (enable with [SENS_EN_THERMAL](../advanced_config/parameter_reference.md#SENS_EN_THERMAL) set to `1`)
 
 ### Interfaces {#interfaces}
 
@@ -42,10 +42,10 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - **I2C buses:** 4 (I2C4 internal; I2C1 on `GPS & SAFETY`, I2C2 on `GPS 2`, I2C3 on `UART4&I2C`)
 - **SPI buses:** 5, of which SPI6 is external (`SPI`) with 2 chip select lines, 2 data-ready lines and 1 SPI SYNC line; its reset line is on `AD&IO`
 - **CAN buses:** 2 (`CAN 1`, `CAN 2`), each with individual silent control or ESC RX-MUX control
-- **Ethernet:** 100 Mbps, transformerless (`ETH`)
+- **Ethernet:** 100Mbps, transformerless (`ETH`)
 - **USB:** 2 ports: USB Type-C (`TYPE-C`) and JST GH1.25 (`USB`)
 - **RC input:** `SBUS RC` (PX4IO) for Spektrum/DSM and S.Bus receivers, with analog/PWM RSSI input; `PPM` (FMU, unused by default). S.Bus output on `SBUS OUT`
-- **AD & IO port:** `AD&IO`, with 2 additional analog inputs (3.3 V and 6.6 V), `AUX` 7-8 and 1 capture input (`FMU_CAP1`)
+- **AD & IO port:** `AD&IO`, with 2 additional analog inputs (3.3V and 6.6V), `AUX` 7-8 and 1 capture input (`FMU_CAP1`)
 - **Power inputs:** 2 DroneCAN power inputs (`POWER 1`, `POWER 2`)
 - **Parameter storage:** FRAM (FM25V02A)
 - **SD card:** MicroSD slot
@@ -53,18 +53,20 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Electrical Data {#electrical_data}
 
-- **Nominal input voltage:** 5 V
-- **'POWER 1', 'POWER 2', USB power input:** 4.75-5.25 V
-- **Servo Rail Input:** 0\~9.9V  must be separately powered
-- **Output current limits:** all ports combined: 1.5 A
+- **Nominal input voltage:** 5V
+- **`POWER 1`, `POWER 2` and USB input:** 4.75-5.25V
+- **Servo rail input:** 0-9.9V
+- **Output current limits:** all ports combined: 1.5A
 
 ### Mechanical Data {#mechanical_data}
 
-- **Weight:** 89 g (module + baseboard)
-- **Dimensions:** 84.6 x 39.6 x 32.8 mm
+- **Weight:** 89g (module + baseboard)
+- **Dimensions:** 84.6 x 39.6 x 32.8mm
 - **Form factor:** [Pixhawk Autopilot Bus (PAB)](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-010%20Pixhawk%20Autopilot%20Bus%20Standard.pdf)
-- **Operating and storage temperature:** -20 to 85 °C
+- **Operating and storage temperature:** -20 to 85°C
+
 ![Droneer X6 dimensions: top view](../../assets/flight_controller/droneer_x6/droneerx6_size2.png)
+
 ![Droneer X6 dimensions: side view](../../assets/flight_controller/droneer_x6/droneerx6_size1.png)
 
 ## Where to Buy {#store}
@@ -74,14 +76,17 @@ Order from [Droneer](https://droneer.com/x6-smart-controller/).
 ## Pinouts {#pinouts}
 
 <img src="../../assets/flight_controller/droneer_x6/droneerx6_pinout.svg" alt="Droneer X6 Pinout" class="diagram-invert">
+
 ![Droneer X6 block diagram](../../assets/flight_controller/droneer_x6/droneerx6_bd.png)
 
 ## Power {#power}
 
-`POWER 1` and `POWER 2` are DroneCAN power inputs: each carries 5 V and a CAN bus (CAN1 on `POWER 1`, CAN2 on `POWER 2`).
+`POWER 1` and `POWER 2` are DroneCAN power inputs: each carries 5V and a CAN bus (CAN1 on `POWER 1`, CAN2 on `POWER 2`).
 `POWER 1` has higher priority.
 Battery voltage and current are read from DroneCAN power modules.
 DroneCAN is disabled by default (see [CAN](#can)).
+
+The output rail must be [separately powered](../peripherals/pwm_escs_and_servo.md) if it needs to power servos or other hardware.
 
 See [Battery and Power Module Setup](../config/battery.md).
 
@@ -109,12 +114,12 @@ All outputs within the same group must use the same output protocol and rate.
 
 `FMU_CAP1` (`TIM1_CH2`) on the `AD&IO` port is a capture input.
 
-The PWM signal level is 3.3 V by default.
-Set the `PWM_VOLT_SEL` parameter to `1` for 5 V, then reboot.
+The PWM signal level is 3.3V by default.
+Set the `PWM_VOLT_SEL` parameter to `1` for 5V, then reboot.
 
 ## Ethernet {#ethernet}
 
-The `ETH` port provides 100 Mbps transformerless Ethernet.
+The `ETH` port provides 100Mbps transformerless Ethernet.
 By default [MAVLink instance](../peripherals/mavlink_peripherals.md#mavlink-instances) 2 runs on Ethernet, broadcasting on UDP port 14550.
 See [PX4 Ethernet Setup](../advanced_config/ethernet_setup.md).
 
