@@ -62,7 +62,7 @@ These have been tested by the PX4 dev team, or which are popular within the PX4 
 [RccnLabGNSS250]: https://docs.raccoonlab.co/guide/gps_mag_baro/gnss_v250.html
 [LOCOSYS Hawk A1]: ../gps_compass/gps_locosys_hawk_a1.md
 [Hb Micro M8N]: https://holybro.com/products/micro-m8n-gps
-[CubePilot Here2]: ../gps_compass/gps_hex_here2.md
+[CubePilot Here2]: ../gps_compass/gps_cubepilot_here2.md
 
 Notes:
 

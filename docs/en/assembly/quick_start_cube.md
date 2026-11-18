@@ -66,11 +66,11 @@ Customized screws are supposed to be M2.5 with thread length inside Cube in rang
 
 ## GPS + Compass + Safety Switch + LED
 
-The recommended GPS modules are the _Here_ and [Here+](../gps_compass/rtk_gps_hex_hereplus.md), both of which incorporate a GPS module, Compass, Safety Switch and [LEDs](../getting_started/led_meanings.md).
+The recommended GPS modules are the _Here_ and [Here+](../gps_compass/rtk_gps_cubepilot_hereplus.md), both of which incorporate a GPS module, Compass, Safety Switch and [LEDs](../getting_started/led_meanings.md).
 The difference between the modules is that _Here+_ supports centimeter level positioning via [RTK](../gps_compass/rtk_gps.md). Otherwise they are used/connected in the same way.
 
 :::warning
-The [Here+](../gps_compass/rtk_gps_hex_hereplus.md) has been superseded by the [Here3](https://www.cubepilot.org/#/here/here3) a [DroneCAN](../dronecan/index.md) RTK-GNSS that incorporate a compass and [LEDs](../getting_started/led_meanings.md) (but no safety switch).
+The [Here+](../gps_compass/rtk_gps_cubepilot_hereplus.md) has been superseded by the [Here3](https://www.cubepilot.org/#/here/here3) a [DroneCAN](../dronecan/index.md) RTK-GNSS that incorporate a compass and [LEDs](../getting_started/led_meanings.md) (but no safety switch).
 See [DroneCAN](../dronecan/index.md) for _Here3_ wiring and PX4 configuration information.
 :::
 
@@ -129,7 +129,7 @@ Spektrum DSM, DSM2, and DSM-X Satellite RC receivers connect to the **SPKT/DSM**
 
 The Cube cannot directly connect to PPM or PWM receivers that have an _individual wire for each channel_.
 PWM receivers must therefore connect to the **RCIN** port _via_ a PPM encoder module,
-which may be purchased from hex.aero or proficnc.com.
+which may be purchased from [CubePilot](https://www.cubepilot.org/).
 
 ## Power
 
