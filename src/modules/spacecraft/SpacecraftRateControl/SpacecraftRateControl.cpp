@@ -71,8 +71,8 @@ void SpacecraftRateControl::updateParams()
 	// manual rate control acro mode rate limits
 	_acro_rate_max = Vector3f(radians(_param_sc_acro_r_max.get()), radians(_param_sc_acro_p_max.get()),
 				  radians(_param_sc_acro_y_max.get()));
-	_manual_force_max = _param_sc_manual_f_max.get();
-	_manual_torque_max = _param_sc_manual_t_max.get();
+	_manual_force_max = _param_sc_man_f_max.get();
+	_manual_torque_max = _param_sc_man_t_max.get();
 }
 
 void SpacecraftRateControl::updateRateControl()

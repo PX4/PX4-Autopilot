@@ -240,7 +240,10 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 					// declination angle over time.
 					const bool update_all_states = _control_status.flags.mag_3D || _control_status.flags.mag_hdg;
 					const bool update_tilt = _control_status.flags.mag_3D;
-					fuseMag(R_MAG, H, aid_src, update_all_states, update_tilt);
+
+					if (fuseMag(R_MAG, H, aid_src, update_all_states, update_tilt)) {
+						updateMagBiasObservability();
+					}
 
 					// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
 					if (update_all_states && update_tilt) {
@@ -280,8 +283,9 @@ void Ekf::controlMagFusion(const imuSample &imu_sample)
 				if (is_fusion_failing) {
 					if (no_ne_aiding_or_not_moving) {
 						ECL_WARN("%s fusion failing, resetting", AID_SRC_NAME);
-						const bool reset_heading = isHeadingResetToMagAllowed();
-						resetMagStates(_mag_lpf.getState(), reset_heading);
+						// Keep the heading: a field rejected for this long is more likely disturbed
+						// than the heading wrong, and a wrong heading is recovered by yawing
+						resetMagStates(_mag_lpf.getState(), false);
 						aid_src.time_last_fuse = imu_sample.time_us;
 
 					} else {
@@ -344,9 +348,9 @@ void Ekf::stopMagFusion()
 		resetMagBiasCov();
 
 		if (_control_status.flags.yaw_align && (_control_status.flags.mag_3D || _control_status.flags.mag_hdg)) {
-			// reset yaw alignment from mag unless yaw is observable through North-East aiding
-
-			if (!isNorthEastAidingActive()) {
+			// Before takeoff, we do not want to continue to rely on a heading that came from the mag,
+			// unless yaw is observable through North-East aiding or was set manually
+			if (!_control_status.flags.in_air && !isNorthEastAidingActive() && !_control_status.flags.yaw_manual) {
 				_control_status.flags.yaw_align = false;
 			}
 		}
@@ -375,6 +379,17 @@ void Ekf::stopMagFusion()
 	}
 }
 
+void Ekf::updateMagBiasObservability()
+{
+	// Yawing separates the body-fixed bias from the earth field
+	static constexpr float heading_change_min = math::radians(90.f);
+	const float heading_change = wrap_pi(getEulerYaw(_R_to_earth) - _mag_bias_reset_heading);
+
+	if (fabsf(heading_change) > heading_change_min) {
+		_mag_bias_observable = true;
+	}
+}
+
 bool Ekf::isMagInFlightAlignmentRequired() const
 {
 #if defined(CONFIG_EKF2_TERRAIN)
@@ -395,6 +410,7 @@ bool Ekf::isMagInFlightAlignmentRequired() const
 bool Ekf::isHeadingResetToMagAllowed() const
 {
 	return (_control_status.flags.mag_hdg || _control_status.flags.mag_3D)
+	       && !_control_status.flags.in_air // a heading jump is only harmless on the ground
 	       && !_control_status.flags.yaw_manual; // do not override manual reset
 }
 

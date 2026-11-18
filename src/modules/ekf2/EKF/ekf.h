@@ -137,20 +137,15 @@ public:
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	const auto &aid_src_optical_flow() const { return _aid_src_optical_flow; }
+	const auto &aid_src_optical_flow(uint8_t slot = 0) const { return _flow_aiding.source(slot)._aid_src; }
 
-	const Vector2f &getFlowVelBody() const { return _flow_vel_body; }
-	Vector2f getFlowVelNE() const { return Vector2f(_R_to_earth * Vector3f(getFlowVelBody()(0), getFlowVelBody()(1), 0.f)); }
+	const Vector2f &getFlowVelBody(uint8_t slot = 0) const { return _flow_aiding.source(slot)._vel_body; }
+	Vector2f getFlowVelNE(uint8_t slot = 0) const { return Vector2f(_R_to_earth * Vector3f(getFlowVelBody(slot)(0), getFlowVelBody(slot)(1), 0.f)); }
 
-	const Vector2f &getFilteredFlowVelBody() const { return _flow_vel_body_lpf.getState(); }
-	Vector2f getFilteredFlowVelNE() const { return Vector2f(_R_to_earth * Vector3f(getFilteredFlowVelBody()(0), getFilteredFlowVelBody()(1), 0.f)); }
+	const Vector2f &getFilteredFlowVelBody(uint8_t slot = 0) const { return _flow_aiding.source(slot)._vel_body_lpf.getState(); }
+	Vector2f getFilteredFlowVelNE(uint8_t slot = 0) const { return Vector2f(_R_to_earth * Vector3f(getFilteredFlowVelBody(slot)(0), getFilteredFlowVelBody(slot)(1), 0.f)); }
 
-	const Vector2f &getFlowCompensated() const { return _flow_rate_compensated; }
-	const Vector2f &getFlowUncompensated() const { return _flow_sample_delayed.flow_rate; }
-
-	const Vector3f getFlowGyro() const { return _flow_sample_delayed.gyro_rate; }
-	const Vector3f &getFlowGyroBias() const { return _flow_gyro_bias; }
-	const Vector3f &getFlowRefBodyRate() const { return _ref_body_rate; }
+	uint8_t getPrimaryFlowSlot() const { return _flow_aiding.primarySlot(); }
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
@@ -324,6 +319,7 @@ public:
 	const Vector3f &getMagBias() const { return _state.mag_B; }
 	Vector3f getMagBiasVariance() const { return getStateVariance<State::mag_B>(); } // get the mag bias variance in Gauss
 	float getMagBiasLimit() const { return 0.5f; } // 0.5 Gauss
+	bool isMagBiasObservable() const { return _mag_bias_observable; }
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 	bool accel_bias_inhibited() const { return _accel_bias_inhibit[0] || _accel_bias_inhibit[1] || _accel_bias_inhibit[2]; }
@@ -487,6 +483,8 @@ public:
 	friend class AuxGlobalPosition;
 	friend class AgpSource;
 	friend class EkfFlowFusionOrderTest;
+	friend class OpticalFlowAiding;
+	friend class OpticalFlowSource;
 
 private:
 
@@ -551,7 +549,6 @@ private:
 	uint64_t _time_last_hor_vel_fuse{0};	///< time the last fusion of horizontal velocity measurements was performed (uSec)
 	uint64_t _time_last_ver_vel_fuse{0};	///< time the last fusion of verticalvelocity measurements was performed (uSec)
 	uint64_t _time_last_heading_fuse{0};
-	uint64_t _time_heading_fusion_start{0};	///< start of the current uninterrupted period of heading observation fusion, while yaw was set manually (uSec)
 	uint64_t _time_last_terrain_fuse{0};
 
 	LatLonAlt _last_known_gpos{};
@@ -587,22 +584,6 @@ private:
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	estimator_aid_source1d_s _aid_src_rng_hgt {};
 #endif // CONFIG_EKF2_RANGE_FINDER
-
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	estimator_aid_source2d_s _aid_src_optical_flow {};
-
-	// optical flow processing
-	Vector3f _flow_gyro_bias{};	///< bias errors in optical flow sensor rate gyro outputs (rad/sec)
-	Vector3f _ref_body_rate{};
-
-	Vector2f _flow_vel_body{};                      ///< velocity from corrected flow measurement (body frame)(m/s)
-	AlphaFilter<Vector2f> _flow_vel_body_lpf{_kSensorLpfTimeConstant}; ///< filtered velocity from corrected flow measurement (body frame)(m/s)
-	uint32_t _flow_counter{0};                      ///< number of flow samples read for initialization
-
-	Vector2f _flow_rate_compensated{}; ///< measured angular rate of the image about the X and Y body axes after removal of body rotation (rad/s), RH rotation is positive
-	AlphaFilter<Vector2f> _flow_rate_compensated_lpf{_kSensorLpfTimeConstant};
-	uint64_t _flow_lpf_time_last_us{0};
-#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 	estimator_aid_source1d_s _aid_src_airspeed {};
@@ -696,6 +677,9 @@ private:
 	// Variables used to control activation of post takeoff functionality
 	uint64_t _flt_mag_align_start_time{0};	///< time that inflight magnetic field alignment started (uSec)
 	uint64_t _time_last_mag_check_failing{0};
+
+	float _mag_bias_reset_heading{0.f};	///< heading at the last mag bias reset, moved along with heading resets (rad)
+	bool _mag_bias_observable{false};	///< true when the vehicle has yawed enough since the last mag bias reset
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 	// variables used to inhibit accel bias learning
@@ -833,6 +817,7 @@ private:
 
 #if defined(CONFIG_EKF2_TERRAIN)
 	void initTerrain();
+	void resetTerrainTo(float new_terrain, float var);
 	float getTerrainVPos() const { return isTerrainEstimateValid() ? _state.terrain : _last_on_ground_posD; }
 	void controlTerrainFakeFusion();
 
@@ -846,10 +831,6 @@ private:
 	float getRngVar() const;
 # endif // CONFIG_EKF2_RANGE_FINDER
 
-# if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	void resetTerrainToFlow();
-# endif // CONFIG_EKF2_OPTICAL_FLOW
-
 #endif // CONFIG_EKF2_TERRAIN
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
@@ -861,27 +842,12 @@ private:
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	// control fusion of optical flow observations
-	void controlOpticalFlowFusion(const imuSample &imu_delayed);
-	void resetFlowFusion(const flowSample &flow_sample);
-	void stopFlowFusion();
-
-	void updateOnGroundMotionForOpticalFlowChecks();
-	void resetOnGroundMotionForOpticalFlowChecks();
-
-	// calculate the measurement variance for the optical flow sensor (rad/sec)^2
-	float calcOptFlowMeasVar(const flowSample &flow_sample) const;
-
-	// calculate optical flow body angular rate compensation
-	void calcOptFlowBodyRateComp(const flowSample &flow_sample);
-
-	float predictFlowHagl() const;
-	float predictFlowRange() const;
-	Vector2f predictFlow(const Vector3f &flow_gyro) const;
+	float predictFlowHagl(const Vector3f &sensor_pos_body) const;
+	float predictFlowRange(const Vector3f &sensor_pos_body) const;
+	Vector2f predictFlow(const Vector3f &sensor_pos_body, const Vector3f &flow_gyro) const;
 
 	// fuse optical flow line of sight rate measurements
-	bool fuseOptFlow(VectorState &H, bool update_terrain);
-
+	bool fuseOptFlow(estimator_aid_source2d_s &aid_src, VectorState &H, bool update_terrain);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
@@ -908,8 +874,6 @@ private:
 
 	// Control the filter fusion modes
 	void controlFusionModes(const imuSample &imu_delayed);
-
-	void updateYawManualValidity();
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	// control fusion of external vision observations
@@ -1019,6 +983,7 @@ private:
 	bool haglYawResetReq();
 
 	void checkMagHeadingConsistency(const magSample &mag_sample);
+	void updateMagBiasObservability();
 
 	bool checkMagField(const Vector3f &mag);
 	static bool isMeasuredMatchingExpected(float measured, float expected, float gate);
