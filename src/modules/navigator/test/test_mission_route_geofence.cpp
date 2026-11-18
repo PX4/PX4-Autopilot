@@ -188,16 +188,18 @@ TEST_F(MissionRouteGeofenceTest, ChecksMoreThanOnePathBatchAndThePartialTail)
 
 TEST_F(MissionRouteGeofenceTest, RejectsSafePointWhollyInsideExclusionPolygon)
 {
-	ASSERT_TRUE(loadFence(exclusionSquare()));
-	GeofencePathChecker checker{_fence};
-	ProjectionReferenceBatch batch{};
-	batch.count = 1;
-	batch.items[0].position = routePosition(0.f, 300.f);
-	batch.items[0].source_index = 0;
-	addCandidate(batch.items[0], routePosition(10.f, 310.f));
+	for (const FenceLevel level : {FenceLevel::Emergency, FenceLevel::Contingency}) {
+		ASSERT_TRUE(loadFence(exclusionSquare(level)));
+		GeofencePathChecker checker{_fence};
+		ProjectionReferenceBatch batch{};
+		batch.count = 1;
+		batch.items[0].position = routePosition(0.f, 300.f);
+		batch.items[0].source_index = 0;
+		addCandidate(batch.items[0], routePosition(10.f, 310.f));
 
-	ASSERT_TRUE(checker.pruneCandidates(batch));
-	EXPECT_EQ(batch.items[0].candidate_buffer.count, 0);
+		ASSERT_TRUE(checker.pruneCandidates(batch));
+		EXPECT_EQ(batch.items[0].candidate_buffer.count, 0);
+	}
 }
 
 TEST_F(MissionRouteGeofenceTest, DirectShortcutMustClearTheFenceIndependently)
@@ -663,6 +665,30 @@ TEST_F(MissionRouteGeofenceTest, SegmentsKeepTheContingencyMargin)
 		ASSERT_TRUE(checker.checkPath(vehicle, near_end, clear));
 		EXPECT_EQ(clear, margin <= 0.f);
 	}
+}
+
+// Drawn contingency areas replace the margin for the planner's segments, as for a mission. The segment passes
+// 25 m north of the exclusion square and stays well inside the drawn circle.
+TEST_F(MissionRouteGeofenceTest, DrawnContingencyAreasReplaceTheMargin)
+{
+	FencePoints points = exclusionSquare();
+	const FencePoints area = circle(true, {0.f, 300.f}, 400.f, FenceLevel::Contingency);
+	points.insert(points.end(), area.begin(), area.end());
+	ASSERT_TRUE(loadFence(points));
+	setMargin(40.f);
+	const Position vehicle = routePosition(100.f, 100.f);
+	const Position near_end = routePosition(60.f, 500.f);
+	GeofencePathChecker checker{_fence};
+	ProjectionReferenceBatch batch{};
+	batch.count = 1;
+	batch.items[0].position = vehicle;
+	addCandidate(batch.items[0], near_end);
+	ASSERT_TRUE(checker.pruneCandidates(batch));
+	EXPECT_EQ(batch.items[0].candidate_buffer.count, 1);
+
+	bool clear = false;
+	ASSERT_TRUE(checker.checkPath(vehicle, near_end, clear));
+	EXPECT_TRUE(clear);
 }
 
 // A safe point closer to the fence than the margin keeps no candidates, also for GF_MAX_HOR_DIST.

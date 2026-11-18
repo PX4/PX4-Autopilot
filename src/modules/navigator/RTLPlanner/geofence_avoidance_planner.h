@@ -80,7 +80,7 @@ public:
 		DijkstraFailed,              // Dijkstra solve exited due to invalid input data.
 		DestinationInvalid,          // Destination lat/lon non-finite, out of [-90,90]/[-180,180], or out of fixed-point range (internal).
 		DestinationBreachesGeofence, // Destination breaches geofence
-		BudgetExceeded,              // Node/polygon storage budget exceeded (node budget below kMaxNodesForAnyStorableFence).
+		BudgetExceeded,              // Node, area, or input vertex capacity exceeded.
 		OutOfRange,                  // A zone's vertex/extent fell outside the usable fixed-point range.
 		Degenerate,                  // A zone was degenerate (< 3 vertices, self-intersecting, antiparallel/zero-length edge, empty circle, negative margin).
 	};
@@ -203,7 +203,7 @@ private:
 	perf_counter_t _lookup_path_perf{perf_alloc(PC_ELAPSED, "rtl_planner: lookup path")};
 
 	// Scratch storage for the vertices of the polygon being added, off the stack
-	matrix::Vector2f _vertices_in[DM_KEY_FENCE_POINTS_MAX];
+	matrix::Vector2f _vertices_in[kMaxFencePointsPerLevel];
 
 	// Sets _status on failure (matching planPath); returns false to abort the build.
 	bool updatePolygonsFromGeofence(GeofenceInterface &geofence, float margin);
