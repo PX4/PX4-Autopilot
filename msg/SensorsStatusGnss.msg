@@ -8,16 +8,17 @@ uint32 device_id_selected # [-] Receiver that vehicle_gnss carries
 
 uint8 MAX_RECEIVERS = 4 # Length of the per-receiver arrays
 
-uint32[4] device_ids                 # [-] One entry per receiver, 0 where unused
-int8[4] order                        # [-] Fixed position of the receiver: 0 for the preferred one, otherwise for the first to publish, then in order of first publication. Changes only with the preference, -1 until the receiver publishes
-bool[4] healthy                      # Usable within the last 2 s: passed its checks for long enough and published without gaps. The selection fails over from a receiver that isn't
-float32[4] availability              # [-] Fraction of recent time the receiver passed its checks and published without gaps, 0 to 1
-uint16[4] failed_strict_checks       # [-] Enabled checks the latest sample fails at the strict thresholds, VehicleGnss CHECK_* bits
-uint16[4] failed_relaxed_checks      # [-] Enabled checks the latest sample fails at the relaxed thresholds, VehicleGnss CHECK_* bits
-bool[4] strict                       # The strict checks decide whether its samples are usable, as VehicleGnss strict
-float32[4] drift_rate_horizontal     # [m/s] Horizontal position drift rate at rest
-float32[4] drift_rate_vertical       # [m/s] Vertical position drift rate at rest
+uint32[4] device_ids # [-] One entry per receiver, 0 where unused
+int8[4] order # [-] Fixed position of the receiver: 0 for the preferred one, otherwise for the first to publish, then in order of first publication. Changes only with the preference, -1 until the receiver publishes
+bool[4] healthy # Usable within the last 2 s: passed its checks for long enough and published without gaps. The selection fails over from a receiver that isn't
+uint16[4] usable_loss_count # [-] Increments when the receiver goes from usable to unusable, including losses too short to change healthy. Wraps around
+float32[4] availability # [-] Fraction of recent time the receiver passed its checks and published without gaps, 0 to 1
+uint16[4] failed_strict_checks # [-] Enabled checks the latest sample fails at the strict thresholds, VehicleGnss CHECK_* bits
+uint16[4] failed_relaxed_checks # [-] Enabled checks the latest sample fails at the relaxed thresholds, VehicleGnss CHECK_* bits
+bool[4] strict # The strict checks decide whether its samples are usable, as VehicleGnss strict
+float32[4] drift_rate_horizontal # [m/s] Horizontal position drift rate at rest
+float32[4] drift_rate_vertical # [m/s] Vertical position drift rate at rest
 float32[4] speed_horizontal_filtered # [m/s] Filtered horizontal speed at rest
-float32[4] kinematic_inconsistency_horizontal    # [m/s] Rate of change of the horizontal position minus the horizontal velocity, filtered, checked against GNSS_REQ_HKIN
+float32[4] kinematic_inconsistency_horizontal # [m/s] Rate of change of the horizontal position minus the horizontal velocity, filtered, checked against GNSS_REQ_HKIN
 
 # TOPICS sensors_status_gnss

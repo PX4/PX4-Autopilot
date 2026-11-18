@@ -490,6 +490,7 @@ void VehicleGPSPosition::PublishStatus()
 
 		status.device_ids[i] = sample.device_id;
 		status.healthy[i] = !_gnss_selector.hasFailed(i, now);
+		status.usable_loss_count[i] = _gnss_selector.getUsableLossCount(i);
 		status.availability[i] = _gnss_selector.getAvailability(i);
 		status.failed_strict_checks[i] = checks.getStrictFailFlags();
 		status.failed_relaxed_checks[i] = checks.getRelaxedFailFlags();
