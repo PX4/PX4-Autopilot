@@ -48,7 +48,9 @@
 #include <uORB/topics/estimator_status_flags.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_baro.h>
+#include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_gnss.h>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/uORBManager.hpp>
 
 class VehicleAirDataTest : public ::testing::Test
@@ -165,6 +167,26 @@ public:
 		_vehicle_gnss_pub.publish(gnss);
 	}
 
+	static void publishExternalPositionEstimate(float altitude)
+	{
+		vehicle_command_s command{};
+		command.timestamp = hrt_absolute_time();
+		command.command = vehicle_command_s::VEHICLE_CMD_EXTERNAL_POSITION_ESTIMATE;
+		command.param2 = 0.f;
+		command.param5 = 47.;
+		command.param6 = 8.;
+		command.param7 = altitude;
+		_vehicle_command_pub.publish(command);
+	}
+
+	static void publishVehicleStatus(bool armed)
+	{
+		vehicle_status_s status{};
+		status.timestamp = hrt_absolute_time();
+		status.arming_state = armed ? vehicle_status_s::ARMING_STATE_ARMED : vehicle_status_s::ARMING_STATE_DISARMED;
+		_vehicle_status_pub.publish(status);
+	}
+
 	// a run of GNSS samples 100 ms apart, all with the same solution and estimator state
 	struct GnssSegment {
 		int samples;
@@ -172,6 +194,9 @@ public:
 		uint16_t failed_strict_checks;
 		bool in_air = false;
 		bool gnss_height_fused = true;
+		bool armed = false;
+		// sent with the first sample, NAN for none
+		float external_altitude = NAN;
 	};
 
 	// brings the module up on the given altitude, then feeds it the given GNSS segments in order, and returns
@@ -192,6 +217,7 @@ public:
 		runFor(module, 1500_ms, [&]() {
 			publishSample(0, noisy_pressure());
 			publishEstimatorStatusFlags();
+			publishVehicleStatus(false);
 		});
 
 		EXPECT_EQ(module.selectedIndex(), 0);
@@ -204,6 +230,12 @@ public:
 				gnss_timestamp += 100_ms;
 				publishSample(0, noisy_pressure());
 				publishEstimatorStatusFlags(segment.in_air, segment.gnss_height_fused);
+				publishVehicleStatus(segment.armed);
+
+				if ((i == 0) && PX4_ISFINITE(segment.external_altitude)) {
+					publishExternalPositionEstimate(segment.external_altitude);
+				}
+
 				publishGnss(gnss_timestamp, segment.altitude_msl, segment.failed_strict_checks);
 				module.RunPublic();
 				px4_usleep(5_ms);
@@ -237,6 +269,8 @@ public:
 	static uORB::Publication<parameter_update_s> _parameter_update_pub;
 	static uORB::Publication<estimator_status_flags_s> _estimator_status_flags_pub;
 	static uORB::Publication<vehicle_gnss_s> _vehicle_gnss_pub;
+	static uORB::Publication<vehicle_status_s> _vehicle_status_pub;
+	static uORB::Publication<vehicle_command_s> _vehicle_command_pub;
 
 	static constexpr const char *kOffsetParams[kSensorCount] {"CAL_BARO0_OFF"};
 
@@ -249,6 +283,8 @@ uORB::PublicationMulti<sensor_baro_s> VehicleAirDataTest::_sensor_baro_pubs[kSen
 uORB::Publication<parameter_update_s> VehicleAirDataTest::_parameter_update_pub{ORB_ID(parameter_update)};
 uORB::Publication<estimator_status_flags_s> VehicleAirDataTest::_estimator_status_flags_pub{ORB_ID(estimator_status_flags)};
 uORB::Publication<vehicle_gnss_s> VehicleAirDataTest::_vehicle_gnss_pub{ORB_ID(vehicle_gnss)};
+uORB::Publication<vehicle_status_s> VehicleAirDataTest::_vehicle_status_pub{ORB_ID(vehicle_status)};
+uORB::Publication<vehicle_command_s> VehicleAirDataTest::_vehicle_command_pub{ORB_ID(vehicle_command)};
 constexpr const char *VehicleAirDataTest::kOffsetParams[];
 
 TEST_F(VehicleAirDataTest, BarometerDisabledFromBootDoesNotDriveRun)
@@ -347,6 +383,41 @@ TEST_F(VehicleAirDataTest, GnssBaroCalibrationCompletesAfterFlight)
 		{30, 15., 0},
 		{50, 115., 0, true},
 		{45, 15., 0},
+	});
+
+	EXPECT_GT(offset, 150.f);
+	EXPECT_LT(offset, 210.f);
+}
+
+TEST_F(VehicleAirDataTest, GnssBaroCalibrationCompletesWhileArmedOnGround)
+{
+	// arming before the first calibration does not hold it back
+	const float offset = runGnssCalibration({{60, 15., 0, false, true, true}});
+
+	EXPECT_GT(offset, 150.f);
+	EXPECT_LT(offset, 210.f);
+}
+
+TEST_F(VehicleAirDataTest, GnssBaroCalibrationTracksBaroDriftUntilArmed)
+{
+	// a steady 1.5 m drift on the ground is recalibrated onto 16.5 m, drift while armed is ignored
+	const float offset = runGnssCalibration({
+		{60, 15., 0},
+		{700, 16.5, 0},
+		{700, 25., 0, false, true, true},
+	});
+
+	// roughly 12 Pa per metre
+	EXPECT_GT(offset, 194.f);
+	EXPECT_LT(offset, 204.f);
+}
+
+TEST_F(VehicleAirDataTest, GnssBaroCalibrationStopsTrackingAfterExternalAltitude)
+{
+	// an externally set altitude stops the tracking, the calibration stays on 15 m
+	const float offset = runGnssCalibration({
+		{60, 15., 0},
+		{700, 25., 0, false, true, false, 30.f},
 	});
 
 	EXPECT_GT(offset, 150.f);

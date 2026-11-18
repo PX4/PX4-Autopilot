@@ -56,7 +56,9 @@
 #include <uORB/topics/sensors_status.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/estimator_status_flags.h>
+#include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_gnss.h>
+#include <uORB/topics/vehicle_status.h>
 
 using namespace time_literals;
 
@@ -116,6 +118,8 @@ private:
 	};
 
 	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	calibration::Barometer _calibration[MAX_SENSOR_COUNT];
 
@@ -143,6 +147,8 @@ private:
 	int8_t _selected_sensor_sub_index{-1};
 
 	bool _last_status_baro_fault{false};
+	bool _armed{false};
+	bool _external_altitude_set{false};
 
 	bool _relative_calibration_done{false};
 	bool _baro_gnss_calibration_done{false};
@@ -150,6 +156,7 @@ private:
 	AlphaFilter<float> _delta_baro_gnss_lpf{};
 	float _baro_gnss_offset_t1{NAN};
 	uint64_t _t_first_gnss_sample{0};
+	uint64_t _t_last_baro_gnss_calibration{0};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SENS_BARO_QNH>) _param_sens_baro_qnh,
