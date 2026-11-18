@@ -35661,7 +35661,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Failure Detector
 
-<div class="param-group" style="--param-count: 9">
+<div class="param-group" style="--param-count: 7">
 
 <div class="param">
 
@@ -35735,78 +35735,6 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### FD_FAIL_P (`INT32`) {#FD_FAIL_P}
-
-FailureDetector Max Pitch.
-
-Maximum pitch angle before FailureDetector triggers the attitude_failure flag.
-The flag triggers flight termination (if @CBRK_FLIGHTTERM = 0),
-which sets outputs to their failsafe values.
-On takeoff the flag triggers lockdown (irrespective of @CBRK_FLIGHTTERM),
-which disarms motors but does not set outputs to failsafe values.
-
-Setting this parameter to 0 disables the check
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 180 |  | 60 | deg | &nbsp;
-
-</div>
-
-<div class="param">
-
-### FD_FAIL_P_TTRI (`FLOAT`) {#FD_FAIL_P_TTRI}
-
-Pitch failure trigger time.
-
-Seconds (decimal) that pitch has to exceed FD_FAIL_P before being considered as a failure.
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.02 | 5 |  | 0.3 | s | &nbsp;
-
-</div>
-
-<div class="param">
-
-### FD_FAIL_R (`INT32`) {#FD_FAIL_R}
-
-FailureDetector Max Roll.
-
-Maximum roll angle before FailureDetector triggers the attitude_failure flag.
-The flag triggers flight termination (if @CBRK_FLIGHTTERM = 0),
-which sets outputs to their failsafe values.
-On takeoff the flag triggers lockdown (irrespective of @CBRK_FLIGHTTERM),
-which disarms motors but does not set outputs to failsafe values.
-
-Setting this parameter to 0 disables the check
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 180 |  | 60 | deg | &nbsp;
-
-</div>
-
-<div class="param">
-
-### FD_FAIL_R_TTRI (`FLOAT`) {#FD_FAIL_R_TTRI}
-
-Roll failure trigger time.
-
-Seconds (decimal) that roll has to exceed FD_FAIL_R before being considered as a failure.
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.02 | 5 |  | 0.3 | s | &nbsp;
-
-</div>
-
-<div class="param">
-
 ### FD_IMB_PROP_THR (`INT32`) {#FD_IMB_PROP_THR}
 
 Imbalanced propeller check threshold.
@@ -35820,6 +35748,44 @@ Setting this value to 0 disables the feature.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0 | 1000 | 1 | 30 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### FD_TILT_ERROR (`FLOAT`) {#FD_TILT_ERROR}
+
+FailureDetector Max Tilt Error.
+
+Maximum angle between the vehicle tilt and the attitude setpoint tilt before FailureDetector triggers the attitude_failure flag.
+Without a recent attitude setpoint, e.g. on rovers, the tilt from level is checked instead.
+The flag triggers flight termination (if @CBRK_FLIGHTTERM = 0),
+which sets outputs to their failsafe values.
+On takeoff the flag triggers lockdown (irrespective of @CBRK_FLIGHTTERM),
+which disarms motors but does not set outputs to failsafe values.
+The check is paused for the first 5 s after a VTOL quad-chute or aborted front transition.
+
+Set to -1 to disable.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | -1 | 180 |  | 60 | deg | &nbsp;
+
+</div>
+
+<div class="param">
+
+### FD_TILT_ERROR_T (`FLOAT`) {#FD_TILT_ERROR_T}
+
+Tilt failure trigger time.
+
+Seconds (decimal) that the tilt error has to exceed FD_TILT_ERROR before being considered as a failure.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.02 | 5 |  | 1.0 | s | &nbsp;
 
 </div>
 
