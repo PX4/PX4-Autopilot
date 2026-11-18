@@ -290,7 +290,7 @@ INSTANTIATE_TEST_SUITE_P(MissionBatches, MissionGeofenceBatchTest, ::testing::Va
 	return test_info.param.name;
 });
 
-enum class MissionScalarLimit { Horizontal, Vertical, AltitudeBand };
+enum class MissionScalarLimit { Horizontal, Vertical, AltitudeBand, PreHorizontal, PreVertical };
 
 struct MissionScalarCase {
 	const char *name;
@@ -313,9 +313,13 @@ TEST_P(MissionGeofenceScalarTest, ChecksEveryPosition)
 		GeofenceTestPeer::setAltitudeBand(_fence, 450.f, 550.f);
 
 	} else {
-		const float maximum = test.limit == MissionScalarLimit::Horizontal ? 300.f : 150.f;
-		ASSERT_EQ(param_set(param_find(test.limit == MissionScalarLimit::Horizontal ? "GF_MAX_HOR_DIST" : "GF_MAX_VER_DIST"),
-				    &maximum), PX4_OK);
+		const bool pre = test.limit == MissionScalarLimit::PreHorizontal || test.limit == MissionScalarLimit::PreVertical;
+		const bool horizontal = test.limit == MissionScalarLimit::Horizontal
+					|| test.limit == MissionScalarLimit::PreHorizontal;
+		const char *name = horizontal ? (pre ? "GF_PRE_MAX_HDIST" : "GF_MAX_HOR_DIST")
+				   : (pre ? "GF_PRE_MAX_VDIST" : "GF_MAX_VER_DIST");
+		const float maximum = horizontal ? 300.f : 150.f;
+		ASSERT_EQ(param_set(param_find(name), &maximum), PX4_OK);
 		_navigator.updateParams();
 	}
 
@@ -334,6 +338,10 @@ INSTANTIATE_TEST_SUITE_P(MissionScalarLimits, MissionGeofenceScalarTest, ::testi
 				 MissionScalarCase{"BeyondHomeDistance", MissionScalarLimit::Horizontal, 400.f, 500.f, false, false},
 				 MissionScalarCase{"WithinRelativeAltitude", MissionScalarLimit::Vertical, 200.f, 100.f, true, true},
 				 MissionScalarCase{"BeyondRelativeAltitude", MissionScalarLimit::Vertical, 200.f, 200.f, true, false},
+				 MissionScalarCase{"WithinPreHomeDistance", MissionScalarLimit::PreHorizontal, 200.f, 500.f, false, true},
+				 MissionScalarCase{"BeyondPreHomeDistance", MissionScalarLimit::PreHorizontal, 400.f, 500.f, false, false},
+				 MissionScalarCase{"WithinPreRelativeAltitude", MissionScalarLimit::PreVertical, 200.f, 100.f, true, true},
+				 MissionScalarCase{"BeyondPreRelativeAltitude", MissionScalarLimit::PreVertical, 200.f, 200.f, true, false},
 				 MissionScalarCase{"BelowAltitudeBand", MissionScalarLimit::AltitudeBand, 200.f, 440.f, false, false},
 				 MissionScalarCase{"AboveAltitudeBand", MissionScalarLimit::AltitudeBand, 200.f, 560.f, false, false},
 				 MissionScalarCase{"AtAltitudeBandMinimum", MissionScalarLimit::AltitudeBand, 200.f, 450.f, false, true},
@@ -350,6 +358,16 @@ TEST_F(MissionFeasibilityGeofenceTest, EmptyFenceStillChecksHomeLimits)
 	_navigator.updateParams();
 	EXPECT_FALSE(missionFeasible({waypoint({0.f, 100.f}), waypoint({0.f, 400.f})}));
 	EXPECT_TRUE(waypointEvent(events::ID("navigator_mis_geofence_violation"), 2));
+}
+
+TEST_F(MissionFeasibilityGeofenceTest, FirstPositionMustKeepThePreGeofenceLimits)
+{
+	const float maximum = 300.f;
+	ASSERT_EQ(param_set(param_find("GF_PRE_MAX_HDIST"), &maximum), PX4_OK);
+	_navigator.updateParams();
+	EXPECT_TRUE(missionFeasible({waypoint({0.f, 200.f})}));
+	EXPECT_FALSE(missionFeasible({waypoint({0.f, 400.f})}));
+	EXPECT_TRUE(waypointEvent(events::ID("navigator_mis_geofence_violation"), 1));
 }
 
 TEST_F(MissionFeasibilityGeofenceTest, EmptyFenceIgnoresStoredAltitudeBand)
@@ -727,6 +745,31 @@ TEST_F(MissionGeofenceLoiterTest, EmptyFenceStillChecksCircleDistanceFromHome)
 	EXPECT_TRUE(missionFeasible({loiter(250.f, 40.f)}));
 	EXPECT_FALSE(missionFeasible({loiter(250.f, 60.f)}));
 	expectLoiterViolation(1);
+}
+
+TEST_F(MissionGeofenceLoiterTest, CircleMustFitTheTighterHomeDistanceLimit)
+{
+	ASSERT_TRUE(configureVehicle());
+	const auto setLimits = [this](float geofence, float pre_geofence) {
+		ASSERT_EQ(param_set(param_find("GF_MAX_HOR_DIST"), &geofence), PX4_OK);
+		ASSERT_EQ(param_set(param_find("GF_PRE_MAX_HDIST"), &pre_geofence), PX4_OK);
+		_navigator.updateParams();
+	};
+
+	// The 60 m circle fits the geofence limit but not the pre-geofence limit.
+	setLimits(400.f, 300.f);
+	EXPECT_TRUE(missionFeasible({loiter(250.f, 40.f)}));
+	EXPECT_FALSE(missionFeasible({loiter(250.f, 60.f)}));
+	expectLoiterViolation(1);
+
+	// The pre-geofence limit alone.
+	setLimits(0.f, 300.f);
+	EXPECT_FALSE(missionFeasible({loiter(250.f, 60.f)}));
+
+	// A pre-geofence limit outside the geofence limit changes nothing.
+	setLimits(400.f, 500.f);
+	EXPECT_TRUE(missionFeasible({loiter(330.f, 60.f)}));
+	EXPECT_FALSE(missionFeasible({loiter(350.f, 60.f)}));
 }
 
 TEST_F(MissionGeofenceLoiterTest, NaNDefaultRadiusRejectsTheEndLoiter)

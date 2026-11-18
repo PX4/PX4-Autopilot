@@ -208,7 +208,9 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 				// Home-distance and altitude limits are separate from the horizontal fence shapes.
 				point_valid = geofence.isCloserThanMaxDistToHome(missionitem.lat, missionitem.lon, missionitem.altitude)
 					      && geofence.isBelowMaxAltitude(missionitem.altitude)
-					      && geofence.isWithinAltitudeBand(missionitem.altitude);
+					      && geofence.isWithinAltitudeBand(missionitem.altitude)
+					      && geofence.isCloserThanPreMaxDistToHome(missionitem.lat, missionitem.lon)
+					      && geofence.isBelowPreMaxAltitude(missionitem.altitude);
 			}
 		}
 

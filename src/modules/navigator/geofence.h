@@ -91,7 +91,7 @@ public:
 
 	/**
 	 * Check if a 3D point passes the Geofence test.
-	 * Checks max distance, max altitude, inside polygon or circle.
+	 * Checks max distance, max altitude, inside polygon or circle, and the pre-geofence limits.
 	 * In addition to checkPolygons(), this takes all additional parameters into account.
 	 *
 	 * @return false for a geofence violation
@@ -146,6 +146,12 @@ public:
 	 */
 	bool isBelowMaxAltitude(float altitude);
 
+	/** Pre-geofence twin of isCloserThanMaxDistToHome(), with GF_PRE_MAX_HDIST. */
+	bool isCloserThanPreMaxDistToHome(double lat, double lon);
+
+	/** Pre-geofence twin of isBelowMaxAltitude(), with GF_PRE_MAX_VDIST. */
+	bool isBelowPreMaxAltitude(float altitude);
+
 	/** Check the altitude band from a loaded fence file, if configured. */
 	bool isWithinAltitudeBand(float altitude);
 
@@ -181,6 +187,9 @@ public:
 
 	int getSource() { return _param_gf_source.get(); }
 	int getGeofenceAction() { return _param_gf_action.get(); }
+
+	/** GF_PRE_ACTION as a GF_ACTION value: None while the pre-geofence is disabled, Warning for values it does not offer. */
+	uint8_t getPreGeofenceAction() const;
 
 	float getMaxHorDistanceHome() { return _param_gf_max_hor_dist.get(); }
 
@@ -305,6 +314,10 @@ private:
 	bool insideCircle(const PolygonInfo &polygon, double lat, double lon, float altitude);
 
 	bool checkPaths(const PathCheck *paths, size_t num_paths, bool *results);
+
+	/** Limits relative to Home; a limit of zero is disabled. */
+	bool isWithinHomeDistance(float max_distance, double lat, double lon);
+	bool isBelowHomeAltitude(float max_altitude, float altitude);
 	bool _readFencePoint(unsigned index, mission_fence_point_s &point);
 	bool _fencePointValid(const mission_fence_point_s &point) const;
 	bool checkPolygonPaths(const PolygonInfo &polygon, const PathCheck *paths, const uint8_t *pieces, size_t num_paths,
@@ -340,6 +353,9 @@ private:
 		(ParamInt<px4::params::GF_ACTION>)         _param_gf_action,
 		(ParamInt<px4::params::GF_SOURCE>)         _param_gf_source,
 		(ParamFloat<px4::params::GF_MAX_HOR_DIST>) _param_gf_max_hor_dist,
-		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist
+		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist,
+		(ParamInt<px4::params::GF_PRE_ACTION>)     _param_gf_pre_action,
+		(ParamFloat<px4::params::GF_PRE_MAX_HDIST>) _param_gf_pre_max_hdist,
+		(ParamFloat<px4::params::GF_PRE_MAX_VDIST>) _param_gf_pre_max_vdist
 	)
 };

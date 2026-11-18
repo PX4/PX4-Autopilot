@@ -653,7 +653,8 @@ bool Geofence::checkCurrentPositionRequirementsForGeofence(const PolygonInfo &po
 bool Geofence::checkPointAgainstAllGeofences(double lat, double lon, float altitude)
 {
 	const bool inside_fence = isCloserThanMaxDistToHome(lat, lon, altitude) && isBelowMaxAltitude(altitude)
-				  && isInsidePolygonOrCircle(lat, lon, altitude);
+				  && isInsidePolygonOrCircle(lat, lon, altitude)
+				  && isCloserThanPreMaxDistToHome(lat, lon) && isBelowPreMaxAltitude(altitude);
 	return inside_fence;
 }
 
@@ -675,7 +676,18 @@ bool Geofence::checkPathBatch(const PathCheck *paths, size_t num_paths, bool *re
 bool Geofence::checkPaths(const PathCheck *paths, size_t num_paths, bool *results)
 {
 	bool pieces_calculated = false;
-	const float max_home_distance = _navigator->home_global_position_valid() ? _param_gf_max_hor_dist.get() : 0.f;
+	// A circle has to fit inside the tightest enabled Home distance limit.
+	float max_home_distance = _param_gf_max_hor_dist.get();
+	const float pre_max_home_distance = _param_gf_pre_max_hdist.get();
+
+	if (pre_max_home_distance > FLT_EPSILON && (max_home_distance <= FLT_EPSILON || pre_max_home_distance < max_home_distance)) {
+		max_home_distance = pre_max_home_distance;
+	}
+
+	if (!_navigator->home_global_position_valid()) {
+		max_home_distance = 0.f;
+	}
+
 	const home_position_s &home = *_navigator->get_home_position();
 
 	for (size_t i = 0; i < num_paths; ++i) {
@@ -833,17 +845,28 @@ bool Geofence::checkCirclePaths(const PolygonInfo &polygon, const PathCheck *pat
 
 bool Geofence::isCloserThanMaxDistToHome(double lat, double lon, float altitude)
 {
+	return isWithinHomeDistance(_param_gf_max_hor_dist.get(), lat, lon);
+}
+
+bool Geofence::isCloserThanPreMaxDistToHome(double lat, double lon)
+{
+	return isWithinHomeDistance(_param_gf_pre_max_hdist.get(), lat, lon);
+}
+
+bool Geofence::isWithinHomeDistance(float max_distance, double lat, double lon)
+{
 	bool inside_fence = true;
 
-	if (_param_gf_max_hor_dist.get() > FLT_EPSILON && _navigator->home_global_position_valid()) {
+	if (max_distance > FLT_EPSILON && _navigator->home_global_position_valid()) {
 
 		float dist_xy = -1.0f;
 		float dist_z = -1.0f;
+		const home_position_s &home = *_navigator->get_home_position();
 
-		get_distance_to_point_global_wgs84(lat, lon, altitude, _navigator->get_home_position()->lat,
-						   _navigator->get_home_position()->lon, _navigator->get_home_position()->alt, &dist_xy, &dist_z);
+		// Only the horizontal distance is used.
+		get_distance_to_point_global_wgs84(lat, lon, home.alt, home.lat, home.lon, home.alt, &dist_xy, &dist_z);
 
-		inside_fence = dist_xy < _param_gf_max_hor_dist.get();
+		inside_fence = dist_xy < max_distance;
 	}
 
 	return inside_fence;
@@ -851,15 +874,43 @@ bool Geofence::isCloserThanMaxDistToHome(double lat, double lon, float altitude)
 
 bool Geofence::isBelowMaxAltitude(float altitude)
 {
+	return isBelowHomeAltitude(_param_gf_max_ver_dist.get(), altitude);
+}
+
+bool Geofence::isBelowPreMaxAltitude(float altitude)
+{
+	return isBelowHomeAltitude(_param_gf_pre_max_vdist.get(), altitude);
+}
+
+bool Geofence::isBelowHomeAltitude(float max_altitude, float altitude)
+{
 	bool inside_fence = true;
 
-	if (_param_gf_max_ver_dist.get() > FLT_EPSILON && _navigator->home_alt_valid()) {
+	if (max_altitude > FLT_EPSILON && _navigator->home_alt_valid()) {
 
 		const float dist_z = altitude - _navigator->get_home_position()->alt;
-		inside_fence = dist_z < _param_gf_max_ver_dist.get();
+		inside_fence = dist_z < max_altitude;
 	}
 
 	return inside_fence;
+}
+
+uint8_t Geofence::getPreGeofenceAction() const
+{
+	if (_param_gf_pre_max_hdist.get() <= FLT_EPSILON && _param_gf_pre_max_vdist.get() <= FLT_EPSILON) {
+		return geofence_result_s::GF_ACTION_NONE;
+	}
+
+	switch (_param_gf_pre_action.get()) {
+	case geofence_result_s::GF_ACTION_LOITER:
+	case geofence_result_s::GF_ACTION_RTL:
+	case geofence_result_s::GF_ACTION_LAND:
+		return static_cast<uint8_t>(_param_gf_pre_action.get());
+
+	default:
+		// The pre-geofence does not offer None or Terminate.
+		return geofence_result_s::GF_ACTION_WARN;
+	}
 }
 
 bool Geofence::isWithinAltitudeBand(float altitude)
@@ -1200,9 +1251,12 @@ error:
 
 bool Geofence::isHomeRequired()
 {
-	bool max_horizontal_enabled = (_param_gf_max_hor_dist.get() > FLT_EPSILON);
-	bool max_vertical_enabled = (_param_gf_max_ver_dist.get() > FLT_EPSILON);
-	bool geofence_action_rtl = (getGeofenceAction() == geofence_result_s::GF_ACTION_RTL);
+	bool max_horizontal_enabled = (_param_gf_max_hor_dist.get() > FLT_EPSILON)
+				      || (_param_gf_pre_max_hdist.get() > FLT_EPSILON);
+	bool max_vertical_enabled = (_param_gf_max_ver_dist.get() > FLT_EPSILON)
+				    || (_param_gf_pre_max_vdist.get() > FLT_EPSILON);
+	bool geofence_action_rtl = (getGeofenceAction() == geofence_result_s::GF_ACTION_RTL)
+				   || (getPreGeofenceAction() == geofence_result_s::GF_ACTION_RTL);
 
 	return max_horizontal_enabled || max_vertical_enabled || geofence_action_rtl;
 }

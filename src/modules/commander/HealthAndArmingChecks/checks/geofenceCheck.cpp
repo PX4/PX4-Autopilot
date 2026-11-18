@@ -47,6 +47,12 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 
 	reporter.failsafeFlags().gf_breached = geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE && any_geofence_triggered;
 
+	const bool any_pre_geofence_triggered = geofence_result.pre_geofence_max_dist_triggered ||
+						geofence_result.pre_geofence_max_alt_triggered;
+
+	reporter.failsafeFlags().pre_gf_breached = geofence_result.pre_geofence_action != geofence_result_s::GF_ACTION_NONE
+			&& any_pre_geofence_triggered;
+
 	if (geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE && any_geofence_triggered) {
 
 		if (geofence_result.geofence_max_dist_triggered) {
@@ -98,12 +104,48 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 		}
 	}
 
-	if (geofence_result.geofence_action == geofence_result_s::GF_ACTION_RTL
+	if (reporter.failsafeFlags().pre_gf_breached) {
+
+		if (geofence_result.pre_geofence_max_dist_triggered) {
+			/* EVENT
+			 * @description
+			 * <profile name="dev">
+			 * This check can be configured via <param>GF_PRE_ACTION</param> and <param>GF_PRE_MAX_HDIST</param> parameters.
+			 * </profile>
+			 */
+			reporter.armingCheckFailure(NavModes::All, health_component_t::system,
+						    events::ID("check_pre_gf_violation_max_hor_dist"),
+						    events::Log::Error, "Pre-geofence violation: exceeding maximum distance to Home");
+
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Pre-geofence: exceeding maximum distance to Home\t");
+			}
+		}
+
+		if (geofence_result.pre_geofence_max_alt_triggered) {
+			/* EVENT
+			 * @description
+			 * <profile name="dev">
+			 * This check can be configured via <param>GF_PRE_ACTION</param> and <param>GF_PRE_MAX_VDIST</param> parameters.
+			 * </profile>
+			 */
+			reporter.armingCheckFailure(NavModes::All, health_component_t::system,
+						    events::ID("check_pre_gf_violation_max_alt"),
+						    events::Log::Error, "Pre-geofence violation: exceeding maximum altitude above Home");
+
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Pre-geofence: exceeding maximum altitude above Home\t");
+			}
+		}
+	}
+
+	if ((geofence_result.geofence_action == geofence_result_s::GF_ACTION_RTL
+	     || geofence_result.pre_geofence_action == geofence_result_s::GF_ACTION_RTL)
 	    && reporter.failsafeFlags().home_position_invalid) {
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
-		 * This check can be configured via <param>GF_ACTION</param> parameter.
+		 * This check can be configured via <param>GF_ACTION</param> and <param>GF_PRE_ACTION</param> parameters.
 		 * </profile>
 		 */
 		reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_gf_no_home"),

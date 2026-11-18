@@ -207,13 +207,8 @@ In its simplest form, the perimeter is set up as a cylinder centered around the 
 If the vehicle moves outside the radius or above the altitude the specified _Failsafe Action_ will trigger.
 
 Note that the failsafe action will only trigger once the vehicle has already breached the geofence.
-If you have a strict no-fly zone for safety or legal reasons, set [GF_ACTION](../advanced_config/parameter_reference.md#GF_ACTION) to `Hold` and include a safety margin in your geofences.
-The margin should be at least:
-
-- **Fixed-Wing**: The loiter radius [NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_LOITER_RAD).
-- **Multicopter**: The stopping distance (`v^2 / 2a` with `v`=[MPC_XY_VEL_MAX](../advanced_config/parameter_reference.md#MPC_XY_VEL_MAX) and `a`=[MPC_ACC_HOR_MAX](../advanced_config/parameter_reference.md#MPC_ACC_HOR_MAX)).
-
-Use a margin above those nominal values to account for possible tailwind, position uncertainty, attitude tracking delay, etc.
+If a boundary must not be crossed, for safety or legal reasons, configure a [Pre-Geofence](#pre-geofence).
+It triggers its own action, for example `Hold`, before the vehicle reaches the geofence.
 
 ![Safety - Geofence (QGC)](../../assets/qgc/setup/safety/safety_geofence.png)
 
@@ -240,6 +235,68 @@ The following settings also apply, but are not displayed in the QGC UI.
 | ------------------------------------------------------------------ | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | <a id="GF_SOURCE"></a>Geofence source                              | [GF_SOURCE](../advanced_config/parameter_reference.md#GF_SOURCE)             | Set whether position source is estimated global position or direct from the GPS device. |
 | <a id="CBRK_FLIGHTTERM"></a>Circuit breaker for flight termination | [CBRK_FLIGHTTERM](../advanced_config/parameter_reference.md#CBRK_FLIGHTTERM) | Enables/Disables flight termination action (disabled by default).                       |
+
+### Pre-Geofence
+
+<Badge type="tip" text="main (PX4 v2.0)" />
+
+A pre-geofence is a second set of limits inside the geofence, with its own failsafe action.
+The vehicle reaches it first, so it can for example hold at the pre-geofence, and only terminate if it still crosses the geofence.
+
+Use it where the geofence must not be crossed, or where the geofence action has to be severe.
+For example, under the [SORA](http://jarus-rpas.org/wp-content/uploads/2024/06/SORA-v2.5-Main-Body-Release-JAR_doc_25.pdf) framework, which many countries use to approve complex operations, leaving the contingency volume typically requires the flight to be terminated.
+
+#### Pre-Geofence Setup
+
+Each geofence limit has a pre-geofence twin.
+A limit that is set to 0 is disabled, and the pre-geofence is off while all of them are disabled (the default).
+
+| Setting                   | Parameter                                                                      | Description                                                                   |
+| ------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| Pre-geofence action       | [GF_PRE_ACTION](../advanced_config/parameter_reference.md#GF_PRE_ACTION)       | Warning, Hold mode (default), Return mode, or Land mode.                      |
+| Pre-geofence max radius   | [GF_PRE_MAX_HDIST](../advanced_config/parameter_reference.md#GF_PRE_MAX_HDIST) | Horizontal distance from Home. Set it below `GF_MAX_HOR_DIST`. Disabled if 0. |
+| Pre-geofence max altitude | [GF_PRE_MAX_VDIST](../advanced_config/parameter_reference.md#GF_PRE_MAX_VDIST) | Altitude above Home. Set it below `GF_MAX_VER_DIST`. Disabled if 0.           |
+
+Leave enough room between the pre-geofence and the geofence for the vehicle to stop or turn around.
+The gap should be at least:
+
+- Fixed-wing: The loiter radius ([NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_LOITER_RAD)).
+- Multicopter: The nominal stopping distance (`v^2 / 2a` with `v`=[MPC_XY_VEL_MAX](../advanced_config/parameter_reference.md#MPC_XY_VEL_MAX) and `a`=[MPC_ACC_HOR](../advanced_config/parameter_reference.md#MPC_ACC_HOR)).
+  Allow additional distance for the acceleration ramp ([MPC_JERK_AUTO](../advanced_config/parameter_reference.md#MPC_JERK_AUTO)).
+- VTOL: The value for the flight phase in that part of the flight.
+
+Use a gap above these nominal values to account for possible tailwind, position uncertainty, attitude tracking delay, etc.
+
+::: info
+PX4 does not check the setup:
+
+- A pre-geofence limit outside its geofence twin never comes first.
+- The pre-geofence action should be the milder of the two.
+  It has no `None`, because the pre-geofence is disabled through its limits, and no `Terminate`, which is left to the geofence.
+- Keep the Return altitude ([RTL_RETURN_ALT](../advanced_config/parameter_reference.md#RTL_RETURN_ALT)) below `GF_PRE_MAX_VDIST`.
+- A mission that is already uploaded is not checked again when these parameters change.
+  Upload it again after changing them.
+
+:::
+
+#### Pre-Geofence Behaviour
+
+When the vehicle breaches the pre-geofence:
+
+- The pre-geofence action is triggered, in all flight modes.
+  With `Hold` the vehicle holds where it breached the pre-geofence, in the same way as after a geofence breach (a fixed-wing vehicle loiters around that position).
+  If already established on a loiter, it keeps the existing loiter centre.
+  Switch to another mode to take over.
+  The action is triggered again the next time the vehicle breaches the pre-geofence.
+- Arming is denied.
+- If the vehicle breaches the geofence as well, the more severe of the two actions is taken, as for other failsafes.
+  This also applies after you have taken over.
+
+PX4 also keeps planned flight inside the pre-geofence:
+
+- A mission is rejected if one of its positions is outside the pre-geofence.
+- The target of a _Go to location_ ([reposition](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_REPOSITION)) or of an altitude change, and the centre of a fixed-wing orbit or figure-eight, is refused if it lies outside the pre-geofence (unless the action is `Warning`).
+  Only the target is checked, not the path to it or the loiter circle around it.
 
 ## Position Estimation Failsafes
 

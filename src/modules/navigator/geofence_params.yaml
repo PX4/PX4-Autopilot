@@ -57,3 +57,39 @@ parameters:
       min: 0
       max: 10000
       increment: 1
+    GF_PRE_ACTION:
+      description:
+        short: Pre-geofence violation action
+        long: Only used when GF_PRE_MAX_HDIST or GF_PRE_MAX_VDIST is enabled.
+          If the geofence is breached as well, the more severe of the two actions is taken.
+      type: enum
+      values:
+        1: Warning
+        2: Hold mode
+        3: Return mode
+        5: Land mode
+      default: 2
+      min: 1
+      max: 5
+    GF_PRE_MAX_HDIST:
+      description:
+        short: Pre-geofence max horizontal distance from Home
+        long: Triggers GF_PRE_ACTION. Set it below GF_MAX_HOR_DIST to act before the geofence is breached.
+          A mission that is already uploaded is not checked again when this changes. Set to 0 to disable.
+      type: float
+      default: 0.0
+      unit: m
+      min: 0
+      max: 10000
+      increment: 1
+    GF_PRE_MAX_VDIST:
+      description:
+        short: Pre-geofence max vertical distance from Home
+        long: Triggers GF_PRE_ACTION. Set it below GF_MAX_VER_DIST to act before the geofence is breached.
+          A mission that is already uploaded is not checked again when this changes. Set to 0 to disable.
+      type: float
+      default: 0.0
+      unit: m
+      min: 0
+      max: 10000
+      increment: 1

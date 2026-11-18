@@ -142,6 +142,11 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### Safety
 
 - [Geofence Aware Return mode](../flight_modes/return.md#geofence_awareness). ([PX4-Autopilot#27145: feat(navigator): Geofence Aware RTL](https://github.com/PX4/PX4-Autopilot/pull/27145), [PX4-Autopilot#28001: docs(navigator): [geofence] added some more warnings about limitations](https://github.com/PX4/PX4-Autopilot/pull/28001)).
+- [Pre-geofence](../config/safety.md#pre-geofence): a second set of limits inside the geofence, with its own action ([GF_PRE_ACTION](../advanced_config/parameter_reference.md#GF_PRE_ACTION)).
+  A vehicle can for example hold at the pre-geofence, and only terminate if it still crosses the geofence.
+  It is set with a maximum distance and altitude from Home ([GF_PRE_MAX_HDIST](../advanced_config/parameter_reference.md#GF_PRE_MAX_HDIST), [GF_PRE_MAX_VDIST](../advanced_config/parameter_reference.md#GF_PRE_MAX_VDIST)).
+  Outside the pre-geofence arming is denied, missions are rejected, and _Go to location_ targets are refused unless its action is Warning.
+  The uORB failsafe flag `geofence_breached` (`FailsafeFlags`) is renamed to `gf_breached`.
 - [Flight termination](../advanced_config/flight_termination.md) can now be used instead of a Descent mode as a fallback failsafe mode, allowing safer landing for unpiloted vehicles that carry a parachute.
   See [Battery level failsafe](../config/safety.md#battery-level-failsafe) ([COM_LOW_BAT_ACT](../advanced_config/parameter_reference.md#COM_LOW_BAT_ACT)) and [Position Loss Failsafe Action](../config/safety.md#position-loss-failsafe-action) (new [COM_POS_FS_ACT](../advanced_config/parameter_reference.md#COM_POS_FS_ACT)). ([PX4-Autopilot#28064: feat(commander): add terminate options for critical battery and lost position failsafes](https://github.com/PX4/PX4-Autopilot/pull/28064)).
 - [Failure injection](../debug/failure_injection.md) ( [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN)) has been significantly extended. (PX4-Autopilot#27572, PX4-Autopilot#27832, PX4-Autopilot#27950)
