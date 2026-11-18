@@ -76,10 +76,8 @@ OSDatxxxx::init()
 	}
 
 	// clear the screen
-	int num_rows = (_param_osd_atxxxx_cfg.get() == 1 ? OSD_NUM_ROWS_NTSC : OSD_NUM_ROWS_PAL);
-
 	for (int i = 0; i < OSD_CHARS_PER_ROW; i++) {
-		for (int j = 0; j < num_rows; j++) {
+		for (int j = 0; j < _num_rows; j++) {
 			add_character_to_screen(' ', i, j);
 		}
 	}
@@ -119,11 +117,9 @@ int
 OSDatxxxx::init_osd()
 {
 	int ret = PX4_OK;
-	uint8_t data = OSD_ZERO_BYTE;
-
-	if (_param_osd_atxxxx_cfg.get() == 2) {
-		data |= OSD_PAL_TX_MODE;
-	}
+	const bool pal = (_param_osd_atxxxx_cfg.get() == 2);
+	const uint8_t data = pal ? OSD_PAL_TX_MODE : OSD_ZERO_BYTE;
+	_num_rows = pal ? OSD_NUM_ROWS_PAL : OSD_NUM_ROWS_NTSC;
 
 	ret |= writeRegister(0x00, data);
 	ret |= writeRegister(0x04, OSD_ZERO_BYTE);
@@ -468,17 +464,21 @@ OSDatxxxx::update_screen()
 		clear_line(1, 3, 10);
 	}
 
+	// Placed relative to the bottom row, since NTSC shows 13 rows and PAL 16.
+	const uint8_t flight_mode_row = _num_rows - 4;
+	const uint8_t flight_time_row = _num_rows - 2;
+
 	const char *flight_mode = "";
 
 	if (_arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 		float flight_time_sec = static_cast<float>((hrt_absolute_time() - _arming_timestamp) / (1e6f));
-		ret |= add_flighttime(flight_time_sec, 1, 14);
+		ret |= add_flighttime(flight_time_sec, 1, flight_time_row);
 
 	} else {
 		flight_mode = get_flight_mode(_nav_state);
 	}
 
-	add_string_to_screen_centered(flight_mode, 12, 10);
+	add_string_to_screen_centered(flight_mode, flight_mode_row, 10);
 
 	return ret;
 }
