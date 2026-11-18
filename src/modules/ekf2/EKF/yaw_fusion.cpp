@@ -158,6 +158,12 @@ void Ekf::propagateQuatReset(const Quatf &quat_before_reset)
 
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+	// The reference follows heading resets, so that only a rotation of the vehicle counts
+	const float heading_change = wrap_pi(getEulerYaw(_state.quat_nominal) - getEulerYaw(quat_before_reset));
+	_mag_bias_reset_heading = wrap_pi(_mag_bias_reset_heading + heading_change);
+#endif // CONFIG_EKF2_MAGNETOMETER
+
 	// record the state change
 	if (_state_reset_status.reset_count.quat == _state_reset_count_prev.quat) {
 		_state_reset_status.quat_change = q_error;

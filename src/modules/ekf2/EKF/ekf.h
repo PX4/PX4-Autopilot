@@ -324,6 +324,7 @@ public:
 	const Vector3f &getMagBias() const { return _state.mag_B; }
 	Vector3f getMagBiasVariance() const { return getStateVariance<State::mag_B>(); } // get the mag bias variance in Gauss
 	float getMagBiasLimit() const { return 0.5f; } // 0.5 Gauss
+	bool isMagBiasObservable() const { return _mag_bias_observable; }
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 	bool accel_bias_inhibited() const { return _accel_bias_inhibit[0] || _accel_bias_inhibit[1] || _accel_bias_inhibit[2]; }
@@ -695,6 +696,9 @@ private:
 	// Variables used to control activation of post takeoff functionality
 	uint64_t _flt_mag_align_start_time{0};	///< time that inflight magnetic field alignment started (uSec)
 	uint64_t _time_last_mag_check_failing{0};
+
+	float _mag_bias_reset_heading{0.f};	///< heading at the last mag bias reset, moved along with heading resets (rad)
+	bool _mag_bias_observable{false};	///< true when the vehicle has yawed enough since the last mag bias reset
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 	// variables used to inhibit accel bias learning
@@ -1016,6 +1020,7 @@ private:
 	bool haglYawResetReq();
 
 	void checkMagHeadingConsistency(const magSample &mag_sample);
+	void updateMagBiasObservability();
 
 	bool checkMagField(const Vector3f &mag);
 	static bool isMeasuredMatchingExpected(float measured, float expected, float gate);

@@ -394,5 +394,8 @@ void Ekf::resetMagBiasCov()
 	ECL_INFO("reset mag bias covariance");
 
 	P.uncorrelateCovarianceSetVariance<State::mag_B.dof>(State::mag_B.idx, sq(_params.ekf2_mag_noise));
+
+	_mag_bias_reset_heading = getEulerYaw(_R_to_earth);
+	_mag_bias_observable = false;
 }
 #endif // CONFIG_EKF2_MAGNETOMETER
