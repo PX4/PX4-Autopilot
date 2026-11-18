@@ -25,6 +25,7 @@ It may also be supported on other boards.
 
 Supported flight controllers include:
 
+- [Agam Autopilot v6X-RT](../flight_controller/agam_v6xrt.md)
 - [ARK Electronics ARKV6X](../flight_controller/ark_v6x.md)
 - [ARK Electronics ARKV6X-RT](../flight_controller/ark_v6xrt.md)
 - [ARK Electronics ARKV6S](../flight_controller/ark_v6s.md)
