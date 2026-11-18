@@ -69706,7 +69706,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## VTOL Attitude Control
 
-<div class="param-group" style="--param-count: 35">
+<div class="param-group" style="--param-count: 38">
 
 <div class="param">
 
@@ -69808,6 +69808,51 @@ This sets the duration during which the MC motors ramp up to the commanded thrus
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0.0 | 20.0 | 0.1 | 3.0 | s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### VT_EF_THROT (`FLOAT`) {#VT_EF_THROT}
+
+Pusher failure detection throttle threshold.
+
+Has to be below the highest pusher assist throttle, which VT_FWD_THRUST_SC, VT_PITCH_MIN and MPC_TILTMAX_AIR set.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 0.9 | 0.01 | 0.4 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### VT_EF_TIME (`FLOAT`) {#VT_EF_TIME}
+
+Pusher failure detection time.
+
+A pusher failure is detected in multicopter mode when, for this time, the pusher assist throttle is above VT_EF_THROT, but the forward velocity stays more than VT_EF_VEL_ERR below its setpoint. It is handled as a quad-chute that blocks front transitions until reboot or until disabled. Only used by standard VTOLs when VT_FWD_THRUST_EN is enabled. Set to 0 to disable.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 20.0 | 0.1 | 5.0 | s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### VT_EF_VEL_ERR (`FLOAT`) {#VT_EF_VEL_ERR}
+
+Pusher failure detection forward velocity error.
+
+Forward velocity setpoint minus forward velocity above which pusher assist above VT_EF_THROT is considered ineffective, see VT_EF_TIME.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.5 | 10.0 | 0.1 | 3.5 | m/s | &nbsp;
 
 </div>
 
