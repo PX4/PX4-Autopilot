@@ -451,13 +451,6 @@ void VehicleGPSPosition::UpdateVehicleState()
 		_in_air = !vehicle_land_detected.landed;
 		_at_rest = vehicle_land_detected.at_rest;
 	}
-
-	// The attitude comes from the primary estimator, so its heading alignment does too
-	estimator_selector_status_s estimator_selector_status;
-
-	if (_estimator_selector_status_sub.update(&estimator_selector_status)) {
-		_estimator_status_flags_sub.ChangeInstance(estimator_selector_status.primary_instance);
-	}
 }
 
 void VehicleGPSPosition::PublishStatus()
@@ -502,14 +495,10 @@ void VehicleGPSPosition::PublishStatus()
 	const int selected = _published_instance;
 	const bool compare = (selected >= 0) && publishing[selected];
 
-	// Without an attitude the vehicle is taken as level with an unknown heading, which still compares the distances
+	// Level and facing north until an attitude publishes
 	vehicle_attitude_s attitude{};
-	const bool attitude_valid = compare && _vehicle_attitude_sub.copy(&attitude) && (now < attitude.timestamp + 1_s);
-	const matrix::Quatf attitude_q = attitude_valid ? matrix::Quatf(attitude.q) : matrix::Quatf();
-
-	estimator_status_flags_s estimator_status_flags{};
-	const bool heading_aligned = attitude_valid && _estimator_status_flags_sub.copy(&estimator_status_flags)
-				     && estimator_status_flags.cs_yaw_align;
+	const matrix::Quatf attitude_q = (compare && _vehicle_attitude_sub.copy(&attitude)) ? matrix::Quatf(attitude.q)
+					 : matrix::Quatf();
 
 	for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
 		const GnssChecks &checks = _gnss_checks[i];
@@ -522,7 +511,7 @@ void VehicleGPSPosition::PublishStatus()
 		if (compare && publishing[i]) {
 			const gnss_inconsistency::Inconsistency inconsistency = (i == selected) ? gnss_inconsistency::Inconsistency{0.f, 0.f}
 					: gnss_inconsistency::inconsistency(_latest_sample[selected], antennaOffset(selected), sample, antennaOffset(i),
-							attitude_q, heading_aligned);
+							attitude_q);
 			status.inconsistency_horizontal[i] = inconsistency.horizontal;
 			status.inconsistency_vertical[i] = inconsistency.vertical;
 		}

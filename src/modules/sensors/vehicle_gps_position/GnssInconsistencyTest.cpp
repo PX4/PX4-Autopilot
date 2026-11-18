@@ -68,9 +68,9 @@ static sensor_gnss_s receiverAt(float north, float east, float down = 0.f, uint6
 }
 
 static Inconsistency compare(const sensor_gnss_s &other, const Vector3f &antenna = Vector3f(),
-			     const Vector3f &other_antenna = Vector3f(), const Quatf &attitude = kLevelNorth, bool heading_aligned = true)
+			     const Vector3f &other_antenna = Vector3f(), const Quatf &attitude = kLevelNorth)
 {
-	return inconsistency(receiverAt(0.f, 0.f), antenna, other, other_antenna, attitude, heading_aligned);
+	return inconsistency(receiverAt(0.f, 0.f), antenna, other, other_antenna, attitude);
 }
 
 TEST(GnssInconsistency, ZeroForReceiversThatAgree)
@@ -97,21 +97,10 @@ TEST(GnssInconsistency, LeverArmRotatedWithTheHeading)
 		    kTolerance);
 }
 
-TEST(GnssInconsistency, SwappedAntennasWithAnAlignedHeading)
+TEST(GnssInconsistency, SwappedAntennas)
 {
 	// Facing north, the front receiver reports the back antenna's position: off by twice the baseline
 	EXPECT_NEAR(compare(receiverAt(-0.7f, 0.f), kBack, kFront).horizontal, 1.4f, kTolerance);
-}
-
-TEST(GnssInconsistency, OnlyDistancesWithoutAnAlignedHeading)
-{
-	// The estimate says north while the vehicle faces south or east: the lever arm still explains the distance
-	EXPECT_NEAR(compare(receiverAt(-0.7f, 0.f), kBack, kFront, kLevelNorth, false).horizontal, 0.f, kTolerance);
-	EXPECT_NEAR(compare(receiverAt(0.f, 0.7f), kBack, kFront, kLevelNorth, false).horizontal, 0.f, kTolerance);
-
-	// Receivers closer or further apart than their antennas still disagree
-	EXPECT_NEAR(compare(receiverAt(0.f, 0.f), kBack, kFront, kLevelNorth, false).horizontal, 0.7f, kTolerance);
-	EXPECT_NEAR(compare(receiverAt(5.f, 0.f), kBack, kFront, kLevelNorth, false).horizontal, 4.3f, kTolerance);
 }
 
 TEST(GnssInconsistency, TiltApplies)
@@ -120,11 +109,9 @@ TEST(GnssInconsistency, TiltApplies)
 	const Quatf pitched_up(Eulerf(0.f, math::radians(30.f), 0.f));
 	const sensor_gnss_s front = receiverAt(0.7f * cosf(math::radians(30.f)), 0.f, -0.35f);
 
-	for (bool heading_aligned : {true, false}) {
-		const Inconsistency result = compare(front, kBack, kFront, pitched_up, heading_aligned);
-		EXPECT_NEAR(result.horizontal, 0.f, kTolerance);
-		EXPECT_NEAR(result.vertical, 0.f, kTolerance);
-	}
+	const Inconsistency result = compare(front, kBack, kFront, pitched_up);
+	EXPECT_NEAR(result.horizontal, 0.f, kTolerance);
+	EXPECT_NEAR(result.vertical, 0.f, kTolerance);
 
 	// Read as level, the same positions are 0.35 m off vertically
 	EXPECT_NEAR(compare(front, kBack, kFront).vertical, 0.35f, kTolerance);
@@ -161,7 +148,7 @@ TEST(GnssInconsistency, UnknownForSamplesFarApart)
 {
 	// A receiver that missed its samples for a second is not compared, either way round
 	Inconsistency result = inconsistency(receiverAt(0.f, 0.f, 0.f, 2'000'000), Vector3f(), receiverAt(0.f, 0.f),
-					     Vector3f(), kLevelNorth, true);
+					     Vector3f(), kLevelNorth);
 	EXPECT_TRUE(std::isnan(result.horizontal));
 	EXPECT_TRUE(std::isnan(result.vertical));
 
@@ -178,8 +165,7 @@ TEST(GnssInconsistency, UnknownWithoutAPosition)
 	no_fix.fix_type = sensor_gnss_s::FIX_TYPE_NONE;
 
 	EXPECT_TRUE(std::isnan(compare(no_fix).horizontal));
-	EXPECT_TRUE(std::isnan(inconsistency(no_fix, Vector3f(), receiverAt(0.f, 0.f), Vector3f(), kLevelNorth,
-					     true).horizontal));
+	EXPECT_TRUE(std::isnan(inconsistency(no_fix, Vector3f(), receiverAt(0.f, 0.f), Vector3f(), kLevelNorth).horizontal));
 
 	// A 2D fix has no height to compare
 	sensor_gnss_s fix_2d = receiverAt(0.f, 0.f);

@@ -57,21 +57,19 @@ struct Inconsistency {
  * How far another receiver is from where the reference receiver and the antenna positions put it.
  *
  * The other receiver's position is moved along its velocity to the time of the reference sample, as the receivers
- * don't sample at the same time. The antenna baseline is rotated into NED with the attitude. With an aligned heading
- * the horizontal error is the full error vector, which shows swapped or misplaced antennas. Without one the yaw is
- * arbitrary, so only the horizontal distances are compared: a lever arm then never shows as a disagreement, at any
- * heading. Tilt and the vertical error don't depend on the yaw.
+ * don't sample at the same time. The antenna baseline is rotated into NED with the attitude, so swapped or misplaced
+ * antennas show. Until the heading is aligned the yaw is arbitrary, and the lever arm can show as up to twice the
+ * baseline.
  *
  * @param antenna antenna position of the reference receiver, body frame (m)
  * @param other_antenna antenna position of the other receiver, body frame (m)
  * @param attitude rotation from body to NED, identity when unknown
- * @param heading_aligned the yaw of the attitude is known
  * @return NAN horizontally without a horizontal position, vertically without a 3D fix, or both when the samples are too
  *         far apart in time
  */
 inline Inconsistency inconsistency(const sensor_gnss_s &reference, const matrix::Vector3f &antenna,
 				   const sensor_gnss_s &other, const matrix::Vector3f &other_antenna,
-				   const matrix::Quatf &attitude, bool heading_aligned)
+				   const matrix::Quatf &attitude)
 {
 	Inconsistency result{};
 
@@ -95,15 +93,11 @@ inline Inconsistency inconsistency(const sensor_gnss_s &reference, const matrix:
 		measured += matrix::Vector3f(other.vel_north, other.vel_east, other.vel_down) * dt;
 	}
 
-	const matrix::Vector3f expected = attitude.rotateVector(other_antenna - antenna);
-	const matrix::Vector2f measured_horizontal(measured(0), measured(1));
-	const matrix::Vector2f expected_horizontal(expected(0), expected(1));
-
-	result.horizontal = heading_aligned ? (measured_horizontal - expected_horizontal).norm()
-			    : fabsf(measured_horizontal.norm() - expected_horizontal.norm());
+	const matrix::Vector3f error = measured - attitude.rotateVector(other_antenna - antenna);
+	result.horizontal = matrix::Vector2f(error(0), error(1)).norm();
 
 	if ((reference.fix_type >= sensor_gnss_s::FIX_TYPE_3D) && (other.fix_type >= sensor_gnss_s::FIX_TYPE_3D)) {
-		result.vertical = fabsf(measured(2) - expected(2));
+		result.vertical = fabsf(error(2));
 	}
 
 	return result;

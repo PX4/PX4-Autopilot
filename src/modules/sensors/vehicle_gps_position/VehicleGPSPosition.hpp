@@ -43,8 +43,6 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/estimator_selector_status.h>
-#include <uORB/topics/estimator_status_flags.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gnss.h>
 #include <uORB/topics/vehicle_gnss.h>
@@ -146,8 +144,6 @@ private:
 		{this, ORB_ID(sensor_gnss), 1},
 	};
 
-	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
-	uORB::Subscription _estimator_status_flags_sub{ORB_ID(estimator_status_flags)};
 	uORB::Subscription _pps_capture_sub{ORB_ID(pps_capture)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
