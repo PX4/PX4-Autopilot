@@ -65,7 +65,6 @@ TECSControl::Param makeParam()
 	param.altitude_setpoint_gain_ff = 0.f;
 	param.airspeed_error_gain = 0.1f;
 	param.ste_rate_time_const = 0.1f;
-	param.seb_rate_ff = 1.f;
 	param.pitch_speed_weight = 1.f;
 	param.integrator_gain_pitch = 0.4f;
 	param.pitch_damping_gain = 0.1f;
@@ -471,6 +470,37 @@ TEST(TECSControlTest, UpdateUsesDirectHeightRateSetpoint)
 	EXPECT_FLOAT_EQ(control.getDebugOutput().altitude_rate_control, 2.f);
 }
 
+// A pure setpoint step that the plant tracks exactly must not produce a feedback action: the throttle moves by
+// the feedforward amount only and the integrator stays at zero. Filtering the energy rate estimate instead of
+// the error would show the step as a lagged phantom error for a few FW_T_STE_R_TC.
+TEST(TECSControlTest, ThrottleFeedforwardOnlyOnTrackedSetpointStep)
+{
+	const TECSControl::Param param = makeParam();
+	const TECSControl::Flag flag = makeFlag();
+
+	TECSControl control;
+	control.initialize(makeSetpoint(), makeInput(), param, flag);
+	EXPECT_FLOAT_EQ(control.getThrottleSetpoint(), param.throttle_trim);
+
+	// Climb rate step, flown instantly by the plant: the energy rate error is zero at every step
+	constexpr float climb_rate = 2.f;
+	TECSControl::Setpoint setpoint = makeSetpoint();
+	setpoint.altitude_rate_setpoint_direct = climb_rate;
+	TECSControl::Input input = makeInput();
+	input.altitude_rate = climb_rate;
+
+	const float throttle_feedforward = param.throttle_trim + climb_rate / param.max_climb_rate *
+					   (param.throttle_max - param.throttle_trim);
+
+	for (int i = 0; i < 100; i++) {
+		input.altitude += climb_rate * kDt;
+		control.update(kDt, setpoint, input, param, flag);
+
+		EXPECT_NEAR(control.getThrottleSetpoint(), throttle_feedforward, 1e-5f) << "update " << i;
+		EXPECT_FLOAT_EQ(control.getDebugOutput().throttle_integrator, 0.f) << "update " << i;
+	}
+}
+
 // Once the pitch command saturates, the pitch integrator must not wind up further.
 TEST(TECSControlTest, PitchIntegratorDoesNotWindUpAtPitchLimit)
 {
@@ -732,6 +762,8 @@ TEST(TECSControlTest, LevelFlightPitchIsFedForward)
 }
 
 // Pitch limits are absolute: a level-flight pitch above the maximum pitch must not lift the command past it.
+// The envelope clip reduces the altitude rate demand to the sink the pitch limit can fly, so the feedforward
+// lands on the limit and the feedback on the (static) altitude rate error pulls the command slightly below it.
 TEST(TECSControlTest, PitchLimitsAreAbsolute)
 {
 	TECSControl::Param param = makeParam();
@@ -742,14 +774,15 @@ TEST(TECSControlTest, PitchLimitsAreAbsolute)
 
 	TECSControl control;
 	control.initialize(makeSetpoint(), input, param, flag);
-	EXPECT_FLOAT_EQ(control.getPitchSetpoint(), param.pitch_max);
+	EXPECT_LE(control.getPitchSetpoint(), param.pitch_max);
+	EXPECT_NEAR(control.getPitchSetpoint(), param.pitch_max, radians(1.f));
 
 	for (int i = 0; i < 100; i++) {
 		control.update(kDt, makeSetpoint(), input, param, flag);
 		EXPECT_LE(control.getPitchSetpoint(), param.pitch_max) << "update " << i;
 	}
 
-	EXPECT_FLOAT_EQ(control.getPitchSetpoint(), param.pitch_max);
+	EXPECT_NEAR(control.getPitchSetpoint(), param.pitch_max, radians(1.f));
 }
 
 // A non-finite demand falls back to the integrator on top of the level-flight pitch, not to the bare integrator.
