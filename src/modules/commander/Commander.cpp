@@ -1249,7 +1249,6 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				const bool takeoff_position_valid = PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)
 								    && (fabs(cmd.param5) > DBL_EPSILON || fabs(cmd.param6) > DBL_EPSILON);
 				_takeoff_hold_course = PX4_ISFINITE(cmd.param4) && !takeoff_position_valid;
-				_takeoff_is_local_frame = local_frame_takeoff;
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
@@ -2254,10 +2253,6 @@ void Commander::checkForMissionUpdate()
 		_takeoff_hold_course = false; // the commanded takeoff was left or completed
 	}
 
-	if (_takeoff_is_local_frame && _user_mode_intention.get() != vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF) {
-		_takeoff_is_local_frame = false; // the commanded takeoff was left or completed
-	}
-
 	if (_mission_result_sub.updated()) {
 		const mission_result_s &mission_result = _mission_result_sub.get();
 
@@ -2310,16 +2305,16 @@ void Commander::checkForMissionUpdate()
 							     "Takeoff complete, but Hold is not available without a global position estimate");
 					}
 
-					// Transition to loiter when the takeoff is completed. A global takeoff forces into
-					// the Loiter (if that turns out not to be executable, the failsafe framework takes
-					// over from there). A local-frame takeoff never forces it: Loiter needs global
-					// position every time on that vehicle, not just transiently, so forcing it would
-					// permanently stick the intended mode on a Loiter that can never run, and the
-					// failsafe framework would keep re-deriving a fallback from it every cycle. Leaving
-					// force off keeps the intended mode at AUTO_TAKEOFF when Loiter can't run, so the
-					// vehicle just holds where Takeoff already left it.
+					// Transition to loiter when the takeoff is completed, same for a global and a
+					// local-frame takeoff: never forced. The operator was already warned above if Loiter
+					// is not available, and can decide to command a landing (or anything else) themselves;
+					// forcing it would otherwise permanently stick the intended mode on a Loiter that can
+					// never run on a vehicle without a global position, with the failsafe framework
+					// re-deriving a fallback from it every cycle. Leaving force off keeps the intended mode
+					// at AUTO_TAKEOFF when Loiter can't run, so the vehicle just holds where Takeoff
+					// already left it.
 					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER, ModeChangeSource::ModeExecutor,
-								    false, !_takeoff_is_local_frame);
+								    false, false);
 				}
 
 			} else if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
