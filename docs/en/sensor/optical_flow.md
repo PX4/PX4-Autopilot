@@ -72,7 +72,7 @@ An all-in-one design that simplifies installation, with an onboard infrared LED 
 ### PMW3901-Based Sensors
 
 [PMW3901](../sensor/pmw3901.md) is an optical flow tracking sensor similar to what you would find in a computer mouse, but adapted to work between 80 mm and infinity.
-It is used in a number of products, including some from: Bitcraze, Tindie, Hex, Thone and Alientek.
+It is used in a number of products, including some from: Bitcraze, Tindie, CubePilot, Thone and Alientek.
 
 ### Other Cameras/Sensors
 
