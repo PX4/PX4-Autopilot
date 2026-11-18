@@ -103,10 +103,16 @@ class AutopilotTesterPusherFailure(AutopilotTester):
         """Turn weathervane off, so the nose stays north and the wind a head- or tailwind."""
         self.set_param_int("WV_EN", 0)
 
-    def start_multicopter_mission(self, waypoints: List[Tuple[float, float]],
-                                  altitude_m: float) -> None:
-        """Fly to each (north, east) waypoint relative to home in multicopter mode and land at
-        the last one."""
+    def enable_fixed_wing_propulsion_check(self, motor_current_max_a: float,
+                                           propulsion_current_min_a: float) -> None:
+        """Simulate the ESC and battery current (SIM_BAT_I_MOT) and enable the fixed-wing
+        propulsion failure check (COM_EF_CURR)."""
+        self.set_param_float("SIM_BAT_I_MOT", motor_current_max_a)
+        self.set_param_float("COM_EF_CURR", propulsion_current_min_a)
+
+    def start_mission(self, waypoints: List[Tuple[float, float]], altitude_m: float) -> None:
+        """Fly to each (north, east) waypoint relative to home, in the current VTOL mode, and land
+        at the last one."""
         ct = self.get_coordinate_transformation()
 
         def item(seq: int, command: int, north_m: float, east_m: float, z: float) -> Any:
@@ -143,6 +149,22 @@ class AutopilotTesterPusherFailure(AutopilotTester):
         self._pusher_failure_time_s = self.time_s()
         log("Pusher stopped")
         return self._pusher_failure_time_s
+
+    def pusher_failure_time_s(self) -> float:
+        assert self._pusher_failure_time_s is not None, "fail_pusher() was not called"
+        return self._pusher_failure_time_s
+
+    def check_pusher_output_above(self, output: float, duration_s: float) -> None:
+        """Check that the pusher output stays at least this high for this time, after it got
+        there."""
+        assert self.poll_condition_with_timeout(lambda: self._pusher_output() >= output, 10), \
+            "Pusher output {:.0f}, expected at least {:.0f}".format(self._pusher_output(), output)
+        end_s = self.time_s() + duration_s
+        while self.time_s() < end_s:
+            current_output = self._pusher_output()
+            assert current_output >= output, \
+                "Pusher output {:.0f}, expected at least {:.0f}".format(current_output, output)
+            self.sleep_for(0.1)
 
     def check_pusher_stopped(self) -> None:
         """Check that the injected failure cut the pusher output while it should push."""
