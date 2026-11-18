@@ -467,6 +467,8 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 
 	} else if (position_setpoint_triplet.current.frame == position_setpoint_s::FRAME_TYPE_LOCAL) {
 
+		_lock_position_xy.setAll(NAN);
+
 		tmp_target(0) = position_setpoint_triplet.current.x;
 		tmp_target(1) = position_setpoint_triplet.current.y;
 		tmp_target(2) = position_setpoint_triplet.current.alt;
