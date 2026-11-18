@@ -145,7 +145,7 @@ TEST_F(MissionBlockTakeoffLocalTest, LoiterHandoffKeepsLocalXY)
 	current.frame = position_setpoint_s::FRAME_TYPE_LOCAL;
 	current.x = 12.5f;
 	current.y = -3.25f;
-	current.alt = kTakeoffHeight;
+	current.z = kTakeoffHeight;
 
 	// Regression for ddc148fa97: this used to always copy lat/lon into the loiter item, which
 	// for a local-frame setpoint are stale/zero, instead of the real local x/y.

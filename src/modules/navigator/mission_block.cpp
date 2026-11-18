@@ -687,13 +687,14 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 
 	if (item.frame == NAV_FRAME::NAV_FRAME_LOCAL_NED) {
 
-		// lat/lon are meaningless in this frame; NaN them rather than leaving a stale value,
-		// since some consumers check PX4_ISFINITE(lat/lon) without checking frame.
+		// lat/lon/alt are meaningless in this frame; NaN them rather than leaving a stale value,
+		// since some consumers check PX4_ISFINITE(lat/lon/alt) without checking frame.
 		sp->lat = static_cast<double>(NAN);
 		sp->lon = static_cast<double>(NAN);
+		sp->alt = NAN;
 		sp->x = item.x;
 		sp->y = item.y;
-		sp->alt = item.altitude;
+		sp->z = item.altitude;
 		sp->yaw = item.yaw;
 		sp->course = NAN; // mission items never command a course, only Course mode sets it
 		sp->loiter_radius = (fabsf(item.loiter_radius) > FLT_EPSILON) ? fabsf(item.loiter_radius) :
@@ -779,9 +780,10 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 	// but some tools (e.g. QGroundControl's NAV_CMD_LOITER_TO_ALT) use NAV_FRAME_MISSION even
 	// though lat/lon are real coordinates, so this stays the permissive default instead of an
 	// exhaustive whitelist, matching the pre-local-frame behaviour of this function.
-	// x/y are meaningless in this frame; NaN them rather than leaving a stale value.
+	// x/y/z are meaningless in this frame; NaN them rather than leaving a stale value.
 	sp->x = NAN;
 	sp->y = NAN;
+	sp->z = NAN;
 	sp->lat = item.lat;
 	sp->lon = item.lon;
 	sp->alt = get_absolute_altitude_for_item(item);
@@ -880,13 +882,14 @@ MissionBlock::setLoiterItemFromCurrentPositionSetpoint(struct mission_item_s &it
 	if (reference_setpoint.frame == NAV_FRAME::NAV_FRAME_LOCAL_NED) {
 		item.x = static_cast<double>(reference_setpoint.x);
 		item.y = static_cast<double>(reference_setpoint.y);
+		item.altitude = reference_setpoint.z;
 
 	} else {
 		item.lat = reference_setpoint.lat;
 		item.lon = reference_setpoint.lon;
+		item.altitude = reference_setpoint.alt;
 	}
 
-	item.altitude = reference_setpoint.alt;
 	item.loiter_radius = reference_setpoint.loiter_direction_counter_clockwise ?
 			     -reference_setpoint.loiter_radius : reference_setpoint.loiter_radius;
 	item.yaw = reference_setpoint.yaw;

@@ -266,8 +266,8 @@ Takeoff::set_takeoff_position()
 
 		float takeoff_height = 0.f;
 
-		if (rep->current.valid && PX4_ISFINITE(rep->current.alt)) {
-			takeoff_height = rep->current.alt;
+		if (rep->current.valid && PX4_ISFINITE(rep->current.z)) {
+			takeoff_height = rep->current.z;
 
 		} else {
 			takeoff_height = _navigator->get_local_position()->z - _navigator->get_param_mis_takeoff_alt();

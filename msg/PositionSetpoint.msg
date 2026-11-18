@@ -24,12 +24,13 @@ float32 vx			# local velocity setpoint in m/s in NED
 float32 vy			# local velocity setpoint in m/s in NED
 float32 vz			# local velocity setpoint in m/s in NED
 
-float64 lat			# latitude, in deg
-float64 lon			# longitude, in deg
-float32 alt			# altitude, type defined by frame. AMSL when frame = 0, height below local origin when frame = 1
+float64 lat			# latitude, in deg. Only used when frame = 0 (FRAME_TYPE_GLOBAL)
+float64 lon			# longitude, in deg. Only used when frame = 0 (FRAME_TYPE_GLOBAL)
+float32 alt			# altitude AMSL, in m. Only used when frame = 0 (FRAME_TYPE_GLOBAL)
 
-float32 x			# north from local frame, in m
-float32 y			# east from local frame, in m
+float32 x			# north from local frame, in m. Only used when frame = 1 (FRAME_TYPE_LOCAL)
+float32 y			# east from local frame, in m. Only used when frame = 1 (FRAME_TYPE_LOCAL)
+float32 z			# down from local frame, in m. Only used when frame = 1 (FRAME_TYPE_LOCAL)
 
 float32 yaw			# yaw (only in hover), in rad [-PI..PI), NaN = leave to flight task
 

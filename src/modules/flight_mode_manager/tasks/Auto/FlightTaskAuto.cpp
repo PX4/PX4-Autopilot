@@ -409,7 +409,11 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 	const position_setpoint_triplet_s &position_setpoint_triplet = _position_setpoint_triplet_sub.get();
 
 	// Check if triplet is valid. There must be at least a valid altitude.
-	if (!position_setpoint_triplet.current.valid || !PX4_ISFINITE(position_setpoint_triplet.current.alt)) {
+	const bool current_has_valid_height = (position_setpoint_triplet.current.frame == position_setpoint_s::FRAME_TYPE_LOCAL)
+					      ? PX4_ISFINITE(position_setpoint_triplet.current.z)
+					      : PX4_ISFINITE(position_setpoint_triplet.current.alt);
+
+	if (!position_setpoint_triplet.current.valid || !current_has_valid_height) {
 		// Best we can do is to just set all waypoints to current state
 		_triplet_previous = _triplet_current = _triplet_next = _position;
 		_type = WaypointType::loiter;
@@ -471,7 +475,7 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 
 		tmp_target(0) = position_setpoint_triplet.current.x;
 		tmp_target(1) = position_setpoint_triplet.current.y;
-		tmp_target(2) = position_setpoint_triplet.current.alt;
+		tmp_target(2) = position_setpoint_triplet.current.z;
 
 	}
 
@@ -643,7 +647,7 @@ void FlightTaskAuto::_set_heading_from_mode()
 bool FlightTaskAuto::_isFinite(const position_setpoint_s &sp)
 {
 	if (sp.frame == position_setpoint_s::FRAME_TYPE_LOCAL) {
-		return (PX4_ISFINITE(sp.x) && PX4_ISFINITE(sp.y) && PX4_ISFINITE(sp.alt));
+		return (PX4_ISFINITE(sp.x) && PX4_ISFINITE(sp.y) && PX4_ISFINITE(sp.z));
 	}
 
 	return (PX4_ISFINITE(sp.lat) && PX4_ISFINITE(sp.lon) && PX4_ISFINITE(sp.alt));
@@ -654,7 +658,7 @@ void FlightTaskAuto::_setLocalPositionFromSetpoint(const position_setpoint_s &sp
 	if (sp.frame == position_setpoint_s::FRAME_TYPE_LOCAL) {
 		local_pos(0) = sp.x;
 		local_pos(1) = sp.y;
-		local_pos(2) = sp.alt;
+		local_pos(2) = sp.z;
 
 	} else {
 		_reference_position.project(sp.lat, sp.lon, local_pos(0), local_pos(1));

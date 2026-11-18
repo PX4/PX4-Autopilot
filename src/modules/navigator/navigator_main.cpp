@@ -803,17 +803,18 @@ void Navigator::run()
 					// The yaw setpoint generation is handled by FlightTaskAuto.
 					rep->current.yaw = NAN;
 
-					rep->current.alt = cmd.param7;
 					rep->current.valid = true;
 					rep->current.timestamp = hrt_absolute_time();
 					rep->next.valid = false;
 
 					if (local_frame) {
+						rep->current.z = cmd.param7;
+
 						// store current position as previous position and goal as next
 						rep->previous.yaw = get_local_position()->heading;
 						rep->previous.x = get_local_position()->x;
 						rep->previous.y = get_local_position()->y;
-						rep->previous.alt = get_local_position()->z;
+						rep->previous.z = get_local_position()->z;
 
 						if (local_position_valid()) {
 
@@ -839,6 +840,8 @@ void Navigator::run()
 						rep->current.frame = position_setpoint_s::FRAME_TYPE_LOCAL;
 
 					} else {
+						rep->current.alt = cmd.param7;
+
 						// store current position as previous position and goal as next
 						rep->previous.yaw = get_local_position()->heading;
 						rep->previous.lat = get_global_position()->lat;
