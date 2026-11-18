@@ -1,3 +1,22 @@
+config PACKAGE_CORE
+	bool "Core package"
+	imply MODULES_COMMANDER
+	imply MODULES_DATAMAN
+	imply MODULES_EKF2
+	imply MODULES_EVENTS
+	imply MODULES_LOAD_MON
+	imply MODULES_LOGGER
+	imply MODULES_MANUAL_CONTROL
+	imply MODULES_MAVLINK
+	imply MODULES_NAVIGATOR
+	imply MODULES_RC_UPDATE
+	imply MODULES_SENSORS
+	---help---
+		Modules rcS starts for every vehicle type.
+
+		Modules are implied: each one defaults to enabled and can
+		still be disabled individually with CONFIG_MODULES_<NAME>=n.
+
 menuconfig MODULES_COMMANDER
 	bool "commander"
 	default n

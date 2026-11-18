@@ -1,3 +1,15 @@
+config PACKAGE_VTOL
+	bool "VTOL package"
+	select PACKAGE_MULTICOPTER
+	select PACKAGE_FIXEDWING
+	imply MODULES_VTOL_ATT_CONTROL
+	---help---
+		Modules rc.vtol_apps starts unconditionally: the multicopter and
+		fixed-wing packages plus the VTOL attitude controller.
+
+		Modules are implied: each one defaults to enabled and can
+		still be disabled individually with CONFIG_MODULES_<NAME>=n.
+
 menuconfig MODULES_VTOL_ATT_CONTROL
 	bool "vtol_att_control"
 	default n
