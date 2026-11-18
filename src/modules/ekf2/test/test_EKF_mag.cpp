@@ -724,3 +724,32 @@ TEST_F(EkfMagTest, inFlightRecoveryFromGroundAnomalyHeadingError)
 	// THEN: the heading converges to the true one as the bias learned at the alignment decays
 	checkInFlightRecoveryFromGroundHeadingError(false);
 }
+
+TEST(EkfMagDeclinationTest, manualDeclinationUsedWithoutWmm)
+{
+	// The declination parameter is used whenever the world magnetic model is not, whichever bits are set
+	for (int32_t decl_type = 0; decl_type <= 3; decl_type++) {
+		SCOPED_TRACE(testing::Message() << "EKF2_DECL_TYPE " << decl_type);
+
+		// GIVEN: a declination set manually and no global position for the world magnetic model
+		std::shared_ptr<Ekf> ekf = std::make_shared<Ekf>();
+		SensorSimulator sensor_simulator(ekf);
+		EkfWrapper ekf_wrapper(ekf);
+
+		ekf->getParamHandle()->ekf2_decl_type = decl_type;
+		ekf->getParamHandle()->ekf2_mag_decl = 30.f;
+
+		ekf->init(0);
+		ekf->set_in_air_status(false);
+		ekf->set_vehicle_at_rest(true);
+
+		// WHEN: the heading is aligned to a magnetometer pointing to magnetic north
+		sensor_simulator._mag.setData(Vector3f(0.2f, 0.f, 0.4f));
+		sensor_simulator.runSeconds(6);
+
+		// THEN: the heading includes the declination parameter
+		ASSERT_TRUE(ekf_wrapper.isIntendingMagHeadingFusion());
+		EXPECT_NEAR(ekf_wrapper.getYawAngle(), radians(30.f), radians(1.f))
+				<< "Yaw: " << degrees(ekf_wrapper.getYawAngle()) << " deg";
+	}
+}
