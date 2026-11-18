@@ -1,1 +1,16 @@
+menuconfig COMMON_DIAGNOSTICS
+	bool "Common diagnostic commands"
+	default n
+	imply SYSTEMCMDS_DMESG
+	imply SYSTEMCMDS_PERF
+	imply SYSTEMCMDS_TOP
+	imply SYSTEMCMDS_TOPIC_LISTENER
+	imply SYSTEMCMDS_UORB
+	imply SYSTEMCMDS_WORK_QUEUE
+	---help---
+		Shell commands to inspect a running system.
+
+		Commands are implied: each one defaults to enabled and can
+		still be disabled individually with CONFIG_SYSTEMCMDS_<NAME>=n.
+
 rsource "*/Kconfig"
