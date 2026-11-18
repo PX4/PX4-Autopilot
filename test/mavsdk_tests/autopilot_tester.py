@@ -321,6 +321,40 @@ class AutopilotTester:
             lambda: self._telemetry.landed_state() == landed_state, timeout_s), \
             "Landed state {} not reached within {} s".format(landed_state, timeout_s)
 
+    def wait_until_global_position_valid(self, timeout_s: float,
+                                         max_speed_m_s: Optional[float] = None) -> None:
+        """Wait for the global position to become valid. If max_speed_m_s is given, also assert
+        the vehicle's speed never exceeds it while waiting, to catch a sudden jump (e.g. from an
+        estimator reset when a new aiding source starts fusing) that checking only the end state
+        would miss."""
+        log("Waiting for the global position to become valid")
+
+        def ready() -> bool:
+            if max_speed_m_s is not None:
+                vel = self._telemetry.position_velocity_ned().velocity
+                speed = math.sqrt(vel.north_m_s ** 2 + vel.east_m_s ** 2 + vel.down_m_s ** 2)
+                assert speed < max_speed_m_s, \
+                    "Speed {:.2f} m/s exceeded {} m/s while waiting for the global position".format(
+                        speed, max_speed_m_s)
+            return bool(self._telemetry.health().is_global_position_ok)
+
+        assert self.poll_condition_with_timeout(ready, timeout_s), \
+            "Global position not valid within {} s".format(timeout_s)
+
+    def wait_until_home_position_valid(self, timeout_s: float) -> None:
+        log("Waiting for the home position to become valid")
+        assert self.poll_condition_with_timeout(
+            lambda: bool(self._telemetry.health().is_home_position_ok), timeout_s), \
+            "Home position not valid within {} s".format(timeout_s)
+
+    def check_global_position_invalid(self) -> None:
+        assert not self._telemetry.health().is_global_position_ok, \
+            "Global position unexpectedly valid"
+
+    def check_home_position_invalid(self) -> None:
+        assert not self._telemetry.health().is_home_position_ok, \
+            "Home position unexpectedly valid"
+
     # ------------------------------------------------------------------
     # Parameters and settings
     # ------------------------------------------------------------------
