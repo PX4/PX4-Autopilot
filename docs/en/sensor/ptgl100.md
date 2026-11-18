@@ -62,11 +62,18 @@ The module has a six-pin `HC-0.8-6PWT` connector (0.8 mm pitch).
 An adapter cable is needed to connect to flight controllers that follow the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) (which use 1.25 mm pitch JST-GH connectors).
 
 On the module socket, the pins are numbered 1–6 towards the two optical apertures: pin 1 (`GND`) is furthest from them and pin 6 (`EN`) nearest.
-This numbering refers to the socket on the module; check the corresponding contacts when adapting the supplied cable.
 
 ![JRT PTGL-100 module socket with pins numbered 1 to 6 towards the optical apertures](../../assets/hardware/sensors/ptgl100/ptgl100_pinout.png)
 
 Connector drawing reproduced with permission from JRT.
+
+The supplied cable is wired pin-to-pin: 1–1, 2–2, 3–3, 4–4, 5–5 and 6–6.
+The photograph below shows one end of the cable.
+With the connector viewed as shown and the wires pointing downwards, the contacts are numbered 1–6 from left to right.
+The leftmost contact corresponds to module pin 1 (`GND`).
+The wires shown are all black, so use the connector orientation in the photograph to identify the contacts.
+
+![Supplied PTGL-100 cable connector with wires pointing downwards and contacts numbered 1 to 6 from left to right](../../assets/hardware/sensors/ptgl100/ptgl100_cable_pinout.png)
 
 | Pin | Signal | Description                                               |
 | --- | ------ | --------------------------------------------------------- |
