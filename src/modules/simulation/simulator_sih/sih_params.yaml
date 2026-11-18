@@ -333,6 +333,18 @@ parameters:
       type: float
       default: 0.05
       unit: s
+    SIH_ESC_I_MAX:
+      description:
+        short: ESC current at full motor output
+        long: Each simulated ESC reports this current times its motor output to the power
+          of 1.5, and battery 1 reports their sum plus 1 A of avionics. Set to 0 for no
+          current measurement.
+      type: float
+      default: 0.0
+      min: 0.0
+      max: 200.0
+      unit: A
+      decimal: 1
     SIH_VEHICLE_TYPE:
       description:
         short: Vehicle type
