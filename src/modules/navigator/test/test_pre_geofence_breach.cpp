@@ -50,7 +50,7 @@ class MissionBaseTestNavigator
 public:
 	static bool targetAllowed(Navigator &navigator, const vehicle_global_position_s &target)
 	{
-		return navigator.geofence_allows_position(target) && navigator.pre_geofence_allows_target(target);
+		return navigator.geofence_allows_position(target) && navigator.pre_geofence_allows_position(target);
 	}
 
 	// Run the breach check now instead of waiting for its 5 Hz interval.
@@ -566,23 +566,6 @@ TEST_P(PreGeofenceSourceTest, DisablingReleasesTheBreachWhileHolding)
 	EXPECT_FALSE(preGeofenceBreached(after));
 	EXPECT_TRUE(geofenceBreached(after));
 	EXPECT_EQ(reposition().timestamp, hold);
-	EXPECT_TRUE(repositionedAt(between()));
-}
-
-TEST_P(PreGeofenceSourceTest, DisablingReleasesTheBreachWithoutAPosition)
-{
-	enablePreGeofence();
-	ASSERT_TRUE(sourceTriggered(checkAt(between())));
-	setNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
-
-	disablePreGeofence();
-	_navigator.get_global_position()->timestamp = 0;
-	MissionBaseTestNavigator::breachCheck(_navigator);
-
-	geofence_result_s result{};
-	ASSERT_TRUE(_result_sub.update(&result));
-	EXPECT_FALSE(preGeofenceBreached(result));
-	EXPECT_EQ(result.pre_geofence_action, geofence_result_s::GF_ACTION_NONE);
 	EXPECT_TRUE(repositionedAt(between()));
 }
 

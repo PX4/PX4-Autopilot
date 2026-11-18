@@ -208,9 +208,7 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 				// Home-distance and altitude limits are separate from the horizontal fence shapes.
 				point_valid = geofence.isCloserThanMaxDistToHome(missionitem.lat, missionitem.lon, missionitem.altitude)
 					      && geofence.isBelowMaxAltitude(missionitem.altitude)
-					      && geofence.isWithinAltitudeBand(missionitem.altitude)
-					      && geofence.isCloserThanPreMaxDistToHome(missionitem.lat, missionitem.lon)
-					      && geofence.isBelowPreMaxAltitude(missionitem.altitude);
+					      && geofence.isWithinAltitudeBand(missionitem.altitude);
 			}
 		}
 
@@ -219,6 +217,10 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 		point_valid = point_valid && geofence.checkPointAgainstAllGeofences(missionitem.lat, missionitem.lon,
 				missionitem.altitude);
 #endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
+
+		// The pre-geofence limits from Home apply to every position. The paths keep its margin to the plan.
+		point_valid = point_valid && geofence.isCloserThanPreMaxDistToHome(missionitem.lat, missionitem.lon)
+			      && geofence.isBelowPreMaxAltitude(missionitem.altitude);
 
 		if (!point_valid) {
 			failure = Failure::Waypoint;

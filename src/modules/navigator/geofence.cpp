@@ -683,9 +683,7 @@ bool Geofence::checkCurrentPositionRequirementsForGeofence(const PolygonInfo &po
 bool Geofence::checkPointAgainstAllGeofences(double lat, double lon, float altitude)
 {
 	const bool inside_fence = isCloserThanMaxDistToHome(lat, lon, altitude) && isBelowMaxAltitude(altitude)
-				  && isInsidePolygonOrCircle(lat, lon, altitude)
-				  && isCloserThanPreMaxDistToHome(lat, lon) && isBelowPreMaxAltitude(altitude)
-				  && isInsidePreGeofence(lat, lon);
+				  && isInsidePolygonOrCircle(lat, lon, altitude);
 	return inside_fence;
 }
 
@@ -894,14 +892,8 @@ bool Geofence::isWithinHomeDistance(float max_distance, double lat, double lon)
 
 	if (max_distance > FLT_EPSILON && _navigator->home_global_position_valid()) {
 
-		float dist_xy = -1.0f;
-		float dist_z = -1.0f;
 		const home_position_s &home = *_navigator->get_home_position();
-
-		// Only the horizontal distance is used.
-		get_distance_to_point_global_wgs84(lat, lon, home.alt, home.lat, home.lon, home.alt, &dist_xy, &dist_z);
-
-		inside_fence = dist_xy < max_distance;
+		inside_fence = get_distance_to_next_waypoint(lat, lon, home.lat, home.lon) < max_distance;
 	}
 
 	return inside_fence;

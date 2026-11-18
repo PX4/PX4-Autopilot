@@ -798,9 +798,9 @@ TEST_F(MissionGeofenceLoiterTest, PreGeofenceMarginAppliesToPositionsAndPaths)
 	EXPECT_FALSE(missionFeasible(items));
 	expectPathViolation(2);
 
-	// A first position within the margin fails the point check.
+	// A first position within the margin fails its path without length.
 	EXPECT_FALSE(missionFeasible({waypoint({0.f, 950.f})}));
-	EXPECT_TRUE(waypointEvent(events::ID("navigator_mis_geofence_violation"), 1));
+	expectPathViolation(1);
 }
 
 TEST_F(MissionGeofenceLoiterTest, PreGeofenceMarginAppliesToLoiterCircles)

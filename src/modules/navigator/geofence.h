@@ -91,7 +91,7 @@ public:
 
 	/**
 	 * Check if a 3D point passes the Geofence test.
-	 * Checks max distance, max altitude, inside polygon or circle, and the pre-geofence limits.
+	 * Checks max distance, max altitude, inside polygon or circle.
 	 * In addition to checkPolygons(), this takes all additional parameters into account.
 	 *
 	 * @return false for a geofence violation

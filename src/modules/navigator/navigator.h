@@ -508,7 +508,7 @@ private:
 	bool geofence_allows_position(const vehicle_global_position_s &pos);
 
 	/** True if the pre-geofence permits the commanded target. */
-	bool pre_geofence_allows_target(const vehicle_global_position_s &target);
+	bool pre_geofence_allows_position(const vehicle_global_position_s &target);
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::NAV_LOITER_RAD>)   _param_nav_loiter_rad,	/**< loiter radius for fixedwing */
