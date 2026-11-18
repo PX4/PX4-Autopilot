@@ -409,7 +409,7 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 	const position_setpoint_triplet_s &position_setpoint_triplet = _position_setpoint_triplet_sub.get();
 
 	// Check if triplet is valid. There must be at least a valid altitude.
-	const bool current_has_valid_height = (position_setpoint_triplet.current.frame == position_setpoint_s::FRAME_TYPE_LOCAL)
+	const bool current_has_valid_height = (position_setpoint_triplet.current.frame == position_setpoint_s::FRAME_LOCAL_NED)
 					      ? PX4_ISFINITE(position_setpoint_triplet.current.z)
 					      : PX4_ISFINITE(position_setpoint_triplet.current.alt);
 
@@ -444,7 +444,7 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 	// Temporary target variable where we save the local reprojection of the latest navigator current triplet.
 	Vector3f tmp_target;
 
-	if (position_setpoint_triplet.current.frame == position_setpoint_s::FRAME_TYPE_GLOBAL) {
+	if (position_setpoint_triplet.current.frame == position_setpoint_s::FRAME_GLOBAL) {
 
 		if (!PX4_ISFINITE(position_setpoint_triplet.current.lat)
 		    || !PX4_ISFINITE(position_setpoint_triplet.current.lon)) {
@@ -469,7 +469,7 @@ bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 
 		tmp_target(2) = -(position_setpoint_triplet.current.alt - _reference_altitude);
 
-	} else if (position_setpoint_triplet.current.frame == position_setpoint_s::FRAME_TYPE_LOCAL) {
+	} else if (position_setpoint_triplet.current.frame == position_setpoint_s::FRAME_LOCAL_NED) {
 
 		_lock_position_xy.setAll(NAN);
 
@@ -646,7 +646,7 @@ void FlightTaskAuto::_set_heading_from_mode()
 
 bool FlightTaskAuto::_isFinite(const position_setpoint_s &sp)
 {
-	if (sp.frame == position_setpoint_s::FRAME_TYPE_LOCAL) {
+	if (sp.frame == position_setpoint_s::FRAME_LOCAL_NED) {
 		return (PX4_ISFINITE(sp.x) && PX4_ISFINITE(sp.y) && PX4_ISFINITE(sp.z));
 	}
 
@@ -655,7 +655,7 @@ bool FlightTaskAuto::_isFinite(const position_setpoint_s &sp)
 
 void FlightTaskAuto::_setLocalPositionFromSetpoint(const position_setpoint_s &sp, matrix::Vector3f &local_pos)
 {
-	if (sp.frame == position_setpoint_s::FRAME_TYPE_LOCAL) {
+	if (sp.frame == position_setpoint_s::FRAME_LOCAL_NED) {
 		local_pos(0) = sp.x;
 		local_pos(1) = sp.y;
 		local_pos(2) = sp.z;

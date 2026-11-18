@@ -720,7 +720,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 		// we still use cruising throttle here to determine if gliding is enabled
 		sp->gliding_enabled = (_navigator->get_cruising_throttle() < FLT_EPSILON);
 
-		sp->frame = position_setpoint_s::FRAME_TYPE_LOCAL;
+		sp->frame = position_setpoint_s::FRAME_LOCAL_NED;
 
 
 		switch (item.nav_cmd) {
@@ -868,7 +868,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 
 	sp->valid = true;
 	sp->timestamp = hrt_absolute_time();
-	sp->frame = position_setpoint_s::FRAME_TYPE_GLOBAL;
+	sp->frame = position_setpoint_s::FRAME_GLOBAL;
 
 	return sp->valid;
 }

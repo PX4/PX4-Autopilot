@@ -228,7 +228,7 @@ Takeoff::set_takeoff_position()
 
 	float takeoff_altitude_amsl = 0.f;
 
-	if (rep->current.frame == position_setpoint_s::FRAME_TYPE_GLOBAL) {
+	if (rep->current.frame == position_setpoint_s::FRAME_GLOBAL) {
 
 		if (rep->current.valid && PX4_ISFINITE(rep->current.alt)) {
 			takeoff_altitude_amsl = rep->current.alt;
@@ -262,7 +262,7 @@ Takeoff::set_takeoff_position()
 			}
 		}
 
-	} else if (rep->current.frame == position_setpoint_s::FRAME_TYPE_LOCAL) {
+	} else if (rep->current.frame == position_setpoint_s::FRAME_LOCAL_NED) {
 
 		float takeoff_height = 0.f;
 
@@ -310,7 +310,7 @@ Takeoff::set_takeoff_position()
 			pos_sp_triplet->current.yaw = rep->current.yaw;
 		}
 
-		if (pos_sp_triplet->current.frame == position_setpoint_s::FRAME_TYPE_LOCAL) {
+		if (pos_sp_triplet->current.frame == position_setpoint_s::FRAME_LOCAL_NED) {
 			pos_sp_triplet->current.lat = static_cast<double>(NAN);
 			pos_sp_triplet->current.lon = static_cast<double>(NAN);
 			pos_sp_triplet->current.x = rep->current.x;

@@ -9,8 +9,16 @@ uint8 SETPOINT_TYPE_TAKEOFF=3	# takeoff setpoint
 uint8 SETPOINT_TYPE_LAND=4	# land setpoint, altitude must be ignored, descend until landing
 uint8 SETPOINT_TYPE_IDLE=5	# do nothing, switch off motors or keep at idle speed (MC)
 
-uint8 FRAME_TYPE_GLOBAL=0	# land setpoint, altitude must be ignored, descend until landing
-uint8 FRAME_TYPE_LOCAL=1	# do nothing, switch off motors or keep at idle speed (MC)
+# Frame of reference for the lat/lon/alt fields (param5/6/7), mirrors MAV_FRAME.
+# Only frames relevant to position-bearing commands are listed.
+uint8 FRAME_GLOBAL = 0                  # WGS84 (MSL altitude)
+uint8 FRAME_LOCAL_NED=1			# NED local tangent frame (x: North, y: East, z: Down)
+uint8 FRAME_GLOBAL_RELATIVE_ALT = 3     # Altitude is relative to home
+uint8 FRAME_GLOBAL_INT = 5              # Same as FRAME_GLOBAL but coordinates are int32
+uint8 FRAME_GLOBAL_RELATIVE_ALT_INT = 6 # Same as FRAME_GLOBAL_RELATIVE_ALT but int32 coords
+uint8 FRAME_GLOBAL_TERRAIN_ALT = 10     # Altitude is meters above terrain (AGL)
+uint8 FRAME_GLOBAL_TERRAIN_ALT_INT = 11 # Same as FRAME_GLOBAL_TERRAIN_ALT but int32 coords
+
 
 uint8 LOITER_TYPE_ORBIT=0 	# Circular pattern
 uint8 LOITER_TYPE_FIGUREEIGHT=1 # Pattern resembling an 8

@@ -142,7 +142,7 @@ TEST_F(MissionBlockTakeoffLocalTest, LoiterHandoffKeepsLocalXY)
 	position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
 	current = {};
 	current.valid = true;
-	current.frame = position_setpoint_s::FRAME_TYPE_LOCAL;
+	current.frame = position_setpoint_s::FRAME_LOCAL_NED;
 	current.x = 12.5f;
 	current.y = -3.25f;
 	current.z = kTakeoffHeight;

@@ -819,7 +819,7 @@ void Navigator::run()
 						if (local_position_valid()) {
 
 							rep->previous.valid = true;
-							rep->previous.frame = position_setpoint_s::FRAME_TYPE_LOCAL;
+							rep->previous.frame = position_setpoint_s::FRAME_LOCAL_NED;
 							rep->previous.timestamp = hrt_absolute_time();
 
 						} else {
@@ -837,7 +837,7 @@ void Navigator::run()
 
 						}
 
-						rep->current.frame = position_setpoint_s::FRAME_TYPE_LOCAL;
+						rep->current.frame = position_setpoint_s::FRAME_LOCAL_NED;
 
 					} else {
 						rep->current.alt = cmd.param7;
@@ -877,9 +877,9 @@ void Navigator::run()
 						}
 
 						// Reset explicitly: _takeoff_triplet is a persistent member, and a prior local-frame
-						// takeoff would otherwise leave this stale at FRAME_TYPE_LOCAL, which Takeoff::set_takeoff_position()
+						// takeoff would otherwise leave this stale at FRAME_LOCAL_NED, which Takeoff::set_takeoff_position()
 						// uses to decide between AMSL and local-height takeoff altitude logic.
-						rep->current.frame = position_setpoint_s::FRAME_TYPE_GLOBAL;
+						rep->current.frame = position_setpoint_s::FRAME_GLOBAL;
 
 						// Fixed-wing: vehicle will takeoff towards these coordinates and establish on a loiter there
 						_takeoff.setLoiterPosition(hold_course ? matrix::Vector2d(static_cast<double>(NAN), static_cast<double>(NAN))
