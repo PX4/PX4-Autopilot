@@ -55,7 +55,6 @@ jobs:
     name: IO Firmware Up To Date
     runs-on: [runs-on,runner=2cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
     container:
-      # keep in sync with the image named in the warning below
       image: ghcr.io/px4/px4-dev:v1.17.0-rc2
     steps:
       - uses: runs-on/action@v2
@@ -65,29 +64,10 @@ jobs:
       - name: Configure Git Safe Directory
         run: git config --system --add safe.directory '*'
 
-      - name: Build px4io firmware
+      - name: Build and compare px4io firmware
         env:
           PX4_SBOM_DISABLE: 1
-        run: make px4io_update
-
-      - name: Compare with committed binaries
-        env:
-          PX4_SBOM_DISABLE: 1
-        run: |
-          if ! make check_px4io; then
-            image="ghcr.io/px4/px4-dev:v1.17.0-rc2"
-            echo "::error title=px4io firmware out of date::The committed px4io firmware does not match the current sources. Regenerate it with: PX4_DOCKER_REPO=${image} ./Tools/docker_run.sh 'make px4io_update'"
-            {
-              echo "### px4io firmware out of date"
-              echo
-              echo "The committed px4io firmware does not match what the current sources build to. Regenerate and commit it:"
-              echo
-              echo '```'
-              echo "PX4_DOCKER_REPO=${image} ./Tools/docker_run.sh 'make px4io_update'"
-              echo '```'
-            } >> "$GITHUB_STEP_SUMMARY"
-            exit 1
-          fi
+        run: make check_px4io
 
   tests:
     name: Unit Tests

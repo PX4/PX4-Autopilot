@@ -296,6 +296,11 @@ foreach(board_extra_file ${OPTIONAL_BOARD_EXTRAS})
 			# remove bootloader from extras
 			list(REMOVE_ITEM OPTIONAL_BOARD_EXTRAS ${board_extra_file})
 		endif()
+	elseif(${extra_file_base_name} MATCHES "_io-v[0-9]+_default\\.bin$")
+		# px4io firmware is no longer kept per board, see CONFIG_BOARD_IO below
+		file(RELATIVE_PATH extra_file_relative_source ${PX4_SOURCE_DIR} ${board_extra_file})
+		message(FATAL_ERROR "Delete ${extra_file_relative_source}: the px4io firmware is now taken from "
+			"boards/<vendor>/<io board>/extras/ via CONFIG_BOARD_IO and must not be kept per board.")
 	endif()
 endforeach()
 
