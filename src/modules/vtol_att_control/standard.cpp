@@ -64,7 +64,7 @@ Standard::parameters_update()
 
 bool Standard::isBackTransitionCompleted()
 {
-	return can_transition_on_ground() || isBackTransitionSpeedOrTimeExitConditionMet();
+	return can_transition_on_ground() || isBackTransitionSpeedOrTimeReached();
 }
 
 void Standard::onFrontTransitionCompleted()

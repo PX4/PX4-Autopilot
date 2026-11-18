@@ -69,7 +69,7 @@ bool Tiltrotor::isBackTransitionCompleted()
 {
 	const bool exit_backtransition_tilt_condition = _tilt_control <= (_param_vt_tilt_mc.get() + 0.01f);
 
-	return exit_backtransition_tilt_condition && isBackTransitionSpeedOrTimeExitConditionMet();
+	return exit_backtransition_tilt_condition && isBackTransitionSpeedOrTimeReached();
 }
 
 void Tiltrotor::update_mc_state()

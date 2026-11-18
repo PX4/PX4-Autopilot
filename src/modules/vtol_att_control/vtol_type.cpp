@@ -228,7 +228,7 @@ void VtolType::update_vtol_state()
 	}
 }
 
-bool VtolType::isBackTransitionSpeedOrTimeExitConditionMet() const
+bool VtolType::isBackTransitionSpeedOrTimeReached() const
 {
 	// speed exit condition: use ground if valid, otherwise airspeed
 	bool exit_backtransition_speed_condition = false;

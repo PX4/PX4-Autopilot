@@ -343,7 +343,7 @@ protected:
 	 * @return true if the vehicle is below the back transition exit speed (MPC_XY_CRUISE) or the back transition
 	 * has lasted longer than VT_B_TRANS_DUR
 	 */
-	bool isBackTransitionSpeedOrTimeExitConditionMet() const;
+	bool isBackTransitionSpeedOrTimeReached() const;
 
 	/**
 	 * Called when fixed-wing is requested while a back transition is in progress.
