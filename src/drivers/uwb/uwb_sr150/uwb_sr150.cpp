@@ -253,9 +253,11 @@ int UWB_SR150::task_spawn(int argc, char *argv[])
 		desc.object.store(instance);
 		desc.task_id = task_id_is_work_queue;
 
-		instance->ScheduleOnInterval(5000_us);
-
+		// Initialize before scheduling: on failure the instance is deleted here in
+		// the shell, which must not happen after Run() opened the UART on the
+		// work queue (file descriptors are per task group on NuttX).
 		if (instance->init()) {
+			instance->ScheduleOnInterval(5000_us);
 			return PX4_OK;
 		}
 
