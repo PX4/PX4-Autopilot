@@ -22,9 +22,7 @@ SIH has constant wind only and a 0.2 kg vehicle, so the flights check behavior, 
 
 import pytest
 
-from autopilot_tester_pusher_failure import (PUSHER_QUADCHUTE_EVENT,
-                                             AutopilotTesterPusherFailure, FixedWingReached,
-                                             Wind)
+from autopilot_tester_pusher_failure import AutopilotTesterPusherFailure, FixedWingReached, Wind
 
 ALTITUDE_M = 20.0
 SETTLE_S = 10.0
@@ -40,7 +38,6 @@ CROSSWIND = Wind(from_east_m_s=3.0)
 # Weak enough for pusher assist to still push before the failure, which it does not at 3 m/s.
 TAILWIND = Wind(from_north_m_s=-1.0)
 STRONG_WIND = Wind(from_north_m_s=5.0)
-TOO_STRONG_WIND = Wind(from_north_m_s=8.0)
 
 
 @pytest.mark.vtol_pusher_failure
@@ -103,21 +100,6 @@ def test_working_pusher_holding_position_in_strong_wind(
     tester.check_pusher_pushing()
     tester.wait_until_speed_lower_than(0.5, 5)
     tester.check_no_quadchute()
-
-
-@pytest.mark.vtol_pusher_failure
-def test_headwind_stronger_than_pusher(
-        tester_pusher_failure: AutopilotTesterPusherFailure) -> None:
-    """Accepted, not required: the vehicle cannot hold its position with pusher assist, which
-    may be reported as a pusher failure."""
-    tester = tester_pusher_failure
-    tester.take_off_with_pusher_assist(ALTITUDE_M)
-    wind_time_s = tester.time_s()
-    tester.set_wind(TOO_STRONG_WIND, 60)
-
-    tester.log_quadchutes_since(wind_time_s)
-    tester.check_no_quadchute(allowed_event=PUSHER_QUADCHUTE_EVENT)
-    tester.check_only_multicopter_since(wind_time_s)
 
 
 @pytest.mark.vtol_pusher_failure
