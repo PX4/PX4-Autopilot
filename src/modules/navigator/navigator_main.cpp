@@ -1923,23 +1923,25 @@ bool Navigator::geofence_allows_position(const vehicle_global_position_s &pos)
 	return true;
 }
 
-bool Navigator::pre_geofence_allows_position(const vehicle_global_position_s &target)
+bool Navigator::pre_geofence_allows_position(const vehicle_global_position_s &pos)
 {
-	const uint8_t action = _geofence.getPreGeofenceAction();
+	if ((_geofence.getPreGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
+	    (_geofence.getPreGeofenceAction() != geofence_result_s::GF_ACTION_WARN)) {
 
-	if (action == geofence_result_s::GF_ACTION_NONE || action == geofence_result_s::GF_ACTION_WARN) {
-		return true;
+		if (PX4_ISFINITE(pos.lat) && PX4_ISFINITE(pos.lon) && PX4_ISFINITE(pos.alt)) {
+			// Unlike geofence_allows_position(), only what the command changes is checked. Example: a vehicle that
+			// holds outside the pre-geofence can still change its altitude, because that command keeps its position.
+			const bool keeps_position = fabs(pos.lat - _global_pos.lat) < DBL_EPSILON
+						    && fabs(pos.lon - _global_pos.lon) < DBL_EPSILON;
+			const bool keeps_altitude = fabsf(pos.alt - _global_pos.alt) < FLT_EPSILON;
+
+			return (keeps_position || (_geofence.isCloserThanPreMaxDistToHome(pos.lat, pos.lon)
+						   && _geofence.isInsidePreGeofence(pos.lat, pos.lon)))
+			       && (keeps_altitude || _geofence.isBelowPreMaxAltitude(pos.alt));
+		}
 	}
 
-	// A command without a position or an altitude targets the vehicle's own, which keeps it where it is.
-	// Only the target itself is checked, not the path to it or a loiter around it.
-	const bool keeps_position = fabs(target.lat - _global_pos.lat) < DBL_EPSILON
-				    && fabs(target.lon - _global_pos.lon) < DBL_EPSILON;
-	const bool keeps_altitude = fabsf(target.alt - _global_pos.alt) < FLT_EPSILON;
-
-	return (keeps_position || (_geofence.isCloserThanPreMaxDistToHome(target.lat, target.lon)
-				   && _geofence.isInsidePreGeofence(target.lat, target.lon)))
-	       && (keeps_altitude || _geofence.isBelowPreMaxAltitude(target.alt));
+	return true;
 }
 
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
