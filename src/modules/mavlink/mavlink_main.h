@@ -506,7 +506,7 @@ public:
 	const events::SendProtocol &get_events_protocol() const { return _events; };
 	bool ftp_enabled() const { return _ftp_on; }
 
-	bool hash_check_enabled() const { return _param_mav_hash_chk_en.get(); }
+	bool hash_check_enabled() const { return _hash_chk_en_atomic.load(); }
 	bool forward_heartbeats_enabled() const { return _hb_forw_en_atomic.load(); }
 
 	bool failure_injection_enabled() const
@@ -711,6 +711,7 @@ private:
 	px4::atomic_bool _use_hil_gps_atomic{false};
 	px4::atomic_bool _hb_forw_en_atomic{false};
 	px4::atomic_bool _fwdextsp_atomic{false};
+	px4::atomic_bool _hash_chk_en_atomic{false};
 #if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
 	px4::atomic_bool _failure_injection_en_atomic {false};
 #endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER
