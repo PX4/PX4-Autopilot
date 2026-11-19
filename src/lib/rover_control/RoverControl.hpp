@@ -82,6 +82,15 @@ enum class StickMapping : int32_t {
 ManualSticks mapSticks(const manual_control_setpoint_s &manual_control_setpoint, int32_t stick_map);
 
 /**
+ * Checks whether the sticks command the rover to drive, used to deny arming with sticks off center.
+ * @param manual_control_setpoint Stick inputs
+ * @param stick_map Selected mapping (RO_STICK_MAP), unknown values use StickMapping::Mode3
+ * @param can_drive_sideways True for rovers that use the lateral stick (mecanum)
+ * @return True if the forward stick, or the lateral stick if used, is deflected by 0.2 or more
+ */
+bool sticksCommandMotion(const manual_control_setpoint_s &manual_control_setpoint, int32_t stick_map, bool can_drive_sideways);
+
+/**
  * Applies acceleration/deceleration slew rate to a throttle setpoint.
  * @param motor_setpoint Throttle setpoint with applied slew rate [-1, 1] (Updated by this function)
  * @param throttle_setpoint Throttle setpoint pre slew rate [-1, 1]

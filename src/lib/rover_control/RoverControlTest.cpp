@@ -299,3 +299,122 @@ TEST(speedControl, decelerationLimitOnSignChange)
 	// Without a deceleration limit the acceleration limit applies as before
 	EXPECT_NEAR(step(-1.f, 1.f, 1.f, max_accel, no_limit), 1.f - max_accel * dt, 1e-6f);
 }
+
+static constexpr int32_t kStickMapMode2 = static_cast<int32_t>(RoverControl::StickMapping::Mode2);
+static constexpr bool kCanDriveSideways = true; // Mecanum, so the lateral stick is checked too
+
+TEST(sticksCommandMotion, centeredSticks)
+{
+	// GIVEN: all sticks centered
+	manual_control_setpoint_s manual_control_setpoint{};
+
+	// WHEN: checked with stick mapping mode 2 (left: yaw, right: forward & lateral)
+	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, kCanDriveSideways);
+
+	// THEN: no motion is commanded
+	EXPECT_FALSE(commands_motion);
+}
+
+TEST(sticksCommandMotion, forwardOnRightStick)
+{
+	// GIVEN: the right stick pushed fully forward, with the left vertical stick centered
+	manual_control_setpoint_s manual_control_setpoint{};
+	manual_control_setpoint.pitch = 1.f;
+
+	// WHEN: checked with stick mapping mode 2, where the right vertical stick drives forward
+	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, kCanDriveSideways);
+
+	// THEN: motion is commanded
+	EXPECT_TRUE(commands_motion);
+}
+
+TEST(sticksCommandMotion, backwardOnRightStick)
+{
+	// GIVEN: the right stick pulled fully back
+	manual_control_setpoint_s manual_control_setpoint{};
+	manual_control_setpoint.pitch = -1.f;
+
+	// WHEN: checked with stick mapping mode 2
+	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, kCanDriveSideways);
+
+	// THEN: motion is commanded
+	EXPECT_TRUE(commands_motion);
+}
+
+TEST(sticksCommandMotion, lateralOnRightStick)
+{
+	// GIVEN: the right stick pushed fully to the side
+	manual_control_setpoint_s manual_control_setpoint{};
+	manual_control_setpoint.roll = 1.f;
+
+	// WHEN: checked with stick mapping mode 2, where the right horizontal stick drives sideways
+	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, kCanDriveSideways);
+
+	// THEN: motion is commanded
+	EXPECT_TRUE(commands_motion);
+}
+
+TEST(sticksCommandMotion, lateralOnRoverThatCannotDriveSideways)
+{
+	// GIVEN: the right stick pushed fully to the side
+	manual_control_setpoint_s manual_control_setpoint{};
+	manual_control_setpoint.roll = 1.f;
+
+	// WHEN: checked for a rover that doesn't use the lateral stick (differential, Ackermann)
+	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, false);
+
+	// THEN: no motion is commanded
+	EXPECT_FALSE(commands_motion);
+}
+
+TEST(sticksCommandMotion, unusedLeftVerticalStick)
+{
+	// GIVEN: the left vertical stick pushed fully forward, which is the stick commander checked before
+	manual_control_setpoint_s manual_control_setpoint{};
+	manual_control_setpoint.throttle = 1.f;
+
+	// WHEN: checked with stick mapping mode 2, where the left vertical stick is not used
+	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, kCanDriveSideways);
+
+	// THEN: no motion is commanded
+	EXPECT_FALSE(commands_motion);
+}
+
+TEST(sticksCommandMotion, yawOnly)
+{
+	// GIVEN: the left stick pushed fully to the side
+	manual_control_setpoint_s manual_control_setpoint{};
+	manual_control_setpoint.yaw = 1.f;
+
+	// WHEN: checked with stick mapping mode 2, where the left horizontal stick turns the rover
+	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, kCanDriveSideways);
+
+	// THEN: turning alone does not count as motion
+	EXPECT_FALSE(commands_motion);
+}
+
+TEST(sticksCommandMotion, belowThreshold)
+{
+	// GIVEN: the forward stick deflected just below the 0.2 threshold
+	manual_control_setpoint_s manual_control_setpoint{};
+	manual_control_setpoint.pitch = 0.19f;
+
+	// WHEN: checked with stick mapping mode 2
+	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, kCanDriveSideways);
+
+	// THEN: no motion is commanded
+	EXPECT_FALSE(commands_motion);
+}
+
+TEST(sticksCommandMotion, atThreshold)
+{
+	// GIVEN: the forward stick deflected exactly to the 0.2 threshold
+	manual_control_setpoint_s manual_control_setpoint{};
+	manual_control_setpoint.pitch = 0.2f;
+
+	// WHEN: checked with stick mapping mode 2
+	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, kCanDriveSideways);
+
+	// THEN: motion is commanded, matching the previous throttle check that only allowed arming below 0.2
+	EXPECT_TRUE(commands_motion);
+}

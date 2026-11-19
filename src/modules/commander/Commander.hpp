@@ -285,6 +285,7 @@ private:
 	bool _mode_switch_mapped{false};
 
 	float _last_manual_throttle{-1.f};
+	manual_control_setpoint_s _last_manual_control_setpoint{};
 	bool _manual_control_lost_prev{false}; ///< previous manual_control_signal_lost state, for edge detection
 
 	bool _arm_tune_played{false};
@@ -339,6 +340,8 @@ private:
 	// optional parameters
 	param_t _param_mav_type{PARAM_INVALID};
 	param_t _param_rc_map_fltmode{PARAM_INVALID};
+	param_t _param_ro_stick_map{PARAM_INVALID};
+	param_t _param_ca_airframe{PARAM_INVALID};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::COM_DISARM_LAND>)  _param_com_disarm_land,

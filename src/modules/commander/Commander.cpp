@@ -56,6 +56,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
 #include <lib/geo/geo.h>
+#include <lib/rover_control/RoverControl.hpp>
 #include <mathlib/mathlib.h>
 #include <px4_platform_common/events.h>
 #include <px4_platform_common/px4_config.h>
@@ -696,8 +697,23 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 				bool throttle_safe;
 
 				if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
-					// Rovers: center stick = stop, safe to arm near center
-					throttle_safe = (fabsf(_last_manual_throttle) < 0.2f);
+					// Rovers: centered sticks = stop. RO_STICK_MAP decides which sticks drive forward and sideways,
+					// it only exists if a rover module is built, otherwise the default mapping is used.
+					int32_t stick_map = 0;
+
+					if (_param_ro_stick_map != PARAM_INVALID) {
+						param_get(_param_ro_stick_map, &stick_map);
+					}
+
+					// Only mecanum rovers (CA_AIRFRAME 13) use the lateral stick
+					int32_t airframe = 0;
+
+					if (_param_ca_airframe != PARAM_INVALID) {
+						param_get(_param_ca_airframe, &airframe);
+					}
+
+					const bool can_drive_sideways = (airframe == 13);
+					throttle_safe = !RoverControl::sticksCommandMotion(_last_manual_control_setpoint, stick_map, can_drive_sideways);
 
 				} else if (_vehicle_control_mode.flag_control_climb_rate_enabled) {
 					// Climb-rate modes (AltCtl, PosCtl, etc.): center = hover, safe at or below center
@@ -834,6 +850,8 @@ Commander::Commander() :
 	param_t param_mav_sys_id = param_find("MAV_SYS_ID");
 	_param_mav_type = param_find("MAV_TYPE");
 	_param_rc_map_fltmode = param_find("RC_MAP_FLTMODE");
+	_param_ro_stick_map = param_find("RO_STICK_MAP");
+	_param_ca_airframe = param_find("CA_AIRFRAME");
 
 	int32_t value_int32 = 0;
 
@@ -3184,6 +3202,7 @@ void Commander::manualControlCheck()
 	if (manual_control_updated && manual_control_setpoint.valid) {
 
 		_last_manual_throttle = manual_control_setpoint.throttle;
+		_last_manual_control_setpoint = manual_control_setpoint;
 
 		if (isArmed()) {
 			// Hand control back to the pilot when they override with the sticks (see MAN_OVERRIDE_SPD).
