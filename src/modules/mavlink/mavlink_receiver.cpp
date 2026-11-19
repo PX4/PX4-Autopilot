@@ -4158,7 +4158,7 @@ MavlinkReceiver::run()
 
 					const FrameCheck frame_check = check_frame(framing, msg);
 
-					if (frame_check == FrameCheck::Invalid) {
+					if (frame_check == FrameCheck::BadCrc || frame_check == FrameCheck::Invalid) {
 						reset_parser_after_rejected_frame(buf[i]);
 					}
 
@@ -4203,6 +4203,11 @@ MavlinkReceiver::run()
 
 					} else if (frame_check == FrameCheck::BadSignature) {
 						_bad_signature_counter++;
+
+					} else if (frame_check == FrameCheck::BadCrc && msg.sysid != 0 && msg.compid != 0
+						   && component_was_seen(msg.sysid, msg.compid)) {
+						// Header may be corrupted too: count only known senders (0 is a wildcard)
+						_bad_crc_counter++;
 					}
 
 					if (frame_check == FrameCheck::Ok || frame_check == FrameCheck::ForwardOnly) {
@@ -4222,6 +4227,7 @@ MavlinkReceiver::run()
 					tstatus.rx_message_lost_count = _total_lost_counter;
 					tstatus.rx_unknown_message_count = _unknown_message_counter;
 					tstatus.rx_bad_signature_count = _bad_signature_counter;
+					tstatus.rx_bad_crc_count = _bad_crc_counter;
 					const uint64_t total_messages = _total_received_counter + _total_lost_counter;
 					tstatus.rx_message_lost_rate = (total_messages > 0)
 								       ? static_cast<float>(_total_lost_counter) / static_cast<float>(total_messages) : 0.f;
@@ -4306,9 +4312,13 @@ MavlinkReceiver::FrameCheck MavlinkReceiver::check_frame(uint8_t framing, const 
 		return FrameCheck::Incomplete;
 	}
 
-	// Messages which are not in our dialect can't have their CRC checked and
-	// are reported as bad CRC by the parser. They can still be forwarded.
-	if ((mavlink_get_msg_entry(message.msgid) != nullptr) || (_status.flags & MAVLINK_STATUS_FLAG_IN_MAVLINK1)) {
+	// Known message: corrupted frame or different message definition on the sender
+	if (mavlink_get_msg_entry(message.msgid) != nullptr) {
+		return FrameCheck::BadCrc;
+	}
+
+	// Unknown MAVLink 1 message
+	if (_status.flags & MAVLINK_STATUS_FLAG_IN_MAVLINK1) {
 		return FrameCheck::Invalid;
 	}
 
