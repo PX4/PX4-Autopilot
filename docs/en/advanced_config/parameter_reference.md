@@ -28154,7 +28154,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Commander
 
-<div class="param-group" style="--param-count: 74">
+<div class="param-group" style="--param-count: 76">
 
 <div class="param">
 
@@ -29031,9 +29031,8 @@ GNSS loss failsafe mode.
 
 Action the system takes when a GNSS failure is detected during flight.
 Triggers when the active GNSS count drops below SYS_HAS_NUM_GNSS (disabled
-when SYS_HAS_NUM_GNSS=0), or when two receivers report positions inconsistent
-with their reported accuracy and SYS_HAS_NUM_GNSS=2 (otherwise warning only).
-The reported accuracy of each receiver is floored with EKF2_GPS_P_NOISE.
+when SYS_HAS_NUM_GNSS=0), or when two receivers disagree by more than
+COM_GNSS_H_MAX or COM_GNSS_V_MAX and SYS_HAS_NUM_GNSS=2 (otherwise warning only).
 Return and Land are skipped if the failure clears during the COM_FAIL_ACT_T Hold.
 Any value above Warning also blocks arming.
 
@@ -29050,6 +29049,44 @@ Any value above Warning also blocks arming.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### COM_GNSS_H_MAX (`FLOAT`) {#COM_GNSS_H_MAX}
+
+Maximum horizontal disagreement between GNSS receivers.
+
+Two receivers diverge when their horizontal positions disagree by more than
+this, after their antenna positions. The default suits standalone receivers.
+Detecting swapped antennas needs a limit below twice the distance between them.
+It also needs a heading that doesn't come from these two receivers.
+Until the heading is aligned, a limit that low also reports a divergence.
+Before arming a divergence is reported at once and clears after 2 s of
+agreement. In flight it has to persist for 2 s. See COM_GNSSLOSS_ACT for the action.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.1 | 20.0 | 0.1 | 5.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### COM_GNSS_V_MAX (`FLOAT`) {#COM_GNSS_V_MAX}
+
+Maximum vertical disagreement between GNSS receivers.
+
+Two receivers diverge when their heights disagree by more than this, after
+their antenna positions. The default suits standalone receivers.
+Same timing and action as COM_GNSS_H_MAX.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.1 | 20.0 | 0.1 | 10.0 | m | &nbsp;
 
 </div>
 
