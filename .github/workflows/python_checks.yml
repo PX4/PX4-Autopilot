@@ -70,3 +70,9 @@ jobs:
       run: |
         flake8 Tools/migrate_param_file.py Tools/test_migrate_param_file.py
         python3 -m unittest discover -s Tools -p 'test_migrate_param_file.py' -v
+
+    - name: Check MAVLink WIP tooling
+      working-directory: Tools/mavlink
+      run: |
+        flake8 *.py
+        python3 -m unittest -v test_mavlink_wip

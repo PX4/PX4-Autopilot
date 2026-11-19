@@ -1,0 +1,122 @@
+# MAVLink definitions marked <wip> must only be used behind PX4_MAVLINK_WIP()
+# guards, so that they are compiled out of beta and release builds (see the
+# generated mavlink_wip.h and cmake/px4_release_stage.cmake).
+#
+# - Lint: Tools/mavlink/check_wip.py checks what the compiler cannot see
+#   (commands handled by number, stream names, guards for released items,
+#   the legacy list) and lists the WIP features excluded from releases.
+# - Release stage build: each target is built as a release, where any
+#   unguarded use of a WIP message or enum entry fails to compile.
+#   The legacy-off build shows the legacy uses still to be fixed and may fail.
+#
+# Reproduce locally with: make mavlink_wip_check
+
+name: MAVLink WIP Check
+
+on:
+  push:
+    branches:
+      - 'main'
+    paths-ignore:
+      - 'docs/**'
+  pull_request:
+    branches:
+      - '**'
+    paths-ignore:
+      - 'docs/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: [runs-on,runner=2cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
+    container:
+      image: ghcr.io/px4/px4-dev:v1.17.0-rc2
+    steps:
+      - uses: runs-on/action@v2
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+      - name: Configure Git Safe Directory
+        run: git config --system --add safe.directory '*'
+
+      - name: Check out the MAVLink definitions
+        run: git submodule update --init --recursive src/modules/mavlink/mavlink
+
+      - name: Fetch the base branch
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: git fetch --depth=1 origin "$BASE_REF"
+
+      - name: Check MAVLink WIP guards
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        shell: bash
+        run: |
+          # on a pull request the legacy list may only shrink
+          base=()
+          if [ "$EVENT_NAME" = "pull_request" ]; then base=(--base FETCH_HEAD); fi
+          Tools/mavlink/check_wip.py "${base[@]}" --summary "$GITHUB_STEP_SUMMARY"
+
+  build:
+    name: Release stage build [${{ matrix.target }}${{ matrix.legacy == 'OFF' && ', legacy off' || '' }}]
+    runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
+    container:
+      image: ghcr.io/px4/px4-dev:v1.17.0-rc2
+    continue-on-error: ${{ matrix.legacy == 'OFF' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - px4_sitl_default                  # development dialect, vision target estimator
+          - px4_fmu-v6c_visionTargetEstStatic # hardware with the vision target estimator
+          - px4_fmu-v6x_mavlink-dev           # development dialect on hardware
+          - px4_fmu-v6x_default               # common dialect
+        legacy: ['ON']
+        include:
+          # the legacy uses still to be guarded or released upstream
+          - target: px4_sitl_default
+            legacy: 'OFF'
+    steps:
+      - uses: runs-on/action@v2
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+      - name: Configure Git Safe Directory
+        run: git config --system --add safe.directory '*'
+
+      - uses: ./.github/actions/setup-ccache
+        id: ccache
+        with:
+          cache-key-prefix: ccache-mavlink-wip-${{ matrix.target }}
+          max-size: 300M
+
+      - name: Build ${{ matrix.target }} as a release
+        env:
+          PX4_SBOM_DISABLE: 1
+          TARGET: ${{ matrix.target }}
+          LEGACY: ${{ matrix.legacy }}
+        shell: bash
+        # -k 0: keep going after a failed file, so that every unguarded use is listed
+        run: |
+          set -o pipefail
+          make "$TARGET" RELEASE_STAGE=release CMAKE_ARGS="-DPX4_MAVLINK_WIP_LEGACY=$LEGACY" ARGS="-k 0" 2>&1 | tee build.log
+
+      - name: Report unguarded WIP uses
+        if: always()
+        env:
+          TARGET: ${{ matrix.target }}
+          LEGACY: ${{ matrix.legacy }}
+        run: Tools/mavlink/wip_build_report.py build.log --title "[$TARGET, legacy $LEGACY]" --summary "$GITHUB_STEP_SUMMARY"
+
+      - uses: ./.github/actions/save-ccache
+        if: always()
+        with:
+          cache-primary-key: ${{ steps.ccache.outputs.cache-primary-key }}
