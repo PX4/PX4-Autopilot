@@ -58,17 +58,17 @@ static constexpr time_t PX4_EPOCH_SECS = 1234567890ULL;
 // prediction uses the actual time between samples, so its dynamics are defined in seconds
 // and do not depend on how often the caller exchanges timesync packets.
 //
-// MEASUREMENT_NOISE_STD : Standard deviation of a single observed offset [us], mostly caused
+// MEASUREMENT_NOISE_STD : Standard deviation of a single observed offset [s], mostly caused
 // by asymmetric link delays. Bounded by MAX_RTT_SAMPLE / 2.
 //
-// SKEW_RANDOM_WALK : Spectral density of the skew random walk [(us/s)^2/s]. Larger values let
+// SKEW_RANDOM_WALK : Spectral density of the skew random walk [1/s]. Larger values let
 // the filter follow skew changes and clock corrections on the remote system faster,
 // at the cost of a noisier estimate.
 //
-// INITIAL_SKEW_STD : Prior uncertainty of the skew [us/s], i.e. the expected crystal tolerance.
-static constexpr double MEASUREMENT_NOISE_STD = 1000.0;
-static constexpr double SKEW_RANDOM_WALK = 1.0;
-static constexpr double INITIAL_SKEW_STD = 100.0;
+// INITIAL_SKEW_STD : Prior uncertainty of the skew [s/s], i.e. the expected crystal tolerance.
+static constexpr double MEASUREMENT_NOISE_STD = 1e-3;
+static constexpr double SKEW_RANDOM_WALK = 1e-12;
+static constexpr double INITIAL_SKEW_STD = 100e-6;
 
 // Number of exchanged timesync packets before the estimate is considered converged.
 static constexpr uint32_t CONVERGENCE_WINDOW = 500;
@@ -102,7 +102,7 @@ public:
 	 */
 	uint64_t sync_stamp(uint64_t usec);
 
-	int64_t offset() const { return (int64_t)_time_offset; }
+	int64_t offset() const { return (int64_t)(_time_offset * 1e6); } // [us]
 
 	/**
 	 * Return true if the timesync algorithm converged to a good estimate,
@@ -127,13 +127,13 @@ private:
 	uint32_t _sequence{0};
 
 	// Timesync statistics
-	double _time_offset{0}; // [us]
-	double _time_skew{0};   // [us/s]
+	double _time_offset{0}; // [s]
+	double _time_skew{0};   // [s/s]
 
 	// Filter covariance
-	double _var_offset{0};
-	double _cov_offset_skew{0};
-	double _var_skew{0};
+	double _var_offset{0};      // [s^2]
+	double _cov_offset_skew{0}; // [s]
+	double _var_skew{0};        // [-]
 	uint64_t _last_sample_us{0};
 
 	// Outlier rejection and filter reset
