@@ -11,6 +11,7 @@
 #include <stm32_pwr.h>
 #include <stm32_rtc.h>
 #include <stm32_rcc.h>
+#include <hardware/stm32_gpio.h>
 #include <nvic.h>
 #include <nuttx/progmem.h>
 #include <lib/systick.h>
@@ -105,6 +106,7 @@ struct boardinfo board_info = {
 static void board_init(void);
 
 #define BOOT_RTC_SIGNATURE          0xb007b007
+#define BOOT_RTC_SIGNATURE_ISP      0xb007df00 /* BOARD_RESET_MODE_BOOT_TO_ISP */
 #define BOOT_RTC_REG                MMIO32(RTC_BASE + 0x50)
 
 /* State of an inserted USB cable */
@@ -655,6 +657,39 @@ arch_do_jump(const uint32_t *app_base)
 	// just to keep noreturn happy
 	for (;;) ;
 }
+
+#if defined(CONFIG_ARCH_CHIP_STM32H7)
+/* NuttX's __start calls this before any clock setup, so the chip is still as reset left it, which is how the ROM's
+ * DFU bootloader expects to find it. The app asks for it with reboot -i.
+ */
+void stm32_preclock_hook(void);
+void
+stm32_preclock_hook(void)
+{
+	/* the backup registers sit behind the RTC's bus clock */
+	modifyreg32(STM32_RCC_APB4ENR, 0, RCC_APB4ENR_RTCAPBEN);
+
+	if (board_get_rtc_signature() == BOOT_RTC_SIGNATURE_ISP) {
+		board_set_rtc_signature(0);
+
+		/* The ROM listens for a USART1 sync byte on PB15 before it starts USB. Low there when it enables the USART, it
+		 * takes a start bit and waits on USART1 for good. PB15 is a data line on boards that use it, so pull it up and
+		 * give it time to rise. */
+		modifyreg32(STM32_RCC_AHB4ENR, 0, RCC_AHB4ENR_GPIOBEN);
+		modifyreg32(STM32_GPIOB_PUPDR, GPIO_PUPDR_MASK(15), GPIO_PUPDR_PULLUP << GPIO_PUPDR_SHIFT(15));
+		modifyreg32(STM32_GPIOB_MODER, GPIO_MODER_MASK(15), GPIO_MODER_INPUT << GPIO_MODER_SHIFT(15));
+
+		for (volatile int i = 0; i < 10000 && !(getreg32(STM32_GPIOB_IDR) & (1 << 15)); i++) {}
+
+		const uint32_t *isp_base = (const uint32_t *)0x1FF09800;
+
+		asm volatile(
+			"msr msp, %0      \n"
+			"bx %1            \n"
+			: : "r"(isp_base[0]), "r"(isp_base[1]) :);
+	}
+}
+#endif
 
 int
 bootloader_main(int argc, char *argv[])

@@ -704,7 +704,8 @@ typedef enum  reset_mode_e {
 	BOARD_RESET_MODE_BOOT_TO_BL        = 1, /* Reboot and stay in the bootloader */
 	BOARD_RESET_MODE_BOOT_TO_VALID_APP = 2, /* Reboot to a valid app or stay in bootloader */
 	BOARD_RESET_MODE_CAN_BL            = 3, /* Used to pass a node ID and stay in the can bootloader */
-	BOARD_RESET_MODE_RTC_BOOT_FWOK     = 4  /* Set by a a watch dogged application after running > 30 Seconds */
+	BOARD_RESET_MODE_RTC_BOOT_FWOK     = 4, /* Set by a a watch dogged application after running > 30 Seconds */
+	BOARD_RESET_MODE_BOOT_TO_ISP       = 5  /* Reboot into the chip's ROM bootloader */
 } reset_mode_e;
 
 int board_configure_reset(reset_mode_e mode, uint32_t arg);

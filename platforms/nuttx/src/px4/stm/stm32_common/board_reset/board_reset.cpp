@@ -43,6 +43,7 @@
 #include <errno.h>
 #include <stm32_pwr.h>
 #include <stm32_rtc.h>
+#include <stm32_rcc.h>
 #include <nuttx/board.h>
 
 #ifdef CONFIG_BOARDCTL_RESET
@@ -69,7 +70,8 @@ static const uint32_t modes[] = {
 	/* BOARD_RESET_MODE_BOOT_TO_BL           0   n   */  0xb007b007,
 	/* BOARD_RESET_MODE_BOOT_TO_VALID_APP    0   y   */  0xb0070002,
 	/* BOARD_RESET_MODE_CAN_BL               10  n   */  0xb0080000,
-	/* BOARD_RESET_MODE_RTC_BOOT_FWOK        0   n   */  0xb0093a26
+	/* BOARD_RESET_MODE_RTC_BOOT_FWOK        0   n   */  0xb0093a26,
+	/* BOARD_RESET_MODE_BOOT_TO_ISP          -   n   */  0xb007df00
 };
 
 int board_configure_reset(reset_mode_e mode, uint32_t arg)
@@ -120,10 +122,23 @@ int board_reset(int status)
 {
 	if (status == REBOOT_TO_BOOTLOADER) {
 		board_configure_reset(BOARD_RESET_MODE_BOOT_TO_BL, 0);
+
+	} else if (status == REBOOT_TO_ISP) {
+		board_configure_reset(BOARD_RESET_MODE_BOOT_TO_ISP, 0);
 	}
 
 #if defined(BOARD_HAS_ON_RESET)
 	board_on_reset(status);
+#endif
+
+#if defined(CONFIG_ARCH_CHIP_STM32H7)
+
+	if (status == REBOOT_TO_ISP) {
+		/* The ROM bootloader's USB never enumerates after a reset taken with the OTG clocks on */
+		up_irq_save();
+		modifyreg32(STM32_RCC_AHB1ENR, RCC_AHB1ENR_OTGHSEN | RCC_AHB1ENR_OTGFSEN, 0);
+	}
+
 #endif
 
 	up_systemreset();
