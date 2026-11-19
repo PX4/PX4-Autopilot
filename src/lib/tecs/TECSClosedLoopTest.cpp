@@ -575,13 +575,15 @@ TEST_F(TECSClosedLoopTest, AirspeedlessSteadyStateCruise)
 // SEB_rate_sp / (V * g) asks for twice the demanded climb angle. A feedforward gain of 0.5 cancels this: the vehicle
 // then flies exactly the demanded climb rate, the SEB rate error stays zero, and the altitude error decays first order
 // with FW_T_ALT_TC. As in AltitudeStepDown, the pitch must follow the raw step as fast as the throttle and the demanded
-// sink rate must not exceed FW_T_SINK_MIN.
+// sink rate must not exceed FW_T_SINK_MIN. The total energy rate filter (FW_T_STE_R_TC) is disabled, as its lag
+// makes the throttle damping briefly overfund the climb on the step up and speed the vehicle up.
 
 TEST_F(TECSClosedLoopTest, AirspeedlessAltitudeStepHalfFeedforward)
 {
 	disableAirspeed();
 	_params.seb_rate_ff = 0.5f;
 	_params.vert_accel_limit = INFINITY;
+	_params.ste_rate_time_const = 0.f;
 
 	run(10.f);
 
@@ -598,9 +600,7 @@ TEST_F(TECSClosedLoopTest, AirspeedlessAltitudeStepHalfFeedforward)
 		}
 	}
 
-	// The throttle feedforward funds the climb exactly, so the open loop airspeed only moves because the throttle
-	// damping acts on the low-pass filtered total energy rate estimate (FW_T_STE_R_TC), which lags the step. On the
-	// step down the throttle saturates at idle and clips this; on the step up it adds a few cm/s of airspeed.
-	EXPECT_LT(_sim_stats.max_airspeed_error, 0.05f) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
+	// The throttle feedforward funds the climb exactly, so the open loop airspeed does not move
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_NUMERICAL_ERR) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
 	EXPECT_LT(_sim_stats.max_pitch_integ_norm, MAX_NUMERICAL_ERR);
 }
