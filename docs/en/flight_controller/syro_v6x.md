@@ -13,7 +13,7 @@ It consists of a flight controller module with the STM32H753 main processor and 
 <!-- TODO(Syro): add a product photo, stored under docs/assets/flight_controller/syro_v6x/. -->
 
 ::: info
-This flight controller is intended for inclusion in the [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md) board list.
+This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
 :::
 
 ## Specifications {#specifications}
@@ -356,7 +356,7 @@ When flashing firmware over a UART with [`px4_uploader.py`](https://github.com/P
 | Bus  | Type     | Connected to                                                           |
 | ---- | -------- | ---------------------------------------------------------------------- |
 | I2C1 | External | `GPS1` (compass), `POWER1` (power monitor)                             |
-| I2C2 | External | `GPS2`, `POWER2` (power monitor), onboard BMP581 barometer (`0x46`)    |
+| I2C2 | Shared   | `GPS2`, `POWER2` (power monitor), onboard BMP581 barometer (`0x46`)    |
 | I2C3 | External | `UART4 & I2C`, `I2C`, baseboard EEPROM (`0x51`)                        |
 | I2C4 | Internal | BMM350 magnetometer, BMP581 barometer (`0x47`), module EEPROM (`0x50`) |
 
