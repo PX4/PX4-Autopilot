@@ -480,7 +480,6 @@ Geofence::LoadResult Geofence::_updateFence()
 	_num_polygons = 0;
 	_has_cont_geofence_areas = false;
 	int current_seq = 0;
-	uint16_t points_per_level[2] {};
 
 	while (current_seq < _dataman_cache.size()) {
 
@@ -498,12 +497,6 @@ Geofence::LoadResult Geofence::_updateFence()
 
 		switch (mission_fence_point.nav_cmd) {
 		case NAV_CMD_FENCE_RETURN_POINT:
-			if (++points_per_level[static_cast<unsigned>(FenceLevel::Emergency)] > kMaxFencePointsPerLevel) {
-				_reportInvalidFence(current_seq);
-				_clearFence();
-				return LoadResult::Invalid;
-			}
-
 			// TODO: do we need to store this?
 			++current_seq;
 			break;
@@ -518,16 +511,6 @@ Geofence::LoadResult Geofence::_updateFence()
 				if (validity != LoadResult::Loaded) {
 					_clearFence();
 					return validity;
-				}
-
-				// Apply the upload's per-level limit to stored fences too.
-				uint16_t &level_points = points_per_level[static_cast<unsigned>(mission_fence_point.fence_level)];
-				level_points += is_circle_area ? 1 : mission_fence_point.vertex_count;
-
-				if (level_points > kMaxFencePointsPerLevel) {
-					_reportInvalidFence(current_seq);
-					_clearFence();
-					return LoadResult::Invalid;
 				}
 
 				if (_polygons) {
