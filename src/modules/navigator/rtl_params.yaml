@@ -27,6 +27,19 @@ parameters:
       min: -1
       decimal: 1
       increment: 1
+    RTL_MIN_CLIMB:
+      description:
+        short: Return mode minimum initial climb
+        long: At the start of a direct return to home, a rally point or a mission landing,
+          the vehicle climbs at least this much above its current altitude before it
+          flies back. With RTL_MAX_ALT the vehicle can then descend on the way back. Not
+          used when following the mission path. Set to 0 to disable.
+      type: float
+      default: 0.0
+      unit: m
+      min: 0
+      decimal: 1
+      increment: 1
     RTL_DESCEND_ALT:
       description:
         short: Return mode loiter altitude

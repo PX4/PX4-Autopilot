@@ -315,7 +315,8 @@ rtl_time_estimate_s RTL::estimateTimeToHome()
 	home_loiter.lon = home.lon;
 	home_loiter.height_m = NAN;
 
-	_rtl_direct.setRtlAlt(limitDirectReturnAltitude(computeReturnAltitude(home), home));
+	const float rtl_alt = computeReturnAltitude(home);
+	_rtl_direct.setRtlAlt(limitDirectReturnAltitude(rtl_alt, home), rtl_alt);
 	_rtl_direct.setRtlPosition(home, home_loiter);
 	return _rtl_direct.calc_rtl_time_estimate();
 }
@@ -369,7 +370,9 @@ void RTL::applyReturn(const ReturnSelection &selection)
 		}
 	}
 
-	_rtl_direct.setRtlAlt((new_rtl_type == RtlType::RTL_DIRECT) ? limitDirectReturnAltitude(rtl_alt, destination) : rtl_alt);
+	// RtlDirect climbs to the return altitude, RTL_MAX_ALT only limits the return leg after it
+	_rtl_direct.setRtlAlt((new_rtl_type == RtlType::RTL_DIRECT) ? limitDirectReturnAltitude(rtl_alt, destination) : rtl_alt,
+			      rtl_alt);
 	_rtl_direct.setRtlPosition(destination, landing_loiter,
 				   selection.destination_type == DestinationType::DESTINATION_TYPE_CURRENT_POSITION);
 
@@ -639,6 +642,8 @@ void RTL::setLandPosAsDestination(PositionYawSetpoint &rtl_position, mission_ite
 
 float RTL::computeReturnAltitude(const PositionYawSetpoint &rtl_position) const
 {
+	float return_altitude_amsl{NAN};
+
 	if (_param_rtl_cone_ang.get() > 0 && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 		// horizontal distance to destination
 		const float destination_dist =
@@ -651,7 +656,7 @@ float RTL::computeReturnAltitude(const PositionYawSetpoint &rtl_position) const
 
 		const float max_return_altitude = rtl_position.alt + _param_rtl_return_alt.get();
 
-		float return_altitude_amsl = max_return_altitude;
+		return_altitude_amsl = max_return_altitude;
 
 		if (destination_dist <= _param_nav_acc_rad.get()) {
 			return_altitude_amsl = rtl_position.alt + 2.0f * destination_dist;
@@ -671,12 +676,15 @@ float RTL::computeReturnAltitude(const PositionYawSetpoint &rtl_position) const
 			return_altitude_amsl = max(return_altitude_amsl, return_altitude_min_outside_acceptance_rad_amsl);
 		}
 
-		return constrain(return_altitude_amsl, _global_pos_sub.get().alt, max_return_altitude);
+		return_altitude_amsl = constrain(return_altitude_amsl, _global_pos_sub.get().alt, max_return_altitude);
 
 	} else {
 		// standard behaviour: return altitude above rtl destination
-		return max(_global_pos_sub.get().alt, rtl_position.alt + _param_rtl_return_alt.get());
+		return_altitude_amsl = max(_global_pos_sub.get().alt, rtl_position.alt + _param_rtl_return_alt.get());
 	}
+
+	// climb at least RTL_MIN_CLIMB, also within the cone
+	return max(return_altitude_amsl, _global_pos_sub.get().alt + _param_rtl_min_climb.get());
 }
 
 float RTL::limitDirectReturnAltitude(float return_altitude_amsl, const PositionYawSetpoint &rtl_position) const

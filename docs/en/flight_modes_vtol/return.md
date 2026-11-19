@@ -40,6 +40,7 @@ If returning as a fixed-wing, the vehicle:
 
 - Ascends to a safe minimum return altitude defined by [RTL_RETURN_ALT](#RTL_RETURN_ALT) (safely above any expected obstacles).
   The vehicle maintains its initial altitude if that is higher than the minimum return altitude.
+  It climbs at least [RTL_MIN_CLIMB](#RTL_MIN_CLIMB) above its initial altitude.
   <!-- Note that return altitude cannot be configured using the "cone" parameter in fixed-wing vehicles. -->
 - Flies via a constant-altitude path to the destination, which will be the closest of the start of a _mission landing pattern_ and any rally point, or the home location if no mission landing pattern or rally points are defined.
   The path is chosen to be the shortest horizontal [geofence-aware path](../flight_modes/return.md#geofence_awareness).
@@ -97,11 +98,12 @@ If returning as a multicopter:
 - In particular, if landing on rally point or the home position the vehicle uses the [RTL_CONE_ANG](#RTL_CONE_ANG) instead of just the [RTL_RETURN_ALT](#RTL_RETURN_ALT) for defining the minimum safe return altitude.
   For more information see the explanation of the "cone" in [Return mode (Generic Vehicle) > Minimum Return Altitude](../flight_modes/return.md#minimum-return-altitude).
 - [RTL_MAX_ALT](#RTL_MAX_ALT) limits the return altitude to the higher of `RTL_MAX_ALT` and `RTL_RETURN_ALT` above the destination: a vehicle above this descends to it on the way back.
+  The climb of [RTL_MIN_CLIMB](#RTL_MIN_CLIMB) at the start of the return is not limited by it.
 
 ## Parameters
 
 The Return parameters are listed in [Parameter Reference > Return Mode](../advanced_config/parameter_reference.md#return-mode).
-If using a mission landing, only the [RTL_RETURN_ALT](#RTL_RETURN_ALT) and [RTL_DESCEND_ALT](#RTL_DESCEND_ALT) are relevant.
+If using a mission landing, only the [RTL_RETURN_ALT](#RTL_RETURN_ALT), [RTL_MIN_CLIMB](#RTL_MIN_CLIMB) and [RTL_DESCEND_ALT](#RTL_DESCEND_ALT) are relevant.
 The others are relevant if the destination is a rally point or the home location.
 
 | Parameter                                                                                                   | Description                                                                                                                                                                                                                                                                                              |
@@ -110,6 +112,7 @@ The others are relevant if the destination is a rally point or the home location
 | <a id="RTL_APPR_FORCE"></a>[RTL_APPR_FORCE](../advanced_config/parameter_reference.md#RTL_APPR_FORCE)       | [VTOL FW only] If set, PX4 only considers home or rally-point return destinations when a valid VTOL approach loiter is defined for that landing location. Mission landing patterns are unaffected.                                                                                                       |
 | <a id="RTL_RETURN_ALT"></a>[RTL_RETURN_ALT](../advanced_config/parameter_reference.md#RTL_RETURN_ALT)       | Return altitude in meters (default: 60m)If already above this value the vehicle will return at its current altitude.                                                                                                                                                                                     |
 | <a id="RTL_MAX_ALT"></a>[RTL_MAX_ALT](../advanced_config/parameter_reference.md#RTL_MAX_ALT)                | [MC mode only] Maximum return altitude above the destination (default: -1, disabled). A vehicle above this descends to it on the way back. Never below `RTL_RETURN_ALT`.                                                                                                                                 |
+| <a id="RTL_MIN_CLIMB"></a>[RTL_MIN_CLIMB](../advanced_config/parameter_reference.md#RTL_MIN_CLIMB)          | Minimum climb above the altitude at the start of a direct return (default: 0 m, disabled). The vehicle then returns at least at this altitude.                                                                                                                                                           |
 | <a id="RTL_CONE_ANG"></a>[RTL_CONE_ANG](../advanced_config/parameter_reference.md#RTL_CONE_ANG)             | Half-angle of the cone that defines the vehicle return altitude. Values (in degrees): 0, 25, 45, 65, 80, 90. Note that 0 is "no cone" (always return at `RTL_RETURN_ALT` or higher), while 90 indicates that the vehicle must return at the current altitude or `RTL_DESCEND_ALT` (whichever is higher). |
 | <a id="RTL_DESCEND_ALT"></a>[RTL_DESCEND_ALT](../advanced_config/parameter_reference.md#RTL_DESCEND_ALT)    | Minimum return altitude and altitude at which the vehicle will slow or stop its initial descent from a higher return altitude (default: 30m)                                                                                                                                                             |
 | <a id="RTL_LAND_DELAY"></a>[RTL_LAND_DELAY](../advanced_config/parameter_reference.md#RTL_LAND_DELAY)       | Time to wait at `RTL_DESCEND_ALT` before landing (default: 0 s). If set to -1 the system will loiter at `RTL_DESCEND_ALT` rather than landing. The delay is provided to allow you to configure time for landing gear to be deployed (triggered automatically).                                           |
