@@ -120,6 +120,10 @@ static constexpr float DT = 0.02f;  // Simulation time step [s]
 static constexpr float MAX_NUMERICAL_ERR_PER_DT = 1.0f;
 static constexpr float MAX_NUMERICAL_ERR = MAX_NUMERICAL_ERR_PER_DT * DT;
 
+// Tolerance for settled tracking errors which do not go to zero with smaller DT.
+// Choose settling time so the error is below this with some margin.
+static constexpr float TRACKING_ERROR_TOL = 0.02f;
+
 struct AircraftState {
 	float V{0.f};
 	float h{ALT_INIT};
@@ -411,7 +415,7 @@ TEST_F(TECSClosedLoopTest, AltitudeStepDown)
 	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_NUMERICAL_ERR) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
 
 	EXPECT_NEAR(_state.V, _V_sp,   1e-3f);
-	EXPECT_NEAR(_state.h, _alt_sp, 0.5f);
+	EXPECT_NEAR(_state.h, _alt_sp, TRACKING_ERROR_TOL);
 }
 
 // --- Plant pitch-to-flight-path offset (model mismatch) -----------------------
@@ -431,8 +435,8 @@ TEST_F(TECSClosedLoopTest, SteadyStateCruisePitchOffset)
 	run(60.f);
 
 	// We fly with low altitude and airspeed error
-	EXPECT_LT(_sim_stats.max_altitude_error, 0.1f) << "peak at t=" << _sim_stats.t_max_altitude_error << " s";
-	EXPECT_LT(_sim_stats.max_airspeed_error, 0.1f) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
+	EXPECT_LT(_sim_stats.max_altitude_error, TRACKING_ERROR_TOL) << "peak at t=" << _sim_stats.t_max_altitude_error << " s";
+	EXPECT_LT(_sim_stats.max_airspeed_error, TRACKING_ERROR_TOL) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
 
 	// And the pitch integrator has converged to the plant pitch offset
 	EXPECT_NEAR(_tecs.getDebugOutput().pitch_integrator, _plant_pitch_offset, math::radians(0.1f));
@@ -454,8 +458,8 @@ TEST_F(TECSClosedLoopTest, AltitudeStepUpDefaultTuningPitchOffset)
 	run(60.0f);
 
 	// We fly with low altitude and airspeed error
-	EXPECT_LT(_sim_stats.max_altitude_error, 0.1f) << "peak at t=" << _sim_stats.t_max_altitude_error << " s";
-	EXPECT_LT(_sim_stats.max_airspeed_error, 0.1f) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
+	EXPECT_LT(_sim_stats.max_altitude_error, TRACKING_ERROR_TOL) << "peak at t=" << _sim_stats.t_max_altitude_error << " s";
+	EXPECT_LT(_sim_stats.max_airspeed_error, TRACKING_ERROR_TOL) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
 
 	// And the pitch integrator has converged to the plant pitch offset
 	EXPECT_NEAR(_tecs.getDebugOutput().pitch_integrator, _plant_pitch_offset, math::radians(0.1f));
@@ -476,11 +480,11 @@ TEST_F(TECSClosedLoopTest, GlideSpeedWeightTwoAirspeedStep)
 
 	setAirspeedSetpoint(_params.equivalent_airspeed_trim + 2.f);
 	run(60.f);
-	EXPECT_NEAR(_state.V, _V_sp, 0.05f);
+	EXPECT_NEAR(_state.V, _V_sp, TRACKING_ERROR_TOL);
 
 	setAirspeedSetpoint(_params.equivalent_airspeed_trim - 2.f);
 	run(60.f);
-	EXPECT_NEAR(_state.V, _V_sp, 0.05f);
+	EXPECT_NEAR(_state.V, _V_sp, TRACKING_ERROR_TOL);
 }
 
 // --- Airspeed setpoint change -------------------------------------------------
@@ -545,14 +549,12 @@ TEST_F(TECSClosedLoopTest, FastDescend)
 	setAltitudeSetpoint(ALT_INIT - 200.0f);
 
 	// Run until we are fully in fast descend
-	run(60.f);
+	run(75.f);
 
 	// Throttle is forced to minimum during fast descend
 	EXPECT_NEAR(_tecs.getThrottleSetpoint(), _params.throttle_min, 1e-3f);
 	// Pitch loop drives airspeed toward tas_max
-	EXPECT_NEAR(_state.V, _params.tas_max, 0.05f);
-	run(60.f);
-	EXPECT_NEAR(_state.V, _params.tas_max, 0.005f);
+	EXPECT_NEAR(_state.V, _params.tas_max, TRACKING_ERROR_TOL);
 }
 
 // --- Airspeed-less mode ---------------------------------------------------------
