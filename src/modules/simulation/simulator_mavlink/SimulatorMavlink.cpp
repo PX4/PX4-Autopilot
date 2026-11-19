@@ -349,19 +349,19 @@ void SimulatorMavlink::handle_message(const mavlink_message_t *msg)
 		break;
 
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
-#if defined(MAVLINK_MSG_ID_TARGET_RELATIVE)
+#if PX4_MAVLINK_WIP(TARGET_RELATIVE)
 
 	case MAVLINK_MSG_ID_TARGET_RELATIVE:
 		handle_message_target_relative(msg);
 		break;
-#endif // MAVLINK_MSG_ID_TARGET_RELATIVE
+#endif // PX4_MAVLINK_WIP(TARGET_RELATIVE)
 
-#if defined(MAVLINK_MSG_ID_TARGET_ABSOLUTE)
+#if PX4_MAVLINK_WIP(TARGET_ABSOLUTE)
 
 	case MAVLINK_MSG_ID_TARGET_ABSOLUTE:
 		handle_message_target_absolute(msg);
 		break;
-#endif // MAVLINK_MSG_ID_TARGET_ABSOLUTE
+#endif // PX4_MAVLINK_WIP(TARGET_ABSOLUTE)
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	case MAVLINK_MSG_ID_HIL_STATE_QUATERNION:
@@ -635,7 +635,7 @@ void SimulatorMavlink::handle_message_landing_target(const mavlink_message_t *ms
 
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
-#if defined(MAVLINK_MSG_ID_TARGET_ABSOLUTE)
+#if PX4_MAVLINK_WIP(TARGET_ABSOLUTE)
 void
 SimulatorMavlink::handle_message_target_absolute(const mavlink_message_t *msg)
 {
@@ -691,10 +691,10 @@ SimulatorMavlink::handle_message_target_absolute(const mavlink_message_t *msg)
 
 	if (updated) { _target_gnss_pub.publish(target_GNSS_report); }
 }
-#endif // MAVLINK_MSG_ID_TARGET_ABSOLUTE
+#endif // PX4_MAVLINK_WIP(TARGET_ABSOLUTE)
 
 
-#if defined(MAVLINK_MSG_ID_TARGET_RELATIVE)
+#if PX4_MAVLINK_WIP(TARGET_RELATIVE)
 void SimulatorMavlink::handle_message_target_relative(const mavlink_message_t *msg)
 {
 	mavlink_target_relative_t target_relative;
@@ -854,7 +854,7 @@ void SimulatorMavlink::handle_message_target_relative(const mavlink_message_t *m
 	}
 
 }
-#endif // MAVLINK_MSG_ID_TARGET_RELATIVE
+#endif // PX4_MAVLINK_WIP(TARGET_RELATIVE)
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 void SimulatorMavlink::handle_message_odometry(const mavlink_message_t *msg)

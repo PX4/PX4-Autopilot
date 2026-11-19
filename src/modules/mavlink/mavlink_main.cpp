@@ -1768,11 +1768,11 @@ constexpr StreamRateDefault streams_mode_normal[] = {
 	{"EFI_STATUS", 2.0f},
 	{"ESC_INFO", 1.0f},
 	{"ESC_STATUS", 1.0f},
-#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
+#if PX4_MAVLINK_WIP(ESC_EEPROM)
 	{"ESC_EEPROM", unlimited_rate},
 #endif
 	{"ESTIMATOR_STATUS", 0.5f},
-#if defined(MAVLINK_MSG_ID_ESTIMATOR_SENSOR_FUSION_STATUS)
+#if PX4_MAVLINK_WIP(ESTIMATOR_SENSOR_FUSION_STATUS)
 	{"ESTIMATOR_SENSOR_FUSION_STATUS", 0.5f},
 #endif
 	{"EXTENDED_SYS_STATE", 1.0f},
@@ -1782,16 +1782,16 @@ constexpr StreamRateDefault streams_mode_normal[] = {
 	{"GIMBAL_MANAGER_STATUS", 0.5f},
 	{"GLOBAL_POSITION_SENSOR", 5.0f},
 	{"GLOBAL_POSITION_INT", 5.0f},
-#if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
+#if PX4_MAVLINK_WIP(GNSS_INTEGRITY)
 	{"GNSS_INTEGRITY", 1.0f},
 #endif
 	{"GPS2_RAW", 1.0f},
 	{"GPS_GLOBAL_ORIGIN", 1.0f},
 	{"GPS_RAW_INT", 5.0f},
 	{"GPS_STATUS", 1.0f},
-#if defined(MAVLINK_MSG_ID_MANUAL_INPUT_STATUS)
+#if PX4_MAVLINK_WIP(MANUAL_INPUT_STATUS)
 	{"MANUAL_INPUT_STATUS", 1.0f},
-#endif // MAVLINK_MSG_ID_MANUAL_INPUT_STATUS
+#endif // PX4_MAVLINK_WIP(MANUAL_INPUT_STATUS)
 	{"HOME_POSITION", 0.5f},
 	{"HYGROMETER_SENSOR", 0.1f},
 	{"LOCAL_POSITION_NED", 1.0f},
@@ -1844,7 +1844,7 @@ constexpr StreamRateDefault streams_mode_onboard[] = {
 	{"DISTANCE_SENSOR", 10.0f},
 	{"ESC_INFO", 10.0f},
 	{"ESC_STATUS", 10.0f},
-#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
+#if PX4_MAVLINK_WIP(ESC_EEPROM)
 	{"ESC_EEPROM", unlimited_rate},
 #endif
 	{"MOUNT_ORIENTATION", 10.0f},
@@ -1860,7 +1860,7 @@ constexpr StreamRateDefault streams_mode_onboard[] = {
 	{"CURRENT_MODE", 0.5f},
 	{"EFI_STATUS", 2.0f},
 	{"ESTIMATOR_STATUS", 1.0f},
-#if defined(MAVLINK_MSG_ID_ESTIMATOR_SENSOR_FUSION_STATUS)
+#if PX4_MAVLINK_WIP(ESTIMATOR_SENSOR_FUSION_STATUS)
 	{"ESTIMATOR_SENSOR_FUSION_STATUS", 1.0f},
 #endif
 	{"EXTENDED_SYS_STATE", 5.0f},
@@ -1869,16 +1869,16 @@ constexpr StreamRateDefault streams_mode_onboard[] = {
 	{"GIMBAL_MANAGER_SET_PITCHYAW", 5.0f},
 	{"GIMBAL_MANAGER_STATUS", 0.5f},
 	{"GLOBAL_POSITION_INT", 50.0f},
-#if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
+#if PX4_MAVLINK_WIP(GNSS_INTEGRITY)
 	{"GNSS_INTEGRITY", 1.0f},
 #endif
 	{"GPS2_RAW", unlimited_rate},
 	{"GPS_GLOBAL_ORIGIN", 1.0f},
 	{"GPS_RAW_INT", unlimited_rate},
 	{"GPS_STATUS", 1.0f},
-#if defined(MAVLINK_MSG_ID_MANUAL_INPUT_STATUS)
+#if PX4_MAVLINK_WIP(MANUAL_INPUT_STATUS)
 	{"MANUAL_INPUT_STATUS", 1.0f},
-#endif // MAVLINK_MSG_ID_MANUAL_INPUT_STATUS
+#endif // PX4_MAVLINK_WIP(MANUAL_INPUT_STATUS)
 	{"HOME_POSITION", 0.5f},
 	{"HYGROMETER_SENSOR", 1.0f},
 	{"NAV_CONTROLLER_OUTPUT", 10.0f},
@@ -2029,16 +2029,16 @@ constexpr StreamRateDefault streams_mode_config[] = {
 	{"EFI_STATUS", 10.0f},
 	{"ESC_INFO", 10.0f},
 	{"ESC_STATUS", 10.0f},
-#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
+#if PX4_MAVLINK_WIP(ESC_EEPROM)
 	{"ESC_EEPROM", unlimited_rate},
 #endif
 	{"ESTIMATOR_STATUS", 5.0f},
-#if defined(MAVLINK_MSG_ID_ESTIMATOR_SENSOR_FUSION_STATUS)
+#if PX4_MAVLINK_WIP(ESTIMATOR_SENSOR_FUSION_STATUS)
 	{"ESTIMATOR_SENSOR_FUSION_STATUS", 1.0f},
 #endif
 	{"EXTENDED_SYS_STATE", 2.0f},
 	{"GLOBAL_POSITION_INT", 10.0f},
-#if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
+#if PX4_MAVLINK_WIP(GNSS_INTEGRITY)
 	{"GNSS_INTEGRITY", 1.0f},
 #endif
 	{"GPS2_RAW", unlimited_rate},
@@ -2052,9 +2052,9 @@ constexpr StreamRateDefault streams_mode_config[] = {
 	{"HYGROMETER_SENSOR", 1.0f},
 	{"MAG_CAL_REPORT", 1.0f},
 	{"MANUAL_CONTROL", 5.0f},
-#if defined(MAVLINK_MSG_ID_MANUAL_INPUT_STATUS)
+#if PX4_MAVLINK_WIP(MANUAL_INPUT_STATUS)
 	{"MANUAL_INPUT_STATUS", 1.0f},
-#endif // MAVLINK_MSG_ID_MANUAL_INPUT_STATUS
+#endif // PX4_MAVLINK_WIP(MANUAL_INPUT_STATUS)
 	{"NAV_CONTROLLER_OUTPUT", 10.0f},
 	{"OPEN_DRONE_ID_LOCATION", 1.f},
 	{"OPEN_DRONE_ID_SYSTEM", 1.f},
@@ -2103,9 +2103,9 @@ constexpr StreamRateDefault streams_mode_minimal[] = {
 	{"EXTENDED_SYS_STATE", 0.1f},
 	{"GLOBAL_POSITION_INT", 5.0f},
 	{"GPS_RAW_INT", 0.5f},
-#if defined(MAVLINK_MSG_ID_MANUAL_INPUT_STATUS)
+#if PX4_MAVLINK_WIP(MANUAL_INPUT_STATUS)
 	{"MANUAL_INPUT_STATUS", 1.0f},
-#endif // MAVLINK_MSG_ID_MANUAL_INPUT_STATUS
+#endif // PX4_MAVLINK_WIP(MANUAL_INPUT_STATUS)
 	{"HOME_POSITION", 0.1f},
 	{"NAMED_VALUE_FLOAT", 1.0f},
 	{"RC_CHANNELS", 0.5f},
@@ -2134,7 +2134,7 @@ constexpr StreamRateDefault streams_mode_onboard_low_bandwidth[] = {
 	{"GIMBAL_MANAGER_SET_PITCHYAW", 5.0f},
 	{"ESC_INFO", 1.0f},
 	{"ESC_STATUS", 5.0f},
-#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
+#if PX4_MAVLINK_WIP(ESC_EEPROM)
 	{"ESC_EEPROM", unlimited_rate},
 #endif
 
@@ -2145,21 +2145,21 @@ constexpr StreamRateDefault streams_mode_onboard_low_bandwidth[] = {
 	{"CAMERA_IMAGE_CAPTURED", unlimited_rate},
 	{"CURRENT_MODE", 0.5f},
 	{"ESTIMATOR_STATUS", 1.0f},
-#if defined(MAVLINK_MSG_ID_ESTIMATOR_SENSOR_FUSION_STATUS)
+#if PX4_MAVLINK_WIP(ESTIMATOR_SENSOR_FUSION_STATUS)
 	{"ESTIMATOR_SENSOR_FUSION_STATUS", 1.0f},
 #endif
 	{"EXTENDED_SYS_STATE", 1.0f},
 	{"GLOBAL_POSITION_SENSOR", 10.0f},
 	{"GLOBAL_POSITION_INT", 10.0f},
 	{"GPS_GLOBAL_ORIGIN", 1.0f},
-#if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
+#if PX4_MAVLINK_WIP(GNSS_INTEGRITY)
 	{"GNSS_INTEGRITY", 1.0f},
 #endif
 	{"GPS2_RAW", unlimited_rate},
 	{"GPS_RAW_INT", unlimited_rate},
-#if defined(MAVLINK_MSG_ID_MANUAL_INPUT_STATUS)
+#if PX4_MAVLINK_WIP(MANUAL_INPUT_STATUS)
 	{"MANUAL_INPUT_STATUS", 1.0f},
-#endif // MAVLINK_MSG_ID_MANUAL_INPUT_STATUS
+#endif // PX4_MAVLINK_WIP(MANUAL_INPUT_STATUS)
 	{"HOME_POSITION", 0.5f},
 	{"NAV_CONTROLLER_OUTPUT", 1.5f},
 	{"OPEN_DRONE_ID_LOCATION", 1.f},
@@ -2209,7 +2209,7 @@ constexpr StreamRateDefault streams_mode_low_bandwidth[] = {
 	{"GIMBAL_MANAGER_SET_PITCHYAW", 2.0f},
 	{"ESC_INFO", 1.0f},
 	{"ESC_STATUS", 1.0f},
-#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
+#if PX4_MAVLINK_WIP(ESC_EEPROM)
 	{"ESC_EEPROM", unlimited_rate},
 #endif
 	{"ADSB_VEHICLE", 1.0f},
@@ -2219,7 +2219,7 @@ constexpr StreamRateDefault streams_mode_low_bandwidth[] = {
 	{"CAMERA_IMAGE_CAPTURED", 2.0f},
 	{"CURRENT_MODE", 0.5f},
 	{"ESTIMATOR_STATUS", 1.0f},
-#if defined(MAVLINK_MSG_ID_ESTIMATOR_SENSOR_FUSION_STATUS)
+#if PX4_MAVLINK_WIP(ESTIMATOR_SENSOR_FUSION_STATUS)
 	{"ESTIMATOR_SENSOR_FUSION_STATUS", 1.0f},
 #endif
 	{"EXTENDED_SYS_STATE", 0.5f},
@@ -2228,9 +2228,9 @@ constexpr StreamRateDefault streams_mode_low_bandwidth[] = {
 	{"GPS_GLOBAL_ORIGIN", 0.1f},
 	{"GPS2_RAW", 1.0f},
 	{"GPS_RAW_INT", 1.0f},
-#if defined(MAVLINK_MSG_ID_MANUAL_INPUT_STATUS)
+#if PX4_MAVLINK_WIP(MANUAL_INPUT_STATUS)
 	{"MANUAL_INPUT_STATUS", 1.0f},
-#endif // MAVLINK_MSG_ID_MANUAL_INPUT_STATUS
+#endif // PX4_MAVLINK_WIP(MANUAL_INPUT_STATUS)
 	{"HOME_POSITION", 0.5f},
 	{"NAV_CONTROLLER_OUTPUT", 0.1f},
 	{"OPTICAL_FLOW_RAD", 0.1f},

@@ -70,7 +70,7 @@
 #include "streams/COMPONENT_METADATA.hpp"
 #include "streams/DISTANCE_SENSOR.hpp"
 #include "streams/EFI_STATUS.hpp"
-#if defined(MAVLINK_MSG_ID_ESTIMATOR_SENSOR_FUSION_STATUS)
+#if PX4_MAVLINK_WIP(ESTIMATOR_SENSOR_FUSION_STATUS)
 #include "streams/ESTIMATOR_SENSOR_FUSION_STATUS.hpp"
 #endif
 #include "streams/ESC_INFO.hpp"
@@ -80,7 +80,7 @@
 #include "streams/FLIGHT_INFORMATION.hpp"
 #include "streams/GLOBAL_POSITION_SENSOR.hpp"
 #include "streams/GLOBAL_POSITION_INT.hpp"
-#if defined(MAVLINK_MSG_ID_GNSS_INTEGRITY)
+#if PX4_MAVLINK_WIP(GNSS_INTEGRITY)
 #include "streams/GNSS_INTEGRITY.hpp"
 #endif
 #include "streams/GPS_GLOBAL_ORIGIN.hpp"
@@ -99,9 +99,9 @@
 #include "streams/MAG_CAL_REPORT.hpp"
 #endif
 #include "streams/MANUAL_CONTROL.hpp"
-#if defined(MAVLINK_MSG_ID_MANUAL_INPUT_STATUS)
+#if PX4_MAVLINK_WIP(MANUAL_INPUT_STATUS)
 #include "streams/MANUAL_INPUT_STATUS.hpp"
-#endif // MAVLINK_MSG_ID_MANUAL_INPUT_STATUS
+#endif // PX4_MAVLINK_WIP(MANUAL_INPUT_STATUS)
 #include "streams/MOUNT_ORIENTATION.hpp"
 #include "streams/NAV_CONTROLLER_OUTPUT.hpp"
 #include "streams/OBSTACLE_DISTANCE.hpp"
@@ -143,7 +143,7 @@
 #include "streams/CURRENT_MODE.hpp"
 #endif
 
-#ifdef MAVLINK_MSG_ID_ESC_EEPROM // Only defined if development.xml is used
+#if PX4_MAVLINK_WIP(ESC_EEPROM)
 #include "streams/ESC_EEPROM.hpp"
 #endif
 

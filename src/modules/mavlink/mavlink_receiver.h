@@ -71,7 +71,7 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/autotune_attitude_control_status.h>
-#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
+#if PX4_MAVLINK_WIP(ESC_EEPROM)
 #include <uORB/topics/esc_eeprom_write.h>
 #endif
 #include <uORB/topics/esc_status.h>
@@ -232,10 +232,10 @@ private:
 	void handle_message_statustext(mavlink_message_t *msg);
 	void handle_message_tunnel(mavlink_message_t *msg);
 	void handle_message_utm_global_position(mavlink_message_t *msg);
-#if defined(MAVLINK_MSG_ID_SET_VELOCITY_LIMITS) // For now only defined if development.xml is used
+#if PX4_MAVLINK_WIP(SET_VELOCITY_LIMITS)
 	void handle_message_set_velocity_limits(mavlink_message_t *msg);
 #endif
-#if defined(MAVLINK_MSG_ID_ESC_EEPROM) // For now only defined if development.xml is used
+#if PX4_MAVLINK_WIP(ESC_EEPROM)
 	void handle_message_esc_eeprom(mavlink_message_t *msg);
 #endif
 	void handle_message_vision_position_estimate(mavlink_message_t *msg);
@@ -245,9 +245,9 @@ private:
 	void handle_message_gimbal_device_attitude_status(mavlink_message_t *msg);
 	void handle_message_gimbal_manager_status(mavlink_message_t *msg);
 	void handle_message_global_position_sensor(mavlink_message_t *msg);
-#if defined(MAVLINK_MSG_ID_RANGING_BEACON)
+#if PX4_MAVLINK_WIP(RANGING_BEACON)
 	void handle_message_ranging_beacon(mavlink_message_t *msg);
-#endif // MAVLINK_MSG_ID_RANGING_BEACON
+#endif // PX4_MAVLINK_WIP(RANGING_BEACON)
 
 #if !defined(CONSTRAINED_FLASH)
 	void handle_message_debug(mavlink_message_t *msg);
@@ -410,7 +410,7 @@ private:
 	uORB::Publication<vehicle_rates_setpoint_s>		_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::Publication<ranging_beacon_s>			_ranging_beacon_pub{ORB_ID(ranging_beacon)};
 
-#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
+#if PX4_MAVLINK_WIP(ESC_EEPROM)
 	uORB::Publication<esc_eeprom_write_s>			_esc_eeprom_write_pub {ORB_ID(esc_eeprom_write)};
 #endif
 
