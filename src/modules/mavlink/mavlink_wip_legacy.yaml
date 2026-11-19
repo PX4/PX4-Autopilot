@@ -13,9 +13,11 @@
 # A message, enum or enum entry used in code also needs its uses wrapped in
 # PX4_MAVLINK_WIP_LEGACY_BEGIN(<NAME>) / PX4_MAVLINK_WIP_LEGACY_END, which
 # lets the build through with a note. A MAV_CMD handled by number
-# (VEHICLE_CMD_*, NAV_CMD_*) or a stream name only needs its entry here.
+# (VEHICLE_CMD_*, NAV_CMD_*) needs its uses inside
+# #if PX4_MAVLINK_WIP_LEGACY(<NAME>). A stream name only needs its entry here.
 #
-# Building with -DPX4_MAVLINK_WIP_LEGACY=OFF ignores this list.
+# Building with -DPX4_MAVLINK_WIP_LEGACY=OFF ignores this list: waived
+# message and enum uses fail to compile, and legacy commands are compiled out.
 #
 # name:   MAVLink name of the definition
 # reason: why it ships unguarded, and what removes it from the list

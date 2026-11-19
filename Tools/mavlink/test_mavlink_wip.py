@@ -194,7 +194,8 @@ class LegacyTest(unittest.TestCase):
         'src/modules/mavlink/a.cpp': 'PX4_MAVLINK_WIP_LEGACY_BEGIN(BATTERY_INFO)\n'
                                      'void f() { mavlink_msg_battery_info_send_struct(0, 0); }\n'
                                      'PX4_MAVLINK_WIP_LEGACY_END\n',
-        'src/b.cpp': 'int c = vehicle_command_s::VEHICLE_CMD_ACTUATOR_GROUP_TEST;\n',
+        'src/b.cpp': '#if PX4_MAVLINK_WIP_LEGACY(MAV_CMD_ACTUATOR_GROUP_TEST)\n'
+                     'int c = vehicle_command_s::VEHICLE_CMD_ACTUATOR_GROUP_TEST;\n#endif\n',
     }
 
     def test_waived_and_numeric_legacy_uses(self):
@@ -205,6 +206,25 @@ class LegacyTest(unittest.TestCase):
                           'src/b.cpp': self.USES['src/b.cpp']}, self.LEGACY)
         self.assertEqual(len(findings), 2)  # the use, and the entry now has no waived use
         self.assertIn('mavlink_msg_battery_info_send_struct is WIP', findings[0])
+
+    def test_legacy_command_needs_its_legacy_guard(self):
+        findings = check({'src/modules/mavlink/a.cpp': self.USES['src/modules/mavlink/a.cpp'],
+                          'src/b.cpp': 'int c = vehicle_command_s::VEHICLE_CMD_ACTUATOR_GROUP_TEST;\n'},
+                         self.LEGACY)
+        self.assertEqual(len(findings), 2)  # the use, and the entry now has no guarded use
+        self.assertIn('not inside its legacy guard', findings[0])
+
+    def test_legacy_guard_not_on_list(self):
+        findings = check({'src/a.cpp': '#if PX4_MAVLINK_WIP_LEGACY(ESC_EEPROM)\n#endif\n'})
+        self.assertEqual(len(findings), 1)
+        self.assertIn('ESC_EEPROM is not on the legacy list', findings[0])
+
+    def test_legacy_guard_else_branch_is_not_guarded(self):
+        findings = check({'src/modules/mavlink/a.cpp': self.USES['src/modules/mavlink/a.cpp'],
+                          'src/b.cpp': '#if PX4_MAVLINK_WIP_LEGACY(MAV_CMD_ACTUATOR_GROUP_TEST)\n#else\n'
+                                       'int c = vehicle_command_s::VEHICLE_CMD_ACTUATOR_GROUP_TEST;\n#endif\n'},
+                         self.LEGACY)
+        self.assertIn('not inside its legacy guard', findings[0])
 
     def test_waiver_not_on_list(self):
         findings = check({'src/a.cpp': 'PX4_MAVLINK_WIP_LEGACY_BEGIN(ESC_EEPROM)\n'

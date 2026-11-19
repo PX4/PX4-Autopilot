@@ -51,9 +51,11 @@ HEADER = '''\
  * check before opening a pull request.
  *
  * Existing uses that ship unguarded for now are listed in
- * src/modules/mavlink/mavlink_wip_legacy.yaml, which may only shrink. Such
- * a use is wrapped in PX4_MAVLINK_WIP_LEGACY_BEGIN(<NAME>) and
- * PX4_MAVLINK_WIP_LEGACY_END.
+ * src/modules/mavlink/mavlink_wip_legacy.yaml, which may only shrink. A
+ * message or enum use is wrapped in PX4_MAVLINK_WIP_LEGACY_BEGIN(<NAME>) and
+ * PX4_MAVLINK_WIP_LEGACY_END; a command handled by number goes inside
+ * #if PX4_MAVLINK_WIP_LEGACY(<NAME>), which -DPX4_MAVLINK_WIP_LEGACY=OFF
+ * compiles out.
  *
  * Once <NAME> is released (no longer WIP), remove its guard.
  * Tools/mavlink/check_wip.py reports guards for released definitions.

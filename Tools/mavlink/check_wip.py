@@ -18,10 +18,12 @@ message, enum or enum entry. This lint covers what the compiler cannot see:
     be WIP and still used, waivers must name an entry, and with --base the
     list may not grow
 
-A use counts as guarded inside #if PX4_MAVLINK_WIP(...), in a header that is
-only included from guarded code, or, for an item on the legacy list, inside
-PX4_MAVLINK_WIP_LEGACY_BEGIN(<NAME>) / PX4_MAVLINK_WIP_LEGACY_END (numbers
-and stream names of legacy items need no waiver).
+A use counts as guarded inside #if PX4_MAVLINK_WIP(...), or in a header that
+is only included from guarded code. For an item on the legacy list, a message
+or enum use may instead sit inside PX4_MAVLINK_WIP_LEGACY_BEGIN(<NAME>) /
+PX4_MAVLINK_WIP_LEGACY_END, a command handled by number must sit inside
+#if PX4_MAVLINK_WIP_LEGACY(<NAME>) (so that switching the list off removes
+it), and a stream name needs nothing more.
 
 Usage:
     check_wip.py                       report problems, exit 1 if there are any
@@ -50,6 +52,7 @@ SOURCE_ROOTS = ('src', 'platforms', 'boards')
 SOURCE_EXTENSIONS = ('.c', '.cpp', '.h', '.hpp')
 
 GUARD = re.compile(r'(!\s*)?PX4_MAVLINK_WIP\s*\(\s*(\w*)\s*\)')
+LEGACY_GUARD = re.compile(r'(!\s*)?\bPX4_MAVLINK_WIP_LEGACY\s*\(\s*(\w*)\s*\)')
 LEGACY_BEGIN = re.compile(r'\bPX4_MAVLINK_WIP_LEGACY_BEGIN\s*\(\s*(\w*)\s*\)')
 LEGACY_END = re.compile(r'\bPX4_MAVLINK_WIP_LEGACY_END\b')
 DIRECTIVE = re.compile(r'^\s*#\s*(\w+)\s*(.*)$')
@@ -143,11 +146,21 @@ def strip_comments(text):
 
 
 class Frame:
-    """One #if level: whether its current branch is a guarded branch."""
+    """One #if level: whether its current branch is a guarded branch, and the
+    legacy commands its PX4_MAVLINK_WIP_LEGACY() condition keeps."""
 
-    def __init__(self, kind):
-        self.kind = kind  # 'guard', 'not-guard' (#if !PX4_MAVLINK_WIP) or None
-        self.guarded = kind == 'guard'
+    def __init__(self, condition):
+        self.enter(condition)
+
+    def enter(self, condition):
+        self.kind = guard_kind(condition)  # 'guard', 'not-guard' (#if !PX4_MAVLINK_WIP) or None
+        self.guarded = self.kind == 'guard'
+        self.legacy = frozenset(match.group(2) for match in LEGACY_GUARD.finditer(condition)
+                                if not match.group(1))
+
+    def other_branch(self):
+        self.guarded = self.kind == 'not-guard'
+        self.legacy = frozenset()
 
 
 def guard_kind(condition):
@@ -167,7 +180,8 @@ class ParsedFile:
         self.code, self.strings = strip_comments(text)
         self.lines = self.code.split('\n')
         self.guarded = []  # per line: inside a guarded branch
-        self.waivers = []  # per line: legacy items waived
+        self.waivers = []  # per line: legacy items waived (PX4_MAVLINK_WIP_LEGACY_BEGIN/END)
+        self.legacy_guards = []  # per line: legacy commands kept by #if PX4_MAVLINK_WIP_LEGACY()
         self.directives = []  # (line, name, argument)
         self.includes = []  # (line, path, guarded, waivers)
         self._parse()
@@ -183,6 +197,7 @@ class ParsedFile:
             waived = frozenset(waivers)
             self.guarded.append(guarded)
             self.waivers.append(waived)
+            self.legacy_guards.append(frozenset().union(*(frame.legacy for frame in stack)))
 
             if logical or re.match(r'^\s*#', text):
                 if not logical:
@@ -203,14 +218,13 @@ class ParsedFile:
                 self.directives.append((start, name, argument))
 
                 if name in ('if', 'ifdef', 'ifndef'):
-                    stack.append(Frame(guard_kind(argument)))
+                    stack.append(Frame(argument if name == 'if' else ''))
 
                 elif name == 'elif' and stack:
-                    stack[-1].kind = guard_kind(argument)
-                    stack[-1].guarded = stack[-1].kind == 'guard'
+                    stack[-1].enter(argument)
 
                 elif name == 'else' and stack:
-                    stack[-1].guarded = stack[-1].kind == 'not-guard'
+                    stack[-1].other_branch()
 
                 elif name == 'endif' and stack:
                     stack.pop()
@@ -355,26 +369,39 @@ class Checker:
 
         return item if item is not None and item.wip else None
 
-    def use(self, path, line, item, guarded, waivers, what, numeric=False):
+    def use(self, path, line, item, guarded, waivers, legacy_guards, what, kind):
+        """Record one use. kind: 'symbol' (message or enum), 'command' (a
+        VEHICLE_CMD_*/NAV_CMD_* number) or 'stream' (a stream name)."""
         location = f'{path}:{line}'
 
         if guarded:
             self.guarded_uses[item.name].add(location)
             return
 
-        if item.name in self.legacy and (numeric or item.name in waivers):
-            self.legacy_uses[item.name].add(location)
-            return
+        if item.name in self.legacy:
+            # a message or enum use needs the waiver to compile; a command
+            # needs the legacy guard so that switching the list off removes it
+            if ((kind == 'symbol' and item.name in waivers)
+                    or (kind == 'command' and item.name in legacy_guards) or kind == 'stream'):
+                self.legacy_uses[item.name].add(location)
+                return
 
-        if item.name in waivers:
-            # waived but not on the legacy list: reported at the waiver
+            if kind == 'command':
+                self.findings.append(Finding(
+                    path, line, f'{what} is on the legacy list but not inside its legacy guard, so '
+                    '-DPX4_MAVLINK_WIP_LEGACY=OFF would not remove it.',
+                    f'Add: #if PX4_MAVLINK_WIP_LEGACY({item.name}) ... #endif'))
+                return
+
+        elif item.name in waivers or item.name in legacy_guards:
+            # waived or legacy-guarded but not on the legacy list: reported at the waiver or guard
             return
 
         self.findings.append(Finding(path, line, f'{what} is WIP ({item.xml_file}) and used outside a guard.',
                                      guard_hint(item.name)))
 
-    def check_guard_name(self, path, line, name, legacy_waiver=False):
-        construct = 'PX4_MAVLINK_WIP_LEGACY_BEGIN' if legacy_waiver else 'PX4_MAVLINK_WIP'
+    def check_guard_name(self, path, line, name, legacy_waiver=False, construct=None):
+        construct = construct or ('PX4_MAVLINK_WIP_LEGACY_BEGIN' if legacy_waiver else 'PX4_MAVLINK_WIP')
         item = self.definitions.get(name)
 
         if item is None:
@@ -397,6 +424,10 @@ class Checker:
             for match in GUARD.finditer(argument):
                 self.check_guard_name(path, line, match.group(2))
 
+            for match in LEGACY_GUARD.finditer(argument):
+                self.check_guard_name(path, line, match.group(2), legacy_waiver=True,
+                                      construct='PX4_MAVLINK_WIP_LEGACY')
+
             if name in ('if', 'ifdef', 'ifndef', 'elif'):
                 for match in MSG_ID.finditer(argument):
                     item = self.definitions.get(match.group(1))
@@ -413,6 +444,7 @@ class Checker:
 
             guarded = parsed_file.guarded[number - 1] or file_guarded
             waivers = parsed_file.waivers[number - 1] | file_waivers
+            legacy_guards = parsed_file.legacy_guards[number - 1]
 
             for match in LEGACY_BEGIN.finditer(text):
                 self.check_guard_name(path, number, match.group(1), legacy_waiver=True)
@@ -433,7 +465,8 @@ class Checker:
                 if item is not None:
                     numeric = symbol in self.commands
                     what = f'{symbol} (={item.value}, {item.name})' if numeric else symbol
-                    self.use(path, number, item, guarded, waivers, what, numeric=numeric)
+                    self.use(path, number, item, guarded, waivers, legacy_guards, what,
+                             'command' if numeric else 'symbol')
 
         if path.startswith(MAVLINK_MODULE):
             for number, value in parsed_file.strings:
@@ -441,8 +474,8 @@ class Checker:
 
                 if item is not None and item.wip and item.kind == 'message':
                     guarded = parsed_file.guarded[number - 1] or file_guarded
-                    waivers = parsed_file.waivers[number - 1] | file_waivers
-                    self.use(path, number, item, guarded, waivers, f'Stream name "{value}"', numeric=True)
+                    self.use(path, number, item, guarded, frozenset(), frozenset(), f'Stream name "{value}"',
+                             'stream')
 
     def check_legacy(self, base_legacy):
         for name, entry in self.legacy.items():

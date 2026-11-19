@@ -601,6 +601,8 @@ void EKF2::Run()
 				_vehicle_command_ack_pub.publish(command_ack);
 			}
 
+#if PX4_MAVLINK_WIP_LEGACY(MAV_CMD_EXTERNAL_ATTITUDE_ESTIMATE)
+
 			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_EXTERNAL_ATTITUDE_ESTIMATE) {
 				if (PX4_ISFINITE(vehicle_command.param3)) {
 					const float heading = wrap_pi(math::radians(vehicle_command.param3));
@@ -619,11 +621,16 @@ void EKF2::Run()
 				_vehicle_command_ack_pub.publish(command_ack);
 			}
 
+#endif // PX4_MAVLINK_WIP_LEGACY(MAV_CMD_EXTERNAL_ATTITUDE_ESTIMATE)
+#if PX4_MAVLINK_WIP_LEGACY(MAV_CMD_ESTIMATOR_SENSOR_ENABLE)
+
 			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_ESTIMATOR_SENSOR_ENABLE) {
 				handleSensorFusionCommand(vehicle_command, command_ack);
 				command_ack.timestamp = hrt_absolute_time();
 				_vehicle_command_ack_pub.publish(command_ack);
 			}
+
+#endif // PX4_MAVLINK_WIP_LEGACY(MAV_CMD_ESTIMATOR_SENSOR_ENABLE)
 		}
 	}
 

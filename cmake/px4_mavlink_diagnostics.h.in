@@ -27,6 +27,15 @@
 /** 1 if the uses in src/modules/mavlink/mavlink_wip_legacy.yaml may ship unguarded. */
 #define PX4_MAVLINK_WIP_LEGACY_ENABLED @PX4_MAVLINK_WIP_LEGACY_ENABLED@
 
+/**
+ * Guard for a WIP MAV_CMD on the legacy list that PX4 handles by number
+ * (VEHICLE_CMD_*): 1 unless the legacy list is switched off in a beta or
+ * release build. Commands have no deprecation to waive, so this guard is what
+ * removes them when the list is off. Tools/mavlink/check_wip.py checks that
+ * <name> is on the list.
+ */
+#define PX4_MAVLINK_WIP_LEGACY(name) (PX4_MAVLINK_WIP_ENABLED || PX4_MAVLINK_WIP_LEGACY_ENABLED)
+
 /*
  * The generated MAVLink headers tag WIP messages and enum entries with these
  * macros, which default to nothing. Where guarded WIP code is compiled out
