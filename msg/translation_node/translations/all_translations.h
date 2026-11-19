@@ -25,6 +25,7 @@
 #include "translation_vehicle_command_ack_v1.h"
 #include "translation_vehicle_command_ack_v2.h"
 #include "translation_vehicle_command_v1.h"
+#include "translation_vehicle_command_v2.h"
 #include "translation_vehicle_local_position_v1.h"
 #include "translation_vehicle_status_v1.h"
 #include "translation_vehicle_status_v2.h"
