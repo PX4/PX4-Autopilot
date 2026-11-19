@@ -325,6 +325,8 @@ Mavlink::mavlink_update_parameters()
 		_param_mav_type.commit_no_notification();
 		PX4_ERR("MAV_TYPE parameter invalid, resetting to 0.");
 	}
+
+	_mav_type_atomic.store(_param_mav_type.get());
 }
 
 bool Mavlink::set_channel()

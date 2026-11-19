@@ -428,7 +428,7 @@ public:
 
 	void			update_radio_status(const radio_status_s &radio_status);
 
-	unsigned		get_system_type() { return _param_mav_type.get(); }
+	unsigned		get_system_type() { return _mav_type_atomic.load(); }
 
 	Protocol 		get_protocol() const { return _protocol; }
 
@@ -712,6 +712,7 @@ private:
 	px4::atomic_bool _hb_forw_en_atomic{false};
 	px4::atomic_bool _fwdextsp_atomic{false};
 	px4::atomic_bool _hash_chk_en_atomic{false};
+	px4::atomic<int32_t> _mav_type_atomic{0};
 #if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
 	px4::atomic_bool _failure_injection_en_atomic {false};
 #endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER
