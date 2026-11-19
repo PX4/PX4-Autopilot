@@ -428,7 +428,6 @@ void LoggedTopics::add_high_rate_sensors_topics()
 	add_topic("estimator_aid_src_baro_hgt", 10);
 	add_topic("vehicle_air_data", 10);
 	add_topic("vehicle_magnetometer", 10);
-	add_topic("vehicle_thrust_setpoint", 10);
 	add_topic("wheel_encoders", 10);
 }
 
