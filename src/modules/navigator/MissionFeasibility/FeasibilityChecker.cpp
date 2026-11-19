@@ -240,6 +240,16 @@ bool FeasibilityChecker::checkMissionItemValidity(mission_item_s &mission_item, 
 
 	}
 
+	/* reject terrain-relative alt: navigator does not fly it yet and would treat it as AMSL */
+	if (mission_item_altitude_is_terrain(mission_item) && mission_item_contains_position(mission_item)) {
+
+		mavlink_log_critical(_mavlink_log_pub, "Mission rejected: WP %d uses terrain alt, unsupported\t", current_index + 1);
+		events::send<int16_t>(events::ID("navigator_mis_terrain_alt_unsup"), {events::Log::Error, events::LogInternal::Info},
+				      "Mission rejected: waypoint {1} uses terrain-relative altitude, which is not supported yet",
+				      current_index + 1);
+		return false;
+	}
+
 	// check if we find unsupported items and reject mission if so
 	if (mission_item.nav_cmd != NAV_CMD_IDLE &&
 	    mission_item.nav_cmd != NAV_CMD_WAYPOINT &&

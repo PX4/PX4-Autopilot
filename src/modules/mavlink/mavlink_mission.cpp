@@ -1451,10 +1451,16 @@ int
 MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_int_t *mavlink_mission_item,
 		struct mission_item_s *mission_item)
 {
+	// Terrain-relative altitude is only meaningful for mission items, not for fence or rally points.
+	const bool terrain_frame_allowed = _mission_type == MAV_MISSION_TYPE_MISSION
+					   && (mavlink_mission_item->frame == MAV_FRAME_GLOBAL_TERRAIN_ALT
+					       || mavlink_mission_item->frame == MAV_FRAME_GLOBAL_TERRAIN_ALT_INT);
+
 	if (mavlink_mission_item->frame == MAV_FRAME_GLOBAL ||
 	    mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT ||
 	    mavlink_mission_item->frame == MAV_FRAME_GLOBAL_INT ||
-	    mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
+	    mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT ||
+	    terrain_frame_allowed) {
 		// This is a mission item with a global coordinate. How the altitude is referenced is
 		// carried by the frame, stored in mission_item->frame below.
 		mission_item->lat = ((double)mavlink_mission_item->x) * 1e-7;
@@ -1821,6 +1827,9 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 
 		if (mission_item_altitude_is_relative(*mission_item)) {
 			mavlink_mission_item->frame = MAV_FRAME_GLOBAL_RELATIVE_ALT_INT;
+
+		} else if (mission_item_altitude_is_terrain(*mission_item)) {
+			mavlink_mission_item->frame = MAV_FRAME_GLOBAL_TERRAIN_ALT;
 
 		} else {
 			mavlink_mission_item->frame = MAV_FRAME_GLOBAL_INT;

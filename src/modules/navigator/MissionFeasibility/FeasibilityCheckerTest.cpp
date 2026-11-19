@@ -143,6 +143,29 @@ TEST_F(FeasibilityCheckerTest, mission_item_validity)
 	ASSERT_EQ(ret, false);
 }
 
+TEST_F(FeasibilityCheckerTest, terrain_relative_altitude_rejected)
+{
+	TestFeasibilityChecker checker;
+	checker.publishLanded(true);
+	checker.publishHomePosition(0, 0, 100.f);
+
+	mission_item_s mission_item = {};
+	mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+
+	for (const uint8_t frame : {NAV_FRAME_GLOBAL_TERRAIN_ALT, NAV_FRAME_GLOBAL_TERRAIN_ALT_INT}) {
+		checker.reset();
+		mission_item.frame = frame;
+		EXPECT_FALSE(checker.processNextItem(mission_item, 0, 1)) << "frame " << (int)frame;
+		EXPECT_TRUE(checker.someCheckFailed());
+	}
+
+	// the same item with an AMSL altitude is accepted
+	checker.reset();
+	mission_item.frame = NAV_FRAME_GLOBAL;
+	EXPECT_TRUE(checker.processNextItem(mission_item, 0, 1));
+	EXPECT_FALSE(checker.someCheckFailed());
+}
+
 TEST_F(FeasibilityCheckerTest, do_jump_requires_earlier_target)
 {
 	struct JumpTargetCase {

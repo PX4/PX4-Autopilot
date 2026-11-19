@@ -199,6 +199,15 @@ inline bool mission_item_altitude_is_relative(const mission_item_s &item)
 }
 
 /**
+ * @return true if the item's altitude is relative to the terrain below it
+ */
+inline bool mission_item_altitude_is_terrain(const mission_item_s &item)
+{
+	// MAV_FRAME_GLOBAL_TERRAIN_ALT_INT is a deprecated MAVLink synonym, still stored as uploaded
+	return item.frame == NAV_FRAME_GLOBAL_TERRAIN_ALT || item.frame == NAV_FRAME_GLOBAL_TERRAIN_ALT_INT;
+}
+
+/**
  * dataman housekeeping information for a specific item.
  * Corresponds to the dataman entry of DM_KEY_FENCE_POINTS_STATE and DM_KEY_SAFE_POINTS_STATE
  */
