@@ -301,6 +301,10 @@ private:
 
 	FrameCheck check_frame(uint8_t framing, const mavlink_message_t &message);
 
+#if defined(CONFIG_NET) || defined(__PX4_POSIX)
+	void update_client_source(const struct sockaddr_in &source);
+#endif
+
 	/**
 	 * Reset the parser after a rejected frame, same as mavlink_parse_char() does.
 	 */
