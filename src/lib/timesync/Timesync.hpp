@@ -52,27 +52,25 @@ using namespace time_literals;
 
 static constexpr time_t PX4_EPOCH_SECS = 1234567890ULL;
 
-// Filter gains
+// Kalman filter tuning
 //
-// Alpha : Used to smooth the overall clock offset estimate. Smaller values will lead
-// to a smoother estimate, but track time drift more slowly, introducing a bias
-// in the estimate. Larger values will cause low-amplitude oscillations.
+// The offset and skew are estimated by a two-state Kalman filter (offset, skew) whose
+// prediction uses the actual time between samples, so its dynamics are defined in seconds
+// and do not depend on how often the caller exchanges timesync packets.
 //
-// Beta : Used to smooth the clock skew estimate. Smaller values will lead to a
-// tighter estimation of the skew (derivative), but will negatively affect how fast the
-// filter reacts to clock skewing (e.g cause by temperature changes to the oscillator).
-// Larger values will cause large-amplitude oscillations.
-static constexpr double ALPHA_GAIN_INITIAL = 0.05;
-static constexpr double BETA_GAIN_INITIAL = 0.05;
-static constexpr double ALPHA_GAIN_FINAL = 0.003;
-static constexpr double BETA_GAIN_FINAL = 0.003;
+// MEASUREMENT_NOISE_STD : Standard deviation of a single observed offset [us], mostly caused
+// by asymmetric link delays. Bounded by MAX_RTT_SAMPLE / 2.
+//
+// SKEW_RANDOM_WALK : Spectral density of the skew random walk [(us/s)^2/s]. Larger values let
+// the filter follow skew changes and clock corrections on the remote system faster,
+// at the cost of a noisier estimate.
+//
+// INITIAL_SKEW_STD : Prior uncertainty of the skew [us/s], i.e. the expected crystal tolerance.
+static constexpr double MEASUREMENT_NOISE_STD = 1000.0;
+static constexpr double SKEW_RANDOM_WALK = 1.0;
+static constexpr double INITIAL_SKEW_STD = 100.0;
 
-// Filter gain scheduling
-//
-// The filter interpolates between the INITIAL and FINAL gains while the number of
-// exhanged timesync packets is less than CONVERGENCE_WINDOW. A lower value will
-// allow the timesync to converge faster, but with potentially less accurate initial
-// offset and skew estimates.
+// Number of exchanged timesync packets before the estimate is considered converged.
 static constexpr uint32_t CONVERGENCE_WINDOW = 500;
 
 // Outlier rejection and filter reset
@@ -121,20 +119,22 @@ public:
 private:
 
 	/**
-	 * Online exponential filter to smooth time offset
+	 * Kalman filter update of time offset and skew
 	 */
-	void add_sample(int64_t offset_us);
+	void add_sample(int64_t offset_us, uint64_t now_us);
 	uORB::PublicationMulti<timesync_status_s>  _timesync_status_pub{ORB_ID(timesync_status)};
 
 	uint32_t _sequence{0};
 
 	// Timesync statistics
-	double _time_offset{0};
-	double _time_skew{0};
+	double _time_offset{0}; // [us]
+	double _time_skew{0};   // [us/s]
 
-	// Filter parameters
-	double _filter_alpha{ALPHA_GAIN_INITIAL};
-	double _filter_beta{BETA_GAIN_INITIAL};
+	// Filter covariance
+	double _var_offset{0};
+	double _cov_offset_skew{0};
+	double _var_skew{0};
+	uint64_t _last_sample_us{0};
 
 	// Outlier rejection and filter reset
 	uint32_t _high_deviation_count{0};

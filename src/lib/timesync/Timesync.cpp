@@ -73,21 +73,8 @@ void Timesync::update(const uint64_t now_us, const int64_t remote_timestamp_ns, 
 
 			} else {
 
-				// Filter gain scheduling
-				if (!sync_converged()) {
-					// Interpolate with a sigmoid function
-					const float progress = (float) _sequence / (float) CONVERGENCE_WINDOW;
-					double p = (double)(1.f - expf(0.5f * (1.f - 1.f / (1.f - progress))));
-					_filter_alpha = p * ALPHA_GAIN_FINAL + (1.0 - p) * ALPHA_GAIN_INITIAL;
-					_filter_beta = p * BETA_GAIN_FINAL + (1.0 - p) * BETA_GAIN_INITIAL;
-
-				} else {
-					_filter_alpha = ALPHA_GAIN_FINAL;
-					_filter_beta = BETA_GAIN_FINAL;
-				}
-
 				// Perform filter update
-				add_sample(offset_us);
+				add_sample(offset_us, now_us);
 
 				// Increment sequence counter after filter update
 				_sequence++;
@@ -132,24 +119,43 @@ uint64_t Timesync::sync_stamp(uint64_t usec)
 	}
 }
 
-void Timesync::add_sample(int64_t offset_us)
+void Timesync::add_sample(int64_t offset_us, uint64_t now_us)
 {
-	// Online exponential smoothing filter. The derivative of the estimate is also
-	// estimated in order to produce an estimate without steady state lag:
-	// https://en.wikipedia.org/wiki/Exponential_smoothing#Double_exponential_smoothing
-	double time_offset_prev = _time_offset;
+	// Kalman filter with state [offset, skew]. The skew is a rate [us/s], so the prediction
+	// stays consistent when the interval between samples changes (e.g. fast initial sync, then 1 Hz).
+	static constexpr double R = MEASUREMENT_NOISE_STD * MEASUREMENT_NOISE_STD;
 
 	if (_sequence == 0) {
 		// First offset sample
 		_time_offset = offset_us;
+		_time_skew = 0.0;
+		_var_offset = R;
+		_cov_offset_skew = 0.0;
+		_var_skew = INITIAL_SKEW_STD * INITIAL_SKEW_STD;
 
 	} else {
-		// Update the clock offset estimate
-		_time_offset = _filter_alpha * offset_us + (1.0 - _filter_alpha) * (_time_offset + _time_skew);
+		const double dt = (now_us - _last_sample_us) * 1e-6;
 
-		// Update the clock skew estimate
-		_time_skew = _filter_beta * (_time_offset - time_offset_prev) + (1.0 - _filter_beta) * _time_skew;
+		// Predict
+		_time_offset += _time_skew * dt;
+		_var_offset += dt * (2.0 * _cov_offset_skew + dt * _var_skew) + SKEW_RANDOM_WALK * dt * dt * dt / 3.0;
+		_cov_offset_skew += dt * _var_skew + SKEW_RANDOM_WALK * dt * dt / 2.0;
+		_var_skew += SKEW_RANDOM_WALK * dt;
+
+		// Update
+		const double innovation = offset_us - _time_offset;
+		const double k_offset = _var_offset / (_var_offset + R);
+		const double k_skew = _cov_offset_skew / (_var_offset + R);
+
+		_time_offset += k_offset * innovation;
+		_time_skew += k_skew * innovation;
+
+		_var_skew -= k_skew * _cov_offset_skew;
+		_var_offset *= (1.0 - k_offset);
+		_cov_offset_skew *= (1.0 - k_offset);
 	}
+
+	_last_sample_us = now_us;
 }
 
 void Timesync::reset_filter()
@@ -158,8 +164,10 @@ void Timesync::reset_filter()
 	_sequence = 0;
 	_time_offset = 0.0;
 	_time_skew = 0.0;
-	_filter_alpha = ALPHA_GAIN_INITIAL;
-	_filter_beta = BETA_GAIN_INITIAL;
+	_var_offset = 0.0;
+	_cov_offset_skew = 0.0;
+	_var_skew = 0.0;
+	_last_sample_us = 0;
 	_high_deviation_count = 0;
 	_high_rtt_count = 0;
 }
