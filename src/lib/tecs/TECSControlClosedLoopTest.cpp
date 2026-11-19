@@ -175,13 +175,13 @@ protected:
 
 	TECSControl::Param _params{defaultParams()}; // first: the plant and the setpoints derive from it
 	AircraftState      _state{_params.equivalent_airspeed_trim, ALT_INIT};
-	TECSControl        _tecs{};
+	TECSControl        _tecs_control{};
 	TECSControl::Flag  _flag{.airspeed_enabled = true, .detect_underspeed_enabled = true};
 
-	float _V_sp         {_params.equivalent_airspeed_trim};
-	float _alt_sp       {ALT_INIT};
-	float _pitch_prev   {0.f};        // pitch command from previous step, for altitude_rate input
-	float _throttle_prev{_params.throttle_trim}; // throttle command from previous step, for tas_rate input
+	float _V_sp       {_params.equivalent_airspeed_trim};
+	float _alt_sp     {ALT_INIT};
+	float _pitch      {0.f};
+	float _throttle   {_params.throttle_trim};
 
 	// Options to re-introduce some basic model mismatch
 	float _plant_pitch_offset {0.f};  // pitch-to-flight-path offset of the plant, unknown to TECS
@@ -229,7 +229,7 @@ protected:
 	}
 
 	// Climb rate the plant is flying at the current state under the previous pitch command
-	float plantAltitudeRate() const { return altitude_rate(_pitch_prev, _state, _plant_pitch_offset); }
+	float plantAltitudeRate() const { return altitude_rate(_pitch, _state, _plant_pitch_offset); }
 
 	TECSControl::Setpoint makeSetpoint() const
 	{
@@ -249,14 +249,14 @@ protected:
 			.altitude      = _state.h,
 			.altitude_rate = plantAltitudeRate(),
 			.tas           = airspeed ? _state.V : _params.equivalent_airspeed_trim,
-			.tas_rate      = airspeed ? airspeed_rate(_params, _throttle_prev, _pitch_prev, _state, _plant_pitch_offset, _throttle_failed) : 0.f,
+			.tas_rate      = airspeed ? airspeed_rate(_params, _throttle, _pitch, _state, _plant_pitch_offset, _throttle_failed) : 0.f,
 		};
 	}
 
 	// Called in first run() call, only use in tests if reset is explicitly needed in the middle of the run.
 	void initTecs()
 	{
-		_tecs.initialize(makeSetpoint(), makeInput(), _params, _flag);
+		_tecs_control.initialize(makeSetpoint(), makeInput(), _params, _flag);
 		_tecs_initialised = true;
 	}
 
@@ -309,24 +309,25 @@ protected:
 
 		while (_step < step_end) {
 
-			_tecs.update(DT, makeSetpoint(), makeInput(), _params, _flag);
+			_tecs_control.update(DT, makeSetpoint(), makeInput(), _params, _flag);
+			_pitch    = _tecs_control.getPitchSetpoint();
+			_throttle = _tecs_control.getThrottleSetpoint();
 
-			_pitch_prev = _tecs.getPitchSetpoint();
-			_throttle_prev = _tecs.getThrottleSetpoint();
-			_state      = aircraft_step(_params, DT, _throttle_prev, _pitch_prev, _state, _plant_pitch_offset, _throttle_failed);
-			updateSimStats(_state, _tecs.getDebugOutput());
+			updateSimStats(_state, _tecs_control.getDebugOutput());
 
 			if (_output_csv_file) {
-				const auto &dbg = _tecs.getDebugOutput();
+				const auto &dbg = _tecs_control.getDebugOutput();
 				std::fprintf(_output_csv_file, "%.4f,%.6f,%.4f,%.4f,%.4f,%.6f,%.6f,%.6f,%.6f,%.4f,%.4f,%.4f,%.4f\n",
 					     (double) _t,
 					     (double) _state.V, (double) _state.h,
 					     (double) _V_sp, (double) _alt_sp,
-					     (double) _pitch_prev, (double) _tecs.getThrottleSetpoint(),
+					     (double) _pitch, (double) _throttle,
 					     (double) dbg.pitch_integrator, (double) dbg.throttle_integrator,
 					     (double) dbg.total_energy_rate_sp, (double) dbg.total_energy_rate_estimate,
 					     (double) dbg.energy_balance_rate_sp, (double) dbg.energy_balance_rate_estimate);
 			}
+
+			_state = aircraft_step(_params, DT, _throttle, _pitch, _state, _plant_pitch_offset, _throttle_failed);
 
 			_step++;
 			_t = _step * DT;
@@ -351,9 +352,9 @@ TEST_F(TECSControlClosedLoopTest, FeedforwardIsEnergyConsistent)
 			};
 			const TECSControl::Input input{.altitude = ALT_INIT, .altitude_rate = h_dot, .tas = V, .tas_rate = 0.f};
 
-			_tecs.initialize(setpoint, input, _params, _flag);
+			_tecs_control.initialize(setpoint, input, _params, _flag);
 
-			EXPECT_NEAR(airspeed_rate(_params, _tecs.getThrottleSetpoint(), _tecs.getPitchSetpoint(), {V, ALT_INIT}), 0.f,
+			EXPECT_NEAR(airspeed_rate(_params, _tecs_control.getThrottleSetpoint(), _tecs_control.getPitchSetpoint(), {V, ALT_INIT}), 0.f,
 				    1e-5f) << "h_dot " << h_dot << " V " << V;
 		}
 	}
@@ -440,7 +441,7 @@ TEST_F(TECSControlClosedLoopTest, SteadyStateCruisePitchOffset)
 	EXPECT_LT(_sim_stats.max_airspeed_error, TRACKING_ERROR_TOL) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
 
 	// And the pitch integrator has converged to the plant pitch offset
-	EXPECT_NEAR(_tecs.getDebugOutput().pitch_integrator, _plant_pitch_offset, math::radians(0.1f));
+	EXPECT_NEAR(_tecs_control.getDebugOutput().pitch_integrator, _plant_pitch_offset, math::radians(0.1f));
 }
 
 TEST_F(TECSControlClosedLoopTest, AltitudeStepUpDefaultTuningPitchOffset)
@@ -463,7 +464,7 @@ TEST_F(TECSControlClosedLoopTest, AltitudeStepUpDefaultTuningPitchOffset)
 	EXPECT_LT(_sim_stats.max_airspeed_error, TRACKING_ERROR_TOL) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
 
 	// And the pitch integrator has converged to the plant pitch offset
-	EXPECT_NEAR(_tecs.getDebugOutput().pitch_integrator, _plant_pitch_offset, math::radians(0.1f));
+	EXPECT_NEAR(_tecs_control.getDebugOutput().pitch_integrator, _plant_pitch_offset, math::radians(0.1f));
 }
 
 // --- Gliding at speed weight 2 ---------------------------------------------------
@@ -553,7 +554,7 @@ TEST_F(TECSControlClosedLoopTest, FastDescend)
 	run(75.f);
 
 	// Throttle is forced to minimum during fast descend
-	EXPECT_NEAR(_tecs.getThrottleSetpoint(), _params.throttle_min, 1e-3f);
+	EXPECT_NEAR(_tecs_control.getThrottleSetpoint(), _params.throttle_min, 1e-3f);
 	// Pitch loop drives airspeed toward tas_max
 	EXPECT_NEAR(_state.V, _params.tas_max, TRACKING_ERROR_TOL);
 }
