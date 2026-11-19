@@ -78,8 +78,12 @@ void Standard::update_vtol_state()
 	 * For the back transition the pusher motor is immediately stopped and rotors reactivated.
 	 */
 
-	// without pusher a front transition would fail too, so this quad-chute stays until reboot
-	if (_pusher_failed || _ft_pusher_failed) {
+	// Stays until reboot or until the detection is disabled, as a front transition would fail too. In fixed-wing flight,
+	// the fixed-wing propulsion check waits below VT_FW_QC_HMAX, as the other quad-chutes there.
+	const bool fw_propulsion_failure = _attc->is_fw_propulsion_failure()
+					   && (_vtol_mode != vtol_mode::FW_MODE || isQuadchuteEnabled());
+
+	if (_pusher_failed || _ft_pusher_failed || fw_propulsion_failure) {
 		_attc->quadchute(QuadchuteReason::PusherFailure);
 	}
 

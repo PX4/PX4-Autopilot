@@ -1307,3 +1307,25 @@ TEST_F(FailsafeTest, GnssRecoveryDoesNotAbortRtlWhenAnotherFailsafeStartsADelay)
 	failsafe.update(time, state, false, false, failsafe_flags);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
 }
+
+TEST_F(FailsafeTest, FixedWingPropulsionFailureUsesActuatorFailureActParam)
+{
+	const int32_t com_act_fail_act = 3; // Return
+	param_set(param_handle(px4::params::COM_ACT_FAIL_ACT), &com_act_fail_act);
+	float com_fail_act_t = 0.f;
+	param_set(param_handle(px4::params::COM_FAIL_ACT_T), &com_fail_act_t);
+
+	Failsafe failsafe(nullptr);
+
+	failsafe_flags_s failsafe_flags{};
+	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_FIXED_WING, failsafe_flags);
+	failsafe_flags.fd_fw_motor = true;
+
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+
+	failsafe.update(5_s, state, false, false, failsafe_flags);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+	param_reset(param_handle(px4::params::COM_ACT_FAIL_ACT));
+}

@@ -479,7 +479,7 @@ parameters:
         short: Set the actuator failure failsafe mode
         long: |-
           Note: actuator failure needs to be enabled and configured via FD_ACT_*
-          parameters.
+          parameters. Also used by COM_EF_CURR.
       type: enum
       values:
         0: Warning only

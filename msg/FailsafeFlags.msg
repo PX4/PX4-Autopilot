@@ -51,6 +51,7 @@ bool fd_imbalanced_prop               # Imbalanced propeller detected
 bool fd_motor_failure                 # Motor failure
 bool fd_motor_stuck_failure           # Motor-stuck failure during spool-up
 bool fd_alt_loss                      # Uncommanded altitude loss (rotary-wing, altitude-controlled flight)
+bool fd_fw_motor                      # Fixed-wing propulsion failure: battery current too low for the throttle
 
 # Other
 bool geofence_breached        	      # Geofence breached (one or multiple)

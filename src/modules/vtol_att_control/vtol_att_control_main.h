@@ -66,6 +66,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/action_request.h>
 #include <uORB/topics/airspeed_validated.h>
+#include <uORB/topics/failsafe_flags.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/normalized_unsigned_setpoint.h>
 #include <uORB/topics/vehicle_air_data.h>
@@ -127,6 +128,8 @@ public:
 	bool is_quadchute_active() const { return _quadchute_reason != QuadchuteReason::None; }
 	/** Only a detected quad-chute is a fixed-wing failure, not a commanded one */
 	bool is_fixed_wing_system_failure() const { return is_quadchute_active() && _quadchute_reason != QuadchuteReason::ExternalCommand; }
+	/** Commander detected a fixed-wing propulsion failure (COM_EF_CURR) */
+	bool is_fw_propulsion_failure() const { return _fw_propulsion_failure; }
 
 	float getAirDensity() const { return _air_density; }
 
@@ -166,6 +169,7 @@ private:
 
 	uORB::Subscription _action_request_sub{ORB_ID(action_request)};
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
+	uORB::Subscription _failsafe_flags_sub{ORB_ID(failsafe_flags)};
 	uORB::Subscription _fw_virtual_att_sp_sub{ORB_ID(fw_virtual_attitude_setpoint)};
 	uORB::Subscription _home_position_sub{ORB_ID(home_position)};
 	uORB::Subscription _land_detected_sub{ORB_ID(vehicle_land_detected)};
@@ -231,6 +235,7 @@ private:
 	int		_transition_command{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC};
 	bool		_immediate_transition{false};
 	QuadchuteReason	_quadchute_reason{QuadchuteReason::None};
+	bool		_fw_propulsion_failure{false};
 
 	uint8_t _nav_state_prev;
 
@@ -246,6 +251,8 @@ private:
 	void		action_request_poll();
 
 	void		vehicle_cmd_poll();
+
+	void		failsafe_flags_poll();
 
 	void 		parameters_update();
 
