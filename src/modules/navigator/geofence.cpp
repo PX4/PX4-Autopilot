@@ -725,6 +725,12 @@ bool Geofence::checkPaths(const PathCheck *paths, size_t num_paths, bool *result
 			     < max_home_distance - getContGeofenceMargin();
 	}
 
+	// Like the point checks, an unloaded fence restricts nothing: while a changed fence loads,
+	// the areas of the previous one can no longer be read.
+	if (isEmpty()) {
+		return true;
+	}
+
 	for (int p = 0; p < _num_polygons; ++p) {
 		const PolygonInfo &polygon = _polygons[p];
 

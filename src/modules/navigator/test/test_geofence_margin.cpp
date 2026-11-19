@@ -351,3 +351,22 @@ TEST_F(GeofenceLongLegMarginTest, EdgeBesideTheLegEnd)
 	EXPECT_TRUE(legClear(100.f));
 	EXPECT_FALSE(legClear(200.f));
 }
+
+// Navigator asks five times a second, also while a changed fence loads over the previous one.
+TEST_F(GeofenceCircleTest, ChangedFenceLoadingRestrictsNothing)
+{
+	ASSERT_TRUE(loadFence(exclusionSquare()));
+	// The new square is 200 m further east; both leave Home clear.
+	ASSERT_TRUE(storeFence(polygon(false, {{-50.f, 450.f}, {50.f, 450.f}, {50.f, 550.f}, {-50.f, 550.f}})));
+	_fence.updateFence();
+
+	for (int step = 0; step < 100 && !_fence.isReadyForPathChecks(); ++step) {
+		_fence.run();
+		EXPECT_TRUE(circleInside(0.f, 0.f, 80.f)) << "step " << step;
+		px4_usleep(1000);
+	}
+
+	ASSERT_TRUE(_fence.isReadyForPathChecks());
+	EXPECT_TRUE(circleInside(0.f, 300.f, 40.f)); // where the old square was
+	EXPECT_FALSE(circleInside(0.f, 500.f, 40.f)); // in the new square
+}
