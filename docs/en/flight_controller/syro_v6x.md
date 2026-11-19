@@ -4,10 +4,11 @@
 
 ::: warning
 PX4 does not manufacture this (or any) autopilot.
-Contact the [manufacturer](#store) for hardware support or compliance issues.
+Contact the [manufacturer](https://syrorobotics.com/) for hardware support or compliance issues.
 :::
 
-The Syro V6X is a flight controller based on the FMUv6X reference design, with its own sensor set and PX4 board target.
+The [Syro V6X](https://syrorobotics.com/shop/product/fmuv6x-flight-controller) is a flight controller manufactured by Syro Robotics.
+It is based on the [FMUv6X reference design](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-012%20Pixhawk%20Autopilot%20v6X%20Standard.pdf), with its own sensor set and PX4 board target.
 It consists of a flight controller module with the STM32H753 main processor and sensors, and a baseboard that carries the PX4IO coprocessor, the Ethernet PHY and the external connectors.
 
 <!-- TODO(Syro): add a product photo, stored under docs/assets/flight_controller/syro_v6x/. -->
@@ -61,7 +62,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Where to Buy {#store}
 
-- [Syro Robotics](https://syrorobotics.com/)
+- [Syro Robotics](https://syrorobotics.com/shop/product/fmuv6x-flight-controller)
 
 ## Pinouts {#pinouts}
 
@@ -328,6 +329,9 @@ All outputs within the same group must use the same output protocol and rate.
 
 `AUX` output 5 can also be used as a PWM input.
 
+A ninth timer channel, `FMU_CAP1` (Timer 1), is intended for camera capture, and appears in the actuator configuration as `PWM Capture 1`.
+It is pin 2 of the `ADIO` port (see [Camera Capture Configuration](../camera/fc_connected_camera.md#camera-capture-configuration)).
+
 ## Ethernet {#ethernet}
 
 The board has a 100 Mbit/s Ethernet port.
@@ -338,6 +342,7 @@ See [PX4 Ethernet Setup](../advanced_config/ethernet_setup.md) for the network c
 ## SD Card (Optional) {#sd_card}
 
 The board has a microSD card slot, used for flight logs.
+For information about choosing and using an SD card see [SD Cards (Removable Memory)](../getting_started/px4_basic_concepts.md#sd-cards-removable-memory).
 
 ## Serial Port Mapping {#serial_port_mapping}
 
@@ -377,8 +382,13 @@ A remote control (RC) radio system is required if you want to _manually_ control
 
 You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then _bind_ them so that they communicate (read the instructions that come with your specific transmitter/receiver).
 
-The RC input is connected to the PX4IO coprocessor.
-For PPM and S.Bus receivers, a single signal wire carries all channels.
+Connect an S.BUS or DSM receiver to the `SBUS IN` port, or a PPM receiver to the `PPM IN` port.
+Both go to the PX4IO coprocessor, which detects the [protocols it supports](../modules/modules_driver.md#px4io) automatically.
+A DSM (Spektrum) receiver on `SBUS IN` is powered with 3.3 V from pin 4.
+
+CRSF and GHST receivers can't be decoded by the PX4IO.
+Connect them to a free FMU serial port, such as `TELEM3`, and set [RC_CRSF_PRT_CFG](../advanced_config/parameter_reference.md#RC_CRSF_PRT_CFG) or [RC_GHST_PRT_CFG](../advanced_config/parameter_reference.md#RC_GHST_PRT_CFG) to that port.
+
 If your receiver outputs individual PWM signals (one wire per channel) it must be connected via a PPM encoder.
 For more information, see [RC receivers](../getting_started/rc_transmitter_receiver.md).
 
@@ -386,6 +396,8 @@ For more information, see [RC receivers](../getting_started/rc_transmitter_recei
 
 PX4 supports GPS modules connected to the `GPS1` and `GPS2` ports.
 GPS modules should be [mounted on the frame](../assembly/mount_gps_compass.md) as far away from other electronics as possible, with the direction marker pointing towards the front of the vehicle.
+
+The board also has an internal BMM350 compass, on I2C4.
 
 `GPS1` includes the safety switch and buzzer signals.
 By default PX4 starts an IST8310 compass on `GPS1`, as used on Holybro GPS modules.
@@ -399,7 +411,20 @@ The vehicle-based radio should be connected to a TELEM port — **TELEM1**, **TE
 If connected to **TELEM1**, no further configuration is required.
 The other radio is connected to your ground station computer or mobile device (usually by USB).
 
+### CAN {#can}
+
+The board has two CAN ports, `CAN1` and `CAN2`, each a 4-pin JST GH connector.
+They can be used for [DroneCAN](../dronecan/index.md) peripherals, such as GPS modules, [ESCs](../peripherals/esc_motors.md) and power modules.
+
+DroneCAN is not enabled by default: set [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) to enable it.
+`CAN2` is only enabled when the baseboard ID is set (see [Hardware Identification](#hardware_id)).
+
 ## Building Firmware {#building_firmware}
+
+::: tip
+Most users will not need to build this firmware!
+It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
+:::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
@@ -441,9 +466,9 @@ If the baseboard EEPROM is blank, PX4 reports the board as not supported and sta
 
 ## Debug Port {#debug_port}
 
-The PX4 system console runs on `USART3` at 57600 baud.
+The [PX4 system console](../debug/system_console.md) runs on `USART3` at 57600 baud.
 
-The console and the SWD interface of the FMU are on the `FMU DEBUGGER` connector.
+The console and the [SWD interface](../debug/swd_debug.md) of the FMU are on the `FMU DEBUGGER` connector.
 The SWD interface of the PX4IO is on the `IO DEBUGGER` connector.
 Both are 10-pin JST SH connectors, see [Pinouts](#pinouts) for the pin assignment.
 
@@ -458,3 +483,8 @@ Both are 10-pin JST SH connectors, see [Pinouts](#pinouts) for the pin assignmen
 - **Vendor:** Syro
 - **PX4 board target:** `syro_fmuv6x_default`
 - **PX4 hardware type prefix:** `SyroV6X`
+
+## Further Information {#further_information}
+
+- [Pixhawk Autopilot FMUv6X Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-012%20Pixhawk%20Autopilot%20v6X%20Standard.pdf)
+- [Pixhawk Series](../flight_controller/pixhawk_series.md)
