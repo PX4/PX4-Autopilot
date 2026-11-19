@@ -17,8 +17,12 @@
 # Run `python3 Tools/ci/generate_sbom.py --verify-licenses` to validate.
 
 organizations:
+  # Dronecode Foundation projects: PX4, MAVLink (also hosts MAVSDK and
+  # QGroundControl), Pixhawk
+  Dronecode: "Dronecode Foundation"
   PX4: "Dronecode Foundation"
-  mavlink: "MAVLink"
+  mavlink: "Dronecode Foundation"
+  pixhawk: "Dronecode Foundation"
   dronecan: "DroneCAN"
   opencyphal: "OpenCyphal"
   google: "Google"

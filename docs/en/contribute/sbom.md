@@ -187,7 +187,8 @@ The top-level `organizations` map gives the supplier name for a git host organiz
 ```yaml
 organizations:
   PX4: "Dronecode Foundation"
-  mavlink: "MAVLink"
+  mavlink: "Dronecode Foundation"
+  dronecan: "DroneCAN"
 ```
 
 Organizations not listed appear under their git host name.
