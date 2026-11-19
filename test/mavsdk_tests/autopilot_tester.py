@@ -87,11 +87,12 @@ def plan_file(name: str) -> str:
 
 
 def raw_mission_item(seq: int, command: int, frame: int, x: int = 0, y: int = 0, z: float = 0.0,
-                     param1: float = 0.0, param2: float = 0.0, current: int = 0,
-                     autocontinue: int = 1, mission_type: int = MAV_MISSION_TYPE_MISSION) -> Any:
+                     param1: float = 0.0, param2: float = 0.0, param3: float = 0.0,
+                     current: int = 0, autocontinue: int = 1,
+                     mission_type: int = MAV_MISSION_TYPE_MISSION) -> Any:
     return RawMissionItem(
         seq=seq, frame=frame, command=command, current=current, autocontinue=autocontinue,
-        param1=param1, param2=param2, param3=0.0, param4=0.0, x=x, y=y, z=z,
+        param1=param1, param2=param2, param3=param3, param4=0.0, x=x, y=y, z=z,
         mission_type=mission_type)
 
 
