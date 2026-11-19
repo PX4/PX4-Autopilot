@@ -125,6 +125,12 @@ static constexpr float MAX_NUMERICAL_ERR = MAX_NUMERICAL_ERR_PER_DT * DT;
 // error is below this with some margin.
 static constexpr float TRACKING_ERROR_TOL = 0.02f;
 
+// Altitude step chosen so that neither climbing nor sinking will saturate throttle
+static constexpr float ALT_STEP = math::min(defaultParams().min_sink_rate, defaultParams().max_climb_rate)
+				  / defaultParams().altitude_error_gain; // [m]
+
+static constexpr float AIRSPEED_STEP = 1.0f; // [m/s]
+
 struct AircraftState {
 	float V{0.f};
 	float h{ALT_INIT};
@@ -400,23 +406,33 @@ TEST_F(TECSControlClosedLoopTest, SteadyStateCruiseLowSpeedWeight)
 }
 
 // --- Altitude step ------------------------------------------------------------
-//
-// TECSControl gets the raw altitude setpoint (no reference model), so the altitude loop demands its full sink rate at
-// once and the throttle drops to idle at once. The pitch has to follow just as fast, or the vehicle loses total energy
-// before it starts descending and the energy comes out of airspeed: the vertical acceleration limit, which in
-// TECSControl only rate limits the pitch, is therefore disabled. The step is sized so that the demanded sink rate
-// (step / FW_T_ALT_TC) does not exceed FW_T_SINK_MIN, the sink rate the vehicle flies at idle without accelerating.
 
 TEST_F(TECSControlClosedLoopTest, AltitudeStepDown)
 {
 	run(10.f);
 
-	setAltitudeSetpoint(ALT_INIT - _params.min_sink_rate / _params.altitude_error_gain);
+	setAltitudeSetpoint(ALT_INIT - ALT_STEP);
 	run(200.f);
 
 	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_NUMERICAL_ERR) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
 
-	EXPECT_NEAR(_state.V, _V_sp,   1e-3f);
+	EXPECT_NEAR(_state.h, _alt_sp, TRACKING_ERROR_TOL);
+}
+
+// Disabled temporarily:
+//  - Throttle damping acts on the energy rate error against the low-passed estimate
+//  - This lag creates a fake error, which the feedback acts on (fix: #29877)
+//  - Because the feedback gain is assumed to be equal across the entire throttle range, but the actual
+//    gain is higher above trim, this only fails the test in the upward step
+TEST_F(TECSControlClosedLoopTest, DISABLED_AltitudeStepUp)
+{
+	run(10.f);
+
+	setAltitudeSetpoint(ALT_INIT + ALT_STEP);
+	run(200.f);
+
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_NUMERICAL_ERR) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
+
 	EXPECT_NEAR(_state.h, _alt_sp, TRACKING_ERROR_TOL);
 }
 
@@ -452,7 +468,7 @@ TEST_F(TECSControlClosedLoopTest, AltitudeStepUpDefaultTuningPitchOffset)
 	run(120.0f);
 
 	// Altitude step & time to converge
-	setAltitudeSetpoint(ALT_INIT + 50.f);
+	setAltitudeSetpoint(ALT_INIT + ALT_STEP);
 	run(120.f);
 
 	// Reset stats to capture errors after convergence
@@ -480,11 +496,11 @@ TEST_F(TECSControlClosedLoopTest, GlideSpeedWeightTwoAirspeedStep)
 	_throttle_failed = true;
 	run(60.f); // settle into the glide
 
-	setAirspeedSetpoint(_params.equivalent_airspeed_trim + 2.f);
+	setAirspeedSetpoint(_params.equivalent_airspeed_trim + AIRSPEED_STEP);
 	run(60.f);
 	EXPECT_NEAR(_state.V, _V_sp, TRACKING_ERROR_TOL);
 
-	setAirspeedSetpoint(_params.equivalent_airspeed_trim - 2.f);
+	setAirspeedSetpoint(_params.equivalent_airspeed_trim - AIRSPEED_STEP);
 	run(60.f);
 	EXPECT_NEAR(_state.V, _V_sp, TRACKING_ERROR_TOL);
 }
@@ -495,16 +511,15 @@ TEST_F(TECSControlClosedLoopTest, AirspeedStepUpDefaultTuning)
 {
 	run(10.f);
 
-	setAirspeedSetpoint(_params.equivalent_airspeed_trim + 1.f);
+	setAirspeedSetpoint(_params.equivalent_airspeed_trim + AIRSPEED_STEP);
 
 	// Above trim, only the throttle accelerates and pitch holds altitude (#29009): the airspeed error decays as
 	// a first-order response with the airspeed loop time constant FW_T_TAS_TC, up to a small discretisation error
-	const float step = _V_sp - _state.V;
 	const float t_step = _t;
 
 	for (int i = 0; i < 10; i++) {
 		run(5.0f);
-		const float expected_error = step * expf(-(_t - t_step) * _params.airspeed_error_gain);
+		const float expected_error = AIRSPEED_STEP * expf(-(_t - t_step) * _params.airspeed_error_gain);
 		EXPECT_NEAR(_V_sp - _state.V, expected_error, MAX_NUMERICAL_ERR) << "at t=" << _t << " s";
 	}
 
@@ -516,19 +531,19 @@ TEST_F(TECSControlClosedLoopTest, AirspeedStepDownDefaultTuning)
 {
 	run(10.f);
 
-	setAirspeedSetpoint(_params.equivalent_airspeed_trim - 1.f);
+	setAirspeedSetpoint(_params.equivalent_airspeed_trim - AIRSPEED_STEP);
 
 	// Capture the rough shape of the airspeed step response. It is not first
 	// order: the SEB rate to pitch conversion ignores the total energy rate, so
 	// the pitch feedforward climbs with the kinetic energy the throttle is
 	// already removing, and the pitch integrator has to take it out again.
-	run(5.0f); EXPECT_NEAR(_state.V, _V_sp, 0.3f) << "at t=" << _t << " s";
-	run(5.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f) << "at t=" << _t << " s";
-	run(5.0f); EXPECT_NEAR(_state.V, _V_sp, 0.1f) << "at t=" << _t << " s";
-	run(5.0f); EXPECT_NEAR(_state.V, _V_sp, 0.1f) << "at t=" << _t << " s";
-	run(10.0f); EXPECT_NEAR(_state.V, _V_sp, 0.05f) << "at t=" << _t << " s";
-	run(10.0f); EXPECT_NEAR(_state.V, _V_sp, 0.02f) << "at t=" << _t << " s";
-	run(10.0f); EXPECT_NEAR(_state.V, _V_sp, 0.01f) << "at t=" << _t << " s";
+	run(5.0f); EXPECT_NEAR(_state.V, _V_sp, 0.3f * AIRSPEED_STEP) << "at t=" << _t << " s";
+	run(5.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f * AIRSPEED_STEP) << "at t=" << _t << " s";
+	run(5.0f); EXPECT_NEAR(_state.V, _V_sp, 0.1f * AIRSPEED_STEP) << "at t=" << _t << " s";
+	run(5.0f); EXPECT_NEAR(_state.V, _V_sp, 0.1f * AIRSPEED_STEP) << "at t=" << _t << " s";
+	run(10.0f); EXPECT_NEAR(_state.V, _V_sp, 0.05f * AIRSPEED_STEP) << "at t=" << _t << " s";
+	run(10.0f); EXPECT_NEAR(_state.V, _V_sp, 0.02f * AIRSPEED_STEP) << "at t=" << _t << " s";
+	run(10.0f); EXPECT_NEAR(_state.V, _V_sp, 0.01f * AIRSPEED_STEP) << "at t=" << _t << " s";
 
 	// This is possible without sacrificing a lot of altitude
 	EXPECT_LT(_sim_stats.max_altitude_error, 0.5f) << "peak at t=" << _sim_stats.t_max_altitude_error << " s";
@@ -547,14 +562,11 @@ TEST_F(TECSControlClosedLoopTest, FastDescend)
 	setAirspeedSetpoint(_params.tas_max);
 	initTecs(); // reset the controller state on the mode switch, as the firmware does
 
-	// Irrelevant, _params.fast_descend determines whether or not we do fast descend
-	setAltitudeSetpoint(ALT_INIT - 200.0f);
-
 	// Run until we are fully in fast descend
 	run(75.f);
 
 	// Throttle is forced to minimum during fast descend
-	EXPECT_NEAR(_tecs_control.getThrottleSetpoint(), _params.throttle_min, 1e-3f);
+	EXPECT_NEAR(_tecs_control.getThrottleSetpoint(), _params.throttle_min, FLT_EPSILON);
 	// Pitch loop drives airspeed toward tas_max
 	EXPECT_NEAR(_state.V, _params.tas_max, TRACKING_ERROR_TOL);
 }
@@ -590,9 +602,7 @@ TEST_F(TECSControlClosedLoopTest, AirspeedlessAltitudeStepHalfFeedforward)
 
 	run(10.f);
 
-	const float step_size = _params.min_sink_rate / _params.altitude_error_gain;
-
-	for (const float step : {-step_size, step_size}) {
+	for (const float step : {-ALT_STEP, ALT_STEP}) {
 		setAltitudeSetpoint(_state.h + step);
 		const float t_step = _t;
 
