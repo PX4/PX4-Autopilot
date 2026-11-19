@@ -78,7 +78,7 @@ public:
 	uORB::Publication<geofence_result_s> _geofence_result_pub{ORB_ID(geofence_result)};
 };
 
-// Each contingency geofence limit sets the contingency geofence flag and denies arming before the geofence is breached.
+// Each contingency geofence trigger sets its own flag and denies arming before the emergency geofence is breached.
 TEST_F(GeofenceChecksTest, ContGeofenceSetsItsOwnFlagAndDeniesArming)
 {
 	bool geofence_result_s::*const triggers[] = {
@@ -90,13 +90,13 @@ TEST_F(GeofenceChecksTest, ContGeofenceSetsItsOwnFlagAndDeniesArming)
 		geofence_result_s result = resultWithActions(geofence_result_s::GF_ACTION_TERMINATE,
 					   geofence_result_s::GF_ACTION_LOITER);
 		runCheck(result);
-		EXPECT_FALSE(_failsafe_flags.gf_breached);
+		EXPECT_FALSE(_failsafe_flags.gf_emer_breach);
 		EXPECT_FALSE(_failsafe_flags.gf_cont_breach);
 		EXPECT_TRUE(_can_arm_all_modes);
 
 		result.*trigger = true;
 		runCheck(result);
-		EXPECT_FALSE(_failsafe_flags.gf_breached);
+		EXPECT_FALSE(_failsafe_flags.gf_emer_breach);
 		EXPECT_TRUE(_failsafe_flags.gf_cont_breach);
 		EXPECT_FALSE(_can_arm_all_modes);
 	}
@@ -109,7 +109,7 @@ TEST_F(GeofenceChecksTest, ContGeofenceWorksWithoutAGeofenceAction)
 	result.geofence_cont_max_dist_triggered = true;
 	result.geofence_max_dist_triggered = true;
 	runCheck(result);
-	EXPECT_FALSE(_failsafe_flags.gf_breached);
+	EXPECT_FALSE(_failsafe_flags.gf_emer_breach);
 	EXPECT_TRUE(_failsafe_flags.gf_cont_breach);
 	EXPECT_FALSE(_can_arm_all_modes);
 }
@@ -120,13 +120,13 @@ TEST_F(GeofenceChecksTest, GeofenceAndContGeofenceSetIndependentFlags)
 				   geofence_result_s::GF_ACTION_LOITER);
 	result.geofence_custom_fence_triggered = true;
 	runCheck(result);
-	EXPECT_TRUE(_failsafe_flags.gf_breached);
+	EXPECT_TRUE(_failsafe_flags.gf_emer_breach);
 	EXPECT_FALSE(_failsafe_flags.gf_cont_breach);
 	EXPECT_FALSE(_can_arm_all_modes);
 
 	result.geofence_cont_custom_fence_triggered = true;
 	runCheck(result);
-	EXPECT_TRUE(_failsafe_flags.gf_breached);
+	EXPECT_TRUE(_failsafe_flags.gf_emer_breach);
 	EXPECT_TRUE(_failsafe_flags.gf_cont_breach);
 	EXPECT_FALSE(_can_arm_all_modes);
 }
@@ -151,7 +151,7 @@ TEST_F(GeofenceChecksTest, DisabledContGeofenceIgnoresStaleTrigger)
 	geofence_result_s result = resultWithActions(geofence_result_s::GF_ACTION_NONE, geofence_result_s::GF_ACTION_NONE);
 	result.geofence_cont_max_dist_triggered = true;
 	runCheck(result, true);
-	EXPECT_FALSE(_failsafe_flags.gf_breached);
+	EXPECT_FALSE(_failsafe_flags.gf_emer_breach);
 	EXPECT_FALSE(_failsafe_flags.gf_cont_breach);
 	EXPECT_TRUE(_can_arm_all_modes);
 }

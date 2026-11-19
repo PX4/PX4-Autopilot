@@ -1308,7 +1308,7 @@ TEST_F(FailsafeTest, GnssRecoveryDoesNotAbortRtlWhenAnotherFailsafeStartsADelay)
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
 }
 
-// The geofence and the contingency geofence are two failsafes: the more severe action wins.
+// The emergency and the contingency geofence are two failsafes: the more severe action wins.
 class GeofenceFailsafeTest : public FailsafeTest
 {
 public:
@@ -1374,7 +1374,7 @@ TEST_F(GeofenceFailsafeTest, ContGeofenceUsesItsOwnAction)
 		Action action;
 	} cases[] = {
 		{kWarning, Action::Warn}, {kHold, Action::Hold}, {kReturn, Action::RTL}, {kLand, Action::Land},
-		{kNone, Action::Warn}, {kTerminate, Action::Warn}, // not offered: the contingency geofence never terminates
+		{kNone, Action::Warn}, {kTerminate, Action::Warn}, // not offered for the contingency geofence
 	};
 
 	for (const auto &c : cases) {
@@ -1401,11 +1401,11 @@ TEST_F(GeofenceFailsafeTest, MoreSevereActionWins)
 		{kHold, Action::Hold, kLand, Action::Land, Action::Land},
 		{kReturn, Action::RTL, kTerminate, Action::Terminate, Action::Terminate},
 		{kLand, Action::Land, kHold, Action::Hold, Action::Land}, // a Land in progress is not downgraded
-		{kHold, Action::Hold, kWarning, Action::Warn, Action::Hold}, // a geofence Warning does not cancel the Hold
+		{kHold, Action::Hold, kWarning, Action::Warn, Action::Hold}, // an emergency Warning keeps the Hold
 		{kHold, Action::Hold, kNone, Action::None, Action::Hold},
 	};
 
-	// Contingency geofence first, geofence first, and both in the same update.
+	// Contingency geofence first, emergency geofence first, and both in the same update.
 	for (int order = 0; order < 3; ++order) {
 		SCOPED_TRACE(order);
 
@@ -1422,19 +1422,19 @@ TEST_F(GeofenceFailsafeTest, MoreSevereActionWins)
 				EXPECT_EQ(update(failsafe), c.cont_action);
 
 			} else if (order == 1) {
-				_flags.gf_breached = true;
+				_flags.gf_emer_breach = true;
 				EXPECT_EQ(update(failsafe), c.action);
 			}
 
 			_flags.gf_cont_breach = true;
-			_flags.gf_breached = true;
+			_flags.gf_emer_breach = true;
 			EXPECT_EQ(update(failsafe), c.both);
 			EXPECT_EQ(update(failsafe), c.both);
 		}
 	}
 }
 
-// Taking over after the contingency geofence action must not disable the geofence action.
+// Taking over after the contingency geofence action must not disable the emergency geofence action.
 TEST_F(GeofenceFailsafeTest, GeofenceBreachEndsContGeofenceTakeover)
 {
 	const struct {
@@ -1462,8 +1462,8 @@ TEST_F(GeofenceFailsafeTest, GeofenceBreachEndsContGeofenceTakeover)
 		ASSERT_EQ(update(failsafe, true), Action::Warn);
 		ASSERT_TRUE(failsafe.userTakeoverActive());
 
-		// The pilot flies on and breaches the geofence
-		_flags.gf_breached = true;
+		// The pilot flies on and breaches the emergency geofence
+		_flags.gf_emer_breach = true;
 		EXPECT_EQ(update(failsafe), c.action);
 		EXPECT_EQ(failsafe.userTakeoverActive(), c.takeover);
 	}
@@ -1478,7 +1478,7 @@ TEST_F(GeofenceFailsafeTest, ContGeofenceHoldIsLeftByModeSwitch)
 	_flags.gf_cont_breach = true;
 	ASSERT_EQ(update(failsafe), Action::Hold);
 
-	// Stick movement -> denied, like for a geofence breach
+	// Stick movement -> denied, like for an emergency geofence breach
 	ASSERT_EQ(update(failsafe, false, true), Action::Hold);
 	ASSERT_FALSE(failsafe.userTakeoverActive());
 

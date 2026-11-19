@@ -149,7 +149,7 @@ public:
 	 */
 	bool isBelowMaxAltitude(float altitude);
 
-	/** True if the position keeps GF_CONT_H_MARGIN from the maximum distance to Home, or one of the two is disabled. */
+	/** True if the position keeps GF_CONT_H_MARGIN from the maximum distance to Home, or one of the two is 0. */
 	bool isCloserThanContMaxDistToHome(double lat, double lon)
 	{
 		const float margin = getContGeofenceMargin();
@@ -175,8 +175,8 @@ public:
 	bool isCircleInside(double lat, double lon, float radius);
 
 	/**
-	 * GF_CONT_H_MARGIN [m], the horizontal distance the contingency geofence keeps from the geofence: from the maximum
-	 * distance to Home and from the polygons and circles. Zero if disabled, which disables the contingency geofence.
+	 * GF_CONT_H_MARGIN [m], the horizontal distance the contingency geofence keeps from the emergency geofence:
+	 * from the maximum distance to Home and from the polygons and circles. Zero disables the contingency geofence.
 	 * The polygons and circles need the path checks, so boards built without them have no such parameter.
 	 */
 	float getContGeofenceMargin() const
@@ -223,7 +223,10 @@ public:
 	int getSource() { return _param_gf_source.get(); }
 	int getGeofenceAction() { return _param_gf_action.get(); }
 
-	/** GF_CONT_ACTION as a GF_ACTION value: None while the contingency geofence is disabled, Warning for values it does not offer. */
+	/**
+	 * GF_CONT_ACTION as a GF_ACTION value: None while the contingency geofence is disabled, Warning for values
+	 * it does not offer.
+	 */
 	uint8_t getContGeofenceAction() const;
 
 	float getMaxHorDistanceHome() { return _param_gf_max_hor_dist.get(); }

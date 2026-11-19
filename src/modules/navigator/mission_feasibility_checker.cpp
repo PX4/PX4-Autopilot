@@ -218,8 +218,8 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 				missionitem.altitude);
 #endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 
-		// As for the geofence in both branches above, the contingency geofence distance to Home is checked at every
-		// position. Its margin to the plan is checked with the paths, see addGeofencePath().
+		// As for the emergency geofence in both branches above, the contingency geofence distance to Home is
+		// checked at every position. Its margin to the plan is checked with the paths, see addGeofencePath().
 		point_valid = point_valid && geofence.isCloserThanContMaxDistToHome(missionitem.lat, missionitem.lon);
 
 		if (!point_valid) {

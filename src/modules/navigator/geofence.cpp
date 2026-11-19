@@ -719,7 +719,7 @@ bool Geofence::checkPaths(const PathCheck *paths, size_t num_paths, bool *result
 			return false;
 		}
 
-		// The caller checks path ends against Home; a circle must keep its whole radius inside, and GF_CONT_H_MARGIN.
+		// The caller checks path ends against Home; a circle must keep its radius and GF_CONT_H_MARGIN inside.
 		results[i] = paths[i].end_radius <= 0.f || max_home_distance <= FLT_EPSILON
 			     || get_distance_to_next_waypoint(home.lat, home.lon, end(0), end(1)) + paths[i].end_radius
 			     < max_home_distance - getContGeofenceMargin();

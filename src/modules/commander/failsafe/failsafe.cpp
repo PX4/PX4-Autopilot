@@ -663,7 +663,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 			       ActionOptions(Action::Hold).clearOn(ClearCondition::OnModeChangeOrDisarm));
 	}
 
-	CHECK_FAILSAFE(status_flags, gf_breached, fromGfActParam(_param_gf_action.get()).cannotBeDeferred());
+	CHECK_FAILSAFE(status_flags, gf_emer_breach, fromGfActParam(_param_gf_action.get()).cannotBeDeferred());
 	CHECK_FAILSAFE(status_flags, gf_cont_breach,
 		       fromContGeofenceActionParam(_param_gf_cont_action.get()).cannotBeDeferred());
 

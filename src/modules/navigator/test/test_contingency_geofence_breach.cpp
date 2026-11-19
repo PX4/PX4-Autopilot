@@ -204,8 +204,8 @@ TEST_F(ContGeofenceBreachTest, DisabledByDefault)
 	EXPECT_FALSE(contGeofenceBreached(outside));
 }
 
-// Without a contingency geofence the Hold after a geofence breach works as before: at the breach position, latched
-// while holding, again on the next breach, and once per breach.
+// Without a contingency geofence the Hold after an emergency geofence breach works as before: at the breach
+// position, latched while holding, again on the next breach, and once per breach.
 TEST_F(ContGeofenceBreachTest, GeofenceHoldWithoutContGeofenceIsUnchanged)
 {
 	setParam("GF_MAX_HOR_DIST", 500.f);
@@ -239,7 +239,7 @@ TEST_F(ContGeofenceBreachTest, ContGeofenceReturnNeedsHome)
 	setParam("GF_CONT_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_RTL));
 	EXPECT_FALSE(_fence.isHomeRequired());
 
-	// The margin is relative to the geofence, so only its Return action needs Home.
+	// The margin is relative to the emergency geofence, so only its Return action needs Home.
 	setParam("GF_CONT_H_MARGIN", 100.f);
 	EXPECT_TRUE(_fence.isHomeRequired());
 	setParam("GF_CONT_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_LOITER));
@@ -275,7 +275,7 @@ TEST_F(ContGeofenceBreachTest, MaximumAltitudeHasNoContGeofence)
 }
 
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
-// Return routes around the fences with the margin added, so that it does not trigger the contingency geofence action.
+// Return routes around the fences with the margin added, so that it does not trigger GF_CONT_ACTION.
 TEST_F(ContGeofenceBreachTest, ReturnKeepsTheMargin)
 {
 	const float without_margin = _navigator.geofence_avoidance_margin();
@@ -287,7 +287,7 @@ TEST_F(ContGeofenceBreachTest, ReturnKeepsTheMargin)
 }
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
-// The geofence that GF_CONT_H_MARGIN, 100 m, is kept from.
+// The emergency geofence that GF_CONT_H_MARGIN, 100 m, is kept from.
 enum class Source {
 	HomeDistance, // GF_MAX_HOR_DIST 500 m
 	Plan, // a 1000 m square plan fence
@@ -423,8 +423,8 @@ TEST_P(ContGeofenceSourceTest, OtherActionsDoNotReposition)
 	}
 }
 
-// Commander ranks the two actions. A geofence that only warns, or does nothing, leaves the contingency geofence
-// Hold in place when both are breached at once.
+// Commander ranks the two actions. An emergency geofence that only warns, or does nothing, leaves the
+// contingency geofence Hold in place when both are breached at once.
 TEST_P(ContGeofenceSourceTest, GeofenceWarningDoesNotReplaceTheHold)
 {
 	enableContGeofence();
@@ -438,7 +438,7 @@ TEST_P(ContGeofenceSourceTest, GeofenceWarningDoesNotReplaceTheHold)
 	}
 }
 
-// The geofence still gets its Hold when the contingency geofence only warns.
+// The emergency geofence still gets its Hold when the contingency geofence only warns.
 TEST_P(ContGeofenceSourceTest, GeofenceHoldAfterAContGeofenceWarning)
 {
 	setParam("GF_CONT_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_WARN));
@@ -451,7 +451,7 @@ TEST_P(ContGeofenceSourceTest, GeofenceHoldAfterAContGeofenceWarning)
 	EXPECT_TRUE(repositionedAt(outside()));
 }
 
-// A pilot who took over after the contingency geofence breach is still held at the geofence.
+// A pilot who took over after the contingency geofence breach is still held at the emergency geofence.
 TEST_P(ContGeofenceSourceTest, GeofenceHoldAfterATakeover)
 {
 	enableContGeofence();
@@ -469,12 +469,12 @@ TEST_P(ContGeofenceSourceTest, GeofenceHoldAfterATakeover)
 	EXPECT_GT(reposition().timestamp, cont_geofence_hold);
 	EXPECT_TRUE(repositionedAt(outside()));
 
-	// The geofence Hold stays latched while the vehicle is holding.
+	// The emergency geofence Hold stays latched while the vehicle is holding.
 	setNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
 	EXPECT_TRUE(geofenceBreached(checkAt(between())));
 }
 
-// Breaching the geofence while holding must not move the loiter out to the breach position.
+// Breaching the emergency geofence while holding must not move the loiter out to the breach position.
 TEST_P(ContGeofenceSourceTest, HoldIsNotMovedByAGeofenceBreach)
 {
 	enableContGeofence();
@@ -517,7 +517,7 @@ TEST_P(ContGeofenceSourceTest, CommandedTargetsMustStayInside)
 	EXPECT_FALSE(targetAllowed(between()));
 	EXPECT_FALSE(targetAllowed(outside()));
 
-	// A warning does not restrict targets, the geofence still does.
+	// A warning does not restrict targets, the emergency geofence still does.
 	setParam("GF_CONT_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_WARN));
 	EXPECT_TRUE(targetAllowed(between()));
 	EXPECT_FALSE(targetAllowed(outside()));

@@ -97,8 +97,9 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   Limits raised or disabled to allow large tilts, for example roll on fixed-wing vehicles, are no longer needed.
   The check is disabled with `FD_TILT_ERROR` set to -1.
   The `fd_roll` and `fd_pitch` fields of [FailureDetectorStatus](../msg_docs/FailureDetectorStatus.md) are replaced by `fd_tilt`.
-- **The failsafe flag `geofence_breached` is renamed to `gf_breached`.**
-  The field of [FailsafeFlags](../msg_docs/FailsafeFlags.md) (`failsafe_flags`) is shortened to make room for the new `gf_cont_breach` flag within the logger's format limit.
+- **The failsafe flag `geofence_breached` is renamed to `gf_emer_breach`.**
+  The field of [FailsafeFlags](../msg_docs/FailsafeFlags.md) (`failsafe_flags`) now names the emergency geofence, next to the new `gf_cont_breach` flag of the contingency geofence.
+  Both names are short because the message is at the logger's format limit.
   ROS 2 applications and log analysis that read `geofence_breached` must use the new name.
 
 ## Other changes
@@ -147,6 +148,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - [Geofence Aware Return mode](../flight_modes/return.md#geofence_awareness). ([PX4-Autopilot#27145: feat(navigator): Geofence Aware RTL](https://github.com/PX4/PX4-Autopilot/pull/27145), [PX4-Autopilot#28001: docs(navigator): [geofence] added some more warnings about limitations](https://github.com/PX4/PX4-Autopilot/pull/28001)).
 - [Contingency geofence](../config/safety.md#contingency-geofence): a second boundary at a horizontal margin inside the geofence ([GF_CONT_H_MARGIN](../advanced_config/parameter_reference.md#GF_CONT_H_MARGIN)), with its own action ([GF_CONT_ACTION](../advanced_config/parameter_reference.md#GF_CONT_ACTION)).
   A vehicle can for example hold at the contingency geofence, and only terminate if it still crosses the geofence.
+  The names follow the SORA framework: messages about a breach or a refused target now call the existing geofence the emergency geofence.
   The margin applies to the maximum distance from Home and to the Geofence Plan.
   Outside the contingency geofence arming is denied, missions are rejected, and _Go to location_ targets are refused unless its action is Warning.
   Return mode plans its route with the margin added.

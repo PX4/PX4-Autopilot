@@ -45,7 +45,7 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 					    geofence_result.geofence_max_alt_triggered ||
 					    geofence_result.geofence_custom_fence_triggered;
 
-	reporter.failsafeFlags().gf_breached = geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE && any_geofence_triggered;
+	reporter.failsafeFlags().gf_emer_breach = geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE && any_geofence_triggered;
 
 	const bool any_cont_geofence_triggered = geofence_result.geofence_cont_max_dist_triggered ||
 			geofence_result.geofence_cont_custom_fence_triggered;
@@ -64,10 +64,10 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 			 */
 			reporter.armingCheckFailure(NavModes::All, health_component_t::system,
 						    events::ID("check_gf_violation_max_hor_dist"),
-						    events::Log::Error, "Geofence breach: exceeding maximum distance to Home");
+						    events::Log::Error, "Emergency geofence breach: exceeding maximum distance to Home");
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Geofence: exceeding maximum distance to Home\t");
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Emergency geofence: exceeding maximum distance to Home\t");
 			}
 		}
 
@@ -80,10 +80,10 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 			 */
 			reporter.armingCheckFailure(NavModes::All, health_component_t::system,
 						    events::ID("check_gf_violation_max_alt"),
-						    events::Log::Error, "Geofence breach: exceeding maximum altitude above Home");
+						    events::Log::Error, "Emergency geofence breach: exceeding maximum altitude above Home");
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Geofence: exceeding maximum altitude above Home\t");
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Emergency geofence: exceeding maximum altitude above Home\t");
 			}
 		}
 
@@ -96,10 +96,10 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 			 */
 			reporter.armingCheckFailure(NavModes::All, health_component_t::system,
 						    events::ID("check_gf_violation_custom_gf"),
-						    events::Log::Error, "Geofence breach: approaching or outside geofence");
+						    events::Log::Error, "Emergency geofence breach: approaching or outside the fence");
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Geofence: approaching or outside geofence\t");
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Emergency geofence: approaching or outside the fence\t");
 			}
 		}
 	}
@@ -131,10 +131,10 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 			 */
 			reporter.armingCheckFailure(NavModes::All, health_component_t::system,
 						    events::ID("check_gf_cont_breach_custom_gf"),
-						    events::Log::Error, "Contingency geofence breach: approaching or outside contingency geofence");
+						    events::Log::Error, "Contingency geofence breach: approaching or outside the fence");
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Contingency geofence: approaching or outside contingency geofence\t");
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Contingency geofence: approaching or outside the fence\t");
 			}
 		}
 	}

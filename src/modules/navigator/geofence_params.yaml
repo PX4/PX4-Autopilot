@@ -4,7 +4,7 @@ parameters:
   definitions:
     GF_ACTION:
       description:
-        short: Geofence breach action
+        short: Emergency geofence breach action
         long: |-
           Note: Setting this value to 4 enables flight termination,
           which will kill the vehicle on a breach of the fence.
@@ -56,7 +56,7 @@ parameters:
     GF_CONT_ACTION:
       description:
         short: Contingency geofence breach action
-        long: If the geofence is breached as well, the more severe of the two actions is taken.
+        long: If the emergency geofence is breached as well, the more severe of the two actions is taken.
       type: enum
       values:
         1: Warning

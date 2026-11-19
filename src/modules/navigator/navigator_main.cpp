@@ -555,9 +555,9 @@ void Navigator::run()
 					_time_loitering_after_gf_breach = 0; // a manual reposition unlatches the post-breach loiter state
 
 				} else if (!fence_allows_position) {
-					mavlink_log_critical(&_mavlink_log_pub, "Reposition is outside geofence\t");
+					mavlink_log_critical(&_mavlink_log_pub, "Reposition is outside the emergency geofence\t");
 					events::send(events::ID("navigator_reposition_outside_geofence"), {events::Log::Error, events::LogInternal::Info},
-						     "Reposition is outside geofence");
+						     "Reposition is outside the emergency geofence");
 
 				} else {
 					mavlink_log_critical(&_mavlink_log_pub, "Reposition is outside the contingency geofence\t");
@@ -589,9 +589,9 @@ void Navigator::run()
 						_course.set_altitude(new_alt);
 
 					} else if (!fence_allows_position) {
-						mavlink_log_critical(&_mavlink_log_pub, "Altitude change is outside geofence\t");
+						mavlink_log_critical(&_mavlink_log_pub, "Altitude change is outside the emergency geofence\t");
 						events::send(events::ID("navigator_course_change_altitude_outside_geofence"), {events::Log::Error, events::LogInternal::Info},
-							     "Altitude change is outside geofence");
+							     "Altitude change is outside the emergency geofence");
 
 					} else {
 						mavlink_log_critical(&_mavlink_log_pub, "Altitude change is outside the contingency geofence\t");
@@ -668,9 +668,9 @@ void Navigator::run()
 						_time_loitering_after_gf_breach = 0; // a manual reposition unlatches the post-breach loiter state
 
 					} else if (!fence_allows_position) {
-						mavlink_log_critical(&_mavlink_log_pub, "Altitude change is outside geofence\t");
+						mavlink_log_critical(&_mavlink_log_pub, "Altitude change is outside the emergency geofence\t");
 						events::send(events::ID("navigator_change_altitude_outside_geofence"), {events::Log::Error, events::LogInternal::Info},
-							     "Altitude change is outside geofence");
+							     "Altitude change is outside the emergency geofence");
 
 					} else {
 						mavlink_log_critical(&_mavlink_log_pub, "Altitude change is outside the contingency geofence\t");
@@ -752,7 +752,7 @@ void Navigator::run()
 					_time_loitering_after_gf_breach = 0; // a manual reposition unlatches the post-breach loiter state
 
 				} else if (!fence_allows_position) {
-					mavlink_log_critical(&_mavlink_log_pub, "Orbit is outside geofence");
+					mavlink_log_critical(&_mavlink_log_pub, "Orbit is outside the emergency geofence");
 
 				} else {
 					mavlink_log_critical(&_mavlink_log_pub, "Orbit is outside the contingency geofence");
@@ -809,7 +809,7 @@ void Navigator::run()
 					_time_loitering_after_gf_breach = 0; // a manual reposition unlatches the post-breach loiter state
 
 				} else if (!fence_allows_position) {
-					mavlink_log_critical(&_mavlink_log_pub, "Figure 8 is outside geofence");
+					mavlink_log_critical(&_mavlink_log_pub, "Figure 8 is outside the emergency geofence");
 
 				} else {
 					mavlink_log_critical(&_mavlink_log_pub, "Figure 8 is outside the contingency geofence");
@@ -1328,9 +1328,9 @@ void Navigator::geofence_breach_check()
 		const bool cont_breach = _geofence_result.geofence_cont_max_dist_triggered
 					 || _geofence_result.geofence_cont_custom_fence_triggered;
 
-		// For the Hold action Navigator sets where to hold, once per breach. The geofence and the contingency geofence
-		// each ask for their own breach: a pilot who takes over after the contingency geofence Hold and flies on is
-		// held again at the geofence.
+		// For the Hold action Navigator sets where to hold, once per breach. The emergency and the contingency
+		// geofence each ask for their own breach: a pilot who takes over after the contingency geofence Hold
+		// and flies on is held again at the emergency geofence.
 		const bool can_hold = global_position_valid && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
 		const bool geofence_hold = breach && !_geofence_reposition_sent && can_hold
 					   && _geofence_result.geofence_action == geofence_result_s::GF_ACTION_LOITER;
@@ -1339,8 +1339,9 @@ void Navigator::geofence_breach_check()
 
 		if (geofence_hold || cont_geofence_hold) {
 
-			// A vehicle that already holds after the contingency geofence breach keeps that position. Holding where it
-			// then breaches the geofence would move it out, for example when it overshoots while braking or turning.
+			// A vehicle that already holds after the contingency geofence breach keeps that position.
+			// Holding where it then breaches the emergency geofence would move it out, for example when
+			// it overshoots while braking or turning.
 			if (_time_loitering_after_gf_breach == 0) {
 
 				const position_setpoint_s current = get_position_setpoint_triplet()->current;
