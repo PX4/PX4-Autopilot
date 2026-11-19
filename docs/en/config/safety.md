@@ -277,7 +277,8 @@ The contingency geofence can then be tight where it has to be, for example aroun
 ![Top view of an emergency geofence with a contingency geofence drawn inside it: a fixed-wing vehicle that leaves the contingency geofence holds and loiters there, instead of flying on and breaching the emergency geofence](../../assets/config/safety/contingency_geofence.svg)
 
 As soon as the plan has a contingency geofence area, `GF_CONT_H_MARGIN` is no longer used for any polygon or circle of the plan.
-It still applies to the maximum distance from Home (`GF_MAX_HOR_DIST`).
+Every emergency geofence area then needs its own contingency geofence area, exclusion areas included: draw a larger contingency geofence exclusion area around each emergency geofence exclusion area.
+The margin still applies to the maximum distance from Home (`GF_MAX_HOR_DIST`).
 
 ::: warning
 The ground station must support contingency geofence areas (see [MAVLink support](../mavlink/protocols.md#contingency_geofence)).
