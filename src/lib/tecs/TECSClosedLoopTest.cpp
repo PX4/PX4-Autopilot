@@ -532,6 +532,40 @@ TEST_F(TECSClosedLoopTest, AirspeedStepDownDefaultTuning)
 	EXPECT_LT(_sim_stats.max_altitude_error, 0.5f) << "peak at t=" << _sim_stats.t_max_altitude_error << " s";
 }
 
+TEST_F(TECSClosedLoopTest, AirspeedStepDownNoPitchFeedback)
+{
+	_params.pitch_damping_gain = 0;
+	_params.integrator_gain_pitch = 0;
+
+	run(10.f);
+
+	setAirspeedSetpoint(_params.equivalent_airspeed_trim - 1.f);
+
+	const float step = _V_sp - _state.V;
+	const float t_step = _t;
+
+	// The actual airspeed loop time constant is twice as fast as
+	// FW_T_TAS_TC (=1/airspeed_error_gain). Throttle supplies the full
+	// kinetic energy rate demand, and pitch (due to the wrong SEB -> pitch
+	// conversion) supplies it again.
+
+	// This only works when switching off the inner pitch feedback. Unlike
+	// the feedforward, the feedback path uses the correct SEB rate error
+	// (at w=1) and opposes the feedforward.
+
+	const float tau = 0.5f / _params.airspeed_error_gain;
+
+	for (int i = 0; i < 10; i++) {
+		run(5.0f);
+		const float expected_error = step * expf(-(_t - t_step) / tau);
+		EXPECT_NEAR(_V_sp - _state.V, expected_error, MAX_NUMERICAL_ERR) << "at t=" << _t << " s";
+	}
+
+
+	// This is possible without sacrificing a lot of altitude
+	EXPECT_LT(_sim_stats.max_altitude_error, 0.5f) << "peak at t=" << _sim_stats.t_max_altitude_error << " s";
+}
+
 TEST_F(TECSClosedLoopTest, FastDescend)
 {
 	// The decision whether or not fast descend runs happens in the outer
