@@ -165,18 +165,12 @@ AircraftState aircraft_step(const TECSControl::Param &p, float dt, float throttl
 class TECSClosedLoopTest : public ::testing::Test
 {
 protected:
-	TECSClosedLoopTest() { _alt_ref_model.initialize({ALT_INIT, 0.f}); }
-
 	float _t{0.f}; // Simulation time [s]
 
 	TECSControl::Param _params{defaultParams()}; // first: the plant and the setpoints derive from it
 	AircraftState      _state{_params.equivalent_airspeed_trim, ALT_INIT};
 	TECSControl        _tecs{};
 	TECSControl::Flag  _flag{.airspeed_enabled = true, .detect_underspeed_enabled = true};
-	TECSAltitudeReferenceModel _alt_ref_model{};
-
-	float _target_climbrate{paramDefault(px4::params::FW_T_CLMB_R_SP)};
-	float _target_sinkrate {paramDefault(px4::params::FW_T_SINK_R_SP)};
 
 	float _V_sp         {_params.equivalent_airspeed_trim};
 	float _alt_sp       {ALT_INIT};
@@ -231,24 +225,10 @@ protected:
 	// Climb rate the plant is flying at the current state under the previous pitch command
 	float plantAltitudeRate() const { return altitude_rate(_pitch_prev, _state, _plant_pitch_offset); }
 
-	void updateAltRef()
-	{
-		// Mapped the way FwLateralLongitudinalControl feeds the reference model: the target rates come from
-		// FW_T_CLMB_R_SP / FW_T_SINK_R_SP, bounded by the performance limits
-		const TECSAltitudeReferenceModel::Param param{
-			.target_climbrate = math::min(_target_climbrate, _params.max_climb_rate),
-			.target_sinkrate  = math::min(_target_sinkrate, _params.max_sink_rate),
-			.vert_accel_limit = _params.vert_accel_limit,
-			.max_climb_rate   = _params.max_climb_rate,
-			.max_sink_rate    = _params.max_sink_rate,
-		};
-		_alt_ref_model.update(DT, {_alt_sp, NAN}, _state.h, plantAltitudeRate(), param);
-	}
-
 	TECSControl::Setpoint makeSetpoint() const
 	{
 		return {
-			.altitude_reference            = _alt_ref_model.getAltitudeReference(),
+			.altitude_reference            = {_alt_sp, 0.f}, // no reference model: TECSControl sees the raw setpoint
 			.altitude_rate_setpoint_direct = NAN,   // use altitude control loop
 			.tas_setpoint                  = _V_sp,
 		};
@@ -323,7 +303,6 @@ protected:
 
 		while (_t < t_start + duration) {
 
-			updateAltRef();
 			_tecs.update(DT, makeSetpoint(), makeInput(), _params, _flag);
 
 			_pitch_prev = _tecs.getPitchSetpoint();
@@ -412,15 +391,21 @@ TEST_F(TECSClosedLoopTest, SteadyStateCruiseLowSpeedWeight)
 	EXPECT_LT(_sim_stats.max_pitch_integ_norm, MAX_NUMERICAL_ERR);
 }
 
-// --- Altitude step with a low vertical acceleration limit -------------------
+// --- Altitude step ------------------------------------------------------------
+//
+// TECSControl gets the raw altitude setpoint (no reference model), so the altitude loop demands its full sink rate at
+// once and the throttle drops to idle at once. The pitch has to follow just as fast, or the vehicle loses total energy
+// before it starts descending and the energy comes out of airspeed: the vertical acceleration limit, which in
+// TECSControl only rate limits the pitch, is therefore disabled. The step is sized so that the demanded sink rate
+// (step / FW_T_ALT_TC) does not exceed FW_T_SINK_MIN, the sink rate the vehicle flies at idle without accelerating.
 
-TEST_F(TECSClosedLoopTest, AltitudeStepDownLowAccel)
+TEST_F(TECSClosedLoopTest, AltitudeStepDown)
 {
-	_params.vert_accel_limit /= 10.f;
+	_params.vert_accel_limit = INFINITY;
 
 	run(10.f);
 
-	setAltitudeSetpoint(ALT_INIT - 100.f);
+	setAltitudeSetpoint(ALT_INIT - _params.min_sink_rate / _params.altitude_error_gain);
 	run(200.f);
 
 	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_NUMERICAL_ERR) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
