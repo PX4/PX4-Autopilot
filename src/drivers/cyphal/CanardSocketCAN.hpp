@@ -65,7 +65,13 @@ public:
 	/// Close socket connection
 	int close()
 	{
-		return ::close(_fd);
+		if (_fd < 0) {
+			return 0;
+		}
+
+		const int ret = ::close(_fd);
+		_fd = -1;
+		return ret;
 	}
 
 	/// Send a CanardFrame to the CanardSocketInstance socket

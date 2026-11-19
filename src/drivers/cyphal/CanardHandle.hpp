@@ -56,6 +56,10 @@ public:
 	void receive();
 	void transmit();
 
+	/// Close the CAN interface. File descriptors are per task group on NuttX,
+	/// so this must be called from the thread that opened it (the work queue).
+	void close();
+
 	int32_t TxPush(const CanardMicrosecond             tx_deadline_usec,
 		       const CanardTransferMetadata *const metadata,
 		       const size_t                        payload_size,
