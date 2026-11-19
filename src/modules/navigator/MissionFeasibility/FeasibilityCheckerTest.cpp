@@ -136,7 +136,7 @@ TEST_F(FeasibilityCheckerTest, mission_item_validity)
 	checker.reset();
 	checker.publishInvalidHome();
 	mission_item.nav_cmd = NAV_CMD_TAKEOFF;
-	mission_item.altitude_is_relative = true;
+	mission_item.frame = NAV_FRAME_GLOBAL_RELATIVE_ALT;
 	ret = checker.processNextItem(mission_item, 0, 5);
 
 	// home alt is not valid but we have a relative mission item, should fail immediately
@@ -261,7 +261,7 @@ TEST_F(FeasibilityCheckerTest, check_below_home)
 	mission_item_s mission_item = {};
 	mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 	mission_item.altitude = 50;
-	mission_item.altitude_is_relative = true;
+	mission_item.frame = NAV_FRAME_GLOBAL_RELATIVE_ALT;
 
 	checker.processNextItem(mission_item, 0, 1);
 
@@ -286,7 +286,7 @@ TEST_F(FeasibilityCheckerTest, check_takeoff)
 	mission_item_s mission_item = {};
 	mission_item.nav_cmd = NAV_CMD_TAKEOFF;
 	mission_item.altitude = -5.0f;
-	mission_item.altitude_is_relative = true;
+	mission_item.frame = NAV_FRAME_GLOBAL_RELATIVE_ALT;
 
 	checker.processNextItem(mission_item, 0, 1);
 
@@ -330,7 +330,7 @@ TEST_F(FeasibilityCheckerTest, fixed_wing_land_approach)
 	mission_item_s mission_item = {};
 	mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 	mission_item.altitude = 50;
-	mission_item.altitude_is_relative = true;
+	mission_item.frame = NAV_FRAME_GLOBAL_RELATIVE_ALT;
 
 	checker.processNextItem(mission_item, 0, 2);
 
@@ -467,7 +467,7 @@ TEST_F(FeasibilityCheckerTest, fixed_wing_landing)
 	checker.publishVehicleType(vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 	mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 	mission_item.altitude = 10;
-	mission_item.altitude_is_relative = true;
+	mission_item.frame = NAV_FRAME_GLOBAL_RELATIVE_ALT;
 	checker.processNextItem(mission_item, 0, 3);
 
 	mission_item.nav_cmd = NAV_CMD_LAND;

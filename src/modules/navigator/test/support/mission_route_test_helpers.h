@@ -115,7 +115,6 @@ static inline mission_item_s makePositionItem(double lat, double lon, float alt,
 	item.altitude = alt;
 	item.nav_cmd = nav_cmd;
 	item.frame = NAV_FRAME_GLOBAL;
-	item.altitude_is_relative = false;
 	item.autocontinue = true;
 	return item;
 }

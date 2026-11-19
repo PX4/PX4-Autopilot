@@ -1456,11 +1456,11 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_int
 	const uint8_t frame = mavlink_cmd_params::frame_without_int(mavlink_mission_item->frame);
 
 	if (frame == MAV_FRAME_GLOBAL || frame == MAV_FRAME_GLOBAL_RELATIVE_ALT) {
-		// This is a mission item with a global coordinate
+		// This is a mission item with a global coordinate. How the altitude is referenced is
+		// carried by the frame, stored in mission_item->frame below.
 		mission_item->lat = ((double)mavlink_mission_item->x) * 1e-7;
 		mission_item->lon = ((double)mavlink_mission_item->y) * 1e-7;
 		mission_item->altitude = mavlink_mission_item->z;
-		mission_item->altitude_is_relative = frame == MAV_FRAME_GLOBAL_RELATIVE_ALT;
 
 		{
 			uint8_t zero_mask = 0;
@@ -1820,7 +1820,7 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		mavlink_mission_item->y = round(mission_item->lon * 1e7);
 		mavlink_mission_item->z = mission_item->altitude;
 
-		if (mission_item->altitude_is_relative) {
+		if (mission_item_altitude_is_relative(*mission_item)) {
 			mavlink_mission_item->frame = MAV_FRAME_GLOBAL_RELATIVE_ALT_INT;
 
 		} else {

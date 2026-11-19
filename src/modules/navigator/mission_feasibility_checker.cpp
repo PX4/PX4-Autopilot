@@ -184,14 +184,14 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 			continue;
 		}
 
-		if (missionitem.altitude_is_relative && !home_valid) {
+		if (mission_item_altitude_is_relative(missionitem) && !home_valid) {
 			failure = Failure::NoHome;
 			failed_item = i;
 			break;
 		}
 
 		// Geofence function checks against home altitude amsl
-		missionitem.altitude = missionitem.altitude_is_relative ? missionitem.altitude + home_alt : missionitem.altitude;
+		missionitem.altitude = mission_item_altitude_is_relative(missionitem) ? missionitem.altitude + home_alt : missionitem.altitude;
 
 		bool point_valid = PX4_ISFINITE(missionitem.lat) && PX4_ISFINITE(missionitem.lon)
 				   && PX4_ISFINITE(missionitem.altitude)

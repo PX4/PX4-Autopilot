@@ -631,7 +631,7 @@ void RTL::selectSafePoint(ReturnSelection &selection) const
 
 void RTL::setLandPosAsDestination(PositionYawSetpoint &rtl_position, mission_item_s &land_mission_item) const
 {
-	rtl_position.alt = land_mission_item.altitude_is_relative ?	land_mission_item.altitude +
+	rtl_position.alt = mission_item_altitude_is_relative(land_mission_item) ?	land_mission_item.altitude +
 			   _home_pos_sub.get().alt : land_mission_item.altitude;
 	rtl_position.lat = land_mission_item.lat;
 	rtl_position.lon = land_mission_item.lon;

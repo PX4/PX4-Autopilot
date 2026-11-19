@@ -148,7 +148,7 @@ protected:
 		EXPECT_DOUBLE_EQ(actual.lat, expected.lat);
 		EXPECT_DOUBLE_EQ(actual.lon, expected.lon);
 		EXPECT_FLOAT_EQ(actual.altitude, expected.altitude);
-		EXPECT_EQ(actual.altitude_is_relative, expected.altitude_is_relative);
+		EXPECT_EQ(actual.frame, expected.frame);
 		EXPECT_EQ(actual.autocontinue, expected.autocontinue);
 	}
 

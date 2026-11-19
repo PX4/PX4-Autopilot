@@ -106,7 +106,7 @@ enum ORIGIN {
 	ORIGIN_ONBOARD
 };
 
-/* compatible to mavlink MAV_FRAME; the deprecated MAV_FRAME_*_INT synonyms are mapped to these by the mavlink module */
+/* compatible to mavlink MAV_FRAME */
 enum NAV_FRAME {
 	NAV_FRAME_GLOBAL = 0,
 	NAV_FRAME_LOCAL_NED = 1,
@@ -178,14 +178,21 @@ struct mission_item_s {
 			 origin : 3,				/**< how the mission item was generated */
 			 loiter_exit_xtrack : 1,		/**< exit xtrack location: 0 for center of loiter wp, 1 for exit location */
 			 force_heading : 1,			/**< heading needs to be reached */
-			 altitude_is_relative : 1,		/**< true if altitude is relative from start point	*/
 			 autocontinue : 1,			/**< true if next waypoint should follow after this one */
 			 vtol_back_transition : 1,		/**< part of the vtol back transition sequence */
-			 _padding0 : 4;				/**< padding remaining unused bits  */
+			 _padding0 : 5;				/**< padding remaining unused bits  */
 	};
 
 	uint8_t _padding1[2];				/**< padding struct size to alignment boundary  */
 };
+
+/**
+ * @return true if the item's altitude is relative to the home altitude
+ */
+inline bool mission_item_altitude_is_relative(const mission_item_s &item)
+{
+	return item.frame == NAV_FRAME_GLOBAL_RELATIVE_ALT;
+}
 
 /**
  * dataman housekeeping information for a specific item.

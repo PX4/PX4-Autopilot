@@ -651,7 +651,7 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 			next_mission_items[0u] = _mission_item;
 
 			_mission_item.altitude = altitude;
-			_mission_item.altitude_is_relative = false;
+			_mission_item.frame = NAV_FRAME_GLOBAL;
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			_mission_item.autocontinue = true;
 			_mission_item.time_inside = 0.0f;
@@ -689,7 +689,7 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 				* what the altitude means on this waypoint type.
 				*/
 			_mission_item.altitude = altitude;
-			_mission_item.altitude_is_relative = false;
+			_mission_item.frame = NAV_FRAME_GLOBAL;
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			_mission_item.autocontinue = true;
 			_mission_item.yaw = NAN;
@@ -717,7 +717,7 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 			next_mission_items[0u] = _mission_item; // contains NAV_CMD_LAND
 
 			_mission_item.altitude = altitude;
-			_mission_item.altitude_is_relative = false;
+			_mission_item.frame = NAV_FRAME_GLOBAL;
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 			_mission_item.autocontinue = true;
 
@@ -954,7 +954,7 @@ MissionBase::do_abort_landing()
 
 	// turn current landing waypoint into an indefinite loiter
 	_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
-	_mission_item.altitude_is_relative = false;
+	_mission_item.frame = NAV_FRAME_GLOBAL;
 	_mission_item.altitude = alt_sp;
 	_mission_item.loiter_radius = _navigator->get_default_loiter_rad();
 	_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
@@ -1020,7 +1020,6 @@ void MissionBase::publish_navigator_mission_item()
 
 	navigator_mission_item.loiter_exit_xtrack = _mission_item.loiter_exit_xtrack;
 	navigator_mission_item.force_heading = _mission_item.force_heading;
-	navigator_mission_item.altitude_is_relative = _mission_item.altitude_is_relative;
 	navigator_mission_item.autocontinue = _mission_item.autocontinue;
 	navigator_mission_item.vtol_back_transition = _mission_item.vtol_back_transition;
 

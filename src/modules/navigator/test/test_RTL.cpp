@@ -104,7 +104,6 @@ mission_item_s makeLandApproachItem(double lat, double lon, float altitude, floa
 	item.lat = lat;
 	item.lon = lon;
 	item.altitude = altitude;
-	item.altitude_is_relative = frame == NAV_FRAME_GLOBAL_RELATIVE_ALT;
 	item.loiter_radius = loiter_radius_m;
 	return item;
 }
@@ -576,7 +575,7 @@ protected:
 		mission_item_s land_start{};
 		land_start.nav_cmd = NAV_CMD_DO_LAND_START;
 		mission_item_s land = makeSafePointItem(kBaseLat, kBaseLon, 0.f, NAV_FRAME_GLOBAL_RELATIVE_ALT, NAV_CMD_LAND);
-		land.altitude_is_relative = true;
+		land.frame = NAV_FRAME_GLOBAL_RELATIVE_ALT;
 		writeMissionToDataman(DM_KEY_WAYPOINTS_OFFBOARD_0, {
 			makeSafePointItem(north.lat, north.lon, kAlt + 100.f, NAV_FRAME_GLOBAL, NAV_CMD_WAYPOINT),
 			makeSafePointItem(north_east.lat, north_east.lon, kAlt + 100.f, NAV_FRAME_GLOBAL, NAV_CMD_WAYPOINT),

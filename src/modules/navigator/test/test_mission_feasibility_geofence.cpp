@@ -321,7 +321,7 @@ TEST_P(MissionGeofenceScalarTest, ChecksEveryPosition)
 
 	mission_item_s second = waypoint({0.f, test.east});
 	second.altitude = test.altitude;
-	second.altitude_is_relative = test.relative;
+	second.frame = test.relative ? NAV_FRAME_GLOBAL_RELATIVE_ALT : NAV_FRAME_GLOBAL;
 	EXPECT_EQ(missionFeasible({waypoint({0.f, 100.f}), changeSpeed(), second}), test.feasible);
 
 	if (!test.feasible) {
@@ -373,7 +373,7 @@ TEST_P(MissionGeofenceFailureOrderTest, EarlierPathBreachPrecedesLaterFailure)
 	if (GetParam() == LaterMissionFailure::NoHome) {
 		_navigator.get_home_position()->valid_hpos = false;
 		_home_pub.publish(*_navigator.get_home_position());
-		invalid.altitude_is_relative = true;
+		invalid.frame = NAV_FRAME_GLOBAL_RELATIVE_ALT;
 		invalid.altitude = 100.f;
 
 	} else {
@@ -400,7 +400,7 @@ TEST_F(MissionFeasibilityGeofenceTest, RelativeAltitudeRequiresValidHome)
 	_navigator.get_home_position()->valid_hpos = false;
 	_home_pub.publish(*_navigator.get_home_position());
 	mission_item_s relative = waypoint({0.f, 100.f});
-	relative.altitude_is_relative = true;
+	relative.frame = NAV_FRAME_GLOBAL_RELATIVE_ALT;
 	relative.altitude = 100.f;
 	EXPECT_FALSE(missionFeasible({relative}));
 	EXPECT_TRUE(logContains("Geofence requires valid home position"));

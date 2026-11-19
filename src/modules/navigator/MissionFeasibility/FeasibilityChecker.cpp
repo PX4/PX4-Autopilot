@@ -229,7 +229,7 @@ void FeasibilityChecker::doMulticopterChecks(mission_item_s &mission_item, const
 bool FeasibilityChecker::checkMissionItemValidity(mission_item_s &mission_item, const int current_index)
 {
 	/* reject relative alt without home set */
-	if (mission_item.altitude_is_relative && !PX4_ISFINITE(_home_alt_msl)
+	if (mission_item_altitude_is_relative(mission_item) && !PX4_ISFINITE(_home_alt_msl)
 	    && mission_item_contains_position(mission_item)) {
 
 		mavlink_log_critical(_mavlink_log_pub, "Mission rejected: No home pos, WP %d uses rel alt\t", current_index + 1);
@@ -322,7 +322,7 @@ bool FeasibilityChecker::checkTakeoff(mission_item_s &mission_item)
 	// look for a takeoff waypoint
 	if (mission_item.nav_cmd == NAV_CMD_TAKEOFF || mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF) {
 		// make sure that the altitude of the waypoint is above the home altitude
-		const float takeoff_alt = mission_item.altitude_is_relative
+		const float takeoff_alt = mission_item_altitude_is_relative(mission_item)
 					  ? mission_item.altitude
 					  : mission_item.altitude - _home_alt_msl;
 
@@ -330,7 +330,7 @@ bool FeasibilityChecker::checkTakeoff(mission_item_s &mission_item)
 			mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Takeoff altitude below home altitude!\t");
 			events::send<float>(events::ID("navigator_mis_takeoff_too_low"), {events::Log::Error, events::LogInternal::Info},
 					    "Mission rejected: takeoff altitude too low! Minimum: {1:.1m_v}",
-					    mission_item.altitude_is_relative ? 0.0f : _home_alt_msl);
+					    mission_item_altitude_is_relative(mission_item) ? 0.0f : _home_alt_msl);
 			return false;
 		}
 
@@ -392,9 +392,9 @@ bool FeasibilityChecker::checkFixedWingLandApproach(mission_item_s &mission_item
 
 		if (mission_item_contains_position(_mission_item_previous)) {
 
-			const float land_alt_amsl = mission_item.altitude_is_relative ? mission_item.altitude +
+			const float land_alt_amsl = mission_item_altitude_is_relative(mission_item) ? mission_item.altitude +
 						    _home_alt_msl : mission_item.altitude;
-			const float entrance_alt_amsl = _mission_item_previous.altitude_is_relative ? _mission_item_previous.altitude +
+			const float entrance_alt_amsl = mission_item_altitude_is_relative(_mission_item_previous) ? _mission_item_previous.altitude +
 							_home_alt_msl : _mission_item_previous.altitude;
 			const float relative_approach_altitude = entrance_alt_amsl - land_alt_amsl;
 

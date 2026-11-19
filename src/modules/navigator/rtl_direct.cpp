@@ -751,7 +751,6 @@ void RtlDirect::publish_rtl_direct_navigator_mission_item()
 
 	navigator_mission_item.loiter_exit_xtrack = _mission_item.loiter_exit_xtrack;
 	navigator_mission_item.force_heading = _mission_item.force_heading;
-	navigator_mission_item.altitude_is_relative = _mission_item.altitude_is_relative;
 	navigator_mission_item.autocontinue = _mission_item.autocontinue;
 	navigator_mission_item.vtol_back_transition = _mission_item.vtol_back_transition;
 

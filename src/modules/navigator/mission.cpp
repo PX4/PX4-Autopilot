@@ -381,7 +381,7 @@ void Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s nex
 		_mission_item.lon = _global_pos_sub.get().lon;
 		_mission_item.yaw = NAN; // FlightTaskAuto handles yaw directly
 		_mission_item.altitude = _mission_init_climb_altitude_amsl;
-		_mission_item.altitude_is_relative = false;
+		_mission_item.frame = NAV_FRAME_GLOBAL;
 		_mission_item.autocontinue = true;
 		_mission_item.time_inside = 0.0f;
 

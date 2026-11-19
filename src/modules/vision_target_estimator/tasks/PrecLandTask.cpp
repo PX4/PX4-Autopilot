@@ -161,7 +161,7 @@ bool PrecLandTask::cacheMissionSetpoint(const navigator_mission_item_s &mission_
 
 	float altitude_amsl = mission_item.altitude;
 
-	if (mission_item.altitude_is_relative) {
+	if (mission_item.frame == navigator_mission_item_s::FRAME_GLOBAL_RELATIVE_ALT) {
 		home_position_s home_position{};
 
 		if (!_home_position_sub.copy(&home_position) || !PX4_ISFINITE(home_position.alt)) {

@@ -152,7 +152,7 @@ bool updateVtolStateFromMissionItem(const mission_item_s &mission_item, uint8_t 
 
 float getAbsoluteAltitudeForMissionItem(const mission_item_s &mission_item, float home_altitude_amsl)
 {
-	if (mission_item.altitude_is_relative) {
+	if (mission_item_altitude_is_relative(mission_item)) {
 		return PX4_ISFINITE(home_altitude_amsl) ? mission_item.altitude + home_altitude_amsl : NAN;
 	}
 
