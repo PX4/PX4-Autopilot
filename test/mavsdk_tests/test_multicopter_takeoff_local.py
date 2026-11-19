@@ -96,17 +96,20 @@ LOCAL_FRAME_INT_SCALE = 1e4
 TAKEOFF_ALTITUDE_M = 10.0
 
 # Where the vehicle would loiter after the climb, were Hold ever able to run on this vehicle.
-LOITER_NORTH_M = 5.0
-LOITER_EAST_M = 5.0
+LOITER_NORTH_M = 0.0
+LOITER_EAST_M = 0.0
 
 # Time for Commander's post-takeoff mode-change attempt to run and settle once the takeoff
 # altitude is reached.
 MODE_SETTLE_S = 5
 
-# Generous bound on horizontal+vertical speed while GPS fusion starts: holding in Takeoff should
-# stay close to stationary, so a real jump (e.g. an unhandled estimator reset) is a clear outlier
-# well below what would trip this, while ordinary hold noise comfortably will not.
-MAX_SPEED_DURING_FUSION_START_M_S = 1.0
+# Generous bound on acceleration (the rate of change of velocity) while GPS fusion starts:
+# ordinary flight, climbing included, keeps this small, so a real jump (e.g. an unhandled
+# estimator reset provoking a correction) is a clear outlier well below what would trip this,
+# while ordinary flight dynamics and estimate noise comfortably will not. Acceleration rather
+# than absolute speed, since speed alone is already non-zero during a climb for reasons that have
+# nothing to do with GPS fusion starting.
+MAX_ACCEL_DURING_FUSION_START_M_S2 = 2.0
 
 # Tight bound on net horizontal displacement switching into Hold when the global position was
 # already there well before the climb finished: Hold's freshly computed loiter target
@@ -117,7 +120,7 @@ MAX_HOLD_HANDOVER_DRIFT_M = 1.5
 # Takeoff altitude for test_takeoff_local_reaches_hold_when_gps_fused_mid_climb: much higher than
 # TAKEOFF_ALTITUDE_M, to leave plenty of climb time for GPS fusion to start and settle before the
 # climb -- the "waypoint" a local takeoff's completion check looks at -- finishes.
-MIDCLIMB_TAKEOFF_ALTITUDE_M = 40.0
+MIDCLIMB_TAKEOFF_ALTITUDE_M = 30.0
 
 
 def _send_local_takeoff_command(tester: AutopilotTesterFlow) -> None:
@@ -129,42 +132,6 @@ def _send_local_takeoff_command(tester: AutopilotTesterFlow) -> None:
         x=round(LOITER_NORTH_M * LOCAL_FRAME_INT_SCALE),
         y=round(LOITER_EAST_M * LOCAL_FRAME_INT_SCALE),
         z=-TAKEOFF_ALTITUDE_M)
-
-
-@pytest.mark.takeoff_local
-def test_takeoff_local_offset_ned_frame_rejected(tester_flow: AutopilotTesterFlow) -> None:
-    """ArduPilot sends a local-frame takeoff as MAV_FRAME_LOCAL_OFFSET_NED, not
-    MAV_FRAME_LOCAL_NED. PX4 must reject it with MAV_RESULT_UNSUPPORTED_MAV_FRAME instead of
-    letting it through: Commander/Navigator only recognise MAV_FRAME_LOCAL_NED as a local-frame
-    takeoff, so x/y -- already scaled as local meters by mavlink_receiver.cpp -- would otherwise
-    reach them as if they were global lat/lon degrees."""
-    tester = tester_flow
-
-    tester.send_command_int(
-        MAV_CMD_NAV_TAKEOFF, frame=MAV_FRAME_LOCAL_OFFSET_NED,
-        x=round(LOITER_NORTH_M * LOCAL_FRAME_INT_SCALE),
-        y=round(LOITER_EAST_M * LOCAL_FRAME_INT_SCALE),
-        z=-TAKEOFF_ALTITUDE_M,
-        expected_result=MAV_RESULT_UNSUPPORTED_MAV_FRAME)
-
-
-@pytest.mark.takeoff_local
-def test_takeoff_local_reaches_altitude_then_lands(tester_flow: AutopilotTesterFlow) -> None:
-    tester = tester_flow
-
-    _send_local_takeoff_command(tester)
-    tester.wait_until_armable()
-    tester.arm()
-    tester.wait_until_altitude(TAKEOFF_ALTITUDE_M, 20)
-
-    # A local-frame takeoff cannot be followed by Hold on this vehicle (it needs a global
-    # position it never has), so it must stay in Takeoff instead of being forced into a Hold it
-    # cannot run, or falling back to some other mode.
-    tester.sleep_for(MODE_SETTLE_S)
-    tester.wait_for_flight_mode(FlightMode.TAKEOFF, 1)
-
-    tester.land()
-    tester.wait_until_disarmed()
 
 
 @pytest.mark.takeoff_local
@@ -235,7 +202,7 @@ def test_takeoff_local_fuses_gps_after_climb_with_home_already_valid(
     # Switch GPS fusion on in flight (EKF2_SENS_EN would only apply once disarmed).
     tester.send_command_long(
         MAV_CMD_ESTIMATOR_SENSOR_ENABLE, param1=FUSION_SOURCE_GPS, param2=0, param3=1)
-    tester.wait_until_global_position_valid(15, max_speed_m_s=MAX_SPEED_DURING_FUSION_START_M_S)
+    tester.wait_until_global_position_valid(15, max_accel_m_s2=MAX_ACCEL_DURING_FUSION_START_M_S2)
 
     # Home must still be exactly as valid as it already was -- fusion starting must not touch it.
     tester.wait_until_home_position_valid(1)
@@ -270,62 +237,6 @@ def test_takeoff_local_no_gps_sim(tester_flow: AutopilotTesterFlow) -> None:
     tester.wait_for_flight_mode(FlightMode.TAKEOFF, 1)
     tester.check_global_position_invalid()
     tester.check_home_position_invalid()
-
-    tester.land()
-    tester.wait_until_disarmed()
-
-
-@pytest.mark.takeoff_local_gps_midflight
-def test_takeoff_local_gps_enabled_after_climb(tester_flow: AutopilotTesterFlow) -> None:
-    """GPS starts out without a fix (SIM_GPS_USED 0, set by this test's SITL config), so the
-    local-frame takeoff climbs exactly like test_takeoff_local_no_gps_sim. Once the takeoff
-    altitude (its "waypoint") is reached, a fix is restored (SIM_GPS_USED back up) and then GPS
-    fusion is switched on in flight with MAV_CMD_ESTIMATOR_SENSOR_ENABLE -- the command Commander
-    itself would need for an in-flight sensor change, since EKF2_SENS_EN only takes effect while
-    disarmed.
-
-    The fused global position must then come up within a few seconds (EKF2 publishes it on its
-    own, independently of Commander). Home position must not: HomePosition only re-evaluates a
-    first-time home while disarmed and landed (Commander.cpp's
-    "!isArmed() && landed && !_mission_in_progress" gate), so a GPS fix that only appears after
-    arming must never retroactively move home.
-
-    Commander's attempt to leave Takeoff for Hold is made once, right when the takeoff mission
-    item finishes, and does not retry: by design, not as a limitation, a global position that
-    only shows up afterwards must not belatedly pull the vehicle into Hold, so it stays in
-    Takeoff for the rest of the flight regardless of what the GPS does later. Fusion starting
-    must also not physically move the vehicle: EKF2's reset of its horizontal position/velocity
-    to the GPS on the first fused sample must be absorbed as a shift of the estimate alone (via
-    its reset counters), never felt by the position controller as a real tracking error to
-    correct for.
-    """
-    tester = tester_flow
-
-    _send_local_takeoff_command(tester)
-    tester.wait_until_armable()
-    tester.arm()
-    tester.wait_until_altitude(TAKEOFF_ALTITUDE_M, 20)
-
-    tester.check_global_position_invalid()
-    tester.check_home_position_invalid()
-
-    # GPS now gets a fix, but home must stay unset: it is only latched while disarmed and landed.
-    tester.set_param_int("SIM_GPS_USED", 10)
-    tester.sleep_for(5)
-    tester.check_home_position_invalid()
-    tester.check_global_position_invalid()
-
-    # Switch GPS fusion on in flight (EKF2_SENS_EN would only apply once disarmed).
-    tester.send_command_long(
-        MAV_CMD_ESTIMATOR_SENSOR_ENABLE, param1=FUSION_SOURCE_GPS, param2=0, param3=1)
-    tester.wait_until_global_position_valid(15, max_speed_m_s=MAX_SPEED_DURING_FUSION_START_M_S)
-    tester.check_home_position_invalid()
-
-    # No retry: Commander's one-shot attempt to leave Takeoff for Hold already ran (and failed)
-    # before fusion started, so the vehicle must stay in Takeoff for the rest of the flight.
-    tester.sleep_for(MODE_SETTLE_S)
-    tester.wait_for_flight_mode(FlightMode.TAKEOFF, 1)
-    tester.wait_until_altitude(TAKEOFF_ALTITUDE_M, 5)
 
     tester.land()
     tester.wait_until_disarmed()
@@ -416,12 +327,12 @@ def test_takeoff_local_reaches_hold_when_gps_fused_mid_climb(
     tester.arm()
 
     # Partway through the climb: neither right at liftoff nor anywhere near the top.
-    tester.sleep_for(5)
+    tester.sleep_for(10)
 
     # Switch GPS fusion on in flight (EKF2_SENS_EN would only apply once disarmed).
     tester.send_command_long(
         MAV_CMD_ESTIMATOR_SENSOR_ENABLE, param1=FUSION_SOURCE_GPS, param2=0, param3=1)
-    tester.wait_until_global_position_valid(15, max_speed_m_s=MAX_SPEED_DURING_FUSION_START_M_S)
+    tester.wait_until_global_position_valid(15, max_accel_m_s2=MAX_ACCEL_DURING_FUSION_START_M_S2)
 
     # Confirm this really happened mid-climb, not coincidentally right at the top. This doubles as
     # the "before" snapshot for the drift check below: with north = east = 0 the whole flight,

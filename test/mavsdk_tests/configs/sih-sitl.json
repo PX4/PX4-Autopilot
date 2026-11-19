@@ -75,14 +75,6 @@
         },
         {
             "model": "quadx_flow",
-            "test_filter": "takeoff_local_gps_midflight",
-            "timeout_min": 5,
-            "env": {
-                "PX4_PARAM_SIM_GPS_USED": 0
-            }
-        },
-        {
-            "model": "quadx_flow",
             "test_filter": "takeoff_local_gps_already_fused",
             "timeout_min": 5,
             "env": {

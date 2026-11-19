@@ -322,20 +322,39 @@ class AutopilotTester:
             "Landed state {} not reached within {} s".format(landed_state, timeout_s)
 
     def wait_until_global_position_valid(self, timeout_s: float,
-                                         max_speed_m_s: Optional[float] = None) -> None:
-        """Wait for the global position to become valid. If max_speed_m_s is given, also assert
-        the vehicle's speed never exceeds it while waiting, to catch a sudden jump (e.g. from an
-        estimator reset when a new aiding source starts fusing) that checking only the end state
-        would miss."""
+                                         max_accel_m_s2: Optional[float] = None) -> None:
+        """Wait for the global position to become valid. If max_accel_m_s2 is given, also assert
+        the vehicle's acceleration never exceeds it while waiting, to catch a sudden jump (e.g.
+        from an estimator reset when a new aiding source starts fusing) that checking only the
+        end state would miss.
+
+        Acceleration rather than absolute speed: ordinary flight -- climbing in particular --
+        already has a non-zero speed that a fixed speed cap would false-positive on, while a
+        mishandled reset shows up as a sudden change in velocity that ordinary flight dynamics do
+        not produce. Sampled at a fixed interval rather than every poll tick, since the velocity
+        estimate's own sample-to-sample noise would otherwise dominate the measurement at a very
+        short dt."""
         log("Waiting for the global position to become valid")
 
+        accel_sample_interval_s = 0.2
+        last_sample: Optional[Tuple[float, Any]] = None
+
         def ready() -> bool:
-            if max_speed_m_s is not None:
-                vel = self._telemetry.position_velocity_ned().velocity
-                speed = math.sqrt(vel.north_m_s ** 2 + vel.east_m_s ** 2 + vel.down_m_s ** 2)
-                assert speed < max_speed_m_s, \
-                    "Speed {:.2f} m/s exceeded {} m/s while waiting for the global position".format(
-                        speed, max_speed_m_s)
+            nonlocal last_sample
+            if max_accel_m_s2 is not None:
+                now_s = self._autopilot_time_us() / 1e6
+                if last_sample is None or now_s - last_sample[0] >= accel_sample_interval_s:
+                    vel = self._telemetry.position_velocity_ned().velocity
+                    if last_sample is not None:
+                        last_time_s, last_vel = last_sample
+                        dt_s = now_s - last_time_s
+                        accel = math.sqrt((vel.north_m_s - last_vel.north_m_s) ** 2 +
+                                          (vel.east_m_s - last_vel.east_m_s) ** 2 +
+                                          (vel.down_m_s - last_vel.down_m_s) ** 2) / dt_s
+                        assert accel < max_accel_m_s2, \
+                            "Acceleration {:.2f} m/s^2 exceeded {} m/s^2 while waiting for the " \
+                            "global position".format(accel, max_accel_m_s2)
+                    last_sample = (now_s, vel)
             return bool(self._telemetry.health().is_global_position_ok)
 
         assert self.poll_condition_with_timeout(ready, timeout_s), \
