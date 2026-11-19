@@ -1888,7 +1888,7 @@ TEST_F(RTLTest, LandApproachForcesHeadingOnlyInFixedWingFlight)
 		_navigator.get_global_position()->lon = approach.lon;
 		_navigator.get_global_position()->alt = rtl_alt;
 
-		rtl_direct.setRtlAlt(rtl_alt);
+		rtl_direct.setRtlAlt(rtl_alt, rtl_alt);
 		rtl_direct.setRtlPosition(destination, makeLoiterPoint(approach));
 		rtl_direct.on_activation();
 		rtl_direct.on_active();
@@ -3434,9 +3434,7 @@ struct MaxReturnAltitudeCase {
 	float expected_height;
 };
 
-class RTLMaxReturnAltitudeTest :
-	public RTLTest,
-	public ::testing::WithParamInterface<MaxReturnAltitudeCase>
+class RTLReturnAltitudeTest : public RTLTest
 {
 protected:
 	void setVehicle(bool is_vtol, uint8_t vehicle_type, const PositionYawSetpoint &position)
@@ -3454,7 +3452,7 @@ protected:
 		_navigator.get_land_detected()->landed = false;
 	}
 
-	void setReturnAltitudes(float max_alt)
+	void setReturnAltitudes(float max_alt, float min_climb = 0.f)
 	{
 		int32_t rtl_type = 0; // home or rally point, directly
 		int32_t cone_angle = 0; // return altitude from RTL_RETURN_ALT only
@@ -3463,11 +3461,18 @@ protected:
 		ASSERT_EQ(param_set(param_find("RTL_CONE_ANG"), &cone_angle), PX4_OK);
 		ASSERT_EQ(param_set(param_find("RTL_RETURN_ALT"), &return_alt), PX4_OK);
 		ASSERT_EQ(param_set(param_find("RTL_MAX_ALT"), &max_alt), PX4_OK);
+		ASSERT_EQ(param_set(param_find("RTL_MIN_CLIMB"), &min_climb), PX4_OK);
 		_rtl.updateParamsForTest();
 	}
 
 	static constexpr float kReturnAlt = 50.f;
 	static constexpr float kHomeDistance = 1000.f;
+};
+
+class RTLMaxReturnAltitudeTest :
+	public RTLReturnAltitudeTest,
+	public ::testing::WithParamInterface<MaxReturnAltitudeCase>
+{
 };
 
 // WHY: Return flies back at its current altitude when above RTL_RETURN_ALT, so a multicopter high above Home
@@ -3506,7 +3511,7 @@ INSTANTIATE_TEST_SUITE_P(
 		MaxReturnAltitudeCase{"VtolInFixedWingKeepsAltitude", true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING, 100.f, 300.f, 300.f},
 		MaxReturnAltitudeCase{"FixedWingKeepsAltitude", false, vehicle_status_s::VEHICLE_TYPE_FIXED_WING, 100.f, 300.f, 300.f}
 	),
-	[](const ::testing::TestParamInfo<RTLMaxReturnAltitudeTest::ParamType> &param_info) { return std::string(param_info.param.test_name); });
+[](const ::testing::TestParamInfo<RTLMaxReturnAltitudeTest::ParamType> &param_info) { return std::string(param_info.param.test_name); });
 
 // WHY: The remaining flight time checks use the Return time estimate, which counted the whole descent after
 // arriving over Home.
@@ -3531,4 +3536,163 @@ TEST_F(RTLMaxReturnAltitudeTest, EstimateCountsTheDescentAlongTheReturnLeg)
 	// THEN: the descent from 300 m to 100 m runs alongside the return leg
 	ASSERT_TRUE(estimate_without_limit.valid && estimate_with_limit.valid);
 	EXPECT_LT(estimate_with_limit.time_estimate, estimate_without_limit.time_estimate);
+}
+
+struct MinClimbCase {
+	const char *test_name;
+	bool is_vtol;
+	uint8_t vehicle_type;
+	float max_alt;
+	float min_climb;
+	float start_height;
+	float climb_height;
+	float return_leg_height;
+};
+
+class RTLMinClimbTest :
+	public RTLReturnAltitudeTest,
+	public ::testing::WithParamInterface<MinClimbCase>
+{
+};
+
+// WHY: A vehicle that lost the link behind terrain, e.g. on a mountain, flies back along the blocked line of sight,
+// and with RTL_MAX_ALT it even descends along it.
+// WHAT: With RTL_MIN_CLIMB Return first climbs at least that much, in every vehicle type, and keeps the climb altitude
+// on the way back unless RTL_MAX_ALT limits the return leg in multicopter mode.
+TEST_P(RTLMinClimbTest, DirectReturnClimbsBeforeTheReturnLeg)
+{
+	const MinClimbCase &test_case = GetParam();
+
+	// GIVEN: Home 1 km away and the vehicle the given height above it
+	setReturnAltitudes(test_case.max_alt, test_case.min_climb);
+	loadSafePointsIntoRouteCache({});
+	const PositionYawSetpoint start = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, kHomeDistance, 0.f,
+					  kAlt + test_case.start_height);
+	setVehicle(test_case.is_vtol, test_case.vehicle_type, start);
+
+	// WHEN: Return starts
+	_rtl.on_activation();
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
+
+	// THEN: it first climbs above its position
+	uORB::Subscription mission_item_sub{ORB_ID(navigator_mission_item)};
+	navigator_mission_item_s mission_item{};
+	ASSERT_TRUE(mission_item_sub.copy(&mission_item));
+	EXPECT_EQ(mission_item.nav_cmd, NAV_CMD_LOITER_TO_ALT);
+	EXPECT_NEAR(mission_item.altitude, kAlt + test_case.climb_height, 0.1f);
+
+	// WHEN: the climb altitude is reached in the loiter, which takes over the climb altitude once the vehicle is in it
+	_rtl.on_active();
+	setVehicle(test_case.is_vtol, test_case.vehicle_type,
+		   makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, kHomeDistance, 0.f, kAlt + test_case.climb_height));
+	_rtl.on_active();
+
+	// THEN: it flies back at the return leg altitude
+	ASSERT_TRUE(mission_item_sub.copy(&mission_item));
+	ASSERT_NE(mission_item.nav_cmd, NAV_CMD_LOITER_TO_ALT);
+	EXPECT_NEAR(mission_item.latitude, kBaseLat, 1e-5); // float in navigator_mission_item
+	EXPECT_NEAR(mission_item.longitude, kBaseLon, 1e-5);
+	EXPECT_NEAR(mission_item.altitude, kAlt + test_case.return_leg_height, 0.1f);
+}
+
+INSTANTIATE_TEST_SUITE_P(
+	ReturnAltitudes, RTLMinClimbTest,
+	::testing::Values(
+		MinClimbCase{"MulticopterKeepsTheClimbAltitude", false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, -1.f, 20.f, 100.f, 120.f, 120.f},
+		MinClimbCase{"MulticopterBelowReturnAltClimbsToReturnAlt", false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, -1.f, 10.f, 30.f, 50.f, 50.f},
+		MinClimbCase{"MulticopterBelowReturnAltClimbsMore", false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, -1.f, 30.f, 30.f, 60.f, 60.f},
+		MinClimbCase{"MulticopterAboveMaxAltClimbsThenDescends", false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, 100.f, 20.f, 300.f, 320.f, 100.f},
+		MinClimbCase{"MulticopterBelowMaxAltKeepsTheClimbAltitude", false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, 100.f, 20.f, 60.f, 80.f, 80.f},
+		MinClimbCase{"VtolInHoverAboveMaxAltClimbsThenDescends", true, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, 100.f, 20.f, 300.f, 320.f, 100.f},
+		MinClimbCase{"VtolInFixedWingKeepsTheClimbAltitude", true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING, 100.f, 20.f, 300.f, 320.f, 320.f},
+		MinClimbCase{"FixedWingKeepsTheClimbAltitude", false, vehicle_status_s::VEHICLE_TYPE_FIXED_WING, -1.f, 20.f, 100.f, 120.f, 120.f}
+	),
+[](const ::testing::TestParamInfo<RTLMinClimbTest::ParamType> &param_info) { return std::string(param_info.param.test_name); });
+
+// WHY: The remaining flight time checks use the Return time estimate, so it has to include the initial climb.
+// WHAT: With RTL_MIN_CLIMB the estimate counts the climb, and with RTL_MAX_ALT also the descent after it.
+TEST_F(RTLReturnAltitudeTest, EstimateCountsTheMinimumClimb)
+{
+	struct {
+		float max_alt;
+		float start_height;
+	} cases[] {
+		{-1.f, 100.f},
+		{100.f, 300.f}, // above RTL_MAX_ALT
+	};
+
+	for (const auto &c : cases) {
+		SCOPED_TRACE(::testing::Message() << "RTL_MAX_ALT " << c.max_alt << " m, " << c.start_height << " m above Home");
+
+		// GIVEN: a multicopter 1 km from Home
+		loadSafePointsIntoRouteCache({});
+		setVehicle(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING,
+			   makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, kHomeDistance, 0.f, kAlt + c.start_height));
+
+		// WHEN: Return is estimated without and with RTL_MIN_CLIMB
+		setReturnAltitudes(c.max_alt, 0.f);
+		_rtl.evaluateReturnTypeForTest(0);
+		ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT);
+		const rtl_time_estimate_s estimate_without_climb = _rtl.directEstimateForTest();
+
+		setReturnAltitudes(c.max_alt, 20.f);
+		_rtl.evaluateReturnTypeForTest(0);
+		const rtl_time_estimate_s estimate_with_climb = _rtl.directEstimateForTest();
+
+		// THEN: the climb takes extra time
+		ASSERT_TRUE(estimate_without_climb.valid && estimate_with_climb.valid);
+		EXPECT_GT(estimate_with_climb.time_estimate, estimate_without_climb.time_estimate);
+	}
+}
+
+// WHY: A Return to the mission landing flies there directly too, so it also has to clear the terrain first.
+// WHAT: With RTL_MIN_CLIMB a mission-landing Return above RTL_RETURN_ALT climbs at least that much before it flies
+// to the landing.
+TEST_F(RTLReturnAltitudeTest, MissionLandingReturnClimbsTheMinimumClimb)
+{
+	const float min_climb = 20.f;
+	setReturnAltitudes(-1.f, min_climb);
+	int32_t rtl_type = 3; // RTL_TYPE_DIRECT_WITH_MISSION_LAND
+	ASSERT_EQ(param_set(param_find("RTL_TYPE"), &rtl_type), PX4_OK);
+	_rtl.updateParamsForTest();
+
+	// GIVEN: a multicopter 100 m above a mission landing 100 m away, closer than Home
+	setVehicle(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING,
+		   makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt + 100.f));
+	publishHomePosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, -300.f, 0.f, kAlt));
+
+	const PositionYawSetpoint land = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt);
+	mission_item_s land_start = makeSafePointItem(0., 0., 0.f, NAV_FRAME_GLOBAL, NAV_CMD_DO_LAND_START);
+	mission_item_s land_item = makeSafePointItem(land.lat, land.lon, kAlt, NAV_FRAME_GLOBAL, NAV_CMD_LAND);
+	land_start.autocontinue = true;
+	land_item.autocontinue = true;
+	writeMissionToDataman(DM_KEY_WAYPOINTS_OFFBOARD_0, {land_start, land_item});
+
+	mission_s mission{};
+	mission.timestamp = hrt_absolute_time();
+	mission.mission_id = 73;
+	mission.count = 2;
+	mission.land_start_index = 0;
+	mission.land_index = 1;
+	mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+	publishMission(mission);
+	setMissionResultValid(mission);
+
+	MissionRouteCache &mission_route_cache = _navigator.get_mission_route_cache();
+	ASSERT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(mission_route_cache, mission,
+			[&] { return mission_route_cache.missionLandItemReady(); }));
+
+	// WHEN: Return starts
+	_rtl.on_inactive();
+	_rtl.decideRtlTypeForTest();
+	ASSERT_EQ(_rtl.rtlTypeForTest(), RTL::RtlType::RTL_DIRECT_MISSION_LAND);
+	_rtl.run(true);
+
+	// THEN: it first climbs RTL_MIN_CLIMB above its altitude
+	const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
+	ASSERT_TRUE(current.valid);
+	EXPECT_NEAR(current.alt, kAlt + 100.f + min_climb, 0.1f);
+
+	// the dataman is shared by every case in this binary
+	EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
 }
