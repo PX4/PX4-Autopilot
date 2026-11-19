@@ -44,3 +44,20 @@ target_compile_options(tecs PRIVATE -Wmissing-field-initializers)
 px4_add_functional_gtest(SRC TECSTest.cpp LINKLIBS tecs motion_planning)
 
 px4_add_functional_gtest(SRC TECSClosedLoopTest.cpp LINKLIBS tecs motion_planning)
+
+# Plot the closed-loop test cases: make px4_sitl_test tecs_closed_loop_plots
+if(TARGET functional-TECSClosedLoop)
+	set(TECS_PLOT_DIR ${PX4_BINARY_DIR}/tecs_closed_loop)
+	add_custom_target(tecs_closed_loop_plots
+		COMMAND ${CMAKE_COMMAND} -E remove_directory ${TECS_PLOT_DIR}
+		COMMAND ${CMAKE_COMMAND} -E make_directory ${TECS_PLOT_DIR}/csv
+		# Plot even if test cases fail, that is when the plots are needed most
+		COMMAND sh -c "TECS_TEST_LOG_DIR=${TECS_PLOT_DIR}/csv $<TARGET_FILE:functional-TECSClosedLoop> || true"
+		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/plot_closed_loop.py ${TECS_PLOT_DIR}/csv -o ${TECS_PLOT_DIR}/png
+		DEPENDS functional-TECSClosedLoop
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}
+		COMMENT "Plotting the TECS closed-loop test cases into ${TECS_PLOT_DIR}/png"
+		USES_TERMINAL
+		VERBATIM
+	)
+endif()
