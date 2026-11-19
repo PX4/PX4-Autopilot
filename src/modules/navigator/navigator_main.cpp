@@ -1297,6 +1297,11 @@ void Navigator::geofence_breach_check()
 			_geofence_result.geofence_max_alt_triggered |= !_geofence.isBelowMaxAltitude(current_altitude);
 			_geofence_result.geofence_custom_fence_triggered |= !_geofence.isInsidePolygonOrCircle(current_latitude,
 					current_longitude, current_altitude);
+			_geofence_result.pre_geofence_max_dist_triggered |= !_geofence.isCloserThanPreMaxDistToHome(current_latitude,
+					current_longitude);
+			_geofence_result.pre_geofence_max_alt_triggered |= !_geofence.isBelowPreMaxAltitude(current_altitude);
+			_geofence_result.pre_geofence_custom_fence_triggered |= !_geofence.isInsidePreGeofence(current_latitude,
+					current_longitude);
 
 		} else {
 			_geofence_result.geofence_max_dist_triggered = !_geofence.isCloserThanMaxDistToHome(current_latitude,
@@ -1304,18 +1309,12 @@ void Navigator::geofence_breach_check()
 			_geofence_result.geofence_max_alt_triggered = !_geofence.isBelowMaxAltitude(current_altitude);
 			_geofence_result.geofence_custom_fence_triggered = !_geofence.isInsidePolygonOrCircle(current_latitude,
 					current_longitude, current_altitude);
+			_geofence_result.pre_geofence_max_dist_triggered = !_geofence.isCloserThanPreMaxDistToHome(current_latitude,
+					current_longitude);
+			_geofence_result.pre_geofence_max_alt_triggered = !_geofence.isBelowPreMaxAltitude(current_altitude);
+			_geofence_result.pre_geofence_custom_fence_triggered = !_geofence.isInsidePreGeofence(current_latitude,
+					current_longitude);
 		}
-
-		// The pre-geofence triggers are kept in the same way while loitering, unless the pre-geofence is disabled.
-		const uint8_t pre_geofence_action = _geofence.getPreGeofenceAction();
-		const bool keep_triggers = _time_loitering_after_gf_breach > 0
-					   && pre_geofence_action != geofence_result_s::GF_ACTION_NONE;
-		_geofence_result.pre_geofence_max_dist_triggered = !_geofence.isCloserThanPreMaxDistToHome(current_latitude,
-				current_longitude) || (keep_triggers && _geofence_result.pre_geofence_max_dist_triggered);
-		_geofence_result.pre_geofence_max_alt_triggered = !_geofence.isBelowPreMaxAltitude(current_altitude)
-				|| (keep_triggers && _geofence_result.pre_geofence_max_alt_triggered);
-		_geofence_result.pre_geofence_custom_fence_triggered = !_geofence.isInsidePreGeofence(current_latitude,
-				current_longitude) || (keep_triggers && _geofence_result.pre_geofence_custom_fence_triggered);
 
 		const auto now = hrt_absolute_time();
 
@@ -1323,7 +1322,7 @@ void Navigator::geofence_breach_check()
 
 		_geofence_result.timestamp = now;
 		_geofence_result.geofence_action = _geofence.getGeofenceAction();
-		_geofence_result.pre_geofence_action = pre_geofence_action;
+		_geofence_result.pre_geofence_action = _geofence.getPreGeofenceAction();
 
 		const bool breach = _geofence_result.geofence_max_dist_triggered
 				    || _geofence_result.geofence_max_alt_triggered
@@ -1338,7 +1337,7 @@ void Navigator::geofence_breach_check()
 		// Commander takes the more severe action, so Return, Terminate and Land at the geofence replace a pre-geofence Hold.
 		const bool geofence_outranks_hold = breach && _geofence_result.geofence_action > geofence_result_s::GF_ACTION_LOITER;
 		const bool pre_geofence_hold = !geofence_outranks_hold && pre_breach
-					       && pre_geofence_action == geofence_result_s::GF_ACTION_LOITER;
+					       && _geofence_result.pre_geofence_action == geofence_result_s::GF_ACTION_LOITER;
 
 		if (((geofence_hold && !_geofence_reposition_sent) || (pre_geofence_hold && !_pre_geofence_reposition_sent))
 		    && global_position_valid && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {

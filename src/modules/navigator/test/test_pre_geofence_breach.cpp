@@ -302,32 +302,24 @@ static std::ostream &operator<<(std::ostream &os, Source source)
 class PreGeofenceSourceTest : public PreGeofenceBreachTest, public ::testing::WithParamInterface<Source>
 {
 protected:
-	// extra moves the pre-geofence outwards without reaching the geofence.
-	void enablePreGeofence(float extra = 0.f)
+	void enablePreGeofence()
 	{
 		switch (GetParam()) {
 		case Source::HomeDistance:
 			setParam("GF_MAX_HOR_DIST", 500.f);
-			setParam("GF_PRE_MAX_HDIST", 400.f + extra);
+			setParam("GF_PRE_MAX_HDIST", 400.f);
 			break;
 
 		case Source::HomeAltitude:
 			setParam("GF_MAX_VER_DIST", 100.f);
-			setParam("GF_PRE_MAX_VDIST", 80.f + extra);
+			setParam("GF_PRE_MAX_VDIST", 80.f);
 			break;
 
 		case Source::Margin:
 			ASSERT_TRUE(loadFence(inclusionSquare()));
-			setParam("GF_PRE_MARGIN", 100.f - extra);
+			setParam("GF_PRE_MARGIN", 100.f);
 			break;
 		}
-	}
-
-	void disablePreGeofence()
-	{
-		setParam("GF_PRE_MAX_HDIST", 0.f);
-		setParam("GF_PRE_MAX_VDIST", 0.f);
-		setParam("GF_PRE_MARGIN", 0.f);
 	}
 
 	// Inside both, outside the pre-geofence only, and outside both.
@@ -546,47 +538,6 @@ TEST_P(PreGeofenceSourceTest, StaysTriggeredWhileHolding)
 	EXPECT_FALSE(preGeofenceBreached(checkAt(inside())));
 	EXPECT_TRUE(sourceTriggered(checkAt(between())));
 	EXPECT_GT(reposition().timestamp, first_hold);
-}
-
-// Disabling the pre-geofence releases its breach without touching the Hold or the geofence breach.
-TEST_P(PreGeofenceSourceTest, DisablingReleasesTheBreachWhileHolding)
-{
-	enablePreGeofence();
-
-	ASSERT_TRUE(sourceTriggered(checkAt(between())));
-	setNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
-	const geofence_result_s before = checkAt(outside());
-	ASSERT_TRUE(sourceTriggered(before));
-	ASSERT_TRUE(geofenceBreached(before));
-	const hrt_abstime hold = reposition().timestamp;
-
-	disablePreGeofence();
-	const geofence_result_s after = checkAt(between());
-	EXPECT_EQ(after.pre_geofence_action, geofence_result_s::GF_ACTION_NONE);
-	EXPECT_FALSE(preGeofenceBreached(after));
-	EXPECT_TRUE(geofenceBreached(after));
-	EXPECT_EQ(reposition().timestamp, hold);
-	EXPECT_TRUE(repositionedAt(between()));
-}
-
-// A pre-geofence that is enabled again must not inherit the breach that was released, with its new action.
-TEST_P(PreGeofenceSourceTest, EnablingAgainDoesNotRestoreAReleasedBreach)
-{
-	enablePreGeofence();
-	ASSERT_TRUE(sourceTriggered(checkAt(between())));
-	setNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
-	const hrt_abstime hold = reposition().timestamp;
-
-	disablePreGeofence();
-	ASSERT_FALSE(preGeofenceBreached(checkAt(between())));
-
-	// The new limit contains the vehicle.
-	setParam("GF_PRE_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_LAND));
-	enablePreGeofence(GetParam() == Source::HomeAltitude ? 15.f : 50.f);
-	const geofence_result_s result = checkAt(between());
-	EXPECT_EQ(result.pre_geofence_action, geofence_result_s::GF_ACTION_LAND);
-	EXPECT_FALSE(preGeofenceBreached(result));
-	EXPECT_EQ(reposition().timestamp, hold);
 }
 
 TEST_P(PreGeofenceSourceTest, CommandedTargetsMustStayInside)
