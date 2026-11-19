@@ -51,7 +51,9 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Electrical Data {#electrical_data}
 
-- **Input voltage:** 5V nominal on `POWER1`, `POWER2` and USB, valid from 3.81V to 5.85V
+- **Input voltage:** 5V nominal on `POWER1`, `POWER2` and USB, valid from 3.81V to 5.85V (see [Voltage Ratings](#voltage_ratings))
+- **Current draw:** about 220mA at 5V, with nothing connected to the ports.
+  The IMU heater adds up to about 200mA: right after a cold start the board draws about 420mA, and once the IMU is at temperature the heater only switches on as needed.
 - **Power monitoring:** 2 digital (I2C) power module inputs (INA226, INA228 or INA238; detected automatically by default)
 - **Servo rail:** must be powered externally, and does not power the flight controller
 
