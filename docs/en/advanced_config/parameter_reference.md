@@ -62436,6 +62436,7 @@ Vehicle type.
 - `3`: Standard VTOL
 - `4`: Hexacopter
 - `5`: Rover Ackermann
+- `6`: Rover Differential
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
