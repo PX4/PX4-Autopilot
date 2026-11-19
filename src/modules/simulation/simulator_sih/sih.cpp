@@ -502,6 +502,8 @@ uint8_t Sih::num_motors() const
 
 	case VehicleType::RoverAckermann: return 1;
 
+	case VehicleType::RoverDifferential: return 2; // right wheel at 0, left wheel at 1
+
 	default:                          return 0;
 	}
 }
@@ -633,6 +635,9 @@ void Sih::generate_force_and_torques(const float dt)
 
 	} else if (_vehicle == VehicleType::RoverAckermann) {
 		generate_rover_ackermann_dynamics(_u[1], _u[0], dt);
+
+	} else if (_vehicle == VehicleType::RoverDifferential) {
+		generate_rover_differential_dynamics(_u[0], _u[1]);
 	}
 }
 
@@ -751,6 +756,40 @@ void Sih::generate_rover_ackermann_dynamics(const float throttle_cmd, const floa
 
 }
 
+void Sih::generate_rover_differential_dynamics(const float right_cmd, const float left_cmd)
+{
+	// Unicycle model: each wheel is driven towards the ground speed its motor command asks for, with the force limited
+	// by the traction of the wheel, and the wheels do not let the rover slip sideways.
+	static constexpr float WHEEL_TRACK = 0.6f;     // [m] Distance between the left and right wheels, matches RD_WHEEL_TRACK
+	static constexpr float MAX_WHEEL_SPEED = 2.f;  // [m/s] Wheel ground speed at full motor command, matches RO_MAX_THR_SPEED
+	static constexpr float WHEEL_SPEED_TAU = 0.2f; // [s] Time constant of the wheel speed response
+	static constexpr float LATERAL_TAU = 0.05f;    // [s] Time constant of the lateral slip decay
+	static constexpr float MU = 0.8f;              // [-] Friction coefficient between the wheels and the ground
+
+	const Vector3f v_B = _q.rotateVectorInverse(_v_N); // Nav -> Body
+	const float yaw_rate = _w_B(2); // [rad/s] positive when turning right
+
+	// Ground speed of each wheel [m/s], turning right slows down the right wheel
+	const float v_right = v_B(0) - yaw_rate * WHEEL_TRACK / 2.f;
+	const float v_left = v_B(0) + yaw_rate * WHEEL_TRACK / 2.f;
+
+	// Longitudinal force [N]: force per wheel
+	const float wheel_gain = _MASS / (2.f * WHEEL_SPEED_TAU); // [N/(m/s)] per wheel, the forward speed responds with WHEEL_SPEED_TAU
+	const float max_wheel_force = MU * _MASS * CONSTANTS_ONE_G / 2.f; // [N] the weight is shared by both sides
+	const float F_right = constrain(wheel_gain * (MAX_WHEEL_SPEED * right_cmd - v_right), -max_wheel_force, max_wheel_force);
+	const float F_left = constrain(wheel_gain * (MAX_WHEEL_SPEED * left_cmd - v_left), -max_wheel_force, max_wheel_force);
+
+	// Lateral force [N]: provides the centripetal force of the turn and removes any sideways velocity
+	const float max_lateral_force = MU * _MASS * CONSTANTS_ONE_G;
+	const float F_y = constrain(_MASS * (yaw_rate * v_B(0) - v_B(1) / LATERAL_TAU), -max_lateral_force, max_lateral_force);
+
+	_T_B = Vector3f(F_right + F_left, F_y, 0.f); // Forces [N]
+	_Mt_B = Vector3f(0.f, 0.f, (F_left - F_right) * WHEEL_TRACK / 2.f); // Moments [Nm]
+
+	_Fa_E = Vector3f(); // [N] Second order drag and friction: rolling resistance is part of the wheel speed response, no aerodynamic drag at rover speeds
+	_Ma_B = -_KDW * _w_B; // [Nm] First order angular damper
+}
+
 void Sih::equations_of_motion(const float dt)
 {
 	const Vector3f gravity_acceleration_E = Vector3f(_R_N2E.col(2)) * LatLonAlt::Wgs84::gravity(
@@ -780,7 +819,8 @@ void Sih::equations_of_motion(const float dt)
 			_grounded = true;
 
 		} else if (_vehicle == VehicleType::FixedWing
-			   || _vehicle == VehicleType::RoverAckermann) {
+			   || _vehicle == VehicleType::RoverAckermann
+			   || _vehicle == VehicleType::RoverDifferential) {
 			Vector3f down_u = _R_N2E.col(2);
 			ground_force_E = -down_u * sum_of_forces_E * down_u;
 
@@ -1329,6 +1369,9 @@ int Sih::print_status()
 
 	} else if (_vehicle == VehicleType::RoverAckermann) {
 		PX4_INFO("Rover Ackermann");
+
+	} else if (_vehicle == VehicleType::RoverDifferential) {
+		PX4_INFO("Rover Differential");
 	}
 
 	_terrain.printStatus();
