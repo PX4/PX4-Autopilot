@@ -238,7 +238,6 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [RateCtrlStatus](RateCtrlStatus.md)
 - [RcChannels](RcChannels.md)
 - [RcParameterMap](RcParameterMap.md)
-- [RoverThrottleSetpoint](RoverThrottleSetpoint.md) — Rover Throttle setpoint.
 - [Rpm](Rpm.md)
 - [RtcmData](RtcmData.md) — RTCM3 data exchanged with GNSS receivers.
 - [RtlStatus](RtlStatus.md)
@@ -277,6 +276,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [SurfaceVehicleSpeedSetpoint](SurfaceVehicleSpeedSetpoint.md) — Surface Vehicle Speed Setpoint.
 - [SurfaceVehicleSpeedStatus](SurfaceVehicleSpeedStatus.md) — Surface Vehicle Speed Status.
 - [SurfaceVehicleSteeringSetpoint](SurfaceVehicleSteeringSetpoint.md) — Surface Vehicle Steering Setpoint.
+- [SurfaceVehicleThrustSetpoint](SurfaceVehicleThrustSetpoint.md) — Surface Vehicle Thrust Setpoint.
 - [SystemPower](SystemPower.md)
 - [TakeoffStatus](TakeoffStatus.md) — Status of the takeoff state machine currently just available for multicopters.
 - [TargetGnss](TargetGnss.md) — Landing target GNSS position in WGS84 coordinates, and optional NED velocity, from a target-mounted receiver.

@@ -67,9 +67,7 @@ This document shows a markdown-rendered version of [dds_topics.yaml](https://git
 | `/fmu/in/offboard_control_mode`              | [px4_msgs::msg::OffboardControlMode](../msg_docs/OffboardControlMode.md)                           |
 | `/fmu/in/onboard_computer_status`            | [px4_msgs::msg::OnboardComputerStatus](../msg_docs/OnboardComputerStatus.md)                       |
 | `/fmu/in/register_ext_component_request`     | [px4_msgs::msg::RegisterExtComponentRequest](../msg_docs/RegisterExtComponentRequest.md)           |
-| `/fmu/in/rover_throttle_setpoint`            | [px4_msgs::msg::RoverThrottleSetpoint](../msg_docs/RoverThrottleSetpoint.md)                       |
 | `/fmu/in/sensor_gnss`                        | [px4_msgs::msg::SensorGnss](../msg_docs/SensorGnss.md)                                             |
-| `/fmu/in/sensor_optical_flow`                | [px4_msgs::msg::SensorOpticalFlow](../msg_docs/SensorOpticalFlow.md)                               |
 | `/fmu/in/setpoint_config`                    | [px4_msgs::msg::SetpointConfig](../msg_docs/SetpointConfig.md)                                     |
 | `/fmu/in/surface_vehicle_attitude_setpoint`  | [px4_msgs::msg::SurfaceVehicleAttitudeSetpoint](../msg_docs/SurfaceVehicleAttitudeSetpoint.md)     |
 | `/fmu/in/surface_vehicle_course_setpoint`    | [px4_msgs::msg::SurfaceVehicleCourseSetpoint](../msg_docs/SurfaceVehicleCourseSetpoint.md)         |
@@ -77,6 +75,7 @@ This document shows a markdown-rendered version of [dds_topics.yaml](https://git
 | `/fmu/in/surface_vehicle_rate_setpoint`      | [px4_msgs::msg::SurfaceVehicleRateSetpoint](../msg_docs/SurfaceVehicleRateSetpoint.md)             |
 | `/fmu/in/surface_vehicle_speed_setpoint`     | [px4_msgs::msg::SurfaceVehicleSpeedSetpoint](../msg_docs/SurfaceVehicleSpeedSetpoint.md)           |
 | `/fmu/in/surface_vehicle_steering_setpoint`  | [px4_msgs::msg::SurfaceVehicleSteeringSetpoint](../msg_docs/SurfaceVehicleSteeringSetpoint.md)     |
+| `/fmu/in/surface_vehicle_thrust_setpoint`    | [px4_msgs::msg::SurfaceVehicleThrustSetpoint](../msg_docs/SurfaceVehicleThrustSetpoint.md)         |
 | `/fmu/in/telemetry_status`                   | [px4_msgs::msg::TelemetryStatus](../msg_docs/TelemetryStatus.md)                                   |
 | `/fmu/in/trajectory_setpoint`                | [px4_msgs::msg::TrajectorySetpoint](../msg_docs/TrajectorySetpoint.md)                             |
 | `/fmu/in/unregister_ext_component`           | [px4_msgs::msg::UnregisterExtComponent](../msg_docs/UnregisterExtComponent.md)                     |
@@ -95,6 +94,7 @@ This document shows a markdown-rendered version of [dds_topics.yaml](https://git
 | --------------------------- | -------------------------------------------------------------------- | ----------- | ------------- |
 | /fmu/in/aux_global_position | [px4_msgs::msg::AuxGlobalPosition](../msg_docs/AuxGlobalPosition.md) | `id`        | 4             |
 | /fmu/in/rtcm_corrections    | [px4_msgs::msg::RtcmData](../msg_docs/RtcmData.md)                   | `device_id` | 4             |
+| /fmu/in/sensor_optical_flow | [px4_msgs::msg::SensorOpticalFlow](../msg_docs/SensorOpticalFlow.md) | `device_id` | 2             |
 
 ## Not Exported
 

@@ -11,24 +11,24 @@ What differs is whether a _consumer_ applies the failure, and that depends on th
 
 ## Supported Failure Types
 
-The table lists the failure types that actually take effect per environment: `off`, `stuck`, `wrong` (`ok` is not listed, but clears an active injection on all environments).
+The table lists the failure types that actually take effect per environment: `off`, `stuck`, `wrong`, `garbage`, `drift` (`ok` is not listed, but clears an active injection in all environments).
 A `—` means the module still accepts the command, but no consumer applies it in that environment.
 
-| Component         | [Gazebo] (gz)           | [SIH]                   | `simulator_mavlink` (Gazebo Classic) | Hardware                |
-| ----------------- | ----------------------- | ----------------------- | ------------------------------------ | ----------------------- |
-| `gyro`            | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                       | `off`, `stuck`          |
-| `accel`           | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                       | `off`, `stuck`          |
-| `mag`             | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                       | `off`, `stuck`          |
-| `baro`            | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                       | `off`, `stuck`          |
-| `distance_sensor` | `off`, `stuck`          | `off`, `stuck`          | `off`, `stuck`                       | `off`, `stuck`          |
-| `gps`             | `off`, `stuck`, `wrong` | `off`, `stuck`, `wrong` | `off`, `stuck`, `wrong`              | `off`, `stuck`, `wrong` |
-| `airspeed`        | `off`, `stuck`, `wrong` | —                       | `off`, `wrong`                       | —                       |
-| `vio`             | `off`, `stuck`          | —                       | `off`                                | —                       |
-| `battery`         | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                       | `off`, `wrong`          |
-| `traffic`         | `off`                   | `off`                   | `off`                                | `off`                   |
-| `motor`           | `off`, `wrong`          | `off`, `stuck`, `wrong` | `off`, `wrong`                       | `off`, `wrong`          |
-| `esc`             | `off`, `wrong`          | `off`, `wrong`          | `off`, `wrong`                       | `off`, `wrong`          |
-| `can`             | —                       | —                       | —                                    | `off`                   |
+| Component         | [Gazebo] (gz)                               | [SIH]                                       | `simulator_mavlink` (Gazebo Classic)        | Hardware                                    |
+| ----------------- | ------------------------------------------- | ------------------------------------------- | ------------------------------------------- | ------------------------------------------- |
+| `gyro`            | `off`, `stuck`, `wrong`, `garbage`, `drift` | `off`, `stuck`, `wrong`, `garbage`, `drift` | `off`, `stuck`, `wrong`, `garbage`, `drift` | `off`, `stuck`, `wrong`, `garbage`, `drift` |
+| `accel`           | `off`, `stuck`, `wrong`, `garbage`, `drift` | `off`, `stuck`, `wrong`, `garbage`, `drift` | `off`, `stuck`, `wrong`, `garbage`, `drift` | `off`, `stuck`, `wrong`, `garbage`, `drift` |
+| `mag`             | `off`, `stuck`                              | `off`, `stuck`                              | `off`, `stuck`                              | `off`, `stuck`                              |
+| `baro`            | `off`, `stuck`                              | `off`, `stuck`                              | `off`, `stuck`                              | `off`, `stuck`                              |
+| `distance_sensor` | `off`, `stuck`                              | `off`, `stuck`                              | `off`, `stuck`                              | `off`, `stuck`                              |
+| `gps`             | `off`, `stuck`, `wrong`                     | `off`, `stuck`, `wrong`                     | `off`, `stuck`, `wrong`                     | `off`, `stuck`, `wrong`                     |
+| `airspeed`        | `off`, `stuck`, `wrong`                     | —                                           | `off`, `wrong`                              | —                                           |
+| `vio`             | `off`, `stuck`                              | —                                           | `off`                                       | —                                           |
+| `battery`         | `off`, `wrong`                              | `off`, `wrong`                              | `off`, `wrong`                              | `off`, `wrong`                              |
+| `traffic`         | `off`                                       | `off`                                       | `off`                                       | `off`                                       |
+| `motor`           | `off`, `wrong`                              | `off`, `stuck`, `wrong`                     | `off`, `wrong`                              | `off`, `wrong`                              |
+| `esc`             | `off`, `wrong`                              | `off`, `wrong`                              | `off`, `wrong`                              | `off`, `wrong`                              |
+| `can`             | —                                           | —                                           | —                                           | `off`                                       |
 
 [SIH]: ../sim_sih/index.md
 [Gazebo]: ../sim_gazebo_gz/index.md
@@ -36,6 +36,7 @@ A `—` means the module still accepts the command, but no consumer applies it i
 ::: info
 
 - `gps off | stuck | wrong` on Gazebo (Gz): applied to the GNSS data from the simulator's own sensor as well as to the simulated-GPS module ([SIM_GZ_EN_GPS](../advanced_config/parameter_reference.md#SIM_GZ_EN_GPS) `0`).
+- `gyro wrong | garbage | drift` and `accel wrong | garbage | drift` <Badge type="tip" text="main (PX4 v2.0)" /> corrupt the addressed sensor's samples on all three axes: `wrong` adds a constant bias ([SYS_FAIL_G_BIAS](../advanced_config/parameter_reference.md#SYS_FAIL_G_BIAS) / [SYS_FAIL_A_BIAS](../advanced_config/parameter_reference.md#SYS_FAIL_A_BIAS)), `garbage` adds uniform noise within ±[SYS_FAIL_G_NOISE](../advanced_config/parameter_reference.md#SYS_FAIL_G_NOISE) / ±[SYS_FAIL_A_NOISE](../advanced_config/parameter_reference.md#SYS_FAIL_A_NOISE), and `drift` adds a bias that grows by [SYS_FAIL_G_DRIFT](../advanced_config/parameter_reference.md#SYS_FAIL_G_DRIFT) / [SYS_FAIL_A_DRIFT](../advanced_config/parameter_reference.md#SYS_FAIL_A_DRIFT) per second since injection.
 - `airspeed off | stuck | wrong` on Gazebo (Gz): only injectable when airspeed is provided by the simulated-airspeed module ([SENS_EN_ARSPDSIM](../advanced_config/parameter_reference.md#SENS_EN_ARSPDSIM)); worlds that model an airspeed sensor directly are not injected.
 - `vio off | stuck` on Gazebo (Gz): applied to the external-vision odometry that the bridge publishes from the model's odometry topic (for example `x500_vision`); `stuck` keeps publishing the last good sample with fresh timestamps.
 - `battery wrong` reports the remaining charge just below the [SYS_FAIL_BAT_LVL](../advanced_config/parameter_reference.md#SYS_FAIL_BAT_LVL) warning threshold to trigger the battery failsafe; `off` stops publishing the battery status entirely.
@@ -51,6 +52,7 @@ A `—` means the module still accepts the command, but no consumer applies it i
 :::
 
 Sensors delivered through the shared driver layer (IMU, magnetometer, barometer, rangefinder via the `PX4*` sensor wrappers) support `off`/`stuck` in every environment that uses that layer — including the Gazebo and SIH sensor simulators, which feed synthesized measurements through the same wrappers.
+The IMU (`gyro`, `accel`) also supports `wrong`/`garbage`/`drift` through the same layer.
 The remaining gaps are backend-specific: GPS and airspeed are handled by dedicated simulator code (see the GPS and airspeed notes in the info box above), SIH does not simulate an injectable airspeed.
 Components not listed (`optical_flow`, `servo`, `avoidance`, `rc_signal`, `mavlink_signal`) are rejected everywhere (`MAV_RESULT_UNSUPPORTED`); see the note below on NACK behaviour.
 
@@ -102,14 +104,16 @@ where:
   - `off`: Stop publishing
   - `stuck`: Constantly report the same value, which _can_ happen on a malfunctioning sensor.
     For `motor` (SIH only), `stuck` stops the rotor while its ESC keeps reporting zero RPM.
-  - `garbage`: Publish random noise. This looks like reading uninitialized memory
+  - `garbage`: Publish random noise (which looks like reading uninitialised memory). For `gyro`/`accel` the noise is instead added to the real measurement.
   - `wrong`: Publish invalid values that still look reasonable/aren't "garbage". For an actuator such as `motor` there is nothing to publish, so `wrong` means the motor stops without anything reporting it
   - `slow`: Publish at a reduced rate
   - `delayed`: Publish valid data with a significant delay
   - `intermittent`: Publish intermittently
+  - `drift`: Publish values that drift increasingly away from the true value
 - _instance number_ (optional): Instance number of affected sensor.
   0 (default) indicates all sensors of specified type.
-- _instance bitmask_ (optional): address several instances at once (bit 0 = first instance, bit 1 = second, …; decimal or `0x` hex). Used only when `-i` is omitted.
+- _instance bitmask_ (optional): <Badge type="tip" text="main (PX4 v2.0)" />
+  address several instances at once (bit 0 = first instance, bit 1 = second, …; decimal or `0x` hex). Used only when `-i` is omitted.
   Example: `-m 0x5` targets instances 1 and 3.
 
 ::: info
@@ -118,6 +122,8 @@ GPS implements only the `off`, `stuck`, and `wrong` failure modes; the other fai
 :::
 
 ## RC Switch Trigger
+
+<Badge type="tip" text="main (PX4 v2.0)" />
 
 A failure can also be injected from an RC switch, without a console or telemetry link. This is useful for in-flight hardware testing. It is configured with the following parameters:
 

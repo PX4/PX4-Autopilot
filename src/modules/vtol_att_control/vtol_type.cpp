@@ -154,6 +154,8 @@ void VtolType::update_fw_state()
 
 void VtolType::update_vtol_state()
 {
+	checkTypeSpecificQuadchute();
+
 	if (_attc->is_quadchute_active()) {
 		// Failsafe event, engage mc motors immediately
 		onQuadchute();
@@ -311,8 +313,8 @@ bool VtolType::isQuadchuteEnabled()
 
 	}
 
-	const bool above_quadchute_altitude_limit = _param_quadchute_max_height.get() > 0
-			&& dist_to_ground > (float)_param_quadchute_max_height.get();
+	const bool above_quadchute_altitude_limit = _param_vt_fw_qc_hmax.get() > 0
+			&& dist_to_ground > (float)_param_vt_fw_qc_hmax.get();
 
 	return _v_control_mode->flag_armed &&
 	       !_land_detected->landed && !above_quadchute_altitude_limit;

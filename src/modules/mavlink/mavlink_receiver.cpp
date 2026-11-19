@@ -675,13 +675,8 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	vcmd.param3 = cmd_mavlink.param3;
 	vcmd.param4 = cmd_mavlink.param4;
 
-	if (cmd_mavlink.x == INT32_MAX && cmd_mavlink.y == INT32_MAX) {
-		// INT32_MAX for x and y means to ignore it.
-		vcmd.param5 = (double)NAN;
-		vcmd.param6 = (double)NAN;
-
-	} else if (command_has_location(cmd_mavlink.command)
-		   || cmd_mavlink.command == MAV_CMD_DO_SET_ACTUATOR) { // actuator values use 1e7 scaling
+	if (command_has_location(cmd_mavlink.command)
+	    || cmd_mavlink.command == MAV_CMD_DO_SET_ACTUATOR) { // actuator values use 1e7 scaling
 		if (cmd_mavlink.frame == MAV_FRAME_LOCAL_NED
 		    || cmd_mavlink.frame == MAV_FRAME_LOCAL_ENU
 		    || cmd_mavlink.frame == MAV_FRAME_LOCAL_OFFSET_NED
@@ -704,6 +699,15 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 		vcmd.param6 = (double)cmd_mavlink.y;
 	}
 
+	// Each of x and y is ignored on its own when unset, e.g. DO_SET_ACTUATOR setting only actuator 5.
+	if (mavlink_cmd_params::int_param_is_unset(cmd_mavlink.x)) {
+		vcmd.param5 = (double)NAN;
+	}
+
+	if (mavlink_cmd_params::int_param_is_unset(cmd_mavlink.y)) {
+		vcmd.param6 = (double)NAN;
+	}
+
 	vcmd.param7 = cmd_mavlink.z;
 	vcmd.command = cmd_mavlink.command;
 	vcmd.target_system = mavlink_target_system(msg, cmd_mavlink.target_system);
@@ -712,6 +716,35 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	vcmd.source_component = msg->compid;
 	vcmd.confirmation = false;
 	vcmd.from_external = true;
+
+	// The frame is not passed on to Commander, which takes the DO_SET_HOME altitude as AMSL.
+	// The frame only matters if the location is given (param1 MAV_BOOL_FALSE), not when the
+	// current position is used (MAV_BOOL_TRUE). Other param1 values are denied by Commander.
+	if (cmd_mavlink.command == MAV_CMD_DO_SET_HOME && fabsf(cmd_mavlink.param1) < FLT_EPSILON
+	    && evaluate_target_ok(vcmd.command, vcmd.target_system, vcmd.target_component)) {
+		if (cmd_mavlink.frame == MAV_FRAME_GLOBAL || cmd_mavlink.frame == MAV_FRAME_GLOBAL_INT) {
+			// already AMSL
+
+		} else if (cmd_mavlink.frame == MAV_FRAME_GLOBAL_RELATIVE_ALT
+			   || cmd_mavlink.frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
+			home_position_s home_position{};
+			_home_position_sub.copy(&home_position);
+
+			if (!home_position.valid_alt) {
+				// the altitude is relative to a home that is not set yet
+				acknowledge(msg->sysid, msg->compid, cmd_mavlink.command,
+					    vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
+				return;
+			}
+
+			vcmd.param7 = home_position.alt + cmd_mavlink.z;
+
+		} else {
+			acknowledge(msg->sysid, msg->compid, cmd_mavlink.command,
+				    vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED_MAV_FRAME);
+			return;
+		}
+	}
 
 	handle_message_command_both(msg, vcmd);
 }
@@ -2781,10 +2814,10 @@ MavlinkReceiver::publish_hil_battery()
 
 	hil_battery_status.timestamp = hrt_absolute_time();
 
-	hil_battery_status.cell_count = _param_bat_cells_count.get();
+	hil_battery_status.cell_count = _param_bat1_n_cells.get();
 	hil_battery_status.remaining = 0.70f;
-	float cells_v = _param_bat_v_empty.get() * (1.f - hil_battery_status.remaining)
-			+ hil_battery_status.remaining * _param_bat_v_charged.get();
+	float cells_v = _param_bat1_v_empty.get() * (1.f - hil_battery_status.remaining)
+			+ hil_battery_status.remaining * _param_bat1_v_charged.get();
 
 	hil_battery_status.voltage_v = hil_battery_status.cell_count * cells_v;
 	hil_battery_status.current_a = 10.0f;
@@ -4250,6 +4283,9 @@ MavlinkReceiver::run()
 			_tune_publisher->publish_next_tune(t);
 		}
 	}
+
+	// Release files opened by this thread while still in its task group (see close_files())
+	_mavlink_log_handler.close_files();
 }
 
 MavlinkReceiver::FrameCheck MavlinkReceiver::check_frame(uint8_t framing, const mavlink_message_t &message)

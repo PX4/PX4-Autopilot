@@ -48,7 +48,7 @@
 // uORB includes
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/rover_throttle_setpoint.h>
+#include <uORB/topics/surface_vehicle_thrust_setpoint.h>
 #include <uORB/topics/surface_vehicle_speed_setpoint.h>
 #include <uORB/topics/surface_vehicle_speed_status.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -70,7 +70,7 @@ public:
 	~AckermannSpeedControl() = default;
 
 	/**
-	 * @brief Generate and publish RoverThrottleSetpoint from surfaceVehicleSpeedSetpoint.
+	 * @brief Generate and publish SurfaceVehicleThrustSetpoint from surfaceVehicleSpeedSetpoint.
 	 */
 	void updateSpeedControl();
 
@@ -106,7 +106,7 @@ private:
 	uORB::Subscription _surface_vehicle_speed_setpoint_sub{ORB_ID(surface_vehicle_speed_setpoint)};
 
 	// uORB publications
-	uORB::Publication<rover_throttle_setpoint_s> _rover_throttle_setpoint_pub{ORB_ID(rover_throttle_setpoint)};
+	uORB::Publication<surface_vehicle_thrust_setpoint_s> _surface_vehicle_thrust_setpoint_pub{ORB_ID(surface_vehicle_thrust_setpoint)};
 	uORB::Publication<surface_vehicle_speed_status_s>      _surface_vehicle_speed_status_pub{ORB_ID(surface_vehicle_speed_status)};
 
 	// Variables
@@ -123,10 +123,10 @@ private:
 		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed,
 		(ParamFloat<px4::params::RO_SPEED_P>) 	    _param_ro_speed_p,
 		(ParamFloat<px4::params::RO_SPEED_I>)       _param_ro_speed_i,
-		(ParamFloat<px4::params::RO_ACCEL_LIM>)     _param_ro_accel_limit,
-		(ParamFloat<px4::params::RO_DECEL_LIM>)     _param_ro_decel_limit,
-		(ParamFloat<px4::params::RO_JERK_LIM>)      _param_ro_jerk_limit,
-		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
+		(ParamFloat<px4::params::RO_ACCEL_LIM>)     _param_ro_accel_lim,
+		(ParamFloat<px4::params::RO_DECEL_LIM>)     _param_ro_decel_lim,
+		(ParamFloat<px4::params::RO_JERK_LIM>)      _param_ro_jerk_lim,
+		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_lim,
 		(ParamFloat<px4::params::RO_SPEED_TH>)      _param_ro_speed_th
 	)
 };

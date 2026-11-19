@@ -44,6 +44,8 @@ parameters:
         long: |-
           Set home position automatically if possible.
 
+          If disabled, home is only set manually with MAV_CMD_DO_SET_HOME.
+
           During missions, the latitude/longitude of the home position is locked and will not reset during intermediate landings.
           It will only update once the mission is complete or landed outside of a mission.
           However, the altitude is still being adjusted to correct for GNSS vertical drift in the first 2 minutes after takeoff.
@@ -126,6 +128,7 @@ parameters:
           when SYS_HAS_NUM_GNSS=0), or when two receivers report positions inconsistent
           with their reported accuracy and SYS_HAS_NUM_GNSS=2 (otherwise warning only).
           The reported accuracy of each receiver is floored with EKF2_GPS_P_NOISE.
+          Return and Land are skipped if the failure clears during the COM_FAIL_ACT_T Hold.
           Any value above Warning also blocks arming.
       type: enum
       values:

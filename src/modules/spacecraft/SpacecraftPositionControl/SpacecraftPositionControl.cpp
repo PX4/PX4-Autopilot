@@ -58,30 +58,30 @@ void SpacecraftPositionControl::updateParams()
 
 		int num_changed = 0;
 
-		if (_param_sys_vehicle_resp.get() >= 0.f) {
+		if (_param_spc_vehicle_resp.get() >= 0.f) {
 			// make it less sensitive at the lower end
-			float responsiveness = _param_sys_vehicle_resp.get() * _param_sys_vehicle_resp.get();
+			float responsiveness = _param_spc_vehicle_resp.get() * _param_spc_vehicle_resp.get();
 
-			num_changed += _param_mpc_acc.commit_no_notification(math::lerp(1.f, 15.f, responsiveness));
-			num_changed += _param_mpc_acc_max.commit_no_notification(math::lerp(2.f, 15.f, responsiveness));
-			num_changed += _param_mpc_man_y_max.commit_no_notification(math::lerp(80.f, 450.f, responsiveness));
+			num_changed += _param_spc_acc.commit_no_notification(math::lerp(1.f, 15.f, responsiveness));
+			num_changed += _param_spc_acc_max.commit_no_notification(math::lerp(2.f, 15.f, responsiveness));
+			num_changed += _param_spc_man_y_max.commit_no_notification(math::lerp(80.f, 450.f, responsiveness));
 
 			if (responsiveness > 0.6f) {
-				num_changed += _param_mpc_man_y_tau.commit_no_notification(0.f);
+				num_changed += _param_spc_man_y_tau.commit_no_notification(0.f);
 
 			} else {
-				num_changed += _param_mpc_man_y_tau.commit_no_notification(math::lerp(0.5f, 0.f, responsiveness / 0.6f));
+				num_changed += _param_spc_man_y_tau.commit_no_notification(math::lerp(0.5f, 0.f, responsiveness / 0.6f));
 			}
 
-			num_changed += _param_mpc_jerk_max.commit_no_notification(math::lerp(2.f, 50.f, responsiveness));
-			num_changed += _param_mpc_jerk_auto.commit_no_notification(math::lerp(1.f, 25.f, responsiveness));
+			num_changed += _param_spc_jerk_max.commit_no_notification(math::lerp(2.f, 50.f, responsiveness));
+			num_changed += _param_spc_jerk_auto.commit_no_notification(math::lerp(1.f, 25.f, responsiveness));
 		}
 
-		if (_param_mpc_vel_all.get() >= 0.f) {
-			float all_vel = _param_mpc_vel_all.get();
-			num_changed += _param_mpc_vel_manual.commit_no_notification(all_vel);
-			num_changed += _param_mpc_vel_cruise.commit_no_notification(all_vel);
-			num_changed += _param_mpc_vel_max.commit_no_notification(all_vel);
+		if (_param_spc_vel_all.get() >= 0.f) {
+			float all_vel = _param_spc_vel_all.get();
+			num_changed += _param_spc_vel_manual.commit_no_notification(all_vel);
+			num_changed += _param_spc_vel_cruise.commit_no_notification(all_vel);
+			num_changed += _param_spc_vel_max.commit_no_notification(all_vel);
 		}
 
 		if (num_changed > 0) {
@@ -90,39 +90,39 @@ void SpacecraftPositionControl::updateParams()
 
 		// Set PI and PID gains, as well as anti-windup limits
 		_control.setPositionGains(
-			Vector3f(_param_mpc_pos_p.get(), _param_mpc_pos_p.get(), _param_mpc_pos_p.get()),
-			Vector3f(_param_mpc_pos_i.get(), _param_mpc_pos_i.get(), _param_mpc_pos_i.get()));
-		_control.setPositionIntegralLimits(_param_mpc_pos_i_lim.get());
+			Vector3f(_param_spc_pos_p.get(), _param_spc_pos_p.get(), _param_spc_pos_p.get()),
+			Vector3f(_param_spc_pos_i.get(), _param_spc_pos_i.get(), _param_spc_pos_i.get()));
+		_control.setPositionIntegralLimits(_param_spc_pos_i_lim.get());
 		_control.setVelocityGains(
-			Vector3f(_param_mpc_vel_p_acc.get(), _param_mpc_vel_p_acc.get(), _param_mpc_vel_p_acc.get()),
-			Vector3f(_param_mpc_vel_i_acc.get(), _param_mpc_vel_i_acc.get(), _param_mpc_vel_i_acc.get()),
-			Vector3f(_param_mpc_vel_d_acc.get(), _param_mpc_vel_d_acc.get(), _param_mpc_vel_d_acc.get()));
-		_control.setVelocityIntegralLimits(_param_mpc_vel_i_lim.get());
+			Vector3f(_param_spc_vel_p.get(), _param_spc_vel_p.get(), _param_spc_vel_p.get()),
+			Vector3f(_param_spc_vel_i.get(), _param_spc_vel_i.get(), _param_spc_vel_i.get()),
+			Vector3f(_param_spc_vel_d.get(), _param_spc_vel_d.get(), _param_spc_vel_d.get()));
+		_control.setVelocityIntegralLimits(_param_spc_vel_i_lim.get());
 
 		// Check that the design parameters are inside the absolute maximum constraints
-		if (_param_mpc_vel_cruise.get() > _param_mpc_vel_max.get()) {
-			_param_mpc_vel_cruise.set(_param_mpc_vel_max.get());
-			_param_mpc_vel_cruise.commit();
+		if (_param_spc_vel_cruise.get() > _param_spc_vel_max.get()) {
+			_param_spc_vel_cruise.set(_param_spc_vel_max.get());
+			_param_spc_vel_cruise.commit();
 			mavlink_log_critical(&_mavlink_log_pub, "Cruise speed has been constrained by max speed\t");
 			/* EVENT
 			 * @description <param>SPC_VEL_CRUISE</param> is set to {1:.0}.
 			 */
 			events::send<float>(events::ID("sc_pos_ctrl_cruise_set"), events::Log::Warning,
-					    "Cruise speed has been constrained by maximum speed", _param_mpc_vel_max.get());
+					    "Cruise speed has been constrained by maximum speed", _param_spc_vel_max.get());
 		}
 
-		if (_param_mpc_vel_manual.get() > _param_mpc_vel_max.get()) {
-			_param_mpc_vel_manual.set(_param_mpc_vel_max.get());
-			_param_mpc_vel_manual.commit();
+		if (_param_spc_vel_manual.get() > _param_spc_vel_max.get()) {
+			_param_spc_vel_manual.set(_param_spc_vel_max.get());
+			_param_spc_vel_manual.commit();
 			mavlink_log_critical(&_mavlink_log_pub, "Manual speed has been constrained by max speed\t");
 			/* EVENT
 			 * @description <param>SPC_VEL_MANUAL</param> is set to {1:.0}.
 			 */
 			events::send<float>(events::ID("sc_pos_ctrl_man_vel_set"), events::Log::Warning,
-					    "Manual speed has been constrained by maximum speed", _param_mpc_vel_max.get());
+					    "Manual speed has been constrained by maximum speed", _param_spc_vel_max.get());
 		}
 
-		yaw_rate = math::radians(_param_mpc_man_y_max.get());
+		yaw_rate = math::radians(_param_spc_man_y_max.get());
 	}
 }
 
@@ -256,9 +256,9 @@ void SpacecraftPositionControl::updatePositionControl()
 		if (_vehicle_control_mode.flag_control_position_enabled
 		    && (_setpoint.timestamp >= _time_position_control_enabled)) {
 
-			_control.setThrustLimit(_param_mpc_thr_max.get());
+			_control.setThrustLimit(_param_spc_thr_max.get());
 
-			_control.setVelocityLimits(_param_mpc_vel_max.get());
+			_control.setVelocityLimits(_param_spc_vel_max.get());
 
 			_control.setInputSetpoint(_setpoint);
 
@@ -267,7 +267,7 @@ void SpacecraftPositionControl::updatePositionControl()
 			// Run position control
 			if (!_control.update(dt)) {
 				_control.setInputSetpoint(generateFailsafeSetpoint(vehicle_local_position.timestamp_sample, states, true));
-				_control.setVelocityLimits(_param_mpc_vel_max.get());
+				_control.setVelocityLimits(_param_spc_vel_max.get());
 				_control.update(dt);
 			}
 

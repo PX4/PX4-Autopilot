@@ -27013,7 +27013,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### BAT1_A_PER_V (`FLOAT`) {#BAT1_A_PER_V}
 
-Battery 1 current per volt (A/V).
+Battery 1 current per volt.
 
 The voltage seen by the ADC multiplied by this factor
 will determine the battery current. A value of -1 means to use
@@ -27023,7 +27023,7 @@ the board default.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  |  | -1.0 |  | &nbsp;
+&check; |  |  |  | -1.0 | A/V | &nbsp;
 
 </div>
 
@@ -27067,12 +27067,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Battery 1 idle current overwrite.
 
-While disarmed, replaces the measured current with this value in amps, for ESCs that measure current inaccurately at no load. Set to 0 or less to disable.
+While disarmed, replaces the measured current with this value, for ESCs that measure current inaccurately at no load. Set to 0 or less to disable.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0 |  | &nbsp;
+&nbsp; |  |  |  | 0 | A | &nbsp;
 
 </div>
 
@@ -27249,7 +27249,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### BAT2_A_PER_V (`FLOAT`) {#BAT2_A_PER_V}
 
-Battery 2 current per volt (A/V).
+Battery 2 current per volt.
 
 The voltage seen by the ADC multiplied by this factor
 will determine the battery current. A value of -1 means to use
@@ -27259,7 +27259,7 @@ the board default.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  |  | -1.0 |  | &nbsp;
+&check; |  |  |  | -1.0 | A/V | &nbsp;
 
 </div>
 
@@ -27303,12 +27303,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Battery 2 idle current overwrite.
 
-While disarmed, replaces the measured current with this value in amps, for ESCs that measure current inaccurately at no load. Set to 0 or less to disable.
+While disarmed, replaces the measured current with this value, for ESCs that measure current inaccurately at no load. Set to 0 or less to disable.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0 |  | &nbsp;
+&nbsp; |  |  |  | 0 | A | &nbsp;
 
 </div>
 
@@ -27503,12 +27503,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Battery 3 idle current overwrite.
 
-While disarmed, replaces the measured current with this value in amps, for ESCs that measure current inaccurately at no load. Set to 0 or less to disable.
+While disarmed, replaces the measured current with this value, for ESCs that measure current inaccurately at no load. Set to 0 or less to disable.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0 |  | &nbsp;
+&nbsp; |  |  |  | 0 | A | &nbsp;
 
 </div>
 
@@ -27699,7 +27699,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### BAT_V_OFFS_CURR (`FLOAT`) {#BAT_V_OFFS_CURR}
 
-Offset in volt as seen by the ADC input of the current sensor.
+Offset as seen by the ADC input of the current sensor.
 
 This offset will be subtracted before calculating the battery
 current based on the voltage.
@@ -27707,7 +27707,7 @@ current based on the voltage.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.0 |  | &nbsp;
+&nbsp; |  |  |  | 0.0 | V | &nbsp;
 
 </div>
 
@@ -29034,6 +29034,7 @@ Triggers when the active GNSS count drops below SYS_HAS_NUM_GNSS (disabled
 when SYS_HAS_NUM_GNSS=0), or when two receivers report positions inconsistent
 with their reported accuracy and SYS_HAS_NUM_GNSS=2 (otherwise warning only).
 The reported accuracy of each receiver is floored with EKF2_GPS_P_NOISE.
+Return and Land are skipped if the failure clears during the COM_FAIL_ACT_T Hold.
 Any value above Warning also blocks arming.
 
 
@@ -29074,6 +29075,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 Home position enabled.
 
 Set home position automatically if possible.
+
+If disabled, home is only set manually with MAV_CMD_DO_SET_HOME.
 
 During missions, the latitude/longitude of the home position is locked and will not reset during intermediate landings.
 It will only update once the mission is complete or landed outside of a mission.
@@ -30887,7 +30890,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## EKF2
 
-<div class="param-group" style="--param-count: 154">
+<div class="param-group" style="--param-count: 157">
 
 <div class="param">
 
@@ -32500,11 +32503,11 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### EKF2_OF_CTRL (`INT32`) {#EKF2_OF_CTRL}
+### EKF2_OF0_CTRL (`INT32`) {#EKF2_OF0_CTRL}
 
-Optical flow aiding.
+Optical flow sensor 0 aiding.
 
-Enable optical flow fusion.
+Enable optical flow fusion for sensor slot 0.
 
 
 **Values:**
@@ -32520,26 +32523,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### EKF2_OF_DELAY (`FLOAT`) {#EKF2_OF_DELAY}
+### EKF2_OF0_GATE (`FLOAT`) {#EKF2_OF0_GATE}
 
-Optical flow measurement delay relative to IMU measurements.
-
-Assumes measurement is timestamped at trailing edge of integration
-period. The default matches a DroneCAN flow node, whose frame reaches
-the flight controller about 7 ms after its integration window closes.
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 300 |  | 7 | ms | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_OF_GATE (`FLOAT`) {#EKF2_OF_GATE}
-
-Gate size for optical flow fusion.
+Gate size for optical flow sensor 0 fusion.
 
 Sets the number of standard deviations used by the innovation consistency test.
 
@@ -32552,9 +32538,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### EKF2_OF_GYR_SRC (`INT32`) {#EKF2_OF_GYR_SRC}
+### EKF2_OF0_GYR_SRC (`INT32`) {#EKF2_OF0_GYR_SRC}
 
-Optical flow angular rate compensation source.
+Optical flow sensor 0 angular rate compensation source.
 
 Auto: use gyro from optical flow message if available, internal gyro otherwise. Internal: always use internal gyro
 
@@ -32573,9 +32559,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### EKF2_OF_N_MAX (`FLOAT`) {#EKF2_OF_N_MAX}
+### EKF2_OF0_N_MAX (`FLOAT`) {#EKF2_OF0_N_MAX}
 
-Optical flow maximum noise.
+Optical flow sensor 0 maximum noise.
 
 Measurement noise for the optical flow sensor when it's reported quality metric is at the minimum
 
@@ -32588,9 +32574,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### EKF2_OF_N_MIN (`FLOAT`) {#EKF2_OF_N_MIN}
+### EKF2_OF0_N_MIN (`FLOAT`) {#EKF2_OF0_N_MIN}
 
-Optical flow minimum noise.
+Optical flow sensor 0 minimum noise.
 
 Measurement noise for the optical flow sensor when it's reported quality metric is at the maximum
 
@@ -32603,56 +32589,11 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### EKF2_OF_POS_X (`FLOAT`) {#EKF2_OF_POS_X}
+### EKF2_OF0_QMIN (`INT32`) {#EKF2_OF0_QMIN}
 
-X position of optical flow focal point in body frame.
+In air optical flow sensor 0 minimum quality.
 
-Forward axis with origin relative to vehicle centre of gravity
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.0 | m | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_OF_POS_Y (`FLOAT`) {#EKF2_OF_POS_Y}
-
-Y position of optical flow focal point in body frame.
-
-Forward axis with origin relative to vehicle centre of gravity
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.0 | m | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_OF_POS_Z (`FLOAT`) {#EKF2_OF_POS_Z}
-
-Z position of optical flow focal point in body frame.
-
-Forward axis with origin relative to vehicle centre of gravity
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.0 | m | &nbsp;
-
-</div>
-
-<div class="param">
-
-### EKF2_OF_QMIN (`INT32`) {#EKF2_OF_QMIN}
-
-In air optical flow minimum quality.
-
-Optical Flow data will only be used in air if the sensor reports a quality metric >= EKF2_OF_QMIN
+Optical Flow data will only be used in air if the sensor reports a quality metric >= EKF2_OF0_QMIN
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -32663,11 +32604,127 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### EKF2_OF_QMIN_GND (`INT32`) {#EKF2_OF_QMIN_GND}
+### EKF2_OF0_QMINGND (`INT32`) {#EKF2_OF0_QMINGND}
 
-On ground optical flow minimum quality.
+On ground optical flow sensor 0 minimum quality.
 
-Optical Flow data will only be used on the ground if the sensor reports a quality metric >= EKF2_OF_QMIN_GND
+Optical Flow data will only be used on the ground if the sensor reports a quality metric >= EKF2_OF0_QMINGND
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 255 |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### EKF2_OF1_CTRL (`INT32`) {#EKF2_OF1_CTRL}
+
+Optical flow sensor 1 aiding.
+
+Enable optical flow fusion for sensor slot 1.
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: Enabled
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | Disabled (0) |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### EKF2_OF1_GATE (`FLOAT`) {#EKF2_OF1_GATE}
+
+Gate size for optical flow sensor 1 fusion.
+
+Sets the number of standard deviations used by the innovation consistency test.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 1.0 |  |  | 3.0 | SD | &nbsp;
+
+</div>
+
+<div class="param">
+
+### EKF2_OF1_GYR_SRC (`INT32`) {#EKF2_OF1_GYR_SRC}
+
+Optical flow sensor 1 angular rate compensation source.
+
+Auto: use gyro from optical flow message if available, internal gyro otherwise. Internal: always use internal gyro
+
+
+**Values:**
+
+- `0`: Auto
+- `1`: Internal
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### EKF2_OF1_N_MAX (`FLOAT`) {#EKF2_OF1_N_MAX}
+
+Optical flow sensor 1 maximum noise.
+
+Measurement noise for the optical flow sensor when it's reported quality metric is at the minimum
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.05 |  |  | 0.5 | rad/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### EKF2_OF1_N_MIN (`FLOAT`) {#EKF2_OF1_N_MIN}
+
+Optical flow sensor 1 minimum noise.
+
+Measurement noise for the optical flow sensor when it's reported quality metric is at the maximum
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.05 |  |  | 0.15 | rad/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### EKF2_OF1_QMIN (`INT32`) {#EKF2_OF1_QMIN}
+
+In air optical flow sensor 1 minimum quality.
+
+Optical Flow data will only be used in air if the sensor reports a quality metric >= EKF2_OF1_QMIN
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 255 |  | 1 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### EKF2_OF1_QMINGND (`INT32`) {#EKF2_OF1_QMINGND}
+
+On ground optical flow sensor 1 minimum quality.
+
+Optical Flow data will only be used on the ground if the sensor reports a quality metric >= EKF2_OF1_QMINGND
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -34467,7 +34524,7 @@ Maximum slew rate for the commanded throttle
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 1.0 | 0.01 | 0.0 |  | &nbsp;
+&nbsp; | 0.0 | 1.0 | 0.01 | 0.0 | 1/s | &nbsp;
 
 </div>
 
@@ -34479,7 +34536,7 @@ Altitude error time constant.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 2.0 |  | 0.5 | 5.0 |  | &nbsp;
+&nbsp; | 2.0 |  | 0.5 | 5.0 | s | &nbsp;
 
 </div>
 
@@ -34495,7 +34552,7 @@ A negative value disables fast descend.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | -1.0 |  |  | -1.0 |  | &nbsp;
+&nbsp; | -1.0 |  |  | -1.0 | m | &nbsp;
 
 </div>
 
@@ -34591,7 +34648,7 @@ This filter is applied to the specific total energy rate used for throttle dampi
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 2 | 0.01 | 0.4 |  | &nbsp;
+&nbsp; | 0.0 | 2 | 0.01 | 0.4 | s | &nbsp;
 
 </div>
 
@@ -34603,7 +34660,7 @@ True airspeed error time constant.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 2.0 |  | 0.5 | 5.0 |  | &nbsp;
+&nbsp; | 2.0 |  | 0.5 | 5.0 | s | &nbsp;
 
 </div>
 
@@ -34955,7 +35012,7 @@ Set to 0 to disable mapping of airspeed to trim throttle.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 1 | 0.01 | 0.0 |  | &nbsp;
+&nbsp; | 0 | 1 | 0.01 | 0.0 | norm | &nbsp;
 
 </div>
 
@@ -34972,7 +35029,7 @@ Set to 0 to disable mapping of airspeed to trim throttle below FW_AIRSPD_TRIM.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 1 | 0.01 | 0.0 |  | &nbsp;
+&nbsp; | 0 | 1 | 0.01 | 0.0 | norm | &nbsp;
 
 </div>
 
@@ -35658,7 +35715,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Failure Detector
 
-<div class="param-group" style="--param-count: 9">
+<div class="param-group" style="--param-count: 7">
 
 <div class="param">
 
@@ -35732,78 +35789,6 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### FD_FAIL_P (`INT32`) {#FD_FAIL_P}
-
-FailureDetector Max Pitch.
-
-Maximum pitch angle before FailureDetector triggers the attitude_failure flag.
-The flag triggers flight termination (if @CBRK_FLIGHTTERM = 0),
-which sets outputs to their failsafe values.
-On takeoff the flag triggers lockdown (irrespective of @CBRK_FLIGHTTERM),
-which disarms motors but does not set outputs to failsafe values.
-
-Setting this parameter to 0 disables the check
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 180 |  | 60 | deg | &nbsp;
-
-</div>
-
-<div class="param">
-
-### FD_FAIL_P_TTRI (`FLOAT`) {#FD_FAIL_P_TTRI}
-
-Pitch failure trigger time.
-
-Seconds (decimal) that pitch has to exceed FD_FAIL_P before being considered as a failure.
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.02 | 5 |  | 0.3 | s | &nbsp;
-
-</div>
-
-<div class="param">
-
-### FD_FAIL_R (`INT32`) {#FD_FAIL_R}
-
-FailureDetector Max Roll.
-
-Maximum roll angle before FailureDetector triggers the attitude_failure flag.
-The flag triggers flight termination (if @CBRK_FLIGHTTERM = 0),
-which sets outputs to their failsafe values.
-On takeoff the flag triggers lockdown (irrespective of @CBRK_FLIGHTTERM),
-which disarms motors but does not set outputs to failsafe values.
-
-Setting this parameter to 0 disables the check
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 180 |  | 60 | deg | &nbsp;
-
-</div>
-
-<div class="param">
-
-### FD_FAIL_R_TTRI (`FLOAT`) {#FD_FAIL_R_TTRI}
-
-Roll failure trigger time.
-
-Seconds (decimal) that roll has to exceed FD_FAIL_R before being considered as a failure.
-
-
-Reboot | minValue | maxValue | increment | default | unit | Read-Only
---- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.02 | 5 |  | 0.3 | s | &nbsp;
-
-</div>
-
-<div class="param">
-
 ### FD_IMB_PROP_THR (`INT32`) {#FD_IMB_PROP_THR}
 
 Imbalanced propeller check threshold.
@@ -35820,11 +35805,49 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 </div>
 
+<div class="param">
+
+### FD_TILT_ERROR (`FLOAT`) {#FD_TILT_ERROR}
+
+FailureDetector Max Tilt Error.
+
+Maximum angle between the vehicle tilt and the attitude setpoint tilt before FailureDetector triggers the attitude_failure flag.
+Without a recent attitude setpoint, e.g. on rovers, the tilt from level is checked instead.
+The flag triggers flight termination (if @CBRK_FLIGHTTERM = 0),
+which sets outputs to their failsafe values.
+On takeoff the flag triggers lockdown (irrespective of @CBRK_FLIGHTTERM),
+which disarms motors but does not set outputs to failsafe values.
+The check is paused for the first 5 s after a VTOL quad-chute or aborted front transition.
+
+Set to -1 to disable.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | -1 | 180 |  | 60 | deg | &nbsp;
+
+</div>
+
+<div class="param">
+
+### FD_TILT_ERROR_T (`FLOAT`) {#FD_TILT_ERROR_T}
+
+Tilt failure trigger time.
+
+Seconds (decimal) that the tilt error has to exceed FD_TILT_ERROR before being considered as a failure.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.02 | 5 |  | 1.0 | s | &nbsp;
+
+</div>
+
 </div>
 
 ## Failure Injection
 
-<div class="param-group" style="--param-count: 8">
+<div class="param-group" style="--param-count: 14">
 
 <div class="param">
 
@@ -35845,6 +35868,51 @@ WARNING: the failures can easily cause crashes and are to be used with caution!
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &check; |  |  |  | Disabled (0) |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SYS_FAIL_A_BIAS (`FLOAT`) {#SYS_FAIL_A_BIAS}
+
+Accel bias failure injection offset.
+
+Constant offset added to every axis while an accel 'wrong' failure injection is active.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.2 | m/s^2 | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SYS_FAIL_A_DRIFT (`FLOAT`) {#SYS_FAIL_A_DRIFT}
+
+Accel drift failure injection rate.
+
+Rate at which the offset added to every axis grows while an accel 'drift' failure injection is active.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.005 | m/s^3 | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SYS_FAIL_A_NOISE (`FLOAT`) {#SYS_FAIL_A_NOISE}
+
+Accel noise failure injection magnitude.
+
+Amplitude of the uniform noise added to every axis while an accel 'garbage' failure injection is active.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 |  |  | 1.0 | m/s^2 | &nbsp;
 
 </div>
 
@@ -35930,6 +35998,51 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
+### SYS_FAIL_G_BIAS (`FLOAT`) {#SYS_FAIL_G_BIAS}
+
+Gyro bias failure injection offset.
+
+Constant offset added to every axis while a gyro 'wrong' failure injection is active.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.01 | rad/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SYS_FAIL_G_DRIFT (`FLOAT`) {#SYS_FAIL_G_DRIFT}
+
+Gyro drift failure injection rate.
+
+Rate at which the offset added to every axis grows while a gyro 'drift' failure injection is active.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.001 | rad/s^2 | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SYS_FAIL_G_NOISE (`FLOAT`) {#SYS_FAIL_G_NOISE}
+
+Gyro noise failure injection magnitude.
+
+Amplitude of the uniform noise added to every axis while a gyro 'garbage' failure injection is active.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 |  |  | 0.05 | rad/s | &nbsp;
+
+</div>
+
+<div class="param">
+
 ### SYS_FAIL_RC_INST (`INT32`) {#SYS_FAIL_RC_INST}
 
 Instances failed by the RC switch.
@@ -35984,6 +36097,7 @@ unsupported (unit, type) pairs are ignored.
 - `5`: Slow
 - `6`: Delayed
 - `7`: Intermittent
+- `8`: Drift
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -36140,7 +36254,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### FLW_TGT_FA (`FLOAT`) {#FLW_TGT_FA}
 
-Follow Angle setting in degrees.
+Follow Angle setting.
 
 Angle to follow the target from. 0.0 Equals straight in front of the target's
 course (direction of motion) and the angle increases in clockwise direction,
@@ -36152,7 +36266,7 @@ wrapped (e.g. 480 -> 120) in the range to gracefully handle the out of range.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | -180.0 | 180.0 |  | 180.0 |  | &nbsp;
+&nbsp; | -180.0 | 180.0 |  | 180.0 | deg | &nbsp;
 
 </div>
 
@@ -36185,7 +36299,7 @@ an orbit angle setpoint changes. Higher value means more aggressive follow behav
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 20.0 |  | 5.0 |  | &nbsp;
+&nbsp; | 0.0 | 20.0 |  | 5.0 | m/s | &nbsp;
 
 </div>
 
@@ -43911,7 +44025,7 @@ before takeoff using gyro data.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  |  | Enabled (1) |  | &nbsp;
+&check; |  |  |  | Disabled (0) |  | &nbsp;
 
 </div>
 
@@ -44974,7 +45088,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Time constant for open-loop AUX gimbal control.
 
-Alpha filter time constant defining the convergence rate (in seconds) for open-loop AUX mount control
+Alpha filter time constant defining the convergence rate for open-loop AUX mount control
 
 Use when no angular position feedback is available.
 With MNT_MODE_OUT set to AUX, the mount operates in open-loop and directly commands the servo output.
@@ -44983,7 +45097,7 @@ Parameters must be tuned for the specific servo to approximate its speed and res
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 |  |  | 0.3 |  | &nbsp;
+&nbsp; | 0.0 |  |  | 0.3 | s | &nbsp;
 
 </div>
 
@@ -46089,7 +46203,7 @@ time-stretch.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 10 | 1 | 2.0 |  | &nbsp;
+&nbsp; | 0 | 10 | 1 | 2.0 | m | &nbsp;
 
 </div>
 
@@ -46133,7 +46247,7 @@ If set to a negative value, the existing individual parameters are used.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | -20 | 20 | 1 | -10.0 |  | &nbsp;
+&nbsp; | -20 | 20 | 1 | -10.0 | m/s | &nbsp;
 
 </div>
 
@@ -46216,7 +46330,7 @@ time-stretch.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 10 | 0.1 | 1.0 |  | &nbsp;
+&nbsp; | 0 | 10 | 0.1 | 1.0 | m | &nbsp;
 
 </div>
 
@@ -46248,7 +46362,7 @@ If set to a negative value, the existing individual parameters are used.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | -3 | 8 | 0.5 | -3.0 |  | &nbsp;
+&nbsp; | -3 | 8 | 0.5 | -3.0 | m/s | &nbsp;
 
 </div>
 
@@ -47206,7 +47320,7 @@ The maximum RPM of the motors. Used to normalize the output of the neural networ
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 80000 |  | 22000 |  | &nbsp;
+&nbsp; | 0 | 80000 |  | 22000 | rpm | &nbsp;
 
 </div>
 
@@ -47221,7 +47335,7 @@ The minimum RPM of the motors. Used to normalize the output of the neural networ
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 80000 |  | 1000 |  | &nbsp;
+&nbsp; | 0 | 80000 |  | 1000 | rpm | &nbsp;
 
 </div>
 
@@ -47342,15 +47456,15 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### OSD_DWELL_TIME (`INT32`) {#OSD_DWELL_TIME}
 
-OSD Dwell Time (ms).
+OSD Dwell Time.
 
-Amount of time in milliseconds to dwell at the beginning of the display, when scrolling.
+Amount of time to dwell at the beginning of the display, when scrolling.
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 100 | 10000 |  | 500 |  | &nbsp;
+&nbsp; | 100 | 10000 |  | 500 | ms | &nbsp;
 
 </div>
 
@@ -47390,16 +47504,16 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### OSD_SCROLL_RATE (`INT32`) {#OSD_SCROLL_RATE}
 
-OSD Scroll Rate (ms).
+OSD Scroll Rate.
 
-Scroll rate in milliseconds for OSD messages longer than available character width.
+Scroll rate for OSD messages longer than available character width.
 This is lower-bounded by the nominal loop rate of this module.
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 100 | 1000 |  | 125 |  | &nbsp;
+&nbsp; | 100 | 1000 |  | 125 | ms | &nbsp;
 
 </div>
 
@@ -50546,7 +50660,7 @@ Return mode destination and flight path (home location, rally point, mission lan
 
 - 5 (Direct to rally point only): Return directly to safe landing point (do not consider mission landing and Home).
 
-- 6 (Home if battery allows, else rally point): Return to home if time estimate to home is less than battery remaining estimate, else return to the closest rally point. If battery remaining estimate is not available, return to the closest safe point (home or rally point).
+- 6 (Home if battery allows, else rally point): Return to home if time estimate to home is less than battery remaining estimate. Otherwise, or if battery remaining estimate is not available, return to the closest safe point (home or rally point).
 
 
 **Values:**
@@ -51818,7 +51932,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Sensor Calibration
 
-<div class="param-group" style="--param-count: 157">
+<div class="param-group" style="--param-count: 170">
 
 <div class="param">
 
@@ -52551,7 +52665,7 @@ Barometer 0 offset.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.0 |  | &nbsp;
+&nbsp; |  |  |  | 0.0 | Pa | &nbsp;
 
 </div>
 
@@ -52601,7 +52715,7 @@ Barometer 1 offset.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.0 |  | &nbsp;
+&nbsp; |  |  |  | 0.0 | Pa | &nbsp;
 
 </div>
 
@@ -52651,7 +52765,7 @@ Barometer 2 offset.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.0 |  | &nbsp;
+&nbsp; |  |  |  | 0.0 | Pa | &nbsp;
 
 </div>
 
@@ -52701,7 +52815,7 @@ Barometer 3 offset.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.0 |  | &nbsp;
+&nbsp; |  |  |  | 0.0 | Pa | &nbsp;
 
 </div>
 
@@ -52749,12 +52863,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Differential pressure sensor 0 offset.
 
-The zero-reading of this differential pressure sensor, in Pascal.
+The zero-reading of this differential pressure sensor.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.0 |  | &nbsp;
+&nbsp; |  |  |  | 0.0 | Pa | &nbsp;
 
 </div>
 
@@ -52779,12 +52893,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Differential pressure sensor 1 offset.
 
-The zero-reading of this differential pressure sensor, in Pascal.
+The zero-reading of this differential pressure sensor.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.0 |  | &nbsp;
+&nbsp; |  |  |  | 0.0 | Pa | &nbsp;
 
 </div>
 
@@ -52809,12 +52923,12 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Differential pressure sensor 2 offset.
 
-The zero-reading of this differential pressure sensor, in Pascal.
+The zero-reading of this differential pressure sensor.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.0 |  | &nbsp;
+&nbsp; |  |  |  | 0.0 | Pa | &nbsp;
 
 </div>
 
@@ -54670,7 +54784,7 @@ Differential pressure sensor analog scaling.
 
 Pick the appropriate scaling from the datasheet.
 this number defines the (linear) conversion from voltage
-to Pascal (pa). For the MPXV7002DP this is 1000.
+to pressure. For the MPXV7002DP this is 1000.
 
 NOTE: If the sensor always registers zero, try switching
 the static and dynamic tubes.
@@ -54678,7 +54792,7 @@ the static and dynamic tubes.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0 |  | &nbsp;
+&nbsp; |  |  |  | 0 | Pa/V | &nbsp;
 
 </div>
 
@@ -54688,7 +54802,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Differential pressure sensor offset of the first airspeed sensor.
 
-The offset (zero-reading) in Pascal of the sensor holding calibration slot 0.
+The offset (zero-reading) of the sensor holding calibration slot 0.
 
 Kept as a mirror of CAL_DPRES0_OFF so that ground stations can still detect whether
 airspeed has been calibrated. The firmware applies CAL_DPRESx_OFF, not this value.
@@ -54696,7 +54810,7 @@ airspeed has been calibrated. The firmware applies CAL_DPRESx_OFF, not this valu
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.0 |  | &nbsp;
+&nbsp; |  |  |  | 0.0 | Pa | &nbsp;
 
 </div>
 
@@ -54723,9 +54837,27 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SENS_FLOW_MAXHGT (`FLOAT`) {#SENS_FLOW_MAXHGT}
+### SENS_FLOW0_DELAY (`FLOAT`) {#SENS_FLOW0_DELAY}
 
-Maximum height above ground when reliant on optical flow.
+Optical flow sensor 0 measurement delay relative to IMU.
+
+Assumes measurement is timestamped at trailing edge of integration
+period. Applied to timestamp_sample of the published data. The default
+matches a DroneCAN flow node, whose frame reaches the flight controller
+about 7 ms after its integration window closes.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; | 0 | 300 |  | 7.0 | ms | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_FLOW0_HMAX (`FLOAT`) {#SENS_FLOW0_HMAX}
+
+Maximum height above ground when reliant on optical flow 0.
 
 This parameter defines the maximum distance from ground at which the optical flow sensor operates reliably.
 The height setpoint will be limited to be no greater than this value when the navigation system
@@ -54741,9 +54873,40 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SENS_FLOW_MAXR (`FLOAT`) {#SENS_FLOW_MAXR}
+### SENS_FLOW0_HMIN (`FLOAT`) {#SENS_FLOW0_HMIN}
 
-Max angular flow rate measurable by sensor.
+Minimum height above ground when reliant on optical flow 0.
+
+This parameter defines the minimum distance from ground at which the optical flow sensor operates reliably.
+The sensor may be usable below this height, but accuracy will progressively reduce to loss of focus.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 1.0 | 0.1 | 0.08 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_FLOW0_ID (`INT32`) {#SENS_FLOW0_ID}
+
+Optical flow sensor 0 ID.
+
+Device ID of the flow sensor configured by the SENS_FLOW0_* parameters. Set to 0 to automatically bind the first unbound sensor reporting data.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_FLOW0_MAXR (`FLOAT`) {#SENS_FLOW0_MAXR}
+
+Max angular flow rate measurable by sensor 0.
 
 Magnitude of maximum angular flow rate reliably measurable by the optical flow sensor
 
@@ -54760,9 +54923,90 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SENS_FLOW_MINHGT (`FLOAT`) {#SENS_FLOW_MINHGT}
+### SENS_FLOW0_POS_X (`FLOAT`) {#SENS_FLOW0_POS_X}
 
-Minimum height above ground when reliant on optical flow.
+X position of optical flow sensor 0 focal point in body frame.
+
+Forward axis with origin relative to vehicle centre of gravity
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_FLOW0_POS_Y (`FLOAT`) {#SENS_FLOW0_POS_Y}
+
+Y position of optical flow sensor 0 focal point in body frame.
+
+Right axis with origin relative to vehicle centre of gravity
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_FLOW0_POS_Z (`FLOAT`) {#SENS_FLOW0_POS_Z}
+
+Z position of optical flow sensor 0 focal point in body frame.
+
+Down axis with origin relative to vehicle centre of gravity
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_FLOW1_DELAY (`FLOAT`) {#SENS_FLOW1_DELAY}
+
+Optical flow sensor 1 measurement delay relative to IMU.
+
+Assumes measurement is timestamped at trailing edge of integration
+period. Applied to timestamp_sample of the published data. The default
+matches a DroneCAN flow node, whose frame reaches the flight controller
+about 7 ms after its integration window closes.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; | 0 | 300 |  | 7.0 | ms | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_FLOW1_HMAX (`FLOAT`) {#SENS_FLOW1_HMAX}
+
+Maximum height above ground when reliant on optical flow 1.
+
+This parameter defines the maximum distance from ground at which the optical flow sensor operates reliably.
+The height setpoint will be limited to be no greater than this value when the navigation system
+is completely reliant on optical flow data and the height above ground estimate is valid.
+The sensor may be usable above this height, but accuracy will progressively degrade.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 1.0 | 100.0 | 0.1 | 100.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_FLOW1_HMIN (`FLOAT`) {#SENS_FLOW1_HMIN}
+
+Minimum height above ground when reliant on optical flow 1.
 
 This parameter defines the minimum distance from ground at which the optical flow sensor operates reliably.
 The sensor may be usable below this height, but accuracy will progressively reduce to loss of focus.
@@ -54774,11 +55018,90 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 </div>
 
+<div class="param">
+
+### SENS_FLOW1_ID (`INT32`) {#SENS_FLOW1_ID}
+
+Optical flow sensor 1 ID.
+
+Device ID of the flow sensor configured by the SENS_FLOW1_* parameters. Set to 0 to automatically bind the first unbound sensor reporting data.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_FLOW1_MAXR (`FLOAT`) {#SENS_FLOW1_MAXR}
+
+Max angular flow rate measurable by sensor 1.
+
+Magnitude of maximum angular flow rate reliably measurable by the optical flow sensor
+
+Optical flow data will not fused by the estimators if the magnitude of the flow rate exceeds this value and
+control loops will be instructed to limit ground speed such that the flow rate produced by movement over ground
+is less than 50% of this value.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 1.0 |  |  | 8.0 | rad/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_FLOW1_POS_X (`FLOAT`) {#SENS_FLOW1_POS_X}
+
+X position of optical flow sensor 1 focal point in body frame.
+
+Forward axis with origin relative to vehicle centre of gravity
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_FLOW1_POS_Y (`FLOAT`) {#SENS_FLOW1_POS_Y}
+
+Y position of optical flow sensor 1 focal point in body frame.
+
+Right axis with origin relative to vehicle centre of gravity
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_FLOW1_POS_Z (`FLOAT`) {#SENS_FLOW1_POS_Z}
+
+Z position of optical flow sensor 1 focal point in body frame.
+
+Down axis with origin relative to vehicle centre of gravity
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0.0 | m | &nbsp;
+
+</div>
+
 </div>
 
 ## Sensors
 
-<div class="param-group" style="--param-count: 265">
+<div class="param-group" style="--param-count: 269">
 
 <div class="param">
 
@@ -54960,11 +55283,12 @@ Each threshold value is defined by the parameter indicated next to the check. Dr
 - `9`: Spoofing
 - `10`: GNSS fix type (GNSS_REQ_FIX)
 - `11`: Jamming
+- `12`: Horizontal kinematic consistency (GNSS_REQ_HKIN)
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 4095 |  | 2047 |  | &nbsp;
+&nbsp; | 0 | 8191 |  | 6143 |  | &nbsp;
 
 </div>
 
@@ -55027,6 +55351,21 @@ Maximum horizontal drift speed to use GNSS.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0.1 | 1.0 |  | 0.1 | m/s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GNSS_REQ_HKIN (`FLOAT`) {#GNSS_REQ_HKIN}
+
+Maximum horizontal kinematic inconsistency to use GNSS.
+
+The rate of change of the reported horizontal position, minus the reported horizontal velocity, filtered over 1 s.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.1 | 20.0 |  | 2.0 | m/s | &nbsp;
 
 </div>
 
@@ -56012,7 +56351,7 @@ INA220 Power Monitor Battery Max Current.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.1 | 500.0 | 0.1 | 164.0 |  | &nbsp;
+&nbsp; | 0.1 | 500.0 | 0.1 | 164.0 | A | &nbsp;
 
 </div>
 
@@ -56024,7 +56363,7 @@ INA220 Power Monitor Regulator Max Current.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.1 | 500.0 | 0.1 | 164.0 |  | &nbsp;
+&nbsp; | 0.1 | 500.0 | 0.1 | 164.0 | A | &nbsp;
 
 </div>
 
@@ -56036,7 +56375,7 @@ INA220 Power Monitor Battery Shunt.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 1e-09 | 0.1 | 1e-09 | 0.0005 |  | &nbsp;
+&nbsp; | 1e-09 | 0.1 | 1e-09 | 0.0005 | Ohm | &nbsp;
 
 </div>
 
@@ -56048,7 +56387,7 @@ INA220 Power Monitor Regulator Shunt.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 1e-09 | 0.1 | 1e-09 | 0.0005 |  | &nbsp;
+&nbsp; | 1e-09 | 0.1 | 1e-09 | 0.0005 | Ohm | &nbsp;
 
 </div>
 
@@ -56060,7 +56399,7 @@ INA226 Power Monitor Max Current.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0.1 | 200.0 | 0.1 | 164.0 |  | &nbsp;
+&check; | 0.1 | 200.0 | 0.1 | 164.0 | A | &nbsp;
 
 </div>
 
@@ -56072,7 +56411,7 @@ INA226 Power Monitor Shunt.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 1e-09 | 0.1 | 1e-09 | 0.0005 |  | &nbsp;
+&check; | 1e-09 | 0.1 | 1e-09 | 0.0005 | Ohm | &nbsp;
 
 </div>
 
@@ -56084,7 +56423,7 @@ INA228 Power Monitor Max Current.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0.1 | 1638.4 | 0.1 | 327.68 |  | &nbsp;
+&check; | 0.1 | 1638.4 | 0.1 | 327.68 | A | &nbsp;
 
 </div>
 
@@ -56096,7 +56435,7 @@ INA228 Power Monitor Shunt.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 1e-09 | 0.1 | 1e-09 | 0.0005 |  | &nbsp;
+&check; | 1e-09 | 0.1 | 1e-09 | 0.0005 | Ohm | &nbsp;
 
 </div>
 
@@ -56108,7 +56447,7 @@ INA238 Power Monitor Max Current.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0.1 | 1638.4 | 0.1 | 327.68 |  | &nbsp;
+&check; | 0.1 | 1638.4 | 0.1 | 327.68 | A | &nbsp;
 
 </div>
 
@@ -56120,7 +56459,7 @@ INA238 Power Monitor Shunt.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 1e-09 | 0.1 | 1e-09 | 0.0005 |  | &nbsp;
+&check; | 1e-09 | 0.1 | 1e-09 | 0.0005 | Ohm | &nbsp;
 
 </div>
 
@@ -56171,14 +56510,14 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 MicroStrain barometer data rate.
 
-Barometer data rate (Hz).
+Barometer data rate.
 Valid rates: 0 or any factor of 1000.
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 1000 |  | 50 |  | &nbsp;
+&check; | 0 | 1000 |  | 50 | Hz | &nbsp;
 
 </div>
 
@@ -56188,14 +56527,14 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 MicroStrain External Heading Orientation (Yaw).
 
-The orientation of the device (Radians) with respect to the vehicle frame around the z axis.
+The orientation of the device with respect to the vehicle frame around the z axis.
 Requires MS_EXT_HEAD_EN to be enabled to be used.
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  |  | 0.0 |  | &nbsp;
+&check; |  |  |  | 0.0 | rad | &nbsp;
 
 </div>
 
@@ -56205,14 +56544,14 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 MicroStrain External Magnetometer Orientation (Pitch).
 
-The orientation of the device (Radians) with respect to the vehicle frame around the y axis.
+The orientation of the device with respect to the vehicle frame around the y axis.
 Requires MS_EXT_MAG_EN to be enabled to be used.
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  |  | 0.0 |  | &nbsp;
+&check; |  |  |  | 0.0 | rad | &nbsp;
 
 </div>
 
@@ -56222,14 +56561,14 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 MicroStrain External Magnetometer Orientation (Roll).
 
-The orientation of the device (Radians) with respect to the vehicle frame around the x axis.
+The orientation of the device with respect to the vehicle frame around the x axis.
 Requires MS_EXT_MAG_EN to be enabled to be used.
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  |  | 0.0 |  | &nbsp;
+&check; |  |  |  | 0.0 | rad | &nbsp;
 
 </div>
 
@@ -56239,14 +56578,14 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 MicroStrain external magnetometer uncertainty.
 
-The 1-sigma uncertainty (in Gauss) for all axes, which will remain constant across all aiding measurements.
+The 1-sigma uncertainty for all axes, which will remain constant across all aiding measurements.
 Requires MS_EXT_MAG_EN to be enabled to be used.
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  |  | 0.1 |  | &nbsp;
+&check; |  |  |  | 0.1 | gauss | &nbsp;
 
 </div>
 
@@ -56256,14 +56595,14 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 MicroStrain External Magnetometer Orientation (Yaw).
 
-The orientation of the device (Radians) with respect to the vehicle frame around the z axis.
+The orientation of the device with respect to the vehicle frame around the z axis.
 Requires MS_EXT_MAG_EN to be enabled to be used.
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  |  | 0.0 |  | &nbsp;
+&check; |  |  |  | 0.0 | rad | &nbsp;
 
 </div>
 
@@ -56318,14 +56657,14 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 MicroStrain EKF data rate.
 
-The rate at which the INS data is published (Hz).
+The rate at which the INS data is published.
 Valid rates: 0 or any factor of 1000.
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 1000 |  | 250 |  | &nbsp;
+&check; | 0 | 1000 |  | 250 | Hz | &nbsp;
 
 </div>
 
@@ -56359,14 +56698,14 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 MicroStrain GNSS lever arm offset 1 (X).
 
-Lever arm offset (m) in the X direction for the external GNSS receiver.
+Lever arm offset in the X direction for the external GNSS receiver.
 In the case of a dual antenna setup, this is antenna 1.
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  |  | 0.0 |  | &nbsp;
+&check; |  |  |  | 0.0 | m | &nbsp;
 
 </div>
 
@@ -56376,14 +56715,14 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 MicroStrain GNSS lever arm offset 1 (Y).
 
-Lever arm offset (m) in the Y direction for the external GNSS receiver.
+Lever arm offset in the Y direction for the external GNSS receiver.
 In the case of a dual antenna setup, this is antenna 1.
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  |  | 0.0 |  | &nbsp;
+&check; |  |  |  | 0.0 | m | &nbsp;
 
 </div>
 
@@ -56393,14 +56732,14 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 MicroStrain GNSS lever arm offset 1 (Z).
 
-Lever arm offset (m) in the Z direction for the external GNSS receiver.
+Lever arm offset in the Z direction for the external GNSS receiver.
 In the case of a dual antenna setup, this is antenna 1.
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  |  | 0.0 |  | &nbsp;
+&check; |  |  |  | 0.0 | m | &nbsp;
 
 </div>
 
@@ -56410,14 +56749,14 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 MicroStrain GNSS lever arm offset 2 (X).
 
-Lever arm offset (m) in the X direction for antenna 2
+Lever arm offset in the X direction for antenna 2
 This will only be used if the device supports a dual antenna setup.
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  |  | 0.0 |  | &nbsp;
+&check; |  |  |  | 0.0 | m | &nbsp;
 
 </div>
 
@@ -56427,14 +56766,14 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 MicroStrain GNSS lever arm offset 2 (Y).
 
-Lever arm offset (m) in the Y direction for antenna 2.
+Lever arm offset in the Y direction for antenna 2.
 This will only be used if the device supports a dual antenna setup.
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  |  | 0.0 |  | &nbsp;
+&check; |  |  |  | 0.0 | m | &nbsp;
 
 </div>
 
@@ -56444,14 +56783,14 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 MicroStrain GNSS lever arm offset 2 (Z).
 
-Lever arm offset (m) in the X direction for antenna 2.
+Lever arm offset in the Z direction for antenna 2.
 This will only be used if the device supports a dual antenna setup.
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  |  | 0.0 |  | &nbsp;
+&check; |  |  |  | 0.0 | m | &nbsp;
 
 </div>
 
@@ -56461,14 +56800,14 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 MicroStrain GNSS data rate.
 
-GNSS receiver 1 and 2 data rate (Hz).
+GNSS receiver 1 and 2 data rate.
 Valid rates: 0, 1 or 5.
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 5 |  | 5 |  | &nbsp;
+&check; | 0 | 5 |  | 5 | Hz | &nbsp;
 
 </div>
 
@@ -56495,14 +56834,14 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 MicroStrain IMU data rate.
 
-Accelerometer and Gyroscope data rate (Hz).
+Accelerometer and Gyroscope data rate.
 Valid rates: 0 or any factor of 1000.
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 1000 |  | 500 |  | &nbsp;
+&check; | 0 | 1000 |  | 500 | Hz | &nbsp;
 
 </div>
 
@@ -56557,14 +56896,14 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 MicroStrain magnetometer data rate.
 
-Magnetometer data rate (Hz).
+Magnetometer data rate.
 Valid rates: 0 or any factor of 1000.
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 0 | 1000 |  | 50 |  | &nbsp;
+&check; | 0 | 1000 |  | 50 | Hz | &nbsp;
 
 </div>
 
@@ -56597,14 +56936,14 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 MicroStrain optical flow offset (X).
 
-Offset (m) in the X direction if an Optical Flow sensor is connected.
+Offset in the X direction if an Optical Flow sensor is connected.
 Requires MS_OPT_FLOW_EN to be enabled to be used.
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  |  | 0.0 |  | &nbsp;
+&check; |  |  |  | 0.0 | m | &nbsp;
 
 </div>
 
@@ -56614,14 +56953,14 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 MicroStrain optical flow offset (Y).
 
-Offset (m) in the Y direction if an Optical Flow sensor is connected.
+Offset in the Y direction if an Optical Flow sensor is connected.
 Requires MS_OPT_FLOW_EN to be enabled to be used.
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  |  | 0.0 |  | &nbsp;
+&check; |  |  |  | 0.0 | m | &nbsp;
 
 </div>
 
@@ -56631,14 +56970,14 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 MicroStrain optical flow offset (Z).
 
-Offset (m) in the Z direction if an Optical Flow sensor is connected.
+Offset in the Z direction if an Optical Flow sensor is connected.
 Requires MS_OPT_FLOW_EN to be enabled to be used.
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  |  | 0.0 |  | &nbsp;
+&check; |  |  |  | 0.0 | m | &nbsp;
 
 </div>
 
@@ -56648,7 +56987,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 MicroStrain optical flow uncertainty.
 
-The 1-sigma uncertainty (in m/s) for the X and Y axes, which will remain constant across all aiding measurements.
+The 1-sigma uncertainty for the X and Y axes, which will remain constant across all aiding measurements.
 The Z axis is not used for aiding.
 Requires MS_OPT_FLOW_EN to be enabled to be used.
 
@@ -56656,7 +56995,7 @@ Requires MS_OPT_FLOW_EN to be enabled to be used.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  |  | 0.1 |  | &nbsp;
+&check; |  |  |  | 0.1 | m/s | &nbsp;
 
 </div>
 
@@ -56689,14 +57028,14 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 MicroStrain Sensor to Vehicle Transform (Pitch).
 
-The orientation of the device (Radians) with respect to the vehicle frame around the y axis.
+The orientation of the device with respect to the vehicle frame around the y axis.
 Requires MS_SVT_EN to be enabled to be used.
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  |  | 0.0 |  | &nbsp;
+&check; |  |  |  | 0.0 | deg | &nbsp;
 
 </div>
 
@@ -56706,14 +57045,14 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 MicroStrain Sensor to vehicle transform (Roll).
 
-The orientation of the device (Radians) with respect to the vehicle frame around the x axis.
+The orientation of the device with respect to the vehicle frame around the x axis.
 Requires MS_SVT_EN to be enabled to be used.
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  |  | 0.0 |  | &nbsp;
+&check; |  |  |  | 0.0 | deg | &nbsp;
 
 </div>
 
@@ -56723,14 +57062,14 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 MicroStrain Sensor to Vehicle Transform (Yaw).
 
-The orientation of the device (Radians) with respect to the vehicle frame around the z axis.
+The orientation of the device with respect to the vehicle frame around the z axis.
 Requires MS_SVT_EN to be enabled to be used.
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  |  | 0.0 |  | &nbsp;
+&check; |  |  |  | 0.0 | deg | &nbsp;
 
 </div>
 
@@ -58320,9 +58659,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SENS_FLOW_RATE (`FLOAT`) {#SENS_FLOW_RATE}
+### SENS_FLOW0_RATE (`FLOAT`) {#SENS_FLOW0_RATE}
 
-Optical flow max rate.
+Optical flow 0 max rate.
 
 Optical flow data maximum publication rate. This is an upper bound,
 actual optical flow data rate is still dependent on the sensor.
@@ -58336,9 +58675,9 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SENS_FLOW_ROT (`INT32`) {#SENS_FLOW_ROT}
+### SENS_FLOW0_ROT (`INT32`) {#SENS_FLOW0_ROT}
 
-Optical flow rotation.
+Optical flow 0 rotation.
 
 This parameter defines the yaw rotation of the optical flow relative to the vehicle body frame.
 Zero rotation is defined as X on flow board pointing towards front of vehicle.
@@ -58364,9 +58703,65 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
-### SENS_FLOW_SCALE (`FLOAT`) {#SENS_FLOW_SCALE}
+### SENS_FLOW0_SCALE (`FLOAT`) {#SENS_FLOW0_SCALE}
 
-Optical flow scale factor.
+Optical flow 0 scale factor.
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.5 | 1.5 |  | 1.0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_FLOW1_RATE (`FLOAT`) {#SENS_FLOW1_RATE}
+
+Optical flow 1 max rate.
+
+Optical flow data maximum publication rate. This is an upper bound,
+actual optical flow data rate is still dependent on the sensor.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; | 1 | 200 |  | 70.0 | Hz | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_FLOW1_ROT (`INT32`) {#SENS_FLOW1_ROT}
+
+Optical flow 1 rotation.
+
+This parameter defines the yaw rotation of the optical flow relative to the vehicle body frame.
+Zero rotation is defined as X on flow board pointing towards front of vehicle.
+
+
+**Values:**
+
+- `0`: No rotation
+- `1`: Yaw 45°
+- `2`: Yaw 90°
+- `3`: Yaw 135°
+- `4`: Yaw 180°
+- `5`: Yaw 225°
+- `6`: Yaw 270°
+- `7`: Yaw 315°
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SENS_FLOW1_SCALE (`FLOAT`) {#SENS_FLOW1_SCALE}
+
+Optical flow 1 scale factor.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
@@ -58918,7 +59313,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Magnetometer auto calibration.
 
-Automatically initialize magnetometer calibration from bias estimate if available. The estimate only captures hard-iron offsets, so a full calibration is still recommended. Mainly intended for remote nodes (e.g. CAN GPS units) that cannot be calibrated from a ground station.
+Automatically initialize magnetometer calibration from bias estimate if available. The estimate only captures hard-iron offsets, so a full calibration is still recommended.
 
 
 **Values:**
@@ -60119,7 +60514,7 @@ VOXL Power Monitor Shunt, Battery.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 1e-09 | 0.1 | 1e-09 | 0.00063 |  | &nbsp;
+&check; | 1e-09 | 0.1 | 1e-09 | 0.00063 | Ohm | &nbsp;
 
 </div>
 
@@ -60131,7 +60526,7 @@ VOXL Power Monitor Shunt, Regulator.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; | 1e-09 | 0.1 | 1e-09 | 0.0056 |  | &nbsp;
+&check; | 1e-09 | 0.1 | 1e-09 | 0.0056 | Ohm | &nbsp;
 
 </div>
 
@@ -62109,7 +62504,7 @@ simulated barometer pressure offset.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.0 |  | &nbsp;
+&nbsp; |  |  |  | 0.0 | Pa | &nbsp;
 
 </div>
 
@@ -62506,7 +62901,7 @@ If set to a negative value, the existing individual parameters are used.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | -20 | 20 | 1 | -10.0 |  | &nbsp;
+&nbsp; | -20 | 20 | 1 | -10.0 | m/s | &nbsp;
 
 </div>
 
@@ -63965,7 +64360,7 @@ Accelerometer calibration maximum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 100.0 |  | &nbsp;
+&nbsp; |  |  |  | 100.0 | celcius | &nbsp;
 
 </div>
 
@@ -63977,7 +64372,7 @@ Accelerometer calibration minimum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.0 |  | &nbsp;
+&nbsp; |  |  |  | 0.0 | celcius | &nbsp;
 
 </div>
 
@@ -63989,7 +64384,7 @@ Accelerometer calibration reference temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 25.0 |  | &nbsp;
+&nbsp; |  |  |  | 25.0 | celcius | &nbsp;
 
 </div>
 
@@ -64157,7 +64552,7 @@ Accelerometer calibration maximum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 100.0 |  | &nbsp;
+&nbsp; |  |  |  | 100.0 | celcius | &nbsp;
 
 </div>
 
@@ -64169,7 +64564,7 @@ Accelerometer calibration minimum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.0 |  | &nbsp;
+&nbsp; |  |  |  | 0.0 | celcius | &nbsp;
 
 </div>
 
@@ -64181,7 +64576,7 @@ Accelerometer calibration reference temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 25.0 |  | &nbsp;
+&nbsp; |  |  |  | 25.0 | celcius | &nbsp;
 
 </div>
 
@@ -64349,7 +64744,7 @@ Accelerometer calibration maximum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 100.0 |  | &nbsp;
+&nbsp; |  |  |  | 100.0 | celcius | &nbsp;
 
 </div>
 
@@ -64361,7 +64756,7 @@ Accelerometer calibration minimum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.0 |  | &nbsp;
+&nbsp; |  |  |  | 0.0 | celcius | &nbsp;
 
 </div>
 
@@ -64373,7 +64768,7 @@ Accelerometer calibration reference temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 25.0 |  | &nbsp;
+&nbsp; |  |  |  | 25.0 | celcius | &nbsp;
 
 </div>
 
@@ -64541,7 +64936,7 @@ Accelerometer calibration maximum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 100.0 |  | &nbsp;
+&nbsp; |  |  |  | 100.0 | celcius | &nbsp;
 
 </div>
 
@@ -64553,7 +64948,7 @@ Accelerometer calibration minimum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.0 |  | &nbsp;
+&nbsp; |  |  |  | 0.0 | celcius | &nbsp;
 
 </div>
 
@@ -64565,7 +64960,7 @@ Accelerometer calibration reference temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 25.0 |  | &nbsp;
+&nbsp; |  |  |  | 25.0 | celcius | &nbsp;
 
 </div>
 
@@ -64750,7 +65145,7 @@ Barometer calibration maximum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 75.0 |  | &nbsp;
+&nbsp; |  |  |  | 75.0 | celcius | &nbsp;
 
 </div>
 
@@ -64762,7 +65157,7 @@ Barometer calibration minimum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 5.0 |  | &nbsp;
+&nbsp; |  |  |  | 5.0 | celcius | &nbsp;
 
 </div>
 
@@ -64774,7 +65169,7 @@ Barometer calibration reference temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 40.0 |  | &nbsp;
+&nbsp; |  |  |  | 40.0 | celcius | &nbsp;
 
 </div>
 
@@ -64870,7 +65265,7 @@ Barometer calibration maximum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 75.0 |  | &nbsp;
+&nbsp; |  |  |  | 75.0 | celcius | &nbsp;
 
 </div>
 
@@ -64882,7 +65277,7 @@ Barometer calibration minimum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 5.0 |  | &nbsp;
+&nbsp; |  |  |  | 5.0 | celcius | &nbsp;
 
 </div>
 
@@ -64894,7 +65289,7 @@ Barometer calibration reference temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 40.0 |  | &nbsp;
+&nbsp; |  |  |  | 40.0 | celcius | &nbsp;
 
 </div>
 
@@ -64990,7 +65385,7 @@ Barometer calibration maximum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 75.0 |  | &nbsp;
+&nbsp; |  |  |  | 75.0 | celcius | &nbsp;
 
 </div>
 
@@ -65002,7 +65397,7 @@ Barometer calibration minimum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 5.0 |  | &nbsp;
+&nbsp; |  |  |  | 5.0 | celcius | &nbsp;
 
 </div>
 
@@ -65014,7 +65409,7 @@ Barometer calibration reference temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 40.0 |  | &nbsp;
+&nbsp; |  |  |  | 40.0 | celcius | &nbsp;
 
 </div>
 
@@ -65110,7 +65505,7 @@ Barometer calibration maximum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 75.0 |  | &nbsp;
+&nbsp; |  |  |  | 75.0 | celcius | &nbsp;
 
 </div>
 
@@ -65122,7 +65517,7 @@ Barometer calibration minimum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 5.0 |  | &nbsp;
+&nbsp; |  |  |  | 5.0 | celcius | &nbsp;
 
 </div>
 
@@ -65134,7 +65529,7 @@ Barometer calibration reference temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 40.0 |  | &nbsp;
+&nbsp; |  |  |  | 40.0 | celcius | &nbsp;
 
 </div>
 
@@ -65247,7 +65642,7 @@ Gyro calibration maximum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 100.0 |  | &nbsp;
+&nbsp; |  |  |  | 100.0 | celcius | &nbsp;
 
 </div>
 
@@ -65259,7 +65654,7 @@ Gyro calibration minimum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.0 |  | &nbsp;
+&nbsp; |  |  |  | 0.0 | celcius | &nbsp;
 
 </div>
 
@@ -65271,7 +65666,7 @@ Gyro calibration reference temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 25.0 |  | &nbsp;
+&nbsp; |  |  |  | 25.0 | celcius | &nbsp;
 
 </div>
 
@@ -65439,7 +65834,7 @@ Gyro calibration maximum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 100.0 |  | &nbsp;
+&nbsp; |  |  |  | 100.0 | celcius | &nbsp;
 
 </div>
 
@@ -65451,7 +65846,7 @@ Gyro calibration minimum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.0 |  | &nbsp;
+&nbsp; |  |  |  | 0.0 | celcius | &nbsp;
 
 </div>
 
@@ -65463,7 +65858,7 @@ Gyro calibration reference temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 25.0 |  | &nbsp;
+&nbsp; |  |  |  | 25.0 | celcius | &nbsp;
 
 </div>
 
@@ -65631,7 +66026,7 @@ Gyro calibration maximum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 100.0 |  | &nbsp;
+&nbsp; |  |  |  | 100.0 | celcius | &nbsp;
 
 </div>
 
@@ -65643,7 +66038,7 @@ Gyro calibration minimum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.0 |  | &nbsp;
+&nbsp; |  |  |  | 0.0 | celcius | &nbsp;
 
 </div>
 
@@ -65655,7 +66050,7 @@ Gyro calibration reference temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 25.0 |  | &nbsp;
+&nbsp; |  |  |  | 25.0 | celcius | &nbsp;
 
 </div>
 
@@ -65823,7 +66218,7 @@ Gyro calibration maximum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 100.0 |  | &nbsp;
+&nbsp; |  |  |  | 100.0 | celcius | &nbsp;
 
 </div>
 
@@ -65835,7 +66230,7 @@ Gyro calibration minimum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.0 |  | &nbsp;
+&nbsp; |  |  |  | 0.0 | celcius | &nbsp;
 
 </div>
 
@@ -65847,7 +66242,7 @@ Gyro calibration reference temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 25.0 |  | &nbsp;
+&nbsp; |  |  |  | 25.0 | celcius | &nbsp;
 
 </div>
 
@@ -66032,7 +66427,7 @@ Magnetometer calibration maximum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 100.0 |  | &nbsp;
+&nbsp; |  |  |  | 100.0 | celcius | &nbsp;
 
 </div>
 
@@ -66044,7 +66439,7 @@ Magnetometer calibration minimum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.0 |  | &nbsp;
+&nbsp; |  |  |  | 0.0 | celcius | &nbsp;
 
 </div>
 
@@ -66056,7 +66451,7 @@ Magnetometer calibration reference temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 25.0 |  | &nbsp;
+&nbsp; |  |  |  | 25.0 | celcius | &nbsp;
 
 </div>
 
@@ -66224,7 +66619,7 @@ Magnetometer calibration maximum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 100.0 |  | &nbsp;
+&nbsp; |  |  |  | 100.0 | celcius | &nbsp;
 
 </div>
 
@@ -66236,7 +66631,7 @@ Magnetometer calibration minimum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.0 |  | &nbsp;
+&nbsp; |  |  |  | 0.0 | celcius | &nbsp;
 
 </div>
 
@@ -66248,7 +66643,7 @@ Magnetometer calibration reference temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 25.0 |  | &nbsp;
+&nbsp; |  |  |  | 25.0 | celcius | &nbsp;
 
 </div>
 
@@ -66416,7 +66811,7 @@ Magnetometer calibration maximum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 100.0 |  | &nbsp;
+&nbsp; |  |  |  | 100.0 | celcius | &nbsp;
 
 </div>
 
@@ -66428,7 +66823,7 @@ Magnetometer calibration minimum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.0 |  | &nbsp;
+&nbsp; |  |  |  | 0.0 | celcius | &nbsp;
 
 </div>
 
@@ -66440,7 +66835,7 @@ Magnetometer calibration reference temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 25.0 |  | &nbsp;
+&nbsp; |  |  |  | 25.0 | celcius | &nbsp;
 
 </div>
 
@@ -66608,7 +67003,7 @@ Magnetometer calibration maximum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 100.0 |  | &nbsp;
+&nbsp; |  |  |  | 100.0 | celcius | &nbsp;
 
 </div>
 
@@ -66620,7 +67015,7 @@ Magnetometer calibration minimum temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.0 |  | &nbsp;
+&nbsp; |  |  |  | 0.0 | celcius | &nbsp;
 
 </div>
 
@@ -66632,7 +67027,7 @@ Magnetometer calibration reference temperature.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 25.0 |  | &nbsp;
+&nbsp; |  |  |  | 25.0 | celcius | &nbsp;
 
 </div>
 
@@ -66905,7 +67300,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## UAVCAN
 
-<div class="param-group" style="--param-count: 50">
+<div class="param-group" style="--param-count: 51">
 
 <div class="param">
 
@@ -67261,6 +67656,21 @@ starve other nodes on the bus.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &check; | 1 | 255 |  | 255 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### UAVCAN_ESC_RPMSC (`FLOAT`) {#UAVCAN_ESC_RPMSC}
+
+ESC RPM telemetry scale.
+
+Multiplies the RPM reported in uavcan.equipment.esc.Status by this factor before publishing, for ESCs that report RPM off by a fixed factor (e.g. electrical instead of mechanical RPM). Applies to all DroneCAN ESCs.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; | 0.001 | 100.0 | 0.01 | 1.0 |  | &nbsp;
 
 </div>
 
@@ -67984,7 +68394,7 @@ maximum Height distance controlled by manual input. Diff between actual and desi
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0.3 |  | &nbsp;
+&nbsp; |  |  |  | 0.3 | m | &nbsp;
 
 </div>
 
@@ -68208,11 +68618,11 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### UUV_SP_MAX_AGE (`FLOAT`) {#UUV_SP_MAX_AGE}
 
-Maximum time (in seconds) before resetting setpoint.
+Maximum time before resetting setpoint.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 2.0 |  | &nbsp;
+&nbsp; |  |  |  | 2.0 | s | &nbsp;
 
 </div>
 
@@ -69296,7 +69706,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## VTOL Attitude Control
 
-<div class="param-group" style="--param-count: 35">
+<div class="param-group" style="--param-count: 38">
 
 <div class="param">
 
@@ -69398,6 +69808,51 @@ This sets the duration during which the MC motors ramp up to the commanded thrus
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &nbsp; | 0.0 | 20.0 | 0.1 | 3.0 | s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### VT_EF_THROT (`FLOAT`) {#VT_EF_THROT}
+
+Pusher failure detection throttle threshold.
+
+Has to be below the highest pusher assist throttle, which VT_FWD_THRUST_SC, VT_PITCH_MIN and MPC_TILTMAX_AIR set.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 0.9 | 0.01 | 0.4 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### VT_EF_TIME (`FLOAT`) {#VT_EF_TIME}
+
+Pusher failure detection time.
+
+A pusher failure is detected in multicopter mode when, for this time, the pusher assist throttle is above VT_EF_THROT, but the forward velocity stays more than VT_EF_VEL_ERR below its setpoint. It is handled as a quad-chute that blocks front transitions until reboot or until disabled. Only used by standard VTOLs when VT_FWD_THRUST_EN is enabled. Set to 0 to disable.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.0 | 20.0 | 0.1 | 5.0 | s | &nbsp;
+
+</div>
+
+<div class="param">
+
+### VT_EF_VEL_ERR (`FLOAT`) {#VT_EF_VEL_ERR}
+
+Pusher failure detection forward velocity error.
+
+Forward velocity setpoint minus forward velocity above which pusher assist above VT_EF_THROT is considered ineffective, see VT_EF_TIME.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0.5 | 10.0 | 0.1 | 3.5 | m/s | &nbsp;
 
 </div>
 
@@ -69632,7 +70087,7 @@ Scaled by the square root of the weight ratio (WEIGHT_GROSS / WEIGHT_BASE).
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0.0 | 1.0 | 0.01 | 1.0 |  | &nbsp;
+&nbsp; | 0.0 | 1.0 | 0.01 | 1.0 | norm | &nbsp;
 
 </div>
 
@@ -70002,7 +70457,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ### VTX_FREQUENCY (`INT32`) {#VTX_FREQUENCY}
 
-VTX frequency in MHz.
+VTX frequency.
 
 If the VTX frequency is set, it will overwrite the band and channel
 settings. Set to 0 to use band and channel settings.
@@ -70011,7 +70466,7 @@ settings. Set to 0 to use band and channel settings.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; | 0 | 32000 |  | 0 |  | &nbsp;
+&nbsp; | 0 | 32000 |  | 0 | MHz | &nbsp;
 
 </div>
 
@@ -70221,13 +70676,13 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 The IQUART driver's baud rate.
 
-The baud rate (in bits per second) used by the serial port connected with IQUART communication
+The baud rate used by the serial port connected with IQUART communication
 
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&check; |  |  |  | 115200 |  | &nbsp;
+&check; |  |  |  | 115200 | bit/s | &nbsp;
 
 </div>
 
@@ -70349,7 +70804,7 @@ Only relevant in Voltage Mode. This is the voltage the controller will command a
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0 |  | &nbsp;
+&nbsp; |  |  |  | 0 | V | &nbsp;
 
 </div>
 
@@ -70406,7 +70861,7 @@ This sets the max pulsing voltage limit when in Voltage Limit Mode.
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
-&nbsp; |  |  |  | 0 |  | &nbsp;
+&nbsp; |  |  |  | 0 | V | &nbsp;
 
 </div>
 

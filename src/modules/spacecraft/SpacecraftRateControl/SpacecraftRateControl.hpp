@@ -152,8 +152,8 @@ private:
 		(ParamFloat<px4::params::SC_ACRO_SUPEXPO>) _param_sc_acro_supexpo,		/**< superexpo stick curve shape (roll & pitch) */
 		(ParamFloat<px4::params::SC_ACRO_SUPEXPOY>) _param_sc_acro_supexpoy,		/**< superexpo stick curve shape (yaw) */
 
-		(ParamFloat<px4::params::SC_MAN_F_MAX>) _param_sc_manual_f_max,
-		(ParamFloat<px4::params::SC_MAN_T_MAX>) _param_sc_manual_t_max,
+		(ParamFloat<px4::params::SC_MAN_F_MAX>) _param_sc_man_f_max,
+		(ParamFloat<px4::params::SC_MAN_T_MAX>) _param_sc_man_t_max,
 
 		(ParamBool<px4::params::SC_BAT_SCALE_EN>) _param_sc_bat_scale_en
 	)

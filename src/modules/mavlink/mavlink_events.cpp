@@ -188,6 +188,10 @@ void SendProtocol::handle_request_event(const mavlink_message_t &msg) const
 
 	const uint16_t end_sequence = request_event.last_sequence + 1;
 
+	// Called from the receiver thread: lock_send() serializes access to the
+	// shared per-channel mavlink_status_t with Mavlink::task_main.
+	_mavlink.lock_send();
+
 	for (uint16_t sequence = request_event.first_sequence; sequence != end_sequence; ++sequence) {
 		if (_buffer.get_event(sequence, e)) {
 			PX4_DEBUG("sending requested event %i", sequence);
@@ -203,6 +207,8 @@ void SendProtocol::handle_request_event(const mavlink_message_t &msg) const
 			mavlink_msg_send_struct_target(_mavlink.get_channel(), RESPONSE_EVENT_ERROR, &event_error, msg.sysid);
 		}
 	}
+
+	_mavlink.unlock_send();
 }
 
 void SendProtocol::send_event(const Event &event) const

@@ -1377,7 +1377,7 @@ int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_si
 	const char *crypto_suffix = "";
 #if defined(PX4_CRYPTO)
 
-	if (_param_sdlog_crypto_algorithm.get() != 0) {
+	if (_param_sdlog_algorithm.get() != 0) {
 		crypto_suffix = "e";
 	}
 
@@ -1528,9 +1528,9 @@ void Logger::start_log_file(LogType type)
 
 #if defined(PX4_CRYPTO)
 	_writer.set_encryption_parameters(
-		(px4_crypto_algorithm_t)_param_sdlog_crypto_algorithm.get(),
-		_param_sdlog_crypto_key.get(),
-		_param_sdlog_crypto_exchange_key.get());
+		(px4_crypto_algorithm_t)_param_sdlog_algorithm.get(),
+		_param_sdlog_key.get(),
+		_param_sdlog_exch_key.get());
 #endif // PX4_CRYPTO
 
 	if (_writer.start_log_file(type, file_name)) {

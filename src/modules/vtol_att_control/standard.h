@@ -47,6 +47,8 @@
 #define STANDARD_H
 #include "vtol_type.h"
 
+#include <lib/hysteresis/hysteresis.h>
+
 class Standard : public VtolType
 {
 
@@ -69,17 +71,29 @@ private:
 	hrt_abstime _last_time_pusher_transition_update{0};
 	float _front_transition_pitch{NAN};
 
+	systemlib::Hysteresis _pusher_failure_hysteresis{false};
+	bool _pusher_failed{false}; ///< latched until reboot or until the detection is disabled
+
 	void parameters_update() override;
 
 	bool isBackTransitionCompleted() override;
 	void onFrontTransitionCompleted() override;
 	void onFrontTransitionAborted() override;
 	void onQuadchute() override;
+	void checkTypeSpecificQuadchute() override;
+
+	bool isPusherFailureDetectionEnabled() const { return _param_vt_ef_time.get() > FLT_EPSILON; }
+
+	/** Pusher assist above VT_EF_THROT, but the forward velocity stays below its setpoint */
+	bool isPusherFailureDetected();
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(VtolType,
 					(ParamFloat<px4::params::VT_PSHER_SLEW>) _param_vt_psher_slew,
 					(ParamFloat<px4::params::VT_B_TRANS_RAMP>) _param_vt_b_trans_ramp,
-					(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off
+					(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off,
+					(ParamFloat<px4::params::VT_EF_TIME>) _param_vt_ef_time,
+					(ParamFloat<px4::params::VT_EF_THROT>) _param_vt_ef_throt,
+					(ParamFloat<px4::params::VT_EF_VEL_ERR>) _param_vt_ef_vel_err
 				       )
 };
 #endif

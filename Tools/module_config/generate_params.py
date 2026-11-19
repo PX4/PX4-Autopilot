@@ -8,7 +8,7 @@ import os
 import sys
 from copy import deepcopy
 
-from output_groups_from_timer_config import get_timer_groups, get_output_groups
+from output_groups_from_timer_config import get_timer_groups, get_output_groups, load_board_config
 
 try:
     import yaml
@@ -29,7 +29,7 @@ parser.add_argument('--params-file', type=str, action='store',
 parser.add_argument('--timer-config', type=str, action='store',
                     help='board-specific timer_config.cpp file')
 parser.add_argument('--board-config', type=str, action='store',
-                    help='board Kconfig boardconfig file, evaluates the timer_config.cpp preprocessor conditionals')
+                    help='board Kconfig boardconfig file, evaluates the timer_config.cpp preprocessor conditionals and Kconfig instance counts')
 parser.add_argument('--ethernet', action='store_true',
                     help='Ethernet support')
 parser.add_argument('--board', type=str, action='store',
@@ -51,6 +51,15 @@ board = args.board
 
 root_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),"../..")
 output_functions_file = os.path.join(root_dir,"src/lib/mixer_module/output_functions.yaml")
+
+board_config = load_board_config(args.board_config)
+
+def get_num_instances(num_instances):
+    """ num_instances is an integer or {kconfig: SYMBOL, default: N} """
+    if isinstance(num_instances, dict):
+        return int(board_config.get('CONFIG_' + num_instances['kconfig'],
+                                    num_instances['default']))
+    return num_instances
 
 def process_module_name(module_name):
     if module_name == '${PWM_MAIN_OR_AUX}':
@@ -102,7 +111,8 @@ def parse_yaml_parameters_config(yaml_config, ethernet_supported):
             for param in param_list:
                 if param.get('requires_ethernet', False) and not ethernet_supported:
                     continue
-                num_instances = param.get('num_instances', 1)
+                num_instances_config = param.get('num_instances', 1)
+                num_instances = get_num_instances(num_instances_config)
                 instance_start = param.get('instance_start', 0) # offset
                 instance_start_label = param.get('instance_start_label', instance_start)
 
@@ -146,10 +156,13 @@ def parse_yaml_parameters_config(yaml_config, ethernet_supported):
                     # default value
                     default_value = 0
                     if 'default' in param:
-                        # default can be a list of num_instances or a single value
+                        # default can be a list of num_instances or a single value.
+                        # With a Kconfig count, instances past the end of the list
+                        # take its last entry.
                         if type(param['default']) == list:
-                            assert len(param['default']) == num_instances
-                            default_value = param['default'][i]
+                            if not isinstance(num_instances_config, dict):
+                                assert len(param['default']) == num_instances
+                            default_value = param['default'][min(i, len(param['default']) - 1)]
                         else:
                             default_value = param['default']
 
