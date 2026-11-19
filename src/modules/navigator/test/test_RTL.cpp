@@ -3506,7 +3506,7 @@ INSTANTIATE_TEST_SUITE_P(
 		MaxReturnAltitudeCase{"VtolInFixedWingKeepsAltitude", true, vehicle_status_s::VEHICLE_TYPE_FIXED_WING, 100.f, 300.f, 300.f},
 		MaxReturnAltitudeCase{"FixedWingKeepsAltitude", false, vehicle_status_s::VEHICLE_TYPE_FIXED_WING, 100.f, 300.f, 300.f}
 	),
-	[](const ::testing::TestParamInfo<RTLMaxReturnAltitudeTest::ParamType> &param_info) { return std::string(param_info.param.test_name); });
+[](const ::testing::TestParamInfo<RTLMaxReturnAltitudeTest::ParamType> &param_info) { return std::string(param_info.param.test_name); });
 
 // WHY: The remaining flight time checks use the Return time estimate, which counted the whole descent after
 // arriving over Home.
