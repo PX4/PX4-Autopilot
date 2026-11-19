@@ -265,14 +265,19 @@ TEST_F(GeofencePathMarginTest, LoiterCircleAddsTheMargin)
 	EXPECT_TRUE(pathClear({0.f, 0.f}, {0.f, 360.f}, 0.f, 80.f));
 }
 
-// The distance from Home has its own pre-geofence limit; only a loiter circle is checked against it.
-TEST_F(GeofencePathMarginTest, MarginDoesNotApplyToTheHomeDistance)
+// A path's margin is not kept from the distance from Home. The caller checks the path ends against it,
+// and a loiter circle keeps GF_PRE_MARGIN from it.
+TEST_F(GeofencePathMarginTest, LoiterCircleKeepsTheParameterToTheHomeDistance)
 {
 	setParam("GF_MAX_HOR_DIST", 500.f);
 	ASSERT_TRUE(loadFence({}));
 	EXPECT_TRUE(pathClear({0.f, 0.f}, {480.f, 0.f}, 80.f));
 	EXPECT_TRUE(pathClear({0.f, 0.f}, {400.f, 0.f}, 80.f, 80.f));
 	EXPECT_FALSE(pathClear({0.f, 0.f}, {440.f, 0.f}, 80.f, 80.f));
+
+	setParam("GF_PRE_MARGIN", 80.f);
+	EXPECT_TRUE(pathClear({0.f, 0.f}, {320.f, 0.f}, 0.f, 80.f));
+	EXPECT_FALSE(pathClear({0.f, 0.f}, {360.f, 0.f}, 0.f, 80.f));
 }
 
 TEST_F(GeofencePathMarginTest, InvalidMarginIsUnavailable)

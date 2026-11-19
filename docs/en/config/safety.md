@@ -207,7 +207,7 @@ In its simplest form, the perimeter is set up as a cylinder centered around the 
 If the vehicle moves outside the radius or above the altitude the specified _Failsafe Action_ will trigger.
 
 Note that the failsafe action will only trigger once the vehicle has already breached the geofence.
-If a boundary must not be crossed, for safety or legal reasons, configure a [Pre-Geofence](#pre-geofence).
+If a horizontal boundary must not be crossed, for safety or legal reasons, configure a [Pre-Geofence](#pre-geofence).
 It triggers its own action, for example `Hold`, before the vehicle reaches the geofence.
 
 ![Safety - Geofence (QGC)](../../assets/qgc/setup/safety/safety_geofence.png)
@@ -240,7 +240,7 @@ The following settings also apply, but are not displayed in the QGC UI.
 
 <Badge type="tip" text="main (PX4 v2.0)" />
 
-A pre-geofence is a second set of limits inside the geofence, with its own failsafe action.
+A pre-geofence is a second boundary at a horizontal margin inside the geofence, with its own failsafe action.
 The vehicle reaches it first, so it can for example hold at the pre-geofence, and only terminate if it still crosses the geofence.
 
 Use it where the geofence must not be crossed, or where the geofence action has to be severe.
@@ -248,43 +248,43 @@ For example, under the [SORA](http://jarus-rpas.org/wp-content/uploads/2024/06/S
 
 #### Pre-Geofence Setup
 
-Each geofence limit has a pre-geofence twin.
-A limit that is set to 0 is disabled, and the pre-geofence is off while all of them are disabled (the default).
+The pre-geofence is off while the margin is 0 (the default).
 
-| Setting                   | Parameter                                                                      | Description                                                                   |
-| ------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
-| Pre-geofence action       | [GF_PRE_ACTION](../advanced_config/parameter_reference.md#GF_PRE_ACTION)       | Warning, Hold mode (default), Return mode, or Land mode.                      |
-| Pre-geofence max radius   | [GF_PRE_MAX_HDIST](../advanced_config/parameter_reference.md#GF_PRE_MAX_HDIST) | Horizontal distance from Home. Set it below `GF_MAX_HOR_DIST`. Disabled if 0. |
-| Pre-geofence max altitude | [GF_PRE_MAX_VDIST](../advanced_config/parameter_reference.md#GF_PRE_MAX_VDIST) | Altitude above Home. Set it below `GF_MAX_VER_DIST`. Disabled if 0.           |
-| Pre-geofence margin       | [GF_PRE_MARGIN](../advanced_config/parameter_reference.md#GF_PRE_MARGIN)       | Distance from the polygons and circles of the Geofence Plan. Disabled if 0.   |
+| Setting             | Parameter                                                                | Description                                              |
+| ------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------- |
+| Pre-geofence action | [GF_PRE_ACTION](../advanced_config/parameter_reference.md#GF_PRE_ACTION) | Warning, Hold mode (default), Return mode, or Land mode. |
+| Pre-geofence margin | [GF_PRE_MARGIN](../advanced_config/parameter_reference.md#GF_PRE_MARGIN) | Horizontal distance from the geofence. Disabled if 0.    |
 
-The margin applies to every inclusion and exclusion area of the [Geofence Plan](../flying/geofence.md#geofence-plan): the vehicle breaches the pre-geofence once it comes closer to one of them than `GF_PRE_MARGIN`.
-It is a single distance for the whole plan, so there is only one fence to draw and upload.
+The margin applies to the maximum distance from Home ([GF_MAX_HOR_DIST](../advanced_config/parameter_reference.md#GF_MAX_HOR_DIST)) and to every inclusion and exclusion area of the [Geofence Plan](../flying/geofence.md#geofence-plan): the vehicle breaches the pre-geofence once it comes closer to one of them than `GF_PRE_MARGIN`.
+It is a single distance, so there is only one fence to draw and upload.
+The maximum altitude ([GF_MAX_VER_DIST](../advanced_config/parameter_reference.md#GF_MAX_VER_DIST)) has no pre-geofence.
+
 `GF_PRE_MARGIN` is only available on flight controllers that [check the mission flight path](#mission-feasibility-checks) against the geofence (not on `px4_fmu-v2`, for example).
+The others have no pre-geofence.
 
 ![Top view of a geofence with the pre-geofence at the distance GF_PRE_MARGIN inside it: a fixed-wing vehicle that comes closer to the geofence than the margin holds and loiters there, instead of flying on and breaching the geofence](../../assets/config/safety/pre_geofence_margin.svg)
 
-Leave enough room between the pre-geofence and the geofence for the vehicle to stop or turn around.
-The gap should be at least:
+The margin has to leave the vehicle enough room to stop or turn around before the geofence.
+It should be at least:
 
 - Fixed-wing: The loiter radius ([NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_LOITER_RAD)).
 - Multicopter: The nominal stopping distance (`v^2 / 2a` with `v`=[MPC_XY_VEL_MAX](../advanced_config/parameter_reference.md#MPC_XY_VEL_MAX) and `a`=[MPC_ACC_HOR](../advanced_config/parameter_reference.md#MPC_ACC_HOR)).
   Allow additional distance for the acceleration ramp ([MPC_JERK_AUTO](../advanced_config/parameter_reference.md#MPC_JERK_AUTO)).
 
-Use a gap above these nominal values to account for possible tailwind, position uncertainty, attitude tracking delay, etc.
+Use a margin above these nominal values to account for possible tailwind, position uncertainty, attitude tracking delay, etc.
 
 ::: info
 PX4 does not check the setup:
 
-- A pre-geofence limit outside its geofence twin never comes first.
 - The pre-geofence action should be the milder of the two.
-  It has no `None`, because the pre-geofence is disabled through its limits, and no `Terminate`, which is left to the geofence.
-- Keep the Return altitude ([RTL_RETURN_ALT](../advanced_config/parameter_reference.md#RTL_RETURN_ALT)) below `GF_PRE_MAX_VDIST`.
-  It is measured from the destination and the limit from Home, so allow for a rally point or landing that is higher than Home.
+  It has no `None`, because the pre-geofence is disabled through its margin, and no `Terminate`, which is left to the geofence.
+- If the margin leaves no room inside `GF_MAX_HOR_DIST` or inside an inclusion area, the pre-geofence is breached everywhere.
 - As for the geofence limits, a mission that is already uploaded is not checked again when these parameters change, also not while it is being flown.
   It is checked again when Mission mode is activated, or when the mission or the Geofence Plan is uploaded.
 - A geofence plan is not rejected because of the pre-geofence, for example when Home or the vehicle lies within the margin.
   If the vehicle is already outside the pre-geofence when the plan is uploaded or a parameter changes, the action is triggered at once.
+- Rally points are not checked against the pre-geofence.
+  Keep them inside it: a vehicle that returns to a rally point within the margin triggers the pre-geofence action on the way there.
 
 :::
 
@@ -303,11 +303,10 @@ When the vehicle breaches the pre-geofence:
 
 PX4 also keeps planned flight inside the pre-geofence:
 
-- A mission is rejected if one of its positions is outside the pre-geofence.
-  It is also rejected if a leg between positions or a fixed-wing loiter circle comes closer to the plan than the margin.
+- A mission is rejected if one of its positions, a leg between positions or a fixed-wing loiter circle comes closer to the geofence than the margin.
 - The target of a _Go to location_ ([reposition](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_REPOSITION)) or of an altitude change, and the centre of a fixed-wing orbit or figure-eight, is refused if it lies outside the pre-geofence (unless the action is `Warning`).
   As for the geofence, only the target is checked, not the path to it or the loiter circle around it.
-  An altitude change keeps the vehicle's position, so it is refused while the vehicle is horizontally outside the pre-geofence: send the vehicle back inside first.
+  An altitude change keeps the vehicle's position, so it is refused while the vehicle is outside the pre-geofence: send the vehicle back inside first.
 - [Return mode](../flight_modes/return.md#geofence_awareness) plans its route around the Geofence Plan with the margin added.
 
 ## Position Estimation Failsafes

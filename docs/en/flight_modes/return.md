@@ -291,9 +291,6 @@ The exception is when executing a [mission path return](#rtl_type_2) from _withi
 In this case the vehicle follows mission waypoints, which we assume are planned to avoid any obstacles.
 :::
 
-Keep the return altitude below the [geofence](../config/safety.md#geofence-failsafe) and [pre-geofence](../config/safety.md#pre-geofence) altitude limits ([GF_MAX_VER_DIST](../advanced_config/parameter_reference.md#GF_MAX_VER_DIST), [GF_PRE_MAX_VDIST](../advanced_config/parameter_reference.md#GF_PRE_MAX_VDIST)): a vehicle that climbs to it otherwise breaches them.
-The limits are measured from Home and the return altitude from the destination, which can be higher than Home.
-
 The return altitude for a fixed-wing vehicle or a VTOL in fixed-wing mode is configured using the parameter [RTL_RETURN_ALT](#RTL_RETURN_ALT) (does not use the code described in the next paragraph).
 
 The return altitude for a multicopter (or VTOL vehicle in MC mode) is configured using the parameters [RTL_RETURN_ALT](#RTL_RETURN_ALT), [RTL_CONE_ANG](#RTL_CONE_ANG), and [RTL_MIN_DIST](#RTL_MIN_DIST), which together define a half cone centered around the destination (home location or safety point).

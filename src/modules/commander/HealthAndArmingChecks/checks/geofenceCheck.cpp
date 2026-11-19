@@ -48,7 +48,6 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 	reporter.failsafeFlags().gf_breached = geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE && any_geofence_triggered;
 
 	const bool any_pre_geofence_triggered = geofence_result.pre_geofence_max_dist_triggered ||
-						geofence_result.pre_geofence_max_alt_triggered ||
 						geofence_result.pre_geofence_custom_fence_triggered;
 
 	reporter.failsafeFlags().pre_gf_breached = geofence_result.pre_geofence_action != geofence_result_s::GF_ACTION_NONE
@@ -111,31 +110,15 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 			/* EVENT
 			 * @description
 			 * <profile name="dev">
-			 * This check can be configured via <param>GF_PRE_ACTION</param> and <param>GF_PRE_MAX_HDIST</param> parameters.
+			 * This check can be configured via <param>GF_PRE_ACTION</param>, <param>GF_MAX_HOR_DIST</param> and <param>GF_PRE_MARGIN</param> parameters.
 			 * </profile>
 			 */
 			reporter.armingCheckFailure(NavModes::All, health_component_t::system,
 						    events::ID("check_pre_gf_breach_max_hor_dist"),
-						    events::Log::Error, "Pre-geofence breach: exceeding maximum distance to Home");
+						    events::Log::Error, "Pre-geofence breach: approaching the maximum distance to Home");
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Pre-geofence: exceeding maximum distance to Home\t");
-			}
-		}
-
-		if (geofence_result.pre_geofence_max_alt_triggered) {
-			/* EVENT
-			 * @description
-			 * <profile name="dev">
-			 * This check can be configured via <param>GF_PRE_ACTION</param> and <param>GF_PRE_MAX_VDIST</param> parameters.
-			 * </profile>
-			 */
-			reporter.armingCheckFailure(NavModes::All, health_component_t::system,
-						    events::ID("check_pre_gf_breach_max_alt"),
-						    events::Log::Error, "Pre-geofence breach: exceeding maximum altitude above Home");
-
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Pre-geofence: exceeding maximum altitude above Home\t");
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Pre-geofence: approaching the maximum distance to Home\t");
 			}
 		}
 

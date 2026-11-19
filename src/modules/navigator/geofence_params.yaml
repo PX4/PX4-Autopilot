@@ -66,23 +66,3 @@ parameters:
       default: 2
       min: 1
       max: 5
-    GF_PRE_MAX_HDIST:
-      description:
-        short: Pre-geofence max horizontal distance from Home
-        long: Triggers GF_PRE_ACTION beyond this distance. Set it below GF_MAX_HOR_DIST. Disabled if 0.
-      type: float
-      default: 0.0
-      unit: m
-      min: 0
-      max: 10000
-      increment: 1
-    GF_PRE_MAX_VDIST:
-      description:
-        short: Pre-geofence max vertical distance from Home
-        long: Triggers GF_PRE_ACTION above this height over Home. Set it below GF_MAX_VER_DIST. Disabled if 0.
-      type: float
-      default: 0.0
-      unit: m
-      min: 0
-      max: 10000
-      increment: 1

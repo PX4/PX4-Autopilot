@@ -1299,7 +1299,6 @@ void Navigator::geofence_breach_check()
 					current_longitude, current_altitude);
 			_geofence_result.pre_geofence_max_dist_triggered |= !_geofence.isCloserThanPreMaxDistToHome(current_latitude,
 					current_longitude);
-			_geofence_result.pre_geofence_max_alt_triggered |= !_geofence.isBelowPreMaxAltitude(current_altitude);
 			_geofence_result.pre_geofence_custom_fence_triggered |= !_geofence.isInsidePreGeofence(current_latitude,
 					current_longitude);
 
@@ -1311,7 +1310,6 @@ void Navigator::geofence_breach_check()
 					current_longitude, current_altitude);
 			_geofence_result.pre_geofence_max_dist_triggered = !_geofence.isCloserThanPreMaxDistToHome(current_latitude,
 					current_longitude);
-			_geofence_result.pre_geofence_max_alt_triggered = !_geofence.isBelowPreMaxAltitude(current_altitude);
 			_geofence_result.pre_geofence_custom_fence_triggered = !_geofence.isInsidePreGeofence(current_latitude,
 					current_longitude);
 		}
@@ -1328,7 +1326,6 @@ void Navigator::geofence_breach_check()
 				    || _geofence_result.geofence_max_alt_triggered
 				    || _geofence_result.geofence_custom_fence_triggered;
 		const bool pre_breach = _geofence_result.pre_geofence_max_dist_triggered
-					|| _geofence_result.pre_geofence_max_alt_triggered
 					|| _geofence_result.pre_geofence_custom_fence_triggered;
 
 		// For the Hold action Navigator sets where to hold, once per breach. The geofence and the pre-geofence
@@ -1343,7 +1340,7 @@ void Navigator::geofence_breach_check()
 		if (geofence_hold || pre_geofence_hold) {
 
 			// A vehicle that already holds after the pre-geofence breach keeps that position. Holding where it
-			// then breaches the geofence would move it out, for example up to the altitude of an overshoot.
+			// then breaches the geofence would move it out, for example when it overshoots while braking or turning.
 			if (_time_loitering_after_gf_breach == 0) {
 
 				const position_setpoint_s current = get_position_setpoint_triplet()->current;
@@ -1928,9 +1925,8 @@ bool Navigator::pre_geofence_allows_position(const vehicle_global_position_s &po
 	if ((_geofence.getPreGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
 	    (_geofence.getPreGeofenceAction() != geofence_result_s::GF_ACTION_WARN)) {
 
-		if (PX4_ISFINITE(pos.lat) && PX4_ISFINITE(pos.lon) && PX4_ISFINITE(pos.alt)) {
-			return _geofence.isCloserThanPreMaxDistToHome(pos.lat, pos.lon) && _geofence.isBelowPreMaxAltitude(pos.alt)
-			       && _geofence.isInsidePreGeofence(pos.lat, pos.lon);
+		if (PX4_ISFINITE(pos.lat) && PX4_ISFINITE(pos.lon)) {
+			return _geofence.isCloserThanPreMaxDistToHome(pos.lat, pos.lon) && _geofence.isInsidePreGeofence(pos.lat, pos.lon);
 		}
 	}
 

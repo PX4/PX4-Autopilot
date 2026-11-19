@@ -10,7 +10,6 @@ bool geofence_max_dist_triggered	# true the check for max distance from Home is 
 bool geofence_max_alt_triggered		# true the check for max altitude above Home is triggered
 bool geofence_custom_fence_triggered	# true the check for custom inclusion/exclusion geofence(s) is triggered
 bool pre_geofence_max_dist_triggered	# true if the pre-geofence check for max distance from Home is triggered
-bool pre_geofence_max_alt_triggered	# true if the pre-geofence check for max altitude above Home is triggered
 bool pre_geofence_custom_fence_triggered	# true if the pre-geofence check for custom inclusion/exclusion geofence(s) is triggered
 
 uint8 geofence_action           	# action to take when the geofence is breached

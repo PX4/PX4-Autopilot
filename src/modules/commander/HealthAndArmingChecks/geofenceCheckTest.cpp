@@ -83,7 +83,6 @@ TEST_F(GeofenceChecksTest, PreGeofenceSetsItsOwnFlagAndDeniesArming)
 {
 	bool geofence_result_s::*const triggers[] = {
 		&geofence_result_s::pre_geofence_max_dist_triggered,
-		&geofence_result_s::pre_geofence_max_alt_triggered,
 		&geofence_result_s::pre_geofence_custom_fence_triggered,
 	};
 
@@ -125,7 +124,7 @@ TEST_F(GeofenceChecksTest, GeofenceAndPreGeofenceSetIndependentFlags)
 	EXPECT_FALSE(_failsafe_flags.pre_gf_breached);
 	EXPECT_FALSE(_can_arm_all_modes);
 
-	result.pre_geofence_max_alt_triggered = true;
+	result.pre_geofence_custom_fence_triggered = true;
 	runCheck(result);
 	EXPECT_TRUE(_failsafe_flags.gf_breached);
 	EXPECT_TRUE(_failsafe_flags.pre_gf_breached);

@@ -143,8 +143,7 @@ protected:
 
 	static bool preGeofenceBreached(const geofence_result_s &result)
 	{
-		return result.pre_geofence_max_dist_triggered || result.pre_geofence_max_alt_triggered
-		       || result.pre_geofence_custom_fence_triggered;
+		return result.pre_geofence_max_dist_triggered || result.pre_geofence_custom_fence_triggered;
 	}
 
 	// A 1000 m square inclusion fence centred on Home.
@@ -232,7 +231,7 @@ TEST_F(PreGeofenceBreachTest, GeofenceHoldWithoutPreGeofenceIsUnchanged)
 	EXPECT_EQ(reposition().timestamp, second_hold);
 }
 
-TEST_F(PreGeofenceBreachTest, PreGeofenceLimitsNeedHome)
+TEST_F(PreGeofenceBreachTest, PreGeofenceReturnNeedsHome)
 {
 	EXPECT_FALSE(_fence.isHomeRequired());
 
@@ -240,18 +239,39 @@ TEST_F(PreGeofenceBreachTest, PreGeofenceLimitsNeedHome)
 	setParam("GF_PRE_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_RTL));
 	EXPECT_FALSE(_fence.isHomeRequired());
 
-	setParam("GF_PRE_MAX_VDIST", 80.f);
-	EXPECT_TRUE(_fence.isHomeRequired());
-	setParam("GF_PRE_MAX_VDIST", 0.f);
-	setParam("GF_PRE_MAX_HDIST", 400.f);
-	EXPECT_TRUE(_fence.isHomeRequired());
-
-	// The margin is relative to the plan, so only its Return action needs Home.
-	setParam("GF_PRE_MAX_HDIST", 0.f);
+	// The margin is relative to the geofence, so only its Return action needs Home.
 	setParam("GF_PRE_MARGIN", 100.f);
 	EXPECT_TRUE(_fence.isHomeRequired());
 	setParam("GF_PRE_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_LOITER));
 	EXPECT_FALSE(_fence.isHomeRequired());
+}
+
+// A margin that leaves no room inside the Home distance limit is breached everywhere, not disabled.
+TEST_F(PreGeofenceBreachTest, MarginWiderThanTheHomeDistanceLimit)
+{
+	setParam("GF_MAX_HOR_DIST", 100.f);
+	setParam("GF_PRE_MARGIN", 100.f);
+
+	const geofence_result_s at_home = checkAt({0.f, 0.f, kAltitude});
+	EXPECT_TRUE(at_home.pre_geofence_max_dist_triggered);
+	EXPECT_FALSE(geofenceBreached(at_home));
+	EXPECT_FALSE(targetAllowed({0.f, 0.f, kAltitude}));
+}
+
+// The pre-geofence is horizontal only: the maximum altitude has no margin.
+TEST_F(PreGeofenceBreachTest, MaximumAltitudeHasNoPreGeofence)
+{
+	setParam("GF_MAX_HOR_DIST", 500.f);
+	setParam("GF_MAX_VER_DIST", 100.f);
+	setParam("GF_PRE_MARGIN", 50.f);
+
+	const geofence_result_s below = checkAt({0.f, 0.f, kHomeAltitude + 80.f});
+	EXPECT_FALSE(preGeofenceBreached(below));
+	EXPECT_FALSE(geofenceBreached(below));
+
+	const geofence_result_s above = checkAt({0.f, 0.f, kHomeAltitude + 110.f});
+	EXPECT_FALSE(preGeofenceBreached(above));
+	EXPECT_TRUE(above.geofence_max_alt_triggered);
 }
 
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
@@ -267,11 +287,10 @@ TEST_F(PreGeofenceBreachTest, ReturnKeepsTheMargin)
 }
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
-// What triggers the pre-geofence. Each source has its geofence twin further out.
+// The geofence that GF_PRE_MARGIN, 100 m, is kept from.
 enum class Source {
-	HomeDistance, // GF_PRE_MAX_HDIST 400 m inside GF_MAX_HOR_DIST 500 m
-	HomeAltitude, // GF_PRE_MAX_VDIST 80 m below GF_MAX_VER_DIST 100 m
-	Margin, // GF_PRE_MARGIN 100 m inside a 1000 m square plan fence
+	HomeDistance, // GF_MAX_HOR_DIST 500 m
+	Plan, // a 1000 m square plan fence
 };
 
 static std::ostream &operator<<(std::ostream &os, Source source)
@@ -279,9 +298,7 @@ static std::ostream &operator<<(std::ostream &os, Source source)
 	switch (source) {
 	case Source::HomeDistance: return os << "HomeDistance";
 
-	case Source::HomeAltitude: return os << "HomeAltitude";
-
-	case Source::Margin: return os << "Margin";
+	case Source::Plan: return os << "Plan";
 	}
 
 	return os;
@@ -293,55 +310,27 @@ class PreGeofenceSourceTest : public PreGeofenceBreachTest, public ::testing::Wi
 protected:
 	void enablePreGeofence()
 	{
-		switch (GetParam()) {
-		case Source::HomeDistance:
+		if (GetParam() == Source::HomeDistance) {
 			setParam("GF_MAX_HOR_DIST", 500.f);
-			setParam("GF_PRE_MAX_HDIST", 400.f);
-			break;
 
-		case Source::HomeAltitude:
-			setParam("GF_MAX_VER_DIST", 100.f);
-			setParam("GF_PRE_MAX_VDIST", 80.f);
-			break;
-
-		case Source::Margin:
+		} else {
 			ASSERT_TRUE(loadFence(inclusionSquare()));
-			setParam("GF_PRE_MARGIN", 100.f);
-			break;
 		}
+
+		setParam("GF_PRE_MARGIN", 100.f);
 	}
 
 	// Inside both, outside the pre-geofence only, and outside both.
 	Place inside() const { return {0.f, 300.f, kAltitude}; }
-
-	Place between() const
-	{
-		return GetParam() == Source::HomeAltitude ? Place{0.f, 300.f, kHomeAltitude + 90.f} : Place{0.f, 420.f, kAltitude};
-	}
-
-	Place outside() const
-	{
-		return GetParam() == Source::HomeAltitude ? Place{0.f, 300.f, kHomeAltitude + 110.f} : Place{0.f, 510.f, kAltitude};
-	}
+	Place between() const { return {0.f, 420.f, kAltitude}; }
+	Place outside() const { return {0.f, 510.f, kAltitude}; }
 
 	// Only the source under test is reported.
 	bool sourceTriggered(const geofence_result_s &result) const
 	{
-		switch (GetParam()) {
-		case Source::HomeDistance:
-			return result.pre_geofence_max_dist_triggered && !result.pre_geofence_max_alt_triggered
-			       && !result.pre_geofence_custom_fence_triggered;
-
-		case Source::HomeAltitude:
-			return result.pre_geofence_max_alt_triggered && !result.pre_geofence_max_dist_triggered
-			       && !result.pre_geofence_custom_fence_triggered;
-
-		case Source::Margin:
-			return result.pre_geofence_custom_fence_triggered && !result.pre_geofence_max_dist_triggered
-			       && !result.pre_geofence_max_alt_triggered;
-		}
-
-		return false;
+		return GetParam() == Source::HomeDistance
+		       ? result.pre_geofence_max_dist_triggered && !result.pre_geofence_custom_fence_triggered
+		       : result.pre_geofence_custom_fence_triggered && !result.pre_geofence_max_dist_triggered;
 	}
 
 	// Leave Hold and return inside, as if the pilot had taken over and flown back.
@@ -540,5 +529,5 @@ TEST_P(PreGeofenceSourceTest, CommandedTargetsMustStayInside)
 }
 
 INSTANTIATE_TEST_SUITE_P(Sources, PreGeofenceSourceTest,
-			 ::testing::Values(Source::HomeDistance, Source::HomeAltitude, Source::Margin),
+			 ::testing::Values(Source::HomeDistance, Source::Plan),
 			 ::testing::PrintToStringParamName());

@@ -145,9 +145,9 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### Safety
 
 - [Geofence Aware Return mode](../flight_modes/return.md#geofence_awareness). ([PX4-Autopilot#27145: feat(navigator): Geofence Aware RTL](https://github.com/PX4/PX4-Autopilot/pull/27145), [PX4-Autopilot#28001: docs(navigator): [geofence] added some more warnings about limitations](https://github.com/PX4/PX4-Autopilot/pull/28001)).
-- [Pre-geofence](../config/safety.md#pre-geofence): a second set of limits inside the geofence, with its own action ([GF_PRE_ACTION](../advanced_config/parameter_reference.md#GF_PRE_ACTION)).
+- [Pre-geofence](../config/safety.md#pre-geofence): a second boundary at a horizontal margin inside the geofence ([GF_PRE_MARGIN](../advanced_config/parameter_reference.md#GF_PRE_MARGIN)), with its own action ([GF_PRE_ACTION](../advanced_config/parameter_reference.md#GF_PRE_ACTION)).
   A vehicle can for example hold at the pre-geofence, and only terminate if it still crosses the geofence.
-  It is set with a maximum distance and altitude from Home ([GF_PRE_MAX_HDIST](../advanced_config/parameter_reference.md#GF_PRE_MAX_HDIST), [GF_PRE_MAX_VDIST](../advanced_config/parameter_reference.md#GF_PRE_MAX_VDIST)) and with a margin to the Geofence Plan ([GF_PRE_MARGIN](../advanced_config/parameter_reference.md#GF_PRE_MARGIN)).
+  The margin applies to the maximum distance from Home and to the Geofence Plan.
   Outside the pre-geofence arming is denied, missions are rejected, and _Go to location_ targets are refused unless its action is Warning.
   Return mode plans its route with the margin added.
 - [Flight termination](../advanced_config/flight_termination.md) can now be used instead of a Descent mode as a fallback failsafe mode, allowing safer landing for unpiloted vehicles that carry a parachute.

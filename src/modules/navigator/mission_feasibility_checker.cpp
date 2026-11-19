@@ -218,10 +218,9 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 				missionitem.altitude);
 #endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 
-		// On every board, as for the geofence in both branches above: the pre-geofence limits from Home are
-		// checked at every position. Its margin to the plan is checked with the paths, see addGeofencePath().
-		point_valid = point_valid && geofence.isCloserThanPreMaxDistToHome(missionitem.lat, missionitem.lon)
-			      && geofence.isBelowPreMaxAltitude(missionitem.altitude);
+		// As for the geofence in both branches above, the pre-geofence distance to Home is checked at every
+		// position. Its margin to the plan is checked with the paths, see addGeofencePath().
+		point_valid = point_valid && geofence.isCloserThanPreMaxDistToHome(missionitem.lat, missionitem.lon);
 
 		if (!point_valid) {
 			failure = Failure::Waypoint;

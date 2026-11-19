@@ -109,7 +109,7 @@ public:
 
 	/**
 	 * Check 1..MAX_PATH_CHECKS paths and optional circles at their ends against horizontal fences.
-	 * Circles are also checked against the maximum distance from Home.
+	 * Circles are also checked against the maximum distance from Home, less GF_PRE_MARGIN.
 	 * A path's margin makes coming closer than it to a polygon or circle boundary a breach too.
 	 * Boundary contact is a breach, including contact by a circle. Callers choose the circles;
 	 * a fixed-wing waypoint turned into a loiter to reach its altitude cannot be predicted here.
@@ -136,9 +136,10 @@ public:
 	/**
 	 * @brief check if the horizontal distance to Home is greater than the maximum allowed distance
 	 *
+	 * @param margin distance in metres to keep from the maximum allowed distance
 	 * @return true if the horizontal distance to Home is smaller than the maximum allowed distance
 	 */
-	bool isCloserThanMaxDistToHome(double lat, double lon, float altitude);
+	bool isCloserThanMaxDistToHome(double lat, double lon, float altitude, float margin = 0.f);
 
 
 	/**
@@ -148,11 +149,12 @@ public:
 	 */
 	bool isBelowMaxAltitude(float altitude);
 
-	/** Pre-geofence twin of isCloserThanMaxDistToHome(), with GF_PRE_MAX_HDIST. */
-	bool isCloserThanPreMaxDistToHome(double lat, double lon);
-
-	/** Pre-geofence twin of isBelowMaxAltitude(), with GF_PRE_MAX_VDIST. */
-	bool isBelowPreMaxAltitude(float altitude);
+	/** True if the position keeps GF_PRE_MARGIN from the maximum distance to Home, or one of the two is disabled. */
+	bool isCloserThanPreMaxDistToHome(double lat, double lon)
+	{
+		const float margin = getPreGeofenceMargin();
+		return margin <= FLT_EPSILON || isCloserThanMaxDistToHome(lat, lon, 0.f, margin);
+	}
 
 	/** Check the altitude band from a loaded fence file, if configured. */
 	bool isWithinAltitudeBand(float altitude);
@@ -173,8 +175,9 @@ public:
 	bool isCircleInside(double lat, double lon, float radius);
 
 	/**
-	 * GF_PRE_MARGIN [m], the distance the pre-geofence keeps from the polygons and circles. Zero if disabled.
-	 * The margin is checked with the path checks, so boards built without them have no such parameter.
+	 * GF_PRE_MARGIN [m], the horizontal distance the pre-geofence keeps from the geofence: from the maximum
+	 * distance to Home and from the polygons and circles. Zero if disabled, which disables the pre-geofence.
+	 * The polygons and circles need the path checks, so boards built without them have no such parameter.
 	 */
 	float getPreGeofenceMargin() const
 	{
@@ -346,10 +349,6 @@ private:
 	bool insideCircle(const PolygonInfo &polygon, double lat, double lon, float altitude);
 
 	bool checkPaths(const PathCheck *paths, size_t num_paths, bool *results);
-
-	/** Limits relative to Home; a limit of zero is disabled. */
-	bool isWithinHomeDistance(float max_distance, double lat, double lon);
-	bool isBelowHomeAltitude(float max_altitude, float altitude);
 	bool _readFencePoint(unsigned index, mission_fence_point_s &point);
 	bool _fencePointValid(const mission_fence_point_s &point) const;
 	bool checkPolygonPaths(const PolygonInfo &polygon, const PathCheck *paths, const uint8_t *pieces, size_t num_paths,
@@ -386,11 +385,9 @@ private:
 		(ParamInt<px4::params::GF_SOURCE>)         _param_gf_source,
 		(ParamFloat<px4::params::GF_MAX_HOR_DIST>) _param_gf_max_hor_dist,
 		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist,
-		(ParamInt<px4::params::GF_PRE_ACTION>)     _param_gf_pre_action,
-		(ParamFloat<px4::params::GF_PRE_MAX_HDIST>) _param_gf_pre_max_hdist,
 #if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
 		(ParamFloat<px4::params::GF_PRE_MARGIN>)   _param_gf_pre_margin,
 #endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
-		(ParamFloat<px4::params::GF_PRE_MAX_VDIST>) _param_gf_pre_max_vdist
+		(ParamInt<px4::params::GF_PRE_ACTION>)     _param_gf_pre_action
 	)
 };

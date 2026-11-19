@@ -4,9 +4,9 @@ parameters:
   definitions:
     GF_PRE_MARGIN:
       description:
-        short: Pre-geofence margin to the geofence plan
-        long: Triggers GF_PRE_ACTION within this distance of a polygon or circle of the geofence plan.
-          Disabled if 0.
+        short: Pre-geofence horizontal margin to the geofence
+        long: Triggers GF_PRE_ACTION within this distance of GF_MAX_HOR_DIST, or of a polygon or circle
+          of the geofence plan. Disabled if 0.
       type: float
       default: 0.0
       unit: m
