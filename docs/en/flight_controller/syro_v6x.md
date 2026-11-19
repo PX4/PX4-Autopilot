@@ -56,7 +56,7 @@ This flight controller is intended for inclusion in the [manufacturer supported]
 
 - [Syro Robotics](https://syrorobotics.com/)
 
-## Connections
+## Pinouts {#pinouts}
 
 ![Syro V6X ports: TELEM1, TELEM2, TELEM3, UART4 & I2C, Ethernet and debug](../../assets/flight_controller/syro_v6x/syro_v6x_ports_telem.svg)
 
@@ -88,8 +88,6 @@ This flight controller is intended for inclusion in the [manufacturer supported]
 | `USB`                        | 4-pin JST GH                        |
 | `USB-C`                      | USB Type-C                          |
 | `MAIN` 1-8, `AUX` 1-8        | 3-pin servo headers (`-`, `+`, `S`) |
-
-## Pinouts
 
 ### TELEM1, TELEM2, TELEM3
 
@@ -130,15 +128,15 @@ This flight controller is intended for inclusion in the [manufacturer supported]
 
 ### UART4 & I2C
 
-| Pin | Signal    | MCU pin      |
-| --- | --------- | ------------ |
-| 1   | 5V        |              |
-| 2   | TX        | PH13 (UART4) |
-| 3   | RX        | PH14 (UART4) |
-| 4   | SCL       | PA8 (I2C3)   |
-| 5   | SDA       | PH8 (I2C3)   |
-| 6   | NFC_GPIO  | PC0          |
-| 7   | GND       |              |
+| Pin | Signal   | MCU pin      |
+| --- | -------- | ------------ |
+| 1   | 5V       |              |
+| 2   | TX       | PH13 (UART4) |
+| 3   | RX       | PH14 (UART4) |
+| 4   | SCL      | PA8 (I2C3)   |
+| 5   | SDA      | PH8 (I2C3)   |
+| 6   | NFC_GPIO | PC0          |
+| 7   | GND      |              |
 
 ### I2C
 
@@ -282,7 +280,59 @@ The rows are, from top to bottom, ground (`-`), power (`+`) and signal (`S`).
 
 ![Syro V6X block diagram](../../assets/flight_controller/syro_v6x/syro_v6x_block_diagram.svg)
 
-## Serial Port Mapping
+## Power {#power}
+
+The flight controller is powered from the `POWER1` and `POWER2` digital power module inputs, or from USB.
+If more than one source is connected, the board selects one in the order `POWER1`, `POWER2`, USB.
+
+PX4 supports INA226, INA228 and INA238 based digital power modules on these inputs.
+Enable the matching driver with [SENS_EN_INA226](../advanced_config/parameter_reference.md#SENS_EN_INA226), [SENS_EN_INA228](../advanced_config/parameter_reference.md#SENS_EN_INA228) or [SENS_EN_INA238](../advanced_config/parameter_reference.md#SENS_EN_INA238).
+If none of these parameters is set, PX4 tries to detect a supported power monitor automatically.
+
+The power inputs are 5 V nominal.
+The power path selector treats an input as valid between 3.81 V (undervoltage threshold) and 5.85 V (overvoltage threshold), and disconnects an input outside this range.
+
+::: warning
+The PWM output ports are not powered by the power module inputs.
+The output rail must be [separately powered](../peripherals/pwm_escs_and_servo.md) if it needs to power servos or other hardware.
+The output rail does not power the flight controller.
+This is generally true for VTOL and fixed-wing vehicles, but not necessarily true for multicopters.
+:::
+
+For battery and power module configuration see [Battery and Power Module Setup](../config/battery.md).
+
+## PWM Outputs {#pwm_outputs}
+
+This flight controller supports up to 16 PWM outputs:
+
+- 8 `MAIN` outputs, driven by the PX4IO coprocessor.
+- 8 `AUX` outputs, driven by the FMU.
+
+`AUX` outputs 1-6 support [DShot](../peripherals/dshot.md) and [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+`AUX` outputs 7-8 and all `MAIN` outputs do not support DShot.
+
+The 8 `AUX` outputs are split into 3 groups:
+
+- Outputs 1-4 are in group 1, using Timer 5.
+- Outputs 5-6 are in group 2, using Timer 4.
+- Outputs 7-8 are in group 3, using Timer 12.
+
+All outputs within the same group must use the same output protocol and rate.
+
+`AUX` output 5 can also be used as a PWM input.
+
+## Ethernet {#ethernet}
+
+The board has a 100 Mbit/s Ethernet port.
+By default PX4 runs a MAVLink instance on Ethernet, broadcasting on UDP port 14550.
+
+See [PX4 Ethernet Setup](../advanced_config/ethernet_setup.md) for the network configuration, and [uXRCE-DDS](../middleware/uxrce_dds.md) for using Ethernet to connect to ROS 2 on a companion computer.
+
+## SD Card (Optional) {#sd_card}
+
+The board has a microSD card slot, used for flight logs.
+
+## Serial Port Mapping {#serial_port_mapping}
 
 | UART   | Device     | Port          | Flow Control |
 | ------ | ---------- | ------------- | :----------: |
@@ -312,28 +362,9 @@ When flashing firmware over a UART with [`px4_uploader.py`](https://github.com/P
 
 Do not connect external devices that use address `0x46` to I2C2, or address `0x51` to I2C3, as these addresses are used by onboard devices.
 
-## Power {#power}
+## Assembly {#assembly}
 
-The flight controller is powered from the `POWER1` and `POWER2` digital power module inputs, or from USB.
-If more than one source is connected, the board selects one in the order `POWER1`, `POWER2`, USB.
-
-PX4 supports INA226, INA228 and INA238 based digital power modules on these inputs.
-Enable the matching driver with [SENS_EN_INA226](../advanced_config/parameter_reference.md#SENS_EN_INA226), [SENS_EN_INA228](../advanced_config/parameter_reference.md#SENS_EN_INA228) or [SENS_EN_INA238](../advanced_config/parameter_reference.md#SENS_EN_INA238).
-If none of these parameters is set, PX4 tries to detect a supported power monitor automatically.
-
-The power inputs are 5 V nominal.
-The power path selector treats an input as valid between 3.81 V (undervoltage threshold) and 5.85 V (overvoltage threshold), and disconnects an input outside this range.
-
-::: warning
-The PWM output ports are not powered by the power module inputs.
-The output rail must be [separately powered](../peripherals/pwm_escs_and_servo.md) if it needs to power servos or other hardware.
-The output rail does not power the flight controller.
-This is generally true for VTOL and fixed-wing vehicles, but not necessarily true for multicopters.
-:::
-
-For battery and power module configuration see [Battery and Power Module Setup](../config/battery.md).
-
-## Radio Control {#radio_control}
+### Radio Control {#radio_control}
 
 A remote control (RC) radio system is required if you want to _manually_ control your vehicle (PX4 does not require a radio system for autonomous flight modes).
 
@@ -344,7 +375,7 @@ For PPM and S.Bus receivers, a single signal wire carries all channels.
 If your receiver outputs individual PWM signals (one wire per channel) it must be connected via a PPM encoder.
 For more information, see [RC receivers](../getting_started/rc_transmitter_receiver.md).
 
-## GPS & Compass {#gps_compass}
+### GPS & Compass {#gps_compass}
 
 PX4 supports GPS modules connected to the `GPS1` and `GPS2` ports.
 GPS modules should be [mounted on the frame](../assembly/mount_gps_compass.md) as far away from other electronics as possible, with the direction marker pointing towards the front of the vehicle.
@@ -353,7 +384,7 @@ GPS modules should be [mounted on the frame](../assembly/mount_gps_compass.md) a
 By default PX4 starts an IST8310 compass on `GPS1`, as used on Holybro GPS modules.
 The common magnetometer drivers are also included, so other supported GPS/compass modules are detected.
 
-## Telemetry Radios (Optional) {#telemetry}
+### Telemetry Radios (Optional) {#telemetry}
 
 [Telemetry radios](../telemetry/index.md) may be used to communicate and control a vehicle in flight from a ground station (for example, you can direct the UAV to a particular position, or upload a new mission).
 
@@ -361,44 +392,25 @@ The vehicle-based radio should be connected to a TELEM port — **TELEM1**, **TE
 If connected to **TELEM1**, no further configuration is required.
 The other radio is connected to your ground station computer or mobile device (usually by USB).
 
-## Ethernet
+## Building Firmware {#building_firmware}
 
-The board has a 100 Mbit/s Ethernet port.
-By default PX4 runs a MAVLink instance on Ethernet, broadcasting on UDP port 14550.
+To [build PX4](../dev_setup/building_px4.md) for this target:
 
-See [PX4 Ethernet Setup](../advanced_config/ethernet_setup.md) for the network configuration, and [uXRCE-DDS](../middleware/uxrce_dds.md) for using Ethernet to connect to ROS 2 on a companion computer.
+```sh
+make syro_fmuv6x_default
+```
 
-## PWM Outputs {#pwm_outputs}
+Build and upload via USB:
 
-This flight controller supports up to 16 PWM outputs:
+```sh
+make syro_fmuv6x_default upload
+```
 
-- 8 `MAIN` outputs, driven by the PX4IO coprocessor.
-- 8 `AUX` outputs, driven by the FMU.
+Build the bootloader:
 
-`AUX` outputs 1-6 support [DShot](../peripherals/dshot.md) and [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
-`AUX` outputs 7-8 and all `MAIN` outputs do not support DShot.
-
-The 8 `AUX` outputs are split into 3 groups:
-
-- Outputs 1-4 are in group 1, using Timer 5.
-- Outputs 5-6 are in group 2, using Timer 4.
-- Outputs 7-8 are in group 3, using Timer 12.
-
-All outputs within the same group must use the same output protocol and rate.
-
-`AUX` output 5 can also be used as a PWM input.
-
-## SD Card
-
-The board has a microSD card slot, used for flight logs.
-
-## Debug Port
-
-The PX4 system console runs on `USART3` at 57600 baud.
-
-The console and the SWD interface of the FMU are on the `FMU DEBUGGER` connector.
-The SWD interface of the PX4IO is on the `IO DEBUGGER` connector.
-Both are 10-pin JST SH connectors, see [Pinouts](#pinouts) for the pin assignment.
+```sh
+make syro_fmuv6x_bootloader
+```
 
 ## Hardware Identification {#hardware_id}
 
@@ -420,25 +432,13 @@ mft_cfg set hwrev -i 0x10
 If the baseboard EEPROM is blank, PX4 reports the board as not supported and starts without the PX4IO (`MAIN` outputs), CAN2, the second power module input and Ethernet.
 :::
 
-## Building Firmware
+## Debug Port {#debug_port}
 
-To [build PX4](../dev_setup/building_px4.md) for this target:
+The PX4 system console runs on `USART3` at 57600 baud.
 
-```sh
-make syro_fmuv6x_default
-```
-
-Build and upload via USB:
-
-```sh
-make syro_fmuv6x_default upload
-```
-
-Build the bootloader:
-
-```sh
-make syro_fmuv6x_bootloader
-```
+The console and the SWD interface of the FMU are on the `FMU DEBUGGER` connector.
+The SWD interface of the PX4IO is on the `IO DEBUGGER` connector.
+Both are 10-pin JST SH connectors, see [Pinouts](#pinouts) for the pin assignment.
 
 ## Bootloader / Board ID
 
