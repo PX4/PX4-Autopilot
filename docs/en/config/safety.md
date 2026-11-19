@@ -261,7 +261,6 @@ A limit that is set to 0 is disabled, and the pre-geofence is off while all of t
 The margin applies to every inclusion and exclusion area of the [Geofence Plan](../flying/geofence.md#geofence-plan): the vehicle breaches the pre-geofence once it comes closer to one of them than `GF_PRE_MARGIN`.
 It is a single distance for the whole plan, so there is only one fence to draw and upload.
 `GF_PRE_MARGIN` is only available on flight controllers that [check the mission flight path](#mission-feasibility-checks) against the geofence (not on `px4_fmu-v2`, for example).
-On the others, draw the geofence with the gap below already taken off and set its action to `Hold`.
 
 ![Top view of a geofence with the pre-geofence at the distance GF_PRE_MARGIN inside it: a fixed-wing vehicle that comes closer to the geofence than the margin holds and loiters there, instead of flying on and breaching the geofence](../../assets/config/safety/pre_geofence_margin.svg)
 
@@ -271,7 +270,6 @@ The gap should be at least:
 - Fixed-wing: The loiter radius ([NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_LOITER_RAD)).
 - Multicopter: The nominal stopping distance (`v^2 / 2a` with `v`=[MPC_XY_VEL_MAX](../advanced_config/parameter_reference.md#MPC_XY_VEL_MAX) and `a`=[MPC_ACC_HOR](../advanced_config/parameter_reference.md#MPC_ACC_HOR)).
   Allow additional distance for the acceleration ramp ([MPC_JERK_AUTO](../advanced_config/parameter_reference.md#MPC_JERK_AUTO)).
-- VTOL: The value for the flight phase in that part of the flight.
 
 Use a gap above these nominal values to account for possible tailwind, position uncertainty, attitude tracking delay, etc.
 
@@ -282,10 +280,10 @@ PX4 does not check the setup:
 - The pre-geofence action should be the milder of the two.
   It has no `None`, because the pre-geofence is disabled through its limits, and no `Terminate`, which is left to the geofence.
 - Keep the Return altitude ([RTL_RETURN_ALT](../advanced_config/parameter_reference.md#RTL_RETURN_ALT)) below `GF_PRE_MAX_VDIST`.
-- A mission that is already uploaded is not checked again when these parameters change, only the next time Mission mode is activated.
-  Upload it again after changing them.
-  A mission that is being flown keeps its result.
-- The pre-geofence never makes a geofence plan invalid.
+  It is measured from the destination and the limit from Home, so allow for a rally point or landing that is higher than Home.
+- As for the geofence limits, a mission that is already uploaded is not checked again when these parameters change, also not while it is being flown.
+  It is checked again when Mission mode is activated, or when the mission or the Geofence Plan is uploaded.
+- A geofence plan is not rejected because of the pre-geofence, for example when Home or the vehicle lies within the margin.
   If the vehicle is already outside the pre-geofence when the plan is uploaded or a parameter changes, the action is triggered at once.
 
 :::
@@ -308,8 +306,9 @@ PX4 also keeps planned flight inside the pre-geofence:
 - A mission is rejected if one of its positions is outside the pre-geofence.
   It is also rejected if a leg between positions or a fixed-wing loiter circle comes closer to the plan than the margin.
 - The target of a _Go to location_ ([reposition](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_REPOSITION)) or of an altitude change, and the centre of a fixed-wing orbit or figure-eight, is refused if it lies outside the pre-geofence (unless the action is `Warning`).
-  Only the target is checked, not the path to it or the loiter circle around it.
-- [Return mode](../flight_modes/return.md#geofence_awareness) plans its route around the Geofence Plan with the margin added, so that it does not trigger the pre-geofence action.
+  As for the geofence, only the target is checked, not the path to it or the loiter circle around it.
+  A vehicle that is outside the pre-geofence can still be paused or change its altitude, because only what the command changes is checked.
+- [Return mode](../flight_modes/return.md#geofence_awareness) plans its route around the Geofence Plan with the margin added.
 
 ## Position Estimation Failsafes
 

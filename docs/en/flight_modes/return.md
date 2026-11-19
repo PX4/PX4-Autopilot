@@ -254,6 +254,8 @@ The figures below show an exclusion zone and an inclusion zone.
 
 ![Inclusion Zone](../../assets/flight_modes/rtl_geofence_inclusion.jpg)
 
+If a [pre-geofence margin](../config/safety.md#pre-geofence) is set ([GF_PRE_MARGIN](../advanced_config/parameter_reference.md#GF_PRE_MARGIN)), the polygons are enlarged or shrunk by that distance as well, so that the route keeps out of the margin.
+
 ### Geofence Limitations
 
 - The size of geofence that can be handled is limited by [GF_AVOID_NODES](../advanced_config/parameter_reference.md#GF_AVOID_NODES) (default 100, maximum 200, reboot required).
@@ -269,8 +271,7 @@ The figures below show an exclusion zone and an inclusion zone.
 - The safety margin in the [Shortest-path Calculation](#shortest-path-calculation) above may not be appropriate for all vehicles.
   It is derived from [NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_LOITER_RAD) for fixed-wing and VTOL vehicles, and from twice [NAV_ACC_RAD](../advanced_config/parameter_reference.md#NAV_ACC_RAD) for multicopters.
   It is not directly configurable.
-- A [pre-geofence margin](../config/safety.md#pre-geofence) ([GF_PRE_MARGIN](../advanced_config/parameter_reference.md#GF_PRE_MARGIN)) is added to the safety margin, so that the route does not trigger the pre-geofence action.
-  A wide margin makes it more likely that a region is cut off, or that the destination lies within the margin.
+- A wide [pre-geofence margin](../config/safety.md#pre-geofence) makes it more likely that a region is cut off, or that the destination lies within the margin.
   Keep Home and the rally points further from the fence than both margins together, because the autopilot otherwise falls back to a direct path.
 
 ### Geofence Awareness Messages
@@ -289,6 +290,9 @@ For most [return types](#return_types) a vehicle will ascend to a _minimum safe 
 The exception is when executing a [mission path return](#rtl_type_2) from _within a mission_.
 In this case the vehicle follows mission waypoints, which we assume are planned to avoid any obstacles.
 :::
+
+Keep the return altitude below the [geofence](../config/safety.md#geofence-failsafe) and [pre-geofence](../config/safety.md#pre-geofence) altitude limits ([GF_MAX_VER_DIST](../advanced_config/parameter_reference.md#GF_MAX_VER_DIST), [GF_PRE_MAX_VDIST](../advanced_config/parameter_reference.md#GF_PRE_MAX_VDIST)): a vehicle that climbs to it otherwise breaches them.
+The limits are measured from Home and the return altitude from the destination, which can be higher than Home.
 
 The return altitude for a fixed-wing vehicle or a VTOL in fixed-wing mode is configured using the parameter [RTL_RETURN_ALT](#RTL_RETURN_ALT) (does not use the code described in the next paragraph).
 
