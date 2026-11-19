@@ -83,7 +83,7 @@ constexpr TECSControl::Param defaultParams()
 		.max_sink_rate             = paramDefault(px4::params::FW_T_SINK_MAX),
 		.min_sink_rate             = paramDefault(px4::params::FW_T_SINK_MIN),
 		.max_climb_rate            = paramDefault(px4::params::FW_T_CLMB_MAX),
-		.vert_accel_limit          = paramDefault(px4::params::FW_T_VERT_ACC),
+		.vert_accel_limit          = INFINITY, // Ignore FW_T_VERT_ACC, sim assumes perfect pitch tracking
 		.equivalent_airspeed_trim  = paramDefault(px4::params::FW_AIRSPD_TRIM),
 		.tas_min                   = paramDefault(px4::params::FW_AIRSPD_MIN),
 		.tas_stall                 = paramDefault(px4::params::FW_AIRSPD_STALL),
@@ -401,8 +401,6 @@ TEST_F(TECSClosedLoopTest, SteadyStateCruiseLowSpeedWeight)
 
 TEST_F(TECSClosedLoopTest, AltitudeStepDown)
 {
-	_params.vert_accel_limit = INFINITY;
-
 	run(10.f);
 
 	setAltitudeSetpoint(ALT_INIT - _params.min_sink_rate / _params.altitude_error_gain);
@@ -582,7 +580,6 @@ TEST_F(TECSClosedLoopTest, AirspeedlessAltitudeStepHalfFeedforward)
 {
 	disableAirspeed();
 	_params.seb_rate_ff = 0.5f;
-	_params.vert_accel_limit = INFINITY;
 	_params.ste_rate_time_const = 0.f;
 
 	run(10.f);
