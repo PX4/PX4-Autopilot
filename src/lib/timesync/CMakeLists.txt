@@ -36,3 +36,5 @@ px4_add_library(timesync
 	Timesync.hpp
 )
 target_link_libraries(timesync)
+
+px4_add_functional_gtest(SRC TimesyncTest.cpp LINKLIBS timesync)
