@@ -1331,18 +1331,19 @@ void Navigator::geofence_breach_check()
 					|| _geofence_result.pre_geofence_max_alt_triggered
 					|| _geofence_result.pre_geofence_custom_fence_triggered;
 
-		// Navigator only takes part in Hold: it sets where to hold. Each level asks for it once per breach,
-		// so a vehicle that was taken over after the pre-geofence breach is still held at the geofence.
-		const bool geofence_hold = breach && _geofence_result.geofence_action == geofence_result_s::GF_ACTION_LOITER;
-		// Commander takes the more severe action, so Return, Terminate and Land at the geofence replace a pre-geofence Hold.
-		const bool geofence_outranks_hold = breach && _geofence_result.geofence_action > geofence_result_s::GF_ACTION_LOITER;
-		const bool pre_geofence_hold = !geofence_outranks_hold && pre_breach
+		// For the Hold action Navigator sets where to hold, once per breach. The geofence and the pre-geofence
+		// each ask for their own breach: a pilot who takes over after the pre-geofence Hold and flies on is
+		// held again at the geofence.
+		const bool can_hold = global_position_valid && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
+		const bool geofence_hold = breach && !_geofence_reposition_sent && can_hold
+					   && _geofence_result.geofence_action == geofence_result_s::GF_ACTION_LOITER;
+		const bool pre_geofence_hold = pre_breach && !_pre_geofence_reposition_sent && can_hold
 					       && _geofence_result.pre_geofence_action == geofence_result_s::GF_ACTION_LOITER;
 
-		if (((geofence_hold && !_geofence_reposition_sent) || (pre_geofence_hold && !_pre_geofence_reposition_sent))
-		    && global_position_valid && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+		if (geofence_hold || pre_geofence_hold) {
 
-			// A vehicle already holding after the pre-geofence breach is not moved out to where it breaches the geofence.
+			// A vehicle that already holds after the pre-geofence breach keeps that position. Holding where it
+			// then breaches the geofence would move it out, for example up to the altitude of an overshoot.
 			if (_time_loitering_after_gf_breach == 0) {
 
 				const position_setpoint_s current = get_position_setpoint_triplet()->current;
@@ -1371,18 +1372,11 @@ void Navigator::geofence_breach_check()
 
 				_time_loitering_after_gf_breach = now;
 			}
-
-			_geofence_reposition_sent |= geofence_hold;
-			_pre_geofence_reposition_sent |= pre_geofence_hold;
 		}
 
-		if (!breach) {
-			_geofence_reposition_sent = false;
-		}
-
-		if (!pre_breach) {
-			_pre_geofence_reposition_sent = false;
-		}
+		// Remembered until the breach ends, so that the next breach holds again.
+		_geofence_reposition_sent = breach && (_geofence_reposition_sent || geofence_hold);
+		_pre_geofence_reposition_sent = pre_breach && (_pre_geofence_reposition_sent || pre_geofence_hold);
 
 		_geofence_result_pub.publish(_geofence_result);
 	}

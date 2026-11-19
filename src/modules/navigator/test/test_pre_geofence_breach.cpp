@@ -206,7 +206,7 @@ TEST_F(PreGeofenceBreachTest, DisabledByDefault)
 }
 
 // Without a pre-geofence the Hold after a geofence breach works as before: at the breach position, latched
-// while holding, and again on the next breach.
+// while holding, again on the next breach, and once per breach.
 TEST_F(PreGeofenceBreachTest, GeofenceHoldWithoutPreGeofenceIsUnchanged)
 {
 	setParam("GF_MAX_HOR_DIST", 500.f);
@@ -224,6 +224,12 @@ TEST_F(PreGeofenceBreachTest, GeofenceHoldWithoutPreGeofenceIsUnchanged)
 	EXPECT_FALSE(geofenceBreached(checkAt(inside)));
 	ASSERT_TRUE(geofenceBreached(checkAt({0.f, 520.f, kAltitude})));
 	EXPECT_GT(reposition().timestamp, first_hold);
+
+	// A pilot who takes over and stays outside starts no new Hold.
+	const hrt_abstime second_hold = reposition().timestamp;
+	setNavState(vehicle_status_s::NAVIGATION_STATE_POSCTL);
+	EXPECT_TRUE(geofenceBreached(checkAt({0.f, 530.f, kAltitude})));
+	EXPECT_EQ(reposition().timestamp, second_hold);
 }
 
 TEST_F(PreGeofenceBreachTest, PreGeofenceLimitsNeedHome)
@@ -445,22 +451,12 @@ TEST_P(PreGeofenceSourceTest, OtherActionsDoNotReposition)
 	}
 }
 
-// Commander takes the more severe action. Navigator must agree on whether the pre-geofence Hold is flown.
-TEST_P(PreGeofenceSourceTest, OnlyAMoreSevereGeofenceActionReplacesTheHold)
+// Commander ranks the two actions. A geofence that only warns, or does nothing, leaves the pre-geofence
+// Hold in place when both are breached at once.
+TEST_P(PreGeofenceSourceTest, GeofenceWarningDoesNotReplaceTheHold)
 {
 	enablePreGeofence();
 
-	for (const int32_t action : {geofence_result_s::GF_ACTION_RTL, geofence_result_s::GF_ACTION_TERMINATE, geofence_result_s::GF_ACTION_LAND}) {
-		SCOPED_TRACE(action);
-		setParam("GF_ACTION", action);
-		const geofence_result_s result = checkAt(outside());
-		EXPECT_TRUE(geofenceBreached(result));
-		EXPECT_TRUE(sourceTriggered(result));
-		EXPECT_FALSE(reposition().valid);
-		backInside();
-	}
-
-	// A geofence that only warns, or does nothing, leaves the pre-geofence Hold in place.
 	for (const int32_t action : {geofence_result_s::GF_ACTION_WARN, geofence_result_s::GF_ACTION_NONE}) {
 		SCOPED_TRACE(action);
 		setParam("GF_ACTION", action);

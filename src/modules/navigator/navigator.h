@@ -429,7 +429,7 @@ private:
 	Geofence	_geofence;			/**< class that handles the geofence */
 	hrt_abstime _last_geofence_check{0};
 	bool _geofence_reposition_sent{false};	/**< true if a reposition triplet has been sent for the current breach */
-	bool _pre_geofence_reposition_sent{false};	/**< same for the current pre-geofence breach */
+	bool _pre_geofence_reposition_sent{false};	/**< true if a reposition triplet has been sent for the current pre-geofence breach */
 	hrt_abstime _time_loitering_after_gf_breach{0};	/**< latches breach state while loitering, prevents reposition center walking */
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 	GeofenceAvoidancePlanner _geofence_avoidance_planner; /**< Return path planner that routes around fences (visibility graph + Dijkstra) */
