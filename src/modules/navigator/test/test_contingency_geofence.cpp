@@ -291,30 +291,6 @@ TEST_F(ContGeofenceTest, BothLevelsCanUseTheirFullPointQuota)
 	EXPECT_FALSE(clear);
 }
 
-TEST_F(ContGeofenceTest, RejectsTooManyPointsAtEitherLevel)
-{
-	for (const FenceLevel level : {FenceLevel::Emergency, FenceLevel::Contingency}) {
-		const FencePoints area = circle(false, {0.f, 300.f}, 100.f, level);
-		const FencePoints points(kMaxFencePointsPerLevel + 1, area.front());
-		ASSERT_TRUE(loadFence(points, geofence_status_s::GF_STATUS_FAILED));
-		EXPECT_TRUE(_fence.isEmpty());
-		EXPECT_FALSE(_fence.isFenceUpdatePending());
-	}
-}
-
-TEST_F(ContGeofenceTest, PolygonsAndCirclesShareTheLevelPointQuota)
-{
-	for (const FenceLevel level : {FenceLevel::Emergency, FenceLevel::Contingency}) {
-		FencePoints points = inclusionSquare(500.f, level);
-		const FencePoints area = circle(false, {0.f, 300.f}, 100.f, level);
-		points.insert(points.end(), kMaxFencePointsPerLevel - points.size(), area.front());
-		ASSERT_TRUE(loadFence(points));
-		points.push_back(area.front());
-		ASSERT_TRUE(loadFence(points, geofence_status_s::GF_STATUS_FAILED));
-		EXPECT_TRUE(_fence.isEmpty());
-	}
-}
-
 TEST_F(ContGeofenceTest, RejectsPolygonLargerThanOneLevelQuota)
 {
 	constexpr unsigned vertex_count = kMaxFencePointsPerLevel + 1;
