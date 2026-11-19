@@ -126,7 +126,9 @@
 #include "streams/STORAGE_INFORMATION.hpp"
 #include "streams/SYS_STATUS.hpp"
 #include "streams/SYSTEM_TIME.hpp"
+PX4_MAVLINK_WIP_LEGACY_BEGIN(TIME_ESTIMATE_TO_TARGET)
 #include "streams/TIME_ESTIMATE_TO_TARGET.hpp"
+PX4_MAVLINK_WIP_LEGACY_END
 #include "streams/TIMESYNC.hpp"
 #include "streams/VFR_HUD.hpp"
 #include "streams/VIBRATION.hpp"
@@ -150,7 +152,9 @@
 #if !defined(CONSTRAINED_FLASH)
 # include "streams/ADSB_VEHICLE.hpp"
 # include "streams/AUTOPILOT_STATE_FOR_GIMBAL_DEVICE.hpp"
+PX4_MAVLINK_WIP_LEGACY_BEGIN(BATTERY_INFO)
 # include "streams/BATTERY_INFO.hpp"
+PX4_MAVLINK_WIP_LEGACY_END
 # include "streams/DEBUG.hpp"
 # include "streams/DEBUG_FLOAT_ARRAY.hpp"
 # include "streams/DEBUG_VECT.hpp"
