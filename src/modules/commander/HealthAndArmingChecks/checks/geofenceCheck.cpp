@@ -65,7 +65,7 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 			 */
 			reporter.armingCheckFailure(NavModes::All, health_component_t::system,
 						    events::ID("check_gf_violation_max_hor_dist"),
-						    events::Log::Error, "Geofence violation: exceeding maximum distance to Home");
+						    events::Log::Error, "Geofence breach: exceeding maximum distance to Home");
 
 			if (reporter.mavlink_log_pub()) {
 				mavlink_log_critical(reporter.mavlink_log_pub(), "Geofence: exceeding maximum distance to Home\t");
@@ -81,7 +81,7 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 			 */
 			reporter.armingCheckFailure(NavModes::All, health_component_t::system,
 						    events::ID("check_gf_violation_max_alt"),
-						    events::Log::Error, "Geofence violation: exceeding maximum altitude above Home");
+						    events::Log::Error, "Geofence breach: exceeding maximum altitude above Home");
 
 			if (reporter.mavlink_log_pub()) {
 				mavlink_log_critical(reporter.mavlink_log_pub(), "Geofence: exceeding maximum altitude above Home\t");
@@ -97,7 +97,7 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 			 */
 			reporter.armingCheckFailure(NavModes::All, health_component_t::system,
 						    events::ID("check_gf_violation_custom_gf"),
-						    events::Log::Error, "Geofence violation: approaching or outside geofence");
+						    events::Log::Error, "Geofence breach: approaching or outside geofence");
 
 			if (reporter.mavlink_log_pub()) {
 				mavlink_log_critical(reporter.mavlink_log_pub(), "Geofence: approaching or outside geofence\t");
@@ -115,8 +115,8 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 			 * </profile>
 			 */
 			reporter.armingCheckFailure(NavModes::All, health_component_t::system,
-						    events::ID("check_pre_gf_violation_max_hor_dist"),
-						    events::Log::Error, "Pre-geofence violation: exceeding maximum distance to Home");
+						    events::ID("check_pre_gf_breach_max_hor_dist"),
+						    events::Log::Error, "Pre-geofence breach: exceeding maximum distance to Home");
 
 			if (reporter.mavlink_log_pub()) {
 				mavlink_log_critical(reporter.mavlink_log_pub(), "Pre-geofence: exceeding maximum distance to Home\t");
@@ -131,8 +131,8 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 			 * </profile>
 			 */
 			reporter.armingCheckFailure(NavModes::All, health_component_t::system,
-						    events::ID("check_pre_gf_violation_max_alt"),
-						    events::Log::Error, "Pre-geofence violation: exceeding maximum altitude above Home");
+						    events::ID("check_pre_gf_breach_max_alt"),
+						    events::Log::Error, "Pre-geofence breach: exceeding maximum altitude above Home");
 
 			if (reporter.mavlink_log_pub()) {
 				mavlink_log_critical(reporter.mavlink_log_pub(), "Pre-geofence: exceeding maximum altitude above Home\t");
@@ -147,8 +147,8 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 			 * </profile>
 			 */
 			reporter.armingCheckFailure(NavModes::All, health_component_t::system,
-						    events::ID("check_pre_gf_violation_custom_gf"),
-						    events::Log::Error, "Pre-geofence violation: approaching or outside pre-geofence");
+						    events::ID("check_pre_gf_breach_custom_gf"),
+						    events::Log::Error, "Pre-geofence breach: approaching or outside pre-geofence");
 
 			if (reporter.mavlink_log_pub()) {
 				mavlink_log_critical(reporter.mavlink_log_pub(), "Pre-geofence: approaching or outside pre-geofence\t");

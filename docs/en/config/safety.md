@@ -225,7 +225,7 @@ The settings and underlying [geofence parameters](../advanced_config/parameter_r
 | Max Altitude     | [GF_MAX_VER_DIST](../advanced_config/parameter_reference.md#GF_MAX_VER_DIST) | Height of geofence cylinder. Geofence disabled if 0.            |
 
 ::: info
-Setting `GF_ACTION` to terminate will kill the vehicle on violation of the fence.
+Setting `GF_ACTION` to terminate will kill the vehicle on a breach of the fence.
 Due to the inherent danger of this, this function is disabled using [CBRK_FLIGHTTERM](#CBRK_FLIGHTTERM), which needs to be reset to 0 to really shut down the system.
 :::
 

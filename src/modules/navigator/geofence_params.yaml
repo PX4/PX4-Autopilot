@@ -4,10 +4,10 @@ parameters:
   definitions:
     GF_ACTION:
       description:
-        short: Geofence violation action
+        short: Geofence breach action
         long: |-
           Note: Setting this value to 4 enables flight termination,
-          which will kill the vehicle on violation of the fence.
+          which will kill the vehicle on a breach of the fence.
       type: enum
       values:
         0: None
@@ -55,7 +55,7 @@ parameters:
       increment: 1
     GF_PRE_ACTION:
       description:
-        short: Pre-geofence violation action
+        short: Pre-geofence breach action
         long: If the geofence is breached as well, the more severe of the two actions is taken.
       type: enum
       values:

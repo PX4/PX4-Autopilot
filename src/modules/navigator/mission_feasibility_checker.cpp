@@ -298,9 +298,9 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 		break;
 
 	case Failure::Waypoint:
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence violation for waypoint %zu\t", failed_item + 1);
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence breach for waypoint %zu\t", failed_item + 1);
 		events::send<int16_t>(events::ID("navigator_mis_geofence_violation"), {events::Log::Error, events::LogInternal::Info},
-				      "Geofence violation for waypoint {1}", failed_item + 1);
+				      "Geofence breach for waypoint {1}", failed_item + 1);
 		break;
 	}
 
