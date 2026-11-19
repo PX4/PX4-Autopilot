@@ -603,8 +603,6 @@ void EKF2::Run()
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 							if (mag_uncalibrated) {
-								mavlink_log_critical(&_mavlink_log_pub, "Position not displayed due to uncalibrated compass\t");
-
 								/* EVENT
 								* @description
 								* Position reset received while vehicle heading is not initialized because the compass is uncalibrated.
@@ -614,8 +612,6 @@ void EKF2::Run()
 									     "Position not displayed due to uncalibrated compass");
 
 							} else {
-								mavlink_log_critical(&_mavlink_log_pub, "Position not displayed due to uninitialized vehicle heading\t");
-
 								/* EVENT
 								* @description
 								* Position reset received while vehicle heading is not initialized.
