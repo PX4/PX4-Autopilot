@@ -352,7 +352,7 @@ TEST_F(MissionFeasibilityGeofenceTest, EmptyFenceStillChecksHomeLimits)
 	EXPECT_TRUE(waypointEvent(events::ID("navigator_mis_geofence_violation"), 2));
 }
 
-// Every position keeps the pre-geofence margin to the maximum distance from Home.
+// Every position keeps the contingency geofence margin to the maximum distance from Home.
 TEST_F(MissionFeasibilityGeofenceTest, PositionsMustKeepTheMarginToTheHomeDistance)
 {
 	const float maximum = 400.f;
@@ -361,7 +361,7 @@ TEST_F(MissionFeasibilityGeofenceTest, PositionsMustKeepTheMarginToTheHomeDistan
 	_navigator.updateParams();
 	EXPECT_TRUE(missionFeasible({waypoint({0.f, 200.f}), waypoint({0.f, 350.f})}));
 
-	ASSERT_EQ(param_set(param_find("GF_PRE_MARGIN"), &margin), PX4_OK);
+	ASSERT_EQ(param_set(param_find("GF_CONT_H_MARGIN"), &margin), PX4_OK);
 	_navigator.updateParams();
 	EXPECT_TRUE(missionFeasible({waypoint({0.f, 200.f}), waypoint({0.f, 290.f})}));
 	EXPECT_FALSE(missionFeasible({waypoint({0.f, 350.f})}));
@@ -660,7 +660,7 @@ protected:
 
 	bool setMargin(float margin)
 	{
-		if (param_set(param_find("GF_PRE_MARGIN"), &margin) != PX4_OK) {
+		if (param_set(param_find("GF_CONT_H_MARGIN"), &margin) != PX4_OK) {
 			return false;
 		}
 
@@ -772,7 +772,7 @@ TEST_F(MissionGeofenceLoiterTest, CircleMustKeepTheMarginToTheHomeDistance)
 	expectLoiterViolation(1);
 }
 
-TEST_F(MissionGeofenceLoiterTest, PreGeofenceMarginAppliesToPositionsAndPaths)
+TEST_F(MissionGeofenceLoiterTest, ContGeofenceMarginAppliesToPositionsAndPaths)
 {
 	ASSERT_TRUE(configureVehicle(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING));
 	ASSERT_TRUE(loadFence(inclusionSquare()));
@@ -793,7 +793,7 @@ TEST_F(MissionGeofenceLoiterTest, PreGeofenceMarginAppliesToPositionsAndPaths)
 	expectPathViolation(1);
 }
 
-TEST_F(MissionGeofenceLoiterTest, PreGeofenceMarginAppliesToLoiterCircles)
+TEST_F(MissionGeofenceLoiterTest, ContGeofenceMarginAppliesToLoiterCircles)
 {
 	ASSERT_TRUE(configureVehicle());
 	ASSERT_TRUE(setMargin(60.f));

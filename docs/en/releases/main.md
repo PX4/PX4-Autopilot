@@ -98,7 +98,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   The check is disabled with `FD_TILT_ERROR` set to -1.
   The `fd_roll` and `fd_pitch` fields of [FailureDetectorStatus](../msg_docs/FailureDetectorStatus.md) are replaced by `fd_tilt`.
 - **The failsafe flag `geofence_breached` is renamed to `gf_breached`.**
-  The field of [FailsafeFlags](../msg_docs/FailsafeFlags.md) (`failsafe_flags`) is shortened to make room for the new `pre_gf_breached` flag within the logger's format limit.
+  The field of [FailsafeFlags](../msg_docs/FailsafeFlags.md) (`failsafe_flags`) is shortened to make room for the new `gf_cont_breach` flag within the logger's format limit.
   ROS 2 applications and log analysis that read `geofence_breached` must use the new name.
 
 ## Other changes
@@ -145,10 +145,10 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### Safety
 
 - [Geofence Aware Return mode](../flight_modes/return.md#geofence_awareness). ([PX4-Autopilot#27145: feat(navigator): Geofence Aware RTL](https://github.com/PX4/PX4-Autopilot/pull/27145), [PX4-Autopilot#28001: docs(navigator): [geofence] added some more warnings about limitations](https://github.com/PX4/PX4-Autopilot/pull/28001)).
-- [Pre-geofence](../config/safety.md#pre-geofence): a second boundary at a horizontal margin inside the geofence ([GF_PRE_MARGIN](../advanced_config/parameter_reference.md#GF_PRE_MARGIN)), with its own action ([GF_PRE_ACTION](../advanced_config/parameter_reference.md#GF_PRE_ACTION)).
-  A vehicle can for example hold at the pre-geofence, and only terminate if it still crosses the geofence.
+- [Contingency geofence](../config/safety.md#contingency-geofence): a second boundary at a horizontal margin inside the geofence ([GF_CONT_H_MARGIN](../advanced_config/parameter_reference.md#GF_CONT_H_MARGIN)), with its own action ([GF_CONT_ACTION](../advanced_config/parameter_reference.md#GF_CONT_ACTION)).
+  A vehicle can for example hold at the contingency geofence, and only terminate if it still crosses the geofence.
   The margin applies to the maximum distance from Home and to the Geofence Plan.
-  Outside the pre-geofence arming is denied, missions are rejected, and _Go to location_ targets are refused unless its action is Warning.
+  Outside the contingency geofence arming is denied, missions are rejected, and _Go to location_ targets are refused unless its action is Warning.
   Return mode plans its route with the margin added.
 - [Flight termination](../advanced_config/flight_termination.md) can now be used instead of a Descent mode as a fallback failsafe mode, allowing safer landing for unpiloted vehicles that carry a parachute.
   See [Battery level failsafe](../config/safety.md#battery-level-failsafe) ([COM_LOW_BAT_ACT](../advanced_config/parameter_reference.md#COM_LOW_BAT_ACT)) and [Position Loss Failsafe Action](../config/safety.md#position-loss-failsafe-action) (new [COM_POS_FS_ACT](../advanced_config/parameter_reference.md#COM_POS_FS_ACT)). ([PX4-Autopilot#28064: feat(commander): add terminate options for critical battery and lost position failsafes](https://github.com/PX4/PX4-Autopilot/pull/28064)).

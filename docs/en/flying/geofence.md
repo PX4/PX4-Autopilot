@@ -51,7 +51,7 @@ In summary:
 
 ::: tip
 A geofence action is only triggered once the vehicle has breached the geofence.
-To act before that, set up a [Pre-Geofence](../config/safety.md#pre-geofence) with its own action.
+To act before that, set up a [Contingency Geofence](../config/safety.md#contingency-geofence) with its own action.
 :::
 
 ::: info

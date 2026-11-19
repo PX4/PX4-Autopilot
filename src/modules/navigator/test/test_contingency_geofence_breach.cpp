@@ -50,7 +50,7 @@ class MissionBaseTestNavigator
 public:
 	static bool targetAllowed(Navigator &navigator, const vehicle_global_position_s &target)
 	{
-		return navigator.geofence_allows_position(target) && navigator.pre_geofence_allows_position(target);
+		return navigator.geofence_allows_position(target) && navigator.cont_geofence_allows_position(target);
 	}
 
 	// Run the breach check now instead of waiting for its 5 Hz interval.
@@ -61,8 +61,8 @@ public:
 	}
 };
 
-// The pre-geofence and its action in Navigator. Home is at the origin, 400 m AMSL.
-class PreGeofenceBreachTest : public navigator_test::GeofenceTestBase
+// The contingency geofence and its action in Navigator. Home is at the origin, 400 m AMSL.
+class ContGeofenceBreachTest : public navigator_test::GeofenceTestBase
 {
 protected:
 	static constexpr float kHomeAltitude = 400.f;
@@ -141,9 +141,9 @@ protected:
 		       || result.geofence_custom_fence_triggered;
 	}
 
-	static bool preGeofenceBreached(const geofence_result_s &result)
+	static bool contGeofenceBreached(const geofence_result_s &result)
 	{
-		return result.pre_geofence_max_dist_triggered || result.pre_geofence_custom_fence_triggered;
+		return result.geofence_cont_max_dist_triggered || result.geofence_cont_custom_fence_triggered;
 	}
 
 	// A 1000 m square inclusion fence centred on Home.
@@ -187,26 +187,26 @@ protected:
 	uORB::Subscription _result_sub{ORB_ID(geofence_result)};
 };
 
-TEST_F(PreGeofenceBreachTest, DisabledByDefault)
+TEST_F(ContGeofenceBreachTest, DisabledByDefault)
 {
 	setParam("GF_MAX_HOR_DIST", 500.f);
 	setParam("GF_MAX_VER_DIST", 100.f);
 
 	const geofence_result_s inside = checkAt({0.f, 490.f, kHomeAltitude + 90.f});
-	EXPECT_FALSE(preGeofenceBreached(inside));
-	EXPECT_EQ(inside.pre_geofence_action, geofence_result_s::GF_ACTION_NONE);
+	EXPECT_FALSE(contGeofenceBreached(inside));
+	EXPECT_EQ(inside.geofence_cont_action, geofence_result_s::GF_ACTION_NONE);
 	EXPECT_FALSE(geofenceBreached(inside));
 	EXPECT_FALSE(reposition().valid);
 	EXPECT_TRUE(targetAllowed({0.f, 490.f, kHomeAltitude + 90.f}));
 
 	const geofence_result_s outside = checkAt({0.f, 510.f, kAltitude});
 	EXPECT_TRUE(outside.geofence_max_dist_triggered);
-	EXPECT_FALSE(preGeofenceBreached(outside));
+	EXPECT_FALSE(contGeofenceBreached(outside));
 }
 
-// Without a pre-geofence the Hold after a geofence breach works as before: at the breach position, latched
+// Without a contingency geofence the Hold after a geofence breach works as before: at the breach position, latched
 // while holding, again on the next breach, and once per breach.
-TEST_F(PreGeofenceBreachTest, GeofenceHoldWithoutPreGeofenceIsUnchanged)
+TEST_F(ContGeofenceBreachTest, GeofenceHoldWithoutContGeofenceIsUnchanged)
 {
 	setParam("GF_MAX_HOR_DIST", 500.f);
 	const Place inside{0.f, 490.f, kAltitude};
@@ -231,55 +231,55 @@ TEST_F(PreGeofenceBreachTest, GeofenceHoldWithoutPreGeofenceIsUnchanged)
 	EXPECT_EQ(reposition().timestamp, second_hold);
 }
 
-TEST_F(PreGeofenceBreachTest, PreGeofenceReturnNeedsHome)
+TEST_F(ContGeofenceBreachTest, ContGeofenceReturnNeedsHome)
 {
 	EXPECT_FALSE(_fence.isHomeRequired());
 
-	// The action alone does nothing while the pre-geofence is disabled.
-	setParam("GF_PRE_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_RTL));
+	// The action alone does nothing while the contingency geofence is disabled.
+	setParam("GF_CONT_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_RTL));
 	EXPECT_FALSE(_fence.isHomeRequired());
 
 	// The margin is relative to the geofence, so only its Return action needs Home.
-	setParam("GF_PRE_MARGIN", 100.f);
+	setParam("GF_CONT_H_MARGIN", 100.f);
 	EXPECT_TRUE(_fence.isHomeRequired());
-	setParam("GF_PRE_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_LOITER));
+	setParam("GF_CONT_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_LOITER));
 	EXPECT_FALSE(_fence.isHomeRequired());
 }
 
 // A margin that leaves no room inside the Home distance limit is breached everywhere, not disabled.
-TEST_F(PreGeofenceBreachTest, MarginWiderThanTheHomeDistanceLimit)
+TEST_F(ContGeofenceBreachTest, MarginWiderThanTheHomeDistanceLimit)
 {
 	setParam("GF_MAX_HOR_DIST", 100.f);
-	setParam("GF_PRE_MARGIN", 100.f);
+	setParam("GF_CONT_H_MARGIN", 100.f);
 
 	const geofence_result_s at_home = checkAt({0.f, 0.f, kAltitude});
-	EXPECT_TRUE(at_home.pre_geofence_max_dist_triggered);
+	EXPECT_TRUE(at_home.geofence_cont_max_dist_triggered);
 	EXPECT_FALSE(geofenceBreached(at_home));
 	EXPECT_FALSE(targetAllowed({0.f, 0.f, kAltitude}));
 }
 
-// The pre-geofence is horizontal only: the maximum altitude has no margin.
-TEST_F(PreGeofenceBreachTest, MaximumAltitudeHasNoPreGeofence)
+// The contingency geofence is horizontal only: the maximum altitude has no margin.
+TEST_F(ContGeofenceBreachTest, MaximumAltitudeHasNoContGeofence)
 {
 	setParam("GF_MAX_HOR_DIST", 500.f);
 	setParam("GF_MAX_VER_DIST", 100.f);
-	setParam("GF_PRE_MARGIN", 50.f);
+	setParam("GF_CONT_H_MARGIN", 50.f);
 
 	const geofence_result_s below = checkAt({0.f, 0.f, kHomeAltitude + 80.f});
-	EXPECT_FALSE(preGeofenceBreached(below));
+	EXPECT_FALSE(contGeofenceBreached(below));
 	EXPECT_FALSE(geofenceBreached(below));
 
 	const geofence_result_s above = checkAt({0.f, 0.f, kHomeAltitude + 110.f});
-	EXPECT_FALSE(preGeofenceBreached(above));
+	EXPECT_FALSE(contGeofenceBreached(above));
 	EXPECT_TRUE(above.geofence_max_alt_triggered);
 }
 
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
-// Return routes around the fences with the margin added, so that it does not trigger the pre-geofence action.
-TEST_F(PreGeofenceBreachTest, ReturnKeepsTheMargin)
+// Return routes around the fences with the margin added, so that it does not trigger the contingency geofence action.
+TEST_F(ContGeofenceBreachTest, ReturnKeepsTheMargin)
 {
 	const float without_margin = _navigator.geofence_avoidance_margin();
-	setParam("GF_PRE_MARGIN", 100.f);
+	setParam("GF_CONT_H_MARGIN", 100.f);
 	EXPECT_FLOAT_EQ(_navigator.geofence_avoidance_margin(), without_margin + 100.f);
 
 	setVehicle(vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
@@ -287,7 +287,7 @@ TEST_F(PreGeofenceBreachTest, ReturnKeepsTheMargin)
 }
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
-// The geofence that GF_PRE_MARGIN, 100 m, is kept from.
+// The geofence that GF_CONT_H_MARGIN, 100 m, is kept from.
 enum class Source {
 	HomeDistance, // GF_MAX_HOR_DIST 500 m
 	Plan, // a 1000 m square plan fence
@@ -304,11 +304,11 @@ static std::ostream &operator<<(std::ostream &os, Source source)
 	return os;
 }
 
-// Behaviour that every pre-geofence source shares.
-class PreGeofenceSourceTest : public PreGeofenceBreachTest, public ::testing::WithParamInterface<Source>
+// Behaviour that every contingency geofence source shares.
+class ContGeofenceSourceTest : public ContGeofenceBreachTest, public ::testing::WithParamInterface<Source>
 {
 protected:
-	void enablePreGeofence()
+	void enableContGeofence()
 	{
 		if (GetParam() == Source::HomeDistance) {
 			setParam("GF_MAX_HOR_DIST", 500.f);
@@ -317,10 +317,10 @@ protected:
 			ASSERT_TRUE(loadFence(inclusionSquare()));
 		}
 
-		setParam("GF_PRE_MARGIN", 100.f);
+		setParam("GF_CONT_H_MARGIN", 100.f);
 	}
 
-	// Inside both, outside the pre-geofence only, and outside both.
+	// Inside both, outside the contingency geofence only, and outside both.
 	Place inside() const { return {0.f, 300.f, kAltitude}; }
 	Place between() const { return {0.f, 420.f, kAltitude}; }
 	Place outside() const { return {0.f, 510.f, kAltitude}; }
@@ -329,8 +329,8 @@ protected:
 	bool sourceTriggered(const geofence_result_s &result) const
 	{
 		return GetParam() == Source::HomeDistance
-		       ? result.pre_geofence_max_dist_triggered && !result.pre_geofence_custom_fence_triggered
-		       : result.pre_geofence_custom_fence_triggered && !result.pre_geofence_max_dist_triggered;
+		       ? result.geofence_cont_max_dist_triggered && !result.geofence_cont_custom_fence_triggered
+		       : result.geofence_cont_custom_fence_triggered && !result.geofence_cont_max_dist_triggered;
 	}
 
 	// Leave Hold and return inside, as if the pilot had taken over and flown back.
@@ -338,49 +338,49 @@ protected:
 	{
 		setNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
 		const geofence_result_s result = checkAt(inside());
-		ASSERT_FALSE(preGeofenceBreached(result));
+		ASSERT_FALSE(contGeofenceBreached(result));
 		ASSERT_FALSE(geofenceBreached(result));
 		clearReposition();
 	}
 };
 
-TEST_P(PreGeofenceSourceTest, TriggersBeforeTheGeofence)
+TEST_P(ContGeofenceSourceTest, TriggersBeforeTheGeofence)
 {
-	enablePreGeofence();
+	enableContGeofence();
 
 	const geofence_result_s clear = checkAt(inside());
-	EXPECT_FALSE(preGeofenceBreached(clear));
+	EXPECT_FALSE(contGeofenceBreached(clear));
 	EXPECT_FALSE(geofenceBreached(clear));
-	EXPECT_EQ(clear.pre_geofence_action, geofence_result_s::GF_ACTION_LOITER);
+	EXPECT_EQ(clear.geofence_cont_action, geofence_result_s::GF_ACTION_LOITER);
 
-	const geofence_result_s pre = checkAt(between());
-	EXPECT_TRUE(sourceTriggered(pre));
-	EXPECT_FALSE(geofenceBreached(pre));
+	const geofence_result_s contingency = checkAt(between());
+	EXPECT_TRUE(sourceTriggered(contingency));
+	EXPECT_FALSE(geofenceBreached(contingency));
 
 	const geofence_result_s both = checkAt(outside());
 	EXPECT_TRUE(sourceTriggered(both));
 	EXPECT_TRUE(geofenceBreached(both));
 }
 
-TEST_P(PreGeofenceSourceTest, PublishesThePreGeofenceAction)
+TEST_P(ContGeofenceSourceTest, PublishesTheContGeofenceAction)
 {
-	EXPECT_EQ(checkAt(inside()).pre_geofence_action, geofence_result_s::GF_ACTION_NONE);
+	EXPECT_EQ(checkAt(inside()).geofence_cont_action, geofence_result_s::GF_ACTION_NONE);
 
-	enablePreGeofence();
-	EXPECT_EQ(checkAt(inside()).pre_geofence_action, geofence_result_s::GF_ACTION_LOITER);
-	setParam("GF_PRE_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_LAND));
-	EXPECT_EQ(checkAt(inside()).pre_geofence_action, geofence_result_s::GF_ACTION_LAND);
+	enableContGeofence();
+	EXPECT_EQ(checkAt(inside()).geofence_cont_action, geofence_result_s::GF_ACTION_LOITER);
+	setParam("GF_CONT_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_LAND));
+	EXPECT_EQ(checkAt(inside()).geofence_cont_action, geofence_result_s::GF_ACTION_LAND);
 
 	// None and Terminate are not offered.
 	for (const int32_t action : {geofence_result_s::GF_ACTION_NONE, geofence_result_s::GF_ACTION_TERMINATE}) {
-		setParam("GF_PRE_ACTION", action);
-		EXPECT_EQ(checkAt(inside()).pre_geofence_action, geofence_result_s::GF_ACTION_WARN);
+		setParam("GF_CONT_ACTION", action);
+		EXPECT_EQ(checkAt(inside()).geofence_cont_action, geofence_result_s::GF_ACTION_WARN);
 	}
 }
 
-TEST_P(PreGeofenceSourceTest, HoldLoitersAtTheTriggerPosition)
+TEST_P(ContGeofenceSourceTest, HoldLoitersAtTheTriggerPosition)
 {
-	enablePreGeofence();
+	enableContGeofence();
 	checkAt(inside());
 	EXPECT_FALSE(reposition().valid);
 
@@ -389,45 +389,45 @@ TEST_P(PreGeofenceSourceTest, HoldLoitersAtTheTriggerPosition)
 	EXPECT_EQ(reposition().type, position_setpoint_s::SETPOINT_TYPE_LOITER);
 }
 
-TEST_P(PreGeofenceSourceTest, FixedWingLoitersAroundTheTriggerPosition)
+TEST_P(ContGeofenceSourceTest, FixedWingLoitersAroundTheTriggerPosition)
 {
 	setVehicle(vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
-	enablePreGeofence();
+	enableContGeofence();
 
 	ASSERT_TRUE(sourceTriggered(checkAt(between())));
 	EXPECT_TRUE(repositionedAt(between()));
 	EXPECT_FLOAT_EQ(reposition().loiter_radius, _navigator.get_default_loiter_rad());
 }
 
-TEST_P(PreGeofenceSourceTest, HoldNeedsAnArmedVehicle)
+TEST_P(ContGeofenceSourceTest, HoldNeedsAnArmedVehicle)
 {
 	setVehicle(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, vehicle_status_s::ARMING_STATE_DISARMED);
-	enablePreGeofence();
+	enableContGeofence();
 
 	EXPECT_TRUE(sourceTriggered(checkAt(between())));
 	EXPECT_FALSE(reposition().valid);
 }
 
-TEST_P(PreGeofenceSourceTest, OtherActionsDoNotReposition)
+TEST_P(ContGeofenceSourceTest, OtherActionsDoNotReposition)
 {
-	enablePreGeofence();
+	enableContGeofence();
 
 	for (const int32_t action : {geofence_result_s::GF_ACTION_WARN, geofence_result_s::GF_ACTION_RTL, geofence_result_s::GF_ACTION_LAND}) {
 		SCOPED_TRACE(action);
-		setParam("GF_PRE_ACTION", action);
+		setParam("GF_CONT_ACTION", action);
 		checkAt(inside());
 		const geofence_result_s result = checkAt(between());
 		EXPECT_TRUE(sourceTriggered(result));
-		EXPECT_EQ(result.pre_geofence_action, action);
+		EXPECT_EQ(result.geofence_cont_action, action);
 		EXPECT_FALSE(reposition().valid);
 	}
 }
 
-// Commander ranks the two actions. A geofence that only warns, or does nothing, leaves the pre-geofence
+// Commander ranks the two actions. A geofence that only warns, or does nothing, leaves the contingency geofence
 // Hold in place when both are breached at once.
-TEST_P(PreGeofenceSourceTest, GeofenceWarningDoesNotReplaceTheHold)
+TEST_P(ContGeofenceSourceTest, GeofenceWarningDoesNotReplaceTheHold)
 {
-	enablePreGeofence();
+	enableContGeofence();
 
 	for (const int32_t action : {geofence_result_s::GF_ACTION_WARN, geofence_result_s::GF_ACTION_NONE}) {
 		SCOPED_TRACE(action);
@@ -438,11 +438,11 @@ TEST_P(PreGeofenceSourceTest, GeofenceWarningDoesNotReplaceTheHold)
 	}
 }
 
-// The geofence still gets its Hold when the pre-geofence only warns.
-TEST_P(PreGeofenceSourceTest, GeofenceHoldAfterAPreGeofenceWarning)
+// The geofence still gets its Hold when the contingency geofence only warns.
+TEST_P(ContGeofenceSourceTest, GeofenceHoldAfterAContGeofenceWarning)
 {
-	setParam("GF_PRE_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_WARN));
-	enablePreGeofence();
+	setParam("GF_CONT_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_WARN));
+	enableContGeofence();
 
 	ASSERT_TRUE(sourceTriggered(checkAt(between())));
 	ASSERT_FALSE(reposition().valid);
@@ -451,22 +451,22 @@ TEST_P(PreGeofenceSourceTest, GeofenceHoldAfterAPreGeofenceWarning)
 	EXPECT_TRUE(repositionedAt(outside()));
 }
 
-// A pilot who took over after the pre-geofence breach is still held at the geofence.
-TEST_P(PreGeofenceSourceTest, GeofenceHoldAfterATakeover)
+// A pilot who took over after the contingency geofence breach is still held at the geofence.
+TEST_P(ContGeofenceSourceTest, GeofenceHoldAfterATakeover)
 {
-	enablePreGeofence();
+	enableContGeofence();
 
 	ASSERT_TRUE(sourceTriggered(checkAt(between())));
-	const hrt_abstime pre_geofence_hold = reposition().timestamp;
-	ASSERT_NE(pre_geofence_hold, hrt_abstime{0});
+	const hrt_abstime cont_geofence_hold = reposition().timestamp;
+	ASSERT_NE(cont_geofence_hold, hrt_abstime{0});
 
-	// Taking over leaves Hold; staying outside the pre-geofence starts no new Hold.
+	// Taking over leaves Hold; staying outside the contingency geofence starts no new Hold.
 	setNavState(vehicle_status_s::NAVIGATION_STATE_POSCTL);
 	ASSERT_TRUE(sourceTriggered(checkAt(between())));
-	ASSERT_EQ(reposition().timestamp, pre_geofence_hold);
+	ASSERT_EQ(reposition().timestamp, cont_geofence_hold);
 
 	ASSERT_TRUE(geofenceBreached(checkAt(outside())));
-	EXPECT_GT(reposition().timestamp, pre_geofence_hold);
+	EXPECT_GT(reposition().timestamp, cont_geofence_hold);
 	EXPECT_TRUE(repositionedAt(outside()));
 
 	// The geofence Hold stays latched while the vehicle is holding.
@@ -475,9 +475,9 @@ TEST_P(PreGeofenceSourceTest, GeofenceHoldAfterATakeover)
 }
 
 // Breaching the geofence while holding must not move the loiter out to the breach position.
-TEST_P(PreGeofenceSourceTest, HoldIsNotMovedByAGeofenceBreach)
+TEST_P(ContGeofenceSourceTest, HoldIsNotMovedByAGeofenceBreach)
 {
-	enablePreGeofence();
+	enableContGeofence();
 
 	ASSERT_TRUE(sourceTriggered(checkAt(between())));
 	const hrt_abstime hold = reposition().timestamp;
@@ -489,9 +489,9 @@ TEST_P(PreGeofenceSourceTest, HoldIsNotMovedByAGeofenceBreach)
 }
 
 // The breach stays set while holding, so an orbit across the boundary does not restart the Hold.
-TEST_P(PreGeofenceSourceTest, StaysTriggeredWhileHolding)
+TEST_P(ContGeofenceSourceTest, StaysTriggeredWhileHolding)
 {
-	enablePreGeofence();
+	enableContGeofence();
 
 	ASSERT_TRUE(sourceTriggered(checkAt(between())));
 	const hrt_abstime first_hold = reposition().timestamp;
@@ -503,14 +503,14 @@ TEST_P(PreGeofenceSourceTest, StaysTriggeredWhileHolding)
 
 	// Leaving Hold releases it, and the next breach holds again.
 	setNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
-	EXPECT_FALSE(preGeofenceBreached(checkAt(inside())));
+	EXPECT_FALSE(contGeofenceBreached(checkAt(inside())));
 	EXPECT_TRUE(sourceTriggered(checkAt(between())));
 	EXPECT_GT(reposition().timestamp, first_hold);
 }
 
-TEST_P(PreGeofenceSourceTest, CommandedTargetsMustStayInside)
+TEST_P(ContGeofenceSourceTest, CommandedTargetsMustStayInside)
 {
-	enablePreGeofence();
+	enableContGeofence();
 	checkAt(inside());
 
 	EXPECT_TRUE(targetAllowed(inside()));
@@ -518,16 +518,16 @@ TEST_P(PreGeofenceSourceTest, CommandedTargetsMustStayInside)
 	EXPECT_FALSE(targetAllowed(outside()));
 
 	// A warning does not restrict targets, the geofence still does.
-	setParam("GF_PRE_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_WARN));
+	setParam("GF_CONT_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_WARN));
 	EXPECT_TRUE(targetAllowed(between()));
 	EXPECT_FALSE(targetAllowed(outside()));
 
 	// Each level follows its own action.
 	setParam("GF_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_NONE));
-	setParam("GF_PRE_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_LOITER));
+	setParam("GF_CONT_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_LOITER));
 	EXPECT_FALSE(targetAllowed(between()));
 }
 
-INSTANTIATE_TEST_SUITE_P(Sources, PreGeofenceSourceTest,
+INSTANTIATE_TEST_SUITE_P(Sources, ContGeofenceSourceTest,
 			 ::testing::Values(Source::HomeDistance, Source::Plan),
 			 ::testing::PrintToStringParamName());

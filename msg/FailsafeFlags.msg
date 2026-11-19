@@ -54,7 +54,7 @@ bool fd_alt_loss                      # Uncommanded altitude loss (rotary-wing, 
 
 # Other
 bool gf_breached                      # Geofence breached (one or multiple)
-bool pre_gf_breached                  # Pre-geofence breached (one or multiple)
+bool gf_cont_breach                  # Contingency geofence breached (one or multiple)
 bool mission_failure                  # Mission failure
 bool vtol_fixed_wing_system_failure   # vehicle in fixed-wing system failure failsafe mode (after quad-chute)
 bool wind_limit_exceeded              # Wind limit exceeded

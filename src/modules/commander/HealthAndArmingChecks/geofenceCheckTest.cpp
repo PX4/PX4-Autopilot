@@ -64,11 +64,11 @@ public:
 		_can_arm_all_modes = reporter.armingCheckResults().can_arm == NavModes::All;
 	}
 
-	static geofence_result_s resultWithActions(uint8_t geofence_action, uint8_t pre_geofence_action)
+	static geofence_result_s resultWithActions(uint8_t geofence_action, uint8_t geofence_cont_action)
 	{
 		geofence_result_s result{};
 		result.geofence_action = geofence_action;
-		result.pre_geofence_action = pre_geofence_action;
+		result.geofence_cont_action = geofence_cont_action;
 		return result;
 	}
 
@@ -78,12 +78,12 @@ public:
 	uORB::Publication<geofence_result_s> _geofence_result_pub{ORB_ID(geofence_result)};
 };
 
-// Each pre-geofence limit sets the pre-geofence flag and denies arming before the geofence is breached.
-TEST_F(GeofenceChecksTest, PreGeofenceSetsItsOwnFlagAndDeniesArming)
+// Each contingency geofence limit sets the contingency geofence flag and denies arming before the geofence is breached.
+TEST_F(GeofenceChecksTest, ContGeofenceSetsItsOwnFlagAndDeniesArming)
 {
 	bool geofence_result_s::*const triggers[] = {
-		&geofence_result_s::pre_geofence_max_dist_triggered,
-		&geofence_result_s::pre_geofence_custom_fence_triggered,
+		&geofence_result_s::geofence_cont_max_dist_triggered,
+		&geofence_result_s::geofence_cont_custom_fence_triggered,
 	};
 
 	for (const auto trigger : triggers) {
@@ -91,48 +91,48 @@ TEST_F(GeofenceChecksTest, PreGeofenceSetsItsOwnFlagAndDeniesArming)
 					   geofence_result_s::GF_ACTION_LOITER);
 		runCheck(result);
 		EXPECT_FALSE(_failsafe_flags.gf_breached);
-		EXPECT_FALSE(_failsafe_flags.pre_gf_breached);
+		EXPECT_FALSE(_failsafe_flags.gf_cont_breach);
 		EXPECT_TRUE(_can_arm_all_modes);
 
 		result.*trigger = true;
 		runCheck(result);
 		EXPECT_FALSE(_failsafe_flags.gf_breached);
-		EXPECT_TRUE(_failsafe_flags.pre_gf_breached);
+		EXPECT_TRUE(_failsafe_flags.gf_cont_breach);
 		EXPECT_FALSE(_can_arm_all_modes);
 	}
 }
 
-// The pre-geofence does not depend on GF_ACTION.
-TEST_F(GeofenceChecksTest, PreGeofenceWorksWithoutAGeofenceAction)
+// The contingency geofence does not depend on GF_ACTION.
+TEST_F(GeofenceChecksTest, ContGeofenceWorksWithoutAGeofenceAction)
 {
 	geofence_result_s result = resultWithActions(geofence_result_s::GF_ACTION_NONE, geofence_result_s::GF_ACTION_LOITER);
-	result.pre_geofence_max_dist_triggered = true;
+	result.geofence_cont_max_dist_triggered = true;
 	result.geofence_max_dist_triggered = true;
 	runCheck(result);
 	EXPECT_FALSE(_failsafe_flags.gf_breached);
-	EXPECT_TRUE(_failsafe_flags.pre_gf_breached);
+	EXPECT_TRUE(_failsafe_flags.gf_cont_breach);
 	EXPECT_FALSE(_can_arm_all_modes);
 }
 
-TEST_F(GeofenceChecksTest, GeofenceAndPreGeofenceSetIndependentFlags)
+TEST_F(GeofenceChecksTest, GeofenceAndContGeofenceSetIndependentFlags)
 {
 	geofence_result_s result = resultWithActions(geofence_result_s::GF_ACTION_TERMINATE,
 				   geofence_result_s::GF_ACTION_LOITER);
 	result.geofence_custom_fence_triggered = true;
 	runCheck(result);
 	EXPECT_TRUE(_failsafe_flags.gf_breached);
-	EXPECT_FALSE(_failsafe_flags.pre_gf_breached);
+	EXPECT_FALSE(_failsafe_flags.gf_cont_breach);
 	EXPECT_FALSE(_can_arm_all_modes);
 
-	result.pre_geofence_custom_fence_triggered = true;
+	result.geofence_cont_custom_fence_triggered = true;
 	runCheck(result);
 	EXPECT_TRUE(_failsafe_flags.gf_breached);
-	EXPECT_TRUE(_failsafe_flags.pre_gf_breached);
+	EXPECT_TRUE(_failsafe_flags.gf_cont_breach);
 	EXPECT_FALSE(_can_arm_all_modes);
 }
 
-// A pre-geofence with a Return action needs a valid Home to arm.
-TEST_F(GeofenceChecksTest, PreGeofenceReturnNeedsAValidHome)
+// A contingency geofence with a Return action needs a valid Home to arm.
+TEST_F(GeofenceChecksTest, ContGeofenceReturnNeedsAValidHome)
 {
 	geofence_result_s result = resultWithActions(geofence_result_s::GF_ACTION_LOITER, geofence_result_s::GF_ACTION_RTL);
 	runCheck(result);
@@ -140,18 +140,18 @@ TEST_F(GeofenceChecksTest, PreGeofenceReturnNeedsAValidHome)
 	runCheck(result, true);
 	EXPECT_FALSE(_can_arm_all_modes);
 
-	result.pre_geofence_action = geofence_result_s::GF_ACTION_LOITER;
+	result.geofence_cont_action = geofence_result_s::GF_ACTION_LOITER;
 	runCheck(result, true);
 	EXPECT_TRUE(_can_arm_all_modes);
 }
 
-// A disabled pre-geofence has no action, even if an old trigger remains in a received result.
-TEST_F(GeofenceChecksTest, DisabledPreGeofenceIgnoresStaleTrigger)
+// A disabled contingency geofence has no action, even if an old trigger remains in a received result.
+TEST_F(GeofenceChecksTest, DisabledContGeofenceIgnoresStaleTrigger)
 {
 	geofence_result_s result = resultWithActions(geofence_result_s::GF_ACTION_NONE, geofence_result_s::GF_ACTION_NONE);
-	result.pre_geofence_max_dist_triggered = true;
+	result.geofence_cont_max_dist_triggered = true;
 	runCheck(result, true);
 	EXPECT_FALSE(_failsafe_flags.gf_breached);
-	EXPECT_FALSE(_failsafe_flags.pre_gf_breached);
+	EXPECT_FALSE(_failsafe_flags.gf_cont_breach);
 	EXPECT_TRUE(_can_arm_all_modes);
 }

@@ -150,7 +150,7 @@ TEST_F(GeofenceCircleTest, EveryFenceApplies)
 	EXPECT_FALSE(circleInside(-450.f, 0.f, 80.f)); // touches the inclusion
 }
 
-// The Home and altitude limits have their own pre-geofence parameters.
+// The Home and altitude limits have their own contingency geofence parameters.
 TEST_F(GeofenceCircleTest, HomeAndAltitudeLimitsAreNotChecked)
 {
 	setParam("GF_MAX_HOR_DIST", 100.f);
@@ -203,7 +203,7 @@ TEST_F(GeofenceCircleTest, UnreadableFenceIsNotInside)
 	}
 }
 
-// Paths that must keep a margin from every polygon and circle, as mission paths do with GF_PRE_MARGIN.
+// Paths that must keep a margin from every polygon and circle, as mission paths do with GF_CONT_H_MARGIN.
 class GeofencePathMarginTest : public GeofenceCircleTest
 {
 protected:
@@ -266,7 +266,7 @@ TEST_F(GeofencePathMarginTest, LoiterCircleAddsTheMargin)
 }
 
 // A path's margin is not kept from the distance from Home. The caller checks the path ends against it,
-// and a loiter circle keeps GF_PRE_MARGIN from it.
+// and a loiter circle keeps GF_CONT_H_MARGIN from it.
 TEST_F(GeofencePathMarginTest, LoiterCircleKeepsTheParameterToTheHomeDistance)
 {
 	setParam("GF_MAX_HOR_DIST", 500.f);
@@ -275,7 +275,7 @@ TEST_F(GeofencePathMarginTest, LoiterCircleKeepsTheParameterToTheHomeDistance)
 	EXPECT_TRUE(pathClear({0.f, 0.f}, {400.f, 0.f}, 80.f, 80.f));
 	EXPECT_FALSE(pathClear({0.f, 0.f}, {440.f, 0.f}, 80.f, 80.f));
 
-	setParam("GF_PRE_MARGIN", 80.f);
+	setParam("GF_CONT_H_MARGIN", 80.f);
 	EXPECT_TRUE(pathClear({0.f, 0.f}, {320.f, 0.f}, 0.f, 80.f));
 	EXPECT_FALSE(pathClear({0.f, 0.f}, {360.f, 0.f}, 0.f, 80.f));
 }

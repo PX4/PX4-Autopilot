@@ -218,9 +218,9 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 				missionitem.altitude);
 #endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 
-		// As for the geofence in both branches above, the pre-geofence distance to Home is checked at every
+		// As for the geofence in both branches above, the contingency geofence distance to Home is checked at every
 		// position. Its margin to the plan is checked with the paths, see addGeofencePath().
-		point_valid = point_valid && geofence.isCloserThanPreMaxDistToHome(missionitem.lat, missionitem.lon);
+		point_valid = point_valid && geofence.isCloserThanContMaxDistToHome(missionitem.lat, missionitem.lon);
 
 		if (!point_valid) {
 			failure = Failure::Waypoint;
@@ -365,8 +365,8 @@ bool MissionFeasibilityChecker::addGeofencePath(GeofencePathBatch &batch, const 
 	path.start = start;
 	path.end = end;
 	path.end_radius = end_radius;
-	// The pre-geofence margin triggers GF_PRE_ACTION in flight, so paths and loiter circles keep it too.
-	path.margin = _navigator->get_geofence().getPreGeofenceMargin();
+	// The contingency geofence margin triggers GF_CONT_ACTION in flight, so paths and loiter circles keep it too.
+	path.margin = _navigator->get_geofence().getContGeofenceMargin();
 	batch.is_jump[batch.count] = is_jump;
 	batch.mission_indices[batch.count++] = static_cast<uint16_t>(mission_index);
 	return batch.count < kGeofencePathBatchSize || checkGeofencePathBatch(batch);

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 420" width="760" height="420" role="img" aria-labelledby="title desc">
-  <title id="title">Pre-geofence margin</title>
-  <desc id="desc">Top view of a geofence, drawn as a solid line, with the pre-geofence drawn as a dashed line at the distance GF_PRE_MARGIN inside it and around an exclusion area. A fixed-wing vehicle flies from Home towards the boundary. Where it comes closer to the geofence than the margin, the pre-geofence action Hold is triggered, and the vehicle loiters around that position without reaching the geofence.</desc>
+  <title id="title">Contingency geofence margin</title>
+  <desc id="desc">Top view of a geofence, drawn as a solid line, with the contingency geofence drawn as a dashed line at the distance GF_CONT_H_MARGIN inside it and around an exclusion area. A fixed-wing vehicle flies from Home towards the boundary. Where it comes closer to the geofence than the margin, the contingency geofence action Hold is triggered, and the vehicle loiters around that position without reaching the geofence.</desc>
   <style>
     text { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 14px; fill: #1f2a2e; }
     .small { font-size: 12px; fill: #51606a; }
@@ -47,10 +47,10 @@
 
   <!-- the margin -->
   <line class="dim" x1="589" y1="78" x2="635" y2="78" marker-start="url(#dim)" marker-end="url(#dim)"/>
-  <text class="small" x="576" y="82" text-anchor="end">GF_PRE_MARGIN</text>
+  <text class="small" x="576" y="82" text-anchor="end">GF_CONT_H_MARGIN</text>
 
   <text class="hard-text" x="36" y="40">Geofence</text>
-  <text class="pre-text" x="98" y="130">Pre-geofence</text>
+  <text class="pre-text" x="98" y="130">Contingency geofence</text>
   <text class="small" x="262" y="236" text-anchor="middle">Exclusion area</text>
   <text x="368" y="267" text-anchor="end">Home</text>
 
@@ -58,7 +58,7 @@
   <text class="small" x="540" y="168" text-anchor="end">(fixed-wing: loiter around this position)</text>
 
   <text x="660" y="186">Without the</text>
-  <text x="660" y="203">pre-geofence:</text>
+  <text x="660" y="203">contingency geofence:</text>
   <text x="660" y="252">breach,</text>
   <text x="660" y="269">GF_ACTION</text>
 
@@ -66,5 +66,5 @@
   <line class="hard" x1="45" y1="388" x2="85" y2="388"/>
   <text x="95" y="393">Geofence (GF_ACTION)</text>
   <line class="pre" x1="330" y1="388" x2="370" y2="388"/>
-  <text x="380" y="393">Pre-geofence (GF_PRE_ACTION)</text>
+  <text x="380" y="393">Contingency geofence (GF_CONT_ACTION)</text>
 </svg>

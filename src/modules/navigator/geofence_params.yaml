@@ -53,9 +53,9 @@ parameters:
       min: 0
       max: 10000
       increment: 1
-    GF_PRE_ACTION:
+    GF_CONT_ACTION:
       description:
-        short: Pre-geofence breach action
+        short: Contingency geofence breach action
         long: If the geofence is breached as well, the more severe of the two actions is taken.
       type: enum
       values:

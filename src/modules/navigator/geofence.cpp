@@ -719,10 +719,10 @@ bool Geofence::checkPaths(const PathCheck *paths, size_t num_paths, bool *result
 			return false;
 		}
 
-		// The caller checks path ends against Home; a circle must keep its whole radius inside, and GF_PRE_MARGIN.
+		// The caller checks path ends against Home; a circle must keep its whole radius inside, and GF_CONT_H_MARGIN.
 		results[i] = paths[i].end_radius <= 0.f || max_home_distance <= FLT_EPSILON
 			     || get_distance_to_next_waypoint(home.lat, home.lon, end(0), end(1)) + paths[i].end_radius
-			     < max_home_distance - getPreGeofenceMargin();
+			     < max_home_distance - getContGeofenceMargin();
 	}
 
 	for (int p = 0; p < _num_polygons; ++p) {
@@ -897,20 +897,20 @@ bool Geofence::isBelowMaxAltitude(float altitude)
 	return inside_fence;
 }
 
-uint8_t Geofence::getPreGeofenceAction() const
+uint8_t Geofence::getContGeofenceAction() const
 {
-	if (getPreGeofenceMargin() <= FLT_EPSILON) {
+	if (getContGeofenceMargin() <= FLT_EPSILON) {
 		return geofence_result_s::GF_ACTION_NONE;
 	}
 
-	switch (_param_gf_pre_action.get()) {
+	switch (_param_gf_cont_action.get()) {
 	case geofence_result_s::GF_ACTION_LOITER:
 	case geofence_result_s::GF_ACTION_RTL:
 	case geofence_result_s::GF_ACTION_LAND:
-		return static_cast<uint8_t>(_param_gf_pre_action.get());
+		return static_cast<uint8_t>(_param_gf_cont_action.get());
 
 	default:
-		// The pre-geofence does not offer None or Terminate.
+		// The contingency geofence does not offer None or Terminate.
 		return geofence_result_s::GF_ACTION_WARN;
 	}
 }
@@ -1272,7 +1272,7 @@ bool Geofence::isHomeRequired()
 	bool max_horizontal_enabled = (_param_gf_max_hor_dist.get() > FLT_EPSILON);
 	bool max_vertical_enabled = (_param_gf_max_ver_dist.get() > FLT_EPSILON);
 	bool geofence_action_rtl = (getGeofenceAction() == geofence_result_s::GF_ACTION_RTL)
-				   || (getPreGeofenceAction() == geofence_result_s::GF_ACTION_RTL);
+				   || (getContGeofenceAction() == geofence_result_s::GF_ACTION_RTL);
 
 	return max_horizontal_enabled || max_vertical_enabled || geofence_action_rtl;
 }

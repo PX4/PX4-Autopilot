@@ -109,7 +109,7 @@ public:
 
 	/**
 	 * Check 1..MAX_PATH_CHECKS paths and optional circles at their ends against horizontal fences.
-	 * Circles are also checked against the maximum distance from Home, less GF_PRE_MARGIN.
+	 * Circles are also checked against the maximum distance from Home, less GF_CONT_H_MARGIN.
 	 * A path's margin makes coming closer than it to a polygon or circle boundary a breach too.
 	 * Boundary contact is a breach, including contact by a circle. Callers choose the circles;
 	 * a fixed-wing waypoint turned into a loiter to reach its altitude cannot be predicted here.
@@ -149,10 +149,10 @@ public:
 	 */
 	bool isBelowMaxAltitude(float altitude);
 
-	/** True if the position keeps GF_PRE_MARGIN from the maximum distance to Home, or one of the two is disabled. */
-	bool isCloserThanPreMaxDistToHome(double lat, double lon)
+	/** True if the position keeps GF_CONT_H_MARGIN from the maximum distance to Home, or one of the two is disabled. */
+	bool isCloserThanContMaxDistToHome(double lat, double lon)
 	{
-		const float margin = getPreGeofenceMargin();
+		const float margin = getContGeofenceMargin();
 		return margin <= FLT_EPSILON || isCloserThanMaxDistToHome(lat, lon, 0.f, margin);
 	}
 
@@ -175,23 +175,23 @@ public:
 	bool isCircleInside(double lat, double lon, float radius);
 
 	/**
-	 * GF_PRE_MARGIN [m], the horizontal distance the pre-geofence keeps from the geofence: from the maximum
-	 * distance to Home and from the polygons and circles. Zero if disabled, which disables the pre-geofence.
+	 * GF_CONT_H_MARGIN [m], the horizontal distance the contingency geofence keeps from the geofence: from the maximum
+	 * distance to Home and from the polygons and circles. Zero if disabled, which disables the contingency geofence.
 	 * The polygons and circles need the path checks, so boards built without them have no such parameter.
 	 */
-	float getPreGeofenceMargin() const
+	float getContGeofenceMargin() const
 	{
 #if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
-		return math::max(_param_gf_pre_margin.get(), 0.f);
+		return math::max(_param_gf_cont_h_margin.get(), 0.f);
 #else
 		return 0.f;
 #endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 	}
 
-	/** True if the position keeps GF_PRE_MARGIN from the polygons and circles, or the margin is disabled. */
-	bool isInsidePreGeofence(double lat, double lon)
+	/** True if the position keeps GF_CONT_H_MARGIN from the polygons and circles, or the margin is disabled. */
+	bool isInsideContGeofence(double lat, double lon)
 	{
-		const float margin = getPreGeofenceMargin();
+		const float margin = getContGeofenceMargin();
 		return margin <= FLT_EPSILON || isCircleInside(lat, lon, margin);
 	}
 
@@ -223,8 +223,8 @@ public:
 	int getSource() { return _param_gf_source.get(); }
 	int getGeofenceAction() { return _param_gf_action.get(); }
 
-	/** GF_PRE_ACTION as a GF_ACTION value: None while the pre-geofence is disabled, Warning for values it does not offer. */
-	uint8_t getPreGeofenceAction() const;
+	/** GF_CONT_ACTION as a GF_ACTION value: None while the contingency geofence is disabled, Warning for values it does not offer. */
+	uint8_t getContGeofenceAction() const;
 
 	float getMaxHorDistanceHome() { return _param_gf_max_hor_dist.get(); }
 
@@ -386,8 +386,8 @@ private:
 		(ParamFloat<px4::params::GF_MAX_HOR_DIST>) _param_gf_max_hor_dist,
 		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist,
 #if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
-		(ParamFloat<px4::params::GF_PRE_MARGIN>)   _param_gf_pre_margin,
+		(ParamFloat<px4::params::GF_CONT_H_MARGIN>) _param_gf_cont_h_margin,
 #endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
-		(ParamInt<px4::params::GF_PRE_ACTION>)     _param_gf_pre_action
+		(ParamInt<px4::params::GF_CONT_ACTION>)    _param_gf_cont_action
 	)
 };

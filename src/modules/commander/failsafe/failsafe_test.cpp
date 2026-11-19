@@ -1308,7 +1308,7 @@ TEST_F(FailsafeTest, GnssRecoveryDoesNotAbortRtlWhenAnotherFailsafeStartsADelay)
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
 }
 
-// The geofence and the pre-geofence are two failsafes: the more severe action wins.
+// The geofence and the contingency geofence are two failsafes: the more severe action wins.
 class GeofenceFailsafeTest : public FailsafeTest
 {
 public:
@@ -1326,7 +1326,7 @@ public:
 
 	void TearDown() override
 	{
-		param_reset(param_handle(px4::params::GF_PRE_ACTION));
+		param_reset(param_handle(px4::params::GF_CONT_ACTION));
 		param_reset(param_handle(px4::params::GF_ACTION));
 	}
 
@@ -1342,9 +1342,9 @@ public:
 	}
 
 	// Params are read when the Failsafe is constructed.
-	void setActions(int32_t gf_pre_action, int32_t gf_action)
+	void setActions(int32_t gf_cont_action, int32_t gf_action)
 	{
-		param_set(param_handle(px4::params::GF_PRE_ACTION), &gf_pre_action);
+		param_set(param_handle(px4::params::GF_CONT_ACTION), &gf_cont_action);
 		param_set(param_handle(px4::params::GF_ACTION), &gf_action);
 	}
 
@@ -1367,24 +1367,24 @@ public:
 	hrt_abstime _time{5_s};
 };
 
-TEST_F(GeofenceFailsafeTest, PreGeofenceUsesItsOwnAction)
+TEST_F(GeofenceFailsafeTest, ContGeofenceUsesItsOwnAction)
 {
 	const struct {
-		int32_t gf_pre_action;
+		int32_t gf_cont_action;
 		Action action;
 	} cases[] = {
 		{kWarning, Action::Warn}, {kHold, Action::Hold}, {kReturn, Action::RTL}, {kLand, Action::Land},
-		{kNone, Action::Warn}, {kTerminate, Action::Warn}, // not offered: the pre-geofence never terminates
+		{kNone, Action::Warn}, {kTerminate, Action::Warn}, // not offered: the contingency geofence never terminates
 	};
 
 	for (const auto &c : cases) {
-		SCOPED_TRACE(c.gf_pre_action);
+		SCOPED_TRACE(c.gf_cont_action);
 		reset();
-		setActions(c.gf_pre_action, kTerminate);
+		setActions(c.gf_cont_action, kTerminate);
 		Failsafe failsafe(nullptr);
 		ASSERT_EQ(update(failsafe), Action::None);
 
-		_flags.pre_gf_breached = true;
+		_flags.gf_cont_breach = true;
 		EXPECT_EQ(update(failsafe), c.action);
 	}
 }
@@ -1392,8 +1392,8 @@ TEST_F(GeofenceFailsafeTest, PreGeofenceUsesItsOwnAction)
 TEST_F(GeofenceFailsafeTest, MoreSevereActionWins)
 {
 	const struct {
-		int32_t gf_pre_action;
-		Action pre_action;
+		int32_t gf_cont_action;
+		Action cont_action;
 		int32_t gf_action;
 		Action action;
 		Action both;
@@ -1405,28 +1405,28 @@ TEST_F(GeofenceFailsafeTest, MoreSevereActionWins)
 		{kHold, Action::Hold, kNone, Action::None, Action::Hold},
 	};
 
-	// Pre-geofence first, geofence first, and both in the same update.
+	// Contingency geofence first, geofence first, and both in the same update.
 	for (int order = 0; order < 3; ++order) {
 		SCOPED_TRACE(order);
 
 		for (const auto &c : cases) {
-			SCOPED_TRACE(c.gf_pre_action);
+			SCOPED_TRACE(c.gf_cont_action);
 			SCOPED_TRACE(c.gf_action);
 			reset();
-			setActions(c.gf_pre_action, c.gf_action);
+			setActions(c.gf_cont_action, c.gf_action);
 			Failsafe failsafe(nullptr);
 			ASSERT_EQ(update(failsafe), Action::None);
 
 			if (order == 0) {
-				_flags.pre_gf_breached = true;
-				EXPECT_EQ(update(failsafe), c.pre_action);
+				_flags.gf_cont_breach = true;
+				EXPECT_EQ(update(failsafe), c.cont_action);
 
 			} else if (order == 1) {
 				_flags.gf_breached = true;
 				EXPECT_EQ(update(failsafe), c.action);
 			}
 
-			_flags.pre_gf_breached = true;
+			_flags.gf_cont_breach = true;
 			_flags.gf_breached = true;
 			EXPECT_EQ(update(failsafe), c.both);
 			EXPECT_EQ(update(failsafe), c.both);
@@ -1434,8 +1434,8 @@ TEST_F(GeofenceFailsafeTest, MoreSevereActionWins)
 	}
 }
 
-// Taking over after the pre-geofence action must not disable the geofence action.
-TEST_F(GeofenceFailsafeTest, GeofenceBreachEndsPreGeofenceTakeover)
+// Taking over after the contingency geofence action must not disable the geofence action.
+TEST_F(GeofenceFailsafeTest, GeofenceBreachEndsContGeofenceTakeover)
 {
 	const struct {
 		int32_t gf_action;
@@ -1443,7 +1443,7 @@ TEST_F(GeofenceFailsafeTest, GeofenceBreachEndsPreGeofenceTakeover)
 		bool takeover;
 	} cases[] = {
 		{kLand, Action::Land, false},
-		{kHold, Action::Hold, false}, // also for the same action as the pre-geofence
+		{kHold, Action::Hold, false}, // also for the same action as the contingency geofence
 		{kWarning, Action::Warn, true},
 	};
 
@@ -1454,7 +1454,7 @@ TEST_F(GeofenceFailsafeTest, GeofenceBreachEndsPreGeofenceTakeover)
 		Failsafe failsafe(nullptr);
 		ASSERT_EQ(update(failsafe), Action::None);
 
-		_flags.pre_gf_breached = true;
+		_flags.gf_cont_breach = true;
 		ASSERT_EQ(update(failsafe), Action::Hold);
 
 		// Mode switch -> user takeover
@@ -1469,13 +1469,13 @@ TEST_F(GeofenceFailsafeTest, GeofenceBreachEndsPreGeofenceTakeover)
 	}
 }
 
-TEST_F(GeofenceFailsafeTest, PreGeofenceHoldIsLeftByModeSwitch)
+TEST_F(GeofenceFailsafeTest, ContGeofenceHoldIsLeftByModeSwitch)
 {
 	setActions(kHold, kTerminate);
 	Failsafe failsafe(nullptr);
 	ASSERT_EQ(update(failsafe), Action::None);
 
-	_flags.pre_gf_breached = true;
+	_flags.gf_cont_breach = true;
 	ASSERT_EQ(update(failsafe), Action::Hold);
 
 	// Stick movement -> denied, like for a geofence breach
@@ -1490,13 +1490,13 @@ TEST_F(GeofenceFailsafeTest, PreGeofenceHoldIsLeftByModeSwitch)
 	// Still breached -> nothing triggers again
 	ASSERT_EQ(update(failsafe), Action::Warn);
 
-	// Back inside the pre-geofence, or pre-geofence disabled -> the failsafe clears
-	_flags.pre_gf_breached = false;
+	// Back inside the contingency geofence, or contingency geofence disabled -> the failsafe clears
+	_flags.gf_cont_breach = false;
 	update(failsafe);
 	ASSERT_EQ(update(failsafe), Action::None);
 	ASSERT_FALSE(failsafe.userTakeoverActive());
 
 	// Breached again -> Hold again
-	_flags.pre_gf_breached = true;
+	_flags.gf_cont_breach = true;
 	EXPECT_EQ(update(failsafe), Action::Hold);
 }
