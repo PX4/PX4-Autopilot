@@ -21,7 +21,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Processor {#processor}
 
-- **Main FMU processor:** [STM32H753II](https://www.st.com/en/microcontrollers-microprocessors/stm32h753ii.html) (32-bit Arm® Cortex®-M7, 480 MHz, 2 MB flash, 1 MB RAM)
+- **Main FMU processor:** [STM32H753II](https://www.st.com/en/microcontrollers-microprocessors/stm32h753ii.html) (32-bit Arm® Cortex®-M7, 480MHz, 2MB flash, 1MB RAM)
 - **IO processor:** [PX4IO](../hardware/reference_design.md#main-io-function-breakdown) (STM32F103), on the baseboard
 
 ### Sensors {#sensors}
@@ -35,29 +35,29 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 ### Interfaces {#interfaces}
 
 - **PWM outputs:** 8 FMU outputs, plus 8 from PX4IO (see [PWM Outputs](#pwm_outputs))
-- **Serial ports:** 6 (`GPS1`, `GPS2`, `TELEM1`, `TELEM2`, `TELEM3`, `UART4 & I2C`), plus the debug console.
+- **Serial ports:** 6 (`GPS1`, `GPS2`, `TELEM1`, `TELEM2`, `TELEM3`, `UART4 & I2C`), plus the system console.
   `TELEM1`, `TELEM2` and `TELEM3` have flow control.
 - **I2C buses:** 4 (I2C4 internal, I2C2 shared, I2C1 and I2C3 external)
 - **SPI buses:** 5, of which SPI6 is external with 2 chip selects and 2 data-ready inputs
 - **CAN buses:** 2
-- **Ethernet:** 100 Mbit/s (Microchip LAN8742A PHY)
+- **Ethernet:** 100Mbit/s (Microchip LAN8742A PHY)
 - **USB:** Yes
 - **RC input:** Yes, on the PX4IO
 - **Parameter storage:** FRAM (FM25V02A) on SPI5
 - **SD card:** microSD slot (SDMMC2), for logs
 - **Hardware ID storage:** EEPROMs on the module and baseboard (see [Hardware Identification](#hardware_id))
-- **Analog inputs:** 2 (3.3 V and 6.6 V range)
+- **Analog inputs:** 2 (3.3V and 6.6V range)
 - **Safety switch and buzzer:** on `GPS1`
 
 ### Electrical Data {#electrical_data}
 
-- **Input voltage:** 5 V nominal on `POWER1`, `POWER2` and USB, valid from 3.81 V to 5.85 V
+- **Input voltage:** 5V nominal on `POWER1`, `POWER2` and USB, valid from 3.81V to 5.85V
 - **Power monitoring:** 2 digital (I2C) power module inputs (INA226, INA228 or INA238; detected automatically by default)
 - **Servo rail:** must be powered externally, and does not power the flight controller
 
 ### Mechanical Data {#mechanical_data}
 
-- **Dimensions (with case):** 97.6 x 51.6 x 25.18 mm
+- **Dimensions (with case):** 97.6 x 51.6 x 25.18mm
 <!-- TODO(Syro): weight. -->
 
 ## Where to Buy {#store}
@@ -177,16 +177,16 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### ADIO
 
-| Pin | Signal                 | MCU pin |
-| --- | ---------------------- | ------- |
-| 1   | 5V                     |         |
-| 2   | FMU_CAP1               | PE11    |
-| 3   | FMU_BOOTLOADER         |         |
-| 4   | FMU_RST_REQ            |         |
-| 5   | nARMED                 | PE6     |
-| 6   | ADC1_3V3 (3.3 V range) | PC3     |
-| 7   | ADC1_6V6 (6.6 V range) | PC2     |
-| 8   | GND                    |         |
+| Pin | Signal                | MCU pin |
+| --- | --------------------- | ------- |
+| 1   | 5V                    |         |
+| 2   | FMU_CAP1              | PE11    |
+| 3   | FMU_BOOTLOADER        |         |
+| 4   | FMU_RST_REQ           |         |
+| 5   | nARMED                | PE6     |
+| 6   | ADC1_3V3 (3.3V range) | PC3     |
+| 7   | ADC1_6V6 (6.6V range) | PC2     |
+| 8   | GND                   |         |
 
 ### SPI
 
@@ -297,13 +297,12 @@ PX4 supports INA226, INA228 and INA238 based digital power modules on these inpu
 Enable the matching driver with [SENS_EN_INA226](../advanced_config/parameter_reference.md#SENS_EN_INA226), [SENS_EN_INA228](../advanced_config/parameter_reference.md#SENS_EN_INA228) or [SENS_EN_INA238](../advanced_config/parameter_reference.md#SENS_EN_INA238).
 If none of these parameters is set, PX4 tries to detect a supported power monitor automatically.
 
-The power inputs are 5 V nominal.
-The power path selector treats an input as valid between 3.81 V (undervoltage threshold) and 5.85 V (overvoltage threshold), and disconnects an input outside this range.
+The power inputs are 5V nominal.
+The power path selector treats an input as valid between 3.81V (undervoltage threshold) and 5.85V (overvoltage threshold), and disconnects an input outside this range.
 
 ::: warning
-The PWM output ports are not powered by the power module inputs.
+The PWM output ports are not powered by the power module inputs, and the output rail does not power the flight controller.
 The output rail must be [separately powered](../peripherals/pwm_escs_and_servo.md) if it needs to power servos or other hardware.
-The output rail does not power the flight controller.
 This is generally true for VTOL and fixed-wing vehicles, but not necessarily true for multicopters.
 :::
 
@@ -334,7 +333,7 @@ It is pin 2 of the `ADIO` port (see [Camera Capture Configuration](../camera/fc_
 
 ## Ethernet {#ethernet}
 
-The board has a 100 Mbit/s Ethernet port.
+The board has a 100Mbit/s Ethernet port.
 By default PX4 runs a MAVLink instance on Ethernet, broadcasting on UDP port 14550.
 
 See [PX4 Ethernet Setup](../advanced_config/ethernet_setup.md) for the network configuration, and [uXRCE-DDS](../middleware/uxrce_dds.md) for using Ethernet to connect to ROS 2 on a companion computer.
@@ -346,21 +345,21 @@ For information about choosing and using an SD card see [SD Cards (Removable Mem
 
 ## Serial Port Mapping {#serial_port_mapping}
 
-| UART   | Device     | Port          | Flow Control |
-| ------ | ---------- | ------------- | :----------: |
-| USART1 | /dev/ttyS0 | `GPS1`        |      No      |
-| USART2 | /dev/ttyS1 | `TELEM3`      |     Yes      |
-| USART3 | /dev/ttyS2 | Debug Console |      No      |
-| UART4  | /dev/ttyS3 | `UART4 & I2C` |      No      |
-| UART5  | /dev/ttyS4 | `TELEM2`      |     Yes      |
-| USART6 | /dev/ttyS5 | PX4IO/RC      |      No      |
-| UART7  | /dev/ttyS6 | `TELEM1`      |     Yes      |
-| UART8  | /dev/ttyS7 | `GPS2`        |      No      |
+| UART   | Device     | Port           | Flow Control |
+| ------ | ---------- | -------------- | :----------: |
+| USART1 | /dev/ttyS0 | `GPS1`         |      No      |
+| USART2 | /dev/ttyS1 | `TELEM3`       |     Yes      |
+| USART3 | /dev/ttyS2 | System Console |      No      |
+| UART4  | /dev/ttyS3 | `UART4 & I2C`  |      No      |
+| UART5  | /dev/ttyS4 | `TELEM2`       |     Yes      |
+| USART6 | /dev/ttyS5 | PX4IO/RC       |      No      |
+| UART7  | /dev/ttyS6 | `TELEM1`       |     Yes      |
+| UART8  | /dev/ttyS7 | `GPS2`         |      No      |
 
 ::: info
 The mapping above applies to the running PX4 firmware.
-The Syro V6X bootloader enables only `UART5` (`TELEM2`), at 1500000 baud.
-When flashing firmware over a UART with [`px4_uploader.py`](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/px4_uploader.py) you must connect to **TELEM2**.
+The Syro V6X bootloader enables only UART5 (`TELEM2`), at 1500000 baud.
+When flashing firmware over a UART with [`px4_uploader.py`](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/px4_uploader.py) you must connect to `TELEM2`.
 :::
 
 ## I2C Buses
@@ -378,13 +377,13 @@ Do not connect external devices that use address `0x46` to I2C2, or address `0x5
 
 ### Radio Control {#radio_control}
 
-A remote control (RC) radio system is required if you want to _manually_ control your vehicle (PX4 does not require a radio system for autonomous flight modes).
+A remote control (RC) radio system is required if you want to manually control your vehicle (PX4 does not require a radio system for autonomous flight modes).
 
-You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then _bind_ them so that they communicate (read the instructions that come with your specific transmitter/receiver).
+You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then bind them so that they communicate (read the instructions that come with your specific transmitter/receiver).
 
 Connect an S.BUS or DSM receiver to the `SBUS IN` port, or a PPM receiver to the `PPM IN` port.
 Both go to the PX4IO coprocessor, which detects the [protocols it supports](../modules/modules_driver.md#px4io) automatically.
-A DSM (Spektrum) receiver on `SBUS IN` is powered with 3.3 V from pin 4.
+A DSM (Spektrum) receiver on `SBUS IN` is powered with 3.3V from pin 4.
 
 CRSF and GHST receivers can't be decoded by the PX4IO.
 Connect them to a free FMU serial port, such as `TELEM3`, and set [RC_CRSF_PRT_CFG](../advanced_config/parameter_reference.md#RC_CRSF_PRT_CFG) or [RC_GHST_PRT_CFG](../advanced_config/parameter_reference.md#RC_GHST_PRT_CFG) to that port.
@@ -405,10 +404,10 @@ The common magnetometer drivers are also included, so other supported GPS/compas
 
 ### Telemetry Radios (Optional) {#telemetry}
 
-[Telemetry radios](../telemetry/index.md) may be used to communicate and control a vehicle in flight from a ground station (for example, you can direct the UAV to a particular position, or upload a new mission).
+[Telemetry radios](../telemetry/index.md) may be used to communicate with and control a vehicle in flight from a ground station (for example, you can direct the UAV to a particular position, or upload a new mission).
 
-The vehicle-based radio should be connected to a TELEM port — **TELEM1**, **TELEM2**, or **TELEM3**.
-If connected to **TELEM1**, no further configuration is required.
+The vehicle-based radio should be connected to a TELEM port — `TELEM1`, `TELEM2`, or `TELEM3`.
+If connected to `TELEM1`, no further configuration is required.
 The other radio is connected to your ground station computer or mobile device (usually by USB).
 
 ### CAN {#can}
@@ -453,7 +452,7 @@ PX4 reads these at boot to identify the board and the hardware fitted on the bas
   It tells PX4 that the PX4IO, CAN2, the second power module input and Ethernet are present.
 - **Module revision:** `0x10` (stored in the module EEPROM on I2C4).
 
-Both values are written in production with the `mft_cfg` command:
+Both values are written in production with the [mft_cfg](../modules/modules_command.md#mft-cfg) command:
 
 ```sh
 mft_cfg set hwver -i 0x110
@@ -466,11 +465,12 @@ If the baseboard EEPROM is blank, PX4 reports the board as not supported and sta
 
 ## Debug Port {#debug_port}
 
-The [PX4 system console](../debug/system_console.md) runs on `USART3` at 57600 baud.
+The [PX4 system console](../debug/system_console.md) runs on USART3 at 57600 baud.
 
 The console and the [SWD interface](../debug/swd_debug.md) of the FMU are on the `FMU DEBUGGER` connector.
 The SWD interface of the PX4IO is on the `IO DEBUGGER` connector.
-Both are 10-pin JST SH connectors, see [Pinouts](#pinouts) for the pin assignment.
+Both are 10-pin JST SH connectors.
+See [Pinouts](#pinouts) for the pin assignment.
 
 ## Bootloader / Board ID
 
