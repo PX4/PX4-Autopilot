@@ -54,7 +54,7 @@ void Timesync::update(const uint64_t now_us, const int64_t remote_timestamp_ns, 
 		uint64_t rtt_us = now_us - (originate_timestamp_ns / 1000ULL);
 
 		// Calculate the difference of this sample from the current estimate
-		uint64_t deviation = llabs((int64_t)_time_offset - offset_us);
+		uint64_t deviation = llabs(offset() - offset_us);
 
 		if (rtt_us < MAX_RTT_SAMPLE) {	// Only use samples with low RTT
 
@@ -100,7 +100,7 @@ void Timesync::update(const uint64_t now_us, const int64_t remote_timestamp_ns, 
 		tsync_status.source_protocol = _source;
 		tsync_status.remote_timestamp = remote_timestamp_ns / 1000ULL;
 		tsync_status.observed_offset = offset_us;
-		tsync_status.estimated_offset = (int64_t)_time_offset;
+		tsync_status.estimated_offset = offset();
 		tsync_status.round_trip_time = rtt_us;
 		tsync_status.timestamp = hrt_absolute_time();
 
@@ -112,7 +112,7 @@ uint64_t Timesync::sync_stamp(uint64_t usec)
 {
 	// Only return synchronised stamp if we have converged to a good value
 	if (sync_converged()) {
-		return usec + (int64_t)_time_offset;
+		return usec + offset();
 
 	} else {
 		return hrt_absolute_time();
@@ -121,13 +121,14 @@ uint64_t Timesync::sync_stamp(uint64_t usec)
 
 void Timesync::add_sample(int64_t offset_us, uint64_t now_us)
 {
-	// Kalman filter with state [offset, skew]. The skew is a rate [us/s], so the prediction
+	// Kalman filter with state [offset, skew] in seconds. The skew is a rate [s/s], so the prediction
 	// stays consistent when the interval between samples changes (e.g. fast initial sync, then 1 Hz).
 	static constexpr double R = MEASUREMENT_NOISE_STD * MEASUREMENT_NOISE_STD;
+	const double offset_s = offset_us * 1e-6;
 
 	if (_sequence == 0) {
 		// First offset sample
-		_time_offset = offset_us;
+		_time_offset = offset_s;
 		_time_skew = 0.0;
 		_var_offset = R;
 		_cov_offset_skew = 0.0;
@@ -143,7 +144,7 @@ void Timesync::add_sample(int64_t offset_us, uint64_t now_us)
 		_var_skew += SKEW_RANDOM_WALK * dt;
 
 		// Update
-		const double innovation = offset_us - _time_offset;
+		const double innovation = offset_s - _time_offset;
 		const double k_offset = _var_offset / (_var_offset + R);
 		const double k_skew = _cov_offset_skew / (_var_offset + R);
 
