@@ -15,6 +15,8 @@ POSITION_TOLERANCE_M = 2.0
 
 def take_off(tester: AutopilotTesterGeofence) -> None:
     tester.set_takeoff_altitude(TAKEOFF_ALTITUDE_M)
+    # The navigator reads parameter changes at most once per second.
+    tester.sleep_for(1)
     tester.arm()
     tester.takeoff()
     tester.wait_until_hovering()
