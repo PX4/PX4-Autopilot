@@ -428,19 +428,19 @@ It is pre-built and automatically installed by _QGroundControl_ when appropriate
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
 ```sh
-make syro_fmuv6x_default
+make syro_fmu-v6x_default
 ```
 
 Build and upload via USB:
 
 ```sh
-make syro_fmuv6x_default upload
+make syro_fmu-v6x_default upload
 ```
 
 Build the bootloader:
 
 ```sh
-make syro_fmuv6x_bootloader
+make syro_fmu-v6x_bootloader
 ```
 
 ## Hardware Identification {#hardware_id}
@@ -474,14 +474,14 @@ See [Pinouts](#pinouts) for the pin assignment.
 
 ## Bootloader / Board ID
 
-- **Board ID:** 110 (`boards/syro/fmuv6x/firmware.prototype`)
+- **Board ID:** 110 (`boards/syro/fmu-v6x/firmware.prototype`)
 - **USB VID/PID:** `0x3643` / `0x0001`
 - **Bootloader USB product string:** `Syro BL FMU v6X`
 
 ## Maintenance
 
 - **Vendor:** Syro
-- **PX4 board target:** `syro_fmuv6x_default`
+- **PX4 board target:** `syro_fmu-v6x_default`
 - **PX4 hardware type prefix:** `SyroV6X`
 
 ## Further Information {#further_information}
