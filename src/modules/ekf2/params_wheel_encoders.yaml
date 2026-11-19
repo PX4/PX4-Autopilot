@@ -43,7 +43,7 @@ parameters:
       type: float
       min: 0.01
       max: 5.0
-      unit: m
+      unit: m/s
       default: 0.01
     EKF2_WHEEL_GATE:
       description:
