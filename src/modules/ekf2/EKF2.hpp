@@ -679,7 +679,6 @@ private:
 		(ParamExtInt<px4::params::EKF2_WHEEL_CTRL>) _param_ekf2_wheel_ctrl,
 		(ParamExtFloat<px4::params::EKF2_WHEEL_NOISE>) _param_ekf2_wheel_noise,
 		(ParamExtFloat<px4::params::EKF2_WHEEL_GATE>) _param_ekf2_wheel_gate,
-		(ParamExtFloat<px4::params::EKF2_WHEEL_TRACK>) _param_ekf2_wheel_track,
 		(ParamExtFloat<px4::params::EKF2_WHEEL_RAD>) _param_ekf2_wheel_rad,
 		(ParamExtFloat<px4::params::EKF2_AXLE_POS_X>) _param_ekf2_axle_pos_x,
 		(ParamExtFloat<px4::params::EKF2_AXLE_POS_Y>) _param_ekf2_axle_pos_y,

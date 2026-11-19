@@ -33,7 +33,7 @@ parameters:
       description:
         short: Enable wheel encoder control
         long: If this parameter is enabled then the estimator will make use of the
-          wheel encoder measurements to estimate its velocity.
+          wheel encoder measurements to estimate its velocity (differential drive only).
       type: boolean
       default: 0
     EKF2_WHEEL_NOISE:
@@ -63,15 +63,5 @@ parameters:
       default: 0.1
       min: 0.0
       max: 1.0
-      unit: m
-      decimal: 3
-    EKF2_WHEEL_TRACK:
-      description:
-        short: Wheel track width
-        long: Distance between the center of the two wheels in meters.
-      type: float
-      default: 0.6
-      min: 0.0
-      max: 3.0
       unit: m
       decimal: 3

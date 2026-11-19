@@ -201,7 +201,6 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_wheel_ctrl(_params->ekf2_wheel_ctrl),
 	_param_ekf2_wheel_noise(_params->ekf2_wheel_noise),
 	_param_ekf2_wheel_gate(_params->ekf2_wheel_gate),
-	_param_ekf2_wheel_track(_params->ekf2_wheel_track),
 	_param_ekf2_wheel_rad(_params->ekf2_wheel_rad),
 	_param_ekf2_axle_pos_x(_params->axle_pos_body(0)),
 	_param_ekf2_axle_pos_y(_params->axle_pos_body(1)),

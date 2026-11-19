@@ -80,7 +80,7 @@ static constexpr uint64_t RNGBC_MAX_INTERVAL    =
 	5000e3;  ///< Maximum allowable time interval between ranging beacon measurements (uSec)
 
 static constexpr uint64_t WHEEL_MAX_INTERVAL    =
-	5000e3;  ///< Maximum allowable time interval between ranging beacon measurements (uSec)
+	5000e3;  ///< Maximum allowable time interval between wheel encoder measurements (uSec)
 
 // bad accelerometer detection and mitigation
 static constexpr uint64_t BADACC_PROBATION =
