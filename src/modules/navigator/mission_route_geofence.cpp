@@ -79,6 +79,25 @@ bool checkBatch(Geofence &geofence, PathBatch &batch)
 	return true;
 }
 
+// Start a path at the vehicle with the margin it can keep: GF_CONT_H_MARGIN, or 0 if the vehicle is already closer
+// to the fence. Example: the Return that GF_CONT_ACTION starts there is checked against the fence itself.
+bool startVehiclePath(Geofence &geofence, const Position &vehicle, Geofence::PathCheck &path)
+{
+	path = {{vehicle.lat, vehicle.lon}, {vehicle.lat, vehicle.lon}, 0.f, geofence.getContGeofenceMargin()};
+	bool keeps_margin = true;
+
+	// A path without length tells whether the vehicle keeps the margin, as for the first waypoint of a mission.
+	if (path.margin > 0.f && !geofence.checkPathBatch(&path, 1, &keeps_margin)) {
+		return false;
+	}
+
+	if (!keeps_margin) {
+		path.margin = 0.f;
+	}
+
+	return true;
+}
+
 } // namespace
 
 // Polygons and circles only: a vehicle above the altitude limits or too far from Home does not recover, so its
@@ -110,6 +129,9 @@ bool GeofencePathChecker::pruneCandidates(ProjectionReferenceBatch &batch) const
 			continue;
 		}
 
+		// Segments keep GF_CONT_H_MARGIN from the polygons and circles, like the legs of a mission.
+		float margin = _geofence.getContGeofenceMargin();
+
 		if (reference.source_index < 0) {
 			// A vehicle in recovery keeps all its candidates unchecked: set bits 0 to count - 1.
 			if (recovering(anchor)) {
@@ -117,9 +139,19 @@ bool GeofencePathChecker::pruneCandidates(ProjectionReferenceBatch &batch) const
 				continue;
 			}
 
-		} else if (!_geofence.checkPointAgainstAllGeofences(anchor.lat, anchor.lon, anchor.alt)) {
+			// Scratch off the stack: a full batch is checked at once, so the next path of the batch is always free.
+			Geofence::PathCheck &scratch = shared_paths.paths[shared_paths.count];
+
+			if (!startVehiclePath(_geofence, anchor, scratch)) {
+				return false;
+			}
+
+			margin = scratch.margin;
+
+		} else if (!_geofence.checkPointAgainstAllGeofences(anchor.lat, anchor.lon, anchor.alt)
+			   || !_geofence.isCloserThanContMaxDistToHome(anchor.lat, anchor.lon)) {
 			// A safe point outside the allowed area keeps no candidates: a segment entirely inside an exclusion
-			// area would cross no boundary.
+			// area would cross no boundary. Neither does one closer to GF_MAX_HOR_DIST than the margin.
 			continue;
 		}
 
@@ -130,7 +162,7 @@ bool GeofencePathChecker::pruneCandidates(ProjectionReferenceBatch &batch) const
 				continue;
 			}
 
-			shared_paths.paths[shared_paths.count] = {{anchor.lat, anchor.lon}, {projection.lat, projection.lon}};
+			shared_paths.paths[shared_paths.count] = {{anchor.lat, anchor.lon}, {projection.lat, projection.lon}, 0.f, margin};
 			shared_paths.reference_indices[shared_paths.count] = i;
 			shared_paths.candidate_indices[shared_paths.count] = j;
 			++shared_paths.count;
@@ -181,7 +213,13 @@ bool GeofencePathChecker::checkPath(const Position &vehicle, const Position &end
 		return true;
 	}
 
-	const Geofence::PathCheck path{{vehicle.lat, vehicle.lon}, {end.lat, end.lon}};
+	Geofence::PathCheck path;
+
+	if (!startVehiclePath(_geofence, vehicle, path)) {
+		return false;
+	}
+
+	path.end = {end.lat, end.lon};
 	return _geofence.checkPathBatch(&path, 1, &clear);
 }
 

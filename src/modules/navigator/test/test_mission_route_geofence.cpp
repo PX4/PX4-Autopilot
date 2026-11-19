@@ -57,6 +57,12 @@ protected:
 
 	void TearDown() override { param_reset_all(); }
 
+	void setMargin(float margin)
+	{
+		ASSERT_EQ(param_set(param_find("GF_CONT_H_MARGIN"), &margin), PX4_OK);
+		_navigator.updateParams();
+	}
+
 	Position routePosition(float north, float east, float altitude = kAltitude) const
 	{
 		const matrix::Vector2d coordinates = position(north, east);
@@ -142,32 +148,39 @@ TEST_F(MissionRouteGeofenceTest, ChecksMoreThanOnePathBatchAndThePartialTail)
 
 	ASSERT_TRUE(loadFence(exclusionSquare()));
 	GeofencePathChecker checker{_fence};
-	ProjectionReferenceBatch batch{};
-	batch.count = kReferenceCount;
 
-	for (uint8_t i = 0; i < batch.count; ++i) {
-		const float north = i % 2 == 0 ? 0.f : 60.f;
-		batch.items[i].position = routePosition(north, 100.f);
-		addCandidate(batch.items[i], routePosition(north, 500.f), 1);
-		addCandidate(batch.items[i], routePosition(north, 200.f), 2);
-		addCandidate(batch.items[i], routePosition(north, 600.f), 3);
-	}
+	// With a margin, the check of each vehicle takes the next free path of the batch, also after a full batch.
+	for (const float margin : {0.f, 40.f}) {
+		SCOPED_TRACE(margin);
+		setMargin(margin);
+		ProjectionReferenceBatch batch{};
+		batch.count = kReferenceCount;
 
-	ASSERT_TRUE(checker.pruneCandidates(batch));
+		for (uint8_t i = 0; i < batch.count; ++i) {
+			const float north = i % 2 == 0 ? 0.f : 60.f;
+			batch.items[i].position = routePosition(north, 100.f);
+			addCandidate(batch.items[i], routePosition(north, 500.f), 1);
+			addCandidate(batch.items[i], routePosition(north, 200.f), 2);
+			addCandidate(batch.items[i], routePosition(north, 600.f), 3);
+		}
 
-	for (uint8_t i = 0; i < batch.count; ++i) {
-		SCOPED_TRACE(i);
-		const auto &candidates = batch.items[i].candidate_buffer;
+		ASSERT_TRUE(checker.pruneCandidates(batch));
 
-		if (i % 2 == 0) {
-			ASSERT_EQ(candidates.count, 1);
-			EXPECT_EQ(candidates.candidates[0].segment.start.idx, 2);
+		for (uint8_t i = 0; i < batch.count; ++i) {
+			SCOPED_TRACE(i);
+			const auto &candidates = batch.items[i].candidate_buffer;
 
-		} else {
-			ASSERT_EQ(candidates.count, 3);
+			// The segments at 60 m north pass 10 m from the square: clear without a margin only.
+			if (i % 2 == 0 || margin > 0.f) {
+				ASSERT_EQ(candidates.count, 1);
+				EXPECT_EQ(candidates.candidates[0].segment.start.idx, 2);
 
-			for (uint8_t j = 0; j < candidates.count; ++j) {
-				EXPECT_EQ(candidates.candidates[j].segment.start.idx, j + 1);
+			} else {
+				ASSERT_EQ(candidates.count, 3);
+
+				for (uint8_t j = 0; j < candidates.count; ++j) {
+					EXPECT_EQ(candidates.candidates[j].segment.start.idx, j + 1);
+				}
 			}
 		}
 	}
@@ -336,13 +349,20 @@ TEST_F(MissionRouteGeofenceTest, VehicleCandidatesInPruneAgreeWithCheckPath)
 	struct FenceCase {
 		const char *name;
 		FencePoints points;
+		float margin;
 	};
 
+	// With the margin, each fence case also has spots closer to the fence than that.
+	const FencePoints inclusion = polygon(true, {{-250.f, -250.f}, {250.f, -250.f}, {250.f, 400.f}, {-250.f, 400.f}});
 	const FenceCase fence_cases[] {
-		{"exclusion polygon", exclusionSquare()},
-		{"inclusion polygon", polygon(true, {{-250.f, -250.f}, {250.f, -250.f}, {250.f, 400.f}, {-250.f, 400.f}})},
-		{"exclusion circle", circle(false, {0.f, 300.f}, 60.f)},
-		{"inclusion circle", circle(true, {0.f, 150.f}, 300.f)},
+		{"exclusion polygon", exclusionSquare(), 0.f},
+		{"inclusion polygon", inclusion, 0.f},
+		{"exclusion circle", circle(false, {0.f, 300.f}, 60.f), 0.f},
+		{"inclusion circle", circle(true, {0.f, 150.f}, 300.f), 0.f},
+		{"exclusion polygon with a margin", exclusionSquare(), 160.f},
+		{"inclusion polygon with a margin", inclusion, 160.f},
+		{"exclusion circle with a margin", circle(false, {0.f, 300.f}, 60.f), 160.f},
+		{"inclusion circle with a margin", circle(true, {0.f, 150.f}, 300.f), 160.f},
 	};
 	// Each fence case has spots outside the allowed area, where the vehicle recovers.
 	const Position spots[] {routePosition(0.f, 100.f), routePosition(100.f, 100.f), routePosition(0.f, 300.f),
@@ -354,6 +374,7 @@ TEST_F(MissionRouteGeofenceTest, VehicleCandidatesInPruneAgreeWithCheckPath)
 	for (const FenceCase &fence_case : fence_cases) {
 		SCOPED_TRACE(fence_case.name);
 		ASSERT_TRUE(loadFence(fence_case.points));
+		setMargin(fence_case.margin);
 
 		for (size_t spot = 0; spot < 5; ++spot) {
 			SCOPED_TRACE(::testing::Message() << "vehicle at spot " << spot);
@@ -588,4 +609,92 @@ TEST_F(MissionRouteGeofenceTest, CurrentAltitudeHopToLandingIsChecked)
 	mission_route::MissionResumePlan join{};
 	EXPECT_EQ(planner.planMissionResumeJoin(rtlRequest(vehicle, 1), join), mission_route::FailureReason::kNoValidPath);
 	EXPECT_FALSE(join.valid());
+}
+
+// A segment keeps GF_CONT_H_MARGIN from the fence, like a mission leg. Both segments pass north of the exclusion
+// square: one 50 m from it, the other 25 m.
+TEST_F(MissionRouteGeofenceTest, SegmentsKeepTheContingencyMargin)
+{
+	ASSERT_TRUE(loadFence(exclusionSquare()));
+	const Position vehicle = routePosition(100.f, 100.f);
+	const Position far_end = routePosition(100.f, 500.f);
+	const Position near_end = routePosition(60.f, 500.f);
+	GeofencePathChecker checker{_fence};
+
+	for (const float margin : {0.f, 40.f}) {
+		SCOPED_TRACE(margin);
+		setMargin(margin);
+		ProjectionReferenceBatch batch{};
+		batch.count = 1;
+		batch.items[0].position = vehicle;
+		addCandidate(batch.items[0], far_end, 1);
+		addCandidate(batch.items[0], near_end, 2);
+		ASSERT_TRUE(checker.pruneCandidates(batch));
+		ASSERT_EQ(batch.items[0].candidate_buffer.count, margin > 0.f ? 1 : 2);
+		EXPECT_EQ(batch.items[0].candidate_buffer.candidates[0].segment.start.idx, 1);
+
+		bool clear = false;
+		ASSERT_TRUE(checker.checkPath(vehicle, far_end, clear));
+		EXPECT_TRUE(clear);
+		ASSERT_TRUE(checker.checkPath(vehicle, near_end, clear));
+		EXPECT_EQ(clear, margin <= 0.f);
+	}
+}
+
+// A safe point closer to the fence than the margin keeps no candidates, also for GF_MAX_HOR_DIST.
+TEST_F(MissionRouteGeofenceTest, SafePointWithinTheContingencyMarginKeepsNoCandidates)
+{
+	const auto candidates_kept = [this](const Position & anchor, const Position & projection, int32_t source_index = 0) {
+		GeofencePathChecker checker{_fence};
+		ProjectionReferenceBatch batch{};
+		batch.count = 1;
+		batch.items[0].position = anchor;
+		batch.items[0].source_index = source_index;
+		addCandidate(batch.items[0], projection);
+		EXPECT_TRUE(checker.pruneCandidates(batch));
+		return batch.items[0].candidate_buffer.count;
+	};
+
+	// 30 m west of the exclusion square, with a segment that leads away from it.
+	ASSERT_TRUE(loadFence(exclusionSquare()));
+	EXPECT_EQ(candidates_kept(routePosition(0.f, 220.f), routePosition(0.f, 100.f)), 1);
+	setMargin(40.f);
+	EXPECT_EQ(candidates_kept(routePosition(0.f, 220.f), routePosition(0.f, 100.f)), 0);
+	EXPECT_EQ(candidates_kept(routePosition(0.f, 200.f), routePosition(0.f, 100.f)), 1);
+
+	// 280 m from Home with a limit of 300 m.
+	ASSERT_TRUE(loadFence({}));
+	const float maximum_horizontal = 300.f;
+	ASSERT_EQ(param_set(param_find("GF_MAX_HOR_DIST"), &maximum_horizontal), PX4_OK);
+	_navigator.updateParams();
+	EXPECT_EQ(candidates_kept(routePosition(0.f, 280.f), routePosition(0.f, 200.f)), 0);
+	EXPECT_EQ(candidates_kept(routePosition(0.f, 250.f), routePosition(0.f, 200.f)), 1);
+	// A vehicle there keeps its candidate: the Return that GF_CONT_ACTION starts at the limit needs a route.
+	EXPECT_EQ(candidates_kept(routePosition(0.f, 280.f), routePosition(0.f, 200.f), -1), 1);
+}
+
+// A vehicle closer to the fence than the margin cannot keep it: its segments are checked against the fence itself.
+// The Return that GF_CONT_ACTION starts there gets a route, but not one through the exclusion square.
+TEST_F(MissionRouteGeofenceTest, VehicleWithinTheContingencyMarginIsCheckedAgainstTheFence)
+{
+	ASSERT_TRUE(loadFence(exclusionSquare()));
+	setMargin(40.f);
+	const Position vehicle = routePosition(0.f, 220.f); // 30 m west of the square
+	const Position away = routePosition(0.f, 100.f);
+	const Position across = routePosition(0.f, 500.f);
+	GeofencePathChecker checker{_fence};
+	ProjectionReferenceBatch batch{};
+	batch.count = 1;
+	batch.items[0].position = vehicle;
+	addCandidate(batch.items[0], across, 1);
+	addCandidate(batch.items[0], away, 2);
+	ASSERT_TRUE(checker.pruneCandidates(batch));
+	ASSERT_EQ(batch.items[0].candidate_buffer.count, 1);
+	EXPECT_EQ(batch.items[0].candidate_buffer.candidates[0].segment.start.idx, 2);
+
+	bool clear = false;
+	ASSERT_TRUE(checker.checkPath(vehicle, away, clear));
+	EXPECT_TRUE(clear);
+	ASSERT_TRUE(checker.checkPath(vehicle, across, clear));
+	EXPECT_FALSE(clear);
 }

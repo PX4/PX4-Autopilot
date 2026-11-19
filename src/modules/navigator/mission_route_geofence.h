@@ -44,11 +44,14 @@ namespace mission_route
  * Checks route segments against the loaded Navigator geofence.
  *
  * Calls must not overlap because they reuse the same scratch buffer; Navigator calls it from a single task.
- * Segments are checked against the polygons and circles. Mission legs passed the altitude and Home limits in the
- * mission check, and these limits are convex, so points on the legs are not checked again: plan only on a checked
- * mission. Safe points are checked against every limit.
+ * Segments are checked against the polygons and circles and keep GF_CONT_H_MARGIN from them, like the legs of a
+ * mission. Mission legs passed the altitude and Home limits in the mission check, and these limits are convex, so
+ * points on the legs are not checked again: plan only on a checked mission. Safe points are checked against every
+ * limit.
  * When the vehicle breaches a polygon or circle, segments from the vehicle, including every
  * checkPath() segment, are not checked so it can recover. Safe point segments still are.
+ * A vehicle closer to a polygon or circle than the margin cannot keep it: its segments are checked against the
+ * fence itself over their whole length, for every polygon and circle.
  * Planning must still wait for the fence to finish loading.
  */
 class GeofencePathChecker final : public PathChecker
