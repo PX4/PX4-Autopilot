@@ -502,7 +502,7 @@ elseif(NOT ${LABEL} MATCHES "allyes") # All other configs except allyes which is
 	add_custom_target(boardconfig
 		${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${MENUCONFIG_PATH} Kconfig
 		COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${SAVEDEFCONFIG_PATH}
-		COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/kconfig/diffconfig.py -m ${PX4_BOARD_DIR}/default.px4board defconfig > ${BOARD_DEFCONFIG}
+		COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/kconfig/diffconfig.py -m ${PX4_BOARD_DIR}/default.px4board defconfig ${BOARD_CONFIG} > ${BOARD_DEFCONFIG}
 		COMMAND ${CMAKE_COMMAND} -E remove defconfig
 		COMMAND ${CMAKE_COMMAND} -E remove ${PX4_BINARY_DIR}/NuttX/apps_copy.stamp
 		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
@@ -513,7 +513,7 @@ elseif(NOT ${LABEL} MATCHES "allyes") # All other configs except allyes which is
 	add_custom_target(boardguiconfig
 		${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${GUICONFIG_PATH} Kconfig
 		COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${SAVEDEFCONFIG_PATH}
-		COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/kconfig/diffconfig.py -m ${PX4_BOARD_DIR}/default.px4board defconfig > ${BOARD_DEFCONFIG}
+		COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/kconfig/diffconfig.py -m ${PX4_BOARD_DIR}/default.px4board defconfig ${BOARD_CONFIG} > ${BOARD_DEFCONFIG}
 		COMMAND ${CMAKE_COMMAND} -E remove defconfig
 		COMMAND ${CMAKE_COMMAND} -E remove ${PX4_BINARY_DIR}/NuttX/apps_copy.stamp
 		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
@@ -523,7 +523,7 @@ elseif(NOT ${LABEL} MATCHES "allyes") # All other configs except allyes which is
 
 	add_custom_target(px4_savedefconfig
 		${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${SAVEDEFCONFIG_PATH}
-		COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/kconfig/diffconfig.py -m ${PX4_BOARD_DIR}/default.px4board defconfig > ${BOARD_DEFCONFIG}
+		COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS} ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/kconfig/diffconfig.py -m ${PX4_BOARD_DIR}/default.px4board defconfig ${BOARD_CONFIG} > ${BOARD_DEFCONFIG}
 		COMMAND ${CMAKE_COMMAND} -E remove defconfig
 		COMMAND ${CMAKE_COMMAND} -E remove ${PX4_BINARY_DIR}/NuttX/apps_copy.stamp
 		WORKING_DIRECTORY ${PX4_SOURCE_DIR}

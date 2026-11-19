@@ -15,7 +15,7 @@
 import sys, os
 
 def usage():
-    print("""Usage: diffconfig [-h] [-m] [<config1> <config2>]
+    print("""Usage: diffconfig [-h] [-m] [<config1> <config2> [<resolved>]]
 
 Diffconfig is a simple utility for comparing two .config files.
 Using standard diff to compare .config files often includes extraneous and
@@ -29,6 +29,12 @@ If -m is specified, then output will be in "merge" style, which has the
 changed and new values in kernel config option format.
 
 If no config files are specified, .config and .config.old are used.
+
+PX4: if <resolved> is given, the full resolved config <config2> was saved
+from, an item missing from <config2> is not taken as n: with -m it is
+written with its resolved value, and only if that differs from <config1>.
+A minimal config leaves out every item that has its default value, which
+can be y through an imply, select or default.
 
 Example usage:
  $ diffconfig .config config-with-some-changes
@@ -74,7 +80,7 @@ def print_config(op, config, value, new_value):
         else:
             print(" %s %s -> %s" % (config, value, new_value))
 
-def main(merge, configa_filename, configb_filename):
+def main(merge, configa_filename, configb_filename, resolved_filename=None):
     global merge_style
 
     merge_style = merge
@@ -82,6 +88,7 @@ def main(merge, configa_filename, configb_filename):
     try:
         a = readconfig(open(configa_filename))
         b = readconfig(open(configb_filename))
+        resolved = readconfig(open(resolved_filename)) if resolved_filename else None
     except (IOError):
         e = sys.exc_info()[1]
         print("I/O error[%s]: %s\n" % (e.args[0],e.args[1]))
@@ -94,7 +101,14 @@ def main(merge, configa_filename, configb_filename):
             old.append(config)
     old.sort()
     for config in old:
-        print_config("-", config, a[config], None)
+        if resolved is None:
+            print_config("-", config, a[config], None)
+        elif resolved.get(config, "n") != a[config]:
+            # PX4: write the resolved value; n is not implied by a missing item
+            if merge_style:
+                print("CONFIG_%s=%s" % (config, resolved.get(config, "n")))
+            else:
+                print_config("->", config, a[config], resolved.get(config, "n"))
         del a[config]
 
     # print items that changed (accumulate, sort, and print)
@@ -127,7 +141,7 @@ if __name__ == '__main__':
         sys.argv.remove("-m")
 
     argc = len(sys.argv)
-    if not (argc==1 or argc == 3):
+    if not (argc == 1 or argc == 3 or argc == 4):
         print("Error: incorrect number of arguments or unrecognized option")
         usage()
 
@@ -138,8 +152,10 @@ if __name__ == '__main__':
             build_dir = os.environ["KBUILD_OUTPUT"]+"/"
         configa_filename = build_dir + ".config.old"
         configb_filename = build_dir + ".config"
+        resolved_filename = None
     else:
         configa_filename = sys.argv[1]
         configb_filename = sys.argv[2]
+        resolved_filename = sys.argv[3] if argc == 4 else None
 
-    main(merge_style, configa_filename, configb_filename)
+    main(merge_style, configa_filename, configb_filename, resolved_filename)

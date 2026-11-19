@@ -87,12 +87,14 @@ for target in targets:
     kconf = merge_config.main(px4_dir + "/Kconfig", board_default, target.path)
     tf = tempfile.NamedTemporaryFile()
 
-    # Save minconfig
+    # Save minconfig and the resolved config it comes from
     kconf.write_min_config(tf.name)
+    tf_resolved = tempfile.NamedTemporaryFile()
+    kconf.write_config(tf_resolved.name)
 
     # Diff with default config and save to label.px4board
     stdoutpipe = sys.stdout
     sys.stdout = open(target.path, "w")
-    diffconfig.main(1, board_default, tf.name)
+    diffconfig.main(1, board_default, tf.name, tf_resolved.name)
     sys.stdout.close()
     sys.stdout = stdoutpipe
