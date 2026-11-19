@@ -221,7 +221,7 @@ void CdcAcmAutostart::state_connecting()
 	// /dev/ttyACM0 immediately, but open() returns -ENOTCONN until the host has
 	// enumerated. mavlink exits if its own open retries run out, so only spawn it
 	// once the port is known to be openable, then release the probe.
-	if (_sys_usb_auto.get() == 2) {
+	if (_param_sys_usb_auto.get() == 2) {
 		if (_ttyacm_fd < 0) {
 			_ttyacm_fd = px4_open(USB_DEVICE_PATH, O_RDONLY | O_NONBLOCK);
 		}
@@ -247,7 +247,7 @@ void CdcAcmAutostart::state_connecting()
 	}
 
 	// SYS_USB_AUTO=0: sercon only, no protocol.
-	if (_sys_usb_auto.get() == 0) {
+	if (_param_sys_usb_auto.get() == 0) {
 		close_ttyacm();
 		_state = UsbAutoStartState::connected;
 		_active_protocol = UsbProtocol::none;
@@ -520,7 +520,7 @@ bool CdcAcmAutostart::scan_buffer_for_ublox_bytes()
 bool CdcAcmAutostart::start_mavlink()
 {
 	char mavlink_mode_string[16];
-	snprintf(mavlink_mode_string, sizeof(mavlink_mode_string), "%ld", _usb_mav_mode.get());
+	snprintf(mavlink_mode_string, sizeof(mavlink_mode_string), "%ld", _param_usb_mav_mode.get());
 
 	// Non-static argv: NuttX task_spawn copies argv into the new task stack before return.
 	char *argv[] { (char *)"mavlink", (char *)"start", (char *)"-d", (char *)USB_DEVICE_PATH,
@@ -656,7 +656,7 @@ int CdcAcmAutostart::print_status()
 	PX4_INFO("State: %s", state);
 	PX4_INFO("Protocol: %s", protocol);
 	PX4_INFO("VBUS: %s", _vbus_present ? "present" : "absent");
-	PX4_INFO("SYS_USB_AUTO: %ld", _sys_usb_auto.get());
+	PX4_INFO("SYS_USB_AUTO: %ld", _param_sys_usb_auto.get());
 
 	return PX4_OK;
 }

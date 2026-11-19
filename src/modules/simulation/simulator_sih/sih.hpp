@@ -232,6 +232,7 @@ private:
 	void generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd, const float thrust_for_prowash);
 	void generate_ts_aerodynamics();
 	void generate_rover_ackermann_dynamics(const float throttle_cmd, const float steering_cmd, const float dt);
+	void generate_rover_differential_dynamics(const float right_cmd, const float left_cmd);
 	void sensor_step();
 
 	void ecefToNed();
@@ -333,7 +334,7 @@ private:
 	float       _Q[NUM_DYN_THRUSTER] {};         // thruster torque (Nm)
 	Thruster    _thruster[NUM_DYN_THRUSTER] {};	// thruster objects
 
-	enum class VehicleType {Quadcopter, FixedWing, TailsitterVTOL, StandardVTOL, Hexacopter, RoverAckermann, First = Quadcopter, Last = RoverAckermann}; // numbering dependent on parameter SIH_VEHICLE_TYPE
+	enum class VehicleType {Quadcopter, FixedWing, TailsitterVTOL, StandardVTOL, Hexacopter, RoverAckermann, RoverDifferential, First = Quadcopter, Last = RoverDifferential}; // numbering dependent on parameter SIH_VEHICLE_TYPE
 	VehicleType _vehicle = VehicleType::Quadcopter;
 
 	// aerodynamic segments for the fixedwing
@@ -383,50 +384,50 @@ private:
 
 	// parameters defined in sih_params.c
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _imu_gyro_ratemax,
-		(ParamInt<px4::params::IMU_INTEG_RATE>) _imu_integration_rate,
-		(ParamFloat<px4::params::SIH_MASS>) _sih_mass,
-		(ParamFloat<px4::params::SIH_IXX>) _sih_ixx,
-		(ParamFloat<px4::params::SIH_IYY>) _sih_iyy,
-		(ParamFloat<px4::params::SIH_IZZ>) _sih_izz,
-		(ParamFloat<px4::params::SIH_IXY>) _sih_ixy,
-		(ParamFloat<px4::params::SIH_IXZ>) _sih_ixz,
-		(ParamFloat<px4::params::SIH_IYZ>) _sih_iyz,
-		(ParamFloat<px4::params::SIH_T_MAX>) _sih_t_max,
-		(ParamFloat<px4::params::SIH_Q_MAX>) _sih_q_max,
-		(ParamFloat<px4::params::SIH_L_ROLL>) _sih_l_roll,
-		(ParamFloat<px4::params::SIH_L_PITCH>) _sih_l_pitch,
-		(ParamFloat<px4::params::SIH_KDV>) _sih_kdv,
-		(ParamFloat<px4::params::SIH_KDW>) _sih_kdw,
-		(ParamFloat<px4::params::SIH_LOC_LAT0>) _sih_lat0,
-		(ParamFloat<px4::params::SIH_LOC_LON0>) _sih_lon0,
-		(ParamFloat<px4::params::SIH_LOC_H0>) _sih_h0,
-		(ParamFloat<px4::params::SIH_LOC_YAW0>) _sih_yaw0,
-		(ParamInt<px4::params::SIH_DISTSNSR_EN>) _sih_distance_snsr_en,
-		(ParamFloat<px4::params::SIH_DISTSNSR_MIN>) _sih_distance_snsr_min,
-		(ParamFloat<px4::params::SIH_DISTSNSR_MAX>) _sih_distance_snsr_max,
-		(ParamFloat<px4::params::SIH_DISTSNSR_OVR>) _sih_distance_snsr_override,
-		(ParamFloat<px4::params::SIH_DISTSNSR_NOI>) _sih_distance_snsr_noise,
-		(ParamInt<px4::params::SIH_OF_EN>) _sih_optical_flow_en,
-		(ParamFloat<px4::params::SIH_OF_RATE>) _sih_optical_flow_rate,
-		(ParamFloat<px4::params::SIH_OF_NOISE>) _sih_optical_flow_noise,
-		(ParamFloat<px4::params::SIH_OF_H_MAX>) _sih_optical_flow_h_max,
-		(ParamFloat<px4::params::SIH_T_TAU>) _sih_thrust_tau,
+		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_ratemax,
+		(ParamInt<px4::params::IMU_INTEG_RATE>) _param_imu_integ_rate,
+		(ParamFloat<px4::params::SIH_MASS>) _param_sih_mass,
+		(ParamFloat<px4::params::SIH_IXX>) _param_sih_ixx,
+		(ParamFloat<px4::params::SIH_IYY>) _param_sih_iyy,
+		(ParamFloat<px4::params::SIH_IZZ>) _param_sih_izz,
+		(ParamFloat<px4::params::SIH_IXY>) _param_sih_ixy,
+		(ParamFloat<px4::params::SIH_IXZ>) _param_sih_ixz,
+		(ParamFloat<px4::params::SIH_IYZ>) _param_sih_iyz,
+		(ParamFloat<px4::params::SIH_T_MAX>) _param_sih_t_max,
+		(ParamFloat<px4::params::SIH_Q_MAX>) _param_sih_q_max,
+		(ParamFloat<px4::params::SIH_L_ROLL>) _param_sih_l_roll,
+		(ParamFloat<px4::params::SIH_L_PITCH>) _param_sih_l_pitch,
+		(ParamFloat<px4::params::SIH_KDV>) _param_sih_kdv,
+		(ParamFloat<px4::params::SIH_KDW>) _param_sih_kdw,
+		(ParamFloat<px4::params::SIH_LOC_LAT0>) _param_sih_loc_lat0,
+		(ParamFloat<px4::params::SIH_LOC_LON0>) _param_sih_loc_lon0,
+		(ParamFloat<px4::params::SIH_LOC_H0>) _param_sih_loc_h0,
+		(ParamFloat<px4::params::SIH_LOC_YAW0>) _param_sih_loc_yaw0,
+		(ParamInt<px4::params::SIH_DISTSNSR_EN>) _param_sih_distsnsr_en,
+		(ParamFloat<px4::params::SIH_DISTSNSR_MIN>) _param_sih_distsnsr_min,
+		(ParamFloat<px4::params::SIH_DISTSNSR_MAX>) _param_sih_distsnsr_max,
+		(ParamFloat<px4::params::SIH_DISTSNSR_OVR>) _param_sih_distsnsr_ovr,
+		(ParamFloat<px4::params::SIH_DISTSNSR_NOI>) _param_sih_distsnsr_noi,
+		(ParamInt<px4::params::SIH_OF_EN>) _param_sih_of_en,
+		(ParamFloat<px4::params::SIH_OF_RATE>) _param_sih_of_rate,
+		(ParamFloat<px4::params::SIH_OF_NOISE>) _param_sih_of_noise,
+		(ParamFloat<px4::params::SIH_OF_H_MAX>) _param_sih_of_h_max,
+		(ParamFloat<px4::params::SIH_T_TAU>) _param_sih_t_tau,
 		// forward propeller
-		(ParamFloat<px4::params::SIH_F_T_MAX>) _sih_f_thrust_max,
-		(ParamFloat<px4::params::SIH_F_Q_MAX>) _sih_f_torque_max,
-		(ParamFloat<px4::params::SIH_F_CT0>) _sih_f_ct0,
-		(ParamFloat<px4::params::SIH_F_CT1>) _sih_f_ct1,
-		(ParamFloat<px4::params::SIH_F_CT2>) _sih_f_ct2,
-		(ParamFloat<px4::params::SIH_F_CP0>) _sih_f_cp0,
-		(ParamFloat<px4::params::SIH_F_CP1>) _sih_f_cp1,
-		(ParamFloat<px4::params::SIH_F_CP2>) _sih_f_cp2,
-		(ParamFloat<px4::params::SIH_F_DIA_INCH>) _sih_forward_diameter_inch,
-		(ParamFloat<px4::params::SIH_F_RPM_MAX>) _sih_forward_rpm_max,
-		(ParamInt<px4::params::BAT1_SOURCE>) _bat1_source,
-		(ParamInt<px4::params::SIH_VEHICLE_TYPE>) _sih_vtype,
-		(ParamFloat<px4::params::SIH_WIND_N>) _sih_wind_n,
-		(ParamFloat<px4::params::SIH_WIND_E>) _sih_wind_e,
-		(ParamFloat<px4::params::SIH_RNGBC_NOISE>) _sih_ranging_beacon_noise
+		(ParamFloat<px4::params::SIH_F_T_MAX>) _param_sih_f_t_max,
+		(ParamFloat<px4::params::SIH_F_Q_MAX>) _param_sih_f_q_max,
+		(ParamFloat<px4::params::SIH_F_CT0>) _param_sih_f_ct0,
+		(ParamFloat<px4::params::SIH_F_CT1>) _param_sih_f_ct1,
+		(ParamFloat<px4::params::SIH_F_CT2>) _param_sih_f_ct2,
+		(ParamFloat<px4::params::SIH_F_CP0>) _param_sih_f_cp0,
+		(ParamFloat<px4::params::SIH_F_CP1>) _param_sih_f_cp1,
+		(ParamFloat<px4::params::SIH_F_CP2>) _param_sih_f_cp2,
+		(ParamFloat<px4::params::SIH_F_DIA_INCH>) _param_sih_f_dia_inch,
+		(ParamFloat<px4::params::SIH_F_RPM_MAX>) _param_sih_f_rpm_max,
+		(ParamInt<px4::params::BAT1_SOURCE>) _param_bat1_source,
+		(ParamInt<px4::params::SIH_VEHICLE_TYPE>) _param_sih_vehicle_type,
+		(ParamFloat<px4::params::SIH_WIND_N>) _param_sih_wind_n,
+		(ParamFloat<px4::params::SIH_WIND_E>) _param_sih_wind_e,
+		(ParamFloat<px4::params::SIH_RNGBC_NOISE>) _param_sih_rngbc_noise
 	)
 };

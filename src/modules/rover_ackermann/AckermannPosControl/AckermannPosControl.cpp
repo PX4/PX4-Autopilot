@@ -49,7 +49,7 @@ AckermannPosControl::AckermannPosControl(ModuleParams *parent) :
 void AckermannPosControl::updateParams()
 {
 	ModuleParams::updateParams();
-	_max_yaw_rate = _param_ro_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
+	_max_yaw_rate = _param_ro_yaw_rate_lim.get() * M_DEG_TO_RAD_F;
 	_min_speed = _param_ra_wheel_base.get() * _max_yaw_rate / tanf(_param_ra_max_str_ang.get());
 
 }
@@ -74,9 +74,9 @@ void AckermannPosControl::updatePosControl()
 
 			float speed_setpoint{_cruising_speed};
 
-			if (!course_control && _param_ro_decel_limit.get() > FLT_EPSILON && _param_ro_jerk_limit.get() > FLT_EPSILON) {
-				speed_setpoint = math::min(math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_limit.get(),
-							   _param_ro_decel_limit.get(), distance_to_target, fabsf(_arrival_speed)), _cruising_speed);
+			if (!course_control && _param_ro_decel_lim.get() > FLT_EPSILON && _param_ro_jerk_lim.get() > FLT_EPSILON) {
+				speed_setpoint = math::min(math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_lim.get(),
+							   _param_ro_decel_lim.get(), distance_to_target, fabsf(_arrival_speed)), _cruising_speed);
 			}
 
 			float bearing_setpoint{NAN};
@@ -175,7 +175,7 @@ void AckermannPosControl::updateSubscriptions()
 		_start_ned = _start_ned.isAllFinite() ? _start_ned : _curr_pos_ned;
 		_arrival_speed = PX4_ISFINITE(surface_vehicle_position_setpoint.arrival_speed) ? surface_vehicle_position_setpoint.arrival_speed : 0.f;
 		_cruising_speed = PX4_ISFINITE(surface_vehicle_position_setpoint.cruising_speed) ? surface_vehicle_position_setpoint.cruising_speed :
-				  _param_ro_speed_limit.get();
+				  _param_ro_speed_lim.get();
 		_target_waypoint_ned = Vector2f(surface_vehicle_position_setpoint.target_ned[0], surface_vehicle_position_setpoint.target_ned[1]);
 		_course = NAN;
 		_stopped = false;
@@ -187,7 +187,7 @@ void AckermannPosControl::updateSubscriptions()
 		_start_ned = Vector2f(NAN, NAN);
 		_arrival_speed = 0.f;
 		_cruising_speed = PX4_ISFINITE(surface_vehicle_course_setpoint.speed) ?
-				  surface_vehicle_course_setpoint.speed : _param_ro_speed_limit.get();
+				  surface_vehicle_course_setpoint.speed : _param_ro_speed_lim.get();
 		_target_waypoint_ned = Vector2f(NAN, NAN);
 		_course = surface_vehicle_course_setpoint.course;
 		_stopped = false;
@@ -199,7 +199,7 @@ bool AckermannPosControl::runSanityChecks()
 {
 	bool ret = true;
 
-	if (_param_ro_speed_limit.get() < FLT_EPSILON) {
+	if (_param_ro_speed_lim.get() < FLT_EPSILON) {
 		ret = false;
 	}
 

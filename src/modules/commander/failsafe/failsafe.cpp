@@ -431,11 +431,13 @@ FailsafeBase::ActionOptions Failsafe::fromGnssLossActParam(int param_value)
 	case gps_redundancy_failsafe_mode::Return_mode:
 		options.action = Action::RTL;
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		options.clear_during_delay = true; // a short loss only causes a Hold
 		break;
 
 	case gps_redundancy_failsafe_mode::Land_mode:
 		options.action = Action::Land;
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		options.clear_during_delay = true; // a short loss only causes a Hold
 		break;
 
 	case gps_redundancy_failsafe_mode::Terminate:
@@ -729,7 +731,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	}
 
 	CHECK_FAILSAFE(status_flags, fd_imbalanced_prop, Action::Warn);
-	CHECK_FAILSAFE(status_flags, fd_motor_failure, fromActuatorFailureActParam(_param_com_actuator_failure_act.get()));
+	CHECK_FAILSAFE(status_flags, fd_motor_failure, fromActuatorFailureActParam(_param_com_act_fail_act.get()));
 	CHECK_FAILSAFE(status_flags, gnss_lost, fromGnssLossActParam(_param_com_gnssloss_act.get()));
 
 

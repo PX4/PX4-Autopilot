@@ -114,6 +114,7 @@ px4_add_romfs_files(
 	10045_sihsim_rover_ackermann
 	10046_sihsim_quadx_flow
 	10047_sihsim_standard_vtol_flow
+	10048_sihsim_rover_differential
 
 	17001_flightgear_tf-g1
 	17002_flightgear_tf-g2

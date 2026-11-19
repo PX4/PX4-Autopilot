@@ -53,6 +53,7 @@ target_link_libraries(px4iofirmware
 		nuttx_arch
 		nuttx_c
 		nuttx_mm
+		px4io_protocol
 		rc
 )
 

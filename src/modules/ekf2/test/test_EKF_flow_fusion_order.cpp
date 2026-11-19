@@ -53,11 +53,14 @@ public:
 	using SquareMatrixState = Ekf::SquareMatrixState;
 	using Vector25 = Vector<float, 25>;
 
+	static constexpr float kGate = 3.f;
+
 	std::shared_ptr<Ekf> _ekf{std::make_shared<Ekf>()};
 
 	StateSample _x0{};
 	LatLonAlt _gpos0{0.0, 0.0, 0.f};
 	SquareMatrixState _P0{};
+	estimator_aid_source2d_s _aid_src{};
 
 	void SetUp() override
 	{
@@ -66,10 +69,6 @@ public:
 		_ekf->_control_status.flags.heading_observable = true;
 		_ekf->_control_status.flags.mag = false;
 		_ekf->_time_delayed_us = 1'000'000;
-		_ekf->_params.ekf2_of_gate = 3.f;
-		_ekf->_flow_gyro_bias.setZero();
-		_ekf->_flow_sample_delayed.gyro_rate.setZero();
-		_ekf->_flow_sample_delayed.quality = 255;
 	}
 
 	// a priori state and covariance: uncertain velocity, attitude and terrain with cross-correlations;
@@ -130,7 +129,7 @@ public:
 
 	const StateSample &state() const { return _ekf->_state; }
 	const SquareMatrixState &covariance() const { return _ekf->P; }
-	const estimator_aid_source2d_s &flowAidSrc() const { return _ekf->_aid_src_optical_flow; }
+	const estimator_aid_source2d_s &flowAidSrc() const { return _aid_src; }
 
 	// observation jacobians and innovation variances of both flow components at the prior
 	void lineariseFlow(float R, VectorState &Hx, VectorState &Hy, Vector2f &innov_var)
@@ -178,11 +177,11 @@ public:
 	{
 		restorePrior();
 		// PX4 convention: innovation = prediction - observation
-		const Vector2f observation = _ekf->predictFlow(_ekf->_flow_sample_delayed.gyro_rate) - innov;
-		_ekf->updateAidSourceStatus(_ekf->_aid_src_optical_flow, _ekf->_time_delayed_us, observation, Vector2f(R, R),
-					    innov, innov_var, _ekf->_params.ekf2_of_gate);
+		const Vector2f observation = _ekf->predictFlow(Vector3f(), Vector3f()) - innov;
+		_ekf->updateAidSourceStatus(_aid_src, _ekf->_time_delayed_us, observation, Vector2f(R, R),
+					    innov, innov_var, kGate);
 		VectorState H = Hx;
-		return _ekf->fuseOptFlow(H, true);
+		return _ekf->fuseOptFlow(_aid_src, H, true);
 	}
 
 	// generic sequential fusion of two scalar observations through the helpers, in the given order

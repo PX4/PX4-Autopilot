@@ -88,6 +88,15 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   In flight the primary receiver is now also left when it has failed the strict checks for 10 s while the other receiver passed them. ([PX4-Autopilot#28798](https://github.com/PX4/PX4-Autopilot/pull/28798))
 - **Re-check the motor failure trigger thresholds.**
   `MOTFAIL_OFF` and `MOTFAIL_TIME` are replaced by a separate band and trigger time per direction ([MOTFAIL_OVER](../advanced_config/parameter_reference.md#MOTFAIL_OVER)/[MOTFAIL_OVR_TIME](../advanced_config/parameter_reference.md#MOTFAIL_OVR_TIME) and [MOTFAIL_UNDER](../advanced_config/parameter_reference.md#MOTFAIL_UNDER)/[MOTFAIL_UND_TIME](../advanced_config/parameter_reference.md#MOTFAIL_UND_TIME)), and are not migrated: the new parameters start at their defaults. The check now compares a low-pass filtered current residual instead of the instantaneous value, so the thresholds are worth re-deriving: see [Motor Failure Detection > Upgrading from PX4 v1.18](../config/motor_failure_detection.md#upgrading-from-px4-v1-18). ([PX4-Autopilot#27917](https://github.com/PX4/PX4-Autopilot/pull/27917))
+- **The failure detector attitude trigger checks the tilt error instead of roll and pitch separately.**
+  [FD_TILT_ERROR](../advanced_config/parameter_reference.md#FD_TILT_ERROR) replaces `FD_FAIL_R` and `FD_FAIL_P` and is the maximum angle between the vehicle tilt and the attitude setpoint tilt, in any direction. [FD_TILT_ERROR_T](../advanced_config/parameter_reference.md#FD_TILT_ERROR_T) replaces `FD_FAIL_R_TTRI` and `FD_FAIL_P_TTRI` and is the time it has to be exceeded (default now 1 s instead of 0.3 s).
+  The old values are not migrated because their meaning changed: the new parameters start at their defaults, except that a check disabled for both roll and pitch stays disabled.
+  Without a recent attitude setpoint, for example on rovers, the tilt from level is checked instead.
+  Vehicles may now fly at any tilt their attitude setpoint asks for, and a large tracking error triggers the check at any tilt.
+  The check is paused for the first 5 s after a VTOL switches to multicopter mode without back-transition, i.e. a quad-chute or an aborted front transition, while the vehicle recovers from fixed-wing flight.
+  Limits raised or disabled to allow large tilts, for example roll on fixed-wing vehicles, are no longer needed.
+  The check is disabled with `FD_TILT_ERROR` set to -1.
+  The `fd_roll` and `fd_pitch` fields of [FailureDetectorStatus](../msg_docs/FailureDetectorStatus.md) are replaced by `fd_tilt`.
 
 ## Other changes
 
@@ -108,6 +117,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ### Hardware Support
 
+- [Accton Godwit G-FH7](../flight_controller/accton-godwit_gfh7.md): compact STM32H753 flight controller with dual IMUs (ICM-42688-P, LSM6DSK320X), a DPS368 barometer, an IST8310 magnetometer, 8 bidirectional DShot outputs, and an analog OSD. ([PX4-Autopilot#28817](https://github.com/PX4/PX4-Autopilot/pull/28817))
 - [AIFoundry Erbium](../flight_controller/aifoundry_erbium.md): new experimental target for the AIFoundry Erbium RISC-V (ET-Minion) chip, which runs the SIH quadcopter on the `erbium_emu` emulator until silicon is available. ([PX4-Autopilot#29094](https://github.com/PX4/PX4-Autopilot/pull/29094))
 - [DroneCAN ESCs](../dronecan/escs.md) no longer need to set `UAVCAN_PUB_ARM` as `ArmingStatus` is published automatically whenever `UAVCAN_ENABLE` is `3` (ESC output enabled). ([PX4-Autopilot#28364](https://github.com/PX4/PX4-Autopilot/pull/28364))
 - [DroneCAN ESC](../dronecan/escs.md) channels assigned a non-motor function (e.g. _Peripheral via Actuator Set_) can be driven bidirectionally via `UAVCAN_EC_SIGNED` (signed RawCommand, 0 = neutral). Motors continue to use `CA_R_REV`. ([PX4-Autopilot#26903](https://github.com/PX4/PX4-Autopilot/pull/26903))
@@ -142,7 +152,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - [Motor failure recovery](../config/motor_failure_recovery.md) for hexarotors: on a single motor failure the control allocator removes the failed motor and additionally stops ([CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) = `1`) or reverses (`2`) the motor opposite it to recover the lost yaw authority. Mode `2` requires a reverse-capable ESC and models the reverse thrust of a forward propeller with the new [CA_REV_THR_FRAC](../advanced_config/parameter_reference.md#CA_REV_THR_FRAC) (default `0.4`). Reversible motor outputs on DroneCAN are now sent as signed `RawCommand` values (negative is reverse). ([PX4-Autopilot#28078](https://github.com/PX4/PX4-Autopilot/pull/28078))
 - [Distance-aware return failsafe](../config/safety.md#distance-aware-return-failsafe) (also known as "bingo fuel"): engaging Return mode when the remaining flight time is only just enough to return is now part of [COM_LOW_BAT_ACT](../advanced_config/parameter_reference.md#COM_LOW_BAT_ACT) `3` and `4` (the new options `5` and `6` opt out), instead of with the separate `COM_FLTT_LOW_ACT`. See the [Upgrade Guide](#upgrade-guide). ([PX4-Autopilot#26955](https://github.com/PX4/PX4-Autopilot/pull/26955))
 - Added `RTL_TYPE=6` for battery-aware home priority return ([PX4-Autopilot#26968](https://github.com/PX4/PX4-Autopilot/pull/26968)).
-  Returns to home if the estimated flight time to home is within the remaining battery time; otherwise returns to the closest rally point.
+  Returns to home if the estimated flight time to home is within the remaining battery time; otherwise returns to the closest rally point if it is closer than home.
   Falls back to the closest safe point (home or rally) if battery time remaining is unavailable.
 - [Secure boot](../advanced_config/bootloader_secure_boot.md#multi-part-signed-images) now supports applications that can boot securely from SD card or eMMC. ([PX4-Autopilot#28228](https://github.com/PX4/PX4-Autopilot/pull/28228))
 - [Motor failure detection](../config/motor_failure_detection.md) now compares a low-pass filtered current residual against a separate trip band and trigger time for the undercurrent and overcurrent directions, instead of one symmetric band on the instantaneous current, and the current model gains an offset term. See [Upgrading from PX4 v1.18](../config/motor_failure_detection.md#upgrading-from-px4-v1-18). ([PX4-Autopilot#27711](https://github.com/PX4/PX4-Autopilot/pull/27711), [PX4-Autopilot#27917](https://github.com/PX4/PX4-Autopilot/pull/27917))
@@ -182,6 +192,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - [SYS_STATUS](https://mavlink.io/en/messages/common.html#SYS_STATUS) now sets the [MAV_SYS_STATUS_EXTENSION_USED](https://mavlink.io/en/messages/common.html#MAV_SYS_STATUS_EXTENSION_USED) flag in `onboard_control_sensors_present` when extended sensor fields are used.
 - [TIME_ESTIMATE_TO_TARGET](https://mavlink.io/en/messages/common.html#TIME_ESTIMATE_TO_TARGET) reports `safe_return` as `-1` (landed or no estimate) when Return has no time estimate: before Home is set, on the ground unless Return would follow a mission landing, and with [RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 2 or 4 and a valid mission.
   It used to send `0`, or an undefined value with `RTL_TYPE` 2 and 4.
+- The number of [MAVLink instances](../peripherals/mavlink_peripherals.md#mavlink-instances) can now be set per board, and the [Agam Autopilot v6X-RT](../flight_controller/agam_v6xrt.md) has five (`MAV_0_CONFIG` to `MAV_4_CONFIG`). ([PX4-Autopilot#29573](https://github.com/PX4/PX4-Autopilot/pull/29573))
 
 ### RC
 
@@ -198,6 +209,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 - After a [quad-chute](../config/safety.md#quad-chute-failsafe), Mission and VTOL Takeoff mode no longer command forward transitions and continue in multicopter mode. Before, a resumed mission commanded the next transition again, which also cleared the quad-chute, and with [COM_QC_ACT](../advanced_config/parameter_reference.md#COM_QC_ACT) set to Warning a quad-chute during a mission transition left the mission waiting at that item.
 - A [quad-chute](../config/safety.md#quad-chute-failsafe) commanded with `MAV_CMD_DO_VTOL_TRANSITION` (`param2` = 1) now only switches to multicopter mode, as it is not caused by a failure. It no longer executes [COM_QC_ACT](../advanced_config/parameter_reference.md#COM_QC_ACT) or requires a reboot before the next arming.
+- Standard VTOLs using pusher assist ([VT_FWD_THRUST_EN](../advanced_config/parameter_reference.md#VT_FWD_THRUST_EN)) now detect a pusher failure in multicopter mode, when the forward velocity stays well below its setpoint although the pusher assist throttle is above [VT_EF_THROT](../advanced_config/parameter_reference.md#VT_EF_THROT). A detected failure is handled as a [quad-chute](../config/safety.md#quad-chute-failsafe) that blocks front transitions until reboot. Setting [VT_EF_TIME](../advanced_config/parameter_reference.md#VT_EF_TIME) to 0 disables the detection and, in flight, allows front transitions again.
 
 ### Fixed-wing
 

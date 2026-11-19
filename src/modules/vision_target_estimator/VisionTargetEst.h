@@ -238,8 +238,8 @@ private:
 		(ParamInt<px4::params::VTE_TASK_MASK>) _param_vte_task_mask,
 		(ParamFloat<px4::params::VTE_BTOUT>) _param_vte_btout,
 		(ParamFloat<px4::params::VTE_TGT_TOUT>) _param_vte_tgt_tout,
-		(ParamFloat<px4::params::VTE_M_REC_TOUT>) _param_vte_mrec_tout,
-		(ParamFloat<px4::params::VTE_M_UPD_TOUT>) _param_vte_mupd_tout,
+		(ParamFloat<px4::params::VTE_M_REC_TOUT>) _param_vte_m_rec_tout,
+		(ParamFloat<px4::params::VTE_M_UPD_TOUT>) _param_vte_m_upd_tout,
 		(ParamInt<px4::params::VTE_AID_MASK>) _param_vte_aid_mask
 	)
 };

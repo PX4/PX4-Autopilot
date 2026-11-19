@@ -91,6 +91,7 @@ add_custom_command(OUTPUT ${generated_serial_params_file} ${generated_module_par
 		--params-file ${generated_serial_params_file}
 		--serial-ports ${board_serial_ports} ${added_arguments} ${constrained_flash_arg}
 		--config-files ${module_config_files}
+		--board-config ${BOARD_CONFIG}
 		#--verbose
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/module_config/generate_params.py
 		--params-file ${generated_module_params_file}

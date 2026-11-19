@@ -359,7 +359,7 @@ void EscChecks::checkEscTemperature(Report &reporter, const esc_status_s &esc_st
 
 	if (max_temperature >= warn_temp) {
 		if (!_esc_over_temp_warned && reporter.mavlink_log_pub()) {
-			mavlink_log_warning(reporter.mavlink_log_pub(), "High ESC temperature. Reduce throttle!");
+			mavlink_log_warning(reporter.mavlink_log_pub(), "High ESC temperature. Reduce throttle!\t");
 			_esc_over_temp_warned = true;
 		}
 
@@ -429,7 +429,7 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 								events::Log::Critical, "Motor {1} undercurrent detected", motor + 1);
 
 				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Motor failure: Motor %d undercurrent detected", motor + 1);
+					mavlink_log_critical(reporter.mavlink_log_pub(), "Motor failure: Motor %d undercurrent detected\t", motor + 1);
 				}
 
 			} else if (failure == MotorFailureDetector::Failure::Overcurrent) {
@@ -444,7 +444,7 @@ uint16_t EscChecks::checkMotorStatus(const Context &context, Report &reporter, c
 								events::Log::Critical, "Motor {1} overcurrent detected", motor + 1);
 
 				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Motor failure: Motor %d overcurrent detected", motor + 1);
+					mavlink_log_critical(reporter.mavlink_log_pub(), "Motor failure: Motor %d overcurrent detected\t", motor + 1);
 				}
 			}
 		}
@@ -492,7 +492,7 @@ void EscChecks::updateEscsStatus(const Context &context, Report &reporter, const
 					       events::Log::Critical, "Not all ESCs are armed");
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "ESC failure: Not all ESCs are armed. Land now!");
+				mavlink_log_critical(reporter.mavlink_log_pub(), "ESC failure: Not all ESCs are armed. Land now!\t");
 			}
 
 			reporter.failsafeFlags().fd_esc_arming_failure = true;
