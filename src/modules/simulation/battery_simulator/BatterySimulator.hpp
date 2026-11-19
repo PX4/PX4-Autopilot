@@ -44,6 +44,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/esc_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
 
@@ -83,6 +84,11 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
+
+	bool _esc_current_reported{false}; ///< the simulator models the ESC current
+	int _enabled_batteries{1}; ///< batteries with BAT<N>_SOURCE "Power Module", which share the current
+	param_t _source_handles[battery_status_s::MAX_INSTANCES] {};
 
 	// A battery only publishes if its BAT<N>_SOURCE is set to "Power Module / Analog".
 	// Allocated once in the constructor: Battery is not copyable and older compilers (GCC < 9) do not elide the copy
@@ -103,6 +109,8 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _param_sim_bat_drain, ///< battery drain interval
-		(ParamFloat<px4::params::SIM_BAT_MIN_PCT>) _param_sim_bat_min_pct //< minimum battery percentage
+		(ParamFloat<px4::params::SIM_BAT_MIN_PCT>) _param_sim_bat_min_pct, //< minimum battery percentage
+		(ParamFloat<px4::params::SIM_BAT_I_MOT>) _param_sim_bat_i_mot,
+		(ParamFloat<px4::params::SIM_BAT_I_IDLE>) _param_sim_bat_i_idle
 	)
 };
