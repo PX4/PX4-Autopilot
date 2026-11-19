@@ -546,6 +546,9 @@ void Sih::publish_esc_status()
 		_esc_status.esc[motor_idx].actuator_function = esc_report_s::ACTUATOR_FUNCTION_MOTOR1 + motor_idx;
 		_esc_status.esc[motor_idx].esc_temperature = 50.f;
 		_esc_status.esc[motor_idx].esc_rpm = (int32_t)roundf(Thruster::throttle_to_rpm(_u[i], max_rpm));
+		// shaft power, so the current at constant voltage, grows with the propeller speed cubed
+		const float speed_ratio = Thruster::throttle_to_speed_ratio(fabsf(_u[i]));
+		_esc_status.esc[motor_idx].esc_current = _sih_esc_current_max.get() * speed_ratio * speed_ratio * speed_ratio;
 		_esc_status.esc_online_flags |= 1u << motor_idx;
 
 		if (_u[i] > FLT_EPSILON) {

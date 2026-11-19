@@ -412,6 +412,7 @@ private:
 		(ParamFloat<px4::params::SIH_OF_NOISE>) _sih_optical_flow_noise,
 		(ParamFloat<px4::params::SIH_OF_H_MAX>) _sih_optical_flow_h_max,
 		(ParamFloat<px4::params::SIH_T_TAU>) _sih_thrust_tau,
+		(ParamFloat<px4::params::SIH_ESC_I_MAX>) _sih_esc_current_max,
 		// forward propeller
 		(ParamFloat<px4::params::SIH_F_T_MAX>) _sih_f_thrust_max,
 		(ParamFloat<px4::params::SIH_F_Q_MAX>) _sih_f_torque_max,

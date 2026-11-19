@@ -44,6 +44,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/esc_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
 
@@ -83,6 +84,11 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
+
+	// SIH_ESC_I_MAX: SIH simulates ESC currents, battery 1 feeds them plus the avionics
+	param_t _esc_current_max_handle{PARAM_INVALID};
+	float _esc_current_max{0.f};
 
 	// A battery only publishes if its BAT<N>_SOURCE is set to "Power Module / Analog".
 	// Allocated once in the constructor: Battery is not copyable and older compilers (GCC < 9) do not elide the copy

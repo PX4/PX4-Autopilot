@@ -40,6 +40,8 @@ BatterySimulator::BatterySimulator() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
+	_esc_current_max_handle = param_find("SIH_ESC_I_MAX");
+
 	for (int i = 0; i < battery_status_s::MAX_INSTANCES; i++) {
 		_batteries[i] = new Battery(i + 1, this, BATTERY_SIMLATOR_SAMPLE_INTERVAL_US, battery_status_s::SOURCE_POWER_MODULE);
 
@@ -119,7 +121,19 @@ void BatterySimulator::Run()
 
 	const hrt_abstime now_us = hrt_absolute_time();
 
-	const float ibatt = -1.0f; // no current sensor in simulation
+	float ibatt = -1.0f; // no current measurement, unless SIH simulates the ESC currents
+	// from the published ESC status, so injected ESC telemetry failures (failure esc) also change it
+	esc_status_s esc_status;
+
+	if (_esc_current_max > FLT_EPSILON && _esc_status_sub.copy(&esc_status)
+	    && hrt_elapsed_time(&esc_status.timestamp) < 1_s) {
+		static constexpr float kAvionicsCurrent = 1.f; // [A]
+		ibatt = kAvionicsCurrent;
+
+		for (int esc = 0; esc < math::min(static_cast<int>(esc_status.esc_count), static_cast<int>(esc_status_s::CONNECTED_ESC_MAX)); esc++) {
+			ibatt += esc_status.esc[esc].esc_current;
+		}
+	}
 
 	for (int i = 0; i < battery_status_s::MAX_INSTANCES; i++) {
 		// Limit to +1.0 s to guard against division by 0
@@ -145,7 +159,9 @@ void BatterySimulator::Run()
 
 		battery.setConnected(true);
 		battery.updateVoltage(vbatt);
-		battery.updateCurrent(ibatt);
+		// SIH enables only battery 1 by default and has no model of how packs share a load: battery 1 carries it all,
+		// the others report no current measurement, so that the sum over all batteries stays right
+		battery.updateCurrent(i == 0 ? ibatt : -1.f);
 		battery.updateAndPublishBatteryStatus(now_us);
 	}
 
@@ -158,6 +174,10 @@ void BatterySimulator::Run()
 void BatterySimulator::updateParams()
 {
 	ModuleParams::updateParams();
+
+	if (_esc_current_max_handle == PARAM_INVALID || param_get(_esc_current_max_handle, &_esc_current_max) != PX4_OK) {
+		_esc_current_max = 0.f;
+	}
 
 	for (int i = 0; i < battery_status_s::MAX_INSTANCES; i++) {
 		if (_drain_handles[i] != PARAM_INVALID) {
