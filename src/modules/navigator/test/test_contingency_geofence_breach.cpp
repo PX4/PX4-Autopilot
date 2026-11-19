@@ -371,11 +371,12 @@ TEST_P(ContGeofenceSourceTest, PublishesTheContGeofenceAction)
 	setParam("GF_CONT_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_LAND));
 	EXPECT_EQ(checkAt(inside()).geofence_cont_action, geofence_result_s::GF_ACTION_LAND);
 
-	// None and Terminate are not offered.
-	for (const int32_t action : {geofence_result_s::GF_ACTION_NONE, geofence_result_s::GF_ACTION_TERMINATE}) {
-		setParam("GF_CONT_ACTION", action);
-		EXPECT_EQ(checkAt(inside()).geofence_cont_action, geofence_result_s::GF_ACTION_WARN);
-	}
+	setParam("GF_CONT_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_NONE));
+	EXPECT_EQ(checkAt(inside()).geofence_cont_action, geofence_result_s::GF_ACTION_NONE);
+
+	// Terminate is not offered.
+	setParam("GF_CONT_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_TERMINATE));
+	EXPECT_EQ(checkAt(inside()).geofence_cont_action, geofence_result_s::GF_ACTION_WARN);
 }
 
 TEST_P(ContGeofenceSourceTest, HoldLoitersAtTheTriggerPosition)
@@ -412,7 +413,10 @@ TEST_P(ContGeofenceSourceTest, OtherActionsDoNotReposition)
 {
 	enableContGeofence();
 
-	for (const int32_t action : {geofence_result_s::GF_ACTION_WARN, geofence_result_s::GF_ACTION_RTL, geofence_result_s::GF_ACTION_LAND}) {
+	for (const int32_t action : {
+		     geofence_result_s::GF_ACTION_NONE, geofence_result_s::GF_ACTION_WARN,
+		     geofence_result_s::GF_ACTION_RTL, geofence_result_s::GF_ACTION_LAND
+	     }) {
 		SCOPED_TRACE(action);
 		setParam("GF_CONT_ACTION", action);
 		checkAt(inside());
@@ -517,10 +521,12 @@ TEST_P(ContGeofenceSourceTest, CommandedTargetsMustStayInside)
 	EXPECT_FALSE(targetAllowed(between()));
 	EXPECT_FALSE(targetAllowed(outside()));
 
-	// A warning does not restrict targets, the emergency geofence still does.
-	setParam("GF_CONT_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_WARN));
-	EXPECT_TRUE(targetAllowed(between()));
-	EXPECT_FALSE(targetAllowed(outside()));
+	// Warning and None do not restrict targets, the emergency geofence still does.
+	for (const int32_t action : {geofence_result_s::GF_ACTION_WARN, geofence_result_s::GF_ACTION_NONE}) {
+		setParam("GF_CONT_ACTION", action);
+		EXPECT_TRUE(targetAllowed(between()));
+		EXPECT_FALSE(targetAllowed(outside()));
+	}
 
 	// Each level follows its own action.
 	setParam("GF_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_NONE));

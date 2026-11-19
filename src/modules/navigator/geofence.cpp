@@ -904,13 +904,14 @@ uint8_t Geofence::getContGeofenceAction() const
 	}
 
 	switch (_param_gf_cont_action.get()) {
+	case geofence_result_s::GF_ACTION_NONE:
 	case geofence_result_s::GF_ACTION_LOITER:
 	case geofence_result_s::GF_ACTION_RTL:
 	case geofence_result_s::GF_ACTION_LAND:
 		return static_cast<uint8_t>(_param_gf_cont_action.get());
 
 	default:
-		// The contingency geofence does not offer None or Terminate.
+		// The contingency geofence does not offer Terminate.
 		return geofence_result_s::GF_ACTION_WARN;
 	}
 }

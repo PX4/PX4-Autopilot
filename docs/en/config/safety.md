@@ -258,7 +258,7 @@ The contingency geofence is off while the margin is 0 (the default).
 
 | Setting                     | Parameter                                                                      | Description                                                     |
 | --------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------- |
-| Contingency geofence action | [GF_CONT_ACTION](../advanced_config/parameter_reference.md#GF_CONT_ACTION)     | Warning, Hold mode (default), Return mode, or Land mode.        |
+| Contingency geofence action | [GF_CONT_ACTION](../advanced_config/parameter_reference.md#GF_CONT_ACTION)     | None, Warning, Hold mode (default), Return mode, or Land mode.  |
 | Contingency geofence margin | [GF_CONT_H_MARGIN](../advanced_config/parameter_reference.md#GF_CONT_H_MARGIN) | Horizontal distance from the emergency geofence. Disabled if 0. |
 
 The margin applies to the maximum distance from Home ([GF_MAX_HOR_DIST](../advanced_config/parameter_reference.md#GF_MAX_HOR_DIST)) and to every inclusion and exclusion area of the [Geofence Plan](../flying/geofence.md#geofence-plan): the vehicle breaches the contingency geofence once it comes closer to one of them than `GF_CONT_H_MARGIN`.
@@ -283,7 +283,7 @@ Use a margin above these nominal values to account for possible tailwind, positi
 PX4 does not check the setup:
 
 - The contingency geofence action should be the milder of the two.
-  It has no `None`, because the contingency geofence is disabled through its margin, and no `Terminate`, which is left to the emergency geofence.
+  It has no `Terminate`, which is left to the emergency geofence.
 - If the margin leaves no room inside `GF_MAX_HOR_DIST` or inside an inclusion area, the contingency geofence is breached everywhere.
 - As for the emergency geofence, a mission that is already uploaded is not checked again when these parameters change, also not while it is being flown.
   It is checked again when Mission mode is activated, or when the mission or the Geofence Plan is uploaded.
@@ -299,6 +299,7 @@ PX4 does not check the setup:
 When the vehicle breaches the contingency geofence:
 
 - The contingency geofence action is triggered, in all flight modes.
+  With `None` nothing is triggered and arming is not denied, as with `GF_ACTION` set to `None`.
   With `Hold` the vehicle holds where it breached the contingency geofence, in the same way as after an emergency geofence breach (a fixed-wing vehicle loiters around that position).
   If already established on a loiter, it keeps the existing loiter centre.
   Switch to another mode to take over.
@@ -310,7 +311,7 @@ When the vehicle breaches the contingency geofence:
 PX4 also keeps planned flight inside the contingency geofence:
 
 - A mission is rejected if one of its positions, a leg between positions or a fixed-wing loiter circle comes closer to the emergency geofence than the margin.
-- The target of a _Go to location_ ([reposition](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_REPOSITION)) or of an altitude change, and the centre of a fixed-wing orbit or figure-eight, is refused if it lies outside the contingency geofence (unless the action is `Warning`).
+- The target of a _Go to location_ ([reposition](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_REPOSITION)) or of an altitude change, and the centre of a fixed-wing orbit or figure-eight, is refused if it lies outside the contingency geofence (unless the action is `None` or `Warning`).
   As for the emergency geofence, only the target is checked, not the path to it or the loiter circle around it.
   An altitude change keeps the vehicle's position, so it is refused while the vehicle is outside the contingency geofence: send the vehicle back inside first.
 - [Return mode](../flight_modes/return.md#geofence_awareness) plans its route around the Geofence Plan with the margin added.

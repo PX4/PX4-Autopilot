@@ -368,6 +368,12 @@ TEST_F(MissionFeasibilityGeofenceTest, PositionsMustKeepTheMarginToTheHomeDistan
 	EXPECT_TRUE(waypointEvent(events::ID("navigator_mis_geofence_violation"), 1));
 	EXPECT_FALSE(missionFeasible({waypoint({0.f, 200.f}), waypoint({0.f, 350.f})}));
 	EXPECT_TRUE(waypointEvent(events::ID("navigator_mis_geofence_violation"), 2));
+
+	// As with GF_ACTION, an action of None does not switch the mission check off.
+	const int32_t none = geofence_result_s::GF_ACTION_NONE;
+	ASSERT_EQ(param_set(param_find("GF_CONT_ACTION"), &none), PX4_OK);
+	_navigator.updateParams();
+	EXPECT_FALSE(missionFeasible({waypoint({0.f, 350.f})}));
 }
 
 TEST_F(MissionFeasibilityGeofenceTest, EmptyFenceIgnoresStoredAltitudeBand)

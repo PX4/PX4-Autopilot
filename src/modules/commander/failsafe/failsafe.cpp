@@ -135,13 +135,14 @@ FailsafeBase::ActionOptions Failsafe::fromGfActParam(int param_value)
 FailsafeBase::ActionOptions Failsafe::fromContGeofenceActionParam(int param_value)
 {
 	switch (geofence_violation_action(param_value)) {
+	case geofence_violation_action::None:
 	case geofence_violation_action::Hold_mode:
 	case geofence_violation_action::Return_mode:
 	case geofence_violation_action::Land_mode:
 		return fromGfActParam(param_value);
 
 	default:
-		// The contingency geofence does not offer None or Terminate.
+		// The contingency geofence does not offer Terminate.
 		return ActionOptions(Action::Warn);
 	}
 }

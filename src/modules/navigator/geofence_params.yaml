@@ -59,10 +59,11 @@ parameters:
         long: If the emergency geofence is breached as well, the more severe of the two actions is taken.
       type: enum
       values:
+        0: None
         1: Warning
         2: Hold mode
         3: Return mode
         5: Land mode
       default: 2
-      min: 1
+      min: 0
       max: 5
