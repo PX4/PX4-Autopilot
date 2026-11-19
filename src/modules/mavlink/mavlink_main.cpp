@@ -313,6 +313,9 @@ Mavlink::mavlink_update_parameters()
 	_use_hil_gps_atomic.store(_param_mav_usehilgps.get());
 	_hb_forw_en_atomic.store(_param_mav_hb_forw_en.get());
 	_fwdextsp_atomic.store(_param_mav_fwdextsp.get());
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+	_failure_injection_en_atomic.store(_param_sys_failure_en.get());
+#endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER
 
 	setProtocolVersion(_param_mav_proto_ver.get());
 

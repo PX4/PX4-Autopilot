@@ -512,7 +512,7 @@ public:
 	bool failure_injection_enabled() const
 	{
 #if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
-		return _param_sys_failure_en.get();
+		return _failure_injection_en_atomic.load();
 #else
 		return false;
 #endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER
@@ -711,6 +711,9 @@ private:
 	px4::atomic_bool _use_hil_gps_atomic{false};
 	px4::atomic_bool _hb_forw_en_atomic{false};
 	px4::atomic_bool _fwdextsp_atomic{false};
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+	px4::atomic_bool _failure_injection_en_atomic {false};
+#endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER
 
 	px4::atomic<unsigned>	_bytes_tx{0};
 	px4::atomic<unsigned>	_bytes_txerr{0};
