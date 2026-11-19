@@ -35,7 +35,7 @@ It also highlights devices that connect via the CAN bus, and those which support
 | [CubePilot Here+ RTK GPS](../gps_compass/rtk_gps_cubepilot_hereplus.md)                                            |         M8P          | HMC5983  |            |                                     |     |
 | [CubePilot Here3][CubePilot Here3]                                                                                 |         M8P          | ICM20948 |     ✓      |                                     |     |
 | [CubePilot Here3+][CubePilot Here3]                                                                                |         M8P          |  RM3100  |     ✓      |                                     |     |
-| [CubePilot Here4][CubePilot Here4]                                                                                 |       NEO-F9P        |  RM3100  |     ✓      |                                     |     |
+| [CubePilot Here4][CubePilot Here4]                                                                                 |         F9P          |  RM3100  |     ✓      |                                     |     |
 | [CubePilot HerePro][CubePilot HerePro]                                                                             |         F9P          |    ✓     |     ✓      |                                     |     |
 | [Drotek SIRIUS RTK GNSS ROVER (F9P)](https://store-drotek.com/911-sirius-rtk-gnss-rover-f9p.html)                  |         F9P          |  RM3100  |            |             [Dual F9P]              |     |
 | [DATAGNSS NANO HRTK Receiver](../gps_compass/rtk_gps_datagnss_nano_hrtk.md)                                        |        [D10P]        | IST8310  |            |                  ✘                  |     |
