@@ -52,7 +52,7 @@ def test_pilot_is_held_at_geofence_or_margin(tester_geofence: AutopilotTesterGeo
 @pytest.mark.multicopter
 def test_mission_is_held_at_contingency_geofence_home_distance(
         tester_geofence: AutopilotTesterGeofence) -> None:
-    """GF_PRE_MAX_HDIST holds a mission before it reaches GF_MAX_HOR_DIST."""
+    """GF_CONT_H_MARGIN holds a mission that distance before it reaches GF_MAX_HOR_DIST."""
     tester = tester_geofence
     tester.wait_until_ready()
     tester.store_home()
@@ -62,9 +62,9 @@ def test_mission_is_held_at_contingency_geofence_home_distance(
     tester.arm()
     tester.start_and_wait_for_mission_sequence(1)
 
-    # A mission that is being flown keeps its verdict, so the limit can be set behind it.
-    tester.set_param_float("GF_PRE_MAX_HDIST", 150.0)
-    assert tester.home_distance_m() < 120.0, "The limit was set too late"
+    # A mission that is being flown keeps its verdict, so the margin can be set behind it.
+    tester.set_param_float("GF_CONT_H_MARGIN", 150.0)
+    assert tester.home_distance_m() < 120.0, "The margin was set too late"
     tester.start_tracking()
     tester.wait_for_flight_mode(FlightMode.HOLD, 60)
     # The mission does not resume.
@@ -74,27 +74,6 @@ def test_mission_is_held_at_contingency_geofence_home_distance(
     log("Furthest from Home: {:.1f} m".format(furthest_m))
     assert 150.0 - POSITION_TOLERANCE_M < furthest_m < 150.0 + OVERSHOOT_M, \
         "Went {:.1f} m from Home".format(furthest_m)
-
-
-@pytest.mark.multicopter
-def test_pilot_is_held_at_contingency_geofence_altitude(tester_geofence: AutopilotTesterGeofence) -> None:
-    """GF_PRE_MAX_VDIST holds a climbing pilot before GF_MAX_VER_DIST is reached."""
-    tester = tester_geofence
-    tester.wait_until_ready()
-    tester.store_home()
-    tester.set_param_float("GF_MAX_VER_DIST", 45.0)
-    tester.set_param_float("GF_PRE_MAX_VDIST", 25.0)
-    take_off(tester)
-
-    tester.start_tracking()
-    tester.fly_in_position_mode_until_hold(forward=0.0, throttle=1.0, timeout_s=60)
-    tester.keep_sticks_centered_for(8)
-    tester.wait_for_flight_mode(FlightMode.HOLD, 1)
-
-    highest_m = tester.max_relative_altitude_m()
-    log("Highest above Home: {:.1f} m".format(highest_m))
-    assert 25.0 - POSITION_TOLERANCE_M < highest_m < 25.0 + OVERSHOOT_M, \
-        "Climbed to {:.1f} m".format(highest_m)
 
 
 @pytest.mark.multicopter

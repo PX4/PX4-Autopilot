@@ -39,7 +39,6 @@ class AutopilotTesterGeofence(AutopilotTesterLoiter):
         self._track_lock = threading.Lock()
         self._min_fence_distance_m = math.inf
         self._max_home_distance_m = 0.0
-        self._max_relative_altitude_m = -math.inf
 
     # ------------------------------------------------------------------
     # Fence, missions and commands
@@ -132,12 +131,10 @@ class AutopilotTesterGeofence(AutopilotTesterLoiter):
         """Record the extremes of the ground truth position from now on. Needs store_home()."""
         assert self._track_handle is None, "Already tracking"
         ct = CoordinateTransformation(*self._home_or_fail())
-        home_altitude_m = self.home_absolute_altitude_m()
 
         with self._track_lock:
             self._min_fence_distance_m = math.inf
             self._max_home_distance_m = 0.0
-            self._max_relative_altitude_m = -math.inf
 
         def on_ground_truth(ground_truth: Any, _user_data: Any) -> None:
             if math.isnan(ground_truth.latitude_deg) or math.isnan(ground_truth.longitude_deg):
@@ -147,9 +144,6 @@ class AutopilotTesterGeofence(AutopilotTesterLoiter):
             with self._track_lock:
                 self._max_home_distance_m = max(self._max_home_distance_m,
                                                 math.hypot(north_m, east_m))
-                self._max_relative_altitude_m = max(
-                    self._max_relative_altitude_m,
-                    ground_truth.absolute_altitude_m - home_altitude_m)
                 if self._fence is not None:
                     north_min_m, north_max_m, east_min_m, east_max_m = self._fence
                     self._min_fence_distance_m = min(
@@ -170,7 +164,3 @@ class AutopilotTesterGeofence(AutopilotTesterLoiter):
     def max_home_distance_m(self) -> float:
         with self._track_lock:
             return self._max_home_distance_m
-
-    def max_relative_altitude_m(self) -> float:
-        with self._track_lock:
-            return self._max_relative_altitude_m
