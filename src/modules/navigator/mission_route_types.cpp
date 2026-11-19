@@ -180,12 +180,10 @@ bool extractSafePointPosition(const mission_item_s &safe_point_item, float home_
 	// Rally-point safe points are expected in global AMSL or global-relative-altitude frames.
 	switch (safe_point_item.frame) {
 	case NAV_FRAME_GLOBAL:
-	case NAV_FRAME_GLOBAL_INT:
 		position.alt = safe_point_item.altitude;
 		break;
 
 	case NAV_FRAME_GLOBAL_RELATIVE_ALT:
-	case NAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
 		if (!PX4_ISFINITE(home_altitude_amsl)) {
 			return false;
 		}

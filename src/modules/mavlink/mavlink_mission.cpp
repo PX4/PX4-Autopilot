@@ -1443,27 +1443,35 @@ MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 	}
 }
 
+/**
+ * MAV_FRAME_*_INT frames are deprecated MAVLink synonyms of the plain global frames.
+ * They are accepted on the link, but only the plain frame is stored and used internally.
+ */
+static uint8_t mav_frame_without_int(uint8_t frame)
+{
+	switch (frame) {
+	case MAV_FRAME_GLOBAL_INT: return MAV_FRAME_GLOBAL;
+
+	case MAV_FRAME_GLOBAL_RELATIVE_ALT_INT: return MAV_FRAME_GLOBAL_RELATIVE_ALT;
+
+	case MAV_FRAME_GLOBAL_TERRAIN_ALT_INT: return MAV_FRAME_GLOBAL_TERRAIN_ALT;
+
+	default: return frame;
+	}
+}
+
 int
 MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_int_t *mavlink_mission_item,
 		struct mission_item_s *mission_item)
 {
-	if (mavlink_mission_item->frame == MAV_FRAME_GLOBAL ||
-	    mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT ||
-	    mavlink_mission_item->frame == MAV_FRAME_GLOBAL_INT ||
-	    mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
+	const uint8_t frame = mav_frame_without_int(mavlink_mission_item->frame);
+
+	if (frame == MAV_FRAME_GLOBAL || frame == MAV_FRAME_GLOBAL_RELATIVE_ALT) {
 		// This is a mission item with a global coordinate
 		mission_item->lat = ((double)mavlink_mission_item->x) * 1e-7;
 		mission_item->lon = ((double)mavlink_mission_item->y) * 1e-7;
 		mission_item->altitude = mavlink_mission_item->z;
-
-		if (mavlink_mission_item->frame == MAV_FRAME_GLOBAL ||
-		    mavlink_mission_item->frame == MAV_FRAME_GLOBAL_INT) {
-			mission_item->altitude_is_relative = false;
-
-		} else if (mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT ||
-			   mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
-			mission_item->altitude_is_relative = true;
-		}
+		mission_item->altitude_is_relative = frame == MAV_FRAME_GLOBAL_RELATIVE_ALT;
 
 		{
 			uint8_t zero_mask = 0;
@@ -1604,9 +1612,9 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_int
 			return MAV_MISSION_UNSUPPORTED;
 		}
 
-		mission_item->frame = mavlink_mission_item->frame;
+		mission_item->frame = frame;
 
-	} else if (mavlink_mission_item->frame == MAV_FRAME_MISSION) {
+	} else if (frame == MAV_FRAME_MISSION) {
 
 		// This is a mission item with no coordinates
 
@@ -1991,7 +1999,8 @@ uint32_t MavlinkMissionManager::crc32_for_mission_item(const mavlink_mission_ite
 	memcpy(&x_bits, &mission_item.x, sizeof(x_bits));
 	memcpy(&y_bits, &mission_item.y, sizeof(y_bits));
 
-	u.item.frame = mission_item.frame;
+	// Hash the plain frame so a mission gets the same ID whether it was uploaded with the *_INT synonyms or not
+	u.item.frame = mav_frame_without_int(mission_item.frame);
 	u.item.command = mission_item.command;
 	u.item.autocontinue = mission_item.autocontinue;
 	u.item.params[0] = mission_item.param1;

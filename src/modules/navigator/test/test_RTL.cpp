@@ -104,8 +104,7 @@ mission_item_s makeLandApproachItem(double lat, double lon, float altitude, floa
 	item.lat = lat;
 	item.lon = lon;
 	item.altitude = altitude;
-	item.altitude_is_relative = (frame == NAV_FRAME_GLOBAL_RELATIVE_ALT)
-				    || (frame == NAV_FRAME_GLOBAL_RELATIVE_ALT_INT);
+	item.altitude_is_relative = frame == NAV_FRAME_GLOBAL_RELATIVE_ALT;
 	item.loiter_radius = loiter_radius_m;
 	return item;
 }
@@ -2262,26 +2261,8 @@ ExtractValidSafePointPositionCase{
 	510.f,
 },
 ExtractValidSafePointPositionCase{
-	"GlobalIntRallyPoint",
-	makeSafePointItem(kBaseLat, kBaseLon, 510.f, NAV_FRAME_GLOBAL_INT),
-	kAlt,
-	true,
-	kBaseLat,
-	kBaseLon,
-	510.f,
-},
-ExtractValidSafePointPositionCase{
 	"GlobalRelativeRallyPoint",
 	makeSafePointItem(kBaseLat, kBaseLon, 25.f, NAV_FRAME_GLOBAL_RELATIVE_ALT),
-	kAlt,
-	true,
-	kBaseLat,
-	kBaseLon,
-	kAlt + 25.f,
-},
-ExtractValidSafePointPositionCase{
-	"GlobalRelativeIntRallyPoint",
-	makeSafePointItem(kBaseLat, kBaseLon, 25.f, NAV_FRAME_GLOBAL_RELATIVE_ALT_INT),
 	kAlt,
 	true,
 	kBaseLat,
@@ -2360,48 +2341,34 @@ ExtractValidSafePointPositionCase{
 // WHAT: Relative altitude should add home altitude; absolute altitude should not.
 TEST_F(RTLTest, MakeVtolLandApproachPointConvertsRelativeAndAbsoluteAltitude)
 {
-	// GIVEN: Absolute and relative loiter items in both MAVLink frame variants.
+	// GIVEN: Absolute and relative loiter items.
 	const PositionYawSetpoint absolute_position = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 40.f, 0.f, 530.f);
 	const PositionYawSetpoint relative_position = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 40.f, NAN);
 
 	const mission_item_s absolute_item = makeLandApproachItem(absolute_position.lat, absolute_position.lon,
 					     absolute_position.alt, kApproachRadius);
-	const mission_item_s absolute_int_item = makeLandApproachItem(absolute_position.lat, absolute_position.lon,
-			absolute_position.alt, kApproachRadius, NAV_FRAME_GLOBAL_INT);
 	const mission_item_s relative_item = makeLandApproachItem(relative_position.lat, relative_position.lon, 25.f,
 					     kApproachRadius, NAV_FRAME_GLOBAL_RELATIVE_ALT);
-	const mission_item_s relative_int_item = makeLandApproachItem(relative_position.lat, relative_position.lon, 25.f,
-			kApproachRadius, NAV_FRAME_GLOBAL_RELATIVE_ALT_INT);
 
 	VectorProvider provider({
 		makeSafePointItem(kBaseLat, kBaseLon, kAlt, NAV_FRAME_GLOBAL),
 		absolute_item,
-		absolute_int_item,
 		relative_item,
-		relative_int_item,
 	});
 
 	// WHEN: The mission items are converted while reading the approach block.
 	const land_approaches_s vtol_land_approaches =
 		mission_route::getVtolLandApproachesAtSafePointIndex(provider, 0, kAlt);
 	const loiter_point_s absolute_point = vtol_land_approaches.approaches[0];
-	const loiter_point_s absolute_int_point = vtol_land_approaches.approaches[1];
-	const loiter_point_s relative_point = vtol_land_approaches.approaches[2];
-	const loiter_point_s relative_int_point = vtol_land_approaches.approaches[3];
+	const loiter_point_s relative_point = vtol_land_approaches.approaches[1];
 
 	// THEN: The AMSL altitude is resolved correctly.
 	ASSERT_TRUE(absolute_point.isValid());
-	ASSERT_TRUE(absolute_int_point.isValid());
 	ASSERT_TRUE(relative_point.isValid());
-	ASSERT_TRUE(relative_int_point.isValid());
 	EXPECT_NEAR(absolute_point.height_m, 530.f, 0.01f);
-	EXPECT_NEAR(absolute_int_point.height_m, 530.f, 0.01f);
 	EXPECT_NEAR(relative_point.height_m, kAlt + 25.f, 0.01f);
-	EXPECT_NEAR(relative_int_point.height_m, kAlt + 25.f, 0.01f);
 	EXPECT_NEAR(absolute_point.loiter_radius_m, kApproachRadius, 0.01f);
-	EXPECT_NEAR(absolute_int_point.loiter_radius_m, kApproachRadius, 0.01f);
 	EXPECT_NEAR(relative_point.loiter_radius_m, kApproachRadius, 0.01f);
-	EXPECT_NEAR(relative_int_point.loiter_radius_m, kApproachRadius, 0.01f);
 }
 
 TEST_F(RTLTest, MakeVtolLandApproachPointRejectsInvalidInput)

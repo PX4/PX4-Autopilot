@@ -593,9 +593,7 @@ bool Geofence::_fencePointValid(const mission_fence_point_s &point) const
 
 	switch (point.frame) {
 	case NAV_FRAME_GLOBAL:
-	case NAV_FRAME_GLOBAL_INT:
 	case NAV_FRAME_GLOBAL_RELATIVE_ALT:
-	case NAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
 		return true;
 
 	default:
@@ -968,9 +966,7 @@ bool Geofence::insidePolygon(const PolygonInfo &polygon, double lat, double lon,
 
 		switch (temp_vertex_i.frame) {
 		case NAV_FRAME_GLOBAL:
-		case NAV_FRAME_GLOBAL_INT:
 		case NAV_FRAME_GLOBAL_RELATIVE_ALT:
-		case NAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
 			break;
 
 		default:
@@ -1004,9 +1000,7 @@ bool Geofence::insideCircle(const PolygonInfo &polygon, double lat, double lon, 
 
 	switch (circle_point.frame) {
 	case NAV_FRAME_GLOBAL:
-	case NAV_FRAME_GLOBAL_INT:
 	case NAV_FRAME_GLOBAL_RELATIVE_ALT:
-	case NAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
 		break;
 
 	default:

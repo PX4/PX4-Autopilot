@@ -18,7 +18,7 @@ import time
 from pymavlink import mavutil
 
 MAV_CMD_NAV_WAYPOINT = mavutil.mavlink.MAV_CMD_NAV_WAYPOINT
-MAV_FRAME = mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT_INT
+MAV_FRAME = mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT
 MAV_MISSION_TYPE_MISSION = mavutil.mavlink.MAV_MISSION_TYPE_MISSION
 MAV_MISSION_ACCEPTED = mavutil.mavlink.MAV_MISSION_ACCEPTED
 
