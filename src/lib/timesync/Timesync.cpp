@@ -137,10 +137,11 @@ void Timesync::add_sample(int64_t offset_us, uint64_t now_us)
 		const double dt = (now_us - _last_sample_us) * 1e-6;
 
 		// Predict: x = F x, P = F P F^T + Q in Horner form, with F = [1 dt; 0 1].
-		// Q adds the skew random walk q over dt
-		// Q = q * integral_0^dt [s^2, s; s, 1] ds = q [dt^3/3, dt^2/2; dt^2/2, dt].
+		// Q adds the offset random walk q_o and the skew random walk q_s over dt:
+		// Q = q_o [dt, 0; 0, 0] + q_s * integral_0^dt [s^2, s; s, 1] ds
+		//   = q_o [dt, 0; 0, 0] + q_s [dt^3/3, dt^2/2; dt^2/2, dt].
 		_time_offset += _time_skew * dt;
-		_var_offset += dt * (2.0 * _cov_offset_skew + dt * (_var_skew + dt * SKEW_RANDOM_WALK / 3.0));
+		_var_offset += dt * (OFFSET_RANDOM_WALK + 2.0 * _cov_offset_skew + dt * (_var_skew + dt * SKEW_RANDOM_WALK / 3.0));
 		_cov_offset_skew += dt * (_var_skew + dt * SKEW_RANDOM_WALK / 2.0);
 		_var_skew += dt * SKEW_RANDOM_WALK;
 
