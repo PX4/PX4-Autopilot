@@ -256,6 +256,13 @@ class BuildReportTest(unittest.TestCase):
         match = wip_build_report.DEPRECATED.search(line)
         self.assertEqual(wip_build_report.item_for_symbol(match.group('symbol'), definitions())[0], 'ESC_EEPROM')
 
+    def test_paths_relative_to_source_tree(self):
+        source = mavlink_flags.PX4_SOURCE_DIR
+        self.assertEqual(wip_build_report.relative('../../Tools/mavlink/check_wip.py'), 'Tools/mavlink/check_wip.py')
+        self.assertEqual(wip_build_report.relative(os.path.join(source, 'Tools/mavlink/check_wip.py')),
+                         'Tools/mavlink/check_wip.py')
+        self.assertEqual(wip_build_report.relative('../../no/such/file.cpp'), '../../no/such/file.cpp')
+
     def test_legacy_note(self):
         gcc = ("x.cpp:6:1: note: ‘#pragma message: Legacy MAVLink WIP item BATTERY_INFO ships unguarded "
                "in this build (see mavlink_wip_legacy.yaml)’")

@@ -7,7 +7,8 @@
 #   the legacy list) and lists the WIP features excluded from releases.
 # - Release stage build: each target is built as a release, where any
 #   unguarded use of a WIP message or enum entry fails to compile.
-#   The legacy-off build shows the legacy uses still to be fixed and may fail.
+#   The legacy-off build lists the legacy uses still to be fixed in its
+#   summary, without failing the job.
 #
 # Reproduce locally with: make mavlink_wip_check
 
@@ -70,7 +71,6 @@ jobs:
     runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
     container:
       image: ghcr.io/px4/px4-dev:v1.17.0-rc2
-    continue-on-error: ${{ matrix.legacy == 'OFF' }}
     strategy:
       fail-fast: false
       matrix:
@@ -99,6 +99,8 @@ jobs:
           max-size: 300M
 
       - name: Build ${{ matrix.target }} as a release
+        # legacy off: the build fails at the legacy uses still to be fixed; report them, don't fail the job
+        continue-on-error: ${{ matrix.legacy == 'OFF' }}
         env:
           PX4_SBOM_DISABLE: 1
           TARGET: ${{ matrix.target }}
@@ -111,6 +113,7 @@ jobs:
 
       - name: Report unguarded WIP uses
         if: always()
+        continue-on-error: ${{ matrix.legacy == 'OFF' }}
         env:
           TARGET: ${{ matrix.target }}
           LEGACY: ${{ matrix.legacy }}

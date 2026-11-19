@@ -55,11 +55,25 @@ def item_for_symbol(symbol, definitions):
     return (names[-1] if names else symbol), ''
 
 
-def relative(path):
+def relative(path, source_dir=mavlink_flags.PX4_SOURCE_DIR):
+    """The path relative to the source tree. Ninja reports paths relative to
+    the build directory (../../src/...), so leading ../ are dropped when the
+    rest names a file in the source tree."""
     path = os.path.normpath(path)
 
-    if os.path.isabs(path) and path.startswith(mavlink_flags.PX4_SOURCE_DIR + os.sep):
-        return os.path.relpath(path, mavlink_flags.PX4_SOURCE_DIR)
+    if os.path.isabs(path):
+        if path.startswith(source_dir + os.sep):
+            return os.path.relpath(path, source_dir)
+
+        return path
+
+    stripped = path
+
+    while stripped.startswith('..' + os.sep):
+        stripped = stripped[3:]
+
+    if stripped != path and os.path.exists(os.path.join(source_dir, stripped)):
+        return stripped
 
     return path
 
