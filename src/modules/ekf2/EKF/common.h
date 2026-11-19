@@ -288,8 +288,8 @@ struct rangingBeaconSample {
 #if defined(CONFIG_EKF2_WHEEL_ENCODERS)
 struct wheelEncoderSample {
 	uint64_t    time_us{};     ///< timestamp of the measurement (uSec)
-	float       delta_sr{};    ///< distance traveled by right wheel (m)
-	float       delta_sl{};    ///< distance traveled by left wheel (m)
+	float       delta_sr{};    ///< velocity of right wheel (m/s)
+	float       delta_sl{};    ///< velocity of left wheel (m/s)
 	float       dt{};          ///< integration period (sec)
 };
 #endif // CONFIG_EKF2_WHEEL_ENCODERS
