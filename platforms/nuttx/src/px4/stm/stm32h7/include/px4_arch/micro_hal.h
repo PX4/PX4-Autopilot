@@ -39,6 +39,10 @@ __BEGIN_DECLS
 
 #define PX4_SOC_ARCH_ID             PX4_SOC_ARCH_ID_STM32H7
 
+// The PX4 bootloader hands over to the ROM's DFU bootloader on BOARD_RESET_MODE_BOOT_TO_ISP (reboot -i).
+// An older bootloader starts the app again instead.
+#define BOARD_HAS_ISP_BOOTLOADER 1
+
 
 #define STM32_RCC_APB1ENR     STM32_RCC_APB1LENR
 #define STM32_RCC_APB1RSTR    STM32_RCC_APB1LRSTR
