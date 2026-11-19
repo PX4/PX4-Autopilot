@@ -309,7 +309,23 @@ protected:
 
 		while (_step < step_end) {
 
-			_tecs.update(DT, makeSetpoint(), makeInput(), _params, _flag);
+			// The plant has no pitch or throttle dynamics, so the rates TECS sees are those of the commands it is
+			// about to output: solve this algebraic loop by fixed-point iteration on a copy of the controller.
+			const TECSControl::Setpoint setpoint = makeSetpoint();
+			TECSControl::Input input = makeInput();
+
+			for (int i = 0; i < 10; i++) {
+				TECSControl trial = _tecs;
+				trial.update(DT, setpoint, input, _params, _flag);
+				input.altitude_rate = altitude_rate(trial.getPitchSetpoint(), _state, _plant_pitch_offset);
+
+				if (_flag.airspeed_enabled) {
+					input.tas_rate = airspeed_rate(_params, trial.getThrottleSetpoint(), trial.getPitchSetpoint(), _state,
+								       _plant_pitch_offset, _throttle_failed);
+				}
+			}
+
+			_tecs.update(DT, setpoint, input, _params, _flag);
 
 			_pitch_prev = _tecs.getPitchSetpoint();
 			_throttle_prev = _tecs.getThrottleSetpoint();
