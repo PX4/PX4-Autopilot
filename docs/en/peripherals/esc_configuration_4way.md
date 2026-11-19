@@ -1,4 +1,4 @@
-# ESC Configuration over USB (AM32, Bluejay, BLHeli)
+# ESC Passthrough
 
 PX4 can act as the link between an ESC configurator and the ESCs, so that you can read and change ESC settings and flash ESC firmware without disconnecting the ESCs from the flight controller.
 This works with the browser-based configurators [am32.ca](https://am32.ca) (AM32 ESCs) and [esc-configurator.com](https://esc-configurator.com) (Bluejay and BLHeli_S ESCs).
