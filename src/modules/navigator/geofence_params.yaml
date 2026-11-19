@@ -36,9 +36,7 @@ parameters:
     GF_MAX_HOR_DIST:
       description:
         short: Max horizontal distance from Home
-        long: |-
-          Maximum horizontal distance in meters the vehicle can be from Home before triggering a geofence action.
-          Disabled if 0.
+        long: Triggers GF_ACTION beyond this distance. Disabled if 0.
       type: float
       default: 0.0
       unit: m
@@ -48,9 +46,7 @@ parameters:
     GF_MAX_VER_DIST:
       description:
         short: Max vertical distance from Home
-        long: |-
-          Maximum vertical distance in meters the vehicle can be from Home before triggering a geofence action.
-          Disabled if 0.
+        long: Triggers GF_ACTION above this height over Home. Disabled if 0.
       type: float
       default: 0.0
       unit: m
@@ -60,8 +56,7 @@ parameters:
     GF_PRE_ACTION:
       description:
         short: Pre-geofence violation action
-        long: Only used when GF_PRE_MAX_HDIST, GF_PRE_MAX_VDIST or GF_PRE_MARGIN is enabled.
-          If the geofence is breached as well, the more severe of the two actions is taken.
+        long: If the geofence is breached as well, the more severe of the two actions is taken.
       type: enum
       values:
         1: Warning
@@ -74,8 +69,7 @@ parameters:
     GF_PRE_MAX_HDIST:
       description:
         short: Pre-geofence max horizontal distance from Home
-        long: Triggers GF_PRE_ACTION. Set it below GF_MAX_HOR_DIST to act before the geofence is breached.
-          A mission that is already uploaded is not checked again when this changes. Set to 0 to disable.
+        long: Triggers GF_PRE_ACTION beyond this distance. Set it below GF_MAX_HOR_DIST. Disabled if 0.
       type: float
       default: 0.0
       unit: m
@@ -85,8 +79,7 @@ parameters:
     GF_PRE_MAX_VDIST:
       description:
         short: Pre-geofence max vertical distance from Home
-        long: Triggers GF_PRE_ACTION. Set it below GF_MAX_VER_DIST to act before the geofence is breached.
-          A mission that is already uploaded is not checked again when this changes. Set to 0 to disable.
+        long: Triggers GF_PRE_ACTION above this height over Home. Set it below GF_MAX_VER_DIST. Disabled if 0.
       type: float
       default: 0.0
       unit: m

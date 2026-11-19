@@ -5,9 +5,8 @@ parameters:
     GF_PRE_MARGIN:
       description:
         short: Pre-geofence margin to the geofence plan
-        long: Triggers GF_PRE_ACTION once the vehicle is closer than this distance to a polygon or circle of
-          the geofence plan. A mission that is already uploaded is not checked again when this changes.
-          Set to 0 to disable.
+        long: Triggers GF_PRE_ACTION within this distance of a polygon or circle of the geofence plan.
+          Disabled if 0.
       type: float
       default: 0.0
       unit: m
