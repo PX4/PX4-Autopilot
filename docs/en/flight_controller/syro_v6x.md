@@ -18,39 +18,46 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Specifications {#specifications}
 
-- **Processors**
-  - **Main FMU processor:** STM32H753 (32-bit Arm® Cortex®-M7, 480 MHz, 2 MB flash, 1 MB RAM)
-  - **IO processor:** STM32F103 (PX4IO), on the baseboard
-- **Sensors**
-  - **IMU:** 2x InvenSense ICM-45686 (SPI1, SPI2), Bosch BMI088 (SPI3)
-  - **Barometer:** 2x Bosch BMP581 (I2C2, I2C4)
-  - **Magnetometer:** Bosch BMM350 (I2C4)
-- **Storage**
-  - FRAM (FM25V02A, SPI5) for parameters
-  - microSD card (SDMMC2) for logs
-  - EEPROMs on the module and baseboard holding the hardware IDs (see [Hardware Identification](#hardware_id))
-- **Interfaces**
-  - **PWM outputs:** 16 (8 from PX4IO, 8 from the FMU)
-  - **Serial ports:** 6 for peripherals, plus the debug console
-  - **Telemetry ports:** 3 (`TELEM1`, `TELEM2`, `TELEM3`), all with flow control
-  - **GPS ports:** 2 (`GPS1` with safety switch and buzzer, `GPS2`)
-  - **CAN buses:** 2
-  - **Ethernet:** 100 Mbit/s (Microchip LAN8742A PHY)
-  - **External SPI:** SPI6, with two chip selects and two data-ready inputs
-  - **Power module inputs:** 2 digital (I2C) power module inputs
-  - **Analog inputs:** 2 (3.3 V and 6.6 V range)
-  - **RC input:** Yes, on the PX4IO
-  - **USB:** Yes
-- **Other**
-  - IMU heater, enabled by default.
-    It heats the ICM-45686 on SPI2, the BMI088, the BMP581 on I2C4 and the BMM350.
-  - Buzzer and safety switch on `GPS1`
-- **Electrical data**
-  - **Power inputs (`POWER1`, `POWER2`, USB):** 5 V nominal, valid from 3.81 V to 5.85 V
-  - **Servo rail:** must be powered externally, and does not power the flight controller
-- **Mechanical data**
-  - **Dimensions (with case):** 97.6 mm x 51.6 mm x 25.18 mm
-  <!-- TODO(Syro): weight. -->
+### Processor {#processor}
+
+- **Main FMU processor:** [STM32H753II](https://www.st.com/en/microcontrollers-microprocessors/stm32h753ii.html) (32-bit Arm® Cortex®-M7, 480 MHz, 2 MB flash, 1 MB RAM)
+- **IO processor:** [PX4IO](../hardware/reference_design.md#main-io-function-breakdown) (STM32F103), on the baseboard
+
+### Sensors {#sensors}
+
+- **IMU:** 2x [InvenSense ICM-45686](https://www.invensense.tdk.com/en-us/products/6-axis/icm-45686) (SPI1, SPI2), [Bosch BMI088](https://www.bosch-sensortec.com/en/products/motion-sensors/imus/bmi088/) (SPI3)
+- **Barometer:** 2x [Bosch BMP581](https://www.bosch-sensortec.com/en/products/environmental-sensors/pressure-sensors/bmp581/) (I2C2, I2C4)
+- **Magnetometer:** [Bosch BMM350](https://www.bosch-sensortec.com/en/products/motion-sensors/magnetometers/bmm350) (I2C4)
+- **Heater:** enabled by default, and regulated on the temperature of the ICM-45686 on SPI2.
+  It heats the ICM-45686 on SPI2, the BMI088, the BMP581 on I2C4 and the BMM350.
+
+### Interfaces {#interfaces}
+
+- **PWM outputs:** 8 FMU outputs, plus 8 from PX4IO (see [PWM Outputs](#pwm_outputs))
+- **Serial ports:** 6 (`GPS1`, `GPS2`, `TELEM1`, `TELEM2`, `TELEM3`, `UART4 & I2C`), plus the debug console.
+  `TELEM1`, `TELEM2` and `TELEM3` have flow control.
+- **I2C buses:** 4 (I2C4 internal, I2C2 shared, I2C1 and I2C3 external)
+- **SPI buses:** 5, of which SPI6 is external with 2 chip selects and 2 data-ready inputs
+- **CAN buses:** 2
+- **Ethernet:** 100 Mbit/s (Microchip LAN8742A PHY)
+- **USB:** Yes
+- **RC input:** Yes, on the PX4IO
+- **Parameter storage:** FRAM (FM25V02A) on SPI5
+- **SD card:** microSD slot (SDMMC2), for logs
+- **Hardware ID storage:** EEPROMs on the module and baseboard (see [Hardware Identification](#hardware_id))
+- **Analog inputs:** 2 (3.3 V and 6.6 V range)
+- **Safety switch and buzzer:** on `GPS1`
+
+### Electrical Data {#electrical_data}
+
+- **Input voltage:** 5 V nominal on `POWER1`, `POWER2` and USB, valid from 3.81 V to 5.85 V
+- **Power monitoring:** 2 digital (I2C) power module inputs (INA226, INA228 or INA238; detected automatically by default)
+- **Servo rail:** must be powered externally, and does not power the flight controller
+
+### Mechanical Data {#mechanical_data}
+
+- **Dimensions (with case):** 97.6 x 51.6 x 25.18 mm
+<!-- TODO(Syro): weight. -->
 
 ## Where to Buy {#store}
 
