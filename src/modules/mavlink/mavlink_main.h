@@ -258,7 +258,7 @@ public:
 	// mavlink_update_parameters().
 	bool			get_use_hil_gps() { return _use_hil_gps_atomic.load(); }
 
-	bool			get_forward_externalsp() { return _param_mav_fwdextsp.get(); }
+	bool			get_forward_externalsp() { return _fwdextsp_atomic.load(); }
 
 	bool			get_flow_control_enabled() { return _flow_control_mode; }
 
@@ -710,6 +710,7 @@ private:
 	// main mavlink thread in mavlink_update_parameters().
 	px4::atomic_bool _use_hil_gps_atomic{false};
 	px4::atomic_bool _hb_forw_en_atomic{false};
+	px4::atomic_bool _fwdextsp_atomic{false};
 
 	px4::atomic<unsigned>	_bytes_tx{0};
 	px4::atomic<unsigned>	_bytes_txerr{0};
