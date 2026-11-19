@@ -165,7 +165,8 @@ AircraftState aircraft_step(const TECSControl::Param &p, float dt, float throttl
 class TECSClosedLoopTest : public ::testing::Test
 {
 protected:
-	float _t{0.f}; // Simulation time [s]
+	int   _step{0}; // Simulation step count
+	float _t{0.f};  // Simulation time [s], _step * DT
 
 	TECSControl::Param _params{defaultParams()}; // first: the plant and the setpoints derive from it
 	AircraftState      _state{_params.equivalent_airspeed_trim, ALT_INIT};
@@ -277,8 +278,6 @@ protected:
 	// $TECS_TEST_LOG_DIR/<test_name>.csv with one row per timestep.
 	void run(float duration)
 	{
-		float t_start = _t;
-
 		if (!_tecs_initialised) {
 			initTecs();
 		}
@@ -301,7 +300,9 @@ protected:
 			}
 		}
 
-		while (_t < t_start + duration) {
+		const int step_end = _step + static_cast<int>(roundf(duration / DT));
+
+		while (_step < step_end) {
 
 			_tecs.update(DT, makeSetpoint(), makeInput(), _params, _flag);
 
@@ -322,7 +323,8 @@ protected:
 					     (double) dbg.energy_balance_rate_sp, (double) dbg.energy_balance_rate_estimate);
 			}
 
-			_t += DT;
+			_step++;
+			_t = _step * DT;
 		}
 	}
 };
