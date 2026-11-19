@@ -307,7 +307,7 @@ PX4 also keeps planned flight inside the pre-geofence:
   It is also rejected if a leg between positions or a fixed-wing loiter circle comes closer to the plan than the margin.
 - The target of a _Go to location_ ([reposition](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_REPOSITION)) or of an altitude change, and the centre of a fixed-wing orbit or figure-eight, is refused if it lies outside the pre-geofence (unless the action is `Warning`).
   As for the geofence, only the target is checked, not the path to it or the loiter circle around it.
-  A vehicle that is outside the pre-geofence can still be paused or change its altitude, because only what the command changes is checked.
+  An altitude change keeps the vehicle's position, so it is refused while the vehicle is horizontally outside the pre-geofence: send the vehicle back inside first.
 - [Return mode](../flight_modes/return.md#geofence_awareness) plans its route around the Geofence Plan with the margin added.
 
 ## Position Estimation Failsafes

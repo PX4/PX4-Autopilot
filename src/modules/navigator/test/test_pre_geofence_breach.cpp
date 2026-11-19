@@ -267,23 +267,6 @@ TEST_F(PreGeofenceBreachTest, ReturnKeepsTheMargin)
 }
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
-// A command without a position or an altitude keeps the vehicle's own, also outside the pre-geofence.
-TEST_F(PreGeofenceBreachTest, TargetsKeepTheVehiclePositionAndAltitude)
-{
-	setParam("GF_PRE_MAX_HDIST", 400.f);
-	setParam("GF_PRE_MAX_VDIST", 80.f);
-	const Place vehicle{0.f, 420.f, kHomeAltitude + 90.f};
-	ASSERT_TRUE(preGeofenceBreached(checkAt(vehicle)));
-
-	EXPECT_TRUE(targetAllowed(vehicle));
-	// Back inside horizontally, or down below the altitude limit.
-	EXPECT_TRUE(targetAllowed({0.f, 300.f, vehicle.altitude}));
-	EXPECT_TRUE(targetAllowed({vehicle.north, vehicle.east, kAltitude}));
-	// Further out or up.
-	EXPECT_FALSE(targetAllowed({0.f, 440.f, vehicle.altitude}));
-	EXPECT_FALSE(targetAllowed({vehicle.north, vehicle.east, kHomeAltitude + 95.f}));
-}
-
 // What triggers the pre-geofence. Each source has its geofence twin further out.
 enum class Source {
 	HomeDistance, // GF_PRE_MAX_HDIST 400 m inside GF_MAX_HOR_DIST 500 m

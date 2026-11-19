@@ -1929,15 +1929,8 @@ bool Navigator::pre_geofence_allows_position(const vehicle_global_position_s &po
 	    (_geofence.getPreGeofenceAction() != geofence_result_s::GF_ACTION_WARN)) {
 
 		if (PX4_ISFINITE(pos.lat) && PX4_ISFINITE(pos.lon) && PX4_ISFINITE(pos.alt)) {
-			// Unlike geofence_allows_position(), only what the command changes is checked. Example: a vehicle that
-			// holds outside the pre-geofence can still change its altitude, because that command keeps its position.
-			const bool keeps_position = fabs(pos.lat - _global_pos.lat) < DBL_EPSILON
-						    && fabs(pos.lon - _global_pos.lon) < DBL_EPSILON;
-			const bool keeps_altitude = fabsf(pos.alt - _global_pos.alt) < FLT_EPSILON;
-
-			return (keeps_position || (_geofence.isCloserThanPreMaxDistToHome(pos.lat, pos.lon)
-						   && _geofence.isInsidePreGeofence(pos.lat, pos.lon)))
-			       && (keeps_altitude || _geofence.isBelowPreMaxAltitude(pos.alt));
+			return _geofence.isCloserThanPreMaxDistToHome(pos.lat, pos.lon) && _geofence.isBelowPreMaxAltitude(pos.alt)
+			       && _geofence.isInsidePreGeofence(pos.lat, pos.lon);
 		}
 	}
 
