@@ -507,7 +507,7 @@ public:
 	bool ftp_enabled() const { return _ftp_on; }
 
 	bool hash_check_enabled() const { return _param_mav_hash_chk_en.get(); }
-	bool forward_heartbeats_enabled() const { return _param_mav_hb_forw_en.get(); }
+	bool forward_heartbeats_enabled() const { return _hb_forw_en_atomic.load(); }
 
 	bool failure_injection_enabled() const
 	{
@@ -706,9 +706,10 @@ private:
 	// Atomic so concurrent reads/writes are race-free without taking lock_send().
 	px4::atomic<uint8_t> _protocol_version{0}; ///< after initialization the only values are 1 and 2
 
-	// Atomic snapshot of MAV_USEHILGPS, written from the main mavlink thread
-	// in mavlink_update_parameters() and read from the receiver thread.
+	// Atomic snapshots of params read from the receiver thread, written from the
+	// main mavlink thread in mavlink_update_parameters().
 	px4::atomic_bool _use_hil_gps_atomic{false};
+	px4::atomic_bool _hb_forw_en_atomic{false};
 
 	px4::atomic<unsigned>	_bytes_tx{0};
 	px4::atomic<unsigned>	_bytes_txerr{0};
