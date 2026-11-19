@@ -363,4 +363,14 @@ TEST_F(HomePositionTest, KeepsGnssHomeWhileGlobalPositionIsInvalid)
 
 	_home->update(true, true);
 	EXPECT_EQ(readHome().update_count, home.update_count);
+
+	publishGnss(kRefAlt + 60.f); // GNSS moves past the threshold, home follows once
+
+	_home->update(true, true);
+	const home_position_s moved = readHome();
+	EXPECT_EQ(moved.update_count, home.update_count + 1);
+	EXPECT_NEAR(moved.alt, kRefAlt + 60.f, kTolerance);
+
+	_home->update(true, true);
+	EXPECT_EQ(readHome().update_count, moved.update_count);
 }
