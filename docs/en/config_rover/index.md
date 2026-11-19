@@ -42,13 +42,13 @@ Note that configuration targets are constructed with the format "VENDOR_MODEL_VA
 The built firmware can be installed as custom firmware, as shown above in [Flashing the Rover Build](#flashing-the-rover-build).
 
 ::: info
-You can also enable the modules in default builds by adding these lines to your [board configuration](../hardware/porting_guide_config.md) (e.g. for fmu-v6x you might add them to [`main/boards/px4/fmu-v6x/default.px4board`](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6x/default.px4board)):
+You can also enable the rover modules in default builds by adding the rover [package](../hardware/porting_guide_config.md#packages) to your [board configuration](../hardware/porting_guide_config.md) (e.g. for fmu-v6x you might add it to [`main/boards/px4/fmu-v6x/default.px4board`](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6x/default.px4board)):
 
 ```sh
-CONFIG_MODULES_ROVER_ACKERMANN=y
-CONFIG_MODULES_ROVER_DIFFERENTIAL=y
-CONFIG_MODULES_ROVER_MECANUM=y
+CONFIG_PACKAGE_ROVER=y
 ```
 
-Adding the rover modules may lead to flash overflow, in which case you will need to disable modules that you do not plan to use (such as those related to multicopter or fixed wing).
+To add only one rover type, enable its package instead, e.g. `CONFIG_PACKAGE_ROVER_DIFFERENTIAL=y`.
+
+Adding the rover modules may lead to flash overflow, in which case you will need to disable packages that you do not plan to use (such as `CONFIG_PACKAGE_VTOL=n`, which also removes the multicopter and fixed-wing packages unless they are enabled separately).
 :::

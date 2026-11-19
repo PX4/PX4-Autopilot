@@ -45,6 +45,58 @@ When changing the `cyphal.px4board` it only stores the delta of the Kconfig keys
 When modifying a Kconfig key in `default.px4board` it will be modified in all derivative configurations of the same board that had the same config as well.
 :::
 
+## Packages and Groups
+
+Instead of listing every module, a board configuration enables packages and groups that bundle the modules, drivers and commands that belong together.
+They _imply_ their content: everything in a package or group is enabled by default, and each item can still be disabled individually.
+
+### Packages
+
+A vehicle package contains the modules that the vehicle's startup script (`rc.<vehicle>_apps`) starts unconditionally.
+The core package contains what the main startup script `rcS` needs independent of vehicle type.
+Each package is defined in the `Kconfig` of the module that the startup script and airframe selection check for that vehicle type.
+
+| Package                | Content                                                                                                                                                                                    |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `PACKAGE_CORE`         | `commander`, `navigator`, `dataman`, `sensors`, `ekf2`, `mavlink`, `logger`, `events`, `load_mon`, `rc_update`, `manual_control` and the commands `param`, `ver`, `tune_control`, `reboot` |
+| `PACKAGE_MULTICOPTER`  | `mc_rate_control`, `mc_att_control`, `mc_pos_control`, `flight_mode_manager`, `mc_hover_thrust_estimator`, `control_allocator`, `land_detector`                                            |
+| `PACKAGE_FIXEDWING`    | `fw_rate_control`, `fw_att_control`, `fw_lateral_longitudinal_control`, `fw_mode_manager`, `fw_autotune_attitude_control`, `airspeed_selector`, `control_allocator`, `land_detector`       |
+| `PACKAGE_VTOL`         | `vtol_att_control`, and selects `PACKAGE_MULTICOPTER` and `PACKAGE_FIXEDWING`                                                                                                              |
+| `PACKAGE_ROVER`        | Selects `PACKAGE_ROVER_ACKERMANN`, `PACKAGE_ROVER_DIFFERENTIAL` and `PACKAGE_ROVER_MECANUM`                                                                                                |
+| `PACKAGE_ROVER_<TYPE>` | The rover module of that type and `land_detector`                                                                                                                                          |
+| `PACKAGE_UUV`          | `uuv_att_control`, `uuv_pos_control`, `control_allocator`                                                                                                                                  |
+| `PACKAGE_SPACECRAFT`   | `spacecraft`, `control_allocator`                                                                                                                                                          |
+| `PACKAGE_AIRSHIP`      | `airship_att_control`, `control_allocator`, `land_detector`                                                                                                                                |
+
+Modules that a startup script only starts when a parameter enables them, such as `mc_autotune_attitude_control`, are not part of a package and are enabled individually.
+
+### Groups
+
+Groups bundle a common set of drivers or commands of one kind and are defined in the `Kconfig` of their directory.
+For example `COMMON_MAGNETOMETER` enables the usual external magnetometer drivers, and `COMMON_DIAGNOSTICS` the shell commands to inspect a running system (`dmesg`, `perf`, `top`, `listener`, `uorb`, `work_queue`).
+
+### Disabling an Item of a Package or Group
+
+To leave out an item that a package or group implies, disable it explicitly, for example to replace a controller with your own:
+
+```sh
+CONFIG_PACKAGE_MULTICOPTER=y
+CONFIG_MODULES_MC_ATT_CONTROL=n
+```
+
+Saving the configuration with `boardconfig` may write this as `# CONFIG_MODULES_MC_ATT_CONTROL is not set`, which has the same effect.
+Unlike a missing line, this line is needed: without it the module is built because the package implies it.
+
+### Packages in Variants
+
+A label configuration inherits the packages of `default.px4board`, so a variant for a different vehicle type disables the inherited package and enables its own.
+For example, a multicopter variant of a board whose default configuration enables `PACKAGE_VTOL`:
+
+```sh
+CONFIG_PACKAGE_VTOL=n
+CONFIG_PACKAGE_MULTICOPTER=y
+```
+
 ## PX4 Menuconfig Setup
 
 The [menuconfig](https://pypi.org/project/kconfiglib/#menuconfig-interfaces) tool is used to modify the PX4 board configuration, adding/removing modules, drivers, and other features.

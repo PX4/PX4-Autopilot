@@ -97,6 +97,10 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   Limits raised or disabled to allow large tilts, for example roll on fixed-wing vehicles, are no longer needed.
   The check is disabled with `FD_TILT_ERROR` set to -1.
   The `fd_roll` and `fd_pitch` fields of [FailureDetectorStatus](../msg_docs/FailureDetectorStatus.md) are replaced by `fd_tilt`.
+- **Check out-of-tree board configurations for disabled drivers of a `COMMON_*` group.**
+  The `COMMON_*` driver groups (e.g. `COMMON_MAGNETOMETER`) now imply their drivers instead of selecting them, see [Packages and Groups](../hardware/porting_guide_config.md#packages-and-groups).
+  A `CONFIG_DRIVERS_<X>=n` line next to an enabled group used to be ignored, with the build warning "was assigned the value 'n' but got the value 'y'", and now removes that driver from the build.
+  Remove such lines to keep the driver. ([PX4-Autopilot#29888](https://github.com/PX4/PX4-Autopilot/pull/29888))
 
 ## Other changes
 
@@ -134,6 +138,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - The unit and functional test suite builds, links and runs on macOS (`make tests`), and `px4_poll()` timeouts on macOS wait for their full duration instead of returning at once. The blended GPS timestamp is accumulated in double and rounded once instead of truncating each weighted term. ([PX4-Autopilot#28516](https://github.com/PX4/PX4-Autopilot/pull/28516))
 - The AlphaFilter library takes its sample interval and time constant in microseconds, and the float seconds overloads are removed, so a value in the wrong unit no longer compiles. Out-of-tree code that constructs the filter with seconds needs updating. ([PX4-Autopilot#28421](https://github.com/PX4/PX4-Autopilot/pull/28421))
 - The dataman module now hands out 16-bit client IDs instead of 8-bit ones. Each switch between mission-based return types and each MAVLink instance started in flight used up IDs, and once 254 had been handed out, every new client failed its requests with "Max Dataman clients reached". ([PX4-Autopilot#28944](https://github.com/PX4/PX4-Autopilot/pull/28944))
+- Board configurations enable [packages and groups](../hardware/porting_guide_config.md#packages-and-groups) instead of listing every module: `PACKAGE_CORE`, one package per vehicle type (e.g. `PACKAGE_MULTICOPTER`, `PACKAGE_VTOL`, `PACKAGE_ROVER`) and `COMMON_DIAGNOSTICS` for the inspection shell commands. Each item stays individually configurable, and existing board configurations that list modules individually keep working. ([PX4-Autopilot#29888](https://github.com/PX4/PX4-Autopilot/pull/29888))
 
 ### Control
 
