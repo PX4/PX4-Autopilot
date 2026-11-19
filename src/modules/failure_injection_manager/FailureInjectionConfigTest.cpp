@@ -103,6 +103,7 @@ sensor_gnss_s clean_gnss()
 
 constexpr uint8_t GYRO  = failure_injection_s::FAILURE_UNIT_SENSOR_GYRO;
 constexpr uint8_t GPS   = failure_injection_s::FAILURE_UNIT_SENSOR_GPS;
+constexpr uint8_t AIRSPEED = failure_injection_s::FAILURE_UNIT_SENSOR_AIRSPEED;
 constexpr uint8_t MOTOR = failure_injection_s::FAILURE_UNIT_SYSTEM_MOTOR;
 constexpr uint8_t ESC   = failure_injection_s::FAILURE_UNIT_SYSTEM_ESC;
 constexpr uint8_t BATTERY = failure_injection_s::FAILURE_UNIT_SYSTEM_BATTERY;
@@ -445,6 +446,112 @@ TEST(FailureInjectionConfig, ProcessGnssRecoveryUsesLiveSample)
 	recovered.latitude = 48.0;
 	EXPECT_TRUE(process_gnss(config, 0, recovered, stuck));
 	EXPECT_DOUBLE_EQ(recovered.latitude, 48.0);
+}
+
+// ===========================================================================
+// process_airspeed(): Off / Stuck / Wrong (pitot blockage ramp)
+// ===========================================================================
+
+namespace
+{
+
+differential_pressure_s make_differential_pressure(uint64_t timestamp, float differential_pressure_pa)
+{
+	differential_pressure_s differential_pressure{};
+	differential_pressure.timestamp = timestamp;
+	differential_pressure.timestamp_sample = timestamp;
+	differential_pressure.differential_pressure_pa = differential_pressure_pa;
+	return differential_pressure;
+}
+
+} // namespace
+
+TEST(FailureInjectionConfig, ProcessAirspeedWrongRampsDownToBlockageFloor)
+{
+	Config config;
+	config.set(make_config(AIRSPEED, 0x1, WRONG));
+
+	AirspeedState state;
+	const uint64_t onset = 1'000'000;
+
+	// The ramp starts at the first Wrong sample: no blockage yet.
+	differential_pressure_s differential_pressure = make_differential_pressure(onset, 100.f);
+	EXPECT_TRUE(process_airspeed(config, 0, differential_pressure, state));
+	EXPECT_FLOAT_EQ(differential_pressure.differential_pressure_pa, 100.f);
+
+	// Halfway through the 30 s ramp the pressure is linearly scaled.
+	differential_pressure = make_differential_pressure(onset + 15'000'000, 100.f);
+	EXPECT_TRUE(process_airspeed(config, 0, differential_pressure, state));
+	EXPECT_NEAR(differential_pressure.differential_pressure_pa, 50.f, 1e-3f);
+
+	// Past the ramp it holds at 30 % of the true value (70 % blockage).
+	differential_pressure = make_differential_pressure(onset + 60'000'000, 100.f);
+	EXPECT_TRUE(process_airspeed(config, 0, differential_pressure, state));
+	EXPECT_NEAR(differential_pressure.differential_pressure_pa, 30.f, 1e-3f);
+}
+
+TEST(FailureInjectionConfig, ProcessAirspeedClearingWrongRestartsRamp)
+{
+	Config config;
+	config.set(make_config(AIRSPEED, 0x1, WRONG));
+
+	AirspeedState state;
+	differential_pressure_s differential_pressure = make_differential_pressure(1'000'000, 100.f);
+	EXPECT_TRUE(process_airspeed(config, 0, differential_pressure, state));
+
+	config.set(failure_injection_s{});
+	differential_pressure = make_differential_pressure(61'000'000, 100.f);
+	EXPECT_TRUE(process_airspeed(config, 0, differential_pressure, state));
+	EXPECT_FLOAT_EQ(differential_pressure.differential_pressure_pa, 100.f);
+
+	// A new Wrong starts a fresh ramp from no blockage.
+	config.set(make_config(AIRSPEED, 0x1, WRONG));
+	differential_pressure = make_differential_pressure(62'000'000, 100.f);
+	EXPECT_TRUE(process_airspeed(config, 0, differential_pressure, state));
+	EXPECT_FLOAT_EQ(differential_pressure.differential_pressure_pa, 100.f);
+}
+
+TEST(FailureInjectionConfig, ProcessAirspeedWrongLeavesUnselectedInstanceUntouched)
+{
+	Config config;
+	config.set(make_config(AIRSPEED, 0x2, WRONG)); // failure instance 2 -> uORB instance 1
+
+	AirspeedState state;
+	differential_pressure_s differential_pressure = make_differential_pressure(1'000'000, 100.f);
+	EXPECT_TRUE(process_airspeed(config, 0, differential_pressure, state));
+
+	differential_pressure = make_differential_pressure(61'000'000, 100.f);
+	EXPECT_TRUE(process_airspeed(config, 0, differential_pressure, state));
+	EXPECT_FLOAT_EQ(differential_pressure.differential_pressure_pa, 100.f);
+}
+
+TEST(FailureInjectionConfig, ProcessAirspeedOffSuppressesPublication)
+{
+	Config config;
+	config.set(make_config(AIRSPEED, 0x1, OFF));
+
+	AirspeedState state;
+	differential_pressure_s differential_pressure = make_differential_pressure(1'000'000, 100.f);
+
+	EXPECT_FALSE(process_airspeed(config, 0, differential_pressure, state));
+	EXPECT_FLOAT_EQ(differential_pressure.differential_pressure_pa, 100.f);
+}
+
+TEST(FailureInjectionConfig, ProcessAirspeedStuckReplaysLastGoodSample)
+{
+	Config config;
+	AirspeedState state;
+
+	differential_pressure_s good = make_differential_pressure(1'000'000, 100.f);
+	EXPECT_TRUE(process_airspeed(config, 0, good, state));
+
+	config.set(make_config(AIRSPEED, 0x1, STUCK));
+
+	differential_pressure_s moved = make_differential_pressure(2'000'000, 250.f);
+	EXPECT_TRUE(process_airspeed(config, 0, moved, state));
+	EXPECT_FLOAT_EQ(moved.differential_pressure_pa, 100.f);
+	EXPECT_EQ(moved.timestamp, 2'000'000u);
+	EXPECT_EQ(moved.timestamp_sample, 2'000'000u);
 }
 
 // ===========================================================================
