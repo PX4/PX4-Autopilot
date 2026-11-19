@@ -1216,6 +1216,50 @@ TEST_F(GnssSelectorTest, availability)
 	EXPECT_NEAR(selector.getAvailability(0), expf(-1.f), 0.01f);
 }
 
+TEST_F(GnssSelectorTest, usableLossCount)
+{
+	GnssSelector selector;
+
+	selector.setPreferredInstance(0);
+
+	sensor_gnss_s gnss_data0 = getDefaultGnssData();
+	sensor_gnss_s gnss_data1 = getDefaultGnssData();
+
+	// GIVEN: two usable receivers
+	runSeconds(5.f, selector, gnss_data0, gnss_data1);
+	selector.setArmed(true);
+
+	EXPECT_EQ(selector.getUsableLossCount(0), 0);
+	EXPECT_EQ(selector.getUsableLossCount(1), 0);
+
+	// WHEN: gps1 fails its checks for less than FAIL_TIME_US
+	_checks_passed[1] = false;
+	runSeconds(0.3f, selector, gnss_data0, gnss_data1);
+	_checks_passed[1] = true;
+	runSeconds(1.f, selector, gnss_data0, gnss_data1);
+
+	// THEN: it hasn't failed, and the loss is counted once
+	EXPECT_FALSE(selector.hasFailed(1, _time_now_us));
+	EXPECT_EQ(selector.getUsableLossCount(1), 1);
+	EXPECT_EQ(selector.getUsableLossCount(0), 0);
+
+	// WHEN: it fails them again, for long enough to fail
+	_checks_passed[1] = false;
+	runSeconds(5.f, selector, gnss_data0, gnss_data1);
+
+	// THEN: only the transition is counted, not the time it stays unusable
+	EXPECT_TRUE(selector.hasFailed(1, _time_now_us));
+	EXPECT_EQ(selector.getUsableLossCount(1), 2);
+
+	// WHEN: gps0 stops publishing
+	_checks_passed[1] = true;
+	runSeconds(5.f, selector, gnss_data1, 1);
+
+	// THEN: that is counted as a loss as well
+	EXPECT_EQ(selector.getUsableLossCount(0), 1);
+	EXPECT_EQ(selector.getUsableLossCount(1), 2);
+}
+
 TEST_F(GnssSelectorTest, relaxedFailureDoesNotSwitch)
 {
 	GnssSelector selector;

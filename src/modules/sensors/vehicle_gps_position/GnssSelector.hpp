@@ -170,6 +170,12 @@ public:
 		       || (hrt_now_us >= _time_last_usable_us[instance] + FAIL_TIME_US);
 	}
 
+	// Increments when the receiver goes from usable to unusable, so that losses shorter than FAIL_TIME_US are counted
+	uint16_t getUsableLossCount(int instance) const
+	{
+		return ((instance >= 0) && (instance < GNSS_MAX_RECEIVERS)) ? _usable_loss_count[instance] : 0;
+	}
+
 	float getAvailability(int instance) const
 	{
 		return ((instance >= 0) && (instance < GNSS_MAX_RECEIVERS)) ? _availability[instance].getState() : 0.f;
@@ -256,6 +262,8 @@ private:
 	uint64_t _time_last_update_us{0};
 
 	uint64_t _time_last_usable_us[GNSS_MAX_RECEIVERS] {};
+	bool _was_usable[GNSS_MAX_RECEIVERS] {};          ///< usable at the previous update
+	uint16_t _usable_loss_count[GNSS_MAX_RECEIVERS] {};
 	bool _strict_qualified[GNSS_MAX_RECEIVERS] {}; ///< strict checks held for GNSS_REQ_TIME, and it hasn't failed since
 
 	uint64_t _time_prev_us[GNSS_MAX_RECEIVERS] {};  ///< timestamp of the previous sample, to detect new data
