@@ -1,8 +1,29 @@
-# SPDX license overrides for submodules where auto-detection fails or is wrong.
-# Each entry maps a submodule path to its SPDX license identifier and an
-# optional comment explaining why the override exists.
+# Per-submodule SBOM metadata, for cases auto-detection cannot cover.
+# Each entry is keyed by submodule path. All keys are optional:
+#
+#   license:    SPDX license expression, overriding auto-detection.
+#   comment:    Why the license override exists; emitted on hasConcludedLicense.
+#   copyright:  Copyright text. Without it the SBOM records NOASSERTION.
+#   originator: Upstream organization of a PX4-hosted fork (originatedBy).
+#   requires:   Kconfig symbol the board must enable ("CONFIG_X"), or must
+#               not enable ("!CONFIG_X"), for the submodule to be included.
+#   scope:      "build" for submodules used only to build the firmware
+#               (code generators); they become build dependencies instead
+#               of firmware contents.
+#
+# `organizations` maps a git host organization to the supplier name shown in
+# the SBOM. Organizations not listed appear under their git host name.
 #
 # Run `python3 Tools/ci/generate_sbom.py --verify-licenses` to validate.
+
+organizations:
+  PX4: "Dronecode Foundation"
+  mavlink: "MAVLink"
+  dronecan: "DroneCAN"
+  opencyphal: "OpenCyphal"
+  google: "Google"
+  rl-tools: "RLtools"
+  voxl-public/voxl-sdk/core-libs: "ModalAI"
 
 overrides:
   src/modules/mavlink/mavlink:
@@ -20,9 +41,11 @@ overrides:
     comment: >-
       Dual-licensed. PX4 elects BSD-3-Clause.
       No board currently enables CONFIG_LIB_CDRSTREAM.
+    originator: "Eclipse Foundation"
 
   src/lib/cdrstream/rosidl:
     license: "Apache-2.0"
+    originator: "Open Robotics"
 
   src/lib/crypto/monocypher:
     license: "BSD-2-Clause OR CC0-1.0"
@@ -33,19 +56,23 @@ overrides:
   src/lib/crypto/libtomcrypt:
     license: "Unlicense"
     comment: "Public domain dedication. Functionally equivalent to Unlicense."
+    originator: "LibTom Projects"
 
   src/lib/crypto/libtommath:
     license: "Unlicense"
     comment: "Public domain dedication. Functionally equivalent to Unlicense."
+    originator: "LibTom Projects"
 
   platforms/nuttx/NuttX/nuttx:
     license: "Apache-2.0"
     comment: >-
       Composite LICENSE (6652 lines) includes BSD/MIT/ISC sub-components.
       Primary license is Apache-2.0. NOTICE file contains FAT LFN patent warnings.
+    originator: "Apache Software Foundation"
 
   platforms/nuttx/NuttX/apps:
     license: "Apache-2.0"
+    originator: "Apache Software Foundation"
 
   boards/modalai/voxl2/libfc-sensor-api:
     license: "NOASSERTION"
@@ -60,3 +87,39 @@ overrides:
   boards/modalai/voxl2/src/lib/mpa/libmodal-pipe:
     license: "LGPL-3.0-only"
     comment: "LGPL-3.0 weak copyleft. Used via header includes in VOXL2 mpa library."
+
+  src/modules/uxrce_dds_client/Micro-XRCE-DDS-Client:
+    originator: "eProsima"
+    requires: "!CONFIG_UXRCE_DDS_CLIENT_USE_DDS_V3"
+
+  src/modules/uxrce_dds_client/Micro-XRCE-DDS-Client-v3:
+    originator: "eProsima"
+    requires: "CONFIG_UXRCE_DDS_CLIENT_USE_DDS_V3"
+
+  src/modules/zenoh/zenoh-pico:
+    originator: "Eclipse Foundation"
+
+  src/lib/heatshrink/heatshrink:
+    originator: "Atomic Object"
+
+  src/drivers/uavcan/libdronecan/dsdl:
+    originator: "DroneCAN"
+
+  # DSDL code generator: runs at build time, none of it is in the firmware.
+  src/drivers/uavcan/libdronecan/libuavcan/dsdl_compiler/pydronecan:
+    scope: "build"
+
+  src/drivers/cyphal/legacy_data_types:
+    originator: "OpenCyphal"
+
+  src/lib/tensorflow_lite_micro/tflite_micro:
+    originator: "Google"
+
+  src/drivers/ins/microstrain/mip_sdk:
+    originator: "MicroStrain"
+
+  src/drivers/ins/sbgecom/sbgECom:
+    originator: "SBG Systems"
+
+  src/drivers/actuators/vertiq_io/iq-module-communication-cpp:
+    originator: "Vertiq"
