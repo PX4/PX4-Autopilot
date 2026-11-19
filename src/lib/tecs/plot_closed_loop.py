@@ -5,10 +5,10 @@ Run all test cases and plot them into build/px4_sitl_test/tecs_closed_loop/png:
 
     make px4_sitl_test tecs_closed_loop_plots
 
-The tests in TECSClosedLoopTest.cpp write one CSV per test case when
+The tests in TECSControlClosedLoopTest.cpp write one CSV per test case when
 TECS_TEST_LOG_DIR is set, which also works through make tests:
 
-    TECS_TEST_LOG_DIR=/tmp/tecs make tests TESTFILTER=TECSClosedLoop
+    TECS_TEST_LOG_DIR=/tmp/tecs make tests TESTFILTER=TECSControlClosedLoop
     python3 src/lib/tecs/plot_closed_loop.py /tmp/tecs            # interactive
     python3 src/lib/tecs/plot_closed_loop.py /tmp/tecs -o /tmp/tecs/png
 

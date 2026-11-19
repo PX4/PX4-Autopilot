@@ -167,7 +167,7 @@ AircraftState aircraft_step(const TECSControl::Param &p, float dt, float throttl
 
 // --- Test fixture -------------------------------------------------------------
 
-class TECSClosedLoopTest : public ::testing::Test
+class TECSControlClosedLoopTest : public ::testing::Test
 {
 protected:
 	int   _step{0}; // Simulation step count
@@ -339,7 +339,7 @@ protected:
 // the climb absorbs precisely the energy rate the throttle adds, so the plant airspeed rate is zero in closed
 // form over the climb rates the throttle can fund and the whole airspeed range.
 
-TEST_F(TECSClosedLoopTest, FeedforwardIsEnergyConsistent)
+TEST_F(TECSControlClosedLoopTest, FeedforwardIsEnergyConsistent)
 {
 	_params.altitude_setpoint_gain_ff = 1.f; // the altitude loop passes the reference rate through unchanged
 
@@ -364,7 +364,7 @@ TEST_F(TECSClosedLoopTest, FeedforwardIsEnergyConsistent)
 // and airspeed must not drift at all. This exercises that the model and TECS
 // are self-consistent at the operating point.
 
-TEST_F(TECSClosedLoopTest, SteadyStateCruiseDefaultTuning)
+TEST_F(TECSControlClosedLoopTest, SteadyStateCruiseDefaultTuning)
 {
 	run(60.f);
 
@@ -374,7 +374,7 @@ TEST_F(TECSClosedLoopTest, SteadyStateCruiseDefaultTuning)
 	EXPECT_LT(_sim_stats.max_pitch_integ_norm, MAX_NUMERICAL_ERR);
 }
 
-TEST_F(TECSClosedLoopTest, SteadyStateCruiseHighSpeedWeight)
+TEST_F(TECSControlClosedLoopTest, SteadyStateCruiseHighSpeedWeight)
 {
 	_params.pitch_speed_weight = 1.5f;
 
@@ -386,7 +386,7 @@ TEST_F(TECSClosedLoopTest, SteadyStateCruiseHighSpeedWeight)
 	EXPECT_LT(_sim_stats.max_pitch_integ_norm, MAX_NUMERICAL_ERR);
 }
 
-TEST_F(TECSClosedLoopTest, SteadyStateCruiseLowSpeedWeight)
+TEST_F(TECSControlClosedLoopTest, SteadyStateCruiseLowSpeedWeight)
 {
 	_params.pitch_speed_weight = 0.5f;
 
@@ -406,7 +406,7 @@ TEST_F(TECSClosedLoopTest, SteadyStateCruiseLowSpeedWeight)
 // TECSControl only rate limits the pitch, is therefore disabled. The step is sized so that the demanded sink rate
 // (step / FW_T_ALT_TC) does not exceed FW_T_SINK_MIN, the sink rate the vehicle flies at idle without accelerating.
 
-TEST_F(TECSClosedLoopTest, AltitudeStepDown)
+TEST_F(TECSControlClosedLoopTest, AltitudeStepDown)
 {
 	run(10.f);
 
@@ -424,7 +424,7 @@ TEST_F(TECSClosedLoopTest, AltitudeStepDown)
 // The plant flies level at pitch_cmd = 10 deg instead of 0 (e.g. incorrect FW_PSP_OFF).
 // The pitch integrator should converge to this offset.
 
-TEST_F(TECSClosedLoopTest, SteadyStateCruisePitchOffset)
+TEST_F(TECSControlClosedLoopTest, SteadyStateCruisePitchOffset)
 {
 	_plant_pitch_offset = math::radians(10.f);
 
@@ -443,7 +443,7 @@ TEST_F(TECSClosedLoopTest, SteadyStateCruisePitchOffset)
 	EXPECT_NEAR(_tecs.getDebugOutput().pitch_integrator, _plant_pitch_offset, math::radians(0.1f));
 }
 
-TEST_F(TECSClosedLoopTest, AltitudeStepUpDefaultTuningPitchOffset)
+TEST_F(TECSControlClosedLoopTest, AltitudeStepUpDefaultTuningPitchOffset)
 {
 	_plant_pitch_offset = math::radians(10.f);
 
@@ -471,7 +471,7 @@ TEST_F(TECSClosedLoopTest, AltitudeStepUpDefaultTuningPitchOffset)
 // Speed weight 2 is the glider setting: the pitch flies airspeed only, so it tracks an airspeed setpoint with no
 // propulsion at all.
 
-TEST_F(TECSClosedLoopTest, GlideSpeedWeightTwoAirspeedStep)
+TEST_F(TECSControlClosedLoopTest, GlideSpeedWeightTwoAirspeedStep)
 {
 	_params.pitch_speed_weight = 2.f;
 
@@ -490,7 +490,7 @@ TEST_F(TECSClosedLoopTest, GlideSpeedWeightTwoAirspeedStep)
 
 // --- Airspeed setpoint change -------------------------------------------------
 
-TEST_F(TECSClosedLoopTest, AirspeedStepUpDefaultTuning)
+TEST_F(TECSControlClosedLoopTest, AirspeedStepUpDefaultTuning)
 {
 	run(10.f);
 
@@ -511,7 +511,7 @@ TEST_F(TECSClosedLoopTest, AirspeedStepUpDefaultTuning)
 	EXPECT_LT(_sim_stats.max_altitude_error, MAX_NUMERICAL_ERR) << "peak at t=" << _sim_stats.t_max_altitude_error << " s";
 }
 
-TEST_F(TECSClosedLoopTest, AirspeedStepDownDefaultTuning)
+TEST_F(TECSControlClosedLoopTest, AirspeedStepDownDefaultTuning)
 {
 	run(10.f);
 
@@ -533,7 +533,7 @@ TEST_F(TECSClosedLoopTest, AirspeedStepDownDefaultTuning)
 	EXPECT_LT(_sim_stats.max_altitude_error, 0.5f) << "peak at t=" << _sim_stats.t_max_altitude_error << " s";
 }
 
-TEST_F(TECSClosedLoopTest, FastDescend)
+TEST_F(TECSControlClosedLoopTest, FastDescend)
 {
 	// The decision whether or not fast descend runs happens in the outer
 	// TECS class, not TECSControl which we test here - so we can only test
@@ -562,7 +562,7 @@ TEST_F(TECSClosedLoopTest, FastDescend)
 
 // Without airspeed feedback, pitch and throttle are both only driven by altitude feedback.
 
-TEST_F(TECSClosedLoopTest, AirspeedlessSteadyStateCruise)
+TEST_F(TECSControlClosedLoopTest, AirspeedlessSteadyStateCruise)
 {
 	disableAirspeed();
 	run(60.f);
@@ -581,7 +581,7 @@ TEST_F(TECSClosedLoopTest, AirspeedlessSteadyStateCruise)
 // sink rate must not exceed FW_T_SINK_MIN. The total energy rate filter (FW_T_STE_R_TC) is disabled, as its lag
 // makes the throttle damping briefly overfund the climb on the step up and speed the vehicle up.
 
-TEST_F(TECSClosedLoopTest, AirspeedlessAltitudeStepHalfFeedforward)
+TEST_F(TECSControlClosedLoopTest, AirspeedlessAltitudeStepHalfFeedforward)
 {
 	disableAirspeed();
 	_params.seb_rate_ff = 0.5f;
