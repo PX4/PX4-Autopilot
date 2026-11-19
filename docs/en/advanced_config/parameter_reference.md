@@ -57562,7 +57562,8 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Barometer auto calibration.
 
-Automatically calibrate barometer based on the GNSS height
+Automatically calibrate barometer based on the GNSS height.
+Keeps recalibrating while landed and disarmed when the baro drifts away from the GNSS height.
 
 
 **Values:**
