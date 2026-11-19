@@ -22,7 +22,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 ### Processor {#processor}
 
 - **Main FMU processor:** [STM32H753II](https://www.st.com/en/microcontrollers-microprocessors/stm32h753ii.html) (32-bit Arm® Cortex®-M7, 480MHz, 2MB flash, 1MB RAM)
-- **IO processor:** [PX4IO](../hardware/reference_design.md#main-io-function-breakdown) (STM32F103), on the baseboard
+- **IO processor:** [PX4IO](../hardware/reference_design.md#main-io-function-breakdown) ([STM32F103C8T7](https://www.st.com/en/microcontrollers-microprocessors/stm32f103c8.html), 32-bit Arm® Cortex®-M3, 72MHz, 64KB flash, 20KB RAM), on the baseboard
 
 ### Sensors {#sensors}
 
@@ -256,18 +256,18 @@ The rows are, from top to bottom, ground (`-`), power (`+`) and signal (`S`).
 
 ### FMU DEBUGGER
 
-| Pin | Signal     | MCU pin      |
-| --- | ---------- | ------------ |
-| 1   | 3.3V       |              |
-| 2   | Console TX | PD8 (USART3) |
-| 3   | Console RX | PD9 (USART3) |
-| 4   | SWDIO      | PA13         |
-| 5   | SWCLK      | PA14         |
-| 6   | SPI6_SCK   | PB3          |
-| 7   | NFC_GPIO   | PC0          |
-| 8   | PH11       | PH11         |
-| 9   | nRST       |              |
-| 10  | GND        |              |
+| Pin | Signal         | MCU pin      |
+| --- | -------------- | ------------ |
+| 1   | 3.3V           |              |
+| 2   | Console TX     | PD8 (USART3) |
+| 3   | Console RX     | PD9 (USART3) |
+| 4   | SWDIO          | PA13         |
+| 5   | SWCLK          | PA14         |
+| 6   | SWO / SPI6 SCK | PB3          |
+| 7   | NFC_GPIO       | PC0          |
+| 8   | PH11           | PH11         |
+| 9   | nRST           |              |
+| 10  | GND            |              |
 
 ### IO DEBUGGER
 
@@ -307,6 +307,24 @@ This is generally true for VTOL and fixed-wing vehicles, but not necessarily tru
 :::
 
 For battery and power module configuration see [Battery and Power Module Setup](../config/battery.md).
+
+## Voltage Ratings {#voltage_ratings}
+
+| Input                     | Normal operation | Absolute maximum |
+| ------------------------- | ---------------- | ---------------- |
+| `POWER1`, `POWER2`, USB   | 4.75V to 5.5V    | 20V              |
+| Servo rail (`MAIN`/`AUX`) | 0V to 9.9V       | 25V              |
+
+An input above 5.85V does not damage the board: the power path selector disconnects it (see [Power](#power)).
+The servo rail voltage is measured up to 9.9V; above that, the reported value stays at 9.9V.
+
+::: warning
+Keep the power inputs at or below 5.5V.
+Between 5.5V and 5.85V an input is still selected, but the sensor regulators are above their rated operating voltage, and from 5.71V the 5V supply on the peripheral ports may be switched off.
+:::
+
+The 5V supply on the peripheral ports is current limited to 1.5A per rail, with `TELEM1` and `GPS2` on one rail and the other peripheral ports on the second.
+The RC input ports (`SBUS IN` and `PPM IN`) are supplied separately.
 
 ## PWM Outputs {#pwm_outputs}
 
@@ -470,6 +488,10 @@ The [PX4 system console](../debug/system_console.md) runs on USART3 at 57600 bau
 The console and the [SWD interface](../debug/swd_debug.md) of the FMU are on the `FMU DEBUGGER` connector.
 The SWD interface of the PX4IO is on the `IO DEBUGGER` connector.
 Both are 10-pin JST SH connectors.
+
+The `FMU DEBUGGER` pinout complies with the [Pixhawk Debug Full](../debug/swd_debug.md#pixhawk-debug-full) interface defined in the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf).
+Its SWO pin (pin 6, PB3) is shared with the SCK line of the external `SPI` port.
+PX4 configures PB3 as SPI6 SCK, so SWO trace output is not available while PX4 is running.
 See [Pinouts](#pinouts) for the pin assignment.
 
 ## Bootloader / Board ID
@@ -486,5 +508,6 @@ See [Pinouts](#pinouts) for the pin assignment.
 
 ## Further Information {#further_information}
 
+- [Syro V6X product page](https://syrorobotics.com/shop/product/fmuv6x-flight-controller) (Syro Robotics)
 - [Pixhawk Autopilot FMUv6X Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-012%20Pixhawk%20Autopilot%20v6X%20Standard.pdf)
 - [Pixhawk Series](../flight_controller/pixhawk_series.md)
