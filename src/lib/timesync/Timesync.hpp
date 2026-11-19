@@ -52,20 +52,11 @@ using namespace time_literals;
 
 static constexpr time_t PX4_EPOCH_SECS = 1234567890ULL;
 
-// Kalman filter tuning
-//
-// The offset and skew are estimated by a two-state Kalman filter (offset, skew) whose
-// prediction uses the actual time between samples, so its dynamics are defined in seconds
-// and do not depend on how often the caller exchanges timesync packets.
-//
-// MEASUREMENT_NOISE_STD : Standard deviation of a single observed offset [s], mostly caused
-// by asymmetric link delays. Bounded by MAX_RTT_SAMPLE / 2.
-//
-// SKEW_RANDOM_WALK : Spectral density of the skew random walk [1/s]. Larger values let
-// the filter follow skew changes and clock corrections on the remote system faster,
-// at the cost of a noisier estimate.
-//
-// INITIAL_SKEW_STD : Prior uncertainty of the skew [s/s], i.e. the expected crystal tolerance.
+// Kalman filter tuning. State: offset [s] and skew [s/s], predicted with the actual time
+// between samples, so the response does not depend on the timesync rate.
+// MEASUREMENT_NOISE_STD : std of an observed offset [s], mostly asymmetric link delay
+// SKEW_RANDOM_WALK : skew random walk density [1/s], higher follows clock corrections faster
+// INITIAL_SKEW_STD : prior skew std [s/s], i.e. crystal tolerance
 static constexpr double MEASUREMENT_NOISE_STD = 1e-3;
 static constexpr double SKEW_RANDOM_WALK = 1e-12;
 static constexpr double INITIAL_SKEW_STD = 100e-6;

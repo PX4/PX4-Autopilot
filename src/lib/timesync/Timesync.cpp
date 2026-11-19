@@ -121,8 +121,7 @@ uint64_t Timesync::sync_stamp(uint64_t usec)
 
 void Timesync::add_sample(int64_t offset_us, uint64_t now_us)
 {
-	// Kalman filter with state [offset, skew] in seconds. The skew is a rate [s/s], so the prediction
-	// stays consistent when the interval between samples changes (e.g. fast initial sync, then 1 Hz).
+	// Kalman filter with state [offset, skew] in seconds
 	static constexpr double R = MEASUREMENT_NOISE_STD * MEASUREMENT_NOISE_STD;
 	const double offset_s = offset_us * 1e-6;
 
@@ -137,13 +136,15 @@ void Timesync::add_sample(int64_t offset_us, uint64_t now_us)
 	} else {
 		const double dt = (now_us - _last_sample_us) * 1e-6;
 
-		// Predict
+		// Predict: x = F x, P = F P F^T + Q in Horner form, with F = [1 dt; 0 1].
+		// Q adds the skew random walk q over dt
+		// Q = q * integral_0^dt [s^2, s; s, 1] ds = q [dt^3/3, dt^2/2; dt^2/2, dt].
 		_time_offset += _time_skew * dt;
-		_var_offset += dt * (2.0 * _cov_offset_skew + dt * _var_skew) + SKEW_RANDOM_WALK * dt * dt * dt / 3.0;
-		_cov_offset_skew += dt * _var_skew + SKEW_RANDOM_WALK * dt * dt / 2.0;
-		_var_skew += SKEW_RANDOM_WALK * dt;
+		_var_offset += dt * (2.0 * _cov_offset_skew + dt * (_var_skew + dt * SKEW_RANDOM_WALK / 3.0));
+		_cov_offset_skew += dt * (_var_skew + dt * SKEW_RANDOM_WALK / 2.0);
+		_var_skew += dt * SKEW_RANDOM_WALK;
 
-		// Update
+		// Update with H = [1 0] (Kalman filter measurement update)
 		const double innovation = offset_s - _time_offset;
 		const double k_offset = _var_offset / (_var_offset + R);
 		const double k_skew = _cov_offset_skew / (_var_offset + R);
