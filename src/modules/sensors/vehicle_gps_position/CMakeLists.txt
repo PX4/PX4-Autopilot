@@ -48,4 +48,5 @@ target_link_libraries(vehicle_gps_position
 )
 
 px4_add_unit_gtest(SRC GnssSelectorTest.cpp LINKLIBS vehicle_gps_position)
-px4_add_unit_gtest(SRC GnssHeadingBaselineTest.cpp)
+px4_add_unit_gtest(SRC GnssHeadingBaselineTest.cpp LINKLIBS geo)
+px4_add_functional_gtest(SRC VehicleGPSPositionTest.cpp LINKLIBS vehicle_gps_position uORB)
