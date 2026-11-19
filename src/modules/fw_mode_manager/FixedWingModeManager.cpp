@@ -1526,16 +1526,9 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 				    _param_fw_lnd_para_sink.get());
 	}
 
-	// Track the glide slope altitude, above and below it (TECS's altitude loop, with its integrators,
-	// removes a steady height-rate error that a height-rate command would leave as a low bias). Below
-	// the slope, TECS would climb back once the altitude error over the approach's altitude time
-	// constant (FW_T_ALT_TC x FW_LND_THRTC_SC while landing) exceeds the slope's own sink rate over
-	// the ground: there, hold level instead (zero height rate, never a climb on the approach). Both
-	// commands are level flight at the switch, so there is no step. Switching to level as soon as the
-	// vehicle was below the slope made one whose idle glide is steeper than the slope (e.g. into a
-	// headwind) cycle between descending at idle and levelling with throttle bursts. Level is a height
-	// rate, not the current altitude: an altitude setpoint that follows the vehicle down is turned into
-	// a sink-rate command by the TECS altitude reference model, so the descent would never be arrested.
+	// Track the glide slope. Below it, hold level only where tracking it would command a climb: the
+	// altitude error over the altitude time constant exceeds the slope's sink rate (no step at the
+	// switch). Level is a zero height rate.
 	const float glide_slope_altitude = glide_slope_reference_alt + glide_slope_rel_alt;
 	const float along_track_ground_speed = math::max(ground_speed.dot(landing_approach_vector.unit_or_zero()), 0.f);
 	const float altitude_time_constant = math::max(_param_fw_t_alt_tc.get() * _param_fw_lnd_thrtc_sc.get(), 1.f);
