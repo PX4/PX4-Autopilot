@@ -24,6 +24,7 @@ The keys and values that need to be present are:
 - `CONFIG_MODULES_LANDING_TARGET_ESTIMATOR=n`: _Disable_ the landing target estimator (both modules publish [`landing_target_pose`](../msg_docs/LandingTargetPose.md) and will conflict if enabled together).
 - `CONFIG_MAVLINK_DIALECT="development"`: Enable using the development dialect.
   Note that this step will no longer be required once the MAVLink messages used by VTE have been validated.
+  Until then the messages are work in progress, so only builds of `main` and other untagged builds handle them: beta and release builds leave them out.
 
 Two prebuilt targets are available:
 
@@ -357,6 +358,7 @@ The estimator receives target information through two MAVLink messages emitted b
 ::: info
 These messages are currently in the MAVLink development dialect.
 To make them available in PX4 builds the `CONFIG_MAVLINK_DIALECT="development"` key must be set in the build configuration.
+They are also work in progress, so only builds of `main` and other untagged builds handle them: beta and release builds leave them out.
 :::
 
 ::: details Click to view MAVLink message integration (TARGET_RELATIVE, TARGET_ABSOLUTE)

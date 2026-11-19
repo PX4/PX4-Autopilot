@@ -30,6 +30,11 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ## Upgrade Guide
 
+- **MAVLink work-in-progress definitions are left out of beta and release builds.**
+  Builds from a beta or release tag no longer include code for MAVLink messages and commands marked as work in progress, which includes everything in the development dialect.
+  Release builds of SITL and the `*_mavlink-dev` and `px4_fmu-v6c_visionTargetEst*` targets therefore lose the `ESC_EEPROM`, `GNSS_INTEGRITY`, `MANUAL_INPUT_STATUS` and `ESTIMATOR_SENSOR_FUSION_STATUS` streams and the `ESC_EEPROM`, `SET_VELOCITY_LIMITS`, `RANGING_BEACON`, `TARGET_RELATIVE` and `TARGET_ABSOLUTE` handlers.
+  Builds of `main` and other untagged builds are unchanged.
+  Out-of-tree code that uses a work-in-progress definition must wrap it in `#if PX4_MAVLINK_WIP(<NAME>)` to build from a beta or release tag. ([PX4-Autopilot#29894](https://github.com/PX4/PX4-Autopilot/pull/29894))
 - `COM_ARM_TRAFF` has been replaced by `COM_TRAFF_AVOID`. The old value 3 ("enforce for mission modes only") is migrated to `COM_TRAFF_AVOID=2`, which blocks arming in all modes, not just mission modes. If you relied on being able to arm manually with traffic detected, set `COM_TRAFF_AVOID=1` (warning only) instead.
 - `PCA9685_SCHD_HZ` has been removed. `PCA9685_PWM_FREQ` now sets both the PWM frequency of the PCA9685 and the rate at which values are pushed to it; if you had `PCA9685_SCHD_HZ` set to a non-default value, set `PCA9685_PWM_FREQ` to it after upgrading. Frequencies above 400 Hz (previously only usable in duty-cycle mode) are no longer supported.
 - **Flight controller firmware no longer embeds CAN node firmware.** The `px4_fmu-v5_uavcanv0periph` build, which carried CUAV CAN GPS v1 firmware in its ROMFS so the flight controller could update the GPS over DroneCAN, and the `CONFIG_BOARD_UAVCAN_PERIPHERALS` board option behind it have been removed. Use the standard `px4_fmu-v5_default` firmware and update the GPS from the SD card with `cuav_can-gps-v1_default.uavcan.bin` from the release instead; see [DroneCAN Firmware Update](../dronecan/index.md#firmware-update). ([PX4-Autopilot#28870](https://github.com/PX4/PX4-Autopilot/pull/28870))

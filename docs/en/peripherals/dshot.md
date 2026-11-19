@@ -138,7 +138,8 @@ PX4 logs the AM32 ESC firmware settings (EEPROM), and a ground station can read 
 - `DSHOT_ESC_TYPE` set to `1` (AM32)
 - For ground station access only:
   - Ground station with ESC EEPROM support (QGroundControl feature in development)
-  - MAVLink development dialect enabled on the flight controller
+  - MAVLink development dialect enabled on the flight controller, in a build of `main` or another untagged build.
+    `ESC_EEPROM` is a work-in-progress message, so beta and release builds leave it out.
 
 ### How It Works
 
