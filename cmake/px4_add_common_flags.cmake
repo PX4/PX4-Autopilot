@@ -65,6 +65,10 @@ function(px4_add_common_flags)
 		-fvisibility=hidden
 		-include visibility.h
 
+		# release stage and MAVLink WIP diagnostics, before any MAVLink header (see px4_release_stage.cmake).
+		# One word: CMake drops a repeated "-include" option.
+		-include${PX4_BINARY_DIR}/px4_mavlink_diagnostics.h
+
 		# Warnings
 		-Wall
 		-Wextra
@@ -91,6 +95,11 @@ function(px4_add_common_flags)
 		-Wno-unused-parameter
 
 		)
+
+	# beta and release builds: report every unguarded MAVLink WIP use, not just the first
+	if(NOT PX4_RELEASE_STAGE STREQUAL "dev")
+		add_compile_options(-Wno-fatal-errors)
+	endif()
 
 	# compiler specific flags
 	if (("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang") OR ("${CMAKE_CXX_COMPILER_ID}" MATCHES "AppleClang"))

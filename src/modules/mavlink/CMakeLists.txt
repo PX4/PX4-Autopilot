@@ -76,8 +76,44 @@ add_custom_command(
 
 	COMMENT "Generating Mavlink ${CONFIG_MAVLINK_DIALECT}: ${MAVLINK_GIT_DIR_RELATIVE}/message_definitions/v1.0/${CONFIG_MAVLINK_DIALECT}.xml"
 )
-add_custom_target(mavlink_c_generate DEPENDS ${MAVLINK_LIBRARY_DIR}/${CONFIG_MAVLINK_DIALECT}/${CONFIG_MAVLINK_DIALECT}.h)
+# PX4_MAVLINK_WIP() guards for the WIP definitions of the primary dialect
+file(GLOB MAVLINK_XML_FILES ${MAVLINK_GIT_DIR}/message_definitions/v1.0/*.xml)
+add_custom_command(
+	OUTPUT ${PX4_BINARY_DIR}/mavlink_wip.h
+	COMMAND
+		${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/mavlink/generate_wip_guards.py
+			--dialect ${CONFIG_MAVLINK_DIALECT}
+			--mavlink-dir ${MAVLINK_GIT_DIR}
+			--output ${PX4_BINARY_DIR}/mavlink_wip.h
+	DEPENDS
+		git_mavlink_v2
+		${PX4_SOURCE_DIR}/Tools/mavlink/generate_wip_guards.py
+		${PX4_SOURCE_DIR}/Tools/mavlink/mavlink_flags.py
+		${MAVLINK_XML_FILES}
+		${BOARD_DEFCONFIG}
+	COMMENT "Generating MAVLink WIP guards for ${CONFIG_MAVLINK_DIALECT}"
+)
+
+add_custom_target(mavlink_c_generate DEPENDS
+	${MAVLINK_LIBRARY_DIR}/${CONFIG_MAVLINK_DIALECT}/${CONFIG_MAVLINK_DIALECT}.h
+	${PX4_BINARY_DIR}/mavlink_wip.h
+)
 set_source_files_properties(${MAVLINK_LIBRARY_DIR}/${CONFIG_MAVLINK_DIALECT}/${CONFIG_MAVLINK_DIALECT}.h PROPERTIES GENERATED true)
+set_source_files_properties(${PX4_BINARY_DIR}/mavlink_wip.h PROPERTIES GENERATED true)
+
+# beta and release builds: say which WIP features this build leaves out
+if(NOT PX4_RELEASE_STAGE STREQUAL "dev")
+	execute_process(
+		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/mavlink/check_wip.py --list-guarded
+		OUTPUT_VARIABLE MAVLINK_WIP_GUARDED
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+		RESULT_VARIABLE MAVLINK_WIP_LIST_RESULT
+	)
+	if(MAVLINK_WIP_LIST_RESULT EQUAL 0 AND MAVLINK_WIP_GUARDED)
+		string(REPLACE "\n" "\n   " MAVLINK_WIP_GUARDED "${MAVLINK_WIP_GUARDED}")
+		message(STATUS "MAVLink WIP features present in source but excluded from this ${PX4_RELEASE_STAGE} build:\n   ${MAVLINK_WIP_GUARDED}")
+	endif()
+endif()
 
 
 
@@ -88,6 +124,7 @@ target_sources(mavlink_c
 	INTERFACE
 		${MAVLINK_LIBRARY_DIR}/${CONFIG_MAVLINK_DIALECT}/${CONFIG_MAVLINK_DIALECT}.h
 		${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT_UAVIONIX}/${MAVLINK_DIALECT_UAVIONIX}.h
+		${PX4_BINARY_DIR}/mavlink_wip.h
 )
 target_include_directories(mavlink_c
 	INTERFACE

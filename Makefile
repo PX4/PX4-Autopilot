@@ -131,6 +131,12 @@ endif
 
 CMAKE_ARGS ?=
 
+# release stage (dev, beta or release, see cmake/px4_release_stage.cmake), built in its own build directory
+ifdef RELEASE_STAGE
+	BUILD_DIR_SUFFIX := $(BUILD_DIR_SUFFIX)_$(RELEASE_STAGE)
+	override CMAKE_ARGS += -DPX4_RELEASE_STAGE=$(RELEASE_STAGE)
+endif
+
 # additional config parameters passed to cmake
 ifdef EXTERNAL_MODULES_LOCATION
 	override CMAKE_ARGS += -DEXTERNAL_MODULES_LOCATION:STRING=$(EXTERNAL_MODULES_LOCATION)
@@ -455,6 +461,21 @@ format_changed:
 check_newlines:
 	$(call colorecho,'Checking for missing or duplicate newlines at the end of files')
 	@"$(SRC_DIR)"/Tools/astyle/check_newlines.sh
+
+# MAVLink WIP definitions may only be used behind PX4_MAVLINK_WIP() guards (see the generated mavlink_wip.h):
+# run the source lint, then a release stage SITL build and list every unguarded use it reports
+.PHONY: mavlink_wip_check
+mavlink_wip_check:
+	$(call colorecho,'Checking MAVLink WIP guards')
+	@"$(SRC_DIR)"/Tools/mavlink/check_wip.py
+	@mkdir -p "$(SRC_DIR)/build"
+	@# keep going after a failed file, so that every unguarded use is listed
+	@{ $(MAKE) --no-print-directory px4_sitl_default RELEASE_STAGE=release \
+		ARGS="$(if $(filter Ninja,$(PX4_CMAKE_GENERATOR)),-k 0,-k)"; \
+		echo $$? > "$(SRC_DIR)/build/mavlink_wip_check.status"; } 2>&1 \
+		| tee "$(SRC_DIR)/build/mavlink_wip_check.log"
+	@"$(SRC_DIR)"/Tools/mavlink/wip_build_report.py "$(SRC_DIR)/build/mavlink_wip_check.log" \
+		&& exit $$(cat "$(SRC_DIR)/build/mavlink_wip_check.status")
 
 # Testing
 # --------------------------------------------------------------------

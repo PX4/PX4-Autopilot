@@ -89,6 +89,7 @@
 
 #include <mavlink.h>
 #include <mavlink_types.h>
+#include <mavlink_wip.h> // PX4_MAVLINK_WIP() guards
 
 using namespace time_literals;
 
