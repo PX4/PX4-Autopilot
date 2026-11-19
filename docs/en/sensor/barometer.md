@@ -65,7 +65,7 @@ This calibration is controlled by the [SENS_BAR_AUTOCAL](../advanced_config/para
 The algorithm monitors GNSS quality, collects altitude differences over a 2-second filtered window, and verifies stability within 4m tolerance.
 Once stable, it uses binary search to calculate pressure offsets that align the baro altitude with the filtered GNSS altitude (0.1m precision), then applies the offset to all sensors and saves the parameters.
 
-While the vehicle stays on the ground and disarmed, the calibration keeps running: a baro drifting away from the GNSS altitude (for example from sensor warm-up or weather changes between boot and takeoff) is recalibrated once its offset, filtered over 5 seconds, exceeds 0.5 m, at most once per minute.
+While the vehicle stays on the ground and disarmed, the calibration keeps running: a baro drifting away from the GNSS altitude (for example from sensor warm-up or weather changes between boot and takeoff) is recalibrated once its offset, filtered over 5 seconds, exceeds 0.5 m.
 This tracking stops on arming and resumes after landing and disarming.
 It also stops until the next reboot once the altitude is set externally (`VEHICLE_CMD_EXTERNAL_POSITION_ESTIMATE`, for example the manual position reset of a ground station), as the GNSS altitude is then not trusted.
 

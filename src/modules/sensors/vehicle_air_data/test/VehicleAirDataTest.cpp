@@ -403,8 +403,8 @@ TEST_F(VehicleAirDataTest, GnssBaroCalibrationTracksBaroDriftUntilArmed)
 	// a steady 1.5 m drift on the ground is recalibrated onto 16.5 m, drift while armed is ignored
 	const float offset = runGnssCalibration({
 		{60, 15., 0},
-		{700, 16.5, 0},
-		{700, 25., 0, false, true, true},
+		{300, 16.5, 0},
+		{300, 25., 0, false, true, true},
 	});
 
 	// roughly 12 Pa per metre
@@ -417,7 +417,7 @@ TEST_F(VehicleAirDataTest, GnssBaroCalibrationStopsTrackingAfterExternalAltitude
 	// an externally set altitude stops the tracking, the calibration stays on 15 m
 	const float offset = runGnssCalibration({
 		{60, 15., 0},
-		{700, 25., 0, false, true, false, 30.f},
+		{300, 25., 0, false, true, false, 30.f},
 	});
 
 	EXPECT_GT(offset, 150.f);

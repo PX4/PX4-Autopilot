@@ -543,8 +543,11 @@ bool VehicleAirData::BaroGNSSAltitudeOffset()
 {
 	static constexpr float kDeltaOffsetTolerance = 4.f;
 	static constexpr uint64_t kLpfWindow = 2_s;
+	// time constant of the baro-GNSS offset filter after the first calibration
 	static constexpr uint64_t kTrackingTimeConstant = 5_s;
-	static constexpr uint64_t kTrackingInterval = 60_s;
+	// wait after a filter reset before evaluating the offset, 3 time constants = 95% settled
+	static constexpr uint64_t kTrackingSettleTime = 3 * kTrackingTimeConstant;
+	// recalibrate when the filtered baro-GNSS offset exceeds this
 	static constexpr float kTrackingThreshold = 0.5f;
 
 	vehicle_gnss_s vehicle_gnss;
@@ -579,8 +582,7 @@ bool VehicleAirData::BaroGNSSAltitudeOffset()
 	}
 
 	if (_baro_gnss_calibration_done) {
-		gnss_baro_offset_stable = (vehicle_gnss.timestamp - _calibration_t_first > 3 * kTrackingTimeConstant)
-					  && (vehicle_gnss.timestamp - _t_last_baro_gnss_calibration > kTrackingInterval)
+		gnss_baro_offset_stable = (vehicle_gnss.timestamp - _calibration_t_first > kTrackingSettleTime)
 					  && (fabsf(_delta_baro_gnss_lpf.getState()) > kTrackingThreshold);
 
 	} else if (vehicle_gnss.timestamp - _calibration_t_first > kLpfWindow && !PX4_ISFINITE(_baro_gnss_offset_t1)) {
@@ -603,7 +605,6 @@ bool VehicleAirData::BaroGNSSAltitudeOffset()
 
 	// next check starts a new window
 	_t_first_gnss_sample = 0;
-	_t_last_baro_gnss_calibration = vehicle_gnss.timestamp;
 
 	const float target_altitude = baro_altitude - _delta_baro_gnss_lpf.getState();
 
