@@ -45,7 +45,8 @@ static bool stabilization_required(uint8_t vehicle_type)
 
 void getVehicleControlMode(uint8_t nav_state, uint8_t vehicle_type,
 			   const offboard_control_mode_s &offboard_control_mode,
-			   vehicle_control_mode_s &vehicle_control_mode, SetpointType external_mode_setpoint_type)
+			   vehicle_control_mode_s &vehicle_control_mode, SetpointType external_mode_setpoint_type,
+			   bool in_transition_mode)
 {
 
 	switch (nav_state) {
@@ -94,7 +95,14 @@ void getVehicleControlMode(uint8_t nav_state, uint8_t vehicle_type,
 
 	case vehicle_status_s::NAVIGATION_STATE_ACRO:
 		vehicle_control_mode.flag_control_manual_enabled = true;
-		getControlMode(SetpointType::Rates, vehicle_control_mode);
+
+		if (in_transition_mode) {
+			getControlMode(SetpointType::Attitude, vehicle_control_mode);
+
+		} else {
+			getControlMode(SetpointType::Rates, vehicle_control_mode);
+		}
+
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_DESCEND:
