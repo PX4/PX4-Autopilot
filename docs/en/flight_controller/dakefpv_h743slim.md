@@ -74,7 +74,7 @@ The component side has the USB-C port, the microSD slot and two JST connectors, 
 | `DA1`, `CL1`     | I2C peripheral interface (SDA/SCL)                                      |                |
 | `5V`             | 5V BEC output (3A max)                                                  |                |
 | `4V5`            | 4.5V output or USB power supply                                         |                |
-| `3V3`            | 3.3V output (0.25A max)                                                 |                |
+| `3V3`            | 3.3V output (0.5A max)                                                  |                |
 | `Airs`           | Airspeed ADC input (PC4)                                                |                |
 | `Cur`            | Battery current ADC input (PC0)                                         |                |
 | `Rssi`           | Analog RSSI input (PC5), not used by PX4                                |                |
