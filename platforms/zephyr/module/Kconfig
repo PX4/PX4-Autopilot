@@ -1,0 +1,115 @@
+menuconfig PX4
+	bool "PX4 Autopilot"
+	select CPP
+	select REQUIRES_FULL_LIBCPP
+	select POSIX_API
+	select POSIX_THREADS
+	select POSIX_SEMAPHORES
+	select POSIX_TIMERS
+	select POSIX_PRIORITY_SCHEDULING
+	select THREAD_STACK_INFO
+	select THREAD_MONITOR
+	select DYNAMIC_THREAD
+	select DYNAMIC_THREAD_ALLOC
+	select THREAD_NAME
+	select REBOOT
+	select FPU if CPU_HAS_FPU
+	select FPU_SHARING if CPU_HAS_FPU
+	help
+	  Build PX4 Autopilot into this application. The PX4 modules are
+	  selected by the PX4 board configuration, see PX4_BOARD_CONFIG.
+
+if PX4
+
+config PX4_BOARD_CONFIG
+	string "PX4 board configuration"
+	help
+	  PX4 configuration to build, for example "zephyr_generic". When empty,
+	  boards/zephyr/<board>/default.px4board is used if it exists, and
+	  boards/zephyr/generic/default.px4board otherwise.
+
+config PX4_SHELL
+	bool "px4 shell command"
+	default y
+	depends on SHELL
+	help
+	  Run PX4 commands from the Zephyr shell, e.g. "px4 uorb status".
+
+config PX4_STACK_OVERHEAD
+	int "Stack overhead"
+	default 1024
+	help
+	  Bytes added to the stack size of every PX4 task and work queue, for
+	  the kernel, the C library and the floating point context.
+
+endif # PX4
+
+choice STD_CPP
+	default STD_CPP17 if PX4
+endchoice
+
+choice PICOLIBC_IO_LEVEL
+	default PICOLIBC_IO_FLOAT if PX4
+endchoice
+
+if PX4
+
+# the PX4 priorities, mapped in order: the top 64 one to one, the others below them
+configdefault NUM_PREEMPT_PRIORITIES
+	default 127
+
+# PX4 threads run FIFO among equal priorities, as on NuttX (RR_INTERVAL=0): time slicing would only
+# re-arm a timeout on every context switch
+configdefault TIMESLICING
+	default n
+
+# the longest PX4 thread name, wq:nav_and_controllers, has 22 characters (NuttX: TASK_NAME_SIZE 24)
+configdefault THREAD_MAX_NAME_LEN
+	default 24
+
+# 10 us ticks, where the system timer counts at least that fast
+configdefault SYS_CLOCK_TICKS_PER_SEC
+	default 100000 if TICKLESS_KERNEL && SYS_CLOCK_HW_CYCLES_PER_SEC >= 100000
+
+# hrt_absolute_time() counts the cycles of the system timer, which wrap after minutes in 32 bits
+configdefault CORTEX_M_SYSTICK_64BIT_CYCLE_COUNTER
+	default y
+
+configdefault POSIX_THREAD_THREADS_MAX
+	default 32
+
+configdefault MAX_PTHREAD_MUTEX_COUNT
+	default 64
+
+configdefault MAX_PTHREAD_COND_COUNT
+	default 64
+
+configdefault HEAP_MEM_POOL_SIZE
+	default 131072
+
+# the startup script runs on the main thread, which then exits: it uses 1.5 KiB of the stack in
+# the SIH configuration
+configdefault MAIN_STACK_SIZE
+	default 4096
+
+# debugging commands and features of the Zephyr shell that PX4 doesn't use
+configdefault DEVMEM_SHELL
+	default n
+
+configdefault DATE_SHELL
+	default n
+
+configdefault DEVICE_SHELL
+	default n
+
+configdefault SHELL_WILDCARD
+	default n
+
+configdefault SHELL_STATS
+	default n
+
+# PX4 commands run on the shell thread
+configdefault SHELL_STACK_SIZE
+	default 4096 if PX4_SHELL
+
+endif # PX4

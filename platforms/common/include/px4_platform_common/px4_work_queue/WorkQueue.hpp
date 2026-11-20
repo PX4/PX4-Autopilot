@@ -98,6 +98,11 @@ private:
 	void work_lock() { _flags = enter_critical_section(); }
 	void work_unlock() { leave_critical_section(_flags); }
 	irqstate_t _flags;
+#elif defined(__PX4_ZEPHYR)
+	// In Zephyr work can be enqueued from an ISR (hrt callouts)
+	void work_lock() { _flags = irq_lock(); }
+	void work_unlock() { irq_unlock(_flags); }
+	unsigned int _flags;
 #else
 	// loop as the wait may be interrupted by a signal
 	void work_lock() { do {} while (px4_sem_wait(&_qlock) != 0); }

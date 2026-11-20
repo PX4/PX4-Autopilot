@@ -9,6 +9,8 @@
 
 #define ATOMIC_ENTER irqstate_t flags = px4_enter_critical_section()
 #define ATOMIC_LEAVE px4_leave_critical_section(flags)
+#define ATOMIC_PAUSE px4_leave_critical_section(flags)
+#define ATOMIC_RESUME flags = px4_enter_critical_section()
 
 namespace cdev
 {

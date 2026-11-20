@@ -237,7 +237,7 @@ public:
 
 		// _data is read (and lazily allocated in write()) under the node lock. On POSIX
 		// ATOMIC_ENTER is that same lock, so reading it here serializes against the
-		// allocation; on NuttX it is a set-once, word-aligned pointer.
+		// allocation; on NuttX and Zephyr it is a set-once, word-aligned pointer.
 		ATOMIC_ENTER;
 
 		if (_data == nullptr) {
