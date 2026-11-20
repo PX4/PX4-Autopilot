@@ -101,7 +101,6 @@ bool FlightTaskAuto::updateInitialize()
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	// Read status first so setpoint_adjusted cannot be paired with an older triplet.
 	_prec_takeoff_status_sub.update();
-	_prec_land_status_sub.update();
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	_position_setpoint_triplet_sub.update();
 	_takeoff_status_sub.update();
@@ -136,18 +135,11 @@ void FlightTaskAuto::_evaluateDistanceToLandingPoint()
 					  && landing_target_pose.abs_pos_valid && PX4_ISFINITE(landing_target_pose.z_abs)
 					  && (hrt_elapsed_time(&landing_target_pose.timestamp) < _timeout);
 
-	// Only Mission and Return provide a landing altitude, Land mode sends a placeholder altitude.
-	// Precision landing replaces it with the approach or current altitude, so it is not used then either.
-	// The precision landing status is only published when the vision target estimator is built.
+	// Only Mission and Return provide a landing altitude, Land mode sends a placeholder altitude
 	const uint8_t nav_state = _sub_vehicle_status.get().nav_state;
-	bool prec_land_active = false;
-#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
-	prec_land_active = (_prec_land_status_sub.get().state != prec_land_status_s::PREC_LAND_STATE_STOPPED);
-#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	const bool landing_altitude_valid = (sources & LandGroundSource::LandingWaypoint)
 					    && ((nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION)
 						|| (nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL))
-					    && !prec_land_active
 					    && PX4_ISFINITE(_triplet_current(2));
 
 	const home_position_s &home = _sub_home_position.get();

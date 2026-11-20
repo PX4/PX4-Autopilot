@@ -75,8 +75,7 @@ parameters:
 
           Bit 1 - Landing target: absolute position of the precision landing target.
 
-          Bit 2 - Landing waypoint: altitude of the landing waypoint in Mission and Return,
-          not used during precision landing
+          Bit 2 - Landing waypoint: altitude of the landing waypoint in Mission and Return.
 
           Bit 3 - Home: assumes the ground is at the home altitude.
 
