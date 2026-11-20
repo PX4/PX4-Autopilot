@@ -17,19 +17,19 @@ To tune the position controller configure the [parameters](../advanced_config/pa
 
 ## Speed
 
-1. (Optional) [RO_SPEED_RED](#RO_SPEED_RED): Tuning parameter for the speed reduction based on the course error.
-   This can be used to limit the maximum allowed speed based on the difference between the current course and the bearing setpoint:
+1. (Optional) [RO_SPEED_RED](#RO_SPEED_RED): Tuning parameter for the speed reduction based on the heading error.
+   This can be used to limit the maximum allowed speed based on the difference between the heading and the heading setpoint of the course controller:
    $v*{max} = v*{full throttle} \cdot (1 - \theta\_{normalized} \cdot k) $
 
    with
    - $v_{max}:$ Maximum speed
    - $v_{full throttle}:$ Speed at maximum throttle [RO_MAX_THR_SPEED](../advanced_config/parameter_reference.md#RO_MAX_THR_SPEED).
-   - $\theta_{normalized}:$ Course error (Course - bearing setpoint) normalized from $[0\degree, 180\degree]$ to $[0, 1]$
+   - $\theta_{normalized}:$ Heading error (heading setpoint - heading) normalized from $[0\degree, 180\degree]$ to $[0, 1]$
    - $k:$ Tuning parameter [RO_SPEED_RED](#RO_SPEED_RED)
 
    ::: info
-   This parameter is used to calculate the speed at which the vehicle arrives at a waypoint based on the upcoming corner.
-   Set to -1 to disable course error based speed reduction.
+   This parameter is also used to calculate the speed at which the vehicle arrives at a waypoint based on the upcoming corner.
+   Set to -1 to disable heading error based speed reduction.
    :::
 
 2. (Optional) [RO_DECEL_LIM](../advanced_config/parameter_reference.md#RO_DECEL_LIM) [m/s^2] and [RO_JERK_LIM](../advanced_config/parameter_reference.md#RO_JERK_LIM) [m/s^3] are used to calculate a speed trajectory such that the rover reaches the next waypoint with the calculated cornering speed.
@@ -177,12 +177,12 @@ The position controller uses the following structure:
 
 ## Parameter Overview
 
-| Parameter                                                                                                | Description                                                                   | Unit |
-| -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ---- |
-| <a id="RO_SPEED_RED"></a>[RO_SPEED_RED](../advanced_config/parameter_reference.md#RO_SPEED_RED)          | (Optional) Tuning parameter for the speed reduction based on the course error | -    |
-| <a id="PP_LOOKAHD_GAIN"></a>[PP_LOOKAHD_GAIN](../advanced_config/parameter_reference.md#PP_LOOKAHD_GAIN) | Pure pursuit: Main tuning parameter                                           | -    |
-| <a id="PP_LOOKAHD_MAX"></a>[PP_LOOKAHD_MAX](../advanced_config/parameter_reference.md#PP_LOOKAHD_MAX)    | Pure pursuit: Maximum value for the look ahead radius                         | m    |
-| <a id="PP_LOOKAHD_MIN"></a>[PP_LOOKAHD_MIN](../advanced_config/parameter_reference.md#PP_LOOKAHD_MIN)    | Pure pursuit: Minimum value for the look ahead radius                         | m    |
+| Parameter                                                                                                | Description                                                                    | Unit |
+| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ---- |
+| <a id="RO_SPEED_RED"></a>[RO_SPEED_RED](../advanced_config/parameter_reference.md#RO_SPEED_RED)          | (Optional) Tuning parameter for the speed reduction based on the heading error | -    |
+| <a id="PP_LOOKAHD_GAIN"></a>[PP_LOOKAHD_GAIN](../advanced_config/parameter_reference.md#PP_LOOKAHD_GAIN) | Pure pursuit: Main tuning parameter                                            | -    |
+| <a id="PP_LOOKAHD_MAX"></a>[PP_LOOKAHD_MAX](../advanced_config/parameter_reference.md#PP_LOOKAHD_MAX)    | Pure pursuit: Maximum value for the look ahead radius                          | m    |
+| <a id="PP_LOOKAHD_MIN"></a>[PP_LOOKAHD_MIN](../advanced_config/parameter_reference.md#PP_LOOKAHD_MIN)    | Pure pursuit: Minimum value for the look ahead radius                          | m    |
 
 ## Ackermann Specific
 
