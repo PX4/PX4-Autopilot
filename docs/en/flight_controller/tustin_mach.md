@@ -123,7 +123,7 @@ Assign motor and servo functions in [Actuator Configuration](../config/actuators
 | USART3   | `/dev/ttyS2`   | GPS 1              | GPS1 / GPS                         |
 | UART4    | `/dev/ttyS3`   | TELEM 2            | TELEM2 / UART4                     |
 | UART5    | `/dev/ttyS4`   | TELEM 3            | TELEM3 / UART5                     |
-| USART6   | `/dev/ttyS5`   | RC                 | RC / UART6; `RX6` also on DJI      |
+| USART6   | `/dev/ttyS5`   | Radio Controller   | RC / UART6; `RX6` also on DJI      |
 | UART7    | `/dev/ttyS6`   | UART 6             | ESC telemetry `RX7` (receive only) |
 
 The PX4 selection `UART 6` refers to hardware UART7 on this board; it is separate from the RC port on USART6.
@@ -146,15 +146,14 @@ To use an external I2C MS4525DO sensor:
    Use a sensor module rated for the connector's 5V supply.
    GPS1 exposes the same I2C bus.
 2. Set [SENS_EN_MS4525DO](../advanced_config/parameter_reference.md#SENS_EN_MS4525DO) to `1` and reboot.
-3. Complete [Airspeed Sensor Calibration](../config/airspeed.md).
+3. Check that the sensor is running in the [MAVLink Console](../debug/mavlink_shell.md):
 
-The driver is included in the firmware but is disabled by default until the parameter is enabled.
-After reboot, check sensor operation in the [MAVLink Console](../debug/mavlink_shell.md):
+   ```sh
+   ms4525do status
+   listener differential_pressure
+   ```
 
-```sh
-ms4525do status
-listener differential_pressure
-```
+4. Calibrate the sensor by running `commander calibrate airspeed` in the MAVLink Console.
 
 ## Building Firmware {#building_firmware}
 
