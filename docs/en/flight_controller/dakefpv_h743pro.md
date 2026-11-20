@@ -7,7 +7,7 @@ PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://www.dakefpv.com/) for hardware support or compliance issues.
 :::
 
-The DAKEFPV H743 Pro is an STM32H743-based flight controller with CAN bus support, designed for FPV racing and freestyle, manufactured by [DAKEFPV](https://www.dakefpv.com/).
+The [DAKEFPV H743 Pro](https://www.dakefpv.com/pd.jsp?id=116) is an STM32H743-based flight controller with CAN bus support, designed for FPV racing and freestyle, manufactured by [DAKEFPV](https://www.dakefpv.com/).
 It has the same sensors as the [DAKEFPV H743](dakefpv_h743.md), and adds a CAN port and separate DShot timer groups for `M5`–`M6` and `M7`–`M8`.
 
 ![DAKEFPV H743 Pro top](../../assets/flight_controller/dakefpv_h743pro/dakefpv_h743pro_top.png)
@@ -59,8 +59,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Where to Buy {#store}
 
-- [DAKEFPV H743 Pro](https://www.aliexpress.com/item/1005012286730322.html) (AliExpress)
-- [DAKEFPV store](https://www.dakefpv.com/)
+[DAKEFPV H743 Pro](https://www.dakefpv.com/pd.jsp?id=116) (DAKEFPV store)
 
 ## Pinouts {#pinouts}
 
