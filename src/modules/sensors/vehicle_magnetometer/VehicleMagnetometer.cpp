@@ -177,9 +177,6 @@ bool VehicleMagnetometer::ParametersUpdate(bool force)
 				}
 
 				if (clear_online_mag_cal) {
-					// clear any mag bias estimate
-					_calibration_estimator_bias[mag].zero();
-
 					for (auto &cal : _mag_cal) {
 						// clear any in flight mag calibration
 						if (cal.device_id == _calibration[mag].device_id()) {
@@ -190,8 +187,6 @@ bool VehicleMagnetometer::ParametersUpdate(bool force)
 			}
 
 			if (calibration_updated) {
-				_last_calibration_update = hrt_absolute_time();
-
 				for (int instance = 0; instance < MAX_SENSOR_COUNT; instance++) {
 					// avoid mixing data currected using old calibration
 					_timestamp_sample_sum[instance] = 0;
@@ -205,78 +200,6 @@ bool VehicleMagnetometer::ParametersUpdate(bool force)
 	}
 
 	return false;
-}
-
-void VehicleMagnetometer::UpdateMagBiasEstimate()
-{
-	if (_magnetometer_bias_estimate_sub.updated()) {
-		// Continuous mag calibration is running when not armed
-		magnetometer_bias_estimate_s mag_bias_est;
-
-		if (_magnetometer_bias_estimate_sub.copy(&mag_bias_est)) {
-			bool parameters_notify = false;
-
-			bool external_mag_available = false;
-
-			for (unsigned mag_index = 0; mag_index < MAX_SENSOR_COUNT; mag_index++) {
-				if (_calibration[mag_index].external()
-				    && _calibration[mag_index].enabled()
-				    && mag_bias_est.valid[mag_index]
-				    && mag_bias_est.stable[mag_index]) {
-
-					external_mag_available = true;
-					break;
-				}
-			}
-
-			for (int mag_index = 0; mag_index < MAX_SENSOR_COUNT; mag_index++) {
-				if (mag_bias_est.valid[mag_index] && (mag_bias_est.timestamp > _last_calibration_update)) {
-
-					const Vector3f bias{mag_bias_est.bias_x[mag_index],
-							    mag_bias_est.bias_y[mag_index],
-							    mag_bias_est.bias_z[mag_index]};
-
-					_calibration_estimator_bias[mag_index] = bias;
-
-					// set initial mag calibration if disarmed, mag uncalibrated, and valid estimated bias available
-					if (_param_sens_mag_autocal.get() && !_armed && mag_bias_est.stable[mag_index]
-					    && (_calibration[mag_index].device_id() != 0) && !_calibration[mag_index].calibrated()) {
-
-						const Vector3f old_offset = _calibration[mag_index].offset();
-
-						// set initial mag calibration
-						const Vector3f offset = _calibration[mag_index].BiasCorrectedSensorOffset(_calibration_estimator_bias[mag_index]);
-
-						if (_calibration[mag_index].set_offset(offset)) {
-							if (external_mag_available && !_calibration[mag_index].external()) {
-								// automatically disable the internal mags as they should not be used for navigation
-								_calibration[mag_index].disable();
-							}
-
-							// save parameters with preferred calibration slot to current sensor index
-							_calibration[mag_index].ParametersSave(mag_index);
-
-							PX4_INFO("mag %d (%" PRIu32 ") setting offsets [%.3f, %.3f, %.3f]->[%.3f, %.3f, %.3f]",
-								 mag_index, _calibration[mag_index].device_id(),
-								 (double)old_offset(0), (double)old_offset(1), (double)old_offset(2),
-								 (double)_calibration[mag_index].offset()(0),
-								 (double)_calibration[mag_index].offset()(1),
-								 (double)_calibration[mag_index].offset()(2));
-
-							_calibration_estimator_bias[mag_index].zero();
-
-							parameters_notify = true;
-						}
-					}
-				}
-			}
-
-			if (parameters_notify) {
-				param_notify_changes();
-				_last_calibration_update = hrt_absolute_time();
-			}
-		}
-	}
 }
 
 void VehicleMagnetometer::UpdateMagCalibration()
@@ -312,9 +235,7 @@ void VehicleMagnetometer::UpdateMagCalibration()
 
 							_mag_cal[i].device_id = estimator_sensor_bias.mag_device_id;
 
-							// readd estimated bias that was removed before publishing vehicle_magnetometer (_calibration_estimator_bias)
-							const Vector3f mag_cal_offset = _calibration[mag_index].BiasCorrectedSensorOffset(bias +
-											_calibration_estimator_bias[mag_index]);
+							const Vector3f mag_cal_offset = _calibration[mag_index].BiasCorrectedSensorOffset(bias);
 
 							if ((mag_cal_offset - _mag_cal[i].offset).longerThan(0.001f)) {
 								const Vector3f mag_cal_orig{_calibration[mag_index].offset()};
@@ -374,8 +295,6 @@ void VehicleMagnetometer::UpdateMagCalibration()
 
 						_calibration[mag_index].ParametersSave();
 
-						_calibration_estimator_bias[mag_index].zero();
-
 						calibration_param_save_needed = true;
 
 					} else {
@@ -392,7 +311,6 @@ void VehicleMagnetometer::UpdateMagCalibration()
 
 		if (calibration_param_save_needed) {
 			param_notify_changes();
-			_last_calibration_update = hrt_absolute_time();
 		}
 
 		// clear all
@@ -463,8 +381,6 @@ void VehicleMagnetometer::Run()
 
 	UpdatePowerCompensation();
 
-	UpdateMagBiasEstimate();
-
 	bool updated[MAX_SENSOR_COUNT] {};
 
 	for (int uorb_index = 0; uorb_index < MAX_SENSOR_COUNT; uorb_index++) {
@@ -514,7 +430,7 @@ void VehicleMagnetometer::Run()
 					ParametersUpdate(true);
 				}
 
-				const Vector3f vect{_calibration[uorb_index].Correct(Vector3f{report.x, report.y, report.z}) - _calibration_estimator_bias[uorb_index]};
+				const Vector3f vect{_calibration[uorb_index].Correct(Vector3f{report.x, report.y, report.z})};
 
 				float mag_array[3] {vect(0), vect(1), vect(2)};
 

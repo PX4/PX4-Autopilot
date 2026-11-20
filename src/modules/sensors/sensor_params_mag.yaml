@@ -74,12 +74,3 @@ parameters:
         1: Publish primary magnetometer
       default: 1
       reboot_required: true
-    SENS_MAG_AUTOCAL:
-      description:
-        short: Magnetometer auto calibration
-        long: Automatically initialize magnetometer calibration from bias estimate
-          if available. The estimate only captures hard-iron offsets, so a full
-          calibration is still recommended.
-      category: System
-      type: boolean
-      default: 0

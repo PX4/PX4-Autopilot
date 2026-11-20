@@ -136,7 +136,6 @@ set(msg_files
 	LedControl.msg
 	LoggerStatus.msg
 	LogMessage.msg
-	MagnetometerBiasEstimate.msg
 	MagWorkerData.msg
 	ManualControlSwitches.msg
 	MavlinkLog.msg
