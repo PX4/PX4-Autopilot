@@ -59,7 +59,8 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Where to Buy {#store}
 
-[DAKEFPV store](https://www.dakefpv.com/)
+- [DAKEFPV H743 Pro](https://www.aliexpress.com/item/1005012286730322.html) (AliExpress)
+- [DAKEFPV store](https://www.dakefpv.com/)
 
 ## Pinouts {#pinouts}
 
