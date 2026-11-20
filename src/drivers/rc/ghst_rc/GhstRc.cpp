@@ -36,6 +36,8 @@
 #include <termios.h>
 #include <math.h>
 
+#include <lib/rc/rc_uart.hpp>
+
 ModuleBase::Descriptor GhstRc::desc{task_spawn, custom_command, print_usage};
 
 GhstRc::GhstRc(const char *device) :
@@ -155,8 +157,6 @@ void GhstRc::Run()
 
 	bool rc_updated = false;
 
-	constexpr hrt_abstime rc_scan_max = 3_s;
-
 	// read all available data from the serial RC input UART
 	static constexpr size_t RC_MAX_BUFFER_SIZE{64};
 	uint8_t rcs_buf[RC_MAX_BUFFER_SIZE] {};
@@ -177,12 +177,12 @@ void GhstRc::Run()
 		}
 
 		ghst_config(_rcs_fd);
+		rc_uart_configure(_rcs_fd, _device);
 
 		// flush serial buffer and any existing buffered data
 		tcflush(_rcs_fd, TCIOFLUSH);
 
-	} else if (_rc_scan_locked
-		   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
+	} else {
 
 		if (newBytes > 0) {
 			uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS] {};
@@ -227,26 +227,20 @@ void GhstRc::Run()
 				_timestamp_last_signal = cycle_timestamp;
 				rc_updated = true;
 
-				if (valid_chans > 0) {
-					_rc_scan_locked = true;
-				}
-
-				if (!_rc_scan_locked && !_ghst_telemetry && _param_rc_ghst_tel_en.get()) {
+				if (!_ghst_telemetry && _param_rc_ghst_tel_en.get()) {
 					_ghst_telemetry = new GHSTTelemetry(_rcs_fd);
 				}
 
 				if (_ghst_telemetry) {
 					_ghst_telemetry->update(cycle_timestamp);
 				}
+
+				if (valid_chans > 0) {
+					_rc_scan_locked = true;
+				}
 			}
 		}
 
-	} else {
-		_rc_scan_begin = 0;
-		_rc_scan_locked = false;
-
-		close(_rcs_fd);
-		_rcs_fd = -1;
 	}
 
 	if (!rc_updated && (hrt_elapsed_time(&_timestamp_last_signal) > 1_s)) {
