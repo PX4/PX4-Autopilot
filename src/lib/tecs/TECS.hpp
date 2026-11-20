@@ -218,7 +218,6 @@ public:
 		float max_sink_rate;			///< Maximum sink rate (with min throttle and max speed) [m/s].
 		float min_sink_rate;			///< Minimum sink rate (with min throttle and trim speed) [m/s].
 		float max_climb_rate;			///< Climb rate produced by max allowed throttle [m/s].
-		float vert_accel_limit;			///< Magnitude of the maximum vertical acceleration allowed [m/s²].
 		float equivalent_airspeed_trim;		///< Equivalent cruise airspeed for airspeed less mode [m/s].
 		float tas_min;				///< True airspeed demand lower limit [m/s].
 		float tas_stall;			///< True stall airspeed [m/s].
@@ -729,7 +728,7 @@ public:
 	void set_equivalent_airspeed_trim(float airspeed) { _control_param.equivalent_airspeed_trim = airspeed; _airspeed_filter_param.equivalent_airspeed_trim = airspeed; }
 
 	void set_pitch_damping(float damping) { _control_param.pitch_damping_gain = damping; }
-	void set_vertical_accel_limit(float limit) { _reference_param.vert_accel_limit = limit; _control_param.vert_accel_limit = limit; }
+	void set_vertical_accel_limit(float limit) { _reference_param.vert_accel_limit = limit; }
 
 	void set_speed_weight(float weight) { _control_param.pitch_speed_weight = weight; }
 	void set_airspeed_error_time_constant(float time_const) { _control_param.airspeed_error_gain = 1.0f / math::max(time_const, 0.1f); }
@@ -844,7 +843,6 @@ private:
 		.max_sink_rate = 5.0f,
 		.min_sink_rate = 2.0f,
 		.max_climb_rate = 5.0f,
-		.vert_accel_limit = 0.0f,
 		.equivalent_airspeed_trim = 15.0f,
 		.tas_min = 10.0f,
 		.tas_stall = 7.0f,
