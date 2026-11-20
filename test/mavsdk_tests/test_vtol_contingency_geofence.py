@@ -2,7 +2,8 @@ import pytest
 from mavsdk.plugins.telemetry import FlightMode  # type: ignore
 
 from autopilot_tester import log
-from autopilot_tester_geofence import ACTION_LAND, ACTION_WARNING, AutopilotTesterGeofence
+from autopilot_tester_geofence import (
+    ACTION_HOLD, ACTION_LAND, ACTION_WARNING, AutopilotTesterGeofence)
 
 MISSION_ALTITUDE_M = 40.0
 
@@ -10,16 +11,21 @@ MISSION_ALTITUDE_M = 40.0
 FENCE_NORTH_M = 60.0
 # The mission itself keeps the margin: its waypoints are at least 100 m from the fence.
 WAYPOINTS = [(-40.0, 1500.0), (-300.0, 1500.0)]
+# The default, NAV_LOITER_RAD.
+LOITER_RADIUS_M = 80.0
 # Wider than the distance of the vehicle on its way to the first waypoint, and narrower than the
-# default loiter radius of 80 m.
+# loiter radius.
 MARGIN_M = 75.0
+# How far the vehicle may fly outside its loiter circle.
+LOITER_TOLERANCE_M = 10.0
 
 
 @pytest.mark.vtol
 @pytest.mark.parametrize("geofence_action, final_flight_mode", [
     (ACTION_LAND, FlightMode.LAND),
     (ACTION_WARNING, FlightMode.HOLD),
-], ids=["land", "warning"])
+    (ACTION_HOLD, FlightMode.HOLD),
+], ids=["land", "warning", "hold"])
 def test_more_severe_action_wins_after_contingency_geofence_hold(
         tester_geofence: AutopilotTesterGeofence, geofence_action: int,
         final_flight_mode: FlightMode) -> None:
@@ -28,7 +34,9 @@ def test_more_severe_action_wins_after_contingency_geofence_hold(
 
     The margin is narrower than the loiter radius, so the Hold cannot stay inside the fence.
     With GF_ACTION Land, Land takes over. An emergency geofence that only warns leaves the Hold
-    in place: the mission, which is still valid, must not resume."""
+    in place: the mission, which is still valid, must not resume. With GF_ACTION Hold the vehicle
+    keeps its loiter too: holding again where it crosses the emergency geofence would move the
+    loiter circle out to that position."""
     tester = tester_geofence
     tester.wait_until_ready()
     tester.store_home()
@@ -51,7 +59,10 @@ def test_more_severe_action_wins_after_contingency_geofence_hold(
     assert 0.0 < held_at_m < MARGIN_M, "Not held inside the margin"
 
     if final_flight_mode == FlightMode.HOLD:
-        # More than one orbit.
+        # Until the loiter has crossed the geofence, and then for more than one orbit.
+        assert tester.poll_condition_with_timeout(
+            lambda: tester.min_fence_distance_m() < 0.0, 90), \
+            "The loiter did not cross the geofence"
         tester.check_flight_mode_for(FlightMode.HOLD, 60)
 
     else:
@@ -60,3 +71,8 @@ def test_more_severe_action_wins_after_contingency_geofence_hold(
     closest_m = tester.min_fence_distance_m()
     log("Closest to the fence: {:.1f} m".format(closest_m))
     assert closest_m < 0.0, "The loiter did not cross the geofence"
+
+    if final_flight_mode == FlightMode.HOLD:
+        # The loiter circle is still around the position of the first Hold.
+        assert closest_m > held_at_m - LOITER_RADIUS_M - LOITER_TOLERANCE_M, \
+            "The loiter moved out, to {:.1f} m outside the fence".format(-closest_m)
