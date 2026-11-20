@@ -35,11 +35,8 @@
 #include <dirent.h>
 #include <string.h>
 
-#ifdef __PX4_DARWIN
-#include <sys/param.h>
-#include <sys/mount.h>
-#elif defined(PX4_STORAGEDIR)
-#include <sys/statfs.h>
+#ifdef PX4_STORAGEDIR
+#include <px4_platform_common/statfs.h>
 #endif
 
 void SdCardChecks::checkAndReport(const Context &context, Report &reporter)
@@ -47,9 +44,9 @@ void SdCardChecks::checkAndReport(const Context &context, Report &reporter)
 #ifdef PX4_STORAGEDIR
 
 #ifndef CONFIG_BOARD_NO_SDCARD
-	struct statfs statfs_buf;
+	px4_statfs_t statfs_buf;
 
-	if (!_sdcard_detected && statfs(PX4_STORAGEDIR, &statfs_buf) == 0) {
+	if (!_sdcard_detected && px4_statfs(PX4_STORAGEDIR, &statfs_buf) == 0) {
 		// on NuttX we get a data block count f_blocks and byte count per block f_bsize if an SD card is inserted
 		_sdcard_detected = (statfs_buf.f_blocks > 0) && (statfs_buf.f_bsize > 0);
 	}

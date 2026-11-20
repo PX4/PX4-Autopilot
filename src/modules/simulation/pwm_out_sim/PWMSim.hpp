@@ -44,7 +44,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/Subscription.hpp>
 
-#if defined(CONFIG_ARCH_BOARD_PX4_SITL)
+#if defined(CONFIG_ARCH_BOARD_PX4_SITL) || defined(CONFIG_ARCH_BOARD_QNX_SITL)
 #define PARAM_PREFIX "PWM_MAIN"
 #else
 #define PARAM_PREFIX "HIL_ACT"
