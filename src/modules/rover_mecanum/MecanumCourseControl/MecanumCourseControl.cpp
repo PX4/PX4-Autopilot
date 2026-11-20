@@ -76,9 +76,11 @@ void MecanumCourseControl::updateCourseControl()
 		// No speed setpoint: the course is held with whatever thrust is commanded.
 		// The heading is turned so that the commanded thrust direction in body frame points along the course,
 		// e.g. thrust to the right drives along the course with the course on the left of the heading.
+		// The drift angle is estimated relative to the thrust direction, so it compensates the slip in any direction of travel.
 		surface_vehicle_attitude_setpoint_s surface_vehicle_attitude_setpoint{};
 		surface_vehicle_attitude_setpoint.timestamp = timestamp;
-		surface_vehicle_attitude_setpoint.yaw_setpoint = matrix::wrap_pi(_course_setpoint - _thrust_direction);
+		surface_vehicle_attitude_setpoint.yaw_setpoint = matrix::wrap_pi(_course_setpoint - _thrust_direction
+				- _drift_angle_estimator.getDriftAngle());
 		_surface_vehicle_attitude_setpoint_pub.publish(surface_vehicle_attitude_setpoint);
 
 		// NaN deactivates the speed controller, the thrust then comes from elsewhere
@@ -112,6 +114,12 @@ void MecanumCourseControl::updateSubscriptions()
 		if (fabsf(thrust_x) > FLT_EPSILON || fabsf(thrust_y) > FLT_EPSILON) {
 			_thrust_direction = atan2f(thrust_y, thrust_x);
 		}
+	}
+
+	if (_vehicle_local_position_sub.updated()) {
+		vehicle_local_position_s vehicle_local_position{};
+		_vehicle_local_position_sub.copy(&vehicle_local_position);
+		_drift_angle_estimator.update(vehicle_local_position, _thrust_direction);
 	}
 
 	if (_surface_vehicle_course_setpoint_sub.updated()) {

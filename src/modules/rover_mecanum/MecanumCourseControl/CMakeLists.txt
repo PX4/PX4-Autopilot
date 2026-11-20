@@ -35,5 +35,5 @@ px4_add_library(MecanumCourseControl
 	MecanumCourseControl.cpp
 )
 
-target_link_libraries(MecanumCourseControl PUBLIC rover_control)
+target_link_libraries(MecanumCourseControl PUBLIC rover_control drift_angle_estimator)
 target_include_directories(MecanumCourseControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

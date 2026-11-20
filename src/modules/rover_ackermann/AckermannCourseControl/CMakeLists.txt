@@ -35,5 +35,5 @@ px4_add_library(AckermannCourseControl
 	AckermannCourseControl.cpp
 )
 
-target_link_libraries(AckermannCourseControl PUBLIC rover_control)
+target_link_libraries(AckermannCourseControl PUBLIC rover_control drift_angle_estimator)
 target_include_directories(AckermannCourseControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

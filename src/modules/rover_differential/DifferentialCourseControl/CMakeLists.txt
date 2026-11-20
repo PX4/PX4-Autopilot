@@ -35,5 +35,5 @@ px4_add_library(DifferentialCourseControl
 	DifferentialCourseControl.cpp
 )
 
-target_link_libraries(DifferentialCourseControl PUBLIC rover_control)
+target_link_libraries(DifferentialCourseControl PUBLIC rover_control drift_angle_estimator)
 target_include_directories(DifferentialCourseControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

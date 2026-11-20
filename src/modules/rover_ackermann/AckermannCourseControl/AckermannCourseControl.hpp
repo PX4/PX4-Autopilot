@@ -39,6 +39,7 @@
 // Library includes
 #include <matrix/matrix/math.hpp>
 #include <lib/rover_control/RoverControl.hpp>
+#include <lib/drift_angle_estimator/DriftAngleEstimator.hpp>
 #include <lib/rover_control/RoverControllerWorkItem.hpp>
 #include <math.h>
 
@@ -113,7 +114,7 @@ private:
 	uORB::Publication<surface_vehicle_speed_setpoint_s> _surface_vehicle_speed_setpoint_pub{ORB_ID(surface_vehicle_speed_setpoint)};
 
 	// Variables
-	RoverControl::DriftAngleEstimator _drift_angle_estimator{};
+	DriftAngleEstimator _drift_angle_estimator{};
 	float _course_setpoint{NAN}; // Last received course setpoint, controlled until a NaN course is received
 	float _speed_setpoint{NAN}; // Last received speed setpoint, passed on if finite
 	float _vehicle_yaw{0.f};

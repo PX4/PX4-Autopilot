@@ -39,6 +39,7 @@
 // Library includes
 #include <matrix/matrix/math.hpp>
 #include <lib/rover_control/RoverControl.hpp>
+#include <lib/drift_angle_estimator/DriftAngleEstimator.hpp>
 #include <lib/rover_control/RoverControllerWorkItem.hpp>
 #include <math.h>
 
@@ -59,8 +60,8 @@ using namespace matrix;
  *
  * Sits between the position controller and the speed and attitude controllers. With a speed it turns the course over
  * ground into a body frame velocity setpoint, independent of the heading. Without a speed it turns the heading so that
- * the direction of the thrust commanded elsewhere (body x and y) points along the course, and deactivates the speed
- * controller (NaN speed setpoint). The last valid course setpoint is controlled until a
+ * the direction of the thrust commanded elsewhere (body x and y) points along the course, corrected by the drift angle
+ * relative to that thrust direction, and deactivates the speed controller (NaN speed setpoint). The last valid course setpoint is controlled until a
  * NaN course is received. With a NaN course the speed is passed on along the body x axis, with NaN course and speed
  * the course controller stops publishing.
  */
@@ -88,7 +89,7 @@ public:
 	/**
 	 * @brief Reset course controller.
 	 */
-	void reset() { _course_setpoint = NAN; _speed_setpoint = NAN; _thrust_direction = 0.f; }
+	void reset() { _course_setpoint = NAN; _speed_setpoint = NAN; _thrust_direction = 0.f; _drift_angle_estimator.reset(); }
 
 protected:
 	/**
@@ -106,6 +107,7 @@ private:
 
 	// uORB subscriptions
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _surface_vehicle_course_setpoint_sub{ORB_ID(surface_vehicle_course_setpoint)};
 	uORB::Subscription _surface_vehicle_thrust_setpoint_sub{ORB_ID(surface_vehicle_thrust_setpoint)};
 
@@ -118,4 +120,5 @@ private:
 	float _course_setpoint{NAN}; // Last received course setpoint, controlled until a NaN course is received
 	float _speed_setpoint{NAN}; // Last received speed setpoint
 	float _thrust_direction{0.f}; // [rad] Direction of the last nonzero thrust setpoint in body frame, 0 forwards, pi/2 right
+	DriftAngleEstimator _drift_angle_estimator{}; // Drift angle relative to the thrust direction
 };
