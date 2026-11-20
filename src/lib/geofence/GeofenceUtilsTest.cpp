@@ -437,6 +437,19 @@ TEST(GeofenceUtilsTest, AddApproxCircleRejectsOutOfBounds)
 
 }
 
+// Routes run along the edges of the k-gon, so the edges, not only the vertices, must keep the margin.
+TEST(GeofenceUtilsTest, ApproxExclusionCircleKeepsTheMarginAlongItsEdges)
+{
+	geofence_utils::PlannerPolygons polys;
+	ASSERT_EQ(polys.addApproxCircle(matrix::Vector2f(0, 0), 100.f, 10.f, false), AddResult::Success);
+
+	for (int i = 0; i < polys.numVertices(); i++) {
+		// The middle of an edge is its point closest to the circle. Nodes are stored in cm.
+		const matrix::Vector2f middle = (polys.node(1 + i) + polys.node(1 + (i + 1) % polys.numVertices())) * 0.5f;
+		EXPECT_GE(middle.norm(), 110.f - 0.02f) << "edge " << i;
+	}
+}
+
 // ===========================================================================
 // addPolygon rejects non-simple input
 // ===========================================================================

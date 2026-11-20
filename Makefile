@@ -335,27 +335,26 @@ uorb_graphs:
 	@$(MAKE) --no-print-directory px4_fmu-v6x_default uorb_graph
 	@$(MAKE) --no-print-directory px4_sitl_default uorb_graph
 
-px4io_update:
+# The px4io firmware is committed once per IO board and embedded into the ROMFS of every
+# board with CONFIG_BOARD_IO set. The build is reproducible, but only with the same
+# toolchain, so regenerate it in the px4-dev image used by the check_px4io CI job
+# (.github/workflows/checks.yml):
+#   PX4_DOCKER_REPO=<that image> ./Tools/docker_run.sh 'make px4io_update'
+.PHONY: px4io_build px4io_update check_px4io
+
+px4io_build:
 	@$(MAKE) --no-print-directory px4_io-v2_default
 	@$(MAKE) --no-print-directory cubepilot_io-v2_default
-	# px4_io-v2_default
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/ark/fmu-v6x/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/holybro/durandal-v1/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/holybro/pix32v5/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/mro/x21/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/mro/x21-777/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/fmu-v2/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/fmu-v3/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/fmu-v4pro/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/fmu-v5/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/fmu-v5x/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/fmu-v6x/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/fmu-v6c/extras/px4_io-v2_default.bin
-	# cubepilot_io-v2_default
-	cp build/cubepilot_io-v2_default/cubepilot_io-v2_default.bin boards/cubepilot/cubeorange/extras/cubepilot_io-v2_default.bin
-	cp build/cubepilot_io-v2_default/cubepilot_io-v2_default.bin boards/cubepilot/cubeorangeplus/extras/cubepilot_io-v2_default.bin
-	cp build/cubepilot_io-v2_default/cubepilot_io-v2_default.bin boards/cubepilot/cubeyellow/extras/cubepilot_io-v2_default.bin
-	git status
+
+px4io_update: px4io_build
+	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/io-v2/extras/
+	cp build/cubepilot_io-v2_default/cubepilot_io-v2_default.bin boards/cubepilot/io-v2/extras/
+
+# compares without touching the committed binaries
+check_px4io: px4io_build
+	@cmp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/io-v2/extras/px4_io-v2_default.bin \
+		&& cmp build/cubepilot_io-v2_default/cubepilot_io-v2_default.bin boards/cubepilot/io-v2/extras/cubepilot_io-v2_default.bin \
+		|| { echo "px4io firmware is out of date, regenerate it with 'make px4io_update' (see Makefile)"; exit 1; }
 
 bootloaders_update: \
 	3dr_ctrl-n1_bootloader \
