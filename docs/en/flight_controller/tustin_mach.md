@@ -8,7 +8,7 @@ Contact the [manufacturer](https://tustindynamics.com) for hardware support or c
 :::
 
 The [Tustin MACH](https://tustindynamics.com/products/tustin-mach) is a compact flight controller manufactured by Tustin Dynamics for small UAVs and research platforms.
-It uses an STM32H743 processor, two IMUs, eight motor outputs, CAN, and onboard analogue video OSD.
+It uses an STM32H743 processor, two IMUs, eight motor outputs, CAN, and onboard analogue video [OSD](../peripherals/osd.md#atxxxx-analog-osd).
 
 ![Tustin MACH](../../assets/flight_controller/tustin_mach/controller_side.webp)
 
@@ -30,7 +30,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Interfaces {#interfaces}
 
-- **PWM outputs:** 8, all supporting DShot
+- **PWM outputs:** 8, all supporting [DShot](../peripherals/dshot.md)
 - **Serial ports:** 7 (`UART1`, `UART4`, `UART5`, `GPS`, `DJI`, `UART6`, and receive-only ESC telemetry on the ESC headers)
 - **I2C buses:** 2 (I2C2 internal; I2C1 external, on `GPS` and `I2C1`)
 - **CAN buses:** 1
@@ -38,7 +38,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - **RC input:** Yes
 - **Parameter storage:** FRAM (FM25V02A)
 - **SD card:** microSD slot, for flight logging
-- **OSD:** AT7456E analogue OSD, and serial MSP OSD support
+- **OSD:** AT7456E analogue OSD, and serial [MSP OSD](../peripherals/osd.md#msp-osd) support
 - **Remote ID storage:** 24LC64 EEPROM for the unique product identifier, used by the `tustin_mach_rid` build
 
 ### Electrical Data {#electrical_data}
@@ -59,49 +59,47 @@ See the [Tustin MACH product page](https://tustindynamics.com/products/tustin-ma
 
 ## Pinouts {#pinouts}
 
-The following connector views and signal order are from the [manufacturer's pinout reference](https://tustindynamics.com/zh/products/tustin-mach).
+The following connector views and signal order are from the [manufacturer's pinout reference](https://tustindynamics.com/products/tustin-mach).
 All signal connectors use SH1.0 (1.0mm pitch); USB uses a Type-C connector.
 Read horizontal connectors from left to right and vertical connectors from top to bottom, with the board oriented as shown in the corresponding image.
 The order below describes the board connectors, not the view into a mating cable plug.
 
 ### Connector Side
 
-![Photograph of the Tustin MACH connector side showing the two ESC headers and peripheral connector locations](../../assets/flight_controller/tustin_mach/connector_side.png)
+![Tustin MACH connector side showing the two ESC headers and peripheral connector locations](../../assets/flight_controller/tustin_mach/connector_side.png)
 
-| Connector           | Signal Order                                        |
-| ------------------- | --------------------------------------------------- |
-| M5–M8 ESC           | `RX7`, `CUR`, `M8`, `M7`, `M6`, `M5`, `VBAT`, `GND` |
-| M1–M4 ESC           | `RX7`, `CUR`, `M4`, `M3`, `M2`, `M1`, `VBAT`, `GND` |
-| TELEM3 (UART5)      | `GND`, `5V`, `TX5`, `RX5`                           |
-| TELEM2 (UART4)      | `GND`, `5V`, `TX4`, `RX4`                           |
-| CAN                 | `5V`, `CANH`, `CANL`, `GND`                         |
-| VTX                 | `TX2`, `VIDEO_OUT`, `GND`, `12V`                    |
-| SWD                 | `SWCLK`, `SWDIO`, `GND`, `3V3`                      |
-| GPS1 (UART3 + I2C1) | `5V`, `TX3`, `RX3`, `SCL`, `SDA`, `GND`             |
-| TELEM1 (UART1)      | `GND`, `5V`, `TX1`, `RX1`                           |
-| RC (UART6)          | `GND`, `5V`, `TX6`, `RX6`                           |
+| Connector                   | Signal Order                                        |
+| --------------------------- | --------------------------------------------------- |
+| M5–M8 ESC                   | `RX7`, `CUR`, `M8`, `M7`, `M6`, `M5`, `VBAT`, `GND` |
+| M1–M4 ESC                   | `RX7`, `CUR`, `M4`, `M3`, `M2`, `M1`, `VBAT`, `GND` |
+| `UART5` (TELEM 3)           | `GND`, `5V`, `TX5`, `RX5`                           |
+| `UART4` (TELEM 2)           | `GND`, `5V`, `TX4`, `RX4`                           |
+| `CAN`                       | `5V`, `CANH`, `CANL`, `GND`                         |
+| `VTX`                       | `TX2`, `VIDEO_OUT`, `GND`, `12V`                    |
+| `SWD`                       | `SWCLK`, `SWDIO`, `GND`, `3V3`                      |
+| `GPS` (GPS 1: UART3 + I2C1) | `5V`, `TX3`, `RX3`, `SCL`, `SDA`, `GND`             |
+| `UART1` (TELEM 1)           | `GND`, `5V`, `TX1`, `RX1`                           |
+| `UART6` (RC)                | `GND`, `5V`, `TX6`, `RX6`                           |
 
 ### Controller Side
 
-![Photograph of the Tustin MACH controller side showing CAM, DJI, USB Type-C, and I2C connector locations](../../assets/flight_controller/tustin_mach/controller_side.webp)
+![Tustin MACH controller side showing CAM, DJI, USB Type-C, and I2C connector locations](../../assets/flight_controller/tustin_mach/controller_side.webp)
 
-| Connector        | Signal Order                             |
-| ---------------- | ---------------------------------------- |
-| CAM              | `VIDEO_IN`, `GND`, `12V`                 |
-| GPS2 / DJI O3/O4 | `12V`, `GND`, `TX2`, `RX2`, `GND`, `RX6` |
-| I2C1             | `GND`, `SDA`, `SCL`, `5V`                |
-
-USB Type-C provides power, firmware upload, and USB communication.
+| Connector                | Signal Order                             |
+| ------------------------ | ---------------------------------------- |
+| `CAM`                    | `VIDEO_IN`, `GND`, `12V`                 |
+| `DJI` (GPS 2, DJI O3/O4) | `12V`, `GND`, `TX2`, `RX2`, `GND`, `RX6` |
+| `I2C1`                   | `GND`, `SDA`, `SCL`, `5V`                |
 
 ### Shared Signals
 
 - Both ESC headers connect to the same UART7 receive signal (`RX7`) and current-sense input (`CUR`).
   They are not independent telemetry or current-sense inputs.
-- The RC and GPS2/DJI connectors share UART6 `RX6`.
+- The `UART6` and `DJI` connectors share USART6 `RX6`.
   Connect only one receiver output to this signal.
-- VTX `TX2` and the GPS2/DJI serial interface share USART2, which runs [MSP OSD](#osd) by default.
+- `VTX` `TX2` and the `DJI` serial interface share USART2, which runs [MSP OSD](#osd) by default.
   Reassign that serial port for any other device.
-- GPS1 and the I2C1 connector share external I2C bus 1.
+- The `GPS` and `I2C1` connectors share external I2C bus 1.
 
 ## Power {#power}
 
@@ -110,8 +108,8 @@ USB can power the flight controller for setup and firmware installation.
 
 ::: warning
 The power pins are not interchangeable.
-CAM, VTX, and GPS2/DJI provide 12V; general peripheral connectors provide 5V; SWD exposes 3.3V.
-In particular, the connector called `GPS2` in PX4 is the 12V DJI connector: do not connect a 5V-only GNSS module to its power pin.
+`CAM`, `VTX`, and `DJI` provide 12V; general peripheral connectors provide 5V; `SWD` exposes 3.3V.
+In particular, PX4's `GPS 2` port is the 12V `DJI` connector: do not connect a 5V-only GNSS module to its power pin.
 Check both voltage and signal order before connecting peripherals or an ESC cable.
 :::
 
@@ -200,7 +198,7 @@ DroneCAN is not enabled by default: set [UAVCAN_ENABLE](../advanced_config/param
 
 ### OSD {#osd}
 
-The onboard AT7456E [analog OSD](../peripherals/osd.md#atxxxx-analog-osd) overlays the video from the camera on the `CAM` connector (`VIDEO_IN`), and sends it to the video transmitter on the `VTX` connector (`VIDEO_OUT`).
+The onboard AT7456E [analogue OSD](../peripherals/osd.md#atxxxx-analog-osd) overlays the video from the camera on the `CAM` connector (`VIDEO_IN`), and sends it to the [video transmitter](../vtx/index.md) on the `VTX` connector (`VIDEO_OUT`).
 It is enabled for NTSC by default: set [OSD_ATXXXX_CFG](../advanced_config/parameter_reference.md#OSD_ATXXXX_CFG) to `PAL` for a PAL camera.
 
 Connect a DJI O3/O4 air unit to the `DJI` connector.
@@ -211,10 +209,9 @@ Connect a DJI O3/O4 air unit to the `DJI` connector.
 The `tustin_mach_default` and `tustin_mach_rid` firmware include the MS4525DO differential-pressure driver.
 To use an external I2C MS4525DO sensor:
 
-1. Connect the sensor to external I2C1 (`GND`, `SDA`, `SCL`, `5V`), matching signals rather than cable colours.
+1. Connect the sensor to the external `I2C1` connector (`GND`, `SDA`, `SCL`, `5V`), matching signals rather than cable colours.
    Use a sensor module rated for the connector's 5V supply.
-   GPS1 exposes the same I2C bus.
-2. Set [SENS_EN_MS4525DO](../advanced_config/parameter_reference.md#SENS_EN_MS4525DO) to `1` and reboot.
+2. Set [SENS_EN_MS4525DO](../advanced_config/parameter_reference.md#SENS_EN_MS4525DO) to `1` ([how to set parameters](../advanced_config/parameters.md)) and reboot.
 3. Check that the sensor is running in the [MAVLink Console](../debug/mavlink_shell.md):
 
    ```sh
