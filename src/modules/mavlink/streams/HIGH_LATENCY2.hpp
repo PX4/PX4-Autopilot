@@ -252,8 +252,14 @@ private:
 
 		if (_attitude_sp_sub.update(&attitude_sp)) {
 
-			msg->target_heading = static_cast<uint8_t>(math::degrees(matrix::wrap_2pi(matrix::Eulerf(matrix::Quatf(
-						      attitude_sp.q_d)).psi())) * 0.5f);
+			const float target_heading_deg = math::degrees(matrix::wrap_2pi(matrix::Eulerf(matrix::Quatf(
+							 attitude_sp.q_d)).psi()));
+
+			if (!PX4_ISFINITE(target_heading_deg)) {
+				return false;
+			}
+
+			msg->target_heading = static_cast<uint8_t>(target_heading_deg * 0.5f);
 			return true;
 		}
 
@@ -377,7 +383,13 @@ private:
 		if (_attitude_sub.update(&attitude)) {
 
 			const matrix::Eulerf euler = matrix::Quatf(attitude.q);
-			msg->heading = static_cast<uint8_t>(math::degrees(matrix::wrap_2pi(euler.psi())) * 0.5f);
+			const float heading_deg = math::degrees(matrix::wrap_2pi(euler.psi()));
+
+			if (!PX4_ISFINITE(heading_deg)) {
+				return false;
+			}
+
+			msg->heading = static_cast<uint8_t>(heading_deg * 0.5f);
 
 			return true;
 		}
@@ -500,8 +512,14 @@ private:
 		wind_s wind;
 
 		if (_wind_sub.copy(&wind)) {
-			msg->wind_heading = static_cast<uint8_t>(math::degrees(matrix::wrap_2pi(atan2f(wind.windspeed_east,
-					    wind.windspeed_north))) * 0.5f);
+			const float wind_heading_deg = math::degrees(matrix::wrap_2pi(atan2f(wind.windspeed_east,
+						       wind.windspeed_north)));
+
+			if (!PX4_ISFINITE(wind_heading_deg)) {
+				return false;
+			}
+
+			msg->wind_heading = static_cast<uint8_t>(wind_heading_deg * 0.5f);
 			return true;
 		}
 
