@@ -933,6 +933,13 @@ void Navigator::run()
 				// TODO: handle responses for supported DO_CHANGE_SPEED options?
 				publish_vehicle_command_ack(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
+			} else if ((cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_ROI
+				    || cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_ROI)
+				   && std::fabs(cmd.param1 - vehicle_command_s::VEHICLE_ROI_LOCATION) < FLT_EPSILON) {
+				// Location mode of these superseded commands is not supported (the ROI would be set to 0,0).
+				// MAV_CMD_DO_SET_ROI_LOCATION is the supported way to set a location ROI.
+				publish_vehicle_command_ack(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED);
+
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_ROI
 				   || cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_ROI
 				   || cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_LOCATION
