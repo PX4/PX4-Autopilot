@@ -119,9 +119,42 @@ uint64_t Timesync::sync_stamp(uint64_t usec)
 	}
 }
 
+/*
+ * Hybrid Kalman filter:
+ * https://en.wikipedia.org/wiki/Kalman_filter#Hybrid_Kalman_filter
+ *
+ * State:
+ *   x = [theta; gamma]
+ *   theta = t_local - t_remote : clock offset [s]
+ *   gamma = d(theta)/dt        : clock skew [s/s], the relative rate error of the two clocks
+ *
+ * Model:
+ *   dx/dt = F x + w(t),  F = [0 1; 0 0],  w(t) ~ N(0, Q),  Q = diag(q_o, q_s)
+ *   z_k   = H x_k + v_k, H = [1 0],       v_k  ~ N(0, R)
+ * where Q is the continuous-time noise spectral density, q_o = OFFSET_RANDOM_WALK,
+ * q_s = SKEW_RANDOM_WALK, R = MEASUREMENT_NOISE_STD^2, and z_k is the offset observed
+ * from one timesync round trip.
+ *
+ * Prediction: the hybrid filter integrates, over the time dt since the last sample,
+ *   dx/dt = F x
+ *   dP/dt = F P + P F^T + Q
+ * For this F and Q both have an exact closed-form solution:
+ *   x <- A x,            A   = [1 dt; 0 1]   (offset += skew * dt, skew unchanged)
+ *   P <- A P A^T + Q_d,  Q_d = [q_o dt + q_s dt^3/3   q_s dt^2/2;
+ *                               q_s dt^2/2            q_s dt    ]
+
+ * Q_d is the noise added over dt. Each random walk adds q dt to its own variance.
+ * The skew noise also leaks into the offset through offset += skew * dt, which
+ * gives the dt^2/2 and dt^3/3 terms. A skew kick w at s seconds before the end of
+ * dt changes the skew by w and the offset by s w. Summing over the interval:
+ *   cov(offset, skew) += integral_0^dt q_s s   ds = q_s dt^2/2
+ *   var(offset)       += integral_0^dt q_s s^2 ds = q_s dt^3/3
+
+ * https://en.wikipedia.org/wiki/Discretization#Discretization_of_process_noise
+ */
+
 void Timesync::add_sample(int64_t offset_us, uint64_t now_us)
 {
-	// Kalman filter with state [offset, skew] in seconds
 	static constexpr double R = MEASUREMENT_NOISE_STD * MEASUREMENT_NOISE_STD;
 	const double offset_s = offset_us * 1e-6;
 
@@ -136,16 +169,13 @@ void Timesync::add_sample(int64_t offset_us, uint64_t now_us)
 	} else {
 		const double dt = (now_us - _last_sample_us) * 1e-6;
 
-		// Predict: x = F x, P = F P F^T + Q in Horner form, with F = [1 dt; 0 1].
-		// Q adds the offset random walk q_o and the skew random walk q_s over dt:
-		// Q = q_o [dt, 0; 0, 0] + q_s * integral_0^dt [s^2, s; s, 1] ds
-		//   = q_o [dt, 0; 0, 0] + q_s [dt^3/3, dt^2/2; dt^2/2, dt].
+		// Predict: x <- A x, P <- A P A^T + Q_d, written out in Horner form.
 		_time_offset += _time_skew * dt;
 		_var_offset += dt * (OFFSET_RANDOM_WALK + 2.0 * _cov_offset_skew + dt * (_var_skew + dt * SKEW_RANDOM_WALK / 3.0));
 		_cov_offset_skew += dt * (_var_skew + dt * SKEW_RANDOM_WALK / 2.0);
 		_var_skew += dt * SKEW_RANDOM_WALK;
 
-		// Update with H = [1 0] (Kalman filter measurement update)
+		// Update: K = P H^T / (H P H^T + R), x <- x + K (z - H x), P <- (I - K H) P
 		const double innovation = offset_s - _time_offset;
 		const double k_offset = _var_offset / (_var_offset + R);
 		const double k_skew = _cov_offset_skew / (_var_offset + R);
