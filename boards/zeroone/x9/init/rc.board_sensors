@@ -1,0 +1,95 @@
+#!/bin/sh
+#
+# ZeroOne X6 specific board sensors init
+#------------------------------------------------------------------------------
+set HAVE_PM2 yes
+set INA_CONFIGURED no
+
+if mft query -q -k MFT -s MFT_PM2 -v 0
+then
+	set HAVE_PM2 no
+fi
+if param compare -s ADC_ADS1115_EN 1
+then
+	ads1115 start -X
+	board_adc start -n
+else
+	board_adc start
+fi
+
+
+if param compare SENS_EN_INA226 1
+then
+	# Start Digital power monitors
+	ina226 -X -b 1 -t 1 -k start
+
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina226 -X -b 2 -t 2 -k start
+	fi
+
+	set INA_CONFIGURED yes
+fi
+
+if param compare SENS_EN_INA228 1
+then
+	# Start Digital power monitors
+	ina228 -X -b 1 -t 1 -k start
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina228 -X -b 2 -t 2 -k start
+	fi
+
+	set INA_CONFIGURED yes
+fi
+
+
+if param compare SENS_EN_INA238 1
+then
+	# Start Digital power monitors
+	ina238 -X -b 1 -t 1 -k start
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina238 -X -b 2 -t 2 -k start
+	fi
+
+	set INA_CONFIGURED yes
+fi
+
+# IMU 1
+if ! iim42653 -b 2 -s -R 6 start
+then
+	iim42652 -b 2 -s -R 6 start
+fi
+
+# IMU 2
+if ! iim42653 -b 3 -s -R 2 start
+then
+	iim42652 -b 3 -s -R 2 start
+fi
+
+# IMU 3
+if ! iim42653 -b 1 -s -R 0 start
+then
+	iim42652 -b 1 -s -R 0 start
+fi
+
+
+rm3100 -I -b 4 start
+
+# Internal Baro
+if param compare SENS_INT_BARO_EN 1
+then
+	if ! icp201xx -I -a 0x64 start
+	then
+		bmp581 -I -a 0X47 start
+	fi
+fi
+#external baro
+if ! icp201xx -X start
+then
+	spa06 -X -a 0x77 start
+fi
+
+unset INA_CONFIGURED
+unset HAVE_PM2
