@@ -81,18 +81,20 @@ bool checkBatch(Geofence &geofence, PathBatch &batch)
 
 } // namespace
 
-// Polygons and circles only: a vehicle above the altitude limits or too far from Home does not recover, so its
-// segments are still checked.
+// The vehicle breaches a polygon or circle of the emergency geofence, for example 20 m outside an inclusion polygon.
+// Every way back in crosses that boundary, so segments from the vehicle are accepted without a fence check.
+// Too high, too far from Home or outside the contingency geofence is no recovery: those segments are checked.
 bool GeofencePathChecker::recovering(const Position &vehicle) const
 {
 	return !_geofence.isInsideHorizontalFences(vehicle.lat, vehicle.lon, vehicle.alt);
 }
 
-// The margin a segment from the vehicle keeps: GF_CONT_H_MARGIN, or 0 if the vehicle is already closer to the fence.
-// Example: the Return that GF_CONT_ACTION starts inside the margin is checked against the fence itself.
-float GeofencePathChecker::vehicleMargin(const Position &vehicle) const
+// A vehicle that is already outside the contingency geofence cannot keep it: it is closer to the emergency geofence
+// than GF_CONT_H_MARGIN. Its segments are checked against the emergency geofence only.
+// Example: the Return that GF_CONT_ACTION starts there may fly back through the margin, but not across the fence.
+bool GeofencePathChecker::vehicleOutsideContGeofence(const Position &vehicle) const
 {
-	return _geofence.isInsideContGeofence(vehicle.lat, vehicle.lon) ? _geofence.getContGeofenceMargin() : 0.f;
+	return !_geofence.isInsideContGeofence(vehicle.lat, vehicle.lon);
 }
 
 bool GeofencePathChecker::pruneCandidates(ProjectionReferenceBatch &batch) const
@@ -135,7 +137,8 @@ bool GeofencePathChecker::pruneCandidates(ProjectionReferenceBatch &batch) const
 		}
 
 		// Segments keep GF_CONT_H_MARGIN from the polygons and circles, like the legs of a mission.
-		const float margin = is_vehicle ? vehicleMargin(anchor) : _geofence.getContGeofenceMargin();
+		const bool emergency_only = is_vehicle && vehicleOutsideContGeofence(anchor);
+		const float margin = emergency_only ? 0.f : _geofence.getContGeofenceMargin();
 
 		for (uint8_t j = 0; j < reference.candidate_buffer.count; ++j) {
 			const Position &projection = reference.candidate_buffer.candidates[j].projection;
@@ -195,7 +198,9 @@ bool GeofencePathChecker::checkPath(const Position &vehicle, const Position &end
 		return true;
 	}
 
-	const Geofence::PathCheck path{{vehicle.lat, vehicle.lon}, {end.lat, end.lon}, 0.f, vehicleMargin(vehicle)};
+	const bool emergency_only = vehicleOutsideContGeofence(vehicle);
+	const float margin = emergency_only ? 0.f : _geofence.getContGeofenceMargin();
+	const Geofence::PathCheck path{{vehicle.lat, vehicle.lon}, {end.lat, end.lon}, 0.f, margin};
 	return _geofence.checkPathBatch(&path, 1, &clear);
 }
 
