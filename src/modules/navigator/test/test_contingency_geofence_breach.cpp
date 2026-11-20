@@ -373,10 +373,6 @@ TEST_P(ContGeofenceSourceTest, PublishesTheContGeofenceAction)
 
 	setParam("GF_CONT_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_NONE));
 	EXPECT_EQ(checkAt(inside()).geofence_cont_action, geofence_result_s::GF_ACTION_NONE);
-
-	// Terminate is not offered.
-	setParam("GF_CONT_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_TERMINATE));
-	EXPECT_EQ(checkAt(inside()).geofence_cont_action, geofence_result_s::GF_ACTION_WARN);
 }
 
 TEST_P(ContGeofenceSourceTest, HoldLoitersAtTheTriggerPosition)

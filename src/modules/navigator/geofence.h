@@ -49,6 +49,7 @@
 #include <lib/geo/geo.h>
 #include <px4_platform_common/defines.h>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/geofence_result.h>
 #include <uORB/topics/geofence_status.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -223,11 +224,11 @@ public:
 	int getSource() { return _param_gf_source.get(); }
 	int getGeofenceAction() { return _param_gf_action.get(); }
 
-	/**
-	 * GF_CONT_ACTION as a GF_ACTION value: None while the contingency geofence is disabled, Warning for values
-	 * it does not offer.
-	 */
-	uint8_t getContGeofenceAction() const;
+	/** GF_CONT_ACTION, or None while the contingency geofence is disabled. */
+	int getContGeofenceAction() const
+	{
+		return getContGeofenceMargin() > FLT_EPSILON ? _param_gf_cont_action.get() : geofence_result_s::GF_ACTION_NONE;
+	}
 
 	float getMaxHorDistanceHome() { return _param_gf_max_hor_dist.get(); }
 

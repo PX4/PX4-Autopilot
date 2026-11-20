@@ -903,25 +903,6 @@ bool Geofence::isBelowMaxAltitude(float altitude)
 	return inside_fence;
 }
 
-uint8_t Geofence::getContGeofenceAction() const
-{
-	if (getContGeofenceMargin() <= FLT_EPSILON) {
-		return geofence_result_s::GF_ACTION_NONE;
-	}
-
-	switch (_param_gf_cont_action.get()) {
-	case geofence_result_s::GF_ACTION_NONE:
-	case geofence_result_s::GF_ACTION_LOITER:
-	case geofence_result_s::GF_ACTION_RTL:
-	case geofence_result_s::GF_ACTION_LAND:
-		return static_cast<uint8_t>(_param_gf_cont_action.get());
-
-	default:
-		// The contingency geofence does not offer Terminate.
-		return geofence_result_s::GF_ACTION_WARN;
-	}
-}
-
 bool Geofence::isWithinAltitudeBand(float altitude)
 {
 	if (!isEmpty() && _altitude_max > _altitude_min) {
