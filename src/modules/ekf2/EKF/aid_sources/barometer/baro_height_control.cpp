@@ -64,17 +64,12 @@ void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 		const bool measurement_valid = PX4_ISFINITE(measurement) && PX4_ISFINITE(measurement_var);
 
 		if (measurement_valid) {
-			if (baro_sample.reset && _control_status.flags.baro_hgt && (_height_sensor_ref == HeightSensor::BARO)) {
-				// reset in place to keep the height reference
+			if ((_baro_counter == 0) || baro_sample.reset) {
 				_baro_lpf.reset(measurement);
-				_information_events.flags.reset_hgt_to_baro = true;
-				resetAltitudeTo(measurement - bias_est.getBias());
-				bias_est.setBias(-_gpos.altitude() + _baro_lpf.getState());
-
-			} else if ((_baro_counter == 0) || baro_sample.reset) {
-				_baro_lpf.reset(measurement);
-				_baro_counter = 1;
+				_baro_counter++;
 				_control_status.flags.baro_fault = false;
+				// restarts below in the same update, on the new datum
+				stopBaroHgtFusion();
 
 			} else {
 				_baro_lpf.update(measurement);
