@@ -110,8 +110,9 @@ public:
 
 	/**
 	 * Check 1..MAX_PATH_CHECKS paths and optional circles at their ends against horizontal fences (both levels).
-	 * With emergency_only the contingency geofence areas are skipped: for the paths of a vehicle that is already
-	 * outside them.
+	 * With emergency_only the contingency geofence areas are skipped. The route planner asks for this when the
+	 * vehicle is already outside one: every way back in crosses the boundary of that area, so its paths can only
+	 * be checked against the emergency geofence.
 	 * Circles are also checked against the maximum distance from Home, less GF_CONT_H_MARGIN.
 	 * A path's margin makes coming closer than it to a polygon or circle boundary a breach too.
 	 * Boundary contact is a breach, including contact by a circle. Callers choose the circles;

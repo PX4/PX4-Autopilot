@@ -548,7 +548,9 @@ Geofence::LoadResult Geofence::_updateFence()
 					current_seq += polygon.vertex_count;
 				}
 
-				// A contingency geofence area always loads: a vehicle outside it gets GF_CONT_ACTION, and cannot arm.
+				// An emergency geofence area that Home or the flying vehicle breaches is dropped below. A contingency
+				// geofence area is loaded anyway: GF_CONT_ACTION cannot terminate, a breach on the ground only denies
+				// arming, and without the area the vehicle would reach the emergency geofence first.
 				const bool cont_geofence = polygon.fence_level == FenceLevel::Contingency;
 
 				// check if requiremetns for Home location are met
