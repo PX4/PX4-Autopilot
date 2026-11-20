@@ -20,35 +20,37 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Processor {#processor}
 
-- **Main FMU processor:** STM32H743 (Arm Cortex-M7, 480 MHz, 2 MB flash, 1 MB RAM)
+- **Main FMU processor:** [STM32H743VI](https://www.st.com/en/microcontrollers-microprocessors/stm32h743vi.html) (Arm Cortex-M7 at 480MHz, 2MB flash, 1MB RAM)
 
 ### Sensors {#sensors}
 
-- **IMU:** 2x ICM-42688-P (SPI1, SPI4; independent power supply)
+- **IMU:** 2x [InvenSense ICM-42688-P](https://invensense.tdk.com/products/motion-tracking/6-axis/icm-42688-p/) (SPI1, SPI4; independent power supply)
 - **Barometer:** SPL06 (I2C2; requires battery power)
 - **Magnetometer:** none (external compass optional)
 
 ### Interfaces {#interfaces}
 
-- **PWM outputs:** 12
-- **Serial ports:** 8
+- **PWM outputs:** 12 (`S1`–`S12`)
+- **Serial ports:** 8 (`GPS1`, `GPS2`, `TELEM1`, `TELEM2`, `TELEM3`, `TELEM4`, RC, debug console)
 - **I2C buses:** 1 (I2C2, shared with the onboard barometer)
-- **CAN buses:** 1 (PD0/PD1)
+- **SPI buses:** 4, of which SPI3 is external with 2 chip selects (`CS1` PA15, `CS2` PD3)
+- **CAN buses:** 1 (CAN1, PD0/PD1)
 - **USB:** USB-C
-- **OSD:** AT7456E analog OSD, and MSP DisplayPort for digital VTX
-- **SD card:** microSD (SDMMC2)
+- **RC input:** Yes (UART5)
 - **Parameter storage:** processor flash
+- **SD card:** microSD (SDMMC2)
+- **OSD:** AT7456E analog OSD, and MSP DisplayPort for digital VTX (DJI/HDZero/OpenIPC)
 
-### Electrical data {#electrical_data}
+### Electrical Data {#electrical_data}
 
-- **Battery input:** 3S–12S LiPo
+- **Input voltage:** 3S–12S LiPo
 - **BEC 5V:** 2A
 - **Power monitoring:** analog battery voltage and current
 
-### Mechanical data {#mechanical_data}
+### Mechanical Data {#mechanical_data}
 
-- **Mounting hole spacing:** 30.5 × 30.5 mm, M4
-- **Weight:** 8 g
+- **Mounting hole spacing:** 30.5 × 30.5mm, M4
+- **Weight:** 8g
 
 ## Where to Buy {#store}
 
@@ -62,42 +64,42 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 The component side has the USB-C port, the microSD slot and two JST connectors: the 8-pin 4-in-1 ESC connector and a 4-pin CAN connector (`5V`, `CH`, `CL`, `GND`).
 
-| Pin              | Function                                               | PX4 Default    |
-| ---------------- | ------------------------------------------------------ | -------------- |
-| `Vbat`           | Battery positive voltage (3S–12S)                      |                |
-| `DA1`, `CL1`     | I2C peripheral interface (SDA/SCL)                     |                |
-| `5V`             | 5V output (2A max) BEC power supply                    |                |
-| `4V5`            | 4.5V output or USB power supply                        |                |
-| `3V3`            | 3.3V output (0.25A max)                                |                |
-| `Airs`           | Airspeed ADC input (PC4)                               |                |
-| `Cur`            | Battery current ADC input (PC0)                        |                |
-| `Rssi`           | Analog RSSI input (PC5), not used by PX4               |                |
-| `SI`, `SO`, `CK` | External SPI bus MOSI/MISO/CLK                         |                |
-| `CS1`, `CS2`     | External SPI bus CS1 (PA15) and CS2 (PD3)              |                |
-| `Rx1`, `Tx1`     | UART1 RX/TX                                            | `GPS1`         |
-| `Rx2`, `Tx2`     | UART2 RX/TX                                            | `TELEM1`       |
-| `Rx3`, `Tx3`     | UART3 RX/TX                                            | `TELEM2`       |
-| `Rx4`, `Tx4`     | UART4 RX/TX (PB8/PB9)                                  | `TELEM3`       |
-| `Rx5`, `Tx5`     | UART5 RX/TX                                            | RC input       |
-| `Rx6`, `Tx6`     | UART6 RX/TX                                            | `TELEM4`       |
-| `Rx7`, `Tx7`     | UART7 RX/TX                                            | System console |
-| `Rx8`, `Tx8`     | UART8 RX/TX                                            | `GPS2`         |
-| `CH`, `CL`       | CAN bus                                                |                |
-| `Buz-`           | Buzzer negative pin (PE10)                             |                |
-| `S1`–`S4`        | Motor outputs (TIM1: PE9/PE11/PE13/PE14)               |                |
-| `S5`–`S8`        | Motor outputs (TIM2: PA0–PA3)                          |                |
-| `S9`–`S12`       | Servo outputs (TIM4: PD12–PD15)                        |                |
-| `LED`            | WS2812 LED strip (TIM3_CH3, PB0), not supported by PX4 |                |
-| `C1`, `C2`       | Analog camera inputs, selected by `PIO1`               |                |
-| `VTX`            | Analog video output to the VTX (with OSD overlay)      |                |
-| `PIO1`           | Camera switch (PE2): high selects `C1`, low `C2`       |                |
-| `PIO2`           | User-defined output (PE3)                              |                |
-| `PIO3`           | Bluetooth module enable (PE4)                          |                |
-| `PIO4`           | CAN1 transceiver silent control (PD2)                  |                |
+| Pin              | Function                                                                | PX4 Default    |
+| ---------------- | ----------------------------------------------------------------------- | -------------- |
+| `Vbat`           | Battery positive voltage (3S–12S)                                       |                |
+| `DA1`, `CL1`     | I2C peripheral interface (SDA/SCL)                                      |                |
+| `5V`             | 5V BEC output (2A max)                                                  |                |
+| `4V5`            | 4.5V output or USB power supply                                         |                |
+| `3V3`            | 3.3V output (0.25A max)                                                 |                |
+| `Airs`           | Airspeed ADC input (PC4)                                                |                |
+| `Cur`            | Battery current ADC input (PC0)                                         |                |
+| `Rssi`           | Analog RSSI input (PC5), not used by PX4                                |                |
+| `SI`, `SO`, `CK` | External SPI bus MOSI/MISO/CLK                                          |                |
+| `CS1`, `CS2`     | External SPI bus CS1 (PA15) and CS2 (PD3)                               |                |
+| `Rx1`, `Tx1`     | UART1 RX/TX                                                             | `GPS1`         |
+| `Rx2`, `Tx2`     | UART2 RX/TX                                                             | `TELEM1`       |
+| `Rx3`, `Tx3`     | UART3 RX/TX                                                             | `TELEM2`       |
+| `Rx4`, `Tx4`     | UART4 RX/TX (PB8/PB9)                                                   | `TELEM3`       |
+| `Rx5`, `Tx5`     | UART5 RX/TX                                                             | RC input       |
+| `Rx6`, `Tx6`     | UART6 RX/TX                                                             | `TELEM4`       |
+| `Rx7`, `Tx7`     | UART7 RX/TX                                                             | System console |
+| `Rx8`, `Tx8`     | UART8 RX/TX                                                             | `GPS2`         |
+| `CH`, `CL`       | CAN bus                                                                 |                |
+| `Buz-`           | Buzzer negative pin (PE10)                                              |                |
+| `S1`–`S4`        | Motor outputs (TIM1: PE9/PE11/PE13/PE14)                                |                |
+| `S5`–`S8`        | Motor outputs (TIM2: PA0–PA3)                                           |                |
+| `S9`–`S12`       | Servo outputs (TIM4: PD12–PD15)                                         |                |
+| `LED`            | WS2812 LED strip (TIM3_CH3, PB0), not supported by the default firmware |                |
+| `C1`, `C2`       | Analog camera inputs, selected by `PIO1`                                |                |
+| `VTX`            | Analog video output to the VTX (with OSD overlay)                       |                |
+| `PIO1`           | Camera switch (PE2): high selects `C1`, low `C2`                        |                |
+| `PIO2`           | User-defined output (PE3)                                               |                |
+| `PIO3`           | Bluetooth module enable (PE4)                                           |                |
+| `PIO4`           | CAN1 transceiver silent control (PD2)                                   |                |
 
 ## Power {#power}
 
-The board is powered from a 3S–12S LiPo battery (see [Electrical data](#electrical_data) for the BEC outputs).
+The board is powered from a 3S–12S LiPo battery (see [Electrical Data](#electrical_data) for the BEC outputs).
 
 Battery voltage and current are measured by the board's analog inputs, with the current from the `Cur` pad.
 The default scaling is [BAT1_V_DIV](../advanced_config/parameter_reference.md#BAT1_V_DIV) = `16.0` and [BAT1_A_PER_V](../advanced_config/parameter_reference.md#BAT1_A_PER_V) = `83.3`; check these against your battery and ESC as described in [Battery Estimation Tuning](../config/battery.md).
@@ -115,7 +117,7 @@ All outputs within the same group must use the same output protocol and rate.
 [Bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry) with eRPM telemetry works on `S1`–`S11`.
 `S12` (TIM4 CH4) can send bidirectional DShot but can't read eRPM telemetry back.
 
-The `LED` pad (for a WS2812 LED strip) is not supported by PX4.
+The `LED` pad (for a WS2812 LED strip) is not supported by the default firmware.
 
 ## SD Card (Optional) {#sd_card}
 
@@ -137,7 +139,7 @@ The card isn't needed to fly, but without one no flight logs are recorded and mi
 
 ::: warning
 The pads are silkscreened by UART number, so `Tx4`/`Rx4` is UART4 — which PX4 exposes as `TELEM3`, not `TELEM4`.
-The digital VTX connects to `Tx4`, so its PX4 port is `TELEM3` (`MSP_OSD_CONFIG 103`).
+The digital VTX connects to `Tx4`, so its PX4 port is `TELEM3` ([MSP_OSD_CONFIG](../advanced_config/parameter_reference.md#MSP_OSD_CONFIG) = `103`).
 :::
 
 ::: info
@@ -163,14 +165,21 @@ You will need to [select a compatible transmitter/receiver](../getting_started/r
 Connect the receiver to the `Tx5`/`Rx5` pads (UART5, `/dev/ttyS4`), which go directly to the flight controller.
 PX4 detects the protocol automatically, with no configuration needed: CRSF/ELRS, GHST, S.BUS, DSM, SUMD and ST24 are supported.
 For CRSF, ELRS and GHST, connect both `Tx5` and `Rx5` so that telemetry can be sent back to the receiver.
+DSM receivers can't be bound from PX4 or _QGroundControl_ on this board, so bind the receiver using its own bind procedure.
 
 PPM receivers are not supported, as the board has no PPM input.
 To use a different serial port for RC, set [RC_PORT_CONFIG](../advanced_config/parameter_reference.md#RC_PORT_CONFIG).
 
+### RSSI {#rssi}
+
+The analog RSSI pad (`Rssi`, PC5) is not used by PX4.
+RSSI is reported automatically for receivers that send it in their protocol, such as CRSF/ELRS.
+For other receivers, set [RC_RSSI_PWM_CHAN](../advanced_config/parameter_reference.md#RC_RSSI_PWM_CHAN) to the RC channel that carries RSSI.
+
 ### GPS & Compass {#gps_compass}
 
 Connect a [GPS/compass module](../gps_compass/index.md) to `GPS1` (`Tx1`/`Rx1` pads), with its compass on the `DA1`/`CL1` pads (I2C2).
-A second GPS can be connected to `GPS2` (`Tx8`/`Rx8`).
+A second GPS can be connected to `GPS2` (`Tx8`/`Rx8`): set [GPS_2_CONFIG](../advanced_config/parameter_reference.md#GPS_2_CONFIG) to `GPS 2`.
 
 The board has no built-in compass, so compass use is disabled by default ([SYS_HAS_MAG](../advanced_config/parameter_reference.md#SYS_HAS_MAG) = `0`, [EKF2_MAG_TYPE](../advanced_config/parameter_reference.md#EKF2_MAG_TYPE) = `5` (None)).
 If you connect an external compass, set `SYS_HAS_MAG` to `1` and `EKF2_MAG_TYPE` to `0` (Automatic), then reboot.
@@ -191,14 +200,9 @@ The AT7456E analog OSD is on SPI2 and is enabled by default for PAL ([OSD_ATXXXX
 Set it to `1` for NTSC, or `0` to disable the analog OSD; a reboot is required.
 Analog OSD and digital HD OSD can run at the same time.
 
-The digital VTX (DJI/HDZero/OpenIPC) uses MSP DisplayPort on the `Tx4`/`Rx4` pads — UART4, PX4 `TELEM3` (`/dev/ttyS3`), which is the `MSP_OSD_CONFIG 103` default.
+The digital VTX (DJI/HDZero/OpenIPC) uses MSP DisplayPort on the `Tx4`/`Rx4` pads — UART4, PX4 `TELEM3` (`/dev/ttyS3`), which is the default ([MSP_OSD_CONFIG](../advanced_config/parameter_reference.md#MSP_OSD_CONFIG) = `103`).
 
 MSP DisplayPort only uses the flight controller's TX line, so `Tx4` and a ground are enough; `Rx4` is not needed unless the VTX also talks back.
-
-::: info `Dji`/`VTX` solder jumper
-The three-pad solder jumper silkscreened `Dji` and `VTX` selects what the HD VTX connector's RX4 pin carries: UART4 RX for a digital air unit, or the analog composite video signal when the connector drives an analog VTX.
-It is not in the OSD's transmit path, so it does not affect MSP DisplayPort output.
-:::
 
 ::: info
 UART4 is on PB8/PB9, the same as on the H743 Pro, but this variant has no HD VTX connector.
@@ -213,7 +217,7 @@ Download the [dakefpv_h743slim_bootloader.bin](https://github.com/PX4/PX4-Autopi
 
 ## Building Firmware {#building_firmware}
 
-:::tip
+::: tip
 From PX4 v2.0, most users will not need to build this firmware!
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
@@ -232,7 +236,7 @@ Once the PX4 bootloader is running, upload firmware with:
 make dakefpv_h743slim_default upload
 ```
 
-Alternatively, [load the firmware](../config/firmware.md) using _QGroundControl_, using either pre-built firmware or your own custom build.
+Alternatively, [load the firmware](../config/firmware.md) with _QGroundControl_, using either pre-built firmware or your own custom build.
 
 ## Debug Port {#debug_port}
 
@@ -245,4 +249,4 @@ The FMU [SWD interface](../debug/swd_debug.md) is on four solder pads on the lef
 - `D`: SWDIO (PA13)
 - `C`: SWCLK (PA14)
 - `G`: GND
-- `3`: 3.3 V
+- `3`: 3.3V
