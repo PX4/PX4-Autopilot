@@ -705,7 +705,8 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 						param_get(_param_ro_stick_map, &stick_map);
 					}
 
-					// Only mecanum rovers (CA_AIRFRAME 13) use the lateral stick
+					// CA_AIRFRAME: 6 = differential rover, 13 = mecanum rover. Only mecanum rovers use the lateral stick.
+					// In manual parking both drive the left and right wheels with the vertical sticks, not RO_STICK_MAP.
 					int32_t airframe = 0;
 
 					if (_param_ca_airframe != PARAM_INVALID) {
@@ -713,7 +714,9 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 					}
 
 					const bool can_drive_sideways = (airframe == 13);
-					throttle_safe = !RoverControl::sticksCommandMotion(_last_manual_control_setpoint, stick_map, can_drive_sideways);
+					const bool manual_parking = (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL_PARKING);
+					const bool tank_sticks = manual_parking && (airframe == 6 || airframe == 13);
+					throttle_safe = !RoverControl::sticksCommandMotion(_last_manual_control_setpoint, stick_map, can_drive_sideways, tank_sticks);
 
 				} else if (_vehicle_control_mode.flag_control_climb_rate_enabled) {
 					// Climb-rate modes (AltCtl, PosCtl, etc.): center = hover, safe at or below center

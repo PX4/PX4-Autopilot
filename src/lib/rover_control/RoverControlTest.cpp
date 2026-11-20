@@ -1233,7 +1233,7 @@ TEST(sticksCommandMotion, centeredSticks)
 	manual_control_setpoint_s manual_control_setpoint{};
 
 	// WHEN: checked with stick mapping mode 2 (left: yaw, right: forward & lateral)
-	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, kCanDriveSideways);
+	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, kCanDriveSideways, false);
 
 	// THEN: no motion is commanded
 	EXPECT_FALSE(commands_motion);
@@ -1246,7 +1246,7 @@ TEST(sticksCommandMotion, forwardOnRightStick)
 	manual_control_setpoint.pitch = 1.f;
 
 	// WHEN: checked with stick mapping mode 2, where the right vertical stick drives forward
-	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, kCanDriveSideways);
+	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, kCanDriveSideways, false);
 
 	// THEN: motion is commanded
 	EXPECT_TRUE(commands_motion);
@@ -1259,7 +1259,7 @@ TEST(sticksCommandMotion, backwardOnRightStick)
 	manual_control_setpoint.pitch = -1.f;
 
 	// WHEN: checked with stick mapping mode 2
-	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, kCanDriveSideways);
+	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, kCanDriveSideways, false);
 
 	// THEN: motion is commanded
 	EXPECT_TRUE(commands_motion);
@@ -1272,7 +1272,7 @@ TEST(sticksCommandMotion, lateralOnRightStick)
 	manual_control_setpoint.roll = 1.f;
 
 	// WHEN: checked with stick mapping mode 2, where the right horizontal stick drives sideways
-	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, kCanDriveSideways);
+	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, kCanDriveSideways, false);
 
 	// THEN: motion is commanded
 	EXPECT_TRUE(commands_motion);
@@ -1285,7 +1285,7 @@ TEST(sticksCommandMotion, lateralOnRoverThatCannotDriveSideways)
 	manual_control_setpoint.roll = 1.f;
 
 	// WHEN: checked for a rover that doesn't use the lateral stick (differential, Ackermann)
-	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, false);
+	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, false, false);
 
 	// THEN: no motion is commanded
 	EXPECT_FALSE(commands_motion);
@@ -1298,7 +1298,7 @@ TEST(sticksCommandMotion, unusedLeftVerticalStick)
 	manual_control_setpoint.throttle = 1.f;
 
 	// WHEN: checked with stick mapping mode 2, where the left vertical stick is not used
-	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, kCanDriveSideways);
+	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, kCanDriveSideways, false);
 
 	// THEN: no motion is commanded
 	EXPECT_FALSE(commands_motion);
@@ -1311,7 +1311,7 @@ TEST(sticksCommandMotion, yawOnly)
 	manual_control_setpoint.yaw = 1.f;
 
 	// WHEN: checked with stick mapping mode 2, where the left horizontal stick turns the rover
-	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, kCanDriveSideways);
+	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, kCanDriveSideways, false);
 
 	// THEN: turning alone does not count as motion
 	EXPECT_FALSE(commands_motion);
@@ -1324,7 +1324,7 @@ TEST(sticksCommandMotion, belowThreshold)
 	manual_control_setpoint.pitch = 0.19f;
 
 	// WHEN: checked with stick mapping mode 2
-	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, kCanDriveSideways);
+	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, kCanDriveSideways, false);
 
 	// THEN: no motion is commanded
 	EXPECT_FALSE(commands_motion);
@@ -1337,8 +1337,48 @@ TEST(sticksCommandMotion, atThreshold)
 	manual_control_setpoint.pitch = 0.2f;
 
 	// WHEN: checked with stick mapping mode 2
-	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, kCanDriveSideways);
+	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, kCanDriveSideways, false);
 
 	// THEN: motion is commanded, matching the previous throttle check that only allowed arming below 0.2
 	EXPECT_TRUE(commands_motion);
+}
+
+TEST(sticksCommandMotion, parkingLeftStickForward)
+{
+	// GIVEN: the left stick pushed fully forward
+	manual_control_setpoint_s manual_control_setpoint{};
+	manual_control_setpoint.throttle = 1.f;
+
+	// WHEN: checked in manual parking, where the left vertical stick drives the left wheels whatever the stick mapping
+	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, false, true);
+
+	// THEN: motion is commanded
+	EXPECT_TRUE(commands_motion);
+}
+
+TEST(sticksCommandMotion, parkingRightStickForward)
+{
+	// GIVEN: the right stick pushed fully forward
+	manual_control_setpoint_s manual_control_setpoint{};
+	manual_control_setpoint.pitch = 1.f;
+
+	// WHEN: checked in manual parking, where the right vertical stick drives the right wheels
+	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, false, true);
+
+	// THEN: motion is commanded
+	EXPECT_TRUE(commands_motion);
+}
+
+TEST(sticksCommandMotion, parkingTurnOnTheSpot)
+{
+	// GIVEN: the left stick pushed fully forward and the right stick pulled fully back
+	manual_control_setpoint_s manual_control_setpoint{};
+	manual_control_setpoint.throttle = 1.f;
+	manual_control_setpoint.pitch = -1.f;
+
+	// WHEN: checked in manual parking, where this turns the rover on the spot
+	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, false, true);
+
+	// THEN: turning alone does not count as motion, as with the yaw stick in the other modes
+	EXPECT_FALSE(commands_motion);
 }
