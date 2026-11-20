@@ -54,6 +54,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Mechanical Data {#mechanical_data}
 
+- **Weight:** 10g
 - **Mounting hole spacing:** 30.5 × 30.5mm, M4
 
 ## Where to Buy {#store}

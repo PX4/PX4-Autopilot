@@ -54,7 +54,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 - **Dimensions:** 36 × 36mm
 - **Mounting hole spacing:** 30.5 × 30.5mm
-- **Weight:** 8g
+- **Weight:** 10g
 
 ## Where to Buy {#store}
 
