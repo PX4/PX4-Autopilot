@@ -107,6 +107,9 @@ private:
 	// Wait up to 5 s for NuttX interface flags; return false on a stop request.
 	bool waitForLink(const char *locator);
 
+	// Sleep for timeout_ms, waking up early on a stop request; return false on a stop request.
+	bool sleepUnlessStopped(uint32_t timeout_ms);
+
 	Zenoh_Config _config;
 
 	int _pub_count;

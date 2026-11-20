@@ -285,6 +285,17 @@ bool ZENOH::waitForLink(const char *locator)
 	return !should_exit();
 }
 
+bool ZENOH::sleepUnlessStopped(uint32_t timeout_ms)
+{
+	static constexpr uint32_t interval_ms = 100;
+
+	for (uint32_t slept_ms = 0; slept_ms < timeout_ms && !should_exit(); slept_ms += interval_ms) {
+		px4_usleep(interval_ms * 1000);
+	}
+
+	return !should_exit();
+}
+
 int ZENOH::setupSession()
 {
 	char mode[NET_MODE_SIZE];
@@ -300,7 +311,7 @@ int ZENOH::setupSession()
 
 	PX4_INFO("Opening session...");
 
-	do {
+	while (true) {
 		z_config_default(&config);
 		zp_config_insert(z_loan_mut(config), Z_CONFIG_MODE_KEY, mode);
 
@@ -311,21 +322,27 @@ int ZENOH::setupSession()
 			zp_config_insert(z_loan_mut(config), Z_CONFIG_CONNECT_KEY, Z_CONFIG_MULTICAST_LOCATOR_DEFAULT);
 		}
 
+		ret = z_open(&_s, z_move(config), nullptr);
+
+		if (ret >= 0) {
+			break;
+		}
+
 		if (ret == _Z_ERR_TRANSPORT_OPEN_FAILED) {
 			PX4_WARN("Unable to open session, make sure zenohd is running on %s", locator);
 
 		} else if (ret == _Z_ERR_SCOUT_NO_RESULTS) {
 			PX4_WARN("Unable to open session, scout no results");
 
-		} else if (ret < 0) {
+		} else {
 			PX4_WARN("Unable to open session, ret: %d", ret);
 		}
 
-		if (ret != 0) {
-			sleep(5); // Wait 5 seconds when doing a retry
+		// Retry in 5 s, a stop request ends the wait
+		if (!sleepUnlessStopped(5000)) {
+			return -EINTR;
 		}
-
-	} while ((ret = z_open(&_s, z_move(config), nullptr)) < 0);
+	}
 
 	// Start read and lease tasks for zenoh-pico
 	if (zp_start_read_task(z_loan_mut(_s), nullptr) < 0 || zp_start_lease_task(z_loan_mut(_s), nullptr) < 0) {
@@ -525,6 +542,9 @@ void ZENOH::cleanupSession()
 {
 	PX4_INFO("Cleaning up Zenoh session...");
 
+	// A topic setup that failed half-way left the mapping file open at that line
+	_config.closePubSubMapping();
+
 	for (int i = 0; i < _sub_count; i++) {
 		if (_zenoh_subscribers && _zenoh_subscribers[i]) {
 			delete _zenoh_subscribers[i];
@@ -571,24 +591,43 @@ void ZENOH::run()
 		pfds[i].fd = -1;
 	}
 
-	const int setup_ret = setupSession();
+	// A failed setup is retried: the session can be lost right after it opened, e.g. to a router that still holds
+	// a previous session from this vehicle
+	while (true) {
+		const int setup_ret = setupSession();
 
-	if (setup_ret < 0) {
-		if (setup_ret != -EINTR) {
+		if (setup_ret == -EINTR) {
+			break;
+		}
+
+		if (setup_ret < 0) {
 			PX4_ERR("Failed to setup Zenoh session");
+
+		} else {
+			_connected.store(true);
+
+			PX4_INFO("Starting reading/writing tasks...");
+
+			if (setupTopics(pfds) == 0) {
+				break;
+			}
+
+			PX4_ERR("Failed to setup topics");
 		}
 
 		cleanupSession();
-		exit_and_cleanup(desc);
-		return;
+
+		for (i = 0; i < _pub_count; i++) {
+			pfds[i] = {};
+			pfds[i].fd = -1;
+		}
+
+		if (!sleepUnlessStopped(5000)) {
+			break;
+		}
 	}
 
-	_connected.store(true);
-
-	PX4_INFO("Starting reading/writing tasks...");
-
-	if (setupTopics(pfds) < 0) {
-		PX4_ERR("Failed to setup topics");
+	if (should_exit()) {
 		cleanupSession();
 		exit_and_cleanup(desc);
 		return;
