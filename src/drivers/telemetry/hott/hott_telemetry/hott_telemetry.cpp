@@ -106,7 +106,11 @@ recv_req_id(int uart, uint8_t *id)
 
 	if (poll(&fds, 1, timeout_ms) > 0) {
 		/* Get the mode: binary or text  */
-		read(uart, &mode, sizeof(mode));
+		if (read(uart, &mode, sizeof(mode)) != (ssize_t)sizeof(mode)) {
+			// read() leaves mode untouched on a short read or error, and every use
+			// below depends on it.
+			return PX4_ERROR;
+		}
 
 		perf_count(reqs_count);
 
