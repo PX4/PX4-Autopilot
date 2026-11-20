@@ -1,0 +1,25 @@
+# Parameter yaml files left out of the full parameter reference
+# (make parameters_metadata, cmake/metadata.cmake), which otherwise reads
+# every yaml file under src/.
+#
+# One repository-relative path per line, with the reason after '#'.
+# Configuring fails if a listed file no longer exists, and
+# Tools/ci/check_param_sources.py fails if a tracked file defines parameters
+# without being read or listed here.
+
+# Duplicates of PWM_MAIN_* from px4io
+src/drivers/linux_pwm_out/module.yaml  # PWM output on Linux boards
+src/modules/simulation/pwm_out_sim/module_sim.yaml  # SITL actuator output
+
+# Board-specific: each is in its own board's firmware metadata
+boards/bitcraze/crazyflie/syslink/syslink_params.yaml
+boards/cuav/7-nano/pwm_voltage/parameters.yaml
+boards/cuav/fmu-v6x/pwm_voltage/parameters.yaml
+boards/cuav/x25-evo/pwm_voltage/parameters.yaml
+boards/cuav/x25-mega/pwm_voltage/parameters.yaml
+boards/cuav/x25-super/pwm_voltage/parameters.yaml
+boards/modalai/voxl2/src/drivers/qurt/ghst_rc/module.yaml  # RC_GHST_PRT_CFG, as in src/drivers/rc/ghst_rc
+boards/siyi/unifc-6-pico/pwm_voltage/parameters.yaml
+boards/svehicle/e2/pwm_voltage/parameters.yaml
+boards/x-mav/ap-h743r1/pwm_voltage/parameters.yaml
+boards/zeroone/x6/pwm_voltage/parameters.yaml

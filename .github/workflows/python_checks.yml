@@ -46,6 +46,13 @@ jobs:
         mypy --strict check_usb_ids.py usb_ids_runner.py test_check_usb_ids.py test_usb_ids_runner.py
         flake8 check_usb_ids.py usb_ids_runner.py test_check_usb_ids.py test_usb_ids_runner.py
 
+    - name: Check the parameter source check with mypy, flake8 and its tests
+      working-directory: Tools/ci
+      run: |
+        mypy --strict check_param_sources.py test_check_param_sources.py
+        flake8 check_param_sources.py test_check_param_sources.py
+        python3 -m unittest -v test_check_param_sources
+
     - name: Check AI review tooling and the PR review poster
       working-directory: Tools/ci
       run: |
