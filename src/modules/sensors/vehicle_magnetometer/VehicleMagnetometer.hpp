@@ -143,6 +143,8 @@ private:
 	hrt_abstime _last_calibration_update{0};
 
 	matrix::Vector3f _calibration_estimator_bias[MAX_SENSOR_COUNT] {};
+	uint8_t _bias_change_count[MAX_SENSOR_COUNT] {};
+	bool _bias_estimate_applied[MAX_SENSOR_COUNT] {};
 
 	calibration::Magnetometer _calibration[MAX_SENSOR_COUNT];
 
