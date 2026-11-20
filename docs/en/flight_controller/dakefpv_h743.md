@@ -239,6 +239,9 @@ UART4 is on PD0 (RX) and PD1 (TX) on this variant, and no peripheral swap is app
 ::: info `Dji`/`VTX` solder jumper
 The three-pad solder jumper silkscreened `Dji` and `VTX` selects what the HD VTX connector's `RX4` pin carries: UART4 RX for a digital air unit, or the analog composite video signal when the connector drives an analog VTX.
 It is not in the OSD's transmit path, so it does not affect MSP DisplayPort output.
+
+For a digital air unit, fit a 0Ω resistor (or a solder bridge) on the `Dji` side so the connector's `RX4` pin carries UART4 RX.
+This has been tested with a digital air unit on the HD VTX connector.
 :::
 
 ### Camera Switching and VTX Power {#camera_vtx_power}
