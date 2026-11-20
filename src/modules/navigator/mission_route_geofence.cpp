@@ -79,25 +79,6 @@ bool checkBatch(Geofence &geofence, PathBatch &batch)
 	return true;
 }
 
-// Start a path at the vehicle with the margin it can keep: GF_CONT_H_MARGIN, or 0 if the vehicle is already closer
-// to the fence. Example: the Return that GF_CONT_ACTION starts there is checked against the fence itself.
-bool startVehiclePath(Geofence &geofence, const Position &vehicle, Geofence::PathCheck &path)
-{
-	path = {{vehicle.lat, vehicle.lon}, {vehicle.lat, vehicle.lon}, 0.f, geofence.getContGeofenceMargin()};
-	bool keeps_margin = true;
-
-	// A path without length tells whether the vehicle keeps the margin, as for the first waypoint of a mission.
-	if (path.margin > 0.f && !geofence.checkPathBatch(&path, 1, &keeps_margin)) {
-		return false;
-	}
-
-	if (!keeps_margin) {
-		path.margin = 0.f;
-	}
-
-	return true;
-}
-
 } // namespace
 
 // Polygons and circles only: a vehicle above the altitude limits or too far from Home does not recover, so its
@@ -105,6 +86,13 @@ bool startVehiclePath(Geofence &geofence, const Position &vehicle, Geofence::Pat
 bool GeofencePathChecker::recovering(const Position &vehicle) const
 {
 	return !_geofence.isInsideHorizontalFences(vehicle.lat, vehicle.lon, vehicle.alt);
+}
+
+// The margin a segment from the vehicle keeps: GF_CONT_H_MARGIN, or 0 if the vehicle is already closer to the fence.
+// Example: the Return that GF_CONT_ACTION starts inside the margin is checked against the fence itself.
+float GeofencePathChecker::vehicleMargin(const Position &vehicle) const
+{
+	return _geofence.isInsideContGeofence(vehicle.lat, vehicle.lon) ? _geofence.getContGeofenceMargin() : 0.f;
 }
 
 bool GeofencePathChecker::pruneCandidates(ProjectionReferenceBatch &batch) const
@@ -129,24 +117,15 @@ bool GeofencePathChecker::pruneCandidates(ProjectionReferenceBatch &batch) const
 			continue;
 		}
 
-		// Segments keep GF_CONT_H_MARGIN from the polygons and circles, like the legs of a mission.
-		float margin = _geofence.getContGeofenceMargin();
+		// The reference is the vehicle (no source index) or a safe point.
+		const bool is_vehicle = reference.source_index < 0;
 
-		if (reference.source_index < 0) {
+		if (is_vehicle) {
 			// A vehicle in recovery keeps all its candidates unchecked: set bits 0 to count - 1.
 			if (recovering(anchor)) {
 				shared_paths.valid_masks[i] = static_cast<uint8_t>((1U << reference.candidate_buffer.count) - 1U);
 				continue;
 			}
-
-			// Scratch off the stack: a full batch is checked at once, so the next path of the batch is always free.
-			Geofence::PathCheck &scratch = shared_paths.paths[shared_paths.count];
-
-			if (!startVehiclePath(_geofence, anchor, scratch)) {
-				return false;
-			}
-
-			margin = scratch.margin;
 
 		} else if (!_geofence.checkPointAgainstAllGeofences(anchor.lat, anchor.lon, anchor.alt)
 			   || !_geofence.isCloserThanContMaxDistToHome(anchor.lat, anchor.lon)) {
@@ -154,6 +133,9 @@ bool GeofencePathChecker::pruneCandidates(ProjectionReferenceBatch &batch) const
 			// area would cross no boundary. Neither does one closer to GF_MAX_HOR_DIST than the margin.
 			continue;
 		}
+
+		// Segments keep GF_CONT_H_MARGIN from the polygons and circles, like the legs of a mission.
+		const float margin = is_vehicle ? vehicleMargin(anchor) : _geofence.getContGeofenceMargin();
 
 		for (uint8_t j = 0; j < reference.candidate_buffer.count; ++j) {
 			const Position &projection = reference.candidate_buffer.candidates[j].projection;
@@ -213,13 +195,7 @@ bool GeofencePathChecker::checkPath(const Position &vehicle, const Position &end
 		return true;
 	}
 
-	Geofence::PathCheck path;
-
-	if (!startVehiclePath(_geofence, vehicle, path)) {
-		return false;
-	}
-
-	path.end = {end.lat, end.lon};
+	const Geofence::PathCheck path{{vehicle.lat, vehicle.lon}, {end.lat, end.lon}, 0.f, vehicleMargin(vehicle)};
 	return _geofence.checkPathBatch(&path, 1, &clear);
 }
 

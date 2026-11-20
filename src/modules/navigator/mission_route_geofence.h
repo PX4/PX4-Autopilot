@@ -64,6 +64,7 @@ public:
 
 private:
 	bool recovering(const Position &vehicle) const;
+	float vehicleMargin(const Position &vehicle) const;
 
 	Geofence &_geofence;
 };
