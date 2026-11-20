@@ -101,12 +101,15 @@ static constexpr Entry SupportedCommandParams[] = {
 	{  195, 0x70, 0x71 }, // DO_SET_ROI_LOCATION:         mission:p5-7:lat/lon/alt; cmd:p1:gimbal,p5-7:lat/lon/alt
 	{  196, 0x71, 0x71 }, // DO_SET_ROI_WPNEXT_OFFSET:   p1:gimbal_id; p5-7:pitch/roll/yaw offset
 	{  197, 0x01, 0x01 }, // DO_SET_ROI_NONE:             p1:gimbal_id
+	{  200, 0x0F, 0x00 }, // DO_CONTROL_VIDEO:            mission:p1:camera_id,p2:transmission,p3:mode,p4:recording
 	{  201, 0x07, 0x07 }, // DO_SET_ROI:                  p1:mode,p2:wp_idx,p3:roi_idx
+	{  204, 0x0F, 0x00 }, // DO_MOUNT_CONFIGURE:          mission:p1:mode,p2-p4:stabilize roll/pitch/yaw
 	{  206, 0x0F, 0x0F }, // DO_SET_CAM_TRIGG_DIST:       p1:dist,p2:shutter,p3:trigger,p4:camera_id
 	{  211, 0x03, 0x03 }, // DO_GRIPPER:                  p1:id,p2:action
 	{  212, 0x03, 0x03 }, // DO_AUTOTUNE_ENABLE:          p1:enable,p2:axis
 	{  214, 0x07, 0x07 }, // DO_SET_CAM_TRIGG_INTERVAL:  p1:cycle,p2:shutter,p3:camera_id
 	{  224, 0x00, 0x03 }, // DO_SET_MISSION_CURRENT:      cmd:p1:seq,p2:reset_jump_counters
+	{  260, 0x3F, 0x00 }, // OBLIQUE_SURVEY:              mission:p1-p6 (p7 not used)
 	{  400, 0x03, 0x03 }, // COMPONENT_ARM_DISARM:        p1:arm,p2:force
 	{  420, 0x0F, 0x0F }, // INJECT_FAILURE:              p1:unit,p2:type,p3:instance,p4:instance bitmask
 	{  530, 0x03, 0x03 }, // SET_CAMERA_MODE:             p1:camera_id,p2:mode
@@ -127,6 +130,7 @@ static constexpr Entry SupportedCommandParams[] = {
 	{ 5004, 0x31, 0x01 }, // NAV_FENCE_CIRCLE_EXCLUSION:  p1:radius; mission:p5-6:lat/lon
 	{ 5100, 0x70, 0x00 }, // NAV_RALLY_POINT:             mission:p5-7:lat/lon/alt; cmd:none
 	{42600, 0x0F, 0x0F }, // DO_WINCH:                    p1-p4 all used
+	{43003, 0x00, 0x77 }, // EXTERNAL_POSITION_ESTIMATE:  cmd:p1:timestamp,p2:delay,p3:accuracy,p5/p6:lat/lon,p7:alt
 };
 
 static constexpr size_t SupportedCommandParamsCount = sizeof(SupportedCommandParams) / sizeof(SupportedCommandParams[0]);
