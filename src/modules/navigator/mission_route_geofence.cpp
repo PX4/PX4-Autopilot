@@ -57,6 +57,7 @@ struct PathBatch {
 	uint8_t candidate_indices[kPathBatchSize];
 	uint8_t valid_masks[kMaxSafePointBatch];
 	size_t count{0};
+	bool emergency_only{false}; ///< The paths of the batch are checked against the emergency geofence only.
 };
 
 bool checkBatch(Geofence &geofence, PathBatch &batch)
@@ -65,7 +66,7 @@ bool checkBatch(Geofence &geofence, PathBatch &batch)
 		return true;
 	}
 
-	if (!geofence.checkPathBatch(batch.paths, batch.count, batch.results)) {
+	if (!geofence.checkPathBatch(batch.paths, batch.count, batch.results, batch.emergency_only)) {
 		return false;
 	}
 
@@ -86,12 +87,13 @@ bool checkBatch(Geofence &geofence, PathBatch &batch)
 // Too high, too far from Home or outside the contingency geofence is no recovery: those segments are checked.
 bool GeofencePathChecker::recovering(const Position &vehicle) const
 {
-	return !_geofence.isInsideHorizontalFences(vehicle.lat, vehicle.lon, vehicle.alt);
+	return !_geofence.isInsideEmerGeofenceAreas(vehicle.lat, vehicle.lon);
 }
 
 // A vehicle that is already outside the contingency geofence cannot keep it: it is closer to the emergency geofence
-// than GF_CONT_H_MARGIN. Its segments are checked against the emergency geofence only.
-// Example: the Return that GF_CONT_ACTION starts there may fly back through the margin, but not across the fence.
+// than GF_CONT_H_MARGIN, or outside a contingency geofence area. Its segments are checked against the emergency
+// geofence only.
+// Example: the Return that GF_CONT_ACTION starts there may fly back in, but not across the emergency geofence.
 bool GeofencePathChecker::vehicleOutsideContGeofence(const Position &vehicle) const
 {
 	return !_geofence.isInsideContGeofence(vehicle.lat, vehicle.lon);
@@ -106,6 +108,7 @@ bool GeofencePathChecker::pruneCandidates(ProjectionReferenceBatch &batch) const
 	// One buffer for every call, off the task stack. All-zero defaults keep it in .bss.
 	static PathBatch shared_paths{};
 	shared_paths.count = 0;
+	shared_paths.emergency_only = false;
 
 	for (uint8_t i = 0; i < batch.count; ++i) {
 		shared_paths.valid_masks[i] = 0;
@@ -130,15 +133,27 @@ bool GeofencePathChecker::pruneCandidates(ProjectionReferenceBatch &batch) const
 			}
 
 		} else if (!_geofence.checkPointAgainstAllGeofences(anchor.lat, anchor.lon, anchor.alt)
-			   || !_geofence.isCloserThanContMaxDistToHome(anchor.lat, anchor.lon)) {
+			   || !_geofence.isCloserThanContMaxDistToHome(anchor.lat, anchor.lon)
+			   || !_geofence.isInsideContGeofenceAreas(anchor.lat, anchor.lon)) {
 			// A safe point outside the allowed area keeps no candidates: a segment entirely inside an exclusion
 			// area would cross no boundary. Neither does one closer to GF_MAX_HOR_DIST than the margin.
+			// The paths are checked against both levels, so the point is too.
 			continue;
 		}
 
-		// Segments keep GF_CONT_H_MARGIN from the polygons and circles, like the legs of a mission.
+		// Segments keep the contingency geofence, like the legs of a mission: GF_CONT_H_MARGIN from the polygons and
+		// circles, or the contingency geofence areas that replace the margin.
 		const bool emergency_only = is_vehicle && vehicleOutsideContGeofence(anchor);
 		const float margin = emergency_only ? 0.f : _geofence.getContGeofencePlanMargin();
+
+		// A batch is checked one way: check the paths collected so far first if this reference needs the other way.
+		if (shared_paths.emergency_only != emergency_only) {
+			if (!checkBatch(_geofence, shared_paths)) {
+				return false;
+			}
+
+			shared_paths.emergency_only = emergency_only;
+		}
 
 		for (uint8_t j = 0; j < reference.candidate_buffer.count; ++j) {
 			const Position &projection = reference.candidate_buffer.candidates[j].projection;
@@ -201,7 +216,7 @@ bool GeofencePathChecker::checkPath(const Position &vehicle, const Position &end
 	const bool emergency_only = vehicleOutsideContGeofence(vehicle);
 	const float margin = emergency_only ? 0.f : _geofence.getContGeofencePlanMargin();
 	const Geofence::PathCheck path{{vehicle.lat, vehicle.lon}, {end.lat, end.lon}, 0.f, margin};
-	return _geofence.checkPathBatch(&path, 1, &clear);
+	return _geofence.checkPathBatch(&path, 1, &clear, emergency_only);
 }
 
 } // namespace mission_route

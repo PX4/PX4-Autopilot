@@ -8,6 +8,7 @@ import math
 import threading
 from typing import Any, List, Optional, Tuple
 
+from mavsdk.plugins.mission_raw import MissionRawError, MissionRawResult  # type: ignore
 from mavsdk.plugins.telemetry import FlightMode  # type: ignore
 
 from autopilot_tester import (
@@ -20,6 +21,9 @@ MAV_CMD_NAV_VTOL_TAKEOFF = 84
 MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION = 5001
 MAV_MISSION_TYPE_FENCE = 1
 MAV_RESULT_TEMPORARILY_REJECTED = 1
+# Param 3 of the fence commands.
+FENCE_LEVEL_EMERGENCY = 0.0
+FENCE_LEVEL_CONTINGENCY = 1.0
 
 # Values of GF_ACTION and GF_CONT_ACTION.
 ACTION_WARNING = 1
@@ -66,6 +70,17 @@ class AutopilotTesterGeofence(AutopilotTesterLoiter):
         self._fence = (north_min_m, north_max_m, east_min_m, east_max_m)
         # PX4 needs time to load the fence.
         self.sleep_for(1)
+
+    def upload_fence_items(self, items: List[Any]) -> Any:
+        """Upload raw fence items. Returns the result instead of raising, to check rejections."""
+        try:
+            self._mission_raw.upload_geofence(items)
+        except MissionRawError as e:
+            return e.result
+        return MissionRawResult.SUCCESS
+
+    def download_fence_items(self) -> List[Any]:
+        return list(self._mission_raw.download_geofence())
 
     def upload_mission_to(self, north_m: float, options: MissionOptions) -> None:
         """Upload a mission from above Home to a point north of it."""

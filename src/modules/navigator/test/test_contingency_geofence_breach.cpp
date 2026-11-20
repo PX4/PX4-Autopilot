@@ -285,12 +285,74 @@ TEST_F(ContGeofenceBreachTest, ReturnKeepsTheMargin)
 	setVehicle(vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 	EXPECT_FLOAT_EQ(_navigator.geofence_avoidance_margin(), _navigator.get_default_loiter_rad() + 100.f);
 }
+
+// Contingency geofence areas are fences of their own for Return: the margin is not added to them.
+TEST_F(ContGeofenceBreachTest, ReturnDoesNotAddTheMarginWithContGeofenceAreas)
+{
+	const float without_margin = _navigator.geofence_avoidance_margin();
+	setParam("GF_CONT_H_MARGIN", 100.f);
+	FencePoints points = inclusionSquare();
+	const FencePoints contingency = polygon(true, {{-400.f, -400.f}, {400.f, -400.f}, {400.f, 400.f}, {-400.f, 400.f}},
+	FenceLevel::Contingency);
+	points.insert(points.end(), contingency.begin(), contingency.end());
+	ASSERT_TRUE(loadFence(points));
+	EXPECT_FLOAT_EQ(_navigator.geofence_avoidance_margin(), without_margin);
+}
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
-// The emergency geofence that GF_CONT_H_MARGIN, 100 m, is kept from.
+// Contingency geofence areas replace the margin for the plan only: GF_MAX_HOR_DIST still keeps it.
+TEST_F(ContGeofenceBreachTest, HomeDistanceKeepsTheMarginWithContGeofenceAreas)
+{
+	FencePoints points = inclusionSquare();
+	const FencePoints contingency = polygon(true, {{-400.f, -400.f}, {400.f, -400.f}, {400.f, 400.f}, {-400.f, 400.f}},
+	FenceLevel::Contingency);
+	points.insert(points.end(), contingency.begin(), contingency.end());
+	ASSERT_TRUE(loadFence(points));
+	setParam("GF_MAX_HOR_DIST", 450.f);
+	setParam("GF_CONT_H_MARGIN", 250.f);
+
+	// Inside the contingency geofence area and 200 m from the plan fence, but only 150 m from the Home distance limit.
+	const geofence_result_s result = checkAt({0.f, 300.f, kAltitude});
+	EXPECT_TRUE(result.geofence_cont_max_dist_triggered);
+	EXPECT_FALSE(result.geofence_cont_custom_fence_triggered);
+}
+
+// Inclusion and exclusion areas of the contingency geofence each trigger on their own.
+TEST_F(ContGeofenceBreachTest, TriggersAtEachContGeofenceArea)
+{
+	FencePoints points = inclusionSquare();
+	const FencePoints contingency = polygon(true, {{-400.f, -400.f}, {400.f, -400.f}, {400.f, 400.f}, {-400.f, 400.f}},
+	FenceLevel::Contingency);
+	const FencePoints exclusion = exclusionSquare();
+	const FencePoints cont_exclusion = circle(false, {0.f, 300.f}, 150.f, FenceLevel::Contingency);
+	points.insert(points.end(), contingency.begin(), contingency.end());
+	points.insert(points.end(), exclusion.begin(), exclusion.end());
+	points.insert(points.end(), cont_exclusion.begin(), cont_exclusion.end());
+	ASSERT_TRUE(loadFence(points));
+
+	EXPECT_FALSE(contingencyBreached(checkAt({0.f, 0.f, kAltitude})));
+
+	// Outside the contingency geofence inclusion, but inside the emergency geofence inclusion.
+	const geofence_result_s outside_cont_inclusion = checkAt({420.f, 0.f, kAltitude});
+	EXPECT_TRUE(outside_cont_inclusion.geofence_cont_custom_fence_triggered);
+	EXPECT_FALSE(emergencyBreached(outside_cont_inclusion));
+
+	// Inside the contingency geofence exclusion, but outside the emergency geofence exclusion.
+	const geofence_result_s inside_cont_exclusion = checkAt({0.f, 190.f, kAltitude});
+	EXPECT_TRUE(inside_cont_exclusion.geofence_cont_custom_fence_triggered);
+	EXPECT_FALSE(emergencyBreached(inside_cont_exclusion));
+
+	// Outside both inclusion areas.
+	const geofence_result_s outside = checkAt({510.f, 0.f, kAltitude});
+	EXPECT_TRUE(outside.geofence_cont_custom_fence_triggered);
+	EXPECT_TRUE(outside.geofence_emer_custom_fence_triggered);
+}
+
+// What the contingency geofence is: GF_CONT_H_MARGIN, 100 m, kept from the emergency geofence, or its own areas.
 enum class Source {
 	HomeDistance, // GF_MAX_HOR_DIST 500 m
 	Plan, // a 1000 m square plan fence
+	Areas, // an 800 m square contingency geofence area inside a 1000 m square plan fence, without a margin
 };
 
 static std::ostream &operator<<(std::ostream &os, Source source)
@@ -299,6 +361,8 @@ static std::ostream &operator<<(std::ostream &os, Source source)
 	case Source::HomeDistance: return os << "HomeDistance";
 
 	case Source::Plan: return os << "Plan";
+
+	case Source::Areas: return os << "Areas";
 	}
 
 	return os;
@@ -312,12 +376,20 @@ protected:
 	{
 		if (GetParam() == Source::HomeDistance) {
 			setParam("GF_MAX_HOR_DIST", 500.f);
+			setParam("GF_CONT_H_MARGIN", 100.f);
+
+		} else if (GetParam() == Source::Plan) {
+			ASSERT_TRUE(loadFence(inclusionSquare()));
+			setParam("GF_CONT_H_MARGIN", 100.f);
 
 		} else {
-			ASSERT_TRUE(loadFence(inclusionSquare()));
+			const float half = 400.f;
+			FencePoints points = inclusionSquare();
+			const FencePoints contingency = polygon(true, {{-half, -half}, {half, -half}, {half, half}, {-half, half}},
+			FenceLevel::Contingency);
+			points.insert(points.end(), contingency.begin(), contingency.end());
+			ASSERT_TRUE(loadFence(points));
 		}
-
-		setParam("GF_CONT_H_MARGIN", 100.f);
 	}
 
 	// Inside both, outside the contingency geofence only, and outside both.
@@ -531,5 +603,5 @@ TEST_P(ContGeofenceSourceTest, CommandedTargetsMustStayInside)
 }
 
 INSTANTIATE_TEST_SUITE_P(Sources, ContGeofenceSourceTest,
-			 ::testing::Values(Source::HomeDistance, Source::Plan),
+			 ::testing::Values(Source::HomeDistance, Source::Plan, Source::Areas),
 			 ::testing::PrintToStringParamName());

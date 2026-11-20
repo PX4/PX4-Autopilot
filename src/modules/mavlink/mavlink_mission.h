@@ -144,6 +144,14 @@ private:
 	uint32_t		_transfer_current_crc32{0};		///< Current CRC32 checksum of current transmission
 	uint16_t		_transfer_seq{0};			///< Item sequence in current transmission
 
+	struct {
+		uint16_t remaining;
+		uint16_t vertex_count;
+		uint16_t command;
+		FenceLevel level;
+	} _fence_polygon{};
+	uint8_t _fence_level_point_count[2] {};
+
 	int32_t			_transfer_current_seq{-1};		///< Current item ID for current transmission (-1 means not initialized)
 
 	uint32_t		_transfer_partner_sysid{0};		///< Partner system ID for current transmission

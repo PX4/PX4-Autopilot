@@ -188,16 +188,18 @@ TEST_F(MissionRouteGeofenceTest, ChecksMoreThanOnePathBatchAndThePartialTail)
 
 TEST_F(MissionRouteGeofenceTest, RejectsSafePointWhollyInsideExclusionPolygon)
 {
-	ASSERT_TRUE(loadFence(exclusionSquare()));
-	GeofencePathChecker checker{_fence};
-	ProjectionReferenceBatch batch{};
-	batch.count = 1;
-	batch.items[0].position = routePosition(0.f, 300.f);
-	batch.items[0].source_index = 0;
-	addCandidate(batch.items[0], routePosition(10.f, 310.f));
+	for (const FenceLevel level : {FenceLevel::Emergency, FenceLevel::Contingency}) {
+		ASSERT_TRUE(loadFence(exclusionSquare(level)));
+		GeofencePathChecker checker{_fence};
+		ProjectionReferenceBatch batch{};
+		batch.count = 1;
+		batch.items[0].position = routePosition(0.f, 300.f);
+		batch.items[0].source_index = 0;
+		addCandidate(batch.items[0], routePosition(10.f, 310.f));
 
-	ASSERT_TRUE(checker.pruneCandidates(batch));
-	EXPECT_EQ(batch.items[0].candidate_buffer.count, 0);
+		ASSERT_TRUE(checker.pruneCandidates(batch));
+		EXPECT_EQ(batch.items[0].candidate_buffer.count, 0);
+	}
 }
 
 TEST_F(MissionRouteGeofenceTest, DirectShortcutMustClearTheFenceIndependently)
@@ -662,6 +664,100 @@ TEST_F(MissionRouteGeofenceTest, SegmentsKeepTheContingencyMargin)
 		EXPECT_TRUE(clear);
 		ASSERT_TRUE(checker.checkPath(vehicle, near_end, clear));
 		EXPECT_EQ(clear, margin <= 0.f);
+	}
+}
+
+// Contingency geofence areas replace the margin for the planner's segments, as for a mission. The segment passes
+// 25 m north of the exclusion square and stays well inside the contingency geofence circle.
+TEST_F(MissionRouteGeofenceTest, ContGeofenceAreasReplaceTheMargin)
+{
+	FencePoints points = exclusionSquare();
+	const FencePoints area = circle(true, {0.f, 300.f}, 400.f, FenceLevel::Contingency);
+	points.insert(points.end(), area.begin(), area.end());
+	ASSERT_TRUE(loadFence(points));
+	setMargin(40.f);
+	const Position vehicle = routePosition(100.f, 100.f);
+	const Position near_end = routePosition(60.f, 500.f);
+	GeofencePathChecker checker{_fence};
+	ProjectionReferenceBatch batch{};
+	batch.count = 1;
+	batch.items[0].position = vehicle;
+	addCandidate(batch.items[0], near_end);
+	ASSERT_TRUE(checker.pruneCandidates(batch));
+	EXPECT_EQ(batch.items[0].candidate_buffer.count, 1);
+
+	bool clear = false;
+	ASSERT_TRUE(checker.checkPath(vehicle, near_end, clear));
+	EXPECT_TRUE(clear);
+}
+
+// A vehicle outside a contingency geofence area but inside the emergency geofence is handled like one inside the
+// margin: its segments may lead back in or stay in between, but not across the emergency geofence.
+TEST_F(MissionRouteGeofenceTest, VehicleOutsideAContGeofenceAreaIsCheckedAgainstTheEmergencyGeofence)
+{
+	// The emergency geofence reaches 500 m from Home, the contingency geofence 300 m.
+	const FencePoints squares[] = {
+		polygon(true, {{-500.f, -500.f}, {500.f, -500.f}, {500.f, 500.f}, {-500.f, 500.f}}),
+		polygon(true, {{-300.f, -300.f}, {300.f, -300.f}, {300.f, 300.f}, {-300.f, 300.f}}, FenceLevel::Contingency)
+	};
+	const FencePoints circles[] = {circle(true, {0.f, 0.f}, 500.f), circle(true, {0.f, 0.f}, 300.f, FenceLevel::Contingency)};
+	const Position vehicle = routePosition(0.f, 400.f);
+	const Position back = routePosition(0.f, 100.f); // inside the contingency geofence
+	const Position between = routePosition(200.f, 400.f); // between the two geofences, like the vehicle
+	const Position across = routePosition(0.f, 700.f); // outside the emergency geofence
+
+	for (const FencePoints *fences : {squares, circles}) {
+		SCOPED_TRACE(fences == squares ? "polygons" : "circles");
+		FencePoints points = fences[0];
+		points.insert(points.end(), fences[1].begin(), fences[1].end());
+		ASSERT_TRUE(loadFence(points));
+		GeofencePathChecker checker{_fence};
+		ProjectionReferenceBatch batch{};
+		batch.count = 1;
+		batch.items[0].position = vehicle;
+		addCandidate(batch.items[0], across, 1);
+		addCandidate(batch.items[0], back, 2);
+		addCandidate(batch.items[0], between, 3);
+		ASSERT_TRUE(checker.pruneCandidates(batch));
+		ASSERT_EQ(batch.items[0].candidate_buffer.count, 2);
+		EXPECT_EQ(batch.items[0].candidate_buffer.candidates[0].segment.start.idx, 2);
+		EXPECT_EQ(batch.items[0].candidate_buffer.candidates[1].segment.start.idx, 3);
+
+		bool clear = false;
+		ASSERT_TRUE(checker.checkPath(vehicle, back, clear));
+		EXPECT_TRUE(clear);
+		ASSERT_TRUE(checker.checkPath(vehicle, across, clear));
+		EXPECT_FALSE(clear);
+
+		// A vehicle inside the contingency geofence has to stay inside it.
+		const Position inside = routePosition(0.f, 200.f);
+		ASSERT_TRUE(checker.checkPath(inside, back, clear));
+		EXPECT_TRUE(clear);
+		ASSERT_TRUE(checker.checkPath(inside, between, clear));
+		EXPECT_FALSE(clear);
+
+		// Only a vehicle outside the emergency geofence recovers unchecked.
+		ASSERT_TRUE(checker.checkPath(across, routePosition(0.f, 900.f), clear));
+		EXPECT_TRUE(clear);
+
+		// A safe point in the same batch still has to keep the contingency geofence, in either order.
+		for (const bool vehicle_first : {true, false}) {
+			SCOPED_TRACE(vehicle_first);
+			ProjectionReferenceBatch mixed{};
+			mixed.count = 2;
+			ProjectionReference &vehicle_reference = mixed.items[vehicle_first ? 0 : 1];
+			ProjectionReference &safe_point = mixed.items[vehicle_first ? 1 : 0];
+			vehicle_reference.position = vehicle;
+			addCandidate(vehicle_reference, back, 1);
+			safe_point.position = inside;
+			safe_point.source_index = 0;
+			addCandidate(safe_point, between, 2);
+			addCandidate(safe_point, back, 3);
+			ASSERT_TRUE(checker.pruneCandidates(mixed));
+			EXPECT_EQ(vehicle_reference.candidate_buffer.count, 1);
+			ASSERT_EQ(safe_point.candidate_buffer.count, 1);
+			EXPECT_EQ(safe_point.candidate_buffer.candidates[0].segment.start.idx, 3);
+		}
 	}
 }
 
