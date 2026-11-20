@@ -97,10 +97,10 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 			 */
 			reporter.armingCheckFailure(NavModes::All, health_component_t::system,
 						    events::ID("check_gf_violation_custom_gf"),
-						    events::Log::Error, "Emergency geofence breach: approaching or outside the fence");
+						    events::Log::Error, "Emergency geofence breach: outside the fence");
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Emergency geofence: approaching or outside the fence\t");
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Emergency geofence: outside the fence\t");
 			}
 		}
 	}
