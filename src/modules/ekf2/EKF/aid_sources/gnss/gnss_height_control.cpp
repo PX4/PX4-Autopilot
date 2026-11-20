@@ -97,8 +97,8 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 				&& isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GNSS_MAX_INTERVAL);
 
 		// The new receiver can report a height offset from the previous one (correction source, geoid model)
-		const bool receiver_changed = (gps_sample.selection_count != _gnss_hgt_selection_count);
-		_gnss_hgt_selection_count = gps_sample.selection_count;
+		const bool receiver_changed = (_gnss_hgt_selection_count >= 0)
+					      && (gps_sample.selection_count != _gnss_hgt_selection_count);
 
 		const bool altitude_initialisation_conditions_passing = common_conditions_passing
 				&& !PX4_ISFINITE(_local_origin_alt)
@@ -189,16 +189,29 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 
 				if (is_gnss_hgt_consistent) {
 					if (_params.ekf2_hgt_ref == static_cast<int32_t>(HeightSensor::GNSS)) {
-						// Start fusing the data without reset if possible to avoid disturbing the filter
+						// Start fusing the data without reset if possible to avoid disturbing the filter. After a
+						// receiver change, an offset within the gate would be fused as an error: reset to the new
+						// receiver, or where a reset isn't allowed, keep the height and put the offset into the bias.
+						const bool reset_to_new_receiver = receiver_changed && isGnssHgtResetAllowed();
 						bool fused = false;
+						bool offset_to_bias = false;
 
-						if (aid_src.test_ratio < 1.f) {
+						if (receiver_changed && !isGnssHgtResetAllowed() && (aid_src.test_ratio < 1.f)) {
+							bias_est.setBias(-_gpos.altitude() + measurement);
+							resetAidSourceStatusZeroInnovation(aid_src);
+							offset_to_bias = true;
+
+						} else if ((aid_src.test_ratio < 1.f) && !reset_to_new_receiver) {
 							fused = fuseVerticalPosition(aid_src);
 						}
 
 						bool reset = false;
 
 						if (!fused && isGnssHgtResetAllowed()) {
+							if (reset_to_new_receiver) {
+								ECL_INFO("GNSS receiver changed, resetting height");
+							}
+
 							_information_events.flags.reset_hgt_to_gps = true;
 							resetAltitudeTo(measurement, measurement_var);
 							bias_est.reset();
@@ -206,7 +219,7 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 							reset = true;
 						}
 
-						if (fused || reset) {
+						if (fused || reset || offset_to_bias) {
 							_height_sensor_ref = HeightSensor::GNSS;
 
 							aid_src.time_last_fuse = _time_delayed_us;
@@ -225,6 +238,10 @@ void Ekf::controlGnssHeightFusion(const gnssSample &gps_sample)
 					}
 				}
 			}
+		}
+
+		if (_control_status.flags.gps_hgt) {
+			_gnss_hgt_selection_count = gps_sample.selection_count;
 		}
 
 	} else if (_control_status.flags.gps_hgt
