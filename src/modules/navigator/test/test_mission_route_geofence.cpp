@@ -242,6 +242,30 @@ TEST_F(MissionRouteGeofenceTest, SafePointBeyondHomeDistanceKeepsNoCandidates)
 	EXPECT_EQ(batch.items[0].candidate_buffer.count, 0);
 }
 
+// The distance from Home never blocks a segment from the vehicle, with or without the margin. Example: the
+// Return that GF_ACTION starts beyond GF_MAX_HOR_DIST still gets its way back.
+TEST_F(MissionRouteGeofenceTest, VehicleBeyondHomeDistanceKeepsItsCandidates)
+{
+	const float maximum_horizontal = 300.f;
+	ASSERT_EQ(param_set(param_find("GF_MAX_HOR_DIST"), &maximum_horizontal), PX4_OK);
+	_navigator.updateParams();
+	setMargin(40.f);
+	const Position vehicle = routePosition(0.f, 400.f);
+	const Position inside = routePosition(0.f, 200.f);
+	ASSERT_FALSE(_fence.isCloserThanMaxDistToHome(vehicle.lat, vehicle.lon, vehicle.alt));
+	GeofencePathChecker checker{_fence};
+	ProjectionReferenceBatch batch{};
+	batch.count = 1;
+	batch.items[0].position = vehicle;
+	addCandidate(batch.items[0], inside);
+	ASSERT_TRUE(checker.pruneCandidates(batch));
+	EXPECT_EQ(batch.items[0].candidate_buffer.count, 1);
+
+	bool clear = false;
+	ASSERT_TRUE(checker.checkPath(vehicle, inside, clear));
+	EXPECT_TRUE(clear);
+}
+
 // A loading fence is unavailable, also for a vehicle in breach.
 TEST_F(MissionRouteGeofenceTest, LoadingFenceIsUnavailable)
 {
