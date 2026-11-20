@@ -184,6 +184,8 @@ public:
 	uint16_t &centerValue(int index) { return _center_value[index]; }
 	uint16_t &maxValue(int index) { return _max_value[index]; }
 
+	bool isAboveMidpoint(int index, float output) { return output > (minValue(index) + maxValue(index)) / 2.0f; }
+
 	param_t functionParamHandle(int index) const { return _param_handles[index].function; }
 	param_t disarmedParamHandle(int index) const { return _param_handles[index].disarmed; }
 	param_t minParamHandle(int index) const { return _param_handles[index].min; }
