@@ -112,6 +112,11 @@ int TLA2528::poll_calibrate()
 	int ret = transfer(&send_data[0], 2, nullptr, 0);
 	ret |= transfer(nullptr, 0, &recv_data, 1);
 
+	// transfer() only writes recv_data when the read succeeds.
+	if (ret != PX4_OK) {
+		return PX4_ERROR;
+	}
+
 	if (recv_data & 2u) {
 		PX4_DEBUG("TLA2528::Calibration not yet finished");
 		perf_count(_comms_errors);
