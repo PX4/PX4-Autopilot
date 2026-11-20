@@ -72,7 +72,7 @@ int ExternalChecks::addRegistration(int8_t nav_mode_id, int8_t replaces_nav_stat
 		_registrations[free_registration_index].waiting_for_first_response = true;
 		_registrations[free_registration_index].num_no_response = 0;
 		_registrations[free_registration_index].unresponsive = false;
-		_registrations[free_registration_index].setpoint_timeout = false;
+		_registrations[free_registration_index].setpoint_timed_out = false;
 		_registrations[free_registration_index].total_num_unresponsive = 0;
 
 		if (!_registrations[free_registration_index].reply) {
@@ -131,17 +131,17 @@ bool ExternalChecks::isUnresponsive(int registration_id)
 	return false;
 }
 
-void ExternalChecks::setSetpointTimeout(int registration_id, bool setpoint_timeout)
+void ExternalChecks::setSetpointTimedOut(int registration_id, bool timed_out)
 {
 	if (registration_id >= 0 && registration_id < MAX_NUM_REGISTRATIONS && registrationValid(registration_id)) {
-		_registrations[registration_id].setpoint_timeout = setpoint_timeout;
+		_registrations[registration_id].setpoint_timed_out = timed_out;
 	}
 }
 
-bool ExternalChecks::hasSetpointTimeout(int registration_id) const
+bool ExternalChecks::setpointTimedOut(int registration_id) const
 {
 	return registration_id >= 0 && registration_id < MAX_NUM_REGISTRATIONS && registrationValid(registration_id)
-	       && _registrations[registration_id].setpoint_timeout;
+	       && _registrations[registration_id].setpoint_timed_out;
 }
 
 
@@ -154,7 +154,7 @@ void ExternalChecks::checkAndReport(const Context &context, Report &reporter)
 	}
 
 	NavModes unresponsive_modes{NavModes::None};
-	NavModes setpoint_timeout_modes{NavModes::None};
+	NavModes setpoint_timed_out_modes{NavModes::None};
 
 	for (int reg_idx = 0; reg_idx < MAX_NUM_REGISTRATIONS; ++reg_idx) {
 		if (!registrationValid(reg_idx) || !_registrations[reg_idx].reply) {
@@ -172,10 +172,10 @@ void ExternalChecks::checkAndReport(const Context &context, Report &reporter)
 				setOrClearRequirementBits(true, nav_mode_id, -1, reporter.failsafeFlags().mode_req_other);
 			}
 
-		} else if (_registrations[reg_idx].setpoint_timeout) {
+		} else if (_registrations[reg_idx].setpoint_timed_out) {
 			// Same fallback as an unresponsive mode
 			if (nav_mode_id != -1) {
-				setpoint_timeout_modes = setpoint_timeout_modes | reporter.getModeGroup(nav_mode_id);
+				setpoint_timed_out_modes = setpoint_timed_out_modes | reporter.getModeGroup(nav_mode_id);
 				setOrClearRequirementBits(true, nav_mode_id, -1, reporter.failsafeFlags().mode_req_other);
 			}
 
@@ -259,13 +259,13 @@ void ExternalChecks::checkAndReport(const Context &context, Report &reporter)
 					    events::Log::Critical, "Mode is unresponsive");
 	}
 
-	if (setpoint_timeout_modes != NavModes::None) {
+	if (setpoint_timed_out_modes != NavModes::None) {
 		/* EVENT
 		 * @description
 		 * The mode did not send a setpoint within the timeout it configured. The application running the mode
 		 * might be stuck. The mode can be selected again after selecting another mode or disarming.
 		 */
-		reporter.armingCheckFailure(setpoint_timeout_modes, health_component_t::system,
+		reporter.armingCheckFailure(setpoint_timed_out_modes, health_component_t::system,
 					    events::ID("check_external_modes_setpoint_timeout"),
 					    events::Log::Critical, "Mode stopped sending setpoints");
 	}

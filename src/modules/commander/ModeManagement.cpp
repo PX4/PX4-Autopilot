@@ -501,7 +501,7 @@ uint8_t ModeManagement::getNavStateReplacementIfValid(uint8_t nav_state, bool re
 
 					return nav_state;
 
-				} else if (_external_checks.hasSetpointTimeout(mode.arming_check_registration_id)) {
+				} else if (_external_checks.setpointTimedOut(mode.arming_check_registration_id)) {
 					if (!mode.setpoint_timeout_reported && report_error) {
 						mode.setpoint_timeout_reported = true;
 						/* EVENT
@@ -739,7 +739,7 @@ void ModeManagement::checkSetpointTimeout(bool armed, bool landed, uint8_t user_
 	    && (!armed || user_intention != _setpoint_timeout_user_intention)) {
 		for (int i = Modes::FIRST_EXTERNAL_NAV_STATE; i <= Modes::LAST_EXTERNAL_NAV_STATE; ++i) {
 			if (_modes.valid(i)) {
-				_external_checks.setSetpointTimeout(_modes.mode(i).arming_check_registration_id, false);
+				_external_checks.setSetpointTimedOut(_modes.mode(i).arming_check_registration_id, false);
 			}
 		}
 
@@ -756,7 +756,7 @@ void ModeManagement::checkSetpointTimeout(bool armed, bool landed, uint8_t user_
 
 	Modes::Mode &mode = _modes.mode(nav_state);
 
-	if (mode.setpoint_timeout_ms == 0 || _external_checks.hasSetpointTimeout(mode.arming_check_registration_id)) {
+	if (mode.setpoint_timeout_ms == 0 || _external_checks.setpointTimedOut(mode.arming_check_registration_id)) {
 		_setpoint_watch_nav_state = NAV_STATE_NONE;
 		return;
 	}
@@ -800,7 +800,7 @@ void ModeManagement::checkSetpointTimeout(bool armed, bool landed, uint8_t user_
 
 	} else if (_last_setpoint_time != 0 && now > _last_setpoint_time + mode.setpoint_timeout_ms * 1_ms) {
 		// The mode cannot run anymore, so the same fallback as for an unresponsive mode takes over
-		_external_checks.setSetpointTimeout(mode.arming_check_registration_id, true);
+		_external_checks.setSetpointTimedOut(mode.arming_check_registration_id, true);
 		_setpoint_timeout_user_intention = user_intention;
 		mode.setpoint_timeout_reported = false;
 		_setpoint_watch_nav_state = NAV_STATE_NONE;

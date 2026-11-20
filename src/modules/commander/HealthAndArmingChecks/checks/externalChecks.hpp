@@ -70,8 +70,8 @@ public:
 	 * Flag a mode that stopped sending setpoints. Like an unresponsive mode it then cannot run,
 	 * but it is not removed.
 	 */
-	void setSetpointTimeout(int registration_id, bool setpoint_timeout);
-	bool hasSetpointTimeout(int registration_id) const;
+	void setSetpointTimedOut(int registration_id, bool timed_out);
+	bool setpointTimedOut(int registration_id) const;
 
 	bool allowUpdateWhileArmed() const { return _param_com_mode_arm_chk.get(); }
 private:
@@ -97,7 +97,7 @@ private:
 		bool waiting_for_first_response{true};
 		uint8_t num_no_response{0};
 		bool unresponsive{false};
-		bool setpoint_timeout{false};
+		bool setpoint_timed_out{false};
 		uint8_t total_num_unresponsive{0};
 		arming_check_reply_s *reply{nullptr};
 	};
