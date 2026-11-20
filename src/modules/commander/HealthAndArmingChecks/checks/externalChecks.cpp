@@ -262,8 +262,10 @@ void ExternalChecks::checkAndReport(const Context &context, Report &reporter)
 	if (setpoint_timed_out_modes != NavModes::None) {
 		/* EVENT
 		 * @description
-		 * The mode did not send a setpoint within the timeout it configured. The application running the mode
-		 * might be stuck. The mode can be selected again after selecting another mode or disarming.
+		 * The mode did not send a setpoint within the timeout it configured. The most common causes are that
+		 * the application running the mode is stuck or crashed, that the communication with it is interrupted
+		 * or that the CPU load is too high. The mode can be selected again after selecting another mode or
+		 * disarming.
 		 */
 		reporter.armingCheckFailure(setpoint_timed_out_modes, health_component_t::system,
 					    events::ID("check_external_modes_setpoint_timeout"),
