@@ -35,6 +35,7 @@ add_subdirectory(AckermannActControl)
 add_subdirectory(AckermannRateControl)
 add_subdirectory(AckermannAttControl)
 add_subdirectory(AckermannSpeedControl)
+add_subdirectory(AckermannCourseControl)
 add_subdirectory(AckermannPosControl)
 add_subdirectory(AckermannDriveModes)
 
@@ -49,6 +50,7 @@ px4_add_module(
 		AckermannRateControl
 		AckermannAttControl
 		AckermannSpeedControl
+		AckermannCourseControl
 		AckermannPosControl
 		AckermannAutoMode
 		AckermannManualMode

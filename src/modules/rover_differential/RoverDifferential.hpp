@@ -57,6 +57,7 @@
 #include "DifferentialRateControl/DifferentialRateControl.hpp"
 #include "DifferentialAttControl/DifferentialAttControl.hpp"
 #include "DifferentialSpeedControl/DifferentialSpeedControl.hpp"
+#include "DifferentialCourseControl/DifferentialCourseControl.hpp"
 #include "DifferentialPosControl/DifferentialPosControl.hpp"
 #include "DifferentialDriveModes/DifferentialAutoMode/DifferentialAutoMode.hpp"
 #include "DifferentialDriveModes/DifferentialManualMode/DifferentialManualMode.hpp"
@@ -136,6 +137,7 @@ private:
 	DifferentialRateControl  _differential_rate_control{this};
 	DifferentialAttControl   _differential_att_control{this};
 	DifferentialSpeedControl   _differential_speed_control{this};
+	DifferentialCourseControl   _differential_course_control{this};
 	DifferentialPosControl   _differential_pos_control{this};
 	DifferentialAutoMode	 _auto_mode{this};
 	DifferentialManualMode 	 _manual_mode{this};

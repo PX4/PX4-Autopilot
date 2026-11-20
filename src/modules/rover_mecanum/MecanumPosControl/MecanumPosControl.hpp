@@ -47,8 +47,6 @@
 // uORB includes
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/surface_vehicle_speed_setpoint.h>
-#include <uORB/topics/surface_vehicle_attitude_setpoint.h>
 #include <uORB/topics/surface_vehicle_position_setpoint.h>
 #include <uORB/topics/surface_vehicle_course_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -71,7 +69,7 @@ public:
 	~MecanumPosControl() = default;
 
 	/**
-	 * @brief Generate and publish surfaceVehicleSpeedSetpoint and surfaceVehicleAttitudeSetpoint from surfaceVehiclePositionSetpoint or surfaceVehicleCourseSetpoint.
+	 * @brief Generate and publish surfaceVehicleCourseSetpoint (course and speed) from surfaceVehiclePositionSetpoint.
 	 */
 	void updatePosControl();
 
@@ -84,7 +82,7 @@ public:
 	/**
 	 * @brief Reset position controller.
 	 */
-	void reset() {_start_ned = Vector2f{NAN, NAN}; _target_waypoint_ned = Vector2f{NAN, NAN}; _course = NAN; _arrival_speed = 0.f; _cruising_speed = _param_ro_speed_lim.get(); _stopped = false;};
+	void reset() {_start_ned = Vector2f{NAN, NAN}; _target_waypoint_ned = Vector2f{NAN, NAN}; _arrival_speed = 0.f; _cruising_speed = _param_ro_speed_lim.get(); _stopped = false; _stop_course_control = false;};
 
 protected:
 
@@ -106,23 +104,21 @@ private:
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _surface_vehicle_position_setpoint_sub{ORB_ID(surface_vehicle_position_setpoint)};
-	uORB::Subscription _surface_vehicle_course_setpoint_sub{ORB_ID(surface_vehicle_course_setpoint)};
 
 	// uORB publications
-	uORB::Publication<surface_vehicle_speed_setpoint_s>    _surface_vehicle_speed_setpoint_pub{ORB_ID(surface_vehicle_speed_setpoint)};
 	uORB::Publication<pure_pursuit_status_s>     _pure_pursuit_status_pub{ORB_ID(pure_pursuit_status)};
-	uORB::Publication<surface_vehicle_attitude_setpoint_s> _surface_vehicle_attitude_setpoint_pub{ORB_ID(surface_vehicle_attitude_setpoint)};
+	uORB::Publication<surface_vehicle_course_setpoint_s> _surface_vehicle_course_setpoint_pub{ORB_ID(surface_vehicle_course_setpoint)};
 
 	// Variables
 	Quatf _vehicle_attitude_quaternion{};
 	Vector2f _curr_pos_ned{};
 	Vector2f _start_ned{};
 	Vector2f _target_waypoint_ned{};
-	float _course{NAN};
 	float _arrival_speed{0.f};
 	float _vehicle_speed{0.f};
 	float _cruising_speed{NAN};
 	bool _stopped{false};
+	bool _stop_course_control{false}; // Publish a NaN course setpoint once, on a position setpoint without target
 	uint8_t _reset_counter{0}; /**< counter for estimator resets in xy-direction */
 	uint8_t _updated_reset_counter{0}; /**< counter for estimator resets in xy-direction */
 
