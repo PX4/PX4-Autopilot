@@ -342,9 +342,8 @@ TEST_F(VtolForwardPropulsionFailureTest, TiltrotorDisablingDetectionAllowsFrontT
 	EXPECT_EQ(tiltrotor.get_mode(), mode::TRANSITION_TO_FW);
 }
 
-// In a front transition, the forward acceleration fitted to the added pusher thrust (thrust grows with the throttle
-// squared) has to reach VT_EF_FT_ACC (0.8 m/s^2 by default) at the transition throttle. The check decides once the
-// samples weigh as much as 1 s at the transition throttle.
+// How Standard feeds the front transition check, whose fit FrontTransitionThrustCheckTest covers: the thrust share is
+// the pusher throttle squared, relative to the transition throttle. With VT_PSHER_SLEW 0 it decides after 1 s.
 class VtolFrontTransitionPusherTest : public VtolForwardPropulsionFailureTest
 {
 protected:
@@ -383,7 +382,7 @@ protected:
 	}
 
 	// Fly the front transition until the quad-chute or the timeout, returns the time. The forward acceleration is a
-	// function of the time since the start of this flight, a NAN acceleration publishes none.
+	// function of the time since the start of this flight.
 	template<typename ForwardAcceleration>
 	hrt_abstime flyFrontTransitionWith(VtolAttitudeControl &attc, Standard &standard,
 					   ForwardAcceleration acceleration_at, hrt_abstime timeout)
@@ -391,15 +390,11 @@ protected:
 		const hrt_abstime start = hrt_absolute_time();
 
 		while (!attc.is_fixed_wing_system_failure() && hrt_elapsed_time(&start) < timeout) {
-			const float forward_acceleration = acceleration_at(hrt_elapsed_time(&start));
-
-			if (PX4_ISFINITE(forward_acceleration)) {
-				vehicle_acceleration_s vehicle_acceleration{};
-				vehicle_acceleration.timestamp_sample = hrt_absolute_time();
-				vehicle_acceleration.xyz[0] = forward_acceleration;
-				vehicle_acceleration.timestamp = hrt_absolute_time();
-				_vehicle_acceleration_pub.publish(vehicle_acceleration);
-			}
+			vehicle_acceleration_s vehicle_acceleration{};
+			vehicle_acceleration.timestamp_sample = hrt_absolute_time();
+			vehicle_acceleration.xyz[0] = acceleration_at(hrt_elapsed_time(&start));
+			vehicle_acceleration.timestamp = hrt_absolute_time();
+			_vehicle_acceleration_pub.publish(vehicle_acceleration);
 
 			attc.get_mc_virtual_att_sp()->timestamp = hrt_absolute_time();
 			attc.get_fw_virtual_att_sp()->timestamp = hrt_absolute_time();
@@ -473,60 +468,24 @@ TEST_F(VtolFrontTransitionPusherTest, ForwardAccelerationIsNoPusherFailure)
 	Standard standard(&attc);
 	startFrontTransition(attc, standard);
 
-	flyFrontTransition(attc, standard, 1.f, 2500_ms);
+	flyFrontTransition(attc, standard, 1.f, 1500_ms);
 	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
 	EXPECT_EQ(standard.get_mode(), mode::TRANSITION_TO_FW);
 }
 
-TEST_F(VtolFrontTransitionPusherTest, PusherFailingAfterTheCheckIsNotDetected)
+TEST_F(VtolFrontTransitionPusherTest, LowerTransitionThrottleDecidesAfterOneSecondToo)
 {
+	const float transition_throttle = 0.6f;
+	param_set(param_find("VT_F_TRANS_THR"), &transition_throttle);
 	VtolAttitudeControl attc;
 	Standard standard(&attc);
 	startFrontTransition(attc, standard);
 
-	// the check only covers the start of the transition, where drag is low, then drag decelerates the vehicle
-	flyFrontTransition(attc, standard, 3.f, 1700_ms);
-	flyFrontTransition(attc, standard, -2.f, 2500_ms);
-	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
-}
-
-TEST_F(VtolFrontTransitionPusherTest, SlowPusherSpinUpIsNoPusherFailure)
-{
-	VtolAttitudeControl attc;
-	Standard standard(&attc);
-	startFrontTransition(attc, standard);
-
-	// a motor that needs 0.25 s to spin up after the throttle step, with twice VT_EF_FT_ACC
-	flyFrontTransition(attc, standard, 0.f, 250_ms);
-	flyFrontTransition(attc, standard, 1.6f, 2500_ms);
-	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
-}
-
-TEST_F(VtolFrontTransitionPusherTest, MissingAccelerationIsNoPusherFailure)
-{
-	VtolAttitudeControl attc;
-	Standard standard(&attc);
-	startFrontTransition(attc, standard);
-
-	flyFrontTransition(attc, standard, NAN, 2500_ms);
-	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
-}
-
-TEST_F(VtolFrontTransitionPusherTest, AccelerationSamplesWithGapsAreNotAveraged)
-{
-	VtolAttitudeControl attc;
-	Standard standard(&attc);
-	startFrontTransition(attc, standard);
-
-	// samples 150 ms apart are not consecutive: nothing is averaged, so there is no decision
-	const hrt_abstime start = hrt_absolute_time();
-
-	while (hrt_elapsed_time(&start) < 3_s) {
-		flyFrontTransition(attc, standard, 0.f, 5_ms);
-		flyFrontTransition(attc, standard, NAN, 145_ms);
-	}
-
-	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
+	// the thrust share is relative to the transition throttle, so 0.6 counts as the whole transition thrust
+	const hrt_abstime transition_time = flyFrontTransition(attc, standard, 0.f, 3_s);
+	EXPECT_TRUE(attc.is_fixed_wing_system_failure());
+	EXPECT_GE(transition_time, 1_s);
+	EXPECT_LT(transition_time, 1300_ms);
 }
 
 TEST_F(VtolFrontTransitionPusherTest, PusherAssistBeforeTheTransitionLowersTheRequiredAcceleration)
@@ -540,7 +499,7 @@ TEST_F(VtolFrontTransitionPusherTest, PusherAssistBeforeTheTransitionLowersTheRe
 	ASSERT_NEAR(runCycle(attc, standard, true), 0.49f, 0.01f);
 	startFrontTransition(attc, standard);
 
-	flyFrontTransition(attc, standard, 0.7f, 2500_ms);
+	flyFrontTransition(attc, standard, 0.7f, 1500_ms);
 	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
 }
 
@@ -571,18 +530,6 @@ TEST_F(VtolFrontTransitionPusherTest, AccelerationBelowVtEfFtAccIsPusherFailure)
 	EXPECT_EQ(quadchuteReason(attc), QuadchuteReason::ForwardPropulsionFailure);
 }
 
-TEST_F(VtolFrontTransitionPusherTest, AccelerationAboveVtEfFtAccIsNoPusherFailure)
-{
-	const float ft_acc = 2.f;
-	param_set(param_find("VT_EF_FT_ACC"), &ft_acc);
-	VtolAttitudeControl attc;
-	Standard standard(&attc);
-	startFrontTransition(attc, standard);
-
-	flyFrontTransition(attc, standard, 2.5f, 2500_ms);
-	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
-}
-
 TEST_F(VtolFrontTransitionPusherTest, PusherAssistGivingHalfTheTransitionThrustIsNotChecked)
 {
 	const float transition_throttle = 0.6f;
@@ -595,7 +542,7 @@ TEST_F(VtolFrontTransitionPusherTest, PusherAssistGivingHalfTheTransitionThrustI
 	runCycle(attc, standard, true);
 	startFrontTransition(attc, standard);
 
-	flyFrontTransition(attc, standard, -1.f, 2500_ms);
+	flyFrontTransition(attc, standard, -1.f, 1500_ms);
 	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
 }
 
@@ -614,33 +561,6 @@ TEST_F(VtolFrontTransitionPusherTest, WeakPusherWhileTheThrottleRampsUpIsPusherF
 	EXPECT_LT(transition_time, 2800_ms);
 }
 
-TEST_F(VtolFrontTransitionPusherTest, WorkingPusherWhileTheThrottleRampsUpIsNoPusherFailure)
-{
-	const float pusher_slew = 0.5f;
-	param_set(param_find("VT_PSHER_SLEW"), &pusher_slew);
-	VtolAttitudeControl attc;
-	Standard standard(&attc);
-	startFrontTransition(attc, standard);
-
-	flyFrontTransitionThrottleRamp(attc, standard, 1.6f, pusher_slew, 4_s);
-	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
-}
-
-TEST_F(VtolFrontTransitionPusherTest, EarlyAccelerationDoesNotHideALaterFailure)
-{
-	const float pusher_slew = 0.5f;
-	param_set(param_find("VT_PSHER_SLEW"), &pusher_slew);
-	VtolAttitudeControl attc;
-	Standard standard(&attc);
-	startFrontTransition(attc, standard);
-
-	// more acceleration at low throttle than the throttle squared gives, then the pusher stops: samples count with
-	// the pusher thrust, so the start of the ramp weighs little
-	flyFrontTransition(attc, standard, 3.f, 500_ms);
-	flyFrontTransition(attc, standard, 0.f, 3_s);
-	EXPECT_TRUE(attc.is_fixed_wing_system_failure());
-}
-
 TEST_F(VtolFrontTransitionPusherTest, DisabledCheckIsNoPusherFailure)
 {
 	const float ft_acc = 0.f;
@@ -649,7 +569,7 @@ TEST_F(VtolFrontTransitionPusherTest, DisabledCheckIsNoPusherFailure)
 	Standard standard(&attc);
 	startFrontTransition(attc, standard);
 
-	flyFrontTransition(attc, standard, -1.f, 2500_ms);
+	flyFrontTransition(attc, standard, -1.f, 1500_ms);
 	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
 }
 
@@ -706,6 +626,6 @@ TEST_F(VtolFrontTransitionPusherTest, FrontTransitionFromBackTransitionIsNotChec
 
 	// drag at this speed can hide the acceleration of a working pusher
 	setCalibratedAirspeed(attc, 9.f);
-	flyFrontTransition(attc, standard, 0.f, 2500_ms);
+	flyFrontTransition(attc, standard, 0.f, 1500_ms);
 	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
 }

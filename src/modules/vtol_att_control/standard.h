@@ -45,6 +45,7 @@
 
 #ifndef STANDARD_H
 #define STANDARD_H
+#include "FrontTransitionThrustCheck.hpp"
 #include "vtol_type.h"
 
 #include <uORB/Subscription.hpp>
@@ -85,15 +86,8 @@ private:
 
 	// front transition (ft) check: forward acceleration fitted to the pusher thrust added since the start
 	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
-
-	struct FtPusherCheck {
-		hrt_abstime last_sample{0};
-		float transition_throttle{0.f}; ///< when the front transition started
-		float start_throttle{0.f}; ///< pusher assist throttle when the front transition started
-		float weighted_speed_gain{0.f}; ///< [m/s] forward acceleration integrated, weighted by the added thrust
-		float weighted_time{0.f}; ///< [s] time integrated, weighted by the added thrust squared
-		bool done{true}; ///< checked in this front transition, or not needed
-	} _ft_check{};
+	FrontTransitionThrustCheck _ft_thrust_check{};
+	float _ft_transition_throttle{0.f}; ///< when the front transition started
 
 	bool _ft_pusher_failed{false}; ///< latched until reboot or until VT_EF_FT_ACC is set to 0
 
