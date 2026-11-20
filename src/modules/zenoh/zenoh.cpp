@@ -542,6 +542,9 @@ void ZENOH::cleanupSession()
 {
 	PX4_INFO("Cleaning up Zenoh session...");
 
+	// A topic setup that failed half-way left the mapping file open at that line
+	_config.closePubSubMapping();
+
 	for (int i = 0; i < _sub_count; i++) {
 		if (_zenoh_subscribers && _zenoh_subscribers[i]) {
 			delete _zenoh_subscribers[i];
@@ -588,24 +591,43 @@ void ZENOH::run()
 		pfds[i].fd = -1;
 	}
 
-	const int setup_ret = setupSession();
+	// A failed setup is retried: the session can be lost right after it opened, e.g. to a router that still holds
+	// a previous session from this vehicle
+	while (true) {
+		const int setup_ret = setupSession();
 
-	if (setup_ret < 0) {
-		if (setup_ret != -EINTR) {
+		if (setup_ret == -EINTR) {
+			break;
+		}
+
+		if (setup_ret < 0) {
 			PX4_ERR("Failed to setup Zenoh session");
+
+		} else {
+			_connected.store(true);
+
+			PX4_INFO("Starting reading/writing tasks...");
+
+			if (setupTopics(pfds) == 0) {
+				break;
+			}
+
+			PX4_ERR("Failed to setup topics");
 		}
 
 		cleanupSession();
-		exit_and_cleanup(desc);
-		return;
+
+		for (i = 0; i < _pub_count; i++) {
+			pfds[i] = {};
+			pfds[i].fd = -1;
+		}
+
+		if (!sleepUnlessStopped(5000)) {
+			break;
+		}
 	}
 
-	_connected.store(true);
-
-	PX4_INFO("Starting reading/writing tasks...");
-
-	if (setupTopics(pfds) < 0) {
-		PX4_ERR("Failed to setup topics");
+	if (should_exit()) {
 		cleanupSession();
 		exit_and_cleanup(desc);
 		return;
