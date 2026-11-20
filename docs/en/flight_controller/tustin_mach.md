@@ -14,7 +14,7 @@ It uses an STM32H743 processor, two IMUs, eight motor outputs, CAN, and onboard 
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
 :::
 
-## Specifications
+## Specifications {#specifications}
 
 | Component                 | Specification                                     |
 | ------------------------- | ------------------------------------------------- |
@@ -33,12 +33,12 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 | Mounting                  | 30.5 × 30.5 mm pattern, 4 mm holes                |
 | Weight                    | 10 g                                              |
 
-## Purchase
+## Where to Buy {#store}
 
 Order from the manufacturer's [Taobao listing](https://item.taobao.com/item.htm?id=1084736032551).
 See the [Tustin MACH product page](https://tustindynamics.com/products/tustin-mach) for hardware details and availability.
 
-## Pinouts
+## Pinouts {#pinouts}
 
 The following connector views and signal order are from the [manufacturer's pinout reference](https://tustindynamics.com/zh/products/tustin-mach).
 All signal connectors use SH1.0 (1.0 mm pitch); USB uses a Type-C connector.
@@ -84,7 +84,7 @@ USB Type-C provides power, firmware upload, and USB communication.
   Configure that serial port for the connected device.
 - GPS1 and the I2C1 connector share external I2C bus 1.
 
-## Power
+## Power {#power}
 
 The ESC headers accept a 3–8S battery supply on `VBAT`.
 USB can power the flight controller for setup and firmware installation.
@@ -99,7 +99,21 @@ Check both voltage and signal order before connecting peripherals or an ESC cabl
 The default analogue battery settings use a voltage divider of 21.0 and a current scale of 40 A/V.
 Set the battery cell count and calibrate voltage/current measurement for the connected power hardware using [Power Setup](../config/battery.md).
 
-## Serial Port Mapping
+## PWM Outputs {#pwm_outputs}
+
+All eight outputs are driven directly by the FMU and support [PWM and DShot](../peripherals/dshot.md).
+They use the following timer groups:
+
+| Outputs | Timer |
+| ------- | ----- |
+| M1–M4   | TIM1  |
+| M5–M6   | TIM3  |
+| M7–M8   | TIM4  |
+
+Outputs in the same timer group must use the same protocol and rate.
+Assign motor and servo functions in [Actuator Configuration](../config/actuators.md).
+
+## Serial Port Mapping {#serial_port_mapping}
 
 | Hardware | NuttX Device   | PX4 Port Selection | Board Connection                   |
 | -------- | -------------- | ------------------ | ---------------------------------- |
@@ -115,21 +129,7 @@ Set the battery cell count and calibrate voltage/current measurement for the con
 The PX4 selection `UART 6` refers to hardware UART7 on this board; it is separate from the RC port on USART6.
 See [Serial Port Configuration](../peripherals/serial_configuration.md) to assign peripherals.
 
-## PWM/DShot Outputs
-
-All eight outputs are driven directly by the FMU and support [PWM and DShot](../peripherals/dshot.md).
-They use the following timer groups:
-
-| Outputs | Timer |
-| ------- | ----- |
-| M1–M4   | TIM1  |
-| M5–M6   | TIM3  |
-| M7–M8   | TIM4  |
-
-Outputs in the same timer group must use the same protocol and rate.
-Assign motor and servo functions in [Actuator Configuration](../config/actuators.md).
-
-## Setup
+## Assembly {#assembly}
 
 1. Install PX4 using [Loading Firmware](../config/firmware.md).
    For a locally built image, select the custom firmware option and load `tustin_mach_default.px4`.
@@ -156,7 +156,7 @@ ms4525do status
 listener differential_pressure
 ```
 
-## Building Firmware
+## Building Firmware {#building_firmware}
 
 To [build PX4](../dev_setup/building_px4.md) for this board:
 
@@ -171,7 +171,7 @@ The in-tree bootloader target is:
 make tustin_mach_bootloader
 ```
 
-## Debugging
+## Debug Port {#debug_port}
 
 The four-pin SWD connector exposes `SWCLK`, `SWDIO`, `GND`, and `3V3`.
 See [SWD Debugging](../debug/swd_debug.md) for connecting a debug probe.
