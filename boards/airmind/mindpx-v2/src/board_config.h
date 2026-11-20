@@ -46,12 +46,20 @@
 #include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
+/*
+#ifndef CONSTRAINED_MEMORY
+#define CONSTRAINED_MEMORY
+#endif
 
+#ifndef CONSTRAINED_FLASH
+#define CONSTRAINED_FLASH
+#endif
+*/
 /****************************************************************************************************
  * Definitions
  ****************************************************************************************************/
 /* Configuration ************************************************************************************/
-
+#define BOARD_SPI_BUS_MAX_BUS_ITEMS 3
 
 /* PX4FMU GPIOs ***********************************************************************************/
 /* LEDs */
