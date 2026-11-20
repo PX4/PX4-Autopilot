@@ -217,6 +217,7 @@ The `Tx4`/`Rx4` pads are wired straight through (`Tx4` is TX), so PX4 does not s
 The board ships with Betaflight.
 Before PX4 firmware can be installed, the _PX4 bootloader_ must be flashed.
 Download the [dakefpv_h743slim_bootloader.bin](https://github.com/PX4/PX4-Autopilot/blob/main/boards/dakefpv/h743slim/extras/dakefpv_h743slim_bootloader.bin) bootloader binary and follow the [DFU Bootloader Update](../advanced_config/bootloader_update_from_betaflight.md#dfu-bootloader-update) instructions.
+Run the mass-erase command given there first: PX4 stores its parameters in processor flash, and this board has only been tested with Betaflight's data erased.
 
 ## Building Firmware {#building_firmware}
 

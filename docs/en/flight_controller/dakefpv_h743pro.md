@@ -284,6 +284,7 @@ To apply a setting at every boot, add the command to `/fs/microsd/etc/extras.txt
 The board ships with Betaflight.
 Before PX4 firmware can be installed, the _PX4 bootloader_ must be flashed.
 Download the [dakefpv_h743pro_bootloader.bin](https://github.com/PX4/PX4-Autopilot/blob/main/boards/dakefpv/h743pro/extras/dakefpv_h743pro_bootloader.bin) bootloader binary and follow the [DFU Bootloader Update](../advanced_config/bootloader_update_from_betaflight.md#dfu-bootloader-update) instructions.
+Run the mass-erase command given there first: PX4 stores its parameters in processor flash, and this board has only been tested with Betaflight's data erased.
 
 ## Building Firmware {#building_firmware}
 
