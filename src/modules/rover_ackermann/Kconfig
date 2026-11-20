@@ -1,3 +1,22 @@
+config PACKAGE_ROVER
+	bool "Rover package"
+	select PACKAGE_ROVER_ACKERMANN
+	select PACKAGE_ROVER_DIFFERENTIAL
+	select PACKAGE_ROVER_MECANUM
+	---help---
+		All rover types. To build a single rover type, enable its own
+		package instead.
+
+config PACKAGE_ROVER_ACKERMANN
+	bool "Ackermann rover package"
+	imply MODULES_LAND_DETECTOR
+	imply MODULES_ROVER_ACKERMANN
+	---help---
+		Modules rc.rover_ackermann_apps starts unconditionally.
+
+		Modules are implied: each one defaults to enabled and can
+		still be disabled individually with CONFIG_MODULES_<NAME>=n.
+
 menuconfig MODULES_ROVER_ACKERMANN
 	bool "rover_ackermann"
 	default n

@@ -1,3 +1,13 @@
+config PACKAGE_ROVER_MECANUM
+	bool "Mecanum rover package"
+	imply MODULES_LAND_DETECTOR
+	imply MODULES_ROVER_MECANUM
+	---help---
+		Modules rc.rover_mecanum_apps starts unconditionally.
+
+		Modules are implied: each one defaults to enabled and can
+		still be disabled individually with CONFIG_MODULES_<NAME>=n.
+
 menuconfig MODULES_ROVER_MECANUM
 	bool "rover_mecanum"
 	default n

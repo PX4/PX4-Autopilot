@@ -1,3 +1,4 @@
+CONFIG_PACKAGE_VTOL=y
 # VTOL variant: multicopter + fixed-wing + VTOL stack.
 # SD bench and topic listener disabled to fit flash (keep autotune, gimbal,
 # gyro_fft, mag bias, payload, camera, esc battery, actuator_test).

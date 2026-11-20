@@ -2,11 +2,11 @@ menu "Inertial Navigation Systems (INS)"
     menuconfig COMMON_INS
         bool "All INS sensors"
         default n
-        select DRIVERS_INS_VECTORNAV
-        select DRIVERS_INS_ILABS
-        select DRIVERS_INS_MICROSTRAIN
-        select DRIVERS_INS_EULERNAV_BAHRS
-        select DRIVERS_INS_SBGECOM
+        imply DRIVERS_INS_VECTORNAV
+        imply DRIVERS_INS_ILABS
+        imply DRIVERS_INS_MICROSTRAIN
+        imply DRIVERS_INS_EULERNAV_BAHRS
+        imply DRIVERS_INS_SBGECOM
         ---help---
             Enable default set of INS sensors
     rsource "*/Kconfig"

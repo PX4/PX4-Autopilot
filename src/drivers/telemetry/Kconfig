@@ -2,9 +2,9 @@ menu "Telemetry"
     menuconfig COMMON_TELEMETRY
         bool "Common telemetry module's"
         default n
-        select DRIVERS_TELEMETRY_BST
-        select DRIVERS_TELEMETRY_FRSKY_TELEMETRY
-        select DRIVERS_TELEMETRY_HOTT
+        imply DRIVERS_TELEMETRY_BST
+        imply DRIVERS_TELEMETRY_FRSKY_TELEMETRY
+        imply DRIVERS_TELEMETRY_HOTT
         ---help---
             Enable default set of telemetry drivers
     rsource "*/Kconfig"

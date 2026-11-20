@@ -1,3 +1,13 @@
+config PACKAGE_SPACECRAFT
+	bool "Spacecraft package"
+	imply MODULES_CONTROL_ALLOCATOR
+	imply MODULES_SPACECRAFT
+	---help---
+		Modules rc.sc_apps starts unconditionally.
+
+		Modules are implied: each one defaults to enabled and can
+		still be disabled individually with CONFIG_MODULES_<NAME>=n.
+
 menuconfig MODULES_SPACECRAFT
 	bool "SPACECRAFT"
 	default n

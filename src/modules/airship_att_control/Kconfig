@@ -1,3 +1,14 @@
+config PACKAGE_AIRSHIP
+	bool "Airship package"
+	imply MODULES_AIRSHIP_ATT_CONTROL
+	imply MODULES_CONTROL_ALLOCATOR
+	imply MODULES_LAND_DETECTOR
+	---help---
+		Modules rc.airship_apps starts unconditionally.
+
+		Modules are implied: each one defaults to enabled and can
+		still be disabled individually with CONFIG_MODULES_<NAME>=n.
+
 menuconfig MODULES_AIRSHIP_ATT_CONTROL
 	bool "airship_att_control"
 	default n
