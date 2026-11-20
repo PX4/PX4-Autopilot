@@ -1375,7 +1375,8 @@ TEST_F(GeofenceFailsafeTest, ContGeofenceUsesItsOwnAction)
 	} cases[] = {
 		{kWarning, Action::Warn}, {kHold, Action::Hold}, {kReturn, Action::RTL}, {kLand, Action::Land},
 		{kNone, Action::None},
-		{kTerminate, Action::Warn}, // not offered for the contingency geofence
+		{kTerminate, Action::Warn}, // reserved for the emergency geofence
+		{6, Action::Warn}, // no such action, as for GF_ACTION
 	};
 
 	for (const auto &c : cases) {

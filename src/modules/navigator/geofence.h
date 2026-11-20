@@ -226,10 +226,8 @@ public:
 
 	/**
 	 * GF_CONT_ACTION, or None while the contingency geofence is disabled.
-	 * The value is passed on as set. Commander decides what a breach triggers and turns a value the parameter
-	 * does not offer into a Warning, see Failsafe::fromGfContActParam(). Example: a 4 (Terminate) set by hand
-	 * only warns. Navigator still refuses Go-to targets outside the contingency geofence with such a value,
-	 * as it does for every action other than None and Warning.
+	 * The value is passed on as set: commander decides what a breach triggers and keeps Terminate out, see
+	 * Failsafe::fromGfContActParam().
 	 */
 	int getContGeofenceAction() const
 	{
