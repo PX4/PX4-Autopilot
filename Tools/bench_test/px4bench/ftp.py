@@ -25,7 +25,9 @@ except ImportError as e:
     print(MAVFTP_INSTALL_HINT.format(err=e))
     sys.exit(2)
 
-LOG_ROOT = '/fs/microsd/log'
+# The log directory of the logger: on the SD card, which NuttX boards mount at
+# /fs/microsd and others at /SD:.
+LOG_ROOTS = ('/fs/microsd/log', '/SD:/log')
 # ULog file header magic: 'U' 'L' 'o' 'g' 0x01 0x12 0x35, then a file-version
 # byte. See src/modules/logger/logger.cpp:2099-2106.
 ULOG_MAGIC7 = bytes([0x55, 0x4C, 0x6F, 0x67, 0x01, 0x12, 0x35])
@@ -38,6 +40,17 @@ def ftp_list(ftp, path):
     """
     ftp.cmd_list([path])
     return list(ftp.list_result)
+
+
+def find_log_root(ftp):
+    """Return (log root, its entries): the first of LOG_ROOTS that has
+    entries, or the first of LOG_ROOTS and [] when none has.
+    """
+    for root in LOG_ROOTS:
+        entries = ftp_list(ftp, root)
+        if entries:
+            return root, entries
+    return LOG_ROOTS[0], []
 
 
 def ftp_download(mav, ftp, remote, local, report):
