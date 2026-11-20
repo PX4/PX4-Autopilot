@@ -68,6 +68,7 @@
 #endif
 
 #include <px4_platform_common/time.h>
+#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/init.h>
 #include <px4_platform_common/getopt.h>
@@ -79,6 +80,51 @@
 #include "px4_daemon/client.h"
 #include "px4_daemon/server.h"
 #include "px4_daemon/pxh.h"
+
+#if defined(CONFIG_ARCH_BOARD_PX4_SITL) && defined(CONFIG_BOARDCTL_RESET)
+#include <linux/close_range.h>
+#include <sched.h>
+#include <sys/boardctl.h>
+#include <px4_platform_common/shutdown.h>
+
+static char **reboot_argv;
+static std::string reboot_cwd;
+static sigset_t reboot_sigmask;
+static struct termios reboot_term;
+static bool reboot_has_terminal;
+static int reboot_stdio[3];
+
+int boardctl(unsigned int cmd, uintptr_t arg)
+{
+	if (cmd != BOARDIOC_RESET || arg != REBOOT_REQUEST) {
+		return -EINVAL;
+	}
+
+	// Isolate the launch context from surviving threads; close old sockets and locks on exec.
+	if (unshare(CLONE_FS) != 0 || chdir(reboot_cwd.c_str()) != 0
+	    || close_range(3, ~0U, CLOSE_RANGE_UNSHARE | CLOSE_RANGE_CLOEXEC) != 0
+	    || sigprocmask(SIG_SETMASK, &reboot_sigmask, nullptr) != 0) {
+		perror("reboot");
+		_exit(EXIT_FAILURE);
+	}
+
+	// Keep the original launch arguments and terminal, including when a MAVLink shell is open.
+	for (int fd = 0; fd < 3; ++fd) {
+		if (dup2(reboot_stdio[fd], fd) < 0) {
+			perror("reboot: dup2");
+			_exit(EXIT_FAILURE);
+		}
+	}
+
+	if (reboot_has_terminal) {
+		tcsetattr(STDIN_FILENO, TCSANOW, &reboot_term);
+	}
+
+	execv("/proc/self/exe", reboot_argv);
+	perror("reboot: execv");
+	_exit(EXIT_FAILURE);
+}
+#endif
 
 #define MODULE_NAME "px4"
 
@@ -183,6 +229,22 @@ int main(int argc, char **argv)
 		return client.process_args(argc, (const char **)argv);
 
 	} else {
+#if defined(CONFIG_ARCH_BOARD_PX4_SITL) && defined(CONFIG_BOARDCTL_RESET)
+		reboot_argv = argv;
+		reboot_cwd = pwd();
+		sigprocmask(SIG_SETMASK, nullptr, &reboot_sigmask);
+		reboot_has_terminal = (tcgetattr(STDIN_FILENO, &reboot_term) == 0);
+
+		for (int fd = 0; fd < 3; ++fd) {
+			reboot_stdio[fd] = fcntl(fd, F_DUPFD_CLOEXEC, 3);
+
+			if (reboot_stdio[fd] < 0) {
+				PX4_ERR("failed to save standard descriptors for reboot: %s", strerror(errno));
+				return PX4_ERROR;
+			}
+		}
+
+#endif
 #if (_POSIX_MEMLOCK > 0) && !defined(ENABLE_LOCKSTEP_SCHEDULER)
 
 		// try to lock address space into RAM, to avoid page swap delay
