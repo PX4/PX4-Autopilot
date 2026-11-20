@@ -922,7 +922,9 @@ private:
 		(ParamFloat<px4::params::FW_AIRSPD_MAX>) _param_fw_airspd_max,
 		(ParamFloat<px4::params::FW_AIRSPD_MIN>) _param_fw_airspd_min,
 		(ParamFloat<px4::params::FW_AIRSPD_TRIM>) _param_fw_airspd_trim,
-		(ParamFloat<px4::params::FW_T_CLMB_MAX>) _param_fw_t_clmb_max
+		(ParamFloat<px4::params::FW_T_CLMB_MAX>) _param_fw_t_clmb_max,
+		(ParamFloat<px4::params::FW_T_ALT_TC>) _param_fw_t_alt_tc,
+		(ParamFloat<px4::params::FW_LND_THRTC_SC>) _param_fw_lnd_thrtc_sc
 	)
 };
 

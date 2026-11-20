@@ -1532,15 +1532,21 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 				    _param_fw_lnd_para_sink.get());
 	}
 
-	float altitude_setpoint;
+	// Track the glide slope. Below it, hold level only where tracking it would command a climb: the
+	// altitude error over the altitude time constant exceeds the slope's sink rate (no step at the
+	// switch). Level is a zero height rate.
+	const float glide_slope_altitude = glide_slope_reference_alt + glide_slope_rel_alt;
+	const float along_track_ground_speed = math::max(ground_speed.dot(landing_approach_vector.unit_or_zero()), 0.f);
+	const float altitude_time_constant = math::max(_param_fw_t_alt_tc.get() * _param_fw_lnd_thrtc_sc.get(), 1.f);
+	const float glide_slope_sink_rate_over_ground = along_track_ground_speed * glide_slope;
 
-	if (_current_altitude > glide_slope_reference_alt + glide_slope_rel_alt) {
-		// descend to the glide slope
-		altitude_setpoint = glide_slope_reference_alt + glide_slope_rel_alt;
+	float altitude_setpoint = glide_slope_altitude;
+	float approach_height_rate_setpoint = NAN;
 
-	} else {
-		// continue horizontally
+	if (glide_slope_altitude - _current_altitude > altitude_time_constant * glide_slope_sink_rate_over_ground) {
+		// far enough below the slope that tracking it would climb: hold level until it is intercepted
 		altitude_setpoint = _current_altitude;
+		approach_height_rate_setpoint = 0.f;
 	}
 
 	if (parachute_landing_active) {
@@ -1696,7 +1702,7 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 		const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
 			.timestamp = hrt_absolute_time(),
 			.altitude = altitude_setpoint,
-			.height_rate = NAN,
+			.height_rate = approach_height_rate_setpoint,
 			.equivalent_airspeed = airspeed_land,
 			.pitch_direct = NAN,
 			.throttle_direct = NAN
