@@ -101,7 +101,16 @@ constexpr TECSControl::Param defaultParams()
 		.seb_rate_ff               = paramDefault(px4::params::FW_T_SEB_R_FF),
 		.pitch_speed_weight        = paramDefault(px4::params::FW_T_SPDWEIGHT),
 		.integrator_gain_pitch     = paramDefault(px4::params::FW_T_I_GAIN_PIT),
-		.pitch_damping_gain        = paramDefault(px4::params::FW_T_PTCH_DAMP),
+
+		// Disable pitch damping. The gain converts a balance rate error
+		// to a balance rate correction. Through two static mappings
+		// this is the same as converting a pitch error to a pitch
+		// setpoint. Because the sim has perfect pitch tracking, the
+		// only pitch errors come from discretisation step delays.  To
+		// test it properly we need a sim with dynamics between pitch
+		// setpoint and flight path angle.
+		.pitch_damping_gain        = 0.f,
+
 		.integrator_gain_throttle  = paramDefault(px4::params::FW_T_THR_INTEG),
 		.throttle_damping_gain     = paramDefault(px4::params::FW_T_THR_DAMPING),
 		.throttle_slewrate         = paramDefault(px4::params::FW_THR_SLEW_MAX),
