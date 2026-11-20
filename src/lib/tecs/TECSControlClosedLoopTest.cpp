@@ -45,11 +45,11 @@
  * --------------
  *
  *   States:  V (TAS), h (altitude)
- *   Inputs:  throttle, gamma (flight path angle) = pitch angle (zero AoA, zero wind)
+ *   Inputs:  throttle, gamma (pitch angle = flight path angle)
  *
  *   d(STE)/dt = piecewise linear in throttle, matching TECS's above/below-trim slopes
- *   h'        = V * gamma
- *   V'        = (STE_rate - g * h') / V     [remainder goes to kinetic energy]
+ *   dh/dt     = V * gamma
+ *   dV/dt     = (d(STE)/dt - g * h') / V     [remainder goes to kinetic energy]
  *
  */
 
