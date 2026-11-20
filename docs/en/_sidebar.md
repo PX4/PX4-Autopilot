@@ -95,6 +95,7 @@
   - [VTOL Config/Tuning](/config_vtol/index.md)
     - [Auto-tune](/config/autotune_vtol.md)
     - [QuadPlane Configuration](/config_vtol/vtol_quad_configuration.md)
+    - [Tiltrotor Configuration](/config_vtol/vtol_tiltrotor_configuration.md)
     - [Back-transition Tuning](/config_vtol/vtol_back_transition_tuning.md)
     - [VTOL w/o Airspeed Sensor](/config_vtol/vtol_without_airspeed_sensor.md)
     - [VTOL Weather Vane](/config_vtol/vtol_weathervane.md)
