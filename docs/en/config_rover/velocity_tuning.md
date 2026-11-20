@@ -88,20 +88,23 @@ The rover is now ready to drive in [Position mode](../flight_modes_rover/manual.
 
 This section provides additional information for developers and people with experience in control system design.
 
-The velocity vector is defined by the following two values:
+The velocity is defined by the following two values:
 
 1. The absolute speed [$m/s$]
-2. The direction (bearing) [$rad$]
+2. The [course setpoint](../concept/navigation_terminology.md#course-setpoint) [$rad$]
 
 The speed controller uses the following structure:
 
-![Rover Speed Controller](../../assets/config/rover/rover_speed_controller.png)
+![Rover Speed Controller](../../assets/config/rover/rover_speed_controller.svg)
 
 The feed forward mapping is done by interpolating the speed setpoint from [-[RO_MAX_THR_SPEED](../advanced_config/parameter_reference.md#RO_MAX_THR_SPEED), [RO_MAX_THR_SPEED](../advanced_config/parameter_reference.md#RO_MAX_THR_SPEED)] to [-1, 1].
 
-For ackermann and differential rovers the bearing is aligned with the vehicle yaw. Therefore the bearing is simply sent as a yaw setpoint to the [yaw controller](attitude_tuning.md#attitude-controller-structure-info-only) and the speed setpoint is always defined in body x direction.
+The course controller turns the course setpoint and speed into speed and attitude setpoints.
+For ackermann and differential rovers the heading is aligned with the course setpoint.
+Therefore the course setpoint, corrected by the estimated [drift angle](../concept/navigation_terminology.md#drift-angle), is sent as a yaw setpoint to the [yaw controller](attitude_tuning.md#attitude-controller-structure-info-only) and the speed setpoint is always defined in body x direction.
 
-For mecanum vehicles, the bearing and yaw are decoupled. The direction is controlled by splitting the velocity vector into one speed component in body x direction and one in body y direction.
+For mecanum vehicles, the course setpoint and heading are decoupled.
+The direction is controlled by splitting the velocity into one speed component in body x direction and one in body y direction.
 Both these setpoint are then sent to their own closed loop speed controllers.
 
 ## Parameter Overview
