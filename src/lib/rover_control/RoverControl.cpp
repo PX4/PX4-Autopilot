@@ -64,7 +64,8 @@ ManualSticks mapSticks(const manual_control_setpoint_s &manual_control_setpoint,
 	}
 }
 
-bool sticksCommandMotion(const manual_control_setpoint_s &manual_control_setpoint, int32_t stick_map, bool can_drive_sideways, bool tank_sticks)
+bool sticksCommandMotion(const manual_control_setpoint_s &manual_control_setpoint, int32_t stick_map, bool can_drive_sideways,
+			 bool tank_sticks)
 {
 	// Yaw is left out: turning on the spot doesn't move the rover away
 	const float arming_stick_threshold = 0.2f;

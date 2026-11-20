@@ -90,7 +90,8 @@ ManualSticks mapSticks(const manual_control_setpoint_s &manual_control_setpoint,
  *                    vertical sticks drive the left and right wheels instead of the stick mapping
  * @return True if the sticks command forward motion, or lateral motion if used, of 0.2 or more
  */
-bool sticksCommandMotion(const manual_control_setpoint_s &manual_control_setpoint, int32_t stick_map, bool can_drive_sideways, bool tank_sticks);
+bool sticksCommandMotion(const manual_control_setpoint_s &manual_control_setpoint, int32_t stick_map, bool can_drive_sideways,
+			 bool tank_sticks);
 
 /**
  * Applies acceleration/deceleration slew rate to a throttle setpoint.
