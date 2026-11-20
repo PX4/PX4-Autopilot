@@ -97,6 +97,14 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   Limits raised or disabled to allow large tilts, for example roll on fixed-wing vehicles, are no longer needed.
   The check is disabled with `FD_TILT_ERROR` set to -1.
   The `fd_roll` and `fd_pitch` fields of [FailureDetectorStatus](../msg_docs/FailureDetectorStatus.md) are replaced by `fd_tilt`.
+- **The failsafe flag `geofence_breached` is renamed to `gf_emer_breach`.**
+  The field of [FailsafeFlags](../msg_docs/FailsafeFlags.md) (`failsafe_flags`) now names the emergency geofence, next to the new `gf_cont_breach` flag of the contingency geofence.
+  Both names are short because the message is at the logger's format limit.
+  ROS 2 applications and log analysis that read `geofence_breached` must use the new name.
+- **The `geofence_result` fields of the existing geofence are renamed.**
+  `geofence_max_dist_triggered`, `geofence_max_alt_triggered`, `geofence_custom_fence_triggered` and `geofence_action` of [GeofenceResult](../msg_docs/GeofenceResult.md) are now `geofence_emer_max_dist_triggered`, `geofence_emer_max_alt_triggered`, `geofence_emer_custom_fence_triggered` and `geofence_emer_action`.
+  They name the emergency geofence, next to the new `geofence_cont_*` fields of the contingency geofence.
+  Log analysis that reads the old names must use the new ones.
 
 ## Other changes
 
@@ -142,6 +150,12 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### Safety
 
 - [Geofence Aware Return mode](../flight_modes/return.md#geofence_awareness). ([PX4-Autopilot#27145: feat(navigator): Geofence Aware RTL](https://github.com/PX4/PX4-Autopilot/pull/27145), [PX4-Autopilot#28001: docs(navigator): [geofence] added some more warnings about limitations](https://github.com/PX4/PX4-Autopilot/pull/28001)).
+- [Contingency geofence](../config/safety.md#contingency-geofence): a second boundary at a horizontal margin inside the geofence ([GF_CONT_H_MARGIN](../advanced_config/parameter_reference.md#GF_CONT_H_MARGIN)), with its own action ([GF_CONT_ACTION](../advanced_config/parameter_reference.md#GF_CONT_ACTION)).
+  A vehicle can for example hold at the contingency geofence, and only terminate if it still crosses the geofence.
+  The names follow the SORA framework: messages about a breach or a refused target now call the existing geofence the emergency geofence.
+  The margin applies to the maximum distance from Home and to the Geofence Plan.
+  Outside the contingency geofence missions are rejected, arming is denied unless its action is None, and _Go to location_ targets are refused unless its action is None or Warning.
+  Return mode plans its route with the margin added.
 - [Flight termination](../advanced_config/flight_termination.md) can now be used instead of a Descent mode as a fallback failsafe mode, allowing safer landing for unpiloted vehicles that carry a parachute.
   See [Battery level failsafe](../config/safety.md#battery-level-failsafe) ([COM_LOW_BAT_ACT](../advanced_config/parameter_reference.md#COM_LOW_BAT_ACT)) and [Position Loss Failsafe Action](../config/safety.md#position-loss-failsafe-action) (new [COM_POS_FS_ACT](../advanced_config/parameter_reference.md#COM_POS_FS_ACT)). ([PX4-Autopilot#28064: feat(commander): add terminate options for critical battery and lost position failsafes](https://github.com/PX4/PX4-Autopilot/pull/28064)).
 - [Failure injection](../debug/failure_injection.md) ( [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN)) has been significantly extended. (PX4-Autopilot#27572, PX4-Autopilot#27832, PX4-Autopilot#27950)

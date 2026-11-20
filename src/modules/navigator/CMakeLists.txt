@@ -120,6 +120,10 @@ if(CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE)
 	list(APPEND NAVIGATOR_MODULE_CONFIG geofence_avoidance_params.yaml)
 endif()
 
+if(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
+	list(APPEND NAVIGATOR_MODULE_CONFIG geofence_contingency_margin_params.yaml)
+endif()
+
 if(CONFIG_MODULES_VISION_TARGET_ESTIMATOR)
 	list(APPEND NAVIGATOR_SOURCES prec_takeoff.cpp)
 	list(APPEND NAVIGATOR_MODULE_CONFIG prec_takeoff_params.yaml)

@@ -53,7 +53,8 @@ bool fd_motor_stuck_failure           # Motor-stuck failure during spool-up
 bool fd_alt_loss                      # Uncommanded altitude loss (rotary-wing, altitude-controlled flight)
 
 # Other
-bool geofence_breached        	      # Geofence breached (one or multiple)
+bool gf_emer_breach                   # Emergency geofence breached (one or multiple)
+bool gf_cont_breach                   # Contingency geofence breached (one or multiple)
 bool mission_failure                  # Mission failure
 bool vtol_fixed_wing_system_failure   # vehicle in fixed-wing system failure failsafe mode (after quad-chute)
 bool wind_limit_exceeded              # Wind limit exceeded

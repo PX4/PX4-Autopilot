@@ -1,0 +1,16 @@
+module_name: navigator
+parameters:
+- group: Geofence
+  definitions:
+    GF_CONT_H_MARGIN:
+      description:
+        short: Contingency geofence horizontal margin
+        long: Triggers GF_CONT_ACTION within this horizontal distance of GF_MAX_HOR_DIST, or of a polygon
+          or circle of the geofence plan. Disabled if 0.
+      type: float
+      default: 0.0
+      unit: m
+      min: 0
+      max: 10000
+      decimal: 0
+      increment: 10
