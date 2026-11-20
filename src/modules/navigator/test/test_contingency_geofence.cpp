@@ -356,8 +356,8 @@ TEST_F(ContGeofenceTest, ContingencyAreaLoadsWithoutHomeOrTheVehicleInside)
 	EXPECT_EQ(interface.getNumPolygons(), 0);
 }
 
-// Drawn contingency geofence areas replace GF_CONT_H_MARGIN for the polygons and circles of the plan.
-TEST_F(ContGeofenceTest, DrawnAreasReplaceTheMargin)
+// Contingency geofence areas replace GF_CONT_H_MARGIN for the polygons and circles of the plan.
+TEST_F(ContGeofenceTest, ContGeofenceAreasReplaceTheMargin)
 {
 	setMargin(100.f);
 	ASSERT_TRUE(loadFence(inclusionSquare(500.f)));

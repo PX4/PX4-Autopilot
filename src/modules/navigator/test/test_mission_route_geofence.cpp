@@ -667,9 +667,9 @@ TEST_F(MissionRouteGeofenceTest, SegmentsKeepTheContingencyMargin)
 	}
 }
 
-// Drawn contingency areas replace the margin for the planner's segments, as for a mission. The segment passes
-// 25 m north of the exclusion square and stays well inside the drawn circle.
-TEST_F(MissionRouteGeofenceTest, DrawnContingencyAreasReplaceTheMargin)
+// Contingency geofence areas replace the margin for the planner's segments, as for a mission. The segment passes
+// 25 m north of the exclusion square and stays well inside the contingency geofence circle.
+TEST_F(MissionRouteGeofenceTest, ContGeofenceAreasReplaceTheMargin)
 {
 	FencePoints points = exclusionSquare();
 	const FencePoints area = circle(true, {0.f, 300.f}, 400.f, FenceLevel::Contingency);
@@ -691,9 +691,9 @@ TEST_F(MissionRouteGeofenceTest, DrawnContingencyAreasReplaceTheMargin)
 	EXPECT_TRUE(clear);
 }
 
-// A vehicle outside a drawn contingency area but inside the emergency geofence is handled like one inside the
+// A vehicle outside a contingency geofence area but inside the emergency geofence is handled like one inside the
 // margin: its segments may lead back in or stay in between, but not across the emergency geofence.
-TEST_F(MissionRouteGeofenceTest, VehicleOutsideADrawnContingencyAreaIsCheckedAgainstTheEmergencyGeofence)
+TEST_F(MissionRouteGeofenceTest, VehicleOutsideAContGeofenceAreaIsCheckedAgainstTheEmergencyGeofence)
 {
 	// The emergency geofence reaches 500 m from Home, the contingency geofence 300 m.
 	const FencePoints squares[] = {

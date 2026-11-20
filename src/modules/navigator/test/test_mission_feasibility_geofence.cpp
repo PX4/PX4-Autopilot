@@ -1001,8 +1001,8 @@ TEST_F(MissionContGeofenceTest, LegCrossingOnlyContGeofenceIsRejected)
 	EXPECT_TRUE(missionFeasible({waypoint({80.f, 0.f}), waypoint({80.f, 600.f})}));
 }
 
-// Drawn contingency geofence areas replace GF_CONT_H_MARGIN: a waypoint inside them may be closer to the geofence.
-TEST_F(MissionContGeofenceTest, DrawnAreasReplaceTheMargin)
+// Contingency geofence areas replace GF_CONT_H_MARGIN: a waypoint inside them may be closer to the geofence.
+TEST_F(MissionContGeofenceTest, ContGeofenceAreasReplaceTheMargin)
 {
 	ASSERT_TRUE(configureVehicle(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING));
 	ASSERT_TRUE(setMargin(200.f));
@@ -1014,8 +1014,8 @@ TEST_F(MissionContGeofenceTest, DrawnAreasReplaceTheMargin)
 	EXPECT_TRUE(missionFeasible(items));
 }
 
-// GF_MAX_HOR_DIST keeps the margin next to drawn areas, which only replace it for the plan.
-TEST_F(MissionContGeofenceTest, HomeDistanceKeepsTheMarginWithDrawnAreas)
+// GF_MAX_HOR_DIST keeps the margin next to contingency geofence areas, which only replace it for the plan.
+TEST_F(MissionContGeofenceTest, HomeDistanceKeepsTheMarginWithContGeofenceAreas)
 {
 	ASSERT_TRUE(configureVehicle());
 	ASSERT_TRUE(setMargin(100.f));
