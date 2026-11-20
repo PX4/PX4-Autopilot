@@ -187,7 +187,7 @@ void print_load_buffer(char *buffer, int buffer_length, print_load_callback_f cb
 
 		sched_lock(); // need to lock the tcb access (but make it as short as possible)
 
-		if (!system_load.tasks[i].valid) {
+		if (!system_load.tasks[i].valid || !system_load.tasks[i].tcb) {
 			sched_unlock();
 			continue;
 		}
