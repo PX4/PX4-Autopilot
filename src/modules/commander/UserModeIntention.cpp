@@ -41,6 +41,30 @@ UserModeIntention::UserModeIntention(const vehicle_status_s &vehicle_status,
 {
 }
 
+static bool isModeAllowedDuringLockout(uint8_t nav_state)
+{
+	switch (nav_state) {
+	// Manual flight modes remain available
+	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
+	case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
+	case vehicle_status_s::NAVIGATION_STATE_POSCTL:
+	case vehicle_status_s::NAVIGATION_STATE_POSITION_SLOW:
+	case vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE:
+	case vehicle_status_s::NAVIGATION_STATE_MANUAL_PARKING:
+	case vehicle_status_s::NAVIGATION_STATE_ACRO:
+	case vehicle_status_s::NAVIGATION_STATE_STAB:
+
+	// RTL itself, landing and termination always stay available
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
+	case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
+		return true;
+
+	default:
+		return false;
+	}
+}
+
 bool UserModeIntention::change(uint8_t user_intended_nav_state, ModeChangeSource source, bool allow_fallback,
 			       bool force)
 {
@@ -68,6 +92,14 @@ bool UserModeIntention::change(uint8_t user_intended_nav_state, ModeChangeSource
 
 	// never allow to change out of termination state
 	allow_change &= _vehicle_status.nav_state != vehicle_status_s::NAVIGATION_STATE_TERMINATION;
+
+	// While the RC mode switch is on RTL, user-initiated changes into non-manual
+	// modes (guided, mission, offboard, ...) are rejected until the switch is
+	// moved to Stabilized. Forced changes (failsafe) are exempt.
+	if (_mode_change_lockout && source == ModeChangeSource::User && !force
+	    && !isModeAllowedDuringLockout(user_intended_nav_state)) {
+		allow_change = false;
+	}
 
 	if (allow_change) {
 		_had_mode_change = true;
