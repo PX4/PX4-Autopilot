@@ -555,6 +555,7 @@ if (TARGET parameters_xml AND TARGET airframes_xml AND EXISTS ${PX4_SOURCE_DIR}/
 		)
 
 	add_custom_target(px4_package ALL DEPENDS ${fw_package})
+	set_property(GLOBAL PROPERTY PX4_FIRMWARE_PACKAGE ${fw_package})
 
 	# upload helper
 	# create upload target helper if NuttX USB CDCACM is present

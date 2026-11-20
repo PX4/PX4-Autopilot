@@ -31,9 +31,9 @@
 #
 ############################################################################
 
-# SBOM - SPDX 2.3 JSON Software Bill of Materials generation
+# SBOM - SPDX 3.0.1 JSON-LD Software Bill of Materials generation
 
-option(GENERATE_SBOM "Generate SPDX 2.3 SBOM" ON)
+option(GENERATE_SBOM "Generate SPDX 3.0.1 SBOM" ON)
 
 if(DEFINED ENV{PX4_SBOM_DISABLE})
 	set(GENERATE_SBOM OFF)
@@ -49,14 +49,24 @@ if(GENERATE_SBOM)
 
 	set(sbom_output "${PX4_BINARY_DIR}/${PX4_CONFIG}.sbom.spdx.json")
 
+	# Builds that produce a .px4 (NuttX) record it with its SHA-256, so the
+	# SBOM is regenerated whenever the firmware changes.
+	get_property(sbom_firmware_file GLOBAL PROPERTY PX4_FIRMWARE_PACKAGE)
+	set(sbom_firmware_args)
+	if(sbom_firmware_file)
+		set(sbom_firmware_args --firmware-file ${sbom_firmware_file})
+	endif()
+
 	add_custom_command(
 		OUTPUT ${sbom_output}
 		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/ci/generate_sbom.py
 			--source-dir ${PX4_SOURCE_DIR}
 			--board ${PX4_CONFIG}
 			--modules-file ${sbom_module_list_file}
+			--board-config ${BOARD_CONFIG}
 			--compiler ${CMAKE_C_COMPILER}
 			--platform ${PX4_PLATFORM}
+			${sbom_firmware_args}
 			--output ${sbom_output}
 		DEPENDS
 			${PX4_SOURCE_DIR}/Tools/ci/generate_sbom.py
@@ -64,9 +74,16 @@ if(GENERATE_SBOM)
 			${PX4_SOURCE_DIR}/.gitmodules
 			${PX4_SOURCE_DIR}/Tools/setup/requirements.txt
 			${sbom_module_list_file}
+			# Regenerated from BOARD_CONFIG at configure time. Depending on
+			# BOARD_CONFIG itself would collide with the `boardconfig` target.
+			${PX4_BINARY_DIR}/px4_boardconfig.h
+			${sbom_firmware_file}
 		COMMENT "Generating SPDX SBOM for ${PX4_CONFIG}"
 	)
 
 	add_custom_target(sbom ALL DEPENDS ${sbom_output})
+	if(TARGET px4_package)
+		add_dependencies(sbom px4_package)
+	endif()
 
 endif()
