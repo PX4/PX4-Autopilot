@@ -354,7 +354,7 @@ The following sections provide a list of supported setpoint types:
 :::tip
 The other setpoint types are currently experimental, and can be found in: [px4_ros2/control/setpoint_types/experimental](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/px4_ros2_cpp/include/px4_ros2/control/setpoint_types/experimental).
 
-You can add your own setpoint types by adding a class that inherits from `px4_ros2::SetpointBase`, sets the configuration flags according to what the setpoint requires, and then publishes any topic containing a setpoint.
+You can also add your own setpoint types, as described in [Adding a Setpoint Type](#adding-a-setpoint-type).
 :::
 
 #### Go-to Setpoint (MulticopterGotoSetpointType)
@@ -594,6 +594,24 @@ The `SurfaceVehicle*SetpointType` names are only available in later PX4 versions
 :::
 
 An example of a rover-specific drive mode using the `SurfaceVehicleSpeedRateSetpointType` is provided [here](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/examples/cpp/modes/rover_velocity).
+
+#### Adding a Setpoint Type
+
+A new setpoint type has to be added in PX4 and in the library.
+
+In PX4:
+
+1. Add a `TYPE_` constant for it to [SetpointConfig](../msg_docs/SetpointConfig.md) (`msg/versioned/SetpointConfig.msg`).
+2. Add it to the `SetpointType` enum in [setpoint_types.hpp](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/commander/ModeUtil/setpoint_types.hpp), and handle it in these functions in [setpoint_types.cpp](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/commander/ModeUtil/setpoint_types.cpp):
+   - `getControlMode()` sets the control mode flags.
+     They define which controllers run, and the position, altitude, attitude and angular velocity requirements of the mode follow from them.
+   - `isSetpointTypeValid()` defines the vehicle types that the setpoint type can be used on.
+   - `getSetpointTopics()` lists the topics that a mode publishes for the setpoint type.
+     PX4 watches these topics if the mode sets a [setpoint timeout](#failsafes-and-mode-requirements).
+3. Make sure the setpoint topics are in the `subscriptions` of [dds_topics.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/uxrce_dds_client/dds_topics.yaml), so that PX4 receives them from ROS 2.
+
+In the library, add a class that inherits from `px4_ros2::SetpointBase`, returns the new type from `getSetpointType()` and publishes the setpoint topics.
+The existing [setpoint types](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/px4_ros2_cpp/include/px4_ros2/control/setpoint_types) show how.
 
 ### Controlling a VTOL
 
