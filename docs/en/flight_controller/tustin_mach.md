@@ -1,14 +1,16 @@
 # Tustin MACH
 
-<Badge type="tip" text="PX4 main" />
+<Badge type="tip" text="main (PX4 v2.0)" />
 
 ::: warning
 PX4 does not manufacture this (or any) autopilot.
-Contact [Tustin Dynamics](https://tustindynamics.com/products/tustin-mach) for hardware support or compliance issues.
+Contact the [manufacturer](https://tustindynamics.com) for hardware support or compliance issues.
 :::
 
-The _Tustin MACH_ is a compact flight controller manufactured by Tustin Dynamics for small UAVs and research platforms.
+The [Tustin MACH](https://tustindynamics.com/products/tustin-mach) is a compact flight controller manufactured by Tustin Dynamics for small UAVs and research platforms.
 It uses an STM32H743 processor, two IMUs, eight motor outputs, CAN, and onboard analogue video OSD.
+
+![Tustin MACH](../../assets/flight_controller/tustin_mach/controller_side.webp)
 
 ::: info
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
@@ -97,8 +99,8 @@ USB Type-C provides power, firmware upload, and USB communication.
   They are not independent telemetry or current-sense inputs.
 - The RC and GPS2/DJI connectors share UART6 `RX6`.
   Connect only one receiver output to this signal.
-- VTX `TX2` and the GPS2/DJI serial interface share USART2.
-  Configure that serial port for the connected device.
+- VTX `TX2` and the GPS2/DJI serial interface share USART2, which runs [MSP OSD](#osd) by default.
+  Reassign that serial port for any other device.
 - GPS1 and the I2C1 connector share external I2C bus 1.
 
 ## Power {#power}
@@ -116,9 +118,14 @@ Check both voltage and signal order before connecting peripherals or an ESC cabl
 The default analogue battery settings use a voltage divider of 21.0 and a current scale of 40A/V.
 Set the battery cell count and calibrate voltage/current measurement for the connected power hardware using [Power Setup](../config/battery.md).
 
+## Voltage Ratings {#voltage_ratings}
+
+The board can be powered from `VBAT` on the ESC headers (3S–8S) and from USB (5V).
+
 ## PWM Outputs {#pwm_outputs}
 
-All eight outputs are driven directly by the FMU and support [PWM and DShot](../peripherals/dshot.md).
+All eight outputs are driven directly by the FMU and support PWM, [DShot](../peripherals/dshot.md) and [bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+M1–M4 are set to DShot300 by default ([PWM_MAIN_TIM0](../advanced_config/parameter_reference.md#PWM_MAIN_TIM0)).
 They use the following timer groups:
 
 | Outputs | Timer |
@@ -130,33 +137,78 @@ They use the following timer groups:
 Outputs in the same timer group must use the same protocol and rate.
 Assign motor and servo functions in [Actuator Configuration](../config/actuators.md).
 
+## SD Card (Optional) {#sd_card}
+
+The microSD card slot is on the connector side, and is used for flight logging.
+Parameters are stored in FRAM, not on the card.
+For information about choosing and using an SD card see [SD Cards (Removable Memory)](../getting_started/px4_basic_concepts.md#sd-cards-removable-memory).
+
 ## Serial Port Mapping {#serial_port_mapping}
 
-| Hardware | NuttX Device   | PX4 Port Selection | Board Connection                   |
-| -------- | -------------- | ------------------ | ---------------------------------- |
-| USB      | `/dev/ttyACM0` | USB                | USB Type-C                         |
-| USART1   | `/dev/ttyS0`   | TELEM 1            | TELEM1 / UART1                     |
-| USART2   | `/dev/ttyS1`   | GPS 2              | GPS2 / DJI; `TX2` also on VTX      |
-| USART3   | `/dev/ttyS2`   | GPS 1              | GPS1 / GPS                         |
-| UART4    | `/dev/ttyS3`   | TELEM 2            | TELEM2 / UART4                     |
-| UART5    | `/dev/ttyS4`   | TELEM 3            | TELEM3 / UART5                     |
-| USART6   | `/dev/ttyS5`   | Radio Controller   | RC / UART6; `RX6` also on DJI      |
-| UART7    | `/dev/ttyS6`   | UART 6             | ESC telemetry `RX7` (receive only) |
+| UART   | Device       | Port               | Connector                         |
+| ------ | ------------ | ------------------ | --------------------------------- |
+| USART1 | `/dev/ttyS0` | `TELEM 1`          | `UART1`                           |
+| USART2 | `/dev/ttyS1` | `GPS 2`            | `DJI`; `TX2` also on `VTX`        |
+| USART3 | `/dev/ttyS2` | `GPS 1`            | `GPS`                             |
+| UART4  | `/dev/ttyS3` | `TELEM 2`          | `UART4`                           |
+| UART5  | `/dev/ttyS4` | `TELEM 3`          | `UART5`                           |
+| USART6 | `/dev/ttyS5` | `Radio Controller` | `UART6`; `RX6` also on `DJI`      |
+| UART7  | `/dev/ttyS6` | `UART 6`           | ESC headers (`RX7`, receive only) |
 
-The PX4 selection `UART 6` refers to hardware UART7 on this board; it is separate from the RC port on USART6.
+The PX4 port `UART 6` is hardware UART7 on this board; it is separate from the `UART6` connector (USART6).
+To read [ESC telemetry](../peripherals/dshot.md#esc-telemetry) from `RX7`, set [DSHOT_TEL_CFG](../advanced_config/parameter_reference.md#DSHOT_TEL_CFG) to `UART 6`.
 See [Serial Port Configuration](../peripherals/serial_configuration.md) to assign peripherals.
+
+::: info
+The bootloader enables no UART, so firmware can only be flashed over USB.
+:::
 
 ## Assembly {#assembly}
 
-1. Install PX4 using [Loading Firmware](../config/firmware.md).
-   For a locally built image, select the custom firmware option and load `tustin_mach_default.px4`.
-2. Connect the GNSS module to GPS1, the receiver to RC, and telemetry peripherals to the corresponding TELEM connectors, following the pinouts above.
-3. Insert a microSD card for flight logging.
-4. Complete [Basic Configuration](../config/index.md), including airframe selection, sensor calibration, radio setup, power setup, and actuator assignment.
+### Radio Control {#radio_control}
+
+A remote control (RC) radio system is required if you want to manually control your vehicle (PX4 does not require a radio system for autonomous flight modes).
+You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then bind them so that they communicate.
+
+Connect the receiver to the 4-pin `UART6` connector, a full-duplex FMU serial port (USART6, `/dev/ttyS5`).
+`RX6` is also on the `DJI` connector, so connect only one receiver.
+
+- No RC protocol is enabled by default.
+  Set one of [RC_CRSF_PRT_CFG](../advanced_config/parameter_reference.md#RC_CRSF_PRT_CFG), [RC_DSM_PRT_CFG](../advanced_config/parameter_reference.md#RC_DSM_PRT_CFG), [RC_GHST_PRT_CFG](../advanced_config/parameter_reference.md#RC_GHST_PRT_CFG) or [RC_SBUS_PRT_CFG](../advanced_config/parameter_reference.md#RC_SBUS_PRT_CFG) to `Radio Controller`, then reboot.
+  Only one protocol can be active on a port.
+- PPM, SUMD and ST24 receivers are not supported by the default firmware, so PWM receivers can't be connected through a PPM encoder either.
+- DSM receivers can't be bound from _QGroundControl_ on this board: bind them before connecting.
+
+### GPS & Compass {#gps_compass}
+
+The 6-pin `GPS` connector carries GPS (USART3, `GPS 1`) and I2C (I2C1) for the compass in a GPS module.
+It has no safety switch, buzzer or LED signals.
+
+The board has an onboard IST8310 magnetometer.
+See [Mounting a GPS/Compass](../assembly/mount_gps_compass.md) for more information.
+
+### Telemetry Radios (Optional) {#telemetry}
+
+The board has three [telemetry](../telemetry/index.md) ports, `UART1` (`TELEM 1`), `UART4` (`TELEM 2`) and `UART5` (`TELEM 3`), each a 4-pin connector without flow control.
+A telemetry radio connected to `UART1` needs no further configuration.
+
+### CAN {#can}
+
+The 4-pin `CAN` connector carries one CAN bus for [DroneCAN](../dronecan/index.md) peripherals.
+
+DroneCAN is not enabled by default: set [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) to enable it.
+
+### OSD {#osd}
+
+The onboard AT7456E [analog OSD](../peripherals/osd.md#atxxxx-analog-osd) overlays the video from the camera on the `CAM` connector (`VIDEO_IN`), and sends it to the video transmitter on the `VTX` connector (`VIDEO_OUT`).
+It is enabled for NTSC by default: set [OSD_ATXXXX_CFG](../advanced_config/parameter_reference.md#OSD_ATXXXX_CFG) to `PAL` for a PAL camera.
+
+Connect a DJI O3/O4 air unit to the `DJI` connector.
+[MSP OSD](../peripherals/osd.md#msp-osd) runs on its UART (USART2) by default ([MSP_OSD_CONFIG](../advanced_config/parameter_reference.md#MSP_OSD_CONFIG) = `GPS 2`).
 
 ### MS4525DO Airspeed Sensor
 
-The `tustin_mach_default` firmware includes the MS4525DO differential-pressure driver.
+The `tustin_mach_default` and `tustin_mach_rid` firmware include the MS4525DO differential-pressure driver.
 To use an external I2C MS4525DO sensor:
 
 1. Connect the sensor to external I2C1 (`GND`, `SDA`, `SCL`, `5V`), matching signals rather than cable colours.
@@ -174,13 +226,26 @@ To use an external I2C MS4525DO sensor:
 
 ## Building Firmware {#building_firmware}
 
-To [build PX4](../dev_setup/building_px4.md) for this board:
+::: tip
+From PX4 v2.0, most users will not need to build this firmware!
+It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
+:::
+
+To [build PX4](../dev_setup/building_px4.md) for this target:
 
 ```sh
 make tustin_mach_default
 ```
 
 The firmware is written to `build/tustin_mach_default/tustin_mach_default.px4`.
+To install a locally built image, select the custom firmware option in [Loading Firmware](../config/firmware.md) and load that file.
+
+The Remote ID variant, which uses the onboard 24LC64 EEPROM for the product identifier, is built with:
+
+```sh
+make tustin_mach_rid
+```
+
 The in-tree bootloader target is:
 
 ```sh
@@ -189,6 +254,11 @@ make tustin_mach_bootloader
 
 ## Debug Port {#debug_port}
 
-The four-pin SWD connector exposes `SWCLK`, `SWDIO`, `GND`, and `3V3`.
-See [SWD Debugging](../debug/swd_debug.md) for connecting a debug probe.
-For a shell over USB, use the [MAVLink Console](../debug/mavlink_shell.md).
+The 4-pin `SWD` connector is the FMU [SWD interface](../debug/swd_debug.md) (`SWCLK`, `SWDIO`, `GND`, `3V3`).
+It isn't a Pixhawk debug connector.
+
+The firmware has no [PX4 System Console](../debug/system_console.md) UART, so use the [MAVLink Shell](../debug/mavlink_shell.md) over USB for a shell.
+
+## Further Information {#further_information}
+
+- [Tustin MACH product page](https://tustindynamics.com/products/tustin-mach) (manufacturer)
