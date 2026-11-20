@@ -288,7 +288,7 @@ PX4 does not check the setup:
   It is checked again when Mission mode is activated, or when the mission or the Geofence Plan is uploaded.
 - A geofence plan is not rejected because of the contingency geofence, for example when Home or the vehicle lies within the margin.
   If the vehicle is already outside the contingency geofence when the plan is uploaded or a parameter changes, the action is triggered at once.
-- Rally points are not checked against the contingency geofence.
+- As for the emergency geofence, rally points are not checked against the contingency geofence.
   Keep them inside it: a vehicle that returns to a rally point within the margin triggers the contingency geofence action on the way there.
 
 :::
@@ -300,12 +300,15 @@ When the vehicle breaches the contingency geofence:
 - The contingency geofence action is triggered, in all flight modes.
   With `None` nothing is triggered and arming is not denied, as with `GF_ACTION` set to `None`.
   With `Hold` the vehicle holds where it breached the contingency geofence, in the same way as after an emergency geofence breach (a fixed-wing vehicle loiters around that position).
-  If already established on a loiter, it keeps the existing loiter centre.
+  A vehicle that was already loitering when it breached keeps its loiter centre.
   Switch to another mode to take over.
   The action is triggered again the next time the vehicle breaches the contingency geofence.
 - Arming is denied.
 - If the vehicle breaches the emergency geofence as well, the more severe of the two actions is taken, as for other failsafes.
   This also applies after you have taken over.
+  If both actions are `Hold`, a vehicle that is still holding after the contingency geofence breach keeps that hold position.
+  Example: a fixed-wing vehicle loiters where it breached the contingency geofence, and its loiter circle crosses the emergency geofence.
+  Holding again where it crosses would only move the loiter circle further out.
 
 PX4 also keeps planned flight inside the contingency geofence:
 
