@@ -57,6 +57,12 @@ The height above ground is taken from the first valid source in the following li
 2. The [landing target](../advanced_features/precland.md), if its absolute position is valid and recent (for example, from an IR beacon or a vision-based target estimator).
 3. The altitude of the landing waypoint, in [Mission](../flight_modes_mc/mission.md) and [Return](../flight_modes_mc/return.md) modes only.
    Land mode does not use this source, because it does not provide a meaningful landing altitude.
+
+   ::: warning
+   Land items and rally points must carry the actual ground altitude when this source is enabled.
+   Previous PX4 versions ignored this altitude during the descent, so existing plans may not have it set correctly.
+   If it is lower than the real ground by more than [MPC_LAND_ALT2](#MPC_LAND_ALT2), the vehicle reaches the ground before it has fully slowed down, and at full descent speed if it is lower by more than [MPC_LAND_ALT1](#MPC_LAND_ALT1).
+   :::
 4. The home altitude.
 5. The altitude at which the estimator (EKF) started, i.e. the origin of the local position frame (usually the ground at power-up).
 
