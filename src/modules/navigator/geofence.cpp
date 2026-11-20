@@ -701,13 +701,13 @@ bool Geofence::checkPointAgainstAllGeofences(double lat, double lon, float altit
 	return inside_fence;
 }
 
-bool Geofence::checkPathBatch(const PathCheck *paths, size_t num_paths, bool *results)
+bool Geofence::checkPathBatch(const PathCheck *paths, size_t num_paths, bool *results, bool emergency_only)
 {
 	if (num_paths == 0 || num_paths > MAX_PATH_CHECKS) {
 		return false;
 	}
 
-	const bool success = _path_check_ready && checkPaths(paths, num_paths, results);
+	const bool success = _path_check_ready && checkPaths(paths, num_paths, results, emergency_only);
 
 	if (!success) {
 		memset(results, 0, num_paths * sizeof(bool));
@@ -716,7 +716,7 @@ bool Geofence::checkPathBatch(const PathCheck *paths, size_t num_paths, bool *re
 	return success;
 }
 
-bool Geofence::checkPaths(const PathCheck *paths, size_t num_paths, bool *results)
+bool Geofence::checkPaths(const PathCheck *paths, size_t num_paths, bool *results, bool emergency_only)
 {
 	bool pieces_calculated = false;
 	const float max_home_distance = _navigator->home_global_position_valid() ? _param_gf_max_hor_dist.get() : 0.f;
@@ -747,6 +747,10 @@ bool Geofence::checkPaths(const PathCheck *paths, size_t num_paths, bool *result
 
 	for (int p = 0; p < _num_polygons; ++p) {
 		const PolygonInfo &polygon = _polygons[p];
+
+		if (emergency_only && polygon.fence_level == FenceLevel::Contingency) {
+			continue;
+		}
 
 		switch (polygon.fence_type) {
 		case NAV_CMD_FENCE_CIRCLE_INCLUSION:
