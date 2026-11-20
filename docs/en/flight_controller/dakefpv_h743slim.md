@@ -44,7 +44,8 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 ### Electrical Data {#electrical_data}
 
 - **Input voltage:** 3S–12S LiPo
-- **BEC 5V:** 2A
+- **BEC 3.3V:** 0.5A
+- **BEC 5V:** 3A
 - **Power monitoring:** analog battery voltage and current
 
 ### Mechanical Data {#mechanical_data}
@@ -71,7 +72,7 @@ The component side has the USB-C port, the microSD slot and two JST connectors, 
 | ---------------- | ----------------------------------------------------------------------- | -------------- |
 | `Vbat`           | Battery positive voltage (3S–12S)                                       |                |
 | `DA1`, `CL1`     | I2C peripheral interface (SDA/SCL)                                      |                |
-| `5V`             | 5V BEC output (2A max)                                                  |                |
+| `5V`             | 5V BEC output (3A max)                                                  |                |
 | `4V5`            | 4.5V output or USB power supply                                         |                |
 | `3V3`            | 3.3V output (0.25A max)                                                 |                |
 | `Airs`           | Airspeed ADC input (PC4)                                                |                |
