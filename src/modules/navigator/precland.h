@@ -81,6 +81,9 @@ public:
 
 	void set_mode(PrecLandMode mode) { _mode = mode; };
 
+	/** Altitude AMSL of the landing point, written to the land setpoints. Call after on_activation(), NAN if unknown. */
+	void set_land_altitude(float land_alt_amsl) { _land_alt_amsl = land_alt_amsl; };
+
 	PrecLandMode get_mode() { return _mode; };
 
 	bool is_activated() { return _is_activated; };
@@ -156,6 +159,7 @@ private:
 
 	int _search_cnt{0}; /**< counter of how many times we had to search for the landing target */
 	float _approach_alt{0.0f}; /**< altitude at which to stay during horizontal approach */
+	float _land_alt_amsl{NAN}; /**< altitude AMSL of the landing point from the land item, NAN if unknown */
 
 	matrix::Vector2f _sp_pev;
 	matrix::Vector2f _sp_pev_prev;
