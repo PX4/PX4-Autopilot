@@ -60,6 +60,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 ### Mechanical Data {#mechanical_data}
 
 - **Dimensions (with case):** 97.6 x 51.6 x 25.18mm
+- **Operating temperature:** -40°C to 85°C
 <!-- TODO(Syro): weight. -->
 
 ## Where to Buy {#store}
@@ -232,7 +233,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 | 2   | SBUS OUT      |
 | 3   | GND           |
 
-### ETHERNET
+### ETHERNET {#ethernet_pinout}
 
 | Pin | Signal |
 | --- | ------ |
@@ -490,11 +491,11 @@ The [PX4 system console](../debug/system_console.md) runs on USART3 at 57600 bau
 The console and the [SWD interface](../debug/swd_debug.md) of the FMU are on the `FMU DEBUGGER` connector.
 The SWD interface of the PX4IO is on the `IO DEBUGGER` connector.
 Both are 10-pin JST SH connectors.
+See [Pinouts](#pinouts) for the pin assignment.
 
 The `FMU DEBUGGER` pinout complies with the [Pixhawk Debug Full](../debug/swd_debug.md#pixhawk-debug-full) interface defined in the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf).
 Its SWO pin (pin 6, PB3) is shared with the SCK line of the external `SPI` port.
 PX4 configures PB3 as SPI6 SCK, so SWO trace output is not available while PX4 is running.
-See [Pinouts](#pinouts) for the pin assignment.
 
 ## Bootloader / Board ID
 
@@ -510,6 +511,6 @@ See [Pinouts](#pinouts) for the pin assignment.
 
 ## Further Information {#further_information}
 
-- [Syro V6X product page](https://syrorobotics.com/shop/product/fmuv6x-flight-controller) (Syro Robotics)
+- [Syro V6X product page](https://syrorobotics.com/shop/product/fmuv6x-flight-controller)
 - [Pixhawk Autopilot FMUv6X Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-012%20Pixhawk%20Autopilot%20v6X%20Standard.pdf)
 - [Pixhawk Series](../flight_controller/pixhawk_series.md)
