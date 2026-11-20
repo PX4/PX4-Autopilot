@@ -85,6 +85,7 @@ PrecLand::on_activation()
 	_state = PrecLandState::Start;
 	_search_cnt = 0;
 	_last_slewrate_time = 0;
+	_land_alt_amsl = NAN; // set by set_land_altitude() when started from a land item
 
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	reset_target_yaw_state();
@@ -372,6 +373,12 @@ PrecLand::run_state_descend_above_target()
 			   pos_sp_triplet->current.lon);
 
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_LAND;
+
+	// The horizontal approach replaced the altitude with the approach altitude, restore the landing altitude
+	if (PX4_ISFINITE(_land_alt_amsl)) {
+		pos_sp_triplet->current.alt = _land_alt_amsl;
+	}
+
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	update_current_yaw_setpoint();
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
@@ -512,7 +519,7 @@ PrecLand::switch_to_state_fallback()
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
 	pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;
-	pos_sp_triplet->current.alt = _navigator->get_global_position()->alt;
+	pos_sp_triplet->current.alt = PX4_ISFINITE(_land_alt_amsl) ? _land_alt_amsl : _navigator->get_global_position()->alt;
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_LAND;
 	clear_current_yaw_setpoint();
 	_navigator->set_position_setpoint_triplet_updated();

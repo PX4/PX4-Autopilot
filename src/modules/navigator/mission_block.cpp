@@ -1075,7 +1075,14 @@ void MissionBlock::startPrecLand(uint16_t land_precision)
 	} else if (_mission_item.land_precision == 2) {
 		_navigator->get_precland()->set_mode(PrecLandMode::Required);
 		_navigator->get_precland()->on_activation();
+
+	} else {
+		return;
 	}
+
+	// Precision landing replaces the setpoint altitude during its approach, hand over the landing altitude
+	const bool is_land_item = (_mission_item.nav_cmd == NAV_CMD_LAND) || (_mission_item.nav_cmd == NAV_CMD_VTOL_LAND);
+	_navigator->get_precland()->set_land_altitude(is_land_item ? get_absolute_altitude_for_item(_mission_item) : NAN);
 }
 
 void MissionBlock::updateAltToAvoidTerrainCollisionAndRepublishTriplet(const mission_item_s &mission_item)
