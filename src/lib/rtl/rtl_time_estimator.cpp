@@ -56,6 +56,8 @@ RtlTimeEstimator::RtlTimeEstimator() : ModuleParams(nullptr)
 	_param_fw_airspeed_trim = param_find("FW_AIRSPD_TRIM");
 	_param_fw_gnd_spd_min = param_find("FW_GND_SPD_MIN");
 	_param_mpc_xy_cruise = param_find("MPC_XY_CRUISE");
+	_param_mpc_derate_gain = param_find("MPC_DERATE_GAIN");
+	_param_mpc_derate_vmin = param_find("MPC_DERATE_VMIN");
 	_param_rover_cruise_speed = param_find("RO_SPEED_LIM");
 };
 
@@ -188,6 +190,23 @@ float RtlTimeEstimator::getCruiseSpeed()
 	if (_vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 		if (_param_mpc_xy_cruise == PARAM_INVALID || param_get(_param_mpc_xy_cruise, &ret) != PX4_OK) {
 			ret = 1e6f;
+
+		} else {
+			// Same speed reduction for lost control authority as the autonomous flight tasks apply
+			float gain = 0.f;
+			float speed_min = 0.f;
+			control_allocator_status_s control_allocator_status;
+			vehicle_status_s vehicle_status;
+
+			if (_control_allocator_status_sub.copy(&control_allocator_status)
+			    && _param_mpc_derate_gain != PARAM_INVALID && param_get(_param_mpc_derate_gain, &gain) == PX4_OK
+			    && _param_mpc_derate_vmin != PARAM_INVALID && param_get(_param_mpc_derate_vmin, &speed_min) == PX4_OK) {
+				// kept during Return, as in the flight task, such that the estimate is for the speed that is flown
+				const bool in_return = _vehicle_status_sub.copy(&vehicle_status)
+						       && vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+				ret = math::trajectory::reduceSpeedForControlAuthority(ret,
+						_authority_ratio.update(control_allocator_status.roll_pitch_authority_ratio, in_return), gain, speed_min);
+			}
 		}
 
 	} else if (_vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {

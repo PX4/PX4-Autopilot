@@ -57,6 +57,27 @@ parameters:
       max: 20
       decimal: 0
       increment: 1
+    MPC_DERATE_GAIN:
+      description:
+        short: Speed reduction gain for lost control authority
+        long: After a motor failure handled per CA_FAILURE_MODE on a multirotor airframe, horizontal speed, acceleration, and jerk in autonomous modes are scaled by 1 minus this gain times the lost fraction of roll and pitch authority. The hover thrust estimate needs about 10 seconds after the failure to settle, see COM_FAIL_ACT_T. Set to 0 to disable.
+      type: float
+      default: 0.0
+      min: 0
+      max: 3
+      decimal: 1
+      increment: 0.1
+    MPC_DERATE_VMIN:
+      description:
+        short: Minimum horizontal speed when reduced for lost control authority
+        long: Never raises the commanded speed, so it has no effect on a commanded speed that is already at or below it. Only used when MPC_DERATE_GAIN is enabled.
+      type: float
+      default: 3.0
+      unit: m/s
+      min: 1
+      max: 20
+      decimal: 0
+      increment: 1
     MPC_Z_V_AUTO_UP:
       description:
         short: Ascent velocity in autonomous modes
