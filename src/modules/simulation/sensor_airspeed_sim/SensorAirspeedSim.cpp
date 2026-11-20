@@ -77,21 +77,21 @@ void SensorAirspeedSim::Run()
 		updateParams();
 	}
 
-	if (_vehicle_local_position_sub.updated() && _vehicle_global_position_sub.updated()
-	    && _vehicle_attitude_sub.updated()) {
+	if (_vehicle_local_position_groundtruth_sub.updated() && _vehicle_global_position_groundtruth_sub.updated()
+	    && _vehicle_attitude_groundtruth_sub.updated()) {
 
 		updateFailureConfig();
 
 		if (!_airspeed_disconnected) {
 
 			vehicle_local_position_s lpos{};
-			_vehicle_local_position_sub.copy(&lpos);
+			_vehicle_local_position_groundtruth_sub.copy(&lpos);
 
 			vehicle_global_position_s gpos{};
-			_vehicle_global_position_sub.copy(&gpos);
+			_vehicle_global_position_groundtruth_sub.copy(&gpos);
 
 			vehicle_attitude_s attitude{};
-			_vehicle_attitude_sub.copy(&attitude);
+			_vehicle_attitude_groundtruth_sub.copy(&attitude);
 
 			Vector3f local_velocity = Vector3f{lpos.vx, lpos.vy, lpos.vz};
 			Vector3f body_velocity = Dcmf{Quatf{attitude.q}} .transpose() * local_velocity;
