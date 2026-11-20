@@ -101,6 +101,10 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   The field of [FailsafeFlags](../msg_docs/FailsafeFlags.md) (`failsafe_flags`) now names the emergency geofence, next to the new `gf_cont_breach` flag of the contingency geofence.
   Both names are short because the message is at the logger's format limit.
   ROS 2 applications and log analysis that read `geofence_breached` must use the new name.
+- **The `geofence_result` fields of the existing geofence are renamed.**
+  `geofence_max_dist_triggered`, `geofence_max_alt_triggered`, `geofence_custom_fence_triggered` and `geofence_action` of [GeofenceResult](../msg_docs/GeofenceResult.md) are now `geofence_emer_max_dist_triggered`, `geofence_emer_max_alt_triggered`, `geofence_emer_custom_fence_triggered` and `geofence_emer_action`.
+  They name the emergency geofence, next to the new `geofence_cont_*` fields of the contingency geofence.
+  Log analysis that reads the old names must use the new ones.
 
 ## Other changes
 

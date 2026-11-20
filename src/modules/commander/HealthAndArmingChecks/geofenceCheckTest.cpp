@@ -64,10 +64,10 @@ public:
 		_can_arm_all_modes = reporter.armingCheckResults().can_arm == NavModes::All;
 	}
 
-	static geofence_result_s resultWithActions(uint8_t geofence_action, uint8_t geofence_cont_action)
+	static geofence_result_s resultWithActions(uint8_t geofence_emer_action, uint8_t geofence_cont_action)
 	{
 		geofence_result_s result{};
-		result.geofence_action = geofence_action;
+		result.geofence_emer_action = geofence_emer_action;
 		result.geofence_cont_action = geofence_cont_action;
 		return result;
 	}
@@ -107,7 +107,7 @@ TEST_F(GeofenceChecksTest, ContGeofenceWorksWithoutAGeofenceAction)
 {
 	geofence_result_s result = resultWithActions(geofence_result_s::GF_ACTION_NONE, geofence_result_s::GF_ACTION_LOITER);
 	result.geofence_cont_max_dist_triggered = true;
-	result.geofence_max_dist_triggered = true;
+	result.geofence_emer_max_dist_triggered = true;
 	runCheck(result);
 	EXPECT_FALSE(_failsafe_flags.gf_emer_breach);
 	EXPECT_TRUE(_failsafe_flags.gf_cont_breach);
@@ -118,7 +118,7 @@ TEST_F(GeofenceChecksTest, GeofenceAndContGeofenceSetIndependentFlags)
 {
 	geofence_result_s result = resultWithActions(geofence_result_s::GF_ACTION_TERMINATE,
 				   geofence_result_s::GF_ACTION_LOITER);
-	result.geofence_custom_fence_triggered = true;
+	result.geofence_emer_custom_fence_triggered = true;
 	runCheck(result);
 	EXPECT_TRUE(_failsafe_flags.gf_emer_breach);
 	EXPECT_FALSE(_failsafe_flags.gf_cont_breach);

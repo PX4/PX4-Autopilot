@@ -41,21 +41,22 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 		geofence_result = {};
 	}
 
-	const bool any_geofence_triggered = geofence_result.geofence_max_dist_triggered ||
-					    geofence_result.geofence_max_alt_triggered ||
-					    geofence_result.geofence_custom_fence_triggered;
+	const bool triggered_emergency = geofence_result.geofence_emer_max_dist_triggered ||
+					 geofence_result.geofence_emer_max_alt_triggered ||
+					 geofence_result.geofence_emer_custom_fence_triggered;
 
-	reporter.failsafeFlags().gf_emer_breach = geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE && any_geofence_triggered;
+	reporter.failsafeFlags().gf_emer_breach = geofence_result.geofence_emer_action != geofence_result_s::GF_ACTION_NONE
+			&& triggered_emergency;
 
-	const bool any_cont_geofence_triggered = geofence_result.geofence_cont_max_dist_triggered ||
-			geofence_result.geofence_cont_custom_fence_triggered;
+	const bool triggered_contingency = geofence_result.geofence_cont_max_dist_triggered ||
+					   geofence_result.geofence_cont_custom_fence_triggered;
 
 	reporter.failsafeFlags().gf_cont_breach = geofence_result.geofence_cont_action != geofence_result_s::GF_ACTION_NONE
-			&& any_cont_geofence_triggered;
+			&& triggered_contingency;
 
-	if (geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE && any_geofence_triggered) {
+	if (geofence_result.geofence_emer_action != geofence_result_s::GF_ACTION_NONE && triggered_emergency) {
 
-		if (geofence_result.geofence_max_dist_triggered) {
+		if (geofence_result.geofence_emer_max_dist_triggered) {
 			/* EVENT
 			 * @description
 			 * <profile name="dev">
@@ -71,7 +72,7 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 			}
 		}
 
-		if (geofence_result.geofence_max_alt_triggered) {
+		if (geofence_result.geofence_emer_max_alt_triggered) {
 			/* EVENT
 			 * @description
 			 * <profile name="dev">
@@ -87,7 +88,7 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 			}
 		}
 
-		if (geofence_result.geofence_custom_fence_triggered) {
+		if (geofence_result.geofence_emer_custom_fence_triggered) {
 			/* EVENT
 			 * @description
 			 * <profile name="dev">
@@ -139,7 +140,7 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 		}
 	}
 
-	if ((geofence_result.geofence_action == geofence_result_s::GF_ACTION_RTL
+	if ((geofence_result.geofence_emer_action == geofence_result_s::GF_ACTION_RTL
 	     || geofence_result.geofence_cont_action == geofence_result_s::GF_ACTION_RTL)
 	    && reporter.failsafeFlags().home_position_invalid) {
 		/* EVENT

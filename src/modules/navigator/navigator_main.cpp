@@ -415,9 +415,9 @@ void Navigator::run()
 
 				position_setpoint.alt = PX4_ISFINITE(cmd.param7) ? cmd.param7 : get_global_position()->alt;
 
-				const bool fence_allows_position = geofence_allows_position(position_setpoint);
+				const bool emergency_allows_position = geofence_emer_allows_position(position_setpoint);
 
-				if (fence_allows_position && cont_geofence_allows_position(position_setpoint)) {
+				if (emergency_allows_position && geofence_cont_allows_position(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 					position_setpoint_triplet_s *curr = get_position_setpoint_triplet();
 
@@ -554,7 +554,7 @@ void Navigator::run()
 
 					_time_loitering_after_gf_breach = 0; // a manual reposition unlatches the post-breach loiter state
 
-				} else if (!fence_allows_position) {
+				} else if (!emergency_allows_position) {
 					mavlink_log_critical(&_mavlink_log_pub, "Reposition is outside the emergency geofence\t");
 					events::send(events::ID("navigator_reposition_outside_geofence"), {events::Log::Error, events::LogInternal::Info},
 						     "Reposition is outside the emergency geofence");
@@ -583,12 +583,12 @@ void Navigator::run()
 					position_setpoint.lon = get_global_position()->lon;
 					position_setpoint.alt = new_alt;
 
-					const bool fence_allows_position = geofence_allows_position(position_setpoint);
+					const bool emergency_allows_position = geofence_emer_allows_position(position_setpoint);
 
-					if (fence_allows_position && cont_geofence_allows_position(position_setpoint)) {
+					if (emergency_allows_position && geofence_cont_allows_position(position_setpoint)) {
 						_course.set_altitude(new_alt);
 
-					} else if (!fence_allows_position) {
+					} else if (!emergency_allows_position) {
 						mavlink_log_critical(&_mavlink_log_pub, "Altitude change is outside the emergency geofence\t");
 						events::send(events::ID("navigator_course_change_altitude_outside_geofence"), {events::Log::Error, events::LogInternal::Info},
 							     "Altitude change is outside the emergency geofence");
@@ -616,9 +616,9 @@ void Navigator::run()
 					// Wait for vehicle_status before handling the next command, otherwise the setpoint could be overwritten
 					_wait_for_vehicle_status_timestamp = hrt_absolute_time();
 
-					const bool fence_allows_position = geofence_allows_position(position_setpoint);
+					const bool emergency_allows_position = geofence_emer_allows_position(position_setpoint);
 
-					if (fence_allows_position && cont_geofence_allows_position(position_setpoint)) {
+					if (emergency_allows_position && geofence_cont_allows_position(position_setpoint)) {
 						position_setpoint_triplet_s *rep = get_reposition_triplet();
 						position_setpoint_triplet_s *curr = get_position_setpoint_triplet();
 
@@ -667,7 +667,7 @@ void Navigator::run()
 
 						_time_loitering_after_gf_breach = 0; // a manual reposition unlatches the post-breach loiter state
 
-					} else if (!fence_allows_position) {
+					} else if (!emergency_allows_position) {
 						mavlink_log_critical(&_mavlink_log_pub, "Altitude change is outside the emergency geofence\t");
 						events::send(events::ID("navigator_change_altitude_outside_geofence"), {events::Log::Error, events::LogInternal::Info},
 							     "Altitude change is outside the emergency geofence");
@@ -718,9 +718,9 @@ void Navigator::run()
 				// Wait for vehicle_status before handling the next command, otherwise the setpoint could be overwritten
 				_wait_for_vehicle_status_timestamp = hrt_absolute_time();
 
-				const bool fence_allows_position = geofence_allows_position(position_setpoint);
+				const bool emergency_allows_position = geofence_emer_allows_position(position_setpoint);
 
-				if (fence_allows_position && cont_geofence_allows_position(position_setpoint)) {
+				if (emergency_allows_position && geofence_cont_allows_position(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 					rep->current.loiter_radius = get_default_loiter_rad();
@@ -751,7 +751,7 @@ void Navigator::run()
 
 					_time_loitering_after_gf_breach = 0; // a manual reposition unlatches the post-breach loiter state
 
-				} else if (!fence_allows_position) {
+				} else if (!emergency_allows_position) {
 					mavlink_log_critical(&_mavlink_log_pub, "Orbit is outside the emergency geofence");
 
 				} else {
@@ -771,9 +771,9 @@ void Navigator::run()
 				// Wait for vehicle_status before handling the next command, otherwise the setpoint could be overwritten
 				_wait_for_vehicle_status_timestamp = hrt_absolute_time();
 
-				const bool fence_allows_position = geofence_allows_position(position_setpoint);
+				const bool emergency_allows_position = geofence_emer_allows_position(position_setpoint);
 
-				if (fence_allows_position && cont_geofence_allows_position(position_setpoint)) {
+				if (emergency_allows_position && geofence_cont_allows_position(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 					rep->current.loiter_minor_radius = fabsf(get_default_loiter_rad());
@@ -808,7 +808,7 @@ void Navigator::run()
 
 					_time_loitering_after_gf_breach = 0; // a manual reposition unlatches the post-breach loiter state
 
-				} else if (!fence_allows_position) {
+				} else if (!emergency_allows_position) {
 					mavlink_log_critical(&_mavlink_log_pub, "Figure 8 is outside the emergency geofence");
 
 				} else {
@@ -1292,10 +1292,10 @@ void Navigator::geofence_breach_check()
 		if (_time_loitering_after_gf_breach > 0) {
 			// while loitering after a breach, only allow new triggers to be set, never cleared.
 			// Prevents the reposition center from walking outward when the vehicle hovers at the fence boundary.
-			_geofence_result.geofence_max_dist_triggered |= !_geofence.isCloserThanMaxDistToHome(current_latitude,
+			_geofence_result.geofence_emer_max_dist_triggered |= !_geofence.isCloserThanMaxDistToHome(current_latitude,
 					current_longitude, current_altitude);
-			_geofence_result.geofence_max_alt_triggered |= !_geofence.isBelowMaxAltitude(current_altitude);
-			_geofence_result.geofence_custom_fence_triggered |= !_geofence.isInsidePolygonOrCircle(current_latitude,
+			_geofence_result.geofence_emer_max_alt_triggered |= !_geofence.isBelowMaxAltitude(current_altitude);
+			_geofence_result.geofence_emer_custom_fence_triggered |= !_geofence.isInsidePolygonOrCircle(current_latitude,
 					current_longitude, current_altitude);
 			_geofence_result.geofence_cont_max_dist_triggered |= !_geofence.isCloserThanContMaxDistToHome(current_latitude,
 					current_longitude);
@@ -1303,10 +1303,10 @@ void Navigator::geofence_breach_check()
 					current_longitude);
 
 		} else {
-			_geofence_result.geofence_max_dist_triggered = !_geofence.isCloserThanMaxDistToHome(current_latitude,
+			_geofence_result.geofence_emer_max_dist_triggered = !_geofence.isCloserThanMaxDistToHome(current_latitude,
 					current_longitude, current_altitude);
-			_geofence_result.geofence_max_alt_triggered = !_geofence.isBelowMaxAltitude(current_altitude);
-			_geofence_result.geofence_custom_fence_triggered = !_geofence.isInsidePolygonOrCircle(current_latitude,
+			_geofence_result.geofence_emer_max_alt_triggered = !_geofence.isBelowMaxAltitude(current_altitude);
+			_geofence_result.geofence_emer_custom_fence_triggered = !_geofence.isInsidePolygonOrCircle(current_latitude,
 					current_longitude, current_altitude);
 			_geofence_result.geofence_cont_max_dist_triggered = !_geofence.isCloserThanContMaxDistToHome(current_latitude,
 					current_longitude);
@@ -1319,25 +1319,25 @@ void Navigator::geofence_breach_check()
 		_last_geofence_check = now;
 
 		_geofence_result.timestamp = now;
-		_geofence_result.geofence_action = _geofence.getGeofenceAction();
+		_geofence_result.geofence_emer_action = _geofence.getGeofenceAction();
 		_geofence_result.geofence_cont_action = _geofence.getContGeofenceAction();
 
-		const bool breach = _geofence_result.geofence_max_dist_triggered
-				    || _geofence_result.geofence_max_alt_triggered
-				    || _geofence_result.geofence_custom_fence_triggered;
-		const bool cont_breach = _geofence_result.geofence_cont_max_dist_triggered
-					 || _geofence_result.geofence_cont_custom_fence_triggered;
+		const bool breach_emergency = _geofence_result.geofence_emer_max_dist_triggered
+					      || _geofence_result.geofence_emer_max_alt_triggered
+					      || _geofence_result.geofence_emer_custom_fence_triggered;
+		const bool breach_contingency = _geofence_result.geofence_cont_max_dist_triggered
+						|| _geofence_result.geofence_cont_custom_fence_triggered;
 
 		// For the Hold action Navigator sets where to hold, once per breach. The emergency and the contingency
 		// geofence each ask for their own breach: a pilot who takes over after the contingency geofence Hold
 		// and flies on is held again at the emergency geofence.
 		const bool can_hold = global_position_valid && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
-		const bool geofence_hold = breach && !_geofence_reposition_sent && can_hold
-					   && _geofence_result.geofence_action == geofence_result_s::GF_ACTION_LOITER;
-		const bool cont_geofence_hold = cont_breach && !_cont_geofence_reposition_sent && can_hold
-						&& _geofence_result.geofence_cont_action == geofence_result_s::GF_ACTION_LOITER;
+		const bool hold_emergency = breach_emergency && !_geofence_emer_reposition_sent && can_hold
+					    && _geofence_result.geofence_emer_action == geofence_result_s::GF_ACTION_LOITER;
+		const bool hold_contingency = breach_contingency && !_geofence_cont_reposition_sent && can_hold
+					      && _geofence_result.geofence_cont_action == geofence_result_s::GF_ACTION_LOITER;
 
-		if (geofence_hold || cont_geofence_hold) {
+		if (hold_emergency || hold_contingency) {
 
 			// A vehicle that already holds after the contingency geofence breach keeps that position.
 			// Holding where it then breaches the emergency geofence would move it out, for example when
@@ -1373,8 +1373,8 @@ void Navigator::geofence_breach_check()
 		}
 
 		// Remembered until the breach ends, so that the next breach holds again.
-		_geofence_reposition_sent = breach && (_geofence_reposition_sent || geofence_hold);
-		_cont_geofence_reposition_sent = cont_breach && (_cont_geofence_reposition_sent || cont_geofence_hold);
+		_geofence_emer_reposition_sent = breach_emergency && (_geofence_emer_reposition_sent || hold_emergency);
+		_geofence_cont_reposition_sent = breach_contingency && (_geofence_cont_reposition_sent || hold_contingency);
 
 		_geofence_result_pub.publish(_geofence_result);
 	}
@@ -1908,7 +1908,7 @@ Navigator::stop_capturing_images()
 	}
 }
 
-bool Navigator::geofence_allows_position(const vehicle_global_position_s &pos)
+bool Navigator::geofence_emer_allows_position(const vehicle_global_position_s &pos)
 {
 	if ((_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
 	    (_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_WARN)) {
@@ -1921,7 +1921,7 @@ bool Navigator::geofence_allows_position(const vehicle_global_position_s &pos)
 	return true;
 }
 
-bool Navigator::cont_geofence_allows_position(const vehicle_global_position_s &pos)
+bool Navigator::geofence_cont_allows_position(const vehicle_global_position_s &pos)
 {
 	if ((_geofence.getContGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
 	    (_geofence.getContGeofenceAction() != geofence_result_s::GF_ACTION_WARN)) {
@@ -1943,18 +1943,18 @@ float Navigator::geofence_avoidance_margin() const
 	// that the margin is large enough to turn around / stop / carry out the desired failsafe action in time.
 
 	// Return also keeps the contingency geofence margin, so its route does not trigger GF_CONT_ACTION.
-	const float cont_margin = _geofence.getContGeofenceMargin();
+	const float contingency_margin = _geofence.getContGeofenceMargin();
 
 	if (_vstatus.is_vtol || _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 
 		// Use FW loiter radius even for VTOL in MC -- changing the
 		// margin on transition is confusing and RTLing in MC as a VTOL
 		// is a very rare edge case
-		return cont_margin + get_default_loiter_rad();
+		return contingency_margin + get_default_loiter_rad();
 	}
 
 	// MC, rover, unspecified
-	return cont_margin + 2.0f * get_default_acceptance_radius();
+	return contingency_margin + 2.0f * get_default_acceptance_radius();
 }
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 

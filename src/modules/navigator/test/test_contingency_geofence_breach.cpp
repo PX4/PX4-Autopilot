@@ -50,7 +50,7 @@ class MissionBaseTestNavigator
 public:
 	static bool targetAllowed(Navigator &navigator, const vehicle_global_position_s &target)
 	{
-		return navigator.geofence_allows_position(target) && navigator.cont_geofence_allows_position(target);
+		return navigator.geofence_emer_allows_position(target) && navigator.geofence_cont_allows_position(target);
 	}
 
 	// Run the breach check now instead of waiting for its 5 Hz interval.
@@ -135,13 +135,13 @@ protected:
 		return result;
 	}
 
-	static bool geofenceBreached(const geofence_result_s &result)
+	static bool emergencyBreached(const geofence_result_s &result)
 	{
-		return result.geofence_max_dist_triggered || result.geofence_max_alt_triggered
-		       || result.geofence_custom_fence_triggered;
+		return result.geofence_emer_max_dist_triggered || result.geofence_emer_max_alt_triggered
+		       || result.geofence_emer_custom_fence_triggered;
 	}
 
-	static bool contGeofenceBreached(const geofence_result_s &result)
+	static bool contingencyBreached(const geofence_result_s &result)
 	{
 		return result.geofence_cont_max_dist_triggered || result.geofence_cont_custom_fence_triggered;
 	}
@@ -193,15 +193,15 @@ TEST_F(ContGeofenceBreachTest, DisabledByDefault)
 	setParam("GF_MAX_VER_DIST", 100.f);
 
 	const geofence_result_s inside = checkAt({0.f, 490.f, kHomeAltitude + 90.f});
-	EXPECT_FALSE(contGeofenceBreached(inside));
+	EXPECT_FALSE(contingencyBreached(inside));
 	EXPECT_EQ(inside.geofence_cont_action, geofence_result_s::GF_ACTION_NONE);
-	EXPECT_FALSE(geofenceBreached(inside));
+	EXPECT_FALSE(emergencyBreached(inside));
 	EXPECT_FALSE(reposition().valid);
 	EXPECT_TRUE(targetAllowed({0.f, 490.f, kHomeAltitude + 90.f}));
 
 	const geofence_result_s outside = checkAt({0.f, 510.f, kAltitude});
-	EXPECT_TRUE(outside.geofence_max_dist_triggered);
-	EXPECT_FALSE(contGeofenceBreached(outside));
+	EXPECT_TRUE(outside.geofence_emer_max_dist_triggered);
+	EXPECT_FALSE(contingencyBreached(outside));
 }
 
 // Without a contingency geofence the Hold after an emergency geofence breach works as before: at the breach
@@ -211,23 +211,23 @@ TEST_F(ContGeofenceBreachTest, GeofenceHoldWithoutContGeofenceIsUnchanged)
 	setParam("GF_MAX_HOR_DIST", 500.f);
 	const Place inside{0.f, 490.f, kAltitude};
 
-	ASSERT_TRUE(geofenceBreached(checkAt({0.f, 510.f, kAltitude})));
+	ASSERT_TRUE(emergencyBreached(checkAt({0.f, 510.f, kAltitude})));
 	ASSERT_TRUE(repositionedAt({0.f, 510.f, kAltitude}));
 	const hrt_abstime first_hold = reposition().timestamp;
 
 	setNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
-	EXPECT_TRUE(geofenceBreached(checkAt(inside)));
+	EXPECT_TRUE(emergencyBreached(checkAt(inside)));
 	EXPECT_EQ(reposition().timestamp, first_hold);
 
 	setNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
-	EXPECT_FALSE(geofenceBreached(checkAt(inside)));
-	ASSERT_TRUE(geofenceBreached(checkAt({0.f, 520.f, kAltitude})));
+	EXPECT_FALSE(emergencyBreached(checkAt(inside)));
+	ASSERT_TRUE(emergencyBreached(checkAt({0.f, 520.f, kAltitude})));
 	EXPECT_GT(reposition().timestamp, first_hold);
 
 	// A pilot who takes over and stays outside starts no new Hold.
 	const hrt_abstime second_hold = reposition().timestamp;
 	setNavState(vehicle_status_s::NAVIGATION_STATE_POSCTL);
-	EXPECT_TRUE(geofenceBreached(checkAt({0.f, 530.f, kAltitude})));
+	EXPECT_TRUE(emergencyBreached(checkAt({0.f, 530.f, kAltitude})));
 	EXPECT_EQ(reposition().timestamp, second_hold);
 }
 
@@ -254,7 +254,7 @@ TEST_F(ContGeofenceBreachTest, MarginWiderThanTheHomeDistanceLimit)
 
 	const geofence_result_s at_home = checkAt({0.f, 0.f, kAltitude});
 	EXPECT_TRUE(at_home.geofence_cont_max_dist_triggered);
-	EXPECT_FALSE(geofenceBreached(at_home));
+	EXPECT_FALSE(emergencyBreached(at_home));
 	EXPECT_FALSE(targetAllowed({0.f, 0.f, kAltitude}));
 }
 
@@ -266,12 +266,12 @@ TEST_F(ContGeofenceBreachTest, MaximumAltitudeHasNoContGeofence)
 	setParam("GF_CONT_H_MARGIN", 50.f);
 
 	const geofence_result_s below = checkAt({0.f, 0.f, kHomeAltitude + 80.f});
-	EXPECT_FALSE(contGeofenceBreached(below));
-	EXPECT_FALSE(geofenceBreached(below));
+	EXPECT_FALSE(contingencyBreached(below));
+	EXPECT_FALSE(emergencyBreached(below));
 
 	const geofence_result_s above = checkAt({0.f, 0.f, kHomeAltitude + 110.f});
-	EXPECT_FALSE(contGeofenceBreached(above));
-	EXPECT_TRUE(above.geofence_max_alt_triggered);
+	EXPECT_FALSE(contingencyBreached(above));
+	EXPECT_TRUE(above.geofence_emer_max_alt_triggered);
 }
 
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
@@ -338,8 +338,8 @@ protected:
 	{
 		setNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
 		const geofence_result_s result = checkAt(inside());
-		ASSERT_FALSE(contGeofenceBreached(result));
-		ASSERT_FALSE(geofenceBreached(result));
+		ASSERT_FALSE(contingencyBreached(result));
+		ASSERT_FALSE(emergencyBreached(result));
 		clearReposition();
 	}
 };
@@ -349,17 +349,17 @@ TEST_P(ContGeofenceSourceTest, TriggersBeforeTheGeofence)
 	enableContGeofence();
 
 	const geofence_result_s clear = checkAt(inside());
-	EXPECT_FALSE(contGeofenceBreached(clear));
-	EXPECT_FALSE(geofenceBreached(clear));
+	EXPECT_FALSE(contingencyBreached(clear));
+	EXPECT_FALSE(emergencyBreached(clear));
 	EXPECT_EQ(clear.geofence_cont_action, geofence_result_s::GF_ACTION_LOITER);
 
 	const geofence_result_s contingency = checkAt(between());
 	EXPECT_TRUE(sourceTriggered(contingency));
-	EXPECT_FALSE(geofenceBreached(contingency));
+	EXPECT_FALSE(emergencyBreached(contingency));
 
 	const geofence_result_s both = checkAt(outside());
 	EXPECT_TRUE(sourceTriggered(both));
-	EXPECT_TRUE(geofenceBreached(both));
+	EXPECT_TRUE(emergencyBreached(both));
 }
 
 TEST_P(ContGeofenceSourceTest, PublishesTheContGeofenceAction)
@@ -432,7 +432,7 @@ TEST_P(ContGeofenceSourceTest, GeofenceWarningDoesNotReplaceTheHold)
 	for (const int32_t action : {geofence_result_s::GF_ACTION_WARN, geofence_result_s::GF_ACTION_NONE}) {
 		SCOPED_TRACE(action);
 		setParam("GF_ACTION", action);
-		ASSERT_TRUE(geofenceBreached(checkAt(outside())));
+		ASSERT_TRUE(emergencyBreached(checkAt(outside())));
 		EXPECT_TRUE(repositionedAt(outside()));
 		backInside();
 	}
@@ -447,7 +447,7 @@ TEST_P(ContGeofenceSourceTest, GeofenceHoldAfterAContGeofenceWarning)
 	ASSERT_TRUE(sourceTriggered(checkAt(between())));
 	ASSERT_FALSE(reposition().valid);
 
-	ASSERT_TRUE(geofenceBreached(checkAt(outside())));
+	ASSERT_TRUE(emergencyBreached(checkAt(outside())));
 	EXPECT_TRUE(repositionedAt(outside()));
 }
 
@@ -457,21 +457,21 @@ TEST_P(ContGeofenceSourceTest, GeofenceHoldAfterATakeover)
 	enableContGeofence();
 
 	ASSERT_TRUE(sourceTriggered(checkAt(between())));
-	const hrt_abstime cont_geofence_hold = reposition().timestamp;
-	ASSERT_NE(cont_geofence_hold, hrt_abstime{0});
+	const hrt_abstime hold_contingency = reposition().timestamp;
+	ASSERT_NE(hold_contingency, hrt_abstime{0});
 
 	// Taking over leaves Hold; staying outside the contingency geofence starts no new Hold.
 	setNavState(vehicle_status_s::NAVIGATION_STATE_POSCTL);
 	ASSERT_TRUE(sourceTriggered(checkAt(between())));
-	ASSERT_EQ(reposition().timestamp, cont_geofence_hold);
+	ASSERT_EQ(reposition().timestamp, hold_contingency);
 
-	ASSERT_TRUE(geofenceBreached(checkAt(outside())));
-	EXPECT_GT(reposition().timestamp, cont_geofence_hold);
+	ASSERT_TRUE(emergencyBreached(checkAt(outside())));
+	EXPECT_GT(reposition().timestamp, hold_contingency);
 	EXPECT_TRUE(repositionedAt(outside()));
 
 	// The emergency geofence Hold stays latched while the vehicle is holding.
 	setNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
-	EXPECT_TRUE(geofenceBreached(checkAt(between())));
+	EXPECT_TRUE(emergencyBreached(checkAt(between())));
 }
 
 // Breaching the emergency geofence while holding must not move the loiter out to the breach position.
@@ -483,7 +483,7 @@ TEST_P(ContGeofenceSourceTest, HoldIsNotMovedByAGeofenceBreach)
 	const hrt_abstime hold = reposition().timestamp;
 	setNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
 
-	ASSERT_TRUE(geofenceBreached(checkAt(outside())));
+	ASSERT_TRUE(emergencyBreached(checkAt(outside())));
 	EXPECT_EQ(reposition().timestamp, hold);
 	EXPECT_TRUE(repositionedAt(between()));
 }
@@ -503,7 +503,7 @@ TEST_P(ContGeofenceSourceTest, StaysTriggeredWhileHolding)
 
 	// Leaving Hold releases it, and the next breach holds again.
 	setNavState(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
-	EXPECT_FALSE(contGeofenceBreached(checkAt(inside())));
+	EXPECT_FALSE(contingencyBreached(checkAt(inside())));
 	EXPECT_TRUE(sourceTriggered(checkAt(between())));
 	EXPECT_GT(reposition().timestamp, first_hold);
 }
