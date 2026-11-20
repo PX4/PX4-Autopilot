@@ -127,7 +127,7 @@ $$
 | $\vec{a}$      | Vector from current to previous WP | m    |
 | $\vec{b}$      | Vector from current to next WP     | m    |
 | $r_{min}$      | Minimum turn radius                | m    |
-| $\delta_{max}$ | Maximum steer angle                | m    |
+| $\delta_{max}$ | Maximum steer angle                | rad  |
 | $r_{acc}$      | Acceptance radius                  | m    |
 
 ## Differential Rover Only
