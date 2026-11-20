@@ -52,11 +52,10 @@ using namespace time_literals;
 
 static constexpr time_t PX4_EPOCH_SECS = 1234567890ULL;
 
-// Kalman filter tuning. State: offset [s] and skew [s/s], predicted with the actual time
-// between samples, so the response does not depend on the timesync rate.
-// MEASUREMENT_NOISE_STD : std of an observed offset [s], mostly asymmetric link delay
-// OFFSET_RANDOM_WALK : offset random walk density [s^2/s], damps the response to offset steps
-// SKEW_RANDOM_WALK : skew random walk density [1/s], higher follows clock corrections faster
+// Kalman filter tuning. The model is defined above Timesync::add_sample().
+// MEASUREMENT_NOISE_STD : sqrt(R), std of an observed offset [s], mostly asymmetric link delay
+// OFFSET_RANDOM_WALK : q_o, offset random walk density [s^2/s], damps the response to offset steps
+// SKEW_RANDOM_WALK : q_s, skew random walk density [1/s], higher follows clock corrections faster
 // INITIAL_SKEW_STD : prior skew std [s/s], i.e. crystal tolerance
 static constexpr double MEASUREMENT_NOISE_STD = 1e-3;
 static constexpr double OFFSET_RANDOM_WALK = 1e-8;
