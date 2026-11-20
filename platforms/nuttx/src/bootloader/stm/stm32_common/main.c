@@ -658,7 +658,8 @@ arch_do_jump(const uint32_t *app_base)
 	for (;;) ;
 }
 
-#if defined(CONFIG_ARCH_CHIP_STM32H7)
+/* A bootloader that checks signatures leaves this out, because the ROM's DFU bootloader writes any image. */
+#if defined(CONFIG_ARCH_CHIP_STM32H7) && !defined(BOOTLOADER_USE_SECURITY)
 /* NuttX's __start calls this before any clock setup, so the chip is still as reset left it, which is how the ROM's
  * DFU bootloader expects to find it. The app asks for it with reboot -i.
  */
