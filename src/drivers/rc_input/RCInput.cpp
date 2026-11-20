@@ -132,6 +132,14 @@ RCInput::init()
 int
 RCInput::task_spawn(int argc, char *argv[])
 {
+	int32_t protocol = -1;
+	param_get(param_find("RC_INPUT_PROTO"), &protocol);
+
+	if (protocol == RC_SCAN_NONE) {
+		// Leave the UART untouched so it can be used by another protocol (e.g. MAVLink RC).
+		return PX4_OK;
+	}
+
 	bool error_flag = false;
 
 	int myoptind = 1;
