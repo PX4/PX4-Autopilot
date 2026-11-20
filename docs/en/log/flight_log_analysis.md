@@ -135,6 +135,18 @@ Source code and downloads are available on [Github](https://github.com/PlotJuggl
 
 See [Log Analysis using Plot Juggler](../log/plotjuggler_log_analysis.md) for an introduction.
 
+### PX4 Log Health
+
+[PX4 Log Health](https://munimv2.github.io/px4-log-check/) is a free, open source (Apache-2.0) check that turns one or more ULog files (`.ulg`) into a short written health report.
+It runs in the browser with nothing uploaded, or from the command line and as a GitHub Action ([source](https://github.com/munimtechnologies/px4-log-health)).
+
+Key features:
+
+- Vibration (graded against Flight Review's color bands), accelerometer clipping, GPS jamming, battery warnings, failsafe and motor saturation, for the time the vehicle was airborne.
+- Each figure placed among 208 public PX4 flights.
+- Measures how far the GPS velocity lags the IMU and compares it with the delay EKF2 assumes (`EKF2_GPS_DELAY`, or `SENS_GPSn_DELAY` from PX4 v1.18), cross-checked against EKF2's GPS velocity innovations.
+- A note when a u-blox receiver runs `GPS_UBX_DYNMODEL` 6, a setting that added GPS lag on public logs.
+
 ### PX4 ULog Viewer (VS Code Extension)
 
 [PX4 ULog Viewer](https://github.com/anilkir/vscode-ulog-viewer) opens ULog files (`.ulg`, `.ulog`) directly in _VS Code_, _Cursor_, and other _VS Code_-compatible editors.
