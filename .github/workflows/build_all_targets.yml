@@ -282,6 +282,11 @@ jobs:
           ccache -z
 
       - name: Building Artifacts
+        env:
+          # stable and beta branch pushes build the firmware of QGC's stable and beta channels: build
+          # them as a release even when the branch tip is not exactly on a tag, so that MAVLink WIP code
+          # is never compiled in (see cmake/px4_release_stage.cmake)
+          CMAKE_ARGS: ${{ contains(fromJSON('["stable","beta"]'), needs.group_targets.outputs.branchname) && '-DPX4_RELEASE_STAGE=release' || '' }}
         run: ./Tools/ci/build_all_runner.py --slots ${{ matrix.slots }} ${{ join(matrix.targets, ' ') }}
 
       # Full per-target compiler output, one collapsed group per target, kept
