@@ -39,7 +39,9 @@
 
 #include <drivers/drv_hrt.h>
 #include <parameters/param.h>
+#include <px4_platform_common/posix.h>
 #include <uORB/Publication.hpp>
+#include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_status.h>
@@ -64,6 +66,13 @@ constexpr double kLandLat = kBaseLat + 0.000054;
 
 // where the vehicle is when the mission reaches its land item, about 200 m south
 constexpr double kApproachLat = kBaseLat - 0.0018;
+
+// altitude of a mission land point 20 m below the vehicle
+constexpr float kLandAlt = kAlt - 20.f;
+
+// landing target height below the vehicle (NED), above and below PLD_FAPPR_ALT
+constexpr float kTargetFarBelow = 20.f;
+constexpr float kTargetJustBelow = 0.05f;
 
 } // namespace
 
@@ -106,6 +115,7 @@ protected:
 	uORB::Publication<vehicle_status_s> _vehicle_status_pub{ORB_ID(vehicle_status)};
 	uORB::Publication<vehicle_land_detected_s> _land_detected_pub{ORB_ID(vehicle_land_detected)};
 	uORB::Publication<vehicle_global_position_s> _global_position_pub{ORB_ID(vehicle_global_position)};
+	uORB::Publication<landing_target_pose_s> _target_pub{ORB_ID(landing_target_pose)};
 
 	void SetUp() override
 	{
@@ -116,6 +126,9 @@ protected:
 		_navigator.get_local_position()->ref_lon = kBaseLon;
 		*_navigator.get_position_setpoint_triplet() = {};
 		setVehicle(kBaseLat, vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND);
+
+		// no usable target unless a test publishes one, also hides a target left by a previous test
+		publishTarget(kTargetFarBelow, false);
 	}
 
 	void TearDown() override
@@ -164,9 +177,21 @@ protected:
 
 	const position_setpoint_s &current() { return _navigator.get_position_setpoint_triplet()->current; }
 
+	// landing target straight below the vehicle, which stays at the local origin
+	void publishTarget(float height_below_vehicle, bool abs_pos_valid = true)
+	{
+		landing_target_pose_s target{};
+		target.timestamp = hrt_absolute_time();
+		target.abs_pos_valid = abs_pos_valid;
+		target.x_abs = 0.f;
+		target.y_abs = 0.f;
+		target.z_abs = _navigator.get_local_position()->z + height_below_vehicle;
+		_target_pub.publish(target);
+	}
+
 	// Runs a mission land item with precision landing while vehicle_status reports nav_state, the
 	// move to land waypoint first, then the precision landing once it is accepted a few metres short
-	void runMissionPrecisionLanding(uint8_t nav_state)
+	void runMissionPrecisionLanding(uint8_t nav_state, uint8_t land_precision = 2, float land_alt = kAlt)
 	{
 		MissionLandingTestPeer mission{&_navigator};
 
@@ -174,8 +199,9 @@ protected:
 		land_item.nav_cmd = NAV_CMD_LAND;
 		land_item.lat = kLandLat;
 		land_item.lon = kBaseLon;
-		land_item.altitude = kAlt;
-		land_item.land_precision = 2;
+		land_item.altitude = land_alt;
+		land_item.altitude_is_relative = false;
+		land_item.land_precision = land_precision;
 		land_item.autocontinue = true;
 
 		setVehicle(kApproachLat, nav_state);
@@ -242,4 +268,72 @@ TEST_F(PrecLandTest, StartedByAMissionWithoutASetpointLandsAtTheCurrentPosition)
 	EXPECT_TRUE(current().valid);
 	EXPECT_NEAR(current().lat, kBaseLat, 1e-9);
 	EXPECT_NEAR(current().lon, kBaseLon, 1e-9);
+}
+
+// An opportunistic precision landing that does not see the target falls back to a normal landing.
+// Its land setpoint carries the land item altitude, not the current altitude, so that the landing
+// slowdown can use it as the ground reference
+TEST_F(PrecLandTest, StartedByAMissionFallbackKeepsTheLandItemAltitude)
+{
+	ASSERT_NO_FATAL_FAILURE(runMissionPrecisionLanding(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, 1, kLandAlt));
+
+	_navigator.get_precland()->on_active();
+
+	EXPECT_TRUE(current().valid);
+	EXPECT_EQ(current().type, position_setpoint_s::SETPOINT_TYPE_LAND);
+	EXPECT_FLOAT_EQ(current().alt, kLandAlt);
+}
+
+// Entered as its own mode there is no land item, so the fallback lands at the current altitude,
+// also right after a mission precision landing handed over its land altitude
+TEST_F(PrecLandTest, EnteredAsAModeFallbackKeepsTheCurrentAltitude)
+{
+	ASSERT_NO_FATAL_FAILURE(runMissionPrecisionLanding(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, 1, kLandAlt));
+
+	setVehicle(kBaseLat, vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND);
+	_navigator.get_precland()->set_mode(PrecLandMode::Opportunistic);
+	_navigator.get_precland()->on_activation();
+	_navigator.get_precland()->on_active();
+
+	EXPECT_TRUE(current().valid);
+	EXPECT_EQ(current().type, position_setpoint_s::SETPOINT_TYPE_LAND);
+	EXPECT_FLOAT_EQ(current().alt, kAlt);
+}
+
+// A precision landing that sees the target holds the approach altitude while centering over it,
+// then restores the land item altitude in the land setpoints of the descent and final approach
+TEST_F(PrecLandTest, StartedByAMissionDescentKeepsTheLandItemAltitude)
+{
+	ASSERT_NO_FATAL_FAILURE(runMissionPrecisionLanding(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, 2, kLandAlt));
+	PrecLand *precland = _navigator.get_precland();
+
+	// target in sight: start switches to the horizontal approach
+	publishTarget(kTargetFarBelow);
+	precland->on_active();
+
+	// horizontal approach: position setpoint at the approach altitude
+	publishTarget(kTargetFarBelow);
+	precland->on_active();
+	EXPECT_EQ(current().type, position_setpoint_s::SETPOINT_TYPE_POSITION);
+	EXPECT_FLOAT_EQ(current().alt, kAlt);
+
+	// above the target for more than 2 s: switch to descend above target
+	px4_usleep(2100000);
+	publishTarget(kTargetFarBelow);
+	precland->on_active();
+
+	// descend above target
+	publishTarget(kTargetFarBelow);
+	precland->on_active();
+	EXPECT_EQ(current().type, position_setpoint_s::SETPOINT_TYPE_LAND);
+	EXPECT_FLOAT_EQ(current().alt, kLandAlt);
+
+	// close to the target and no measurement for more than 0.5 s: final approach keeps the land setpoint
+	publishTarget(kTargetJustBelow);
+	precland->on_active();
+	px4_usleep(600000);
+	precland->on_active();
+	precland->on_active();
+	EXPECT_EQ(current().type, position_setpoint_s::SETPOINT_TYPE_LAND);
+	EXPECT_FLOAT_EQ(current().alt, kLandAlt);
 }
