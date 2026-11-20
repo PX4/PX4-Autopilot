@@ -404,8 +404,10 @@ TECSControl::SpecificEnergyWeighting TECSControl::_updateSpeedAltitudeWeights(co
 	const float max_ratio = fmaxf(_ratio_undersped, param.fast_descend);
 	pitch_speed_weight = max_ratio * 2.0f + (1.0f - max_ratio) * pitch_speed_weight;
 
+	// Without airspeed the kinetic energy rate setpoint and estimate are zero. The pitch flies the altitude rate
+	// setpoint, which the throttle funds.
 	if (!flag.airspeed_enabled) {
-		pitch_speed_weight = 0.0f;
+		pitch_speed_weight = 1.0f;
 	}
 
 	weight.spe_weighting = constrain(2.0f - pitch_speed_weight, 0.f, 2.f);

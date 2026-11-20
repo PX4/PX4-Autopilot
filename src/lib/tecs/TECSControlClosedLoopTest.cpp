@@ -674,16 +674,12 @@ TEST_F(TECSControlClosedLoopTest, AirspeedlessSteadyStateCruise)
 	EXPECT_LT(_sim_stats.max_pitch_integ_norm, MAX_NUMERICAL_ERR);
 }
 
-// Without airspeed the speed weight is 0, so the SEB rate is twice the SPE rate and the pitch feedforward
-// SEB_rate_sp / (V * g) asks for twice the demanded climb angle. A feedforward gain of 0.5 cancels this: the vehicle
-// then flies exactly the demanded climb rate, the SEB rate error stays zero, and the altitude error decays first order
-// with FW_T_ALT_TC. As in AltitudeStepDown, the pitch must follow the raw step as fast as the throttle and the demanded
-// sink rate must not exceed FW_T_SINK_MIN.
+// The vehicle flies exactly the demanded climb rate, so the altitude error decays first order with FW_T_ALT_TC and
+// the demanded sink rate does not exceed FW_T_SINK_MIN.
 
-TEST_F(TECSControlClosedLoopTest, AirspeedlessAltitudeStepHalfFeedforward)
+TEST_F(TECSControlClosedLoopTest, AirspeedlessAltitudeStep)
 {
 	disableAirspeed();
-	_params.seb_rate_ff = 0.5f;
 
 	run(10.f);
 
