@@ -32,6 +32,7 @@ jobs:
           "check_format",
           "check_newlines",
           "validate_module_configs",
+          "validate_package_configs",
           "shellcheck_all",
           "module_documentation",
         ]

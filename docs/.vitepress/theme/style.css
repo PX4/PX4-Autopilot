@@ -257,3 +257,10 @@ html {
 .vp-doc .param {
   contain-intrinsic-size: auto var(--param-height-estimate);
 }
+
+/* Mermaid lays a diagram out in <body> (line-height 24px) and then injects the
+   SVG into .vp-doc, whose paragraph line-height would make labels taller than
+   the boxes computed for them. */
+.vp-doc .mermaid p {
+  line-height: 24px;
+}

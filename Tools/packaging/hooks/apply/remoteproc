@@ -1,0 +1,34 @@
+#!/bin/sh
+# apply method "remoteproc": (re)start a Linux remoteproc core on the image the
+# package installed. run-hooks sets PX4_COMPONENT_FIRMWARE (installed path,
+# under the firmware_dir) and PX4_COMPONENT_REMOTEPROC (a device such as
+# remoteproc0, or the value of its name attribute, such as imx95-cm7).
+set -e
+
+device=/sys/class/remoteproc/$PX4_COMPONENT_REMOTEPROC
+if [ ! -d "$device" ]; then
+	device=
+	for candidate in /sys/class/remoteproc/remoteproc*; do
+		[ -f "$candidate/name" ] || continue
+		if [ "$(cat "$candidate/name")" = "$PX4_COMPONENT_REMOTEPROC" ]; then
+			device=$candidate
+			break
+		fi
+	done
+fi
+if [ -z "$device" ]; then
+	echo "remoteproc: no device for '$PX4_COMPONENT_REMOTEPROC' (component $PX4_COMPONENT)" >&2
+	exit 1
+fi
+
+# The firmware attribute takes a name relative to the kernel's firmware search
+# path, which includes /lib/firmware (and /usr/lib/firmware on merged-usr systems).
+firmware=${PX4_COMPONENT_FIRMWARE#/usr}
+firmware=${firmware#/lib/firmware/}
+
+if [ "$(cat "$device/state")" != offline ]; then
+	echo stop > "$device/state"
+fi
+echo "$firmware" > "$device/firmware"
+echo start > "$device/state"
+echo "remoteproc: $PX4_COMPONENT started on ${device##*/} with $firmware"

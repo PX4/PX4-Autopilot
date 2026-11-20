@@ -7,7 +7,9 @@ import sys
 import json
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'kconfig'))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'packaging'))
 import loadconfig
+import package_descriptor
 
 kconf = loadconfig.load_kconfig(suppress_warnings=True)
 
@@ -209,20 +211,25 @@ for board_target in loadconfig.enumerate_targets():
     if target is not None:
         build_configs.append(target)
 
-# Remove companion targets from CI groups (parent target builds them via Make prerequisite)
+# Remove targets another target builds from the CI groups: companion targets
+# (legacy companion_targets file, built via Make prerequisite) and coprocessor
+# components of package descriptors (built by the board's _deb target).
+companions = set()
 for board in loadconfig.enumerate_boards():
     companion_file = os.path.join(board.path, 'companion_targets')
     if os.path.exists(companion_file):
         with open(companion_file) as f:
-            companions = {l.strip() for l in f if l.strip() and not l.startswith('#')}
-        for arch in grouped_targets:
-            for man in grouped_targets[arch]['manufacturers']:
-                grouped_targets[arch]['manufacturers'][man] = [
-                    t for t in grouped_targets[arch]['manufacturers'][man]
-                    if t not in companions
-                ]
+            companions |= {l.strip() for l in f if l.strip() and not l.startswith('#')}
+for descriptor in package_descriptor.descriptors():
+    companions |= set(descriptor.coprocessor_targets)
+for arch in grouped_targets:
+    for man in grouped_targets[arch]['manufacturers']:
+        grouped_targets[arch]['manufacturers'][man] = [
+            t for t in grouped_targets[arch]['manufacturers'][man]
+            if t not in companions
+        ]
 
-# Append _deb targets for boards that have cmake/package.cmake
+# Append _deb targets for boards that have a package.yaml descriptor or legacy cmake/package.cmake
 for board in loadconfig.enumerate_boards():
     if board.manufacturer in excluded_manufacturers:
         continue
@@ -230,7 +237,8 @@ for board in loadconfig.enumerate_boards():
     if board_name in excluded_boards:
         continue
     package_cmake = os.path.join(board.path, 'cmake', 'package.cmake')
-    if os.path.exists(package_cmake):
+    package_yaml = os.path.join(board.path, 'package.yaml')
+    if os.path.exists(package_cmake) or os.path.exists(package_yaml):
         deb_target = board_name + '_deb'
         if target_filter and not any(deb_target.startswith(f) for f in target_filter):
             continue

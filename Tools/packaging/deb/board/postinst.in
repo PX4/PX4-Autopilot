@@ -1,0 +1,38 @@
+#!/bin/sh
+# postinst for @PX4_PACKAGE@, generated from Tools/packaging/deb/board/postinst.in.
+# Filesystem setup, then the board's post-install hooks, then the unit.
+# Hardware is never touched here: that happens in apply-firmware when the
+# unit starts, so image builds (Yocto, chroots) can install this package.
+set -e
+
+service='@PX4_SERVICE@'
+service_enable='@PX4_SERVICE_ENABLE@'
+
+case "$1" in
+	configure)
+		mkdir -p '@PX4_DATA_DIR@' '@PX4_CONFIG_DIR@'
+
+		PX4_ACTION=configure PX4_OLD_VERSION="${2:-}" /usr/lib/px4/run-hooks post-install
+
+		if [ "$service_enable" = yes ]; then
+			if command -v deb-systemd-helper >/dev/null 2>&1; then
+				deb-systemd-helper enable "$service.service" >/dev/null || true
+			elif command -v systemctl >/dev/null 2>&1; then
+				systemctl enable "$service.service" >/dev/null 2>&1 || true
+			fi
+		fi
+
+		if [ -d /run/systemd/system ]; then
+			systemctl daemon-reload || true
+			if [ "$service_enable" = yes ]; then
+				if command -v deb-systemd-invoke >/dev/null 2>&1; then
+					deb-systemd-invoke restart "$service.service" >/dev/null || true
+				else
+					systemctl restart "$service.service" || true
+				fi
+			fi
+		fi
+		;;
+esac
+
+exit 0
