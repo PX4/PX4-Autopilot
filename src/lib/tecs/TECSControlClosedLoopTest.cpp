@@ -476,9 +476,16 @@ TEST_F(TECSControlClosedLoopTest, AltitudeStepUpDefaultTuningPitchOffset)
 	// Let integrator converge
 	run(120.0f);
 
+	EXPECT_NEAR(_state.V, _V_sp, TRACKING_ERROR_TOL);
+	EXPECT_NEAR(_state.h, _alt_sp, TRACKING_ERROR_TOL);
+
 	// Altitude step & time to converge
+	resetSimStats();
 	setAltitudeSetpoint(ALT_INIT + ALT_STEP);
 	run(120.f);
+
+	// DISABLED: Only works after filter lag fix #29877
+	// EXPECT_LT(_sim_stats.max_airspeed_error, TRACKING_ERROR_TOL) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
 
 	// Reset stats to capture errors after convergence
 	resetSimStats();
