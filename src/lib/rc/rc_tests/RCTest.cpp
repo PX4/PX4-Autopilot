@@ -43,6 +43,7 @@ private:
 	bool st24Test();
 	bool sumdTest();
 	bool crossProtocolSharedUnionOobTest();
+	bool sumdSharedBufferTest();
 };
 
 bool RCTest::run_tests()
@@ -58,6 +59,7 @@ bool RCTest::run_tests()
 	ut_run_test(st24Test);
 	ut_run_test(sumdTest);
 	ut_run_test(crossProtocolSharedUnionOobTest);
+	ut_run_test(sumdSharedBufferTest);
 
 	return (_tests_failed == 0);
 }
@@ -589,6 +591,66 @@ bool RCTest::crossProtocolSharedUnionOobTest()
 	PX4_INFO("crossProtocolSharedUnionOobTest: completed without crashing "
 		 "(no sanitizer active, or already reset upstream)");
 
+	return true;
+}
+
+bool RCTest::sumdSharedBufferTest()
+{
+	// The decoders share rc_decode_buf, and px4io feeds the same bytes to ST24 and SUMD.
+	// An ST24 frame start overwrites the SUMD length field while a SUMD frame is in
+	// progress. SUMD has to stop at the channel count it received itself.
+	uint8_t rssi{};
+	uint8_t rx_count{};
+	uint8_t lost_count{};
+	uint16_t channel_count{};
+	uint16_t channels[24] {};
+	bool failsafe{};
+
+	sumd_reset();
+	st24_reset();
+
+	// SUMD frame with 2 channels, first data byte received.
+	const uint8_t sumd_start[] {SUMD_HEADER_ID, SUMD_ID_SUMD, 2, 0x11};
+
+	for (const uint8_t byte : sumd_start) {
+		(void)sumd_decode(byte, &rssi, &rx_count, &channel_count, channels, 24, &failsafe);
+	}
+
+	// ST24 frame start, which stores a length of 66 in the shared buffer.
+	const uint8_t st24_start[] {ST24_STX1, ST24_STX2, 66};
+
+	for (const uint8_t byte : st24_start) {
+		(void)st24_decode(byte, &rssi, &lost_count, &channel_count, channels, 24);
+	}
+
+	st24_reset();
+
+	// Enough bytes to finish the 2 channel frame, far fewer than a 66 channel one. If
+	// SUMD followed the overwritten length it would swallow the frame below.
+	for (unsigned i = 0; i < 20; ++i) {
+		(void)sumd_decode(0, &rssi, &rx_count, &channel_count, channels, 24, &failsafe);
+	}
+
+	// A valid 4 channel frame must decode afterwards.
+	uint8_t frame[] {SUMD_HEADER_ID, SUMD_ID_SUMD, 4, 0x2e, 0xe0, 0x2e, 0xe0, 0x2e, 0xe0, 0x2e, 0xe0, 0, 0};
+	uint16_t crc = 0;
+
+	for (unsigned i = 0; i < sizeof(frame) - 2; ++i) {
+		crc = sumd_crc16(crc, frame[i]);
+	}
+
+	frame[sizeof(frame) - 2] = crc >> 8;
+	frame[sizeof(frame) - 1] = crc & 0xff;
+
+	int result = 1;
+
+	for (const uint8_t byte : frame) {
+		result = sumd_decode(byte, &rssi, &rx_count, &channel_count, channels, 24, &failsafe);
+	}
+
+	ut_test(result == 0);
+	ut_test(channel_count == 4);
+	ut_test(channels[0] == 1500);
 	return true;
 }
 
