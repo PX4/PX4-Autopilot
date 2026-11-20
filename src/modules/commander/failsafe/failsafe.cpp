@@ -132,6 +132,9 @@ FailsafeBase::ActionOptions Failsafe::fromGfActParam(int param_value)
 	return options;
 }
 
+// GF_CONT_ACTION offers the actions of GF_ACTION without Terminate (4): the vehicle is expected to reach the
+// contingency geofence, so terminating there is too dangerous. Terminate stays with GF_ACTION.
+// A 4 set by hand does not terminate: like every value that is not offered, it only warns.
 FailsafeBase::ActionOptions Failsafe::fromGfContActParam(int param_value)
 {
 	switch (geofence_violation_action(param_value)) {
@@ -142,7 +145,7 @@ FailsafeBase::ActionOptions Failsafe::fromGfContActParam(int param_value)
 		return fromGfActParam(param_value);
 
 	default:
-		// The contingency geofence does not offer Terminate.
+		// Warning, Terminate and unknown values.
 		return ActionOptions(Action::Warn);
 	}
 }

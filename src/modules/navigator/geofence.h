@@ -224,7 +224,13 @@ public:
 	int getSource() { return _param_gf_source.get(); }
 	int getGeofenceAction() { return _param_gf_action.get(); }
 
-	/** GF_CONT_ACTION, or None while the contingency geofence is disabled. */
+	/**
+	 * GF_CONT_ACTION, or None while the contingency geofence is disabled.
+	 * The value is passed on as set. Commander decides what a breach triggers and turns a value the parameter
+	 * does not offer into a Warning, see Failsafe::fromGfContActParam(). Example: a 4 (Terminate) set by hand
+	 * only warns. Navigator still refuses Go-to targets outside the contingency geofence with such a value,
+	 * as it does for every action other than None and Warning.
+	 */
 	int getContGeofenceAction() const
 	{
 		return getContGeofenceMargin() > FLT_EPSILON ? _param_gf_cont_action.get() : geofence_result_s::GF_ACTION_NONE;
