@@ -91,7 +91,7 @@ bool GeofencePathChecker::recovering(const Position &vehicle) const
 }
 
 // A vehicle that is already outside the contingency geofence cannot keep it: it is closer to the emergency geofence
-// than GF_CONT_H_MARGIN, or outside a drawn contingency area. Its segments are checked against the emergency
+// than GF_CONT_H_MARGIN, or outside a contingency geofence area. Its segments are checked against the emergency
 // geofence only.
 // Example: the Return that GF_CONT_ACTION starts there may fly back in, but not across the emergency geofence.
 bool GeofencePathChecker::vehicleOutsideContGeofence(const Position &vehicle) const
@@ -142,7 +142,7 @@ bool GeofencePathChecker::pruneCandidates(ProjectionReferenceBatch &batch) const
 		}
 
 		// Segments keep the contingency geofence, like the legs of a mission: GF_CONT_H_MARGIN from the polygons and
-		// circles, or the drawn areas that replace the margin.
+		// circles, or the contingency geofence areas that replace the margin.
 		const bool emergency_only = is_vehicle && vehicleOutsideContGeofence(anchor);
 		const float margin = emergency_only ? 0.f : _geofence.getContGeofencePlanMargin();
 

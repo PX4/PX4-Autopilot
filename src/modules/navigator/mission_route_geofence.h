@@ -45,10 +45,10 @@ namespace mission_route
  *
  * A segment that starts at the vehicle is checked by where the vehicle is:
  * - Inside the contingency geofence: the segment keeps it, like a mission leg. It stays further from the fence
- *   than GF_CONT_H_MARGIN, or inside the drawn contingency areas that replace the margin.
+ *   than GF_CONT_H_MARGIN, or inside the contingency geofence areas that replace the margin.
  * - Outside the contingency geofence but inside the emergency geofence: the segment is checked against the
  *   emergency geofence only, over its whole length. Example: the Return that GF_CONT_ACTION starts there may fly
- *   back through the margin, or back into a drawn contingency area, but not across the emergency geofence.
+ *   back through the margin, or back into a contingency geofence area, but not across the emergency geofence.
  * - Outside the emergency geofence (outside an inclusion area or inside an exclusion area): the segment is not
  *   checked, so that the vehicle can fly back in. This is the recovery. It applies to every checkPath() segment.
  * A segment that starts at a safe point always keeps the contingency geofence, also while the vehicle recovers.

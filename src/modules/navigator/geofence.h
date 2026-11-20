@@ -192,12 +192,16 @@ public:
 #endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 	}
 
-	/** The margin kept from the polygons and circles: GF_CONT_H_MARGIN, unless contingency geofence areas are drawn. */
+	/**
+	 * The margin kept from the polygons and circles of the geofence plan: GF_CONT_H_MARGIN, or 0 if the plan has
+	 * contingency geofence areas, which replace the margin there. The distance from Home always keeps the margin,
+	 * see getContGeofenceMargin().
+	 */
 	float getContGeofencePlanMargin() const { return _has_cont_geofence_areas ? 0.f : getContGeofenceMargin(); }
 
 	/**
-	 * Check the contingency geofence of the plan: its drawn areas if it has any, GF_CONT_H_MARGIN from the polygons
-	 * and circles of the emergency geofence otherwise. True if neither is set.
+	 * Check the contingency geofence of the plan: its contingency geofence areas if it has any, GF_CONT_H_MARGIN
+	 * from the polygons and circles of the emergency geofence otherwise. True if neither is set.
 	 */
 	bool isInsideContGeofence(double lat, double lon)
 	{
@@ -209,7 +213,7 @@ public:
 		return margin <= FLT_EPSILON || isCircleInside(lat, lon, margin);
 	}
 
-	/** Check the drawn contingency geofence areas only, not the margin. True if the plan has none. */
+	/** Check the contingency geofence areas only, not the margin. True if the plan has none. */
 	bool isInsideContGeofenceAreas(double lat, double lon) { return isInsideFenceLevel(lat, lon, 0.f, FenceLevel::Contingency); }
 
 	/** Check the polygons and circles of the emergency geofence only, without the altitude band. */
@@ -244,7 +248,7 @@ public:
 	int getGeofenceAction() { return _param_gf_action.get(); }
 
 	/**
-	 * GF_CONT_ACTION, or None while the contingency geofence is disabled: no margin and no drawn areas.
+	 * GF_CONT_ACTION, or None while the contingency geofence is disabled: no margin and no contingency geofence areas.
 	 * The value is passed on as set: commander decides what a breach triggers and keeps Terminate out, see
 	 * Failsafe::fromGfContActParam().
 	 */

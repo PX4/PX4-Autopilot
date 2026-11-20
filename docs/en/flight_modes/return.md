@@ -210,7 +210,7 @@ The vehicle:
 
 <Badge type="tip" text="main (PX4 v1.20)" />
 
-For most of the return types (including the default home/rally point return type) the return path is chosen to avoid breaching any geofence, including a drawn [contingency geofence](../config/safety.md#contingency-geofence).
+For most of the return types (including the default home/rally point return type) the return path is chosen to avoid breaching any geofence, including the areas of a [contingency geofence](../config/safety.md#contingency-geofence).
 Planning is purely horizontal: the altitude profile is unaffected, and only the lateral path is adjusted to avoid the fence.
 If no geofence is set, the vehicle flies a direct path to the destination.
 
