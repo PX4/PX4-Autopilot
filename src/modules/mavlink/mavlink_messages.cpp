@@ -146,6 +146,13 @@
 #ifdef MAVLINK_MSG_ID_ESC_EEPROM // Only defined if development.xml is used
 #include "streams/ESC_EEPROM.hpp"
 #endif
+#if defined(MAVLINK_MSG_ID_STATE_SHARING)
+#include "streams/STATE_SHARING.hpp"
+#endif //MAVLINK_MSG_ID_STATE_SHARING
+
+#if defined(MAVLINK_MSG_ID_STATE_SHARING_CONTROL)
+#include "streams/STATE_SHARING_CONTROL.hpp"
+#endif //MAVLINK_MSG_ID_STATE_SHARING_CONTROL
 
 #if !defined(CONSTRAINED_FLASH)
 # include "streams/ADSB_VEHICLE.hpp"
@@ -544,6 +551,12 @@ static constexpr StreamListItem streams_list[] = {
 #if defined(GLOBAL_POSITION_SENSOR_HPP)
 	create_stream_list_item<MavlinkStreamGlobalPositionSensor>(),
 #endif // GLOBAL_POSITION_SENSOR_HPP
+#if defined(STATE_SHARING_HPP)
+	create_stream_list_item<MavlinkStreamStateSharing>(),
+#endif
+#if defined(STATE_SHARING_CONTROL_HPP)
+	create_stream_list_item<MavlinkStreamStateSharingControl>(),
+#endif
 #if defined(WHEEL_DISTANCE_HPP)
 	create_stream_list_item<MavlinkStreamWheelDistance>(),
 #endif // WHEEL_DISTANCE_HPP

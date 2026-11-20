@@ -180,6 +180,7 @@ public:
 		MAVLINK_MODE_UAVIONIX,
 		MAVLINK_MODE_LOW_BANDWIDTH,
 		MAVLINK_MODE_DISTANCE_SENSOR,
+		MAVLINK_MODE_STATE_SHARING,
 		MAVLINK_MODE_COUNT
 	};
 
@@ -203,6 +204,9 @@ public:
 
 		case MAVLINK_MODE_CUSTOM:
 			return "Custom";
+
+		case MAVLINK_MODE_STATE_SHARING:
+			return "StateSharing";
 
 		case MAVLINK_MODE_ONBOARD:
 			return "Onboard";
