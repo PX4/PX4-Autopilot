@@ -48,6 +48,7 @@
 #include <uORB/topics/takeoff_status.h>
 #include <uORB/topics/landing_target_pose.h>
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+#include <uORB/topics/prec_land_status.h>
 #include <uORB/topics/prec_takeoff_status.h>
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 #include <lib/geo/geo.h>
@@ -145,6 +146,7 @@ protected:
 	uORB::SubscriptionData<landing_target_pose_s> _landing_target_pose_sub{ORB_ID(landing_target_pose)};
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	uORB::SubscriptionData<prec_takeoff_status_s> _prec_takeoff_status_sub {ORB_ID(prec_takeoff_status)};
+	uORB::SubscriptionData<prec_land_status_s> _prec_land_status_sub {ORB_ID(prec_land_status)};
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	float _target_acceptance_radius{0.0f}; /**< Acceptances radius of the target */
