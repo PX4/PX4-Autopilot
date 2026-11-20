@@ -392,7 +392,10 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 
 				if (rihs_hash != nullptr && _zenoh_subscribers[i] != nullptr &&
 				    generate_rmw_zenoh_topic_keyexpr(topic, rihs_hash, type, keyexpr) > 0) {
-					_zenoh_subscribers[i]->declare_subscriber(_s, keyexpr);
+					if (_zenoh_subscribers[i]->declare_subscriber(_s, keyexpr) < 0) {
+						return -1;
+					}
+
 #ifdef CONFIG_ZENOH_RMW_LIVELINESS
 
 					if (generate_rmw_zenoh_topic_liveliness_keyexpr(&self_id, topic, rihs_hash, type, keyexpr, "MS") > 0) {
@@ -473,10 +476,15 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 				if (rihs_hash && _zenoh_publishers[i] != nullptr &&
 				    generate_rmw_zenoh_topic_keyexpr(topic, rihs_hash, type, keyexpr) > 0) {
 #ifdef CONFIG_ZENOH_PUB_OPTION_OVERRIDE
-					_zenoh_publishers[i]->declare_publisher(_s, keyexpr, (uint8_t *)&_px4_guid, &pub_opts);
+					z_publisher_options_t *opts = &pub_opts;
 #else
-					_zenoh_publishers[i]->declare_publisher(_s, keyexpr, (uint8_t *)&_px4_guid, &global_opts);
+					z_publisher_options_t *opts = &global_opts;
 #endif
+
+					if (_zenoh_publishers[i]->declare_publisher(_s, keyexpr, (uint8_t *)&_px4_guid, opts) < 0) {
+						return -1;
+					}
+
 					_zenoh_publishers[i]->setPollFD(&pfds[i]);
 #ifdef CONFIG_ZENOH_RMW_LIVELINESS
 
