@@ -119,31 +119,52 @@ typedef const struct orb_metadata *orb_id_t;
 __BEGIN_DECLS
 
 int uorb_start(void);
-int uorb_status(void);
-int uorb_top(char **topic_filter, int num_filters);
 void uorb_shutdown(void);
+void uorb_set_namespace(const char *namespace_prefix);
 
 /**
  * ORB topic advertiser handle.
- *
- * Advertiser handles are global; once obtained they can be shared freely
- * and do not need to be closed or released.
- *
- * This permits publication from interrupt context and other contexts where
- * a file-descriptor-based handle would not otherwise be in scope for the
- * publisher.
  */
-typedef void 	*orb_advert_t;
-typedef int 	orb_sub_t;
+
+typedef void *orb_advert_t;
+
+/**
+ * ORB topic subscriber handle.
+ */
+
+typedef void *orb_sub_t;
+
+/**
+ * Helper functions to initialize and check the handles
+ */
 
 #if defined(__cplusplus)
 # define ORB_ADVERT_INVALID nullptr
+# define ORB_SUB_INVALID nullptr
 #else
 # define ORB_ADVERT_INVALID ((orb_advert_t)NULL)
+# define ORB_SUB_INVALID ((orb_sub_t)NULL)
 #endif
+
 static inline bool orb_advert_valid(orb_advert_t handle) {return handle != ORB_ADVERT_INVALID;}
-static inline bool orb_sub_valid(orb_sub_t handle) {return handle >= 0;}
-#define ORB_SUB_INVALID ((orb_sub_t)-1)
+static inline bool orb_sub_valid(orb_sub_t handle) {return handle != ORB_SUB_INVALID;}
+
+/**
+ * orb_poll struct
+ */
+
+typedef short orb_pollevent_t;
+typedef struct {
+	/* This part of the struct is POSIX-like */
+	orb_sub_t           fd;       /* The polling subscriber handle */
+	orb_pollevent_t         events;   /* The input event flags */
+	orb_pollevent_t         revents;  /* The output event flags */
+} orb_poll_struct_t;
+
+/**
+ * @see uORB::Manager::orb_poll()
+ */
+extern int orb_poll(orb_poll_struct_t *fds, unsigned int nfds, int timeout) __EXPORT;
 
 /**
  * @see uORB::Manager::orb_advertise()
@@ -173,18 +194,18 @@ extern int orb_publish(const struct orb_metadata *meta, orb_advert_t handle, con
  *
  * @see uORB::Manager::orb_advertise_multi() for meaning of the individual parameters
  */
-static inline int orb_publish_auto(const struct orb_metadata *meta, orb_advert_t *handle, const void *data,
+static inline int orb_publish_auto(const struct orb_metadata *meta, orb_advert_t handle, const void *data,
 				   int *instance)
 {
-	if (!*handle) {
-		*handle = orb_advertise_multi(meta, data, instance);
+	if (!orb_advert_valid(handle)) {
+		handle = orb_advertise_multi(meta, data, instance);
 
-		if (*handle) {
+		if (orb_advert_valid(handle)) {
 			return 0;
 		}
 
 	} else {
-		return orb_publish(meta, *handle, data);
+		return orb_publish(meta, handle, data);
 	}
 
 	return -1;
@@ -256,6 +277,8 @@ extern uint8_t orb_get_queue_size(const struct orb_metadata *meta);
  * @param data expected to be aligned to the largest member
  */
 void orb_print_message_internal(const struct orb_metadata *meta, const void *data, bool print_topic_name);
+
+const struct orb_metadata *orb_get_meta(orb_id_size_t id);
 
 __END_DECLS
 
