@@ -56,6 +56,9 @@ BatterySimulator::BatterySimulator() :
 			PX4_ERR("Could not find parameter with name %s", param_name);
 		}
 
+		snprintf(param_name, sizeof(param_name), "BAT%d_SOURCE", i + 1);
+		_source_handles[i] = param_find(param_name);
+
 		snprintf(param_name, sizeof(param_name), "SIM_BAT%d_MIN_PCT", i + 1);
 		_min_pct_handles[i] = param_find(param_name);
 
@@ -119,7 +122,26 @@ void BatterySimulator::Run()
 
 	const hrt_abstime now_us = hrt_absolute_time();
 
-	const float ibatt = -1.0f; // no current sensor in simulation
+	// Current of each battery: no measurement, unless SIM_BAT_I_MOT is set and the simulator models the ESC current. It
+	// comes from the published ESC status, so failures injected in the simulator or its ESC telemetry change it too.
+	float ibatt = -1.0f;
+	esc_status_s esc_status;
+
+	if (_param_sim_bat_i_mot.get() > FLT_EPSILON && _esc_status_sub.copy(&esc_status)
+	    && hrt_elapsed_time(&esc_status.timestamp) < 1_s) {
+		float esc_current = 0.f;
+
+		for (int esc = 0; esc < math::min(static_cast<int>(esc_status.esc_count), static_cast<int>(esc_status_s::CONNECTED_ESC_MAX)); esc++) {
+			esc_current += esc_status.esc[esc].esc_current;
+		}
+
+		// simulators without an ESC current model report none, and the batteries then report no measurement
+		_esc_current_reported = _esc_current_reported || (esc_current > FLT_EPSILON);
+
+		if (_esc_current_reported) {
+			ibatt = (_param_sim_bat_i_idle.get() + esc_current) / _enabled_batteries;
+		}
+	}
 
 	for (int i = 0; i < battery_status_s::MAX_INSTANCES; i++) {
 		// Limit to +1.0 s to guard against division by 0
@@ -159,7 +181,16 @@ void BatterySimulator::updateParams()
 {
 	ModuleParams::updateParams();
 
+	_enabled_batteries = 0;
+
 	for (int i = 0; i < battery_status_s::MAX_INSTANCES; i++) {
+		int32_t source = -1;
+
+		if (_source_handles[i] != PARAM_INVALID && param_get(_source_handles[i], &source) == PX4_OK
+		    && source == battery_status_s::SOURCE_POWER_MODULE) {
+			_enabled_batteries++;
+		}
+
 		if (_drain_handles[i] != PARAM_INVALID) {
 			param_get(_drain_handles[i], &_drain_override_s[i]);
 		}
@@ -168,6 +199,8 @@ void BatterySimulator::updateParams()
 			param_get(_min_pct_handles[i], &_min_pct_override[i]);
 		}
 	}
+
+	_enabled_batteries = math::max(_enabled_batteries, 1);
 }
 
 float BatterySimulator::fullDischargeTime(int battery_index) const

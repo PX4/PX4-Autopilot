@@ -259,6 +259,15 @@ public:
 		return n_rev_s * 60.0f;
 	}
 
+	/** throttle_to_speed_ratio(float u)
+	 * compute the propeller speed as a share of the max speed,
+	 * given the unit throttle u (in range [0,1]).
+	 */
+	static float throttle_to_speed_ratio(float u)
+	{
+		return sqrtf(fminf(fmaxf(u, 0.0f), 1.0f));
+	}
+
 	/** throttle_to_rpm(float throttle, const float rpm_max)
 	 * compute the propeller rpm,
 	 * given the unit throttle u (in range [0,1])
@@ -266,7 +275,7 @@ public:
 	 */
 	static float throttle_to_rpm(float u, const float rpm_max)
 	{
-		return rpm_max * sqrtf(fminf(fmaxf(u, 0.0f), 1.0f));
+		return rpm_max * throttle_to_speed_ratio(u);
 	}
 
 	/** throttle_to_rev_s(float throttle, const float rpm_max)

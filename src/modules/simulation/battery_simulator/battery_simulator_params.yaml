@@ -26,6 +26,33 @@ parameters:
       unit: s
       num_instances: 3
       instance_start: 1
+    SIM_BAT_I_MOT:
+      description:
+        short: Simulated motor current at full output
+        long: |-
+          Current a simulated motor draws at full output. Simulators that model the ESC current
+          (SIH) report it in the ESC status, and the simulated batteries share the sum of the ESC
+          currents plus SIM_BAT_I_IDLE evenly. Set to 0 for no current measurement.
+      type: float
+      default: 0.0
+      min: 0.0
+      max: 200.0
+      increment: 0.5
+      decimal: 1
+      unit: A
+    SIM_BAT_I_IDLE:
+      description:
+        short: Simulated current without the motors
+        long: |-
+          Current drawn by everything other than the motors, e.g. avionics and payload.
+          Only used with SIM_BAT_I_MOT set.
+      type: float
+      default: 0.5
+      min: 0.0
+      max: 50.0
+      increment: 0.1
+      decimal: 1
+      unit: A
     SIM_BAT_MIN_PCT:
       description:
         short: Simulator Battery minimal percentage
