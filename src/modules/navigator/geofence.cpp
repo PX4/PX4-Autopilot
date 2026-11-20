@@ -125,15 +125,17 @@ static bool pieceTouchesEdge(const matrix::Vector2d &piece_start, const matrix::
 	const double north_scale = math::radians(1.0) * CONSTANTS_RADIUS_OF_EARTH;
 	const double max_lat = math::radians(math::max(fabs(piece_start(0)), fabs(piece_end(0))));
 	const double east_scale = north_scale * cos(math::min(max_lat + margin / CONSTANTS_RADIUS_OF_EARTH, kHalfPi));
+	// In metres north and east of the piece start: the piece runs from a to b, the edge from c to d.
+	const matrix::Vector2d a{};
 	const matrix::Vector2d b{(piece_end(0) - piece_start(0)) *north_scale, (piece_end(1) - piece_start(1)) *east_scale};
 	const matrix::Vector2d c{(edge_start(0) - piece_start(0)) *north_scale, (edge_start(1) - piece_start(1)) *east_scale};
 	const matrix::Vector2d d{(edge_end(0) - piece_start(0)) *north_scale, (edge_end(1) - piece_start(1)) *east_scale};
 	const double margin_squared = margin * margin;
 
-	return geofence_utils::pointToSegmentDistanceSquared(matrix::Vector2d {}, c, d) <= margin_squared
+	return geofence_utils::pointToSegmentDistanceSquared(a, c, d) <= margin_squared
 	       || geofence_utils::pointToSegmentDistanceSquared(b, c, d) <= margin_squared
-	       || geofence_utils::pointToSegmentDistanceSquared(c, matrix::Vector2d {}, b) <= margin_squared
-	       || geofence_utils::pointToSegmentDistanceSquared(d, matrix::Vector2d {}, b) <= margin_squared;
+	       || geofence_utils::pointToSegmentDistanceSquared(c, a, b) <= margin_squared
+	       || geofence_utils::pointToSegmentDistanceSquared(d, a, b) <= margin_squared;
 }
 
 // Whether a path crosses a fence edge or comes within its margin of it.
@@ -957,10 +959,7 @@ bool Geofence::isCircleInside(double lat, double lon, float radius)
 	}
 
 	// A path without length that keeps the radius as its margin.
-	PathCheck path{};
-	path.start = matrix::Vector2d{lat, lon};
-	path.end = path.start;
-	path.margin = radius;
+	const PathCheck path{{lat, lon}, {lat, lon}, 0.f, radius};
 	bool clear = false;
 	return checkPaths(&path, 1, &clear) && clear;
 }
