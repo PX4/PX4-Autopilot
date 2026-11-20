@@ -51,6 +51,9 @@
 
 using namespace time_literals;
 
+/// A session nobody used for this long is closed, each on its own.
+static constexpr hrt_abstime kSessionIdleTimeout = 30_s;
+
 constexpr const char MavlinkFTP::_root_dir[];
 constexpr const char MavlinkFTP::_mav_log_prefix[];
 constexpr const char MavlinkFTP::_mav_log_dir[];
@@ -58,40 +61,182 @@ constexpr const char MavlinkFTP::_mav_log_dir[];
 MavlinkFTP::MavlinkFTP(Mavlink &mavlink) :
 	_mavlink(mavlink)
 {
-	// initialize session
-	_session_info.fd = -1;
 }
 
 MavlinkFTP::~MavlinkFTP()
 {
-	_close_session();
+	_close_all_sessions();
 }
 
 bool
-MavlinkFTP::_session_open() const
+MavlinkFTP::burst_active() const
 {
-	return (_session_info.fd >= 0) || _session_info.param.is_open();
+	for (const SessionInfo &session : _sessions) {
+		if (session.stream_download) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+MavlinkFTP::SessionInfo *
+MavlinkFTP::_find_session(uint8_t id, uint32_t system_id, uint8_t component_id)
+{
+	for (SessionInfo &session : _sessions) {
+		if (session.is_open() && (session.id == id)
+		    && (session.owner_system_id == system_id) && (session.owner_component_id == component_id)) {
+			return &session;
+		}
+	}
+
+	return nullptr;
+}
+
+MavlinkFTP::SessionInfo *
+MavlinkFTP::_free_session()
+{
+	for (SessionInfo &session : _sessions) {
+		if (!session.is_open()) {
+			return &session;
+		}
+	}
+
+	return nullptr;
+}
+
+uint8_t
+MavlinkFTP::_allocate_session_id()
+{
+	// Only called with a slot free, so at most kMaxSessions - 1 ids are taken.
+	bool in_use;
+
+	do {
+		in_use = false;
+
+		for (const SessionInfo &session : _sessions) {
+			if (session.is_open() && (session.id == _next_session_id)) {
+				in_use = true;
+				_next_session_id++;
+				break;
+			}
+		}
+	} while (in_use);
+
+	return _next_session_id++;
 }
 
 void
-MavlinkFTP::_close_session()
+MavlinkFTP::_close_session(SessionInfo &session)
 {
-	if (_session_info.fd >= 0) {
-		::close(_session_info.fd);
+	if (session.fd >= 0) {
+		::close(session.fd);
 	}
 
-	_session_info.fd = -1;
-	_session_info.param.close();
-	_session_info.stream_download = false;
-	_session_info.file_size = 0;
-	_last_reply_valid = false;
+	session.fd = -1;
+	session.param.close();
+	session.stream_download = false;
+	session.file_size = 0;
+	_forget_replies(session);
+}
+
+void
+MavlinkFTP::_close_all_sessions()
+{
+	for (SessionInfo &session : _sessions) {
+		if (session.is_open()) {
+			_close_session(session);
+		}
+	}
+}
+
+uint32_t
+MavlinkFTP::_request_crc(const PayloadHeader *payload)
+{
+	// Everything after the sequence number, so a different request that happens to reuse one is not taken for
+	// a retry. The size is checked later, before anything else uses it.
+	const uint8_t *start = &payload->session;
+	const size_t length = sizeof(PayloadHeader) - offsetof(PayloadHeader, session)
+			      + math::min(payload->size, kMaxDataLength);
+	return crc32part(start, length, 0);
+}
+
+const MavlinkFTP::ReplyEntry *
+MavlinkFTP::_find_reply(uint32_t system_id, uint8_t component_id, uint16_t request_seq, uint32_t request_crc) const
+{
+	for (const ReplyEntry &entry : _replies) {
+		if (entry.valid && (entry.system_id == system_id) && (entry.component_id == component_id)
+		    && (entry.request_seq == request_seq) && (entry.request_crc == request_crc)) {
+			return &entry;
+		}
+	}
+
+	return nullptr;
+}
+
+void
+MavlinkFTP::_remember_reply(const mavlink_file_transfer_protocol_t *ftp_reply, uint32_t system_id, uint8_t component_id,
+			    uint16_t request_seq, uint32_t request_crc, int session)
+{
+	const PayloadHeader *payload = reinterpret_cast<const PayloadHeader *>(&ftp_reply->payload[0]);
+
+	// We only keep small responses to reduce RAM usage and avoid large memcpy's. The larger responses are all data
+	// retrievals without side-effects, meaning it's ok to reexecute them if a response gets lost.
+	// Skip only a no-sessions NAK so a retry can Open again. data[0] on an Open ACK is the file-size LSB, not an error code.
+	if ((payload->size > sizeof(uint32_t))
+	    || ((payload->opcode == kRspNak) && (payload->data[0] == kErrNoSessionsAvailable))) {
+		return;
+	}
+
+	// A client only retries its latest request on a session, or outside of one, so that is all an entry holds.
+	// Otherwise take a free entry or the oldest one: other clients' traffic only pushes a reply out once every
+	// entry is newer than it.
+	ReplyEntry *slot = &_replies[0];
+
+	for (ReplyEntry &entry : _replies) {
+		if (entry.valid && (entry.system_id == system_id) && (entry.component_id == component_id)
+		    && (entry.session == session)) {
+			slot = &entry;
+			break;
+		}
+
+		if (!entry.valid) {
+			if (slot->valid) {
+				slot = &entry;
+			}
+
+		} else if (slot->valid && (entry.stored < slot->stored)) {
+			slot = &entry;
+		}
+	}
+
+	slot->valid = true;
+	slot->system_id = system_id;
+	slot->component_id = component_id;
+	slot->session = session;
+	slot->request_seq = request_seq;
+	slot->request_crc = request_crc;
+	slot->stored = ++_replies_stored;
+	memcpy(slot->reply, ftp_reply, sizeof(slot->reply));
+}
+
+void
+MavlinkFTP::_forget_replies(const SessionInfo &session)
+{
+	// Replaying the open of a session closed since would hand out a session that is gone.
+	for (ReplyEntry &entry : _replies) {
+		if (entry.valid && (entry.session == session.id) && (entry.system_id == session.owner_system_id)
+		    && (entry.component_id == session.owner_component_id)) {
+			entry.valid = false;
+		}
+	}
 }
 
 int
-MavlinkFTP::_read_session(uint32_t offset, uint8_t *buf, uint16_t count)
+MavlinkFTP::_read_session(SessionInfo &session, uint32_t offset, uint8_t *buf, uint16_t count)
 {
-	if (_session_info.param.is_open()) {
-		const int bytes_read = _session_info.param.read(offset, buf, count);
+	if (session.param.is_open()) {
+		const int bytes_read = session.param.read(offset, buf, count);
 
 		if (bytes_read < 0) {
 			_our_errno = EIO;
@@ -101,16 +246,16 @@ MavlinkFTP::_read_session(uint32_t offset, uint8_t *buf, uint16_t count)
 	}
 
 	// lseek allows seeking past EOF, so test it ourselves
-	if (offset >= _session_info.file_size) {
+	if (offset >= session.file_size) {
 		return 0;
 	}
 
-	if (lseek(_session_info.fd, offset, SEEK_SET) < 0) {
+	if (lseek(session.fd, offset, SEEK_SET) < 0) {
 		_our_errno = errno;
 		return -1;
 	}
 
-	const int bytes_read = ::read(_session_info.fd, buf, count);
+	const int bytes_read = ::read(session.fd, buf, count);
 
 	if (bytes_read < 0) {
 		_our_errno = errno;
@@ -161,13 +306,13 @@ MavlinkFTP::radio_clamped_length(unsigned requested) const
 }
 
 unsigned
-MavlinkFTP::burst_data_length() const
+MavlinkFTP::_burst_data_length(const SessionInfo &session) const
 {
 	// What the client asked for. Zero means as much as fits, which is what
 	// ArduPilot does and what the spec describes.
-	const unsigned requested = (_session_info.stream_size == 0) ?
+	const unsigned requested = (session.stream_size == 0) ?
 				   (unsigned)kMaxDataLength :
-				   math::min((unsigned)_session_info.stream_size, (unsigned)kMaxDataLength);
+				   math::min((unsigned)session.stream_size, (unsigned)kMaxDataLength);
 
 	// The clamp comes after the request, never instead of it: every ground
 	// station out there asks for a full payload, so honouring the request on
@@ -176,7 +321,7 @@ MavlinkFTP::burst_data_length() const
 }
 
 unsigned
-MavlinkFTP::burst_wire_size() const
+MavlinkFTP::_burst_wire_size(const SessionInfo &session) const
 {
 	// A MAVLink 1 packet carries the whole payload whatever we put in it, so
 	// that is what it costs the link, and pacing has to budget for it.
@@ -184,13 +329,13 @@ MavlinkFTP::burst_wire_size() const
 		return kMaxDataLength + packet_overhead();
 	}
 
-	return burst_data_length() + packet_overhead();
+	return _burst_data_length(session) + packet_overhead();
 }
 
 unsigned
 MavlinkFTP::get_size()
 {
-	if (_session_info.stream_download) {
+	if (burst_active()) {
 		return MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 
 	} else {
@@ -246,10 +391,14 @@ MavlinkFTP::_process_request(
 {
 	bool stream_send = false;
 	PayloadHeader *payload = reinterpret_cast<PayloadHeader *>(&ftp_req->payload[0]);
+	SessionInfo *session = nullptr;
+	const uint16_t request_seq = payload->seq_number;
+	const uint32_t request_crc = _request_crc(payload);
+	const bool opens_session = (payload->opcode == kCmdOpenFileRO) || (payload->opcode == kCmdCreateFile)
+				   || (payload->opcode == kCmdOpenFileWO);
+	const ReplyEntry *previous_reply = nullptr;
 
 	ErrorCode errorCode = kErrNone;
-
-	_ensure_buffers_exist();
 
 	// basic sanity checks; must validate length before use
 	if (payload->size > kMaxDataLength) {
@@ -258,37 +407,41 @@ MavlinkFTP::_process_request(
 		goto out;
 	}
 
-	// check the sequence number: if this is a resent request, resend the last response
-	if (_last_reply_valid) {
-		const mavlink_file_transfer_protocol_t *last_reply = reinterpret_cast<const mavlink_file_transfer_protocol_t *>
-				(_last_reply);
-		const PayloadHeader *last_payload = reinterpret_cast<const PayloadHeader *>(&last_reply->payload[0]);
+	// A request we already answered means the (n)ack got lost and the client resent it: resend the response
+	// rather than open, truncate, terminate or reset a second time.
+	previous_reply = _find_reply(target_system_id, target_comp_id, request_seq, request_crc);
 
-		if (payload->seq_number + 1 == last_payload->seq_number
-		    && _last_reply_target_system == target_system_id
-		    && last_reply->target_component == target_comp_id) {
-			// this is the same request as the one we replied to last. It means the (n)ack got lost, and the GCS
-			// resent the request. The request buffer is no longer needed, so expand the compact cache into it;
-			// the serializer reads the whole message.
-			memset(ftp_req, 0, sizeof(*ftp_req));
-			memcpy(ftp_req, _last_reply, sizeof(_last_reply));
-			_mavlink.lock_send();
-			mavlink_msg_send_struct_target(_mavlink.get_channel(), FILE_TRANSFER_PROTOCOL, ftp_req, target_system_id);
-			_mavlink.unlock_send();
-			return;
-		}
+	if (previous_reply != nullptr) {
+		// The request buffer is no longer needed, so expand the compact copy into it; the serializer reads
+		// the whole message.
+		memset(ftp_req, 0, sizeof(*ftp_req));
+		memcpy(ftp_req, previous_reply->reply, sizeof(previous_reply->reply));
+		_mavlink.lock_send();
+		mavlink_msg_send_struct_target(_mavlink.get_channel(), FILE_TRANSFER_PROTOCOL, ftp_req, target_system_id);
+		_mavlink.unlock_send();
+		return;
 	}
 
 
 	PX4_DEBUG("ftp: channel %" PRIu8 " opc %" PRIu8 " size %" PRIu8 " offset %" PRIu32,
 		  _getServerChannel(), payload->opcode, payload->size, payload->offset);
 
+	// Only these address a session. The others carry session 0 as often as not, which can be an open one.
+	if ((payload->opcode == kCmdReadFile) || (payload->opcode == kCmdBurstReadFile)
+	    || (payload->opcode == kCmdWriteFile) || (payload->opcode == kCmdTerminateSession)) {
+		session = _find_session(payload->session, target_system_id, target_comp_id);
+
+		if (session != nullptr) {
+			session->last_activity = hrt_absolute_time();
+		}
+	}
+
 	switch (payload->opcode) {
 	case kCmdNone:
 		break;
 
 	case kCmdTerminateSession:
-		errorCode = _workTerminate(payload);
+		errorCode = _workTerminate(payload, session);
 		break;
 
 	case kCmdResetSessions:
@@ -304,28 +457,28 @@ MavlinkFTP::_process_request(
 		break;
 
 	case kCmdOpenFileRO:
-		errorCode = _workOpen(payload, O_RDONLY);
+		errorCode = _workOpen(payload, O_RDONLY, target_system_id, target_comp_id);
 		break;
 
 	case kCmdCreateFile:
-		errorCode = _workOpen(payload, O_CREAT | O_TRUNC | O_WRONLY);
+		errorCode = _workOpen(payload, O_CREAT | O_TRUNC | O_WRONLY, target_system_id, target_comp_id);
 		break;
 
 	case kCmdOpenFileWO:
-		errorCode = _workOpen(payload, O_CREAT | O_WRONLY);
+		errorCode = _workOpen(payload, O_CREAT | O_WRONLY, target_system_id, target_comp_id);
 		break;
 
 	case kCmdReadFile:
-		errorCode = _workRead(payload);
+		errorCode = _workRead(payload, session);
 		break;
 
 	case kCmdBurstReadFile:
-		errorCode = _workBurst(payload, target_system_id, target_comp_id);
+		errorCode = _workBurst(payload, session);
 		stream_send = true;
 		break;
 
 	case kCmdWriteFile:
-		errorCode = _workWrite(payload);
+		errorCode = _workWrite(payload, session);
 		break;
 
 	case kCmdRemoveFile:
@@ -392,20 +545,19 @@ out:
 		}
 	}
 
-	_last_reply_valid = false;
-
 	// Stream download replies are sent through mavlink stream mechanism. Unless we need to Nack.
 	if (!stream_send || errorCode != kErrNone) {
 		// respond to the request
 		ftp_req->target_network = 0;
 		ftp_req->target_component = target_comp_id;
 		_reply(ftp_req, target_system_id);
-	}
-}
 
-void MavlinkFTP::_ensure_buffers_exist()
-{
-	_last_work_buffer_access = hrt_absolute_time();
+		// An open files its reply under the session it opened, so that one client's next open does not
+		// displace it. payload->session is that session, or the one the request addressed.
+		const bool for_session = (session != nullptr) || (opens_session && (errorCode == kErrNone));
+		_remember_reply(ftp_req, target_system_id, target_comp_id, request_seq, request_crc,
+				for_session ? payload->session : kNoSession);
+	}
 }
 
 /// @brief Sends the specified FTP response message out through mavlink
@@ -422,18 +574,6 @@ MavlinkFTP::_reply(mavlink_file_transfer_protocol_t *ftp_req, uint32_t target_sy
 	}
 
 	memset(&payload->data[payload->size], 0, kMaxDataLength - payload->size);
-
-	// keep a copy of the last sent response ((n)ack), so that if it gets lost and the GCS resends the request,
-	// we can simply resend the response.
-	// we only keep small responses to reduce RAM usage and avoid large memcpy's. The larger responses are all data
-	// retrievals without side-effects, meaning it's ok to reexecute them if a response gets lost.
-	// Skip only a no-sessions NAK so a retry can Open again. data[0] on an Open ACK is the file-size LSB, not an error code.
-	if (payload->size <= sizeof(uint32_t)
-	    && !(payload->opcode == kRspNak && payload->data[0] == kErrNoSessionsAvailable)) {
-		_last_reply_valid = true;
-		memcpy(_last_reply, ftp_req, sizeof(_last_reply));
-		_last_reply_target_system = target_system_id;
-	}
 
 	PX4_DEBUG("FTP: %s seq_number: %" PRIu16, payload->opcode == kRspAck ? "Ack" : "Nak", payload->seq_number);
 
@@ -652,12 +792,14 @@ MavlinkFTP::_workList(PayloadHeader *payload, bool include_time)
 
 /// @brief Responds to an Open command
 MavlinkFTP::ErrorCode
-MavlinkFTP::_workOpen(PayloadHeader *payload, int oflag)
+MavlinkFTP::_workOpen(PayloadHeader *payload, int oflag, uint32_t owner_system_id, uint8_t owner_component_id)
 {
-	if (_session_open()) {
-		// One session. A lost Terminate on a slow link otherwise NAKs every retry
-		// until the 30 s idle close.
-		_close_session();
+	// Opening never closes another session: a client that lost track of one
+	// gets it back from the idle close, everyone else keeps theirs.
+	SessionInfo *session = _free_session();
+
+	if (session == nullptr) {
+		return kErrNoSessionsAvailable;
 	}
 
 	const char *path = _data_as_cstring(payload);
@@ -666,17 +808,17 @@ MavlinkFTP::_workOpen(PayloadHeader *payload, int oflag)
 
 	if (ParamPckFile::is_param_path(path)) {
 		if (for_write) {
-			if (!_session_info.param.open_write()) {
+			if (!session->param.open_write()) {
 				_our_errno = EINVAL;
 				return kErrFailErrno;
 			}
 
-		} else if (!_session_info.param.open(path, kMaxDataLength)) {
+		} else if (!session->param.open(path, kMaxDataLength)) {
 			_our_errno = EINVAL;
 			return kErrFailErrno;
 
 		} else {
-			file_size = _session_info.param.size();
+			file_size = session->param.size();
 		}
 
 	} else {
@@ -714,13 +856,17 @@ MavlinkFTP::_workOpen(PayloadHeader *payload, int oflag)
 			return kErrFailErrno;
 		}
 
-		_session_info.fd = fd;
+		session->fd = fd;
 	}
 
-	_session_info.file_size = file_size;
-	_session_info.stream_download = false;
+	session->id = _allocate_session_id();
+	session->owner_system_id = owner_system_id;
+	session->owner_component_id = owner_component_id;
+	session->file_size = file_size;
+	session->stream_download = false;
+	session->last_activity = hrt_absolute_time();
 
-	payload->session = 0;
+	payload->session = session->id;
 	payload->size = sizeof(uint32_t);
 	std::memcpy(payload->data, &file_size, payload->size);
 
@@ -729,9 +875,9 @@ MavlinkFTP::_workOpen(PayloadHeader *payload, int oflag)
 
 /// @brief Responds to a Read command
 MavlinkFTP::ErrorCode
-MavlinkFTP::_workRead(PayloadHeader *payload)
+MavlinkFTP::_workRead(PayloadHeader *payload, SessionInfo *session)
 {
-	if ((payload->session != 0) || !_session_open()) {
+	if (session == nullptr) {
 		return kErrInvalidSession;
 	}
 
@@ -740,7 +886,7 @@ MavlinkFTP::_workRead(PayloadHeader *payload)
 	// Same clamp as a burst: a recovery read that fragments defeats the point
 	// of keeping the burst inside one radio packet. Only behind a radio, and
 	// the size field says what was actually read.
-	const int bytes_read = _read_session(payload->offset, payload->data,
+	const int bytes_read = _read_session(*session, payload->offset, payload->data,
 					     radio_clamped_length(payload->size));
 
 	if (bytes_read < 0) {
@@ -760,42 +906,45 @@ MavlinkFTP::_workRead(PayloadHeader *payload)
 
 /// @brief Responds to a Stream command
 MavlinkFTP::ErrorCode
-MavlinkFTP::_workBurst(PayloadHeader *payload, uint32_t target_system_id, uint8_t target_component_id)
+MavlinkFTP::_workBurst(PayloadHeader *payload, SessionInfo *session)
 {
-	if ((payload->session != 0) || !_session_open()) {
+	if (session == nullptr) {
 		PX4_DEBUG("_workBurst: no session or no fd");
 		return kErrInvalidSession;
 	}
 
 	PX4_DEBUG("FTP: burst offset:%" PRIu32, payload->offset);
-	// Setup for streaming sends
-	_last_burst_send = 0;
-	_session_info.stream_download = true;
-	_session_info.stream_offset = payload->offset;
-	_session_info.stream_chunk_transmitted = 0;
-	_session_info.stream_size = payload->size;
-	_session_info.stream_seq_number = payload->seq_number + 1;
-	_session_info.stream_target_system_id = target_system_id;
-	_session_info.stream_target_component_id = target_component_id;
+
+	// Setup for streaming sends. Only a burst on an idle link starts with a
+	// packet straight away; joining the others must not reset their pacing.
+	if (!burst_active()) {
+		_last_burst_send = 0;
+	}
+
+	session->stream_download = true;
+	session->stream_offset = payload->offset;
+	session->stream_chunk_transmitted = 0;
+	session->stream_size = payload->size;
+	session->stream_seq_number = payload->seq_number + 1;
 
 	return kErrNone;
 }
 
 /// @brief Responds to a Write command
 MavlinkFTP::ErrorCode
-MavlinkFTP::_workWrite(PayloadHeader *payload)
+MavlinkFTP::_workWrite(PayloadHeader *payload, SessionInfo *session)
 {
-	if ((payload->session != 0) || !_session_open()) {
+	if (session == nullptr) {
 		PX4_DEBUG("_workWrite: no session or no fd");
 		return kErrInvalidSession;
 	}
 
-	if (_session_info.param.is_open()) {
-		if (!_session_info.param.is_writing()) {
+	if (session->param.is_open()) {
+		if (!session->param.is_writing()) {
 			return kErrFailFileProtected;
 		}
 
-		const int bytes_written = _session_info.param.write(payload->offset, payload->data, payload->size);
+		const int bytes_written = session->param.write(payload->offset, payload->data, payload->size);
 
 		if (bytes_written < 0) {
 			_our_errno = EINVAL;
@@ -809,16 +958,16 @@ MavlinkFTP::_workWrite(PayloadHeader *payload)
 
 	// The path is authorized in _workOpen(), which is where the descriptor this writes to
 	// was bound. Re-checking here would validate _work_buffer1, a scratch buffer any
-	// intervening request overwrites, rather than the path behind _session_info.fd.
+	// intervening request overwrites, rather than the path behind session->fd.
 
-	if (lseek(_session_info.fd, payload->offset, SEEK_SET) < 0) {
+	if (lseek(session->fd, payload->offset, SEEK_SET) < 0) {
 		_our_errno = errno;
 		PX4_ERR("seek fail: %s", strerror(_our_errno));
 		return kErrFailErrno;
 	}
 
 	PX4_DEBUG("write %d bytes", payload->size);
-	int bytes_written = ::write(_session_info.fd, &payload->data[0], payload->size);
+	int bytes_written = ::write(session->fd, &payload->data[0], payload->size);
 
 	if (bytes_written < 0) {
 		// Negative return indicates error other than eof
@@ -975,16 +1124,16 @@ MavlinkFTP::_workTruncateFile(PayloadHeader *payload)
 
 /// @brief Responds to a Terminate command
 MavlinkFTP::ErrorCode
-MavlinkFTP::_workTerminate(PayloadHeader *payload)
+MavlinkFTP::_workTerminate(PayloadHeader *payload, SessionInfo *session)
 {
-	if ((payload->session != 0) || !_session_open()) {
+	if (session == nullptr) {
 		return kErrInvalidSession;
 	}
 
 	PX4_DEBUG("work terminate: close");
 
-	const bool write_ok = !_session_info.param.is_writing() || _session_info.param.finish_write();
-	_close_session();
+	const bool write_ok = !session->param.is_writing() || session->param.finish_write();
+	_close_session(*session);
 
 	if (!write_ok) {
 		_our_errno = EINVAL;
@@ -1000,8 +1149,10 @@ MavlinkFTP::_workTerminate(PayloadHeader *payload)
 MavlinkFTP::ErrorCode
 MavlinkFTP::_workReset(PayloadHeader *payload)
 {
+	// Every session of every client, as the protocol specifies: having a
+	// session of its own does not protect a client from another one resetting.
 	PX4_DEBUG("work reset: close");
-	_close_session();
+	_close_all_sessions();
 
 	payload->size = 0;
 
@@ -1201,15 +1352,35 @@ MavlinkFTP::_copy_file(const char *src_path, const char *dst_path, size_t length
 	return (length > 0) ? -1 : 0;
 }
 
+MavlinkFTP::SessionInfo *
+MavlinkFTP::_next_burst_session()
+{
+	// Round robin, one packet each: concurrent bursts split the one budget of
+	// the link between them rather than each getting its own.
+	for (unsigned i = 0; i < kMaxSessions; i++) {
+		SessionInfo &session = _sessions[(_burst_cursor + i) % kMaxSessions];
+
+		if (session.stream_download) {
+			return &session;
+		}
+	}
+
+	return nullptr;
+}
+
 void MavlinkFTP::send()
 {
-	if (_session_open() && (hrt_elapsed_time(&_last_work_buffer_access) > 30_s)) {
-		_close_session();
-		PX4_WARN("Session was closed without activity");
+	for (SessionInfo &session : _sessions) {
+		if (session.is_open() && (hrt_elapsed_time(&session.last_activity) > kSessionIdleTimeout)) {
+			_close_session(session);
+			PX4_WARN("Session was closed without activity");
+		}
 	}
 
 	// Anything to stream?
-	if (!_session_info.stream_download) {
+	SessionInfo *stream = _next_burst_session();
+
+	if (stream == nullptr) {
 		return;
 	}
 
@@ -1244,7 +1415,7 @@ void MavlinkFTP::send()
 			const float rate = (float)datarate * _mavlink.bulk_bandwidth_share() * _mavlink.radio_status_mult();
 			const float credit = (float)(now - _last_burst_send) * rate / 1e6f;
 
-			if (credit < (float)burst_wire_size()) {
+			if (credit < (float)_burst_wire_size(*stream)) {
 				return;
 			}
 		}
@@ -1254,7 +1425,7 @@ void MavlinkFTP::send()
 		// radio only fits about three per transmit window and drops the rest.
 		// Credit is not banked either, so a pause cannot be spent at once.
 		_last_burst_send = now;
-		max_bytes_to_send = burst_wire_size();
+		max_bytes_to_send = _burst_wire_size(*stream);
 	}
 
 	// Send stream packets until buffer is full
@@ -1263,23 +1434,28 @@ void MavlinkFTP::send()
 
 	do {
 		more_data = false;
+		stream = _next_burst_session();
+
+		if (stream == nullptr) {
+			break;
+		}
 
 		ErrorCode error_code = kErrNone;
 
 		mavlink_file_transfer_protocol_t ftp_msg;
 		PayloadHeader *payload = reinterpret_cast<PayloadHeader *>(&ftp_msg.payload[0]);
 
-		payload->seq_number = _session_info.stream_seq_number;
-		payload->session = 0;
+		payload->seq_number = stream->stream_seq_number;
+		payload->session = stream->id;
 		payload->opcode = kRspAck;
 		payload->req_opcode = kCmdBurstReadFile;
-		payload->offset = _session_info.stream_offset;
+		payload->offset = stream->stream_offset;
 		payload->burst_complete = false;
-		_session_info.stream_seq_number++;
+		stream->stream_seq_number++;
 
-		PX4_DEBUG("stream send: offset %" PRIu32, _session_info.stream_offset);
+		PX4_DEBUG("stream send: offset %" PRIu32, stream->stream_offset);
 
-		const int bytes_read = _read_session(payload->offset, &payload->data[0], burst_data_length());
+		const int bytes_read = _read_session(*stream, payload->offset, &payload->data[0], _burst_data_length(*stream));
 
 		if (bytes_read < 0) {
 			error_code = kErrFailErrno;
@@ -1291,8 +1467,8 @@ void MavlinkFTP::send()
 
 		} else {
 			payload->size = bytes_read;
-			_session_info.stream_offset += bytes_read;
-			_session_info.stream_chunk_transmitted += bytes_read;
+			stream->stream_offset += bytes_read;
+			stream->stream_chunk_transmitted += bytes_read;
 		}
 
 		if (error_code != kErrNone) {
@@ -1310,17 +1486,17 @@ void MavlinkFTP::send()
 				payload->data[1] = _our_errno;
 			}
 
-			_session_info.stream_download = false;
+			stream->stream_download = false;
 
 		} else {
 			if (max_bytes_to_send < (get_size() * 2)) {
 				more_data = false;
 
 				/* perform transfers in 35K chunks - this is determined empirical */
-				if (_session_info.stream_chunk_transmitted > 35000) {
+				if (stream->stream_chunk_transmitted > 35000) {
 					payload->burst_complete = true;
-					_session_info.stream_download = false;
-					_session_info.stream_chunk_transmitted = 0;
+					stream->stream_download = false;
+					stream->stream_chunk_transmitted = 0;
 				}
 
 			} else {
@@ -1330,13 +1506,14 @@ void MavlinkFTP::send()
 		}
 
 		ftp_msg.target_network = 0;
-		ftp_msg.target_component = _session_info.stream_target_component_id;
-		_reply(&ftp_msg, _session_info.stream_target_system_id);
+		ftp_msg.target_component = stream->owner_component_id;
+		_reply(&ftp_msg, stream->owner_system_id);
+		_burst_cursor = (stream - _sessions + 1) % kMaxSessions;
 
 		// Streaming a burst is activity: without this the session is torn down
 		// from under a burst that runs longer than the inactivity timeout, which
 		// on a slow link a single chunk easily does.
-		_last_work_buffer_access = hrt_absolute_time();
+		stream->last_activity = hrt_absolute_time();
 	} while (more_data);
 }
 
