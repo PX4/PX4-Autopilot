@@ -78,7 +78,7 @@ DirectionalGuidanceOutput FigureEight::updateSetpoint(const matrix::Vector2f &cu
 	initializePattern(curr_pos_local, ground_speed, valid_parameters, pattern_points);
 
 	// Check if we need to switch to next segment
-	updateSegment(curr_pos_local, valid_parameters,  pattern_points);
+	updateSegment(curr_pos_local, ground_speed, valid_parameters, pattern_points);
 
 	// Apply control logic based on segment
 	return applyControl(curr_pos_local, ground_speed, valid_parameters, pattern_points);
@@ -188,8 +188,8 @@ void FigureEight::calculateFigureEightPoints(FigureEightPatternPoints &pattern_p
 							       normalized_minor_radius * sin_transition_angle};
 }
 
-void FigureEight::updateSegment(const matrix::Vector2f &curr_pos_local, const FigureEightPatternParameters &parameters,
-				const FigureEightPatternPoints &pattern_points)
+void FigureEight::updateSegment(const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_speed,
+				const FigureEightPatternParameters &parameters, const FigureEightPatternPoints &pattern_points)
 {
 	Vector2f center_to_pos_local;
 	calculatePositionToCenterNormalizedRotated(center_to_pos_local, curr_pos_local, parameters);
@@ -198,6 +198,22 @@ void FigureEight::updateSegment(const matrix::Vector2f &curr_pos_local, const Fi
 	float switch_distance_normalized = _directional_guidance.switchDistance(FLT_MAX) * NORMALIZED_MAJOR_RADIUS /
 					   parameters.loiter_radius;
 
+	// Circles and lines are tangent between the segments, so switching early isn't necessary
+	// Switch one roll time constant before the tangent, leaving time to roll to the new curvature.
+	const float lead_normalized = math::min(ground_speed.norm() * _param_npfg_roll_tc.get() * NORMALIZED_MAJOR_RADIUS /
+						parameters.loiter_radius, switch_distance_normalized);
+
+	const Vector2f northeast_southwest_dir = (pattern_points.normalized_south_entry_offset -
+			pattern_points.normalized_north_exit_offset).normalized();
+	const Vector2f southeast_northwest_dir = (pattern_points.normalized_north_entry_offset -
+			pattern_points.normalized_south_exit_offset).normalized();
+
+	// Tangent reached: less than lead ahead along the line, and within the switch distance
+	const auto junction_reached = [&](const Vector2f & junction, const Vector2f & line_dir, float lead) {
+		const Vector2f pos_to_junction = junction - center_to_pos_local;
+		return (pos_to_junction.dot(line_dir) < lead) && (pos_to_junction.norm() < switch_distance_normalized);
+	};
+
 	// Update segment if segment exit condition has been reached
 	switch (_current_segment) {
 	case FigureEightSegment::SEGMENT_CIRCLE_NORTH: {
@@ -205,12 +221,10 @@ void FigureEight::updateSegment(const matrix::Vector2f &curr_pos_local, const Fi
 				_pos_passed_circle_center_along_major_axis = true;
 			}
 
-			Vector2f vector_to_exit_normalized = pattern_points.normalized_north_exit_offset - center_to_pos_local;
-
-			/* Exit condition: Switch distance away from north-east point of north circle and at least once was above the circle center. Failsafe action, if poor tracking,
+			/* Exit condition: Lead distance before north-east point of north circle and at least once was above the circle center. Failsafe action, if poor tracking,
 			-                       switch to next if the vehicle is on the east side and below the north exit point. */
 			if (_pos_passed_circle_center_along_major_axis &&
-			    ((vector_to_exit_normalized.norm() < switch_distance_normalized) ||
+			    (junction_reached(pattern_points.normalized_north_exit_offset, northeast_southwest_dir, lead_normalized) ||
 			     ((center_to_pos_local(0) < pattern_points.normalized_north_exit_offset(0)) &&
 			      (center_to_pos_local(1) > FLT_EPSILON) &&
 			      (center_to_pos_local.norm() < NORMALIZED_MAJOR_RADIUS)))) {
@@ -222,11 +236,14 @@ void FigureEight::updateSegment(const matrix::Vector2f &curr_pos_local, const Fi
 	case FigureEightSegment::SEGMENT_POINT_SOUTHWEST: // fall through
 	case FigureEightSegment::SEGMENT_NORTHEAST_SOUTHWEST: {
 			_pos_passed_circle_center_along_major_axis = false;
-			Vector2f vector_to_exit_normalized = pattern_points.normalized_south_entry_offset - center_to_pos_local;
 
-			/* Exit condition: Switch distance away from south-west point of south circle. Failsafe action, if poor tracking,
+			// the approach segment meets the circle at a corner, so it keeps cutting it at the switch distance
+			const float lead = (_current_segment == FigureEightSegment::SEGMENT_NORTHEAST_SOUTHWEST) ? lead_normalized :
+					   switch_distance_normalized;
+
+			/* Exit condition: Lead distance before south-west point of south circle. Failsafe action, if poor tracking,
 			switch to next if the vehicle is on the west side and below entry point of the south circle or has left the radius. */
-			if ((vector_to_exit_normalized.norm() < switch_distance_normalized) ||
+			if (junction_reached(pattern_points.normalized_south_entry_offset, northeast_southwest_dir, lead) ||
 			    ((center_to_pos_local(0) < pattern_points.normalized_south_entry_offset(0)) && (center_to_pos_local(1) < FLT_EPSILON))
 			    ||
 			    (center_to_pos_local(0) < -NORMALIZED_MAJOR_RADIUS)) {
@@ -240,12 +257,10 @@ void FigureEight::updateSegment(const matrix::Vector2f &curr_pos_local, const Fi
 				_pos_passed_circle_center_along_major_axis = true;
 			}
 
-			Vector2f vector_to_exit_normalized = pattern_points.normalized_south_exit_offset - center_to_pos_local;
-
-			/* Exit condition: Switch distance away from south-east point of south circle and at least once was below the circle center. Failsafe action, if poor tracking,
+			/* Exit condition: Lead distance before south-east point of south circle and at least once was below the circle center. Failsafe action, if poor tracking,
 			-                       switch to next if the vehicle is on the east side and above the south exit point. */
 			if (_pos_passed_circle_center_along_major_axis &&
-			    ((vector_to_exit_normalized.norm() < switch_distance_normalized) ||
+			    (junction_reached(pattern_points.normalized_south_exit_offset, southeast_northwest_dir, lead_normalized) ||
 			     ((center_to_pos_local(0) > pattern_points.normalized_south_exit_offset(0)) &&
 			      (center_to_pos_local(1) > FLT_EPSILON) &&
 			      (center_to_pos_local.norm() < NORMALIZED_MAJOR_RADIUS)))) {
@@ -258,11 +273,14 @@ void FigureEight::updateSegment(const matrix::Vector2f &curr_pos_local, const Fi
 	case FigureEightSegment::SEGMENT_POINT_NORTHWEST: // Fall through
 	case FigureEightSegment::SEGMENT_SOUTHEAST_NORTHWEST: {
 			_pos_passed_circle_center_along_major_axis = false;
-			Vector2f vector_to_exit_normalized = pattern_points.normalized_north_entry_offset - center_to_pos_local;
 
-			/* Exit condition: Switch distance away from north-west point of north circle. Failsafe action, if poor tracking,
+			// the approach segment meets the circle at a corner, so it keeps cutting it at the switch distance
+			const float lead = (_current_segment == FigureEightSegment::SEGMENT_SOUTHEAST_NORTHWEST) ? lead_normalized :
+					   switch_distance_normalized;
+
+			/* Exit condition: Lead distance before north-west point of north circle. Failsafe action, if poor tracking,
 			switch to next if the vehicle is on the west side and above entry point of the north circle or has left the radius. */
-			if ((vector_to_exit_normalized.norm() < switch_distance_normalized) ||
+			if (junction_reached(pattern_points.normalized_north_entry_offset, southeast_northwest_dir, lead) ||
 			    ((center_to_pos_local(0) > pattern_points.normalized_north_entry_offset(0)) && (center_to_pos_local(1) < FLT_EPSILON))
 			    ||
 			    (center_to_pos_local(0) > NORMALIZED_MAJOR_RADIUS)) {
