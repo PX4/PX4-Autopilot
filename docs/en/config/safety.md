@@ -417,7 +417,7 @@ First estimates for the forward propulsion failure detection parameters:
 - [VT_EF_VEL_ERR]: below the speed of your multicopter legs, as a failed pusher leaves the vehicle far below its velocity setpoint.
 - [VT_EF_TIME](#VT_EF_TIME): longer than the gusts and accelerations of normal flight.
 - [VT_EF_FT_ACC](#VT_EF_FT_ACC): about half of the forward acceleration (`vehicle_acceleration` `xyz[0]`) of your vehicle once the pusher is at [VT_F_TRANS_THR], in front transitions into the strongest headwind you fly in.
-  Without airspeed sensor the multicopter motors fade out before the check decides (3.4 s into a transition from hover at default parameters), so with a failed pusher the vehicle sinks until then. A faster [VT_PSHER_SLEW](../advanced_config/parameter_reference.md#VT_PSHER_SLEW) lets it decide earlier.
+  Without airspeed sensor the multicopter motors fade out from half of [VT_TRANS_MIN_TM](../advanced_config/parameter_reference.md#VT_TRANS_MIN_TM) and are off from `VT_TRANS_MIN_TM` until the check decides. At default parameters and sea level, a vehicle with a failed pusher has less lift from 1 s and no lift from 2 s to 3.4 s into the transition. A faster [VT_PSHER_SLEW](../advanced_config/parameter_reference.md#VT_PSHER_SLEW) lets it decide earlier.
   The check also has to decide before the open-loop transition ends ([VT_F_TR_OL_TM](../advanced_config/parameter_reference.md#VT_F_TR_OL_TM)), which needs `VT_PSHER_SLEW` above about 0.16/s at default parameters.
 
 To check them in flight:
