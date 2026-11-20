@@ -64,10 +64,11 @@ parameters:
       description:
         short: Pusher failure detection time
         long: A pusher failure is detected in multicopter mode when, for this time, the
-          pusher assist throttle is above VT_EF_THROT, but the forward velocity stays more
-          than VT_EF_VEL_ERR below its setpoint. It is handled as a quad-chute that blocks
-          front transitions until reboot or until disabled. Only used by standard VTOLs when
-          VT_FWD_THRUST_EN is enabled. Set to 0 to disable.
+          pusher assist is above VT_EF_THROT, but the forward velocity stays more than
+          VT_EF_VEL_ERR below its setpoint. Pusher assist is the pusher throttle of a standard
+          VTOL, or the forward tilt of a tiltrotor. It is handled as a quad-chute that blocks
+          front transitions until reboot or until disabled. Only used by standard VTOLs and
+          tiltrotors when VT_FWD_THRUST_EN is enabled. Set to 0 to disable.
       type: float
       default: 5.0
       unit: s
@@ -77,9 +78,10 @@ parameters:
       decimal: 1
     VT_EF_THROT:
       description:
-        short: Pusher failure detection throttle threshold
-        long: Has to be below the highest pusher assist throttle, which VT_FWD_THRUST_SC,
-          VT_PITCH_MIN and MPC_TILTMAX_AIR set.
+        short: Pusher failure detection pusher assist threshold
+        long: Pusher throttle of a standard VTOL, or forward tilt of a tiltrotor above VT_TILT_MC.
+          Has to be below the highest pusher assist, which VT_FWD_THRUST_SC, VT_PITCH_MIN and
+          MPC_TILTMAX_AIR set.
       type: float
       default: 0.4
       min: 0.0

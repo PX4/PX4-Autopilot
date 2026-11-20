@@ -57,6 +57,8 @@ void
 Tiltrotor::parameters_update()
 {
 	VtolType::updateParams();
+
+	clearPusherFailureIfDisabled();
 }
 
 void Tiltrotor::update_vtol_state()
@@ -66,6 +68,11 @@ void Tiltrotor::update_vtol_state()
 	 * forward speed. After the vehicle has picked up enough speed the rotors are tilted
 	 * forward completely. For the backtransition the motors simply rotate back.
 	*/
+
+	// without forward tilt a front transition would fail too, so this quad-chute stays until reboot
+	if (_pusher_failed) {
+		_attc->quadchute(QuadchuteReason::PusherFailure);
+	}
 
 	if (_attc->is_quadchute_active()) {
 		// Failsafe event, switch to MC mode immediately
@@ -191,8 +198,11 @@ void Tiltrotor::update_mc_state()
 {
 	VtolType::update_mc_state();
 
-	_tilt_control = VtolType::pusher_assist() + _param_vt_tilt_mc.get();
+	const float tilt_assist = VtolType::pusher_assist();
+	_tilt_control = tilt_assist + _param_vt_tilt_mc.get();
 	_mc_yaw_weight = 1.0f;
+
+	_pusher_failed = _pusher_failed || isPusherFailureDetected(tilt_assist);
 }
 
 void Tiltrotor::update_fw_state()
