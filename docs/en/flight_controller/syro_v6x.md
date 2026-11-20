@@ -315,11 +315,13 @@ For battery and power module configuration see [Battery and Power Module Setup](
 
 | Input                     | Normal operation | Absolute maximum |
 | ------------------------- | ---------------- | ---------------- |
-| `POWER1`, `POWER2`, USB   | 4.75V to 5.5V    | 20V              |
-| Servo rail (`MAIN`/`AUX`) | 0V to 9.9V       | 25V              |
+| `POWER1`, `POWER2`        | 4.75V to 5.5V    | 10V              |
+| USB                       | 4.75V to 5.25V   | 6V               |
+| Servo rail (`MAIN`/`AUX`) | 0V to 20V        | 25V              |
 
-An input above 5.85V does not damage the board: the power path selector disconnects it (see [Power](#power)).
-The servo rail voltage is measured up to 9.9V; above that, the reported value stays at 9.9V.
+A power module input between 5.85V and 10V does not damage the board: the power path selector disconnects it (see [Power](#power)).
+The servo rail is not regulated on the board; the limits above are those of its input capacitors.
+PX4 measures the servo rail voltage up to 9.9V; above that, the reported value stays at 9.9V.
 
 ::: warning
 Keep the power inputs at or below 5.5V.
