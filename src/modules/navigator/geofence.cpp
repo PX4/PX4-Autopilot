@@ -958,7 +958,8 @@ bool Geofence::isCircleInside(double lat, double lon, float radius)
 		return false;
 	}
 
-	// A path without length that keeps the radius as its margin.
+	// Only the path checks measure the distance to every fence edge, and they take paths. A path that starts and
+	// ends at the centre is the centre itself, and the margin it keeps is the radius of the circle.
 	const PathCheck path{{lat, lon}, {lat, lon}, 0.f, radius};
 	bool clear = false;
 	return checkPaths(&path, 1, &clear) && clear;
