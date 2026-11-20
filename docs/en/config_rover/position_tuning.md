@@ -110,7 +110,7 @@ To enable a smooth trajectory, the acceptance radius of waypoints is scaled base
 The ideal trajectory would be to arrive at the next line segment with the heading pointing towards the next waypoint.
 For this purpose the minimum turning circle of the rover is inscribed tangentially to both line segments.
 
-![Cornering Logic](../../assets/config/rover/ackermann_cornering_logic.png)
+![Cornering Logic](../../assets/config/rover/ackermann_cornering_logic.svg)
 
 The acceptance radius of the waypoint is set to the distance from the waypoint to the tangential points between the circle and the line segments:
 
@@ -134,13 +134,13 @@ $$
 
 Differential rovers employ the following state machine to make full use of a differential rovers ability to turn on the spot:
 
-![Differential state machine](../../assets/config/rover/differential_state_machine.png)
+![Differential state machine](../../assets/config/rover/differential_state_machine.svg)
 
 These transition thresholds can be set with [RD_TRANS_DRV_TRN](#RD_TRANS_DRV_TRN) and [RD_TRANS_TRN_DRV](#RD_TRANS_TRN_DRV).
 
 In mission modes [RD_TRANS_DRV_TRN](#RD_TRANS_DRV_TRN) is also used to slow down the rover to a standstill, if the transition angle between the waypoints exceeds this threshold:
 
-![Differential slow down effect](../../assets/config/rover/differential_slow_down_effect.png)
+![Differential slow down effect](../../assets/config/rover/differential_slow_down_effect.svg)
 
 ## Pure Pursuit Guidance Logic (Info Only)
 
@@ -149,7 +149,7 @@ The desired bearing setpoints are generated using the pure pursuit algorithm.
 The controller takes the intersection point between a circle around the vehicle and a line segment.
 When targeting a position setpoint this line is constructed from the current position to the destination or when executing a mission it is usually constructed by connecting the previous and current waypoint.
 
-![Pure Pursuit Algorithm](../../assets/config/rover/pure_pursuit_algorithm.png)
+![Pure Pursuit Algorithm](../../assets/config/rover/pure_pursuit_algorithm.svg)
 
 The radius of the circle around the vehicle is used to tune the controller and is often referred to as look-ahead distance.
 
@@ -170,7 +170,7 @@ This section provides additional information for developers and people with expe
 
 The position controller uses the following structure:
 
-![Rover Position Controller](../../assets/config/rover/rover_position_controller.png)
+![Rover Position Controller](../../assets/config/rover/rover_position_controller.svg)
 
 ## Parameter Overview
 

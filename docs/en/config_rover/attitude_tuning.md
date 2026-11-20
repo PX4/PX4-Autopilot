@@ -27,7 +27,7 @@ This section provides additional information for developers and people with expe
 
 The attitude controller uses the following structure:
 
-![Rover Attitude Controller](../../assets/config/rover/rover_attitude_controller.png)
+![Rover Attitude Controller](../../assets/config/rover/rover_attitude_controller.svg)
 
 The rate and attitude controllers are cascaded, therefore we only require one integrator in the structure to eliminate steady state errors.
 We placed the integrator in the rate controller since it can run without the attitude controller but not the other way around.

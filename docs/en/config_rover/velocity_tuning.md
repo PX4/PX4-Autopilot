@@ -95,7 +95,7 @@ The velocity vector is defined by the following two values:
 
 The speed controller uses the following structure:
 
-![Rover Speed Controller](../../assets/config/rover/rover_speed_controller.png)
+![Rover Speed Controller](../../assets/config/rover/rover_speed_controller.svg)
 
 The feed forward mapping is done by interpolating the speed setpoint from [-[RO_MAX_THR_SPEED](../advanced_config/parameter_reference.md#RO_MAX_THR_SPEED), [RO_MAX_THR_SPEED](../advanced_config/parameter_reference.md#RO_MAX_THR_SPEED)] to [-1, 1].
 
