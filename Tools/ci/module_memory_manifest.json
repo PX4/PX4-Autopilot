@@ -1,0 +1,25 @@
+{
+  "types": [
+    {
+      "name": "Navigator",
+      "label": "Navigator",
+      "allocation": "One object allocated at module startup"
+    },
+    {
+      "name": "GeofenceAvoidancePlanner",
+      "label": "Geofence avoidance planner",
+      "allocation": "Embedded member; already included in Navigator",
+      "included_in": "Navigator"
+    },
+    {
+      "name": "Commander",
+      "label": "Commander",
+      "allocation": "One object allocated at module startup"
+    },
+    {
+      "name": "px4::logger::Logger",
+      "label": "Logger",
+      "allocation": "One object per logger instance; excludes separately allocated log buffers and subscription arrays"
+    }
+  ]
+}
