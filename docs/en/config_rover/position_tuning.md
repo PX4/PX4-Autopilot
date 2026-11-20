@@ -141,7 +141,8 @@ Differential rovers employ the following state machine to make full use of a dif
 
 These transition thresholds can be set with [RD_TRANS_DRV_TRN](#RD_TRANS_DRV_TRN) and [RD_TRANS_TRN_DRV](#RD_TRANS_TRN_DRV).
 
-In mission modes [RD_TRANS_DRV_TRN](#RD_TRANS_DRV_TRN) is also used to slow down the rover to a standstill, if the transition angle between the waypoints exceeds this threshold:
+In mission modes [RD_TRANS_DRV_TRN](#RD_TRANS_DRV_TRN) is also used to slow down the rover to a standstill at a waypoint, if the change of direction $\theta_{WP}$ at that waypoint exceeds this threshold.
+Otherwise the rover passes the waypoint at the speed $v_{trans}$, where $v_{max}$ is the speed limit [RO_SPEED_LIM](../advanced_config/parameter_reference.md#RO_SPEED_LIM), $v_{gain}$ is [RO_SPEED_RED](#RO_SPEED_RED) (no slow down if it is disabled) and $\theta_{WP,norm}$ is $\theta_{WP}$ normalized from $[0\degree, 180\degree]$ to $[0, 1]$:
 
 ![Differential slow down effect](../../assets/config/rover/differential_slow_down_effect.svg)
 
