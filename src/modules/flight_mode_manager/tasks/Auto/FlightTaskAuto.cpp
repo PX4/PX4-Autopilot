@@ -145,9 +145,7 @@ void FlightTaskAuto::_evaluateDistanceToLandingPoint()
 	const home_position_s &home = _sub_home_position.get();
 	const bool home_valid = (sources & LandGroundSource::Home) && home.valid_alt && PX4_ISFINITE(home.z);
 
-	// AMSL assumes the ground is at mean sea level
-	const bool amsl_valid = (sources & LandGroundSource::Amsl) && _sub_vehicle_local_position.get().z_global
-				&& PX4_ISFINITE(_global_local_alt0);
+	const bool ekf_start_valid = (sources & LandGroundSource::EKFStart);
 
 	if (distance_sensor_valid) {
 		_dist_to_ground = _dist_to_bottom;
@@ -165,9 +163,9 @@ void FlightTaskAuto::_evaluateDistanceToLandingPoint()
 		_dist_to_ground = home.z - _position(2);
 		_dist_to_ground_src = LandGroundSource::Home;
 
-	} else if (amsl_valid) {
-		_dist_to_ground = _global_local_alt0 - _position(2);
-		_dist_to_ground_src = LandGroundSource::Amsl;
+	} else if (ekf_start_valid) {
+		_dist_to_ground = -_position(2);
+		_dist_to_ground_src = LandGroundSource::EKFStart;
 
 	} else {
 		// No enabled source available, _prepareLandSetpoints() descends at MPC_LAND_SPEED

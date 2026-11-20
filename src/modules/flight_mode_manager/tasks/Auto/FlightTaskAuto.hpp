@@ -124,7 +124,7 @@ protected:
 		LandingTarget = (1 << 1),
 		LandingWaypoint = (1 << 2),
 		Home = (1 << 3),
-		Amsl = (1 << 4)
+		EKFStart = (1 << 4)
 	};
 
 	void _prepareLandSetpoints();

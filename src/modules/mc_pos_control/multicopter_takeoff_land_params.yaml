@@ -79,14 +79,15 @@ parameters:
 
           Bit 3 - Home: assumes the ground is at the home altitude.
 
-          Bit 4 - AMSL: assumes the ground is at mean sea level.
+          Bit 4 - EKF start: assumes the ground is at the altitude where the estimator
+          started (origin of the local position frame).
       type: bitmask
       bit:
         0: Distance sensor
         1: Landing target
         2: Landing waypoint
         3: Home
-        4: AMSL
+        4: EKF start
       default: 25
       min: 0
       max: 31
