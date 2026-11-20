@@ -49,7 +49,6 @@ using matrix::Vector2f;
 using matrix::Vector3f;
 using matrix::wrap_pi;
 using math::Utilities::getEulerYaw;
-using math::Utilities::updateYawInRotMat;
 
 EKFGSF_yaw::EKFGSF_yaw()
 {
@@ -100,11 +99,13 @@ void EKFGSF_yaw::predict(const matrix::Vector3f &delta_ang, const float delta_an
 		}
 	}
 
-	for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
-		predictEKF(model_index, delta_ang, delta_ang_dt, delta_vel, delta_vel_dt, in_air);
-	}
+	// generate an attitude reference using IMU data
+	ahrsPredict(delta_ang, delta_ang_dt);
 
+	// we don't start running the EKF part of the algorithm until there are regular velocity observations
 	if (_ekf_gsf_vel_fuse_started) {
+		predictEKF(delta_ang, delta_ang_dt, delta_vel, delta_vel_dt, in_air);
+
 		_time_since_last_vel_fusion += delta_vel_dt;
 
 		if (_time_since_last_vel_fusion > kVelFusionTimeout) {
@@ -193,12 +194,12 @@ void EKFGSF_yaw::updateComposite()
 	}
 }
 
-void EKFGSF_yaw::ahrsPredict(const uint8_t model_index, const Vector3f &delta_ang, const float delta_ang_dt)
+void EKFGSF_yaw::ahrsPredict(const Vector3f &delta_ang, const float delta_ang_dt)
 {
-	// generate attitude solution using simple complementary filter for the selected model
-	const Vector3f ang_rate = delta_ang / fmaxf(delta_ang_dt, 0.001f) - _ahrs_ekf_gsf[model_index].gyro_bias;
+	// generate attitude solution using simple complementary filter
+	const Vector3f ang_rate = delta_ang / fmaxf(delta_ang_dt, 0.001f) - _ahrs_gyro_bias;
 
-	const Vector3f gravity_direction_bf = _ahrs_ekf_gsf[model_index].q.inversed().dcm_z();
+	const Vector3f gravity_direction_bf = _ahrs_q.inversed().dcm_z();
 
 	const float ahrs_accel_norm = _ahrs_accel.norm();
 
@@ -230,18 +231,16 @@ void EKFGSF_yaw::ahrsPredict(const uint8_t model_index, const Vector3f &delta_an
 	const float spin_rate = ang_rate.length();
 
 	if (spin_rate < math::radians(10.f)) {
-		_ahrs_ekf_gsf[model_index].gyro_bias -= tilt_correction * (_gyro_bias_gain * delta_ang_dt);
-		_ahrs_ekf_gsf[model_index].gyro_bias = matrix::constrain(_ahrs_ekf_gsf[model_index].gyro_bias,
-						       -ekf2_gyr_b_limit, ekf2_gyr_b_limit);
+		_ahrs_gyro_bias -= tilt_correction * (_gyro_bias_gain * delta_ang_dt);
+		_ahrs_gyro_bias = matrix::constrain(_ahrs_gyro_bias, -ekf2_gyr_b_limit, ekf2_gyr_b_limit);
 	}
 
 	// delta angle from previous to current frame
-	const Vector3f delta_angle_corrected = delta_ang
-					       + (tilt_correction - _ahrs_ekf_gsf[model_index].gyro_bias) * delta_ang_dt;
+	const Vector3f delta_angle_corrected = delta_ang + (tilt_correction - _ahrs_gyro_bias) * delta_ang_dt;
 
 	// Apply delta angle to attitude
 	const Quatf dq(AxisAnglef{delta_angle_corrected});
-	_ahrs_ekf_gsf[model_index].q = (_ahrs_ekf_gsf[model_index].q * dq).normalized();
+	_ahrs_q = (_ahrs_q * dq).normalized();
 }
 
 void EKFGSF_yaw::ahrsAlignTilt(const Vector3f &delta_vel)
@@ -252,43 +251,43 @@ void EKFGSF_yaw::ahrsAlignTilt(const Vector3f &delta_vel)
 	// 2) The vehicle is not accelerating so all of the measured acceleration is due to gravity.
 
 	// The tilt is simply the rotation between the measured gravity and the vertical axis
-	Quatf q(delta_vel, Vector3f(0.f, 0.f, -1.f));
+	_ahrs_q = Quatf(delta_vel, Vector3f(0.f, 0.f, -1.f));
 
 	for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index++) {
-		_ahrs_ekf_gsf[model_index].q = q;
+		setAhrsYawOffset(model_index, 0.f);
 	}
 }
 
 void EKFGSF_yaw::ahrsAlignYaw()
 {
 	// Align yaw angle for each model
+	const float ahrs_yaw = getEulerYaw(Dcmf(_ahrs_q));
+
 	for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index++) {
-		const float yaw = wrap_pi(_ekf_gsf[model_index].X(2));
-		const Dcmf R(_ahrs_ekf_gsf[model_index].q);
-		_ahrs_ekf_gsf[model_index].q = Quatf(updateYawInRotMat(yaw, R));
+		setAhrsYawOffset(model_index, _ekf_gsf[model_index].X(2) - ahrs_yaw);
 	}
 }
 
-void EKFGSF_yaw::predictEKF(const uint8_t model_index, const Vector3f &delta_ang, const float delta_ang_dt,
-			    const Vector3f &delta_vel, const float delta_vel_dt, bool in_air)
+void EKFGSF_yaw::setAhrsYawOffset(const uint8_t model_index, const float yaw)
 {
-	// generate an attitude reference using IMU data
-	ahrsPredict(model_index, delta_ang, delta_ang_dt);
+	_ahrs_yaw_offset[model_index].yaw = wrap_pi(yaw);
+	_ahrs_yaw_offset[model_index].cos_yaw = cosf(_ahrs_yaw_offset[model_index].yaw);
+	_ahrs_yaw_offset[model_index].sin_yaw = sinf(_ahrs_yaw_offset[model_index].yaw);
+}
 
-	// we don't start running the EKF part of the algorithm until there are regular velocity observations
-	if (!_ekf_gsf_vel_fuse_started) {
-		return;
-	}
+void EKFGSF_yaw::predictEKF(const Vector3f &delta_ang, const float delta_ang_dt, const Vector3f &delta_vel,
+			    const float delta_vel_dt, bool in_air)
+{
+	const Dcmf R(_ahrs_q);
 
-	const Dcmf R(_ahrs_ekf_gsf[model_index].q);
+	// Calculate the yaw of the shared attitude using a projection onto the horizontal that avoids gimbal lock
+	const float ahrs_yaw = getEulerYaw(R);
 
-	// Calculate the yaw state using a projection onto the horizontal that avoids gimbal lock
-	_ekf_gsf[model_index].X(2) = getEulerYaw(R);
-
-	// calculate delta velocity in a horizontal front-right frame
+	// calculate delta velocity in a horizontal front-right frame, and delta angle about earth Down:
+	// a yaw offset rotates both the earth frame and the front-right frame, so these are the same for all models
 	const Vector3f del_vel_NED = R * delta_vel;
-	const float cos_yaw = cosf(_ekf_gsf[model_index].X(2));
-	const float sin_yaw = sinf(_ekf_gsf[model_index].X(2));
+	const float cos_yaw = cosf(ahrs_yaw);
+	const float sin_yaw = sinf(ahrs_yaw);
 	const float dvx =   del_vel_NED(0) * cos_yaw + del_vel_NED(1) * sin_yaw;
 	const float dvy = - del_vel_NED(0) * sin_yaw + del_vel_NED(1) * cos_yaw;
 	const float daz = Vector3f(R * delta_ang)(2);
@@ -300,24 +299,31 @@ void EKFGSF_yaw::predictEKF(const uint8_t model_index, const Vector3f &delta_ang
 	// Use fixed values for delta angle process noise variances
 	const float d_ang_var = sq(_gyro_noise * delta_ang_dt);
 
-	_ekf_gsf[model_index].P = sym::YawEstPredictCovariance(_ekf_gsf[model_index].X, _ekf_gsf[model_index].P, Vector2f(dvx,
-				  dvy), d_vel_var, daz, d_ang_var);
+	for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index++) {
+		const auto &yaw_offset = _ahrs_yaw_offset[model_index];
 
-	// covariance matrix is symmetrical, so copy upper half to lower half
-	_ekf_gsf[model_index].P(1, 0) = _ekf_gsf[model_index].P(0, 1);
-	_ekf_gsf[model_index].P(2, 0) = _ekf_gsf[model_index].P(0, 2);
-	_ekf_gsf[model_index].P(2, 1) = _ekf_gsf[model_index].P(1, 2);
+		// the yaw state is the yaw of the attitude of the model
+		_ekf_gsf[model_index].X(2) = wrap_pi(ahrs_yaw + yaw_offset.yaw);
 
-	// constrain variances
-	const float min_var = 1e-6f;
+		_ekf_gsf[model_index].P = sym::YawEstPredictCovariance(_ekf_gsf[model_index].X, _ekf_gsf[model_index].P, Vector2f(dvx,
+					  dvy), d_vel_var, daz, d_ang_var);
 
-	for (unsigned index = 0; index < 3; index++) {
-		_ekf_gsf[model_index].P(index, index) = fmaxf(_ekf_gsf[model_index].P(index, index), min_var);
+		// covariance matrix is symmetrical, so copy upper half to lower half
+		_ekf_gsf[model_index].P(1, 0) = _ekf_gsf[model_index].P(0, 1);
+		_ekf_gsf[model_index].P(2, 0) = _ekf_gsf[model_index].P(0, 2);
+		_ekf_gsf[model_index].P(2, 1) = _ekf_gsf[model_index].P(1, 2);
+
+		// constrain variances
+		const float min_var = 1e-6f;
+
+		for (unsigned index = 0; index < 3; index++) {
+			_ekf_gsf[model_index].P(index, index) = fmaxf(_ekf_gsf[model_index].P(index, index), min_var);
+		}
+
+		// sum delta velocities in earth frame, rotated by the yaw offset of the model:
+		_ekf_gsf[model_index].X(0) += del_vel_NED(0) * yaw_offset.cos_yaw - del_vel_NED(1) * yaw_offset.sin_yaw;
+		_ekf_gsf[model_index].X(1) += del_vel_NED(0) * yaw_offset.sin_yaw + del_vel_NED(1) * yaw_offset.cos_yaw;
 	}
-
-	// sum delta velocities in earth frame:
-	_ekf_gsf[model_index].X(0) += del_vel_NED(0);
-	_ekf_gsf[model_index].X(1) += del_vel_NED(1);
 }
 
 bool EKFGSF_yaw::updateEKF(const uint8_t model_index, const Vector2f &vel_NE, const float vel_accuracy)
@@ -373,10 +379,8 @@ bool EKFGSF_yaw::updateEKF(const uint8_t model_index, const Vector2f &vel_NE, co
 	_ekf_gsf[model_index].X.xy() += delta_state.xy();
 	_ekf_gsf[model_index].X(2) = wrap_pi(_ekf_gsf[model_index].X(2) + yawDelta);
 
-	// Apply the change in yaw angle to the AHRS using left multiplication to rotate
-	// the attitude around the earth Down axis
-	const Quatf dq(cosf(yawDelta / 2.f), 0.f, 0.f, sinf(yawDelta / 2.f));
-	_ahrs_ekf_gsf[model_index].q = (dq * _ahrs_ekf_gsf[model_index].q).normalized();
+	// Apply the change in yaw angle to the attitude of the model, a rotation around the earth Down axis
+	setAhrsYawOffset(model_index, _ahrs_yaw_offset[model_index].yaw + yawDelta);
 
 	return true;
 }

@@ -60,10 +60,7 @@ public:
 		// Initialise to gyro bias estimate from main filter because there could be a large
 		// uncorrected rate gyro bias error about the gravity vector
 		if (!_ahrs_ekf_gsf_tilt_aligned || !_ekf_gsf_vel_fuse_started || force) {
-			// init gyro bias for each model
-			for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index++) {
-				_ahrs_ekf_gsf[model_index].gyro_bias = imu_gyro_bias;
-			}
+			_ahrs_gyro_bias = imu_gyro_bias;
 		}
 	}
 
@@ -90,13 +87,22 @@ private:
 	const float _tilt_gain{0.2f};		// gain from tilt error to gyro correction for complementary filter (1/sec)
 	const float _gyro_bias_gain{0.04f};	// gain applied to integral of gyro correction for complementary filter (1/sec)
 
-	// Declarations used by the bank of N_MODELS_EKFGSF AHRS complementary filters
+	// Declarations used by the AHRS complementary filter of the N_MODELS_EKFGSF models.
+	// The attitudes of the models all start from the same tilt and gyro bias, and every yaw change is
+	// applied to them as a rotation about the earth Down axis, so they only differ by that rotation:
+	// the attitude of a model is its yaw offset about earth Down applied to one shared AHRS solution.
 	float _true_airspeed{NAN};	// true airspeed used for centripetal accel compensation (m/s)
 
+	matrix::Quatf _ahrs_q{};            // attitude: rotates a vector from body to earth frame
+	matrix::Vector3f _ahrs_gyro_bias{}; // gyro bias learned and used by the quaternion calculation
+
 	struct {
-		matrix::Quatf q{};            // attitude: rotates a vector from body to earth frame
-		matrix::Vector3f gyro_bias{}; // gyro bias learned and used by the quaternion calculation
-	} _ahrs_ekf_gsf[N_MODELS_EKFGSF] {};
+		float yaw{0.f};     // rotation about the earth Down axis from the shared attitude to the attitude of the model (rad)
+		float cos_yaw{1.f};
+		float sin_yaw{0.f};
+	} _ahrs_yaw_offset[N_MODELS_EKFGSF] {};
+
+	void setAhrsYawOffset(const uint8_t model_index, const float yaw);
 
 	bool _ahrs_ekf_gsf_tilt_aligned{false};  // true the initial tilt alignment has been calculated
 	matrix::Vector3f _ahrs_accel{0.f, 0.f, 0.f};     // low pass filtered body frame specific force vector used by AHRS calculation (m/s/s)
@@ -104,8 +110,8 @@ private:
 	// calculate the gain from gravity vector misalingment to tilt correction to be used by all AHRS filters
 	float ahrsCalcAccelGain() const;
 
-	// update specified AHRS rotation matrix using IMU and optionally true airspeed data
-	void ahrsPredict(const uint8_t model_index, const matrix::Vector3f &delta_ang, const float delta_ang_dt);
+	// update the AHRS rotation matrix using IMU and optionally true airspeed data
+	void ahrsPredict(const matrix::Vector3f &delta_ang, const float delta_ang_dt);
 
 	// align all AHRS roll and pitch orientations using IMU delta velocity vector
 	void ahrsAlignTilt(const matrix::Vector3f &delta_vel);
@@ -132,8 +138,8 @@ private:
 	// initialise states and covariance data for the GSF and EKF filters
 	void initialiseEKFGSF(const matrix::Vector2f &vel_NE, const float vel_accuracy);
 
-	// predict state and covariance for the specified EKF using inertial data
-	void predictEKF(const uint8_t model_index, const matrix::Vector3f &delta_ang, const float delta_ang_dt,
+	// predict state and covariance for all EKFs using inertial data
+	void predictEKF(const matrix::Vector3f &delta_ang, const float delta_ang_dt,
 			const matrix::Vector3f &delta_vel, const float delta_vel_dt, bool in_air = false);
 
 	// update state and covariance for the specified EKF using a NE velocity measurement
