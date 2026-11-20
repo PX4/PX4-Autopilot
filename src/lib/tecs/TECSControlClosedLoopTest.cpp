@@ -418,6 +418,69 @@ TEST_F(TECSControlClosedLoopTest, SteadyStateCruiseLowSpeedWeight)
 	EXPECT_LT(_sim_stats.max_pitch_integ_norm, MAX_NUMERICAL_ERR);
 }
 
+// --- Speed weight and time constants ------------------------------------------
+//
+// With e_h and e_V the altitude and airspeed errors, the altitude loop asks for the
+// potential energy rate P = g e_h / tau_h and the airspeed loop for the kinetic
+// energy rate K = V e_V / tau_V. With the plant matching the TECS model, the pitch
+// flies the potential energy rate (2 - w) P - w K and the throttle the total energy
+// rate P + K. The kinetic energy rate is the remainder, (w - 1) P + (1 + w) K.
+// Altitude and airspeed must follow this model for every speed weight w and time
+// constant. The steps stay below trim airspeed, where the pitch trades altitude for
+// the whole airspeed error.
+
+TEST_F(TECSControlClosedLoopTest, SetpointStepsFollowEnergyRateModel)
+{
+	_params.integrator_gain_pitch = 0.f; // the pitch feedback opposes the feedforward during the transient
+
+	// Small enough to stay clear of the throttle, pitch and rate limits at every speed weight
+	static constexpr float SMALL_ALT_STEP = 1.f; // [m]
+	static constexpr float SMALL_AIRSPEED_STEP = 1.f; // [m/s]
+
+	for (const float altitude_time_const : {3.f, 5.f, 8.f}) {
+		for (const float airspeed_time_const : {3.f, 5.f, 8.f}) {
+			for (const float w : {0.f, 0.5f, 1.f, 1.5f, 2.f}) {
+				for (const float altitude_step : {SMALL_ALT_STEP, -SMALL_ALT_STEP}) {
+					for (const float airspeed_step : {SMALL_AIRSPEED_STEP, -SMALL_AIRSPEED_STEP}) {
+						_params.pitch_speed_weight = w;
+						_params.altitude_error_gain = 1.f / altitude_time_const;
+						_params.airspeed_error_gain = 1.f / airspeed_time_const;
+
+						// Steady flight below trim airspeed, then step both setpoints
+						_state = {_params.equivalent_airspeed_trim - 2.f * SMALL_AIRSPEED_STEP, ALT_INIT};
+						setAirspeedSetpoint(_state.V);
+						setAltitudeSetpoint(_state.h);
+						initTecs();
+
+						setAirspeedSetpoint(_state.V + airspeed_step);
+						setAltitudeSetpoint(_state.h + altitude_step);
+
+						AircraftState model{_state};
+
+						for (int i = 0; i < 40; i++) {
+							for (int k = 0; k < static_cast<int>(roundf(1.f / DT)); k++) {
+								const float P = CONSTANTS_ONE_G * (_alt_sp - model.h) * _params.altitude_error_gain;
+								const float K = model.V * (_V_sp - model.V) * _params.airspeed_error_gain;
+								const float spe_rate = (2.f - w) * P - w * K;
+								const float ske_rate = (w - 1.f) * P + (1.f + w) * K;
+								model = {model.V + DT *ske_rate / model.V, model.h + DT *spe_rate / CONSTANTS_ONE_G};
+							}
+
+							run(1.f);
+							ASSERT_NEAR(_state.V, model.V, MAX_NUMERICAL_ERR)
+									<< "w " << w << ", time constants " << altitude_time_const << " s, " << airspeed_time_const
+									<< " s, steps " << altitude_step << " m, " << airspeed_step << " m/s, at t=" << _t << " s";
+							ASSERT_NEAR(_state.h, model.h, MAX_NUMERICAL_ERR)
+									<< "w " << w << ", time constants " << altitude_time_const << " s, " << airspeed_time_const
+									<< " s, steps " << altitude_step << " m, " << airspeed_step << " m/s, at t=" << _t << " s";
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
 // --- Altitude step ------------------------------------------------------------
 
 TEST_F(TECSControlClosedLoopTest, AltitudeStepDown)
