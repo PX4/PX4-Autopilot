@@ -605,6 +605,8 @@ public:
 
 
 private:
+	friend class MavlinkMissionManagerTest;
+
 	MavlinkReceiver 	_receiver;
 
 	MavlinkSignControl	_sign_control{};
