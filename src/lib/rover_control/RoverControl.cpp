@@ -203,6 +203,11 @@ float rateControl(SlewRate<float> &adjusted_yaw_rate_setpoint, PID &pid_yaw_rate
 		  const float max_yaw_decel,
 		  const float wheel_track, const float dt)
 {
+	// Sanitize inputs
+	if (!PX4_ISFINITE(yaw_rate_setpoint) || !PX4_ISFINITE(vehicle_yaw_rate) || !PX4_ISFINITE(dt)) {
+		return NAN;
+	}
+
 	// Apply acceleration and deceleration limit
 	if (fabsf(yaw_rate_setpoint) >= fabsf(vehicle_yaw_rate) && max_yaw_accel > FLT_EPSILON) {
 		adjusted_yaw_rate_setpoint.setSlewRate(max_yaw_accel);
