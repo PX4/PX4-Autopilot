@@ -33,23 +33,43 @@
 
 #pragma once
 
-#include "control_allocation/actuator_effectiveness/ActuatorEffectiveness.hpp"
+#include "ActuatorEffectiveness.hpp"
 #include "ActuatorEffectivenessRotors.hpp"
 #include "ActuatorEffectivenessControlSurfaces.hpp"
+#include "ActuatorEffectivenessTilts.hpp"
 
-class ActuatorEffectivenessCustom : public ModuleParams, public ActuatorEffectiveness
+#include <px4_platform_common/module_params.h>
+
+class ActuatorEffectivenessCustomTiltrotor : public ModuleParams, public ActuatorEffectiveness
 {
 public:
-	ActuatorEffectivenessCustom(ModuleParams *parent);
-	virtual ~ActuatorEffectivenessCustom() = default;
+    ActuatorEffectivenessCustomTiltrotor(ModuleParams *parent);
+    ~ActuatorEffectivenessCustomTiltrotor() = default;
 
-	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
+    bool getEffectivenessMatrix(Configuration &configuration,
+                                 EffectivenessUpdateReason external_update) override;
 
-	const char *name() const override { return "Custom"; }
+    void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
+                         int matrix_index,
+                         ActuatorVector &actuator_sp,
+                         const ActuatorVector &actuator_min,
+                         const ActuatorVector &actuator_max) override;
 
-protected:
-	ActuatorEffectivenessRotors _motors;
-	ActuatorEffectivenessControlSurfaces _torque;
+    const char *name() const override { return "Custom Tiltrotor"; }
 
-	ActuatorBitmask _motors_mask{};
+private:
+    ActuatorEffectivenessRotors _mc_rotors;
+    ActuatorEffectivenessControlSurfaces _control_surfaces;
+    ActuatorEffectivenessTilts _tilts;
+
+    int _first_tilt_idx{0};
+    int _first_control_surface_idx{0};
+
+    float _lambda{0.f};
+    float _current_tilt_control{-1.f}; // start at full hover
+
+    static constexpr float WASH_ONSET_LAMBDA = 0.15f;
+    static constexpr float WASH_FULL_LAMBDA  = 0.5f;
+
+    float propwashGain(float lambda) const;
 };
