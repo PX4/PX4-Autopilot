@@ -61,7 +61,7 @@ Standard::parameters_update()
 	// make sure that pusher ramp in backtransition is smaller than back transition (max) duration
 	_param_vt_b_trans_ramp.set(math::min(_param_vt_b_trans_ramp.get(), _param_vt_b_trans_dur.get()));
 
-	clearPusherFailureIfDisabled();
+	clearForwardPropulsionFailureIfDisabled();
 }
 
 void Standard::update_vtol_state()
@@ -71,9 +71,9 @@ void Standard::update_vtol_state()
 	 * For the back transition the pusher motor is immediately stopped and rotors reactivated.
 	 */
 
-	// without pusher a front transition would fail too, so this quad-chute stays until reboot
-	if (_pusher_failed) {
-		_attc->quadchute(QuadchuteReason::PusherFailure);
+	// without forward propulsion a front transition would fail too, so this quad-chute stays until reboot
+	if (_forward_propulsion_failed) {
+		_attc->quadchute(QuadchuteReason::ForwardPropulsionFailure);
 	}
 
 	float mc_weight = _mc_roll_weight;
@@ -292,7 +292,7 @@ void Standard::update_mc_state()
 
 	_pusher_throttle = VtolType::pusher_assist();
 
-	_pusher_failed = _pusher_failed || isPusherFailureDetected(_pusher_throttle);
+	_forward_propulsion_failed = _forward_propulsion_failed || isForwardPropulsionFailureDetected(_pusher_throttle);
 }
 
 void Standard::update_fw_state()

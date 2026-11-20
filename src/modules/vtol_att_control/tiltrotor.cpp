@@ -58,7 +58,7 @@ Tiltrotor::parameters_update()
 {
 	VtolType::updateParams();
 
-	clearPusherFailureIfDisabled();
+	clearForwardPropulsionFailureIfDisabled();
 }
 
 void Tiltrotor::update_vtol_state()
@@ -69,9 +69,9 @@ void Tiltrotor::update_vtol_state()
 	 * forward completely. For the backtransition the motors simply rotate back.
 	*/
 
-	// without forward tilt a front transition would fail too, so this quad-chute stays until reboot
-	if (_pusher_failed) {
-		_attc->quadchute(QuadchuteReason::PusherFailure);
+	// without forward propulsion a front transition would fail too, so this quad-chute stays until reboot
+	if (_forward_propulsion_failed) {
+		_attc->quadchute(QuadchuteReason::ForwardPropulsionFailure);
 	}
 
 	if (_attc->is_quadchute_active()) {
@@ -202,7 +202,7 @@ void Tiltrotor::update_mc_state()
 	_tilt_control = tilt_assist + _param_vt_tilt_mc.get();
 	_mc_yaw_weight = 1.0f;
 
-	_pusher_failed = _pusher_failed || isPusherFailureDetected(tilt_assist);
+	_forward_propulsion_failed = _forward_propulsion_failed || isForwardPropulsionFailureDetected(tilt_assist);
 }
 
 void Tiltrotor::update_fw_state()

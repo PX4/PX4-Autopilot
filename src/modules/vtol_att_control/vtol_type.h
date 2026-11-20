@@ -93,7 +93,7 @@ enum class QuadchuteReason {
 	TransitionAltitudeLoss,
 	MaximumPitchExceeded,
 	MaximumRollExceeded,
-	PusherFailure,
+	ForwardPropulsionFailure,
 };
 
 class VtolAttitudeControl;
@@ -330,17 +330,17 @@ protected:
 
 	int _altitude_reset_counter{0};
 
-	// multicopter pusher failure detection, on the pusher throttle of a standard VTOL or the forward tilt of a tiltrotor
-	systemlib::Hysteresis _pusher_failure_hysteresis{false};
-	bool _pusher_failed{false}; ///< latched until reboot or until the detection is disabled
+	// multicopter forward propulsion failure detection, on the pusher throttle of a standard VTOL or the forward tilt of a tiltrotor
+	systemlib::Hysteresis _forward_propulsion_failure_hysteresis{false};
+	bool _forward_propulsion_failed{false}; ///< latched until reboot or until the detection is disabled
 
-	bool isPusherFailureDetectionEnabled() const { return _param_vt_ef_time.get() > FLT_EPSILON; }
+	bool isForwardPropulsionCheckEnabled() const { return _param_vt_ef_time.get() > FLT_EPSILON; }
 
 	/** Pusher assist (from pusher_assist()) above VT_EF_THROT, but the forward velocity stays below its setpoint */
-	bool isPusherFailureDetected(float assist);
+	bool isForwardPropulsionFailureDetected(float assist);
 
-	/** Disabling the detection in flight clears a detected pusher failure, e.g. a false positive in strong wind */
-	void clearPusherFailureIfDisabled();
+	/** Disabling the detection in flight clears a detected forward propulsion failure, e.g. a false positive in strong wind */
+	void clearForwardPropulsionFailureIfDisabled();
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
 					(ParamBool<px4::params::VT_ELEV_MC_LOCK>) _param_vt_elev_mc_lock,

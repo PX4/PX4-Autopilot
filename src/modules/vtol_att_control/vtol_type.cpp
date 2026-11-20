@@ -162,8 +162,8 @@ void VtolType::update_transition_state()
 
 	_time_since_trans_start = (float)(t_now - _transition_start_timestamp) * 1e-6f;
 
-	// the pusher failure detection restarts in multicopter mode
-	_pusher_failure_hysteresis.set_state_and_update(false, t_now);
+	// the forward propulsion failure detection restarts in multicopter mode
+	_forward_propulsion_failure_hysteresis.set_state_and_update(false, t_now);
 
 	check_quadchute_condition();
 
@@ -402,11 +402,11 @@ void VtolType::check_quadchute_condition()
 	}
 }
 
-bool VtolType::isPusherFailureDetected(float assist)
+bool VtolType::isForwardPropulsionFailureDetected(float assist)
 {
 	bool pusher_ineffective = false;
 
-	if (isPusherFailureDetectionEnabled() && assist > _param_vt_ef_throt.get() && _local_pos->v_xy_valid) {
+	if (isForwardPropulsionCheckEnabled() && assist > _param_vt_ef_throt.get() && _local_pos->v_xy_valid) {
 		const Quatf q(_v_att->q);
 		const float forward_vel = q.rotateVectorInverse(Vector3f(_local_pos->vx, _local_pos->vy, _local_pos->vz))(0);
 		const float forward_vel_sp = q.rotateVectorInverse(Vector3f(_local_pos_sp->vx, _local_pos_sp->vy,
@@ -416,16 +416,16 @@ bool VtolType::isPusherFailureDetected(float assist)
 		pusher_ineffective = forward_vel_sp - forward_vel > _param_vt_ef_vel_err.get();
 	}
 
-	_pusher_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * math::max(_param_vt_ef_time.get(), 0.f)));
-	_pusher_failure_hysteresis.set_state_and_update(pusher_ineffective, hrt_absolute_time());
+	_forward_propulsion_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * math::max(_param_vt_ef_time.get(), 0.f)));
+	_forward_propulsion_failure_hysteresis.set_state_and_update(pusher_ineffective, hrt_absolute_time());
 
-	return _pusher_failure_hysteresis.get_state();
+	return _forward_propulsion_failure_hysteresis.get_state();
 }
 
-void VtolType::clearPusherFailureIfDisabled()
+void VtolType::clearForwardPropulsionFailureIfDisabled()
 {
-	if (!isPusherFailureDetectionEnabled()) {
-		_pusher_failed = false;
+	if (!isForwardPropulsionCheckEnabled()) {
+		_forward_propulsion_failed = false;
 	}
 }
 
