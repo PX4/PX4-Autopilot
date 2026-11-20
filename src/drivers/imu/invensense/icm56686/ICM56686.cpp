@@ -619,20 +619,24 @@ bool ICM56686::IregSetAndClearBits(const uint16_t reg, const uint8_t set_bits, c
 
 uint16_t ICM56686::FIFOReadCount()
 {
-	uint8_t fifo_count[3] {
-		static_cast<uint8_t>(static_cast<uint8_t>(Register::BANK_0::FIFO_COUNT_0) | DIR_READ), 0, 0
-	};
+	uint8_t fifo_count[3] {};
 
-	if (transfer(fifo_count, fifo_count, sizeof(fifo_count)) != PX4_OK) {
-		perf_count(_bad_transfer_perf);
-		return 0;
+	// ICM-456xx errata AN-000364 (2.2): the first FIFO_COUNT read can return a stale value, use the
+	// second one (same as the ICM-45686 driver and the TDK reference driver).
+	for (int i = 0; i < 2; i++) {
+		fifo_count[0] = static_cast<uint8_t>(static_cast<uint8_t>(Register::BANK_0::FIFO_COUNT_0) | DIR_READ);
+
+		if (transfer(fifo_count, fifo_count, sizeof(fifo_count)) != PX4_OK) {
+			perf_count(_bad_transfer_perf);
+			return 0;
+		}
 	}
 
 	// FIFO_COUNT_0 is documented as FIFO_DATA_CNT[15:8] and FIFO_COUNT_1 as [7:0], but the
 	// SREG_CTRL little-endian selection applies to the count registers as well, so the burst
 	// returns the LSByte first (same behaviour as the ICM-45686). Verified on hardware: the
 	// resulting frame count tracks the configured ODR (6344 Hz measured against 6400 Hz nominal,
-	// within the +-1.25% internal clock tolerance) and never trips the overflow path.
+	// within the +-1.25% internal clock tolerance) and never reached a full FIFO.
 	return combineUnsigned(fifo_count[2], fifo_count[1]);
 }
 
@@ -645,7 +649,10 @@ bool ICM56686::FIFORead(const hrt_abstime &timestamp_sample)
 		return false;
 	}
 
-	if (fifo_frames >= FIFO::MAX_FRAMES) {
+	if (fifo_frames > FIFO_MAX_SAMPLES) {
+		// More frames queued than one transfer can publish. Draining them would stamp stale samples
+		// with the current timestamp, so reset instead. This also covers a full FIFO, where
+		// stop-on-full has already dropped newer samples (same as the ICM-42688P and ICM-45686).
 		perf_count(_fifo_overflow_perf);
 
 		if (!FIFOReset()) {
