@@ -97,6 +97,10 @@ target_include_directories(mavlink_c
 		${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT_UAVIONIX}
 )
 
+if(CONFIG_UAVCAN_CAN_FORWARD)
+	set(mavlink_can_forward_srcs mavlink_can_forward.cpp)
+endif()
+
 px4_add_module(
 	MODULE modules__mavlink
 	MAIN mavlink
@@ -123,6 +127,7 @@ px4_add_module(
 		mavlink_ulog.cpp
 		mavlink_sign_control.cpp
 		MavlinkStatustextHandler.cpp
+		${mavlink_can_forward_srcs}
 		open_drone_id_translations.cpp
 		tune_publisher.cpp
 	MODULE_CONFIG

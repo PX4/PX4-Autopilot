@@ -300,7 +300,14 @@ int Dispatcher::send(const Frame& frame, MonotonicTime tx_deadline, MonotonicTim
         UAVCAN_ASSERT(0);
         return -ErrLogic;
     }
-    return canio_.send(can_frame, tx_deadline, blocking_deadline, iface_mask, qos, flags);
+    const int res = canio_.send(can_frame, tx_deadline, blocking_deadline, iface_mask, qos, flags);
+#if !UAVCAN_TINY
+    if ((res >= 0) && (tx_listener_ != UAVCAN_NULLPTR))  // 0: queued
+    {
+        tx_listener_->handleTxFrame(can_frame, iface_mask);
+    }
+#endif
+    return res;
 }
 
 void Dispatcher::cleanup(MonotonicTime ts)

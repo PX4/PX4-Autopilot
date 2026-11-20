@@ -126,6 +126,7 @@ static constexpr Entry SupportedCommandParams[] = {
 	{ 5003, 0x31, 0x01 }, // NAV_FENCE_CIRCLE_INCLUSION:  p1:radius; mission:p5-6:lat/lon
 	{ 5004, 0x31, 0x01 }, // NAV_FENCE_CIRCLE_EXCLUSION:  p1:radius; mission:p5-6:lat/lon
 	{ 5100, 0x70, 0x00 }, // NAV_RALLY_POINT:             mission:p5-7:lat/lon/alt; cmd:none
+	{32000, 0x00, 0x01 }, // CAN_FORWARD:                 cmd:p1:bus (1-based, 0 stops); not a mission item
 	{42600, 0x0F, 0x0F }, // DO_WINCH:                    p1-p4 all used
 };
 
