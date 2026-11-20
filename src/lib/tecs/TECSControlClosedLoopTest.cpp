@@ -538,9 +538,9 @@ TEST_F(TECSControlClosedLoopTest, AirspeedStepDownDefaultTuning)
 	// the pitch feedforward climbs with the kinetic energy the throttle is
 	// already removing, and the pitch integrator has to take it out again.
 	run(5.0f); EXPECT_NEAR(_state.V, _V_sp, 0.3f * AIRSPEED_STEP) << "at t=" << _t << " s";
-	run(5.0f); EXPECT_NEAR(_state.V, _V_sp, 0.2f * AIRSPEED_STEP) << "at t=" << _t << " s";
-	run(5.0f); EXPECT_NEAR(_state.V, _V_sp, 0.1f * AIRSPEED_STEP) << "at t=" << _t << " s";
-	run(5.0f); EXPECT_NEAR(_state.V, _V_sp, 0.1f * AIRSPEED_STEP) << "at t=" << _t << " s";
+	run(5.0f); EXPECT_NEAR(_state.V, _V_sp, 0.15f * AIRSPEED_STEP) << "at t=" << _t << " s";
+	run(5.0f); EXPECT_NEAR(_state.V, _V_sp, 0.10f * AIRSPEED_STEP) << "at t=" << _t << " s";
+	run(5.0f); EXPECT_NEAR(_state.V, _V_sp, 0.07f * AIRSPEED_STEP) << "at t=" << _t << " s";
 	run(10.0f); EXPECT_NEAR(_state.V, _V_sp, 0.05f * AIRSPEED_STEP) << "at t=" << _t << " s";
 	run(10.0f); EXPECT_NEAR(_state.V, _V_sp, 0.02f * AIRSPEED_STEP) << "at t=" << _t << " s";
 	run(10.0f); EXPECT_NEAR(_state.V, _V_sp, 0.01f * AIRSPEED_STEP) << "at t=" << _t << " s";
