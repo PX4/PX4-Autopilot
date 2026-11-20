@@ -16,22 +16,39 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Specifications {#specifications}
 
-| Component                 | Specification                                     |
-| ------------------------- | ------------------------------------------------- |
-| Processor                 | STM32H743VIT6, Arm Cortex-M7, 480 MHz, 2 MB flash |
-| Accelerometers/gyroscopes | Bosch BMI088 and InvenSense ICM-45686             |
-| Magnetometer              | IST8310                                           |
-| Barometer                 | ICP201xx                                          |
-| Parameter storage         | FM25V02A FRAM                                     |
-| Identity storage          | 24LC64 EEPROM for the unique product identifier   |
-| Flight logging            | microSD card                                      |
-| Motor/servo outputs       | 8 PWM/DShot outputs                               |
-| Expansion                 | 1 CAN bus, external I2C1, serial ports            |
-| Video                     | AT7456E analogue OSD and serial MSP OSD support   |
-| USB                       | USB Type-C                                        |
-| Board size                | 36 × 36 mm; 8 mm overall height                   |
-| Mounting                  | 30.5 × 30.5 mm pattern, 4 mm holes                |
-| Weight                    | 10 g                                              |
+### Processor {#processor}
+
+- **Main FMU processor:** [STM32H743VIT6](https://www.st.com/en/microcontrollers-microprocessors/stm32h743vi.html) (Arm Cortex-M7, 480MHz, 2MB flash, 1MB RAM)
+
+### Sensors {#sensors}
+
+- **IMU:** [Bosch BMI088](https://www.bosch-sensortec.com/en/products/motion-sensors/imus/bmi088/) (SPI2), [InvenSense ICM-45686](https://www.invensense.tdk.com/en-us/products/6-axis/icm-45686) (SPI3)
+- **Barometer:** InvenSense ICP-201xx (I2C2)
+- **Magnetometer:** [iSentek IST8310](https://assets.isentek.com/public/documents/datasheet/HFH0n8I7hQ-IST8310_Datasheet_V1.8_Web.pdf) (I2C2)
+
+### Interfaces {#interfaces}
+
+- **PWM outputs:** 8, all supporting DShot
+- **Serial ports:** 7 (`UART1`, `UART4`, `UART5`, `GPS`, `DJI`, `UART6`, and receive-only ESC telemetry on the ESC headers)
+- **I2C buses:** 2 (I2C2 internal; I2C1 external, on `GPS` and `I2C1`)
+- **CAN buses:** 1
+- **USB:** USB Type-C
+- **RC input:** Yes
+- **Parameter storage:** FRAM (FM25V02A)
+- **SD card:** microSD slot, for flight logging
+- **OSD:** AT7456E analogue OSD, and serial MSP OSD support
+- **Remote ID storage:** 24LC64 EEPROM for the unique product identifier, used by the `tustin_mach_rid` build
+
+### Electrical Data {#electrical_data}
+
+- **Input voltage:** 3S–8S on `VBAT` (ESC headers), or 5V from USB
+- **Power monitoring:** 1 analogue input (voltage, and current from `CUR` on the ESC headers)
+
+### Mechanical Data {#mechanical_data}
+
+- **Dimensions:** 36 x 36 x 8mm
+- **Weight:** 10g
+- **Mounting hole spacing:** 30.5 x 30.5mm, 4mm holes
 
 ## Where to Buy {#store}
 
@@ -41,7 +58,7 @@ See the [Tustin MACH product page](https://tustindynamics.com/products/tustin-ma
 ## Pinouts {#pinouts}
 
 The following connector views and signal order are from the [manufacturer's pinout reference](https://tustindynamics.com/zh/products/tustin-mach).
-All signal connectors use SH1.0 (1.0 mm pitch); USB uses a Type-C connector.
+All signal connectors use SH1.0 (1.0mm pitch); USB uses a Type-C connector.
 Read horizontal connectors from left to right and vertical connectors from top to bottom, with the board oriented as shown in the corresponding image.
 The order below describes the board connectors, not the view into a mating cable plug.
 
@@ -96,7 +113,7 @@ In particular, the connector called `GPS2` in PX4 is the 12V DJI connector: do n
 Check both voltage and signal order before connecting peripherals or an ESC cable.
 :::
 
-The default analogue battery settings use a voltage divider of 21.0 and a current scale of 40 A/V.
+The default analogue battery settings use a voltage divider of 21.0 and a current scale of 40A/V.
 Set the battery cell count and calibrate voltage/current measurement for the connected power hardware using [Power Setup](../config/battery.md).
 
 ## PWM Outputs {#pwm_outputs}
