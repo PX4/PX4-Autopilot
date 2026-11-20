@@ -138,7 +138,7 @@ bool GeofencePathChecker::pruneCandidates(ProjectionReferenceBatch &batch) const
 
 		// Segments keep GF_CONT_H_MARGIN from the polygons and circles, like the legs of a mission.
 		const bool emergency_only = is_vehicle && vehicleOutsideContGeofence(anchor);
-		const float margin = emergency_only ? 0.f : _geofence.getContGeofenceMargin();
+		const float margin = emergency_only ? 0.f : _geofence.getContGeofencePlanMargin();
 
 		for (uint8_t j = 0; j < reference.candidate_buffer.count; ++j) {
 			const Position &projection = reference.candidate_buffer.candidates[j].projection;
@@ -199,7 +199,7 @@ bool GeofencePathChecker::checkPath(const Position &vehicle, const Position &end
 	}
 
 	const bool emergency_only = vehicleOutsideContGeofence(vehicle);
-	const float margin = emergency_only ? 0.f : _geofence.getContGeofenceMargin();
+	const float margin = emergency_only ? 0.f : _geofence.getContGeofencePlanMargin();
 	const Geofence::PathCheck path{{vehicle.lat, vehicle.lon}, {end.lat, end.lon}, 0.f, margin};
 	return _geofence.checkPathBatch(&path, 1, &clear);
 }

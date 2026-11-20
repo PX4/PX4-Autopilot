@@ -1943,7 +1943,7 @@ float Navigator::geofence_avoidance_margin() const
 	// that the margin is large enough to turn around / stop / carry out the desired failsafe action in time.
 
 	// Return also keeps the contingency geofence margin, so its route does not trigger GF_CONT_ACTION.
-	const float contingency_margin = _geofence.getContGeofenceMargin();
+	const float contingency_margin = _geofence.getContGeofencePlanMargin();
 
 	if (_vstatus.is_vtol || _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 

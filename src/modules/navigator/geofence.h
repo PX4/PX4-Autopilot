@@ -189,10 +189,13 @@ public:
 #endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 	}
 
+	/** GF_CONT_H_MARGIN as applied to the polygons and circles of the geofence plan, not to the distance from Home. */
+	float getContGeofencePlanMargin() const { return getContGeofenceMargin(); }
+
 	/** True if the position keeps GF_CONT_H_MARGIN from the polygons and circles, or the margin is disabled. */
 	bool isInsideContGeofence(double lat, double lon)
 	{
-		const float margin = getContGeofenceMargin();
+		const float margin = getContGeofencePlanMargin();
 		return margin <= FLT_EPSILON || isCircleInside(lat, lon, margin);
 	}
 
