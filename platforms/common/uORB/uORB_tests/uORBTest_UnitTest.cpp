@@ -39,7 +39,9 @@
 #include <errno.h>
 #include <math.h>
 #include <lib/cdev/CDev.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
+#include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
 
 uORBTest::UnitTest &uORBTest::UnitTest::instance()
@@ -324,6 +326,32 @@ int uORBTest::UnitTest::test_single()
 		return test_fail("orb_unadvertise failed: %i", ret);
 	}
 
+	uORB::Publication<orb_test_s> surviving_pub{ORB_ID::orb_test};
+	uORB::Subscription sub{ORB_ID::orb_test};
+	t.val = 3;
+
+	if (!surviving_pub.publish(t) || !sub.update(&u) || u.val != t.val) {
+		return test_fail("initial publication failed");
+	}
+
+	{
+		uORB::Publication<orb_test_s> temporary_pub{ORB_ID::orb_test};
+		t.val = 4;
+
+		if (!temporary_pub.publish(t) || !sub.update(&u) || u.val != t.val) {
+			return test_fail("second publication failed");
+		}
+	}
+
+	t.val = 5;
+
+	if (!surviving_pub.publish(t) || !sub.update(&u) || u.val != t.val) {
+		return test_fail("publication lost after another publisher was destroyed");
+	}
+
+	// Leave the topic unadvertised for the multi-instance tests.
+	surviving_pub.unadvertise();
+
 	return test_note("PASS single-topic test");
 }
 
@@ -331,6 +359,14 @@ int uORBTest::UnitTest::test_multi()
 {
 	/* this routine tests the multi-topic support */
 	test_note("try multi-topic support");
+
+	{
+		uORB::PublicationMulti<orb_test_s> temporary_pub{ORB_ID::orb_multitest};
+
+		if (!temporary_pub.advertise() || temporary_pub.get_instance() != 0) {
+			return test_fail("multi-instance advertisement failed");
+		}
+	} // Destruction must release instance 0 for reuse below.
 
 	orb_test_s t{};
 	orb_test_s u{};

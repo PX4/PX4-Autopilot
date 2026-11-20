@@ -103,17 +103,7 @@ private:
 	// Subscriptions (per estimator instance)
 	struct EstimatorInstance {
 
-		EstimatorInstance(EKF2Selector *selector, uint8_t i) :
-			estimator_attitude_sub{selector, ORB_ID(estimator_attitude), i},
-			estimator_status_sub{selector, ORB_ID(estimator_status), i},
-			estimator_local_position_sub{ORB_ID(estimator_local_position), i},
-			estimator_global_position_sub{ORB_ID(estimator_global_position), i},
-			estimator_odometry_sub{ORB_ID(estimator_odometry), i},
-			estimator_wind_sub{ORB_ID(estimator_wind), i},
-			instance(i)
-		{
-			healthy.set_hysteresis_time_from(false, 1_s);
-		}
+		EstimatorInstance(EKF2Selector *selector, uint8_t i);
 
 		uORB::SubscriptionCallbackWorkItem estimator_attitude_sub;
 		uORB::SubscriptionCallbackWorkItem estimator_status_sub;
@@ -253,10 +243,10 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::EKF2_SEL_ERR_RED>) _param_ekf2_sel_err_red,
-		(ParamFloat<px4::params::EKF2_SEL_IMU_RAT>) _param_ekf2_sel_imu_angle_rate,
-		(ParamFloat<px4::params::EKF2_SEL_IMU_ANG>) _param_ekf2_sel_imu_angle,
-		(ParamFloat<px4::params::EKF2_SEL_IMU_ACC>) _param_ekf2_sel_imu_accel,
-		(ParamFloat<px4::params::EKF2_SEL_IMU_VEL>) _param_ekf2_sel_imu_velocity
+		(ParamFloat<px4::params::EKF2_SEL_IMU_RAT>) _param_ekf2_sel_imu_rat,
+		(ParamFloat<px4::params::EKF2_SEL_IMU_ANG>) _param_ekf2_sel_imu_ang,
+		(ParamFloat<px4::params::EKF2_SEL_IMU_ACC>) _param_ekf2_sel_imu_acc,
+		(ParamFloat<px4::params::EKF2_SEL_IMU_VEL>) _param_ekf2_sel_imu_vel
 	)
 };
 #endif // !EKF2SELECTOR_HPP

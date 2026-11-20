@@ -38,3 +38,5 @@ px4_add_library(tunes
 	tunes.h
 )
 target_link_libraries(tunes PRIVATE circuit_breaker)
+
+px4_add_functional_gtest(SRC TunesTest.cpp LINKLIBS tunes)

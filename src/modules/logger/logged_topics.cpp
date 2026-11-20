@@ -48,7 +48,6 @@ void LoggedTopics::add_default_topics()
 	add_topic("action_request");
 	add_topic("actuator_armed");
 	add_optional_topic("actuator_controls_status_0", 300);
-	add_topic("airspeed", 1000);
 	add_optional_topic("airspeed_validated", 200);
 	add_optional_topic("autotune_attitude_control_status", 100);
 	add_topic_multi("battery_info", 5000, 3);
@@ -68,6 +67,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("external_ins_attitude");
 	add_optional_topic("external_ins_global_position");
 	add_optional_topic("external_ins_local_position");
+	add_topic("esc_eeprom_read");
 	add_topic("esc_status", 100);
 	add_topic("failure_detector_status", 100);
 	add_topic("failsafe_flags");
@@ -111,15 +111,6 @@ void LoggedTopics::add_default_topics()
 	add_topic("position_setpoint_triplet", 200);
 	add_optional_topic("px4io_status");
 	add_topic("radio_status");
-	add_optional_topic("rover_attitude_setpoint", 100);
-	add_optional_topic("rover_attitude_status", 100);
-	add_optional_topic("rover_position_setpoint", 100);
-	add_optional_topic("rover_rate_setpoint", 100);
-	add_optional_topic("rover_rate_status", 100);
-	add_optional_topic("rover_speed_setpoint", 100);
-	add_optional_topic("rover_speed_status", 100);
-	add_optional_topic("rover_steering_setpoint", 100);
-	add_optional_topic("rover_throttle_setpoint", 100);
 	add_topic("rtl_time_estimate", 1000);
 	add_topic("rtl_status", 2000);
 	add_optional_topic("sensor_airflow", 100);
@@ -130,6 +121,16 @@ void LoggedTopics::add_default_topics()
 	add_topic("sensors_status_gnss", 200);
 	add_topic("sensors_status_imu", 200);
 	add_optional_topic("spoilers_setpoint", 1000);
+	add_optional_topic("surface_vehicle_attitude_setpoint", 100);
+	add_optional_topic("surface_vehicle_attitude_status", 100);
+	add_optional_topic("surface_vehicle_course_setpoint", 100);
+	add_optional_topic("surface_vehicle_position_setpoint", 100);
+	add_optional_topic("surface_vehicle_rate_setpoint", 100);
+	add_optional_topic("surface_vehicle_rate_status", 100);
+	add_optional_topic("surface_vehicle_speed_setpoint", 100);
+	add_optional_topic("surface_vehicle_speed_status", 100);
+	add_optional_topic("surface_vehicle_steering_setpoint", 100);
+	add_optional_topic("surface_vehicle_thrust_setpoint", 100);
 	add_topic("system_power", 500);
 	add_optional_topic("takeoff_status", 1000);
 	add_optional_topic("tecs_status", 200);
@@ -170,6 +171,7 @@ void LoggedTopics::add_default_topics()
 
 	// multi topics
 	add_optional_topic_multi("actuator_outputs", 100, 3);
+	add_topic_multi("airspeed", 1000, 3);
 	add_optional_topic_multi("airspeed_wind", 1000, 4);
 	add_optional_topic_multi("control_allocator_status", 200, 2);
 	add_topic_multi("fuel_tank_status", 200, 3);
@@ -238,7 +240,7 @@ void LoggedTopics::add_default_topics()
 
 	// log all raw sensors at minimal rate (at least 1 Hz)
 	add_topic_multi("battery_status", 200, 3);
-	add_topic_multi("differential_pressure", 1000, 2);
+	add_topic_multi("differential_pressure", 1000, 3);
 	add_topic_multi("distance_sensor", 1000, 2);
 	add_optional_topic_multi("sensor_accel", 1000, 4);
 	add_topic_multi("sensor_baro", 1000, 4);
@@ -251,7 +253,7 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("vehicle_imu", 500, 4);
 	add_topic_multi("vehicle_imu_status", 1000, 4);
 	add_optional_topic_multi("vehicle_magnetometer", 500, 4);
-	add_topic("vehicle_optical_flow", 500);
+	add_topic_multi("vehicle_optical_flow", 500);
 	add_topic_multi("aux_global_position", 500);
 	add_optional_topic("pps_capture");
 
@@ -353,7 +355,7 @@ void LoggedTopics::add_estimator_replay_topics()
 	// current EKF2 subscriptions
 	add_topic("airspeed");
 	add_topic("airspeed_validated");
-	add_topic("vehicle_optical_flow");
+	add_topic_multi("vehicle_optical_flow");
 	add_topic("sensor_combined");
 	add_topic("sensor_selection");
 	add_topic("vehicle_air_data");
@@ -426,7 +428,7 @@ void LoggedTopics::add_high_rate_sensors_topics()
 	add_topic("estimator_aid_src_baro_hgt", 10);
 	add_topic("vehicle_air_data", 10);
 	add_topic("vehicle_magnetometer", 10);
-	add_topic("vehicle_thrust_setpoint", 10);
+	add_topic("wheel_encoders", 10);
 }
 
 void LoggedTopics::add_mavlink_tunnel()

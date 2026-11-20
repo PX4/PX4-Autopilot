@@ -155,6 +155,13 @@ private:
 	void fill_node_info();
 	int init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events);
 
+#if defined(CONFIG_SYSTEMCMDS_BL_UPDATE)
+	void update_bootloader();
+
+	param_t _param_sys_bl_update{param_find("SYS_BL_UPDATE")};
+	hrt_abstime _bootloader_update_time{0};
+#endif // CONFIG_SYSTEMCMDS_BL_UPDATE
+
 	px4::atomic_bool	_task_should_exit{false};	///< flag to indicate to tear down the CAN driver
 
 	enum {Booted, Interfaced, Allocation, Allocated,  Done}		_init_state{Booted};		///< State of the boot.

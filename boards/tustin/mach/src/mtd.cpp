@@ -42,10 +42,12 @@ static const px4_mft_device_t fram_device = {
 	.devid = SPIDEV_FLASH(0),
 };
 
+#if defined(CONFIG_BOARD_HAS_RID_EEPROM)
 static const px4_mft_device_t rid_eeprom_device = {
 	.bus_type = px4_mft_device_t::I2C,
 	.devid = PX4_MK_I2C_DEVID(2, 0x51),
 };
+#endif
 
 static const px4_mtd_entry_t fram = {
 	.device = &fram_device,
@@ -59,6 +61,7 @@ static const px4_mtd_entry_t fram = {
 	},
 };
 
+#if defined(CONFIG_BOARD_HAS_RID_EEPROM)
 static const px4_mtd_entry_t rid_eeprom = {
 	.device = &rid_eeprom_device,
 	.npart = 1,
@@ -71,12 +74,19 @@ static const px4_mtd_entry_t rid_eeprom = {
 		},
 	},
 };
+#endif
 
 static const px4_mtd_manifest_t board_mtd_config = {
+#if defined(CONFIG_BOARD_HAS_RID_EEPROM)
 	.nconfigs = 2,
+#else
+	.nconfigs = 1,
+#endif
 	.entries = {
 		&fram,
+#if defined(CONFIG_BOARD_HAS_RID_EEPROM)
 		&rid_eeprom,
+#endif
 	},
 };
 

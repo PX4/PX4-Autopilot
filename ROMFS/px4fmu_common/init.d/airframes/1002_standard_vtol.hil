@@ -40,7 +40,6 @@ param set-default MC_PITCHRATE_P 0.2
 param set-default MC_ROLL_P 6
 param set-default MC_ROLLRATE_P 0.3
 param set-default MIS_TAKEOFF_ALT 10
-param set-default MIS_YAW_TMT 10
 
 param set-default MPC_THR_MIN 0.1
 param set-default MPC_XY_P 0.8
@@ -68,7 +67,6 @@ param set-default CA_ROTOR4_AZ 0
 param set-default CA_ROTOR4_PX 0.2
 
 # Square quadrotor X PX4 numbering
-param set-default CA_ROTOR_COUNT 4
 param set-default CA_ROTOR0_PX 1
 param set-default CA_ROTOR0_PY 1
 param set-default CA_ROTOR1_PX -1

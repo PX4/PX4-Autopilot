@@ -64,8 +64,9 @@ private:
 		static constexpr size_t COMMAND_LONG_SIZE = MAVLINK_MSG_ID_COMMAND_LONG_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 		int vehicle_command_updates = 0;
 
-		while ((_mavlink->get_free_tx_buf() >= COMMAND_LONG_SIZE)
-		       && _vehicle_command_sub.updated() && (vehicle_command_updates < vehicle_command_s::ORB_QUEUE_LENGTH)) {
+		// check for a new command first: the buffer space check is an ioctl on serial links
+		while (_vehicle_command_sub.updated() && (_mavlink->get_free_tx_buf() >= COMMAND_LONG_SIZE)
+		       && (vehicle_command_updates < vehicle_command_s::ORB_QUEUE_LENGTH)) {
 
 			vehicle_command_updates++;
 
@@ -88,13 +89,13 @@ private:
 								    && (cmd.source_component == cmd.target_component);
 
 				if (!cmd.from_external && !px4_internal_cmd && !target_system_internal) {
-					PX4_DEBUG("sending command %ld to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
+					PX4_DEBUG("sending command %ld to %" PRIu32 "/%d", cmd.command, cmd.target_system, cmd.target_component);
 
 					MavlinkCommandSender::instance().handle_vehicle_command(cmd, _mavlink->get_channel());
 					sent = true;
 
 				} else {
-					PX4_DEBUG("not forwarding command %ld to %d/%d", cmd.command, cmd.target_system, cmd.target_component);
+					PX4_DEBUG("not forwarding command %ld to %" PRIu32 "/%d", cmd.command, cmd.target_system, cmd.target_component);
 				}
 			}
 		}

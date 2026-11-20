@@ -34,6 +34,7 @@
 #include "ManualControl.hpp"
 
 #include <px4_platform_common/events.h>
+#include <lib/mathlib/mathlib.h>
 #include <lib/systemlib/mavlink_log.h>
 #include <uORB/topics/vehicle_command.h>
 
@@ -355,7 +356,8 @@ void ManualControl::updateParams()
 	_stick_arm_hysteresis.set_hysteresis_time_from(false, 1_s);
 	_stick_disarm_hysteresis.set_hysteresis_time_from(false, 1_s);
 	_button_arm_hysteresis.set_hysteresis_time_from(false, 1_s);
-	_stick_kill_hysteresis.set_hysteresis_time_from(false, _param_man_kill_gest_t.get() * 1_s);
+	// A negative MAN_KILL_GEST_T disables the gesture, don't convert it to an unsigned time
+	_stick_kill_hysteresis.set_hysteresis_time_from(false, math::max(_param_man_kill_gest_t.get(), 0.f) * 1_s);
 
 	_selector.setRcInMode(_param_com_rc_in_mode.get());
 	_selector.setTimeout(_param_com_rc_loss_t.get() * 1_s);
@@ -460,32 +462,32 @@ void ManualControl::evaluateModeSlot(uint8_t mode_slot)
 
 	case manual_control_switches_s::MODE_SLOT_1:
 		sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT,
-				  navStateFromParam(_param_fltmode_1.get()));
+				  navStateFromParam(_param_com_fltmode1.get()));
 		break;
 
 	case manual_control_switches_s::MODE_SLOT_2:
 		sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT,
-				  navStateFromParam(_param_fltmode_2.get()));
+				  navStateFromParam(_param_com_fltmode2.get()));
 		break;
 
 	case manual_control_switches_s::MODE_SLOT_3:
 		sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT,
-				  navStateFromParam(_param_fltmode_3.get()));
+				  navStateFromParam(_param_com_fltmode3.get()));
 		break;
 
 	case manual_control_switches_s::MODE_SLOT_4:
 		sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT,
-				  navStateFromParam(_param_fltmode_4.get()));
+				  navStateFromParam(_param_com_fltmode4.get()));
 		break;
 
 	case manual_control_switches_s::MODE_SLOT_5:
 		sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT,
-				  navStateFromParam(_param_fltmode_5.get()));
+				  navStateFromParam(_param_com_fltmode5.get()));
 		break;
 
 	case manual_control_switches_s::MODE_SLOT_6:
 		sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT,
-				  navStateFromParam(_param_fltmode_6.get()));
+				  navStateFromParam(_param_com_fltmode6.get()));
 		break;
 
 	default:

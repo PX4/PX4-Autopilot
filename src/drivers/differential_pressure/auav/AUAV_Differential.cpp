@@ -36,7 +36,7 @@
 #include <cctype>
 
 AUAV_Differential::AUAV_Differential(const I2CSPIDriverConfig &config) :
-	AUAV(config)
+	AUAV(config, STATUS_BYTE_EXPECTED_DIFF)
 {
 	/* Initialize cal_range from parameter as fallback value */
 	int32_t hw_model = 0;

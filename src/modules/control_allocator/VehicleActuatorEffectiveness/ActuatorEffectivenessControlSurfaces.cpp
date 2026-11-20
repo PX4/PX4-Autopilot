@@ -33,6 +33,7 @@
 
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/events.h>
+#include <lib/mathlib/mathlib.h>
 
 #include "ActuatorEffectivenessControlSurfaces.hpp"
 
@@ -59,7 +60,7 @@ ActuatorEffectivenessControlSurfaces::ActuatorEffectivenessControlSurfaces(Modul
 		_param_handles[i].scale_spoiler = param_find(buffer);
 	}
 
-	_flaps_setpoint_with_slewrate.setSlewRate(_param_ca_flap_slew.get());
+	_flaps_setpoint_with_slewrate.setSlewRate(_param_ca_sv_flap_slew.get());
 	_spoilers_setpoint_with_slewrate.setSlewRate(kSpoilersSlewRate);
 
 	_count_handle = param_find("CA_SV_CS_COUNT");
@@ -76,8 +77,16 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 		return;
 	}
 
+	// The parameter range is not enforced when it is set
+	if (_count < 0) {
+		_count = 0;
+
+	} else if (_count > MAX_COUNT) {
+		_count = MAX_COUNT;
+	}
+
 	// Update flap slewrates
-	_flaps_setpoint_with_slewrate.setSlewRate(_param_ca_flap_slew.get());
+	_flaps_setpoint_with_slewrate.setSlewRate(_param_ca_sv_flap_slew.get());
 
 	// Helper to check if a PWM center parameter is enabled, and clamp it to valid range
 	auto check_pwm_center = [](const char *prefix, int channel) -> bool {

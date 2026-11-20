@@ -49,6 +49,25 @@ void Ekf::initTerrain()
 	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, sq(_params.ekf2_min_rng));
 }
 
+void Ekf::resetTerrainTo(const float new_terrain, const float var)
+{
+	const float delta_terrain = new_terrain - _state.terrain;
+
+	_state.terrain = new_terrain;
+	P.uncorrelateCovarianceSetVariance<State::terrain.dof>(State::terrain.idx, var);
+
+	// record the state change
+	if (_state_reset_status.reset_count.hagl == _state_reset_count_prev.hagl) {
+		_state_reset_status.hagl_change = delta_terrain;
+
+	} else {
+		// there's already a reset this update, accumulate total delta
+		_state_reset_status.hagl_change += delta_terrain;
+	}
+
+	_state_reset_status.reset_count.hagl++;
+}
+
 void Ekf::controlTerrainFakeFusion()
 {
 	// If we are on ground, store the local position and time to use as a reference
@@ -84,7 +103,7 @@ void Ekf::updateTerrainValidity()
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 
 	if (_control_status.flags.opt_flow_terrain
-	    && isRecent(_aid_src_optical_flow.time_last_fuse, _params.hgt_fusion_timeout_max)
+	    && isRecent(_flow_aiding.timeLastFuse(), _params.hgt_fusion_timeout_max)
 	   ) {
 		valid_opt_flow_terrain = true;
 	}

@@ -83,10 +83,24 @@ public:
 		param_set(param_find("COM_FLTMODE5"), &mode);
 		mode = NAVIGATION_STATE_AUTO_MISSION;
 		param_set(param_find("COM_FLTMODE6"), &mode);
+
+		// Drop outputs left over from a previous test
+		while (_manual_control_setpoint_sub.update()) {}
+
+		while (_action_request_sub.update()) {}
+	}
+
+	void TearDown() override
+	{
+		// Hide this test's inputs from the next test: empty switch or status samples are not inert
+		_manual_control_switches_pub.unadvertise();
+		_manual_control_input_pub.unadvertise();
+		_vehicle_status_pub.unadvertise();
 	}
 
 	uORB::Publication<manual_control_switches_s> _manual_control_switches_pub{ORB_ID(manual_control_switches)};
 	uORB::Publication<manual_control_setpoint_s> _manual_control_input_pub{ORB_ID(manual_control_input)};
+	uORB::Publication<vehicle_status_s> _vehicle_status_pub{ORB_ID(vehicle_status)};
 	uORB::SubscriptionData<manual_control_setpoint_s> _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::SubscriptionData<action_request_s> _action_request_sub{ORB_ID(action_request)};
 
@@ -309,8 +323,7 @@ TEST_F(SwitchTest, ModeSwitchInitialization)
 TEST_F(SwitchTest, ModeSwitchInitializationArmed)
 {
 	// GIVEN: vehicle is armed
-	uORB::Publication<vehicle_status_s> vehicle_status_pub{ORB_ID(vehicle_status)};
-	vehicle_status_pub.publish({.arming_state = vehicle_status_s::ARMING_STATE_ARMED});
+	_vehicle_status_pub.publish({.arming_state = vehicle_status_s::ARMING_STATE_ARMED});
 
 	// GIVEN: valid stick input from RC
 	_manual_control_input_pub.publish({.timestamp_sample = _timestamp, .valid = true, .data_source = manual_control_setpoint_s::SOURCE_RC});

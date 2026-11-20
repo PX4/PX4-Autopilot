@@ -88,6 +88,10 @@ bool		_debug		= false;
 static enum SUMD_DECODE_STATE _decode_state = SUMD_DECODE_STATE_UNSYNCED;
 static uint8_t _rxlen;
 
+// Channel count of the frame being received. Kept here rather than read back from
+// _rxpacket, because rc_decode_buf is shared with the other RC decoders.
+static uint8_t _rxchannels;
+
 static ReceiverFcPacketHoTT &_rxpacket = rc_decode_buf._hottrxpacket;
 
 uint16_t sumd_crc16(uint16_t crc, uint8_t value)
@@ -106,6 +110,13 @@ uint8_t sumd_crc8(uint8_t crc, uint8_t value)
 {
 	crc += value;
 	return crc;
+}
+
+void sumd_reset()
+{
+	_decode_state = SUMD_DECODE_STATE_UNSYNCED;
+	_rxlen = 0;
+	_rxchannels = 0;
 }
 
 int sumd_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channel_count, uint16_t *channels,
@@ -171,6 +182,7 @@ int sumd_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channe
 	case SUMD_DECODE_STATE_GOT_STATE:
 		if (byte >= 2 && byte <= SUMD_MAX_CHANNELS) {
 			_rxpacket.length = byte;
+			_rxchannels = byte;
 
 			if (_sumd) {
 				_crc16 = sumd_crc16(_crc16, byte);
@@ -204,7 +216,7 @@ int sumd_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channe
 
 		_rxlen++;
 
-		if (_rxlen <= ((_rxpacket.length * 2))) {
+		if (_rxlen <= _rxchannels * 2) {
 			if (_debug) {
 				printf(" SUMD_DECODE_STATE_GOT_DATA[%d]: %x\n", _rxlen - 2, byte) ;
 			}
@@ -314,11 +326,11 @@ int sumd_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channe
 			*failsafe = (_rxpacket.status == SUMD_ID_FAILSAFE);
 
 			/* received Channels */
-			if ((uint16_t)_rxpacket.length > max_chan_count) {
-				_rxpacket.length = (uint8_t) max_chan_count;
+			if ((uint16_t)_rxchannels > max_chan_count) {
+				_rxchannels = (uint8_t) max_chan_count;
 			}
 
-			*channel_count = (uint16_t)_rxpacket.length;
+			*channel_count = (uint16_t)_rxchannels;
 
 			/* decode the actual packet */
 			/* reorder first 4 channels */
@@ -335,7 +347,7 @@ int sumd_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channe
 			/* we start at channel 5(index 4) */
 			unsigned chan_index = 4;
 
-			for (i = 4; i < _rxpacket.length; i++) {
+			for (i = 4; i < _rxchannels; i++) {
 				if (_debug) {
 					printf("ch[%d] : %x %x [ %x    %d ]\n", i + 1, _rxpacket.sumd_data[i * 2 + 1], _rxpacket.sumd_data[i * 2 + 2],
 					       ((_rxpacket.sumd_data[i * 2 + 1] << 8) | _rxpacket.sumd_data[i * 2 + 2]) >> 3,

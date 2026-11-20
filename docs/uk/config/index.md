@@ -49,6 +49,10 @@ Setup for these and other sensors is located in [Sensor Hardware & Setup](../sen
 
 - [Joystick Setup](../config/joystick.md)
 
+Integrated GCS:
+
+- [Integrated Ground Control Stations](../config/integrated_gcs.md)
+
 ### Конфігурація безпеки
 
 - [Battery Estimation Tuning](../config/battery.md) (requires [Power Module](../power_module/index.md))

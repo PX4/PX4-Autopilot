@@ -124,6 +124,7 @@ public:
 		uint8_t vehicle_type;
 		bool vtol_in_transition_mode{false};
 		bool mission_finished{false};
+		bool fw_mission_takeoff{false}; ///< fixed-wing vehicle is flying the takeoff item of a mission
 	};
 
 	FailsafeBase(ModuleParams *parent);
@@ -194,6 +195,7 @@ protected:
 		Cause cause{Cause::Generic};
 		UserTakeoverAllowed allow_user_takeover{UserTakeoverAllowed::Auto};
 		bool can_be_deferred{true};
+		bool clear_during_delay{false}; ///< also clear if the condition clears during the Hold delay (COM_FAIL_ACT_T)
 
 		bool state_failure{false}; ///< used when the clear_condition isn't set to clear immediately
 		bool activated{false}; ///< true if checkFailsafe was called during current update

@@ -117,7 +117,7 @@ void Ekf::fuseRangingBeacon(const rangingBeaconSample &sample)
 		return;
 	}
 
-	VectorState K = P * H / innov_var;
+	VectorState K = computeKalmanGain(H, innov_var);
 	K(State::pos.idx + 2) = 0.f; // altitude is handled by height reference
 	measurementUpdate(K, H, R, innovation);
 

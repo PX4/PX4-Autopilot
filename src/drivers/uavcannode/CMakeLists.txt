@@ -126,6 +126,11 @@ if(CONFIG_UAVCANNODE_COMMAND_SHELL)
 	)
 endif()
 
+set(UAVCANNODE_BL_UPDATE_LIBS)
+if(CONFIG_SYSTEMCMDS_BL_UPDATE)
+	list(APPEND UAVCANNODE_BL_UPDATE_LIBS bl_update_flash)
+endif()
+
 px4_add_module(
 	MODULE drivers__uavcannode
 	MAIN uavcannode
@@ -162,4 +167,11 @@ px4_add_module(
 
 		# within libuavcan
 		uavcan
+
+		${UAVCANNODE_BL_UPDATE_LIBS}
 	)
+
+if(CONFIG_SYSTEMCMDS_BL_UPDATE)
+	target_compile_definitions(drivers__uavcannode PRIVATE
+		UAVCANNODE_BOOTLOADER_FILE="/etc/extras/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin")
+endif()

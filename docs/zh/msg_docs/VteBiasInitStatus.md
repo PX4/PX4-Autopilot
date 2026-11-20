@@ -18,7 +18,7 @@ Subscribed by: logger only, to verify that the bias settles before the estimator
 | <a id="fld_timestamp"></a>timestamp                              | `uint64`     | us                                                               |            | Time since system start                                                                                                                |
 | <a id="fld_raw_bias"></a>raw_bias           | `float32[3]` | m [NED]      |            | Current GNSS-vision bias sample                                                                                                        |
 | <a id="fld_filtered_bias"></a>filtered_bias | `float32[3]` | m [NED]      |            | Low-pass filtered bias sample                                                                                                          |
-| <a id="fld_delta_norm"></a>delta_norm       | `float32`    | 米                                                                |            | norm(raw_bias_k - raw_bias_k-1) |
+| <a id="fld_delta_norm"></a>delta_norm       | `float32`    | m                                                                |            | norm(raw_bias_k - raw_bias_k-1) |
 
 ## Source Message
 

@@ -808,7 +808,7 @@
   },
   {
     "type": "UrlToLocalSite",
-    "fileRelativeToRoot": "en\\gps_compass\\rtk_gps_hex_hereplus.md",
+    "fileRelativeToRoot": "en\\gps_compass\\rtk_gps_cubepilot_hereplus.md",
     "link": {
       "url": "https://docs.px4.io/v1.11/en/gps_compass/rtk_gps_hex_hereplus.html",
       "text": "PX4v1.11 docs"
@@ -1598,7 +1598,7 @@
   },
   {
     "type": "UrlToLocalSite",
-    "fileRelativeToRoot": "en\\gps_compass\\rtk_gps_hex_hereplus.md",
+    "fileRelativeToRoot": "en\\gps_compass\\rtk_gps_cubepilot_hereplus.md",
     "link": {
       "url": "https://docs.px4.io/v1.11/en/gps_compass/rtk_gps_hex_hereplus",
       "text": "PX4v1.11 docs"
@@ -1913,5 +1913,13 @@
     },
     "hideReason": "certificate expired 2026-09-14; recheck before expiry",
     "expiry": "2027-03-23"
+  },
+  {
+    "link": {
+      "url": "https://3dr.wiki/autopilots/control-n1/",
+      "text": ""
+    },
+    "hideReason": "TLS certificate does not cover 3dr.wiki (site serves a *.netlify.app certificate), so it fails in a browser too; vendor hosting issue, recheck at expiry",
+    "expiry": "2027-04-12"
   }
 ]

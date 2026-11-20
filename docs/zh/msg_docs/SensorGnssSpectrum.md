@@ -6,8 +6,7 @@ pageClass: is-wide-page
 
 GNSS spectrum analysis.
 
-Reports a basic RF spectrum analysis for a GNSS receiver, decoded from the u-blox UBX-MON-SPAN
-message (enabled via the GPS_UBX_SPECTRUM parameter).
+Reports a basic RF spectrum analysis for a GNSS receiver, decoded from the u-blox UBX-MON-SPAN message.
 Published by the `gps` driver (UBX protocol only), once per RF block, via the block-specific topics below.
 The center frequency of bin i is: f(i) = center_frequency + spectrum_span \* (i - 127) / 256
 
@@ -37,8 +36,7 @@ Click here to see original file
 ```c
 # GNSS spectrum analysis
 #
-# Reports a basic RF spectrum analysis for a GNSS receiver, decoded from the u-blox UBX-MON-SPAN
-# message (enabled via the GPS_UBX_SPECTRUM parameter).
+# Reports a basic RF spectrum analysis for a GNSS receiver, decoded from the u-blox UBX-MON-SPAN message.
 # Published by the `gps` driver (UBX protocol only), once per RF block, via the block-specific topics below.
 # The center frequency of bin i is: f(i) = center_frequency + spectrum_span * (i - 127) / 256
 

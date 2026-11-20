@@ -123,6 +123,13 @@ public:
 
 	static int        unadvertise(orb_advert_t handle);
 
+	/**
+	 * Publish data known to match this node's topic; the typed Publication
+	 * wrappers guarantee that. The static publish() validates first.
+	 * @return PX4_OK, or PX4_ERROR with errno set
+	 */
+	int publish_data(const void *data);
+
 #ifdef CONFIG_ORB_COMMUNICATOR
 	/**
 	 * processes a request for topic advertisement from remote
@@ -292,7 +299,7 @@ private:
 	List<uORB::SubscriptionCallback *>	_callbacks;
 
 	const uint8_t _instance; /**< orb multi instance identifier */
-	px4::atomic_bool _advertised{false};  /**< has ever been advertised (not necessarily published data yet) */
+	px4::atomic_bool _advertised{false};  /**< set on advertise, cleared on unadvertise; subscribers only read while set */
 
 	int8_t _subscriber_count{0};
 

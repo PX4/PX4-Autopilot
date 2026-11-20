@@ -19,7 +19,7 @@ parameters:
       increment: 0.01
     RWTO_PSP:
       description:
-        short: Pitch setpoint during taxi / before rotation
+        short: Absolute pitch setpoint during taxi / before rotation
         long: |-
           Pitch setpoint during taxi / before takeoff rotation airspeed is reached
 

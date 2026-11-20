@@ -193,7 +193,7 @@ Pilots can control a vehicle manually using either a [Radio Control (RC) System]
 Системи з джойстиком використовують QGroundControl для кодування інформації керування з "стандартного" ігрового джойстика комп'ютера у повідомлення MAVLink та надсилають її до апарату за допомогою (спільного) радіоканалу телеметрії.
 Вони можуть використовуватися для більшості випадків ручного польоту, таких як зліт, обстеження тощо, за умови, що ваш канал телеметрії має достатньо високу пропускну спроможність / низьку затримку.
 
-Джойстики часто використовуються в інтегрованих GCS / системах ручного керування, тому що інтеграція джойстика дешевша та простіша, ніж окремої системи радіокерування, і для більшості випадків використання нижча затримка не має значення.
+Joysticks are often used in [integrated GCS](../config/integrated_gcs.md)/manual control systems because it is cheaper and easier to integrate a joystick than a separate radio system, and for the majority of use cases, the lower latency does not matter.
 Вони також ідеально підходять для польотів у симуляторі PX4, оскільки їх можна безпосередньо під'єднати до вашого комп'ютера наземної станції керування.
 
 :::info
@@ -207,7 +207,7 @@ Vehicles may include a _safety switch_ that must be engaged before the vehicle c
 This switch is almost always integrated into the [GPS](../gps_compass/index.md) module that is connected to the Pixhawk `GPS1` port — along with the [buzzer](#buzzer) and [UI LED](#leds).
 
 The switch may be disabled by default, though this depends on the particular flight controller and airframe configuration.
-You can disable/enable use of the switch with the [CBRK_IO_SAFETY](../advanced_config/parameter_reference.md#CBRK_IO_SAFETY) parameter.
+You can disable/enable use of the switch with the [COM_SAFETY_MODE](../advanced_config/parameter_reference.md#COM_SAFETY_MODE) parameter.
 
 :::info
 Safety switches are optional.

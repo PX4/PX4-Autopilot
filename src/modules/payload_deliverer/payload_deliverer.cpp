@@ -59,9 +59,9 @@ void PayloadDeliverer::configure_gripper()
 	// If gripper instance is invalid, and user enabled the gripper, try initializing it
 	if (!_gripper.is_valid()) {
 		GripperConfig config{};
-		config.type = (GripperConfig::GripperType)_param_gripper_type.get();
+		config.type = (GripperConfig::GripperType)_param_pd_gripper_type.get();
 		config.sensor = GripperConfig::GripperSensorType::NONE; // Feedback sensor isn't supported for now
-		config.timeout_us = hrt_abstime(_param_gripper_timeout_s.get() * 1000000ULL);
+		config.timeout_us = hrt_abstime(_param_pd_gripper_to.get() * 1000000ULL);
 		_gripper.init(config);
 
 		if (!_gripper.is_valid()) {
@@ -239,7 +239,7 @@ void PayloadDeliverer::handle_vehicle_command(const hrt_abstime &now,  const veh
 
 bool PayloadDeliverer::send_gripper_vehicle_command(const int32_t gripper_action)
 {
-	vehicle_command_s vcmd;
+	vehicle_command_s vcmd{};
 	vcmd.timestamp = hrt_absolute_time();
 	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_GRIPPER;
 	vcmd.param2 = gripper_action;
@@ -248,7 +248,7 @@ bool PayloadDeliverer::send_gripper_vehicle_command(const int32_t gripper_action
 }
 
 bool PayloadDeliverer::send_gripper_vehicle_command_ack(const hrt_abstime now, const uint8_t command_result,
-		const uint8_t target_system, const uint8_t target_component)
+		const uint32_t target_system, const uint8_t target_component)
 {
 	vehicle_command_ack_s vcmd_ack{};
 	vcmd_ack.timestamp = now;

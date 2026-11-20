@@ -10,11 +10,16 @@ uint8 MAX_RECEIVERS = 4 # Length of the per-receiver arrays
 
 uint32[4] device_ids                 # [-] One entry per receiver, 0 where unused
 int8[4] order                        # [-] Fixed position of the receiver: 0 for the preferred one, otherwise for the first to publish, then in order of first publication. Changes only with the preference, -1 until the receiver publishes
-bool[4] healthy                      # Publishing, and has passed its checks for long enough
-uint16[4] failed_checks              # [-] Bitmask of the enabled checks that failed, VehicleGnss CHECK_* bits
-bool[4] strict                       # The pre-flight thresholds apply rather than the relaxed in-flight ones
+bool[4] healthy                      # Usable within the last 2 s: passed its checks for long enough and published without gaps. The selection fails over from a receiver that isn't
+float32[4] availability              # [-] Fraction of recent time the receiver passed its checks and published without gaps, 0 to 1
+float32[4] inconsistency_horizontal  # [m] [@invalid NaN] Horizontal distance from where the selected receiver and the antenna positions put the receiver, at the time of the selected sample. 0 for the selected receiver
+float32[4] inconsistency_vertical    # [m] [@invalid NaN] Vertical distance from where the selected receiver and the antenna positions put the receiver, at the time of the selected sample. 0 for the selected receiver
+uint16[4] failed_strict_checks       # [-] Enabled checks the latest sample fails at the strict thresholds, VehicleGnss CHECK_* bits
+uint16[4] failed_relaxed_checks      # [-] Enabled checks the latest sample fails at the relaxed thresholds, VehicleGnss CHECK_* bits
+bool[4] strict                       # The strict checks decide whether its samples are usable, as VehicleGnss strict
 float32[4] drift_rate_horizontal     # [m/s] Horizontal position drift rate at rest
 float32[4] drift_rate_vertical       # [m/s] Vertical position drift rate at rest
 float32[4] speed_horizontal_filtered # [m/s] Filtered horizontal speed at rest
+float32[4] kinematic_inconsistency_horizontal    # [m/s] Rate of change of the horizontal position minus the horizontal velocity, filtered, checked against GNSS_REQ_HKIN
 
 # TOPICS sensors_status_gnss

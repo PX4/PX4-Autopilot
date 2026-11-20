@@ -149,9 +149,10 @@ bool GyroFFT::init()
 			arm_float_to_q15(&hanning_value, &_hanning_window[n], 1);
 		}
 
-		if (!SensorSelectionUpdate(true)) {
-			ScheduleDelayed(500_ms);
-		}
+		// Do the initial sensor selection in Run() on the work queue. Selecting here
+		// registers a callback that can trigger Run() while the selection is
+		// still being written from this thread.
+		ScheduleNow();
 
 		return true;
 	}
@@ -279,14 +280,23 @@ float GyroFFT::EstimatePeakFrequencyBin(q15_t fft[], int peak_index)
 
 		const float divider = (real[k] * real[k] + imag[k] * imag[k]);
 
+		if (divider < FLT_EPSILON) {
+			return NAN;
+		}
+
 		// ap = (X[k + 1].r * X[k].r + X[k+1].i * X[k].i) / (X[k].r * X[k].r + X[k].i * X[k].i)
 		float ap = (real[k + 1] * real[k] + imag[k + 1] * imag[k]) / divider;
 
-		// dp = -ap / (1 – ap)
-		float dp = -ap  / (1.f - ap);
-
 		// am = (X[k - 1].r * X[k].r + X[k – 1].i * X[k].i) / (X[k].r * X[k].r + X[k].i * X[k].i)
 		float am = (real[k - 1] * real[k] + imag[k - 1] * imag[k]) / divider;
+
+		// dp and dm below are undefined for ap or am of 1 (e.g. a flat spectrum)
+		if ((fabsf(1.f - ap) < FLT_EPSILON) || (fabsf(1.f - am) < FLT_EPSILON)) {
+			return NAN;
+		}
+
+		// dp = -ap / (1 – ap)
+		float dp = -ap  / (1.f - ap);
 
 		// dm = am / (1 – am)
 		float dm = am / (1.f - am);

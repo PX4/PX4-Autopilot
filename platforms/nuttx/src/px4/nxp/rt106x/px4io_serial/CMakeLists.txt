@@ -34,3 +34,4 @@
 px4_add_library(arch_px4io_serial
 	px4io_serial.cpp
 )
+target_link_libraries(arch_px4io_serial PRIVATE px4io_protocol)

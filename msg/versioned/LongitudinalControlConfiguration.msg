@@ -2,13 +2,14 @@
 #
 # Used by the fw_lateral_longitudinal_control module and TECS to constrain FixedWingLongitudinalSetpoint messages
 # and configure the resultant setpoints.
+# Pitch angles are absolute: the angle of the fixed-wing body x-axis above the horizon, without FW_PSP_OFF applied.
 
 uint32 MESSAGE_VERSION = 0
 
 uint64 timestamp # [us] Time since system start
 
-float32 pitch_min # [rad] [@range -pi, pi] Defaults to FW_P_LIM_MIN if NAN.
-float32 pitch_max # [rad] [@range -pi, pi] Defaults to FW_P_LIM_MAX if NAN.
+float32 pitch_min # [rad] [@range -pi/2, pi/2] Minimum absolute pitch angle setpoint. Defaults to FW_P_LIM_MIN if NAN.
+float32 pitch_max # [rad] [@range -pi/2, pi/2] Maximum absolute pitch angle setpoint. Defaults to FW_P_LIM_MAX if NAN.
 float32 throttle_min # [norm] [@range 0,1] Defaults to FW_THR_MIN if NAN.
 float32 throttle_max # [norm] [@range 0,1] Defaults to FW_THR_MAX if NAN.
 float32 climb_rate_target # [m/s] Target climbrate to change altitude. Defaults to FW_T_CLMB_R_SP if NAN. Not used if height_rate is directly set in FixedWingLongitudinalSetpoint.

@@ -299,27 +299,24 @@ Once the vehicle has performed sufficient horizontal movement to make the yaw ob
 
 #### Dual Receivers
 
-Data from GPS receivers can be blended using an algorithm that weights data based on reported accuracy (this works best if both receivers output data at the same rate and use the same accuracy).
-The mechanism also provides automatic failover if data from a receiver is lost (it allows, for example, a standard GPS to be used as a backup to a more accurate RTK receiver).
-This is controlled by the [SENS_GNSS_MASK](../advanced_config/parameter_reference.md#SENS_GNSS_MASK) parameter.
+When two GPS receivers are connected, PX4 uses the data from one of them at a time, and automatically fails over to the other if the selected receiver is lost or its fix degrades (this allows, for example, a standard GPS to be used as a backup to a more accurate RTK receiver).
 
-The [SENS_GNSS_MASK](../advanced_config/parameter_reference.md#SENS_GNSS_MASK) parameter is set by default to disable blending and always use the first receiver, so it will have to be set to select which receiver accuracy metrics are used to decide how much each receiver output contributes to the blended solution.
-Where different receiver models are used, it is important that the [SENS_GNSS_MASK](../advanced_config/parameter_reference.md#SENS_GNSS_MASK) parameter is set to a value that uses accuracy metrics that are supported by both receivers.
-For example do not set bit position 0 to `true` unless the drivers for both receivers publish values in the `speed_accuracy` field of the `sensor_gnss` message that are comparable.
-This can be difficult with receivers from different manufacturers due to the different way that accuracy is defined, e.g. CEP vs 1-sigma, etc.
+The receiver is selected as follows:
+
+- The preferred receiver, set by [SENS_GNSS_PRIME](../advanced_config/parameter_reference.md#SENS_GNSS_PRIME), is used while it is publishing data and has at least a 3D fix.
+  By default this is the main serial GPS.
+- Otherwise the receiver with the best fix type is used, and if both have the same fix type, the one using the most satellites.
+- Set [SENS_GNSS_PRIME](../advanced_config/parameter_reference.md#SENS_GNSS_PRIME) to `-1` to give both receivers equal priority, so that the best one is always used.
+- A receiver that has not published data for 2 seconds is not used.
+
+The EKF resets its horizontal position to the new receiver when the selected receiver changes.
 
 The following items should be checked during setup:
 
 - Verify that data for the second receiver is present.
   This will be logged as `sensor_gnss_1` and can also be checked when connected via the _nsh console_ using the command `listener sensor_gnss -i 1`.
   The [GPS_2_CONFIG](../advanced_config/parameter_reference.md#GPS_2_CONFIG) parameter will need to be set correctly.
-- Check the `speed_accuracy`, `eph` and `epv` data from each receiver and decide which accuracy metrics can be used.
-  If both receivers output sensible `speed_accuracy` and `eph` data, and GPS vertical position is not being used directly for navigation, then setting [SENS_GNSS_MASK](../advanced_config/parameter_reference.md#SENS_GNSS_MASK) to 3 is recommended.
-  Where only `eph` data is available and both receivers do not output `speed_accuracy` data, set [SENS_GNSS_MASK](../advanced_config/parameter_reference.md#SENS_GNSS_MASK) to 2.
-  Bit position 2 would only be set if the GPS had been selected as the reference height source with the [EKF2_HGT_REF](../advanced_config/parameter_reference.md#EKF2_HGT_REF) parameter and both receivers output sensible `epv` data.
-- The output from the blended receiver data is logged as `vehicle_gnss`, and can be checked whilst connect via the nsh terminal using the command `listener vehicle_gnss`.
-- Where receivers output at different rates, the blended output will be at the rate of slower receiver.
-  Where possible receivers should be configured to output at the same rate.
+- The data from the selected receiver is logged as `vehicle_gnss`, and can be checked whilst connected via the nsh terminal using the command `listener vehicle_gnss`.
 
 #### GNSS Performance Requirements
 
@@ -342,6 +339,7 @@ In addition, the _Average Value_ column shows typical values that might reasonab
 | vpos drift rate      | <&nbsp;0.2 ([GNSS_REQ_VDRIFT](../advanced_config/parameter_reference.md#GNSS_REQ_VDRIFT)) | 0.02          | m/s   | Drift rate calculated from reported GNSS altitude (when stationary).                                                                        |
 | hspd                 | <&nbsp;0.1 ([GNSS_REQ_HDRIFT](../advanced_config/parameter_reference.md#GNSS_REQ_HDRIFT)) | 0.01          | m/s   | Filtered magnitude of reported GNSS horizontal velocity.                                                                                    |
 | vspd                 | <&nbsp;0.2 ([GNSS_REQ_VDRIFT](../advanced_config/parameter_reference.md#GNSS_REQ_VDRIFT)) | 0.02          | m/s   | Filtered magnitude of reported GNSS vertical velocity.                                                                                      |
+| hkin inconsistency   | <&nbsp;2.0 ([GNSS_REQ_HKIN](../advanced_config/parameter_reference.md#GNSS_REQ_HKIN))     | -             | m/s   | Filtered rate of change of the reported horizontal position minus the reported horizontal velocity, also in flight.                         |
 
 ::: info
 The `hpos_drift_rate`, `vpos_drift_rate` and `hspd` are calculated over a period of 10 seconds and published in the `ekf2_gps_drift` topic.
@@ -531,11 +529,13 @@ A good tuning is obtained as follows:
 [Optical flow](../sensor/optical_flow.md) data will be used if the following conditions are met:
 
 - Valid range finder data is available.
-- [EKF2_OF_CTRL](../advanced_config/parameter_reference.md#EKF2_OF_CTRL) is set.
-- The quality metric returned by the flow sensor is greater than the minimum requirement set by the [EKF2_OF_QMIN](../advanced_config/parameter_reference.md#EKF2_OF_QMIN) parameter.
+- [EKF2_OF0_CTRL](../advanced_config/parameter_reference.md#EKF2_OF0_CTRL) is set.
+- The quality metric returned by the flow sensor is greater than the minimum requirement set by the [EKF2_OF0_QMIN](../advanced_config/parameter_reference.md#EKF2_OF0_QMIN) parameter.
+- For a second flow sensor [EKF2_OF1_CTRL](../advanced_config/parameter_reference.md#EKF2_OF1_CTRL) is set and the quality metric is greater than [EKF2_OF1_QMIN](../advanced_config/parameter_reference.md#EKF2_OF1_QMIN).
 
-For better performance, set the location of the optical flow sensor as described [here](../sensor/optical_flow.md#ekf2).
+Up to two optical flow sensors can be fused at the same time, each with its own set of `EKF2_OFn_*` parameters (see [Optical Flow > Multiple Optical Flow Sensors](../sensor/optical_flow.md#multiple-flow-sensors)).
 
+For better performance, set the location of the optical flow sensor as described in [Optical Flow > EKF2](../sensor/optical_flow.md#ekf2).
 If a stable hover can be achieved at low altitude above ground (< 10m) but slow oscillations occur at higher altitude, consider adjusting the [optical flow scale factor](../sensor/optical_flow.md#scale-factor).
 
 ### External Vision System

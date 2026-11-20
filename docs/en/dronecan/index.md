@@ -44,7 +44,9 @@ Supported hardware includes (this is not an exhaustive list):
 - GNSS receivers for GNSS (GPS, GLONASS, BeiDou, and so on)
   - [ARK GPS](../dronecan/ark_gps.md)
   - [ARK RTK GPS](../dronecan/ark_rtk_gps.md)
-  - [CubePilot Here3](https://www.cubepilot.org/#/here/here3)
+  - [CubePilot Here3/Here3+](https://docs.cubepilot.org/here-3-3+/here-3-manual)
+  - [CubePilot Here4](../dronecan/cubepilot_here4.md)
+  - [CubePilot HerePro](https://docs.cubepilot.org/herepro/herepro-manual)
   - [CUAV NEO v2 Pro GNSS](https://doc.cuav.net/gps/neo-series-gnss/en/neo-v2-pro.html)
   - [CUAV NEO 3 Pro GPS](../gps_compass/gps_cuav_neo_3pro.md)
   - [CUAV NEO 3X GPS](../gps_compass/gps_cuav_neo_3x.md)
@@ -66,14 +68,13 @@ Supported hardware includes (this is not an exhaustive list):
 - Distance sensors
   - [ARK Dist](ark_dist.md)
   - [Ark Dist MR](ark_dist_mr.md)
-  - [ARK Flow](ark_flow.md)
-  - [Ark Flow MR](ark_flow_mr.md)
   - [Avionics Anonymous Laser Altimeter UAVCAN Interface](../dronecan/avanon_laser_interface.md)
   - [RaccoonLab uRangefidner and Rangefinders Adapter](https://docs.raccoonlab.co/guide/rangefinder/)
   - [Smartmicro Drone Altimeter](smartmicro_t132.md)
 - Grippers
   - [DroneCAN Electro-Permanent Magnet (EPM)](../peripherals/gripper_epm.md)
 - Optical Flow
+  - [Agam FloRange](agam_florange.md)
   - [Ark Flow](ark_flow.md)
   - [Ark Flow MR](ark_flow_mr.md)
 
@@ -142,7 +143,7 @@ Instead you must enable publication or subscription to the messages associated w
 ::: info
 Sensor parameters may not exist (be visible in QGC) until you have enabled the associated DroneCAN [sensor subscription](#sensors)!
 
-For example, [SENS_FLOW_MINHGT](../advanced_config/parameter_reference.md#SENS_FLOW_MINHGT) does not exist until [UAVCAN_SUB_FLOW](../advanced_config/parameter_reference.md#UAVCAN_SUB_FLOW) is enabled.
+For example, [SENS_FLOW0_HMIN](../advanced_config/parameter_reference.md#SENS_FLOW0_HMIN) does not exist until [UAVCAN_SUB_FLOW](../advanced_config/parameter_reference.md#UAVCAN_SUB_FLOW) is enabled.
 :::
 
 For example, to use a connected DroneCAN smart battery you would enable the [UAVCAN_SUB_BAT](../advanced_config/parameter_reference.md#UAVCAN_SUB_BAT) parameter, which would subscribe PX4 to receive [BatteryInfo](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#batteryinfo) DroneCAN messages.
@@ -263,11 +264,11 @@ PX4 DroneCAN parameters:
 
 Other PX4 parameters:
 
-- Set [SENS_FLOW_MINHGT](../advanced_config/parameter_reference.md#SENS_FLOW_MINHGT) and [SENS_FLOW_MAXHGT](../advanced_config/parameter_reference.md#SENS_FLOW_MAXHGT), the minimum and maximum height of the flow sensor.
-- Set [SENS_FLOW_MAXR](../advanced_config/parameter_reference.md#SENS_FLOW_MAXR) the maximum angular flow rate of the sensor.
-- Enable optical flow fusion by setting [EKF2_OF_CTRL](../advanced_config/parameter_reference.md#EKF2_OF_CTRL).
+- Set [SENS_FLOW0_HMIN](../advanced_config/parameter_reference.md#SENS_FLOW0_HMIN) and [SENS_FLOW0_HMAX](../advanced_config/parameter_reference.md#SENS_FLOW0_HMAX), the minimum and maximum height of the flow sensor.
+- Set [SENS_FLOW0_MAXR](../advanced_config/parameter_reference.md#SENS_FLOW0_MAXR) the maximum angular flow rate of the sensor.
+- Enable optical flow fusion by setting [EKF2_OF0_CTRL](../advanced_config/parameter_reference.md#EKF2_OF0_CTRL).
 - To disable GPS aiding (optional), set [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) to `0`.
-- If the optical flow unit is not positioned at the vehicle centre of gravity you can account for the offset using [EKF2_OF_POS_X](../advanced_config/parameter_reference.md#EKF2_OF_POS_X), [EKF2_OF_POS_Y](../advanced_config/parameter_reference.md#EKF2_OF_POS_Y) and [EKF2_OF_POS_Z](../advanced_config/parameter_reference.md#EKF2_OF_POS_Z).
+- If the optical flow unit is not positioned at the vehicle centre of gravity you can account for the offset using [SENS_FLOW0_POS_X](../advanced_config/parameter_reference.md#SENS_FLOW0_POS_X), [SENS_FLOW0_POS_Y](../advanced_config/parameter_reference.md#SENS_FLOW0_POS_Y) and [SENS_FLOW0_POS_Z](../advanced_config/parameter_reference.md#SENS_FLOW0_POS_Z).
 
 Optical flow sensors require rangefinder data.
 However the rangefinder need not be part of the same module, and if not, may not be connected via DroneCAN.

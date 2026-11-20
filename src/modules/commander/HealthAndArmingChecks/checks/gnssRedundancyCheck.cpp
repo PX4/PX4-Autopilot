@@ -32,23 +32,18 @@
  ****************************************************************************/
 
 #include "gnssRedundancyCheck.hpp"
-#include <lib/geo/geo.h>
+
+#include <lib/mathlib/mathlib.h>
 
 using namespace matrix;
 using namespace time_literals;
-
-GnssRedundancyChecks::GnssRedundancyChecks()
-{
-	_divergence_hysteresis.set_hysteresis_time_from(false, 2_s);
-	_divergence_hysteresis.set_hysteresis_time_from(true, 2_s);
-}
 
 void GnssRedundancyChecks::checkAndReport(const Context &context, Report &reporter)
 {
 	bool gps_online[GPS_MAX_INSTANCES] {};
 	bool gnss_healthy[GPS_MAX_INSTANCES] {};
 	uint8_t healthy_count = 0;
-	sensor_gnss_s healthy_gnss[GPS_MAX_INSTANCES] {};
+	int selected = -1;
 
 	sensors_status_gnss_s status{};
 	const bool status_valid = _sensors_status_gnss_sub.copy(&status) && (hrt_elapsed_time(&status.timestamp) < 1_s);
@@ -64,7 +59,11 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 			// The sensors module indexes its status by the same sensor_gnss instance
 			if (status_valid && (status.device_ids[i] == gnss.device_id) && status.healthy[i]) {
 				gnss_healthy[i] = true;
-				healthy_gnss[healthy_count++] = gnss;
+				healthy_count++;
+
+				if (gnss.device_id == status.device_id_selected) {
+					selected = i;
+				}
 			}
 		}
 	}
@@ -74,44 +73,68 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 		_peak_healthy_count = healthy_count;
 	}
 
-	// Position divergence check: flag if two healthy receivers disagree beyond their
-	// combined uncertainty. Gate = 3 * RSS(eph), centered on the expected lever-arm separation.
-	float divergence_m = 0.f;
+	// Position divergence check: flag a healthy receiver that disagrees with the selected one, after their antenna
+	// positions, by more than the limits
+	float divergence_h_m = 0.f;
+	float divergence_v_m = 0.f;
+	bool diverging = false;
+	bool paired = false;
+	bool unknown = false;
 
-	if (healthy_count >= 2) {
-		float north, east;
-		get_vector_to_next_waypoint(healthy_gnss[0].latitude, healthy_gnss[0].longitude,
-					    healthy_gnss[1].latitude, healthy_gnss[1].longitude,
-					    &north, &east);
-		const float separation_m = Vector2f(north, east).length();
+	for (int i = 0; i < GPS_MAX_INSTANCES; i++) {
+		if ((selected < 0) || (i == selected) || !gnss_healthy[i]) {
+			continue;
+		}
 
-		const Vector2f offset0(_param_sens_gnss0_offx.get(), _param_sens_gnss0_offy.get());
-		const Vector2f offset1(_param_sens_gnss1_offx.get(), _param_sens_gnss1_offy.get());
-		const float expected_d = (offset0 - offset1).length();
-		divergence_m = fabsf(separation_m - expected_d);
-		// Use quadrature sum for standard deviation of the difference taking the firmware dependent eph as standard deviation
-		// and a heuristic factor of 3 because then it's unlikely just noise.
-		const float divergence_gate_m = 3.f * Vector2f(healthy_gnss[0].eph, healthy_gnss[1].eph).length();
-		_divergence_hysteresis.set_state_and_update(divergence_m > divergence_gate_m, hrt_absolute_time());
+		paired = true;
+		const float horizontal = status.inconsistency_horizontal[i];
+		const float vertical = status.inconsistency_vertical[i];
+
+		// The sensors module doesn't compare samples too far apart in time. That says nothing about agreement.
+		if (!PX4_ISFINITE(horizontal)) {
+			unknown = true;
+			continue;
+		}
+
+		diverging |= (horizontal > _param_com_gnss_h_max.get());
+		divergence_h_m = math::max(divergence_h_m, horizontal);
+
+		if (PX4_ISFINITE(vertical)) {
+			diverging |= (vertical > _param_com_gnss_v_max.get());
+			divergence_v_m = math::max(divergence_v_m, vertical);
+		}
+	}
+
+	const hrt_abstime now = hrt_absolute_time();
+
+	// Before arming, a disagreement is reported at once. In flight it has to persist for 2 s, so short glitches pass.
+	_divergence_hysteresis.set_hysteresis_time_from(false, context.isArmed() ? 2_s : 0_s);
+	// A disagreement clears after 2 s of continuous agreement, or at once without a healthy pair to compare
+	_divergence_hysteresis.set_hysteresis_time_from(true, paired ? 2_s : 0_s);
+
+	if (unknown && !diverging) {
+		// Keep the state and any running timer until that receiver can be compared again
+		_divergence_hysteresis.update(now);
 
 	} else {
-		_divergence_hysteresis.set_state_and_update(false, hrt_absolute_time());
+		_divergence_hysteresis.set_state_and_update(diverging, now);
+		_divergence_h_m = divergence_h_m;
+		_divergence_v_m = divergence_v_m;
 	}
 
 	const bool below_required = (_param_sys_has_num_gnss.get() > 0) && (healthy_count < _param_sys_has_num_gnss.get());
 	const bool dropped_below_peak = (_peak_healthy_count > 1) && (healthy_count < _peak_healthy_count);
-	const bool act_configured = (_param_com_gnssloss_act.get() > 0);
 
 	// Divergence triggers the failsafe only when the operator explicitly expects two
 	// receivers (SYS_HAS_NUM_GNSS >= 2); otherwise it remains a warning.
 	const bool divergence_triggers_failsafe = _divergence_hysteresis.get_state() && (_param_sys_has_num_gnss.get() >= 2);
 
 	reporter.failsafeFlags().gnss_lost = below_required || divergence_triggers_failsafe;
+	const bool block_arming = reporter.failsafeFlags().gnss_lost && (_param_com_gnssloss_act.get() > 0);
+	const NavModes nav_modes = block_arming ? NavModes::All : NavModes::None;
+	const events::Log log_level = block_arming ? events::Log::Error : events::Log::Warning;
 
 	if (below_required || dropped_below_peak) {
-		const bool block_arming = below_required  && (act_configured || !context.isArmed());
-		const NavModes nav_modes = block_arming ? NavModes::All : NavModes::None;
-		const events::Log log_level = block_arming ? events::Log::Error : events::Log::Warning;
 		const int expected = below_required ? _param_sys_has_num_gnss.get() : _peak_healthy_count;
 
 		for (int i = 0; i < expected; i++) {
@@ -143,23 +166,20 @@ void GnssRedundancyChecks::checkAndReport(const Context &context, Report &report
 	}
 
 	if (_divergence_hysteresis.get_state()) {
-		const bool block_arming = divergence_triggers_failsafe && (act_configured || !context.isArmed());
-		const NavModes nav_modes = block_arming ? NavModes::All : NavModes::None;
-		const events::Log log_level = block_arming ? events::Log::Error : events::Log::Warning;
-
 		/* EVENT
 		 * @description
-		 * Two GNSS receivers report positions that are inconsistent with their reported accuracy.
+		 * Two GNSS receivers report positions that disagree by more than their antenna positions explain.
 		 *
 		 * <profile name="dev">
+		 * Configure the limits with <param>COM_GNSS_H_MAX</param> and <param>COM_GNSS_V_MAX</param>.
 		 * Configure the failsafe action with <param>COM_GNSSLOSS_ACT</param>.
 		 * The failsafe action is only triggered when <param>SYS_HAS_NUM_GNSS</param> is set to 2.
 		 * </profile>
 		 */
-		reporter.healthFailure<float>(nav_modes, health_component_t::gps,
-					      events::ID("check_gps_position_divergence"),
-					      log_level,
-					      "GPS receivers disagree by {1:.1}m",
-					      (double)divergence_m);
+		reporter.healthFailure<float, float>(nav_modes, health_component_t::gps,
+						     events::ID("check_gps_position_divergence"),
+						     log_level,
+						     "GPS receivers disagree by {1:.1}m horizontally, {2:.1}m vertically",
+						     _divergence_h_m, _divergence_v_m);
 	}
 }

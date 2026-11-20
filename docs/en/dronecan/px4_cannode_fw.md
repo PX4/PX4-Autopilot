@@ -81,6 +81,20 @@ make ark_can-flow_canbootloader
 
 The binary can then be flashed to the microcontroller using your favorite SWD/JTAG debugger, such as the [Black Magic Probe](https://black-magic.org/index.html), [ST-Link](https://www.st.com/en/development-tools/st-link-v2.html), or [Segger JLink](https://www.segger.com/products/debug-probes/j-link/).
 
+On STM32 boards the `canbootloader` build also writes the binary to `boards/<vendor>/<board>/extras/<vendor>_<board>_bootloader.bin`.
+When that file exists, the `default` build additionally produces `<vendor>_<board>_default_with_bootloader.bin`: bootloader and application in one image, flashed at `0x08000000` (`st-flash write <file> 0x8000000`).
+The image spans the parameter sectors, so flashing it resets the node's parameters.
+
+Boards with `CONFIG_SYSTEMCMDS_BL_UPDATE=y` embed that bootloader in the application firmware and rewrite the bootloader within about 2 seconds of [SYS_BL_UPDATE](../advanced_config/parameter_reference.md#SYS_BL_UPDATE) being set, without rebooting.
+From the flight controller's [MAVLink Shell](../debug/mavlink_shell.md):
+
+```sh
+uavcan param set <node_id> SYS_BL_UPDATE 1
+```
+
+The node reports `bootloader updated`, `bootloader unchanged`, or `bootloader update failed: <reason>`, which the flight controller logs as `uavcan:<node_id>:uavcannode`.
+Do not power off the node during the update.
+
 ### Firmware Internals
 
 For the most part, peripheral firmware works the same way as flight controller firmware builds.

@@ -77,7 +77,7 @@ private:
 	float process_temperature_raw(const float temperature_raw) const;
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SENS_DPRES_REV>) _param_dpres_rev,
+		(ParamInt<px4::params::SENS_DPRES_REV>) _param_sens_dpres_rev,
 		(ParamInt<px4::params::SENS_EN_DLVR>) _param_sens_en_dlvr
 	)
 

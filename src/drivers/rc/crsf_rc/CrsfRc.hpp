@@ -104,6 +104,8 @@ private:
 	char _device[20] {}; ///< device / serial port path
 	bool _is_singlewire{false};
 	bool _armed{false};
+	vehicle_status_s _vehicle_status{};
+	bool _vehicle_status_updated{false};
 
 	static constexpr size_t RC_MAX_BUFFER_SIZE{64};
 	uint8_t _rcs_buf[RC_MAX_BUFFER_SIZE] {};

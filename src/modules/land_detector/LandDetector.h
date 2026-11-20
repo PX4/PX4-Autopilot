@@ -46,6 +46,7 @@
 #include <math.h>
 
 #include <lib/hysteresis/hysteresis.h>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
@@ -100,6 +101,11 @@ public:
 	static int task_spawn(int argc, char *argv[]);
 
 protected:
+
+	/**
+	 * Run at most once per interval instead of on every local position update.
+	 */
+	void _set_update_interval(uint32_t interval_us) { _vehicle_local_position_sub.set_interval_us(interval_us); }
 
 	/**
 	 * Updates parameters.
@@ -162,6 +168,10 @@ private:
 	hrt_abstime _total_flight_time{0};	///< total vehicle flight time in microseconds
 
 	hrt_abstime _time_last_move_detect_us{0};	// timestamp of last movement detection event in microseconds
+	hrt_abstime _time_last_acceleration_sample_us{0};
+
+	AlphaFilter<matrix::Vector3f> _specific_force_fast{0.5f};
+	AlphaFilter<matrix::Vector3f> _specific_force_slow{5.f};
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
@@ -184,8 +194,8 @@ private:
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		ModuleParams,
-		(ParamInt<px4::params::LND_FLIGHT_T_HI>) _param_total_flight_time_high,
-		(ParamInt<px4::params::LND_FLIGHT_T_LO>) _param_total_flight_time_low
+		(ParamInt<px4::params::LND_FLIGHT_T_HI>) _param_lnd_flight_t_hi,
+		(ParamInt<px4::params::LND_FLIGHT_T_LO>) _param_lnd_flight_t_lo
 	);
 };
 

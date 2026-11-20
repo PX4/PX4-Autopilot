@@ -64,9 +64,6 @@ EstimatorInterface::~EstimatorInterface()
 #if defined(CONFIG_EKF2_AIRSPEED)
 	delete _airspeed_buffer;
 #endif // CONFIG_EKF2_AIRSPEED
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	delete _flow_buffer;
-#endif // CONFIG_EKF2_OPTICAL_FLOW
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	delete _ext_vision_buffer;
 #endif // CONFIG_EKF2_EXTERNAL_VISION
@@ -79,6 +76,8 @@ EstimatorInterface::~EstimatorInterface()
 #if defined(CONFIG_EKF2_RANGING_BEACON)
 	delete _ranging_beacon_buffer;
 #endif // CONFIG_EKF2_RANGING_BEACON
+
+	delete _system_flag_buffer;
 }
 
 // Accumulate imu data and store to buffer at desired rate
@@ -322,6 +321,12 @@ void EstimatorInterface::setRangeData(const sensor::rangeSample &range_sample)
 		return;
 	}
 
+	_time_last_range_sensor_data = _time_latest_us;
+	pushRangeData(range_sample);
+}
+
+void EstimatorInterface::pushRangeData(const sensor::rangeSample &range_sample)
+{
 	// Allocate the required buffer size if not previously done
 	if (_range_buffer == nullptr) {
 		_range_buffer = new TimestampedRingBuffer<sensor::rangeSample>(_obs_buffer_length);
@@ -355,40 +360,13 @@ void EstimatorInterface::setRangeData(const sensor::rangeSample &range_sample)
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-void EstimatorInterface::setOpticalFlowData(const flowSample &flow)
+void EstimatorInterface::setOpticalFlowData(const flowSample &flow, uint8_t instance)
 {
 	if (!_initialised) {
 		return;
 	}
 
-	// Allocate the required buffer size if not previously done
-	if (_flow_buffer == nullptr) {
-		_flow_buffer = new TimestampedRingBuffer<flowSample>(_imu_buffer_length);
-
-		if (_flow_buffer == nullptr || !_flow_buffer->valid()) {
-			delete _flow_buffer;
-			_flow_buffer = nullptr;
-			printBufferAllocationFailed("flow");
-			return;
-		}
-	}
-
-	const int64_t time_us = flow.time_us
-				- static_cast<int64_t>(_params.ekf2_of_delay * 1000)
-				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
-
-	// limit data rate to prevent data being lost
-	if (time_us >= static_cast<int64_t>(_flow_buffer->get_newest().time_us + _min_obs_interval_us)) {
-
-		flowSample optflow_sample_new{flow};
-		optflow_sample_new.time_us = time_us;
-
-		_flow_buffer->push(optflow_sample_new);
-
-	} else {
-		ECL_WARN("optical flow data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _flow_buffer->get_newest().time_us,
-			 _min_obs_interval_us);
-	}
+	_flow_aiding.setData(flow, instance, _imu_buffer_length, _min_obs_interval_us, _dt_ekf_avg);
 }
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
@@ -641,9 +619,8 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	return true;
 }
 
-Vector3f EstimatorInterface::getPosition() const
+Vector3f EstimatorInterface::globalToLocalPosition(const LatLonAlt &lla) const
 {
-	LatLonAlt lla = _output_predictor.getLatLonAlt();
 	float x;
 	float y;
 

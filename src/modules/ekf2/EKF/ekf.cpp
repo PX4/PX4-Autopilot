@@ -96,7 +96,6 @@ void Ekf::reset()
 	_gnss_usable = false;
 	_gnss_checks_passed_reported = false;
 	_time_last_gnss_sample_accepted_us = 0;
-	_time_last_gnss_fusion_stop_us = 0;
 #endif // CONFIG_EKF2_GNSS
 	_local_origin_alt = NAN;
 
@@ -113,7 +112,6 @@ void Ekf::reset()
 	_time_last_ver_vel_fuse = 0;
 	_time_last_heading_fuse = 0;
 	_time_last_terrain_fuse = 0;
-	_time_heading_fusion_start = 0;
 
 	_last_known_gpos.setZero();
 
@@ -233,7 +231,9 @@ bool Ekf::initialiseTilt()
 
 void Ekf::predictState(const imuSample &imu_delayed)
 {
-	if (std::fabs(_gpos.latitude_rad() - _earth_rate_lat_ref_rad) > math::radians(1.0)) {
+	if (global_origin_valid()
+	    && (!PX4_ISFINITE(_earth_rate_lat_ref_rad)
+		|| (std::fabs(_gpos.latitude_rad() - _earth_rate_lat_ref_rad) > math::radians(1.0)))) {
 		_earth_rate_lat_ref_rad = _gpos.latitude_rad();
 		_earth_rate_NED = calcEarthRateNED((float)_earth_rate_lat_ref_rad);
 		_gravity = LatLonAlt::Wgs84::gravity(_earth_rate_lat_ref_rad);
@@ -244,8 +244,9 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	const Vector3f delta_ang_bias_scaled = getGyroBias() * imu_delayed.delta_ang_dt;
 	Vector3f corrected_delta_ang = imu_delayed.delta_ang - delta_ang_bias_scaled;
 
-	// subtract component of angular rate due to earth rotation
-	corrected_delta_ang -= _R_to_earth.transpose() * _earth_rate_NED * imu_delayed.delta_ang_dt;
+	// subtract the rotation of the NED frame due to earth rotation and motion over the curved earth
+	const Vector3f transport_rate = _gpos.computeAngularRateNavFrame(_state.vel);
+	corrected_delta_ang -= _R_to_earth.transpose() * (_earth_rate_NED + transport_rate) * imu_delayed.delta_ang_dt;
 
 	const Quatf dq(AxisAnglef{corrected_delta_ang});
 
@@ -267,8 +268,8 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	// compensate for acceleration due to gravity, Coriolis and transport rate
 	const Vector3f gravity_acceleration(0.f, 0.f, _gravity);
 	const Vector3f coriolis_acceleration = -2.f * _earth_rate_NED.cross(vel_last);
-	const Vector3f transport_rate = -_gpos.computeAngularRateNavFrame(vel_last).cross(vel_last);
-	_state.vel += (gravity_acceleration + coriolis_acceleration + transport_rate) * imu_delayed.delta_vel_dt;
+	const Vector3f transport_rate_acceleration = -transport_rate.cross(vel_last);
+	_state.vel += (gravity_acceleration + coriolis_acceleration + transport_rate_acceleration) * imu_delayed.delta_vel_dt;
 
 	// predict position states via trapezoidal integration of velocity
 	_gpos += (vel_last + _state.vel) * imu_delayed.delta_vel_dt * 0.5f;
@@ -378,11 +379,13 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 			const VectorState P_north = P.row(State::pos.idx);
 			VectorState P_east = P.row(State::pos.idx + 1);
 
+			VectorState state_correction;
+
 			{
 				const float innov_var_north = P_north(State::pos.idx) + R_small;
 				VectorState K = P_north / innov_var_north;
 				clearInhibitedStateKalmanGains(K);
-				fuse(K, innov(0));
+				state_correction -= K * innov(0);
 
 				P_east -= P_north * (P_north(State::pos.idx + 1) / innov_var_north);
 			}
@@ -390,13 +393,15 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 			// The 2nd axis needs to be fused using the state covariance that would have been
 			// obtained with this artificially low observation variance
 			{
-				// recalculate the innovation using the state updated by the North fusion
-				const float innovation = (_gpos - gpos_corrected)(1);
+				// correct the innovation for the accumulated state correction
+				const float innovation = innov(1) + state_correction(State::pos.idx + 1);
 				const float innov_var_east = P_east(State::pos.idx + 1) + R_small;
 				VectorState K = P_east / innov_var_east;
 				clearInhibitedStateKalmanGains(K);
-				fuse(K, innovation);
+				state_correction -= K * innovation;
 			}
+
+			applyStateCorrection(state_correction);
 
 			// The update of the covariance matrix is performed with the correct observation variance
 			// to not artificially reduce the state uncertainty and cross-correlations.
@@ -454,6 +459,10 @@ void Ekf::updateParameters()
 
 	_aux_global_position.paramsUpdated();
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
+
+#if defined(CONFIG_EKF2_OPTICAL_FLOW) && defined(MODULE_NAME)
+	_flow_aiding.updateParams();
+#endif // CONFIG_EKF2_OPTICAL_FLOW && MODULE_NAME
 }
 
 template<typename T>
@@ -580,7 +589,11 @@ void Ekf::print_status()
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	printRingBuffer("flow buffer", _flow_buffer);
+
+	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+		printRingBuffer("flow buffer", _flow_aiding.source(i)._buffer);
+	}
+
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)

@@ -112,11 +112,6 @@
 # include <uORB/topics/vehicle_magnetometer.h>
 #endif // CONFIG_EKF2_MAGNETOMETER
 
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-# include <uORB/topics/vehicle_optical_flow.h>
-# include <uORB/topics/vehicle_optical_flow_vel.h>
-#endif // CONFIG_EKF2_OPTICAL_FLOW
-
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 # include <uORB/topics/distance_sensor.h>
 #endif // CONFIG_EKF2_RANGE_FINDER
@@ -192,12 +187,12 @@ private:
 	estimator_bias_s fillEstimatorBiasMsg(const BiasEstimator::status &status, uint64_t timestamp_sample_us,
 					      uint64_t timestamp, uint32_t device_id = 0);
 	void PublishEventFlags(const hrt_abstime &timestamp);
-	void PublishGlobalPosition(const hrt_abstime &timestamp);
+	void PublishGlobalPosition(const hrt_abstime &timestamp, const LatLonAlt &lla);
 	void PublishInnovations(const hrt_abstime &timestamp);
 	void PublishInnovationTestRatios(const hrt_abstime &timestamp);
 	void PublishInnovationVariances(const hrt_abstime &timestamp);
-	void PublishLocalPosition(const hrt_abstime &timestamp);
-	void PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu_sample);
+	void PublishLocalPosition(const hrt_abstime &timestamp, const Vector3f &position);
+	void PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu_sample, const Vector3f &position);
 	void PublishSensorBias(const hrt_abstime &timestamp);
 	void PublishStates(const hrt_abstime &timestamp);
 	void PublishStatus(const hrt_abstime &timestamp);
@@ -230,10 +225,6 @@ private:
 	void UpdateGnssYawSample();
 # endif // CONFIG_EKF2_GNSS_YAW
 #endif // CONFIG_EKF2_GNSS
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	bool UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps);
-	void PublishOpticalFlowVel(const hrt_abstime &timestamp);
-#endif // CONFIG_EKF2_OPTICAL_FLOW
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	void UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps);
 #endif // CONFIG_EKF2_MAGNETOMETER
@@ -266,19 +257,7 @@ private:
 	// publish helper for estimator_aid_source topics
 	template <typename T>
 	void PublishAidSourceStatus(const hrt_abstime &timestamp, const T &status, hrt_abstime &status_publish_last,
-				    uORB::PublicationMulti<T> &pub)
-	{
-		if (status.timestamp_sample > status_publish_last) {
-			// publish if updated
-			T status_out{status};
-			status_out.estimator_instance = _instance;
-			status_out.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
-			pub.publish(status_out);
-
-			// record timestamp sample
-			status_publish_last = status.timestamp_sample;
-		}
-	}
+				    uORB::PublicationMulti<T> &pub);
 
 	static constexpr float sq(float x) { return x * x; };
 
@@ -357,15 +336,6 @@ private:
 #if defined(CONFIG_EKF2_RANGING_BEACON)
 	uORB::Subscription _ranging_beacon_sub {ORB_ID(ranging_beacon)};
 #endif // CONFIG_EKF2_RANGING_BEACON
-
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	uORB::Subscription _vehicle_optical_flow_sub {ORB_ID(vehicle_optical_flow)};
-	uORB::PublicationMulti<vehicle_optical_flow_vel_s> _estimator_optical_flow_vel_pub{ORB_ID(estimator_optical_flow_vel)};
-
-	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_optical_flow_pub{ORB_ID(estimator_aid_src_optical_flow)};
-	hrt_abstime _status_optical_flow_pub_last{0};
-	hrt_abstime _optical_flow_vel_pub_last{0};
-#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_BAROMETER)
 	uint8_t _baro_calibration_count {0};
@@ -503,7 +473,7 @@ private:
 
 	float _last_gnss_hgt_bias_published{};
 
-	uint16_t _gnss_failed_checks{0}; ///< failed_checks of the latest vehicle_gnss sample
+	uint16_t _gnss_failed_checks{0}; ///< failed checks of the latest vehicle_gnss sample, among those that decide usable
 
 	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 
@@ -573,8 +543,7 @@ private:
 		(ParamExtFloat<px4::params::EKF2_GPS_P_GATE>) _param_ekf2_gps_p_gate,
 		(ParamExtFloat<px4::params::EKF2_GPS_V_GATE>) _param_ekf2_gps_v_gate,
 
-		(ParamExtFloat<px4::params::EKF2_REQ_SACC>) _param_ekf2_req_sacc,
-		(ParamFloat<px4::params::EKF2_REQ_GPS_H>) _param_ekf2_req_gps_h,
+		(ParamFloat<px4::params::EKF2_GPS_YAW_RST>) _param_ekf2_gps_yaw_rst,
 
 		// Used by EKF-GSF experimental yaw estimator
 		(ParamExtFloat<px4::params::EKF2_GSF_TAS>) _param_ekf2_gsf_tas,
@@ -700,32 +669,6 @@ private:
 		(ParamExtFloat<px4::params::EKF2_EV_POS_Z>)
 		_param_ekf2_ev_pos_z, ///< Z position of VI sensor focal point in body frame (m)
 #endif // CONFIG_EKF2_EXTERNAL_VISION
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-		// optical flow fusion
-		(ParamExtInt<px4::params::EKF2_OF_CTRL>)
-		_param_ekf2_of_ctrl,
-		(ParamExtInt<px4::params::EKF2_OF_GYR_SRC>)
-		_param_ekf2_of_gyr_src,
-		(ParamExtFloat<px4::params::EKF2_OF_DELAY>)
-		_param_ekf2_of_delay, ///< optical flow measurement delay relative to the IMU (mSec) - this is to the middle of the optical flow integration interval
-		(ParamExtFloat<px4::params::EKF2_OF_N_MIN>)
-		_param_ekf2_of_n_min, ///< best quality observation noise for optical flow LOS rate measurements (rad/sec)
-		(ParamExtFloat<px4::params::EKF2_OF_N_MAX>)
-		_param_ekf2_of_n_max, ///< worst quality observation noise for optical flow LOS rate measurements (rad/sec)
-		(ParamExtInt<px4::params::EKF2_OF_QMIN>)
-		_param_ekf2_of_qmin, ///< minimum acceptable quality integer from  the flow sensor when in air
-		(ParamExtInt<px4::params::EKF2_OF_QMIN_GND>)
-		_param_ekf2_of_qmin_gnd, ///< minimum acceptable quality integer from  the flow sensor when on ground
-		(ParamExtFloat<px4::params::EKF2_OF_GATE>)
-		_param_ekf2_of_gate, ///< optical flow fusion innovation consistency gate size (STD)
-		(ParamExtFloat<px4::params::EKF2_OF_POS_X>)
-		_param_ekf2_of_pos_x, ///< X position of optical flow sensor focal point in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_OF_POS_Y>)
-		_param_ekf2_of_pos_y, ///< Y position of optical flow sensor focal point in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_OF_POS_Z>)
-		_param_ekf2_of_pos_z, ///< Z position of optical flow sensor focal point in body frame (m)
-#endif // CONFIG_EKF2_OPTICAL_FLOW
-
 #if defined(CONFIG_EKF2_DRAG_FUSION)
 		(ParamExtInt<px4::params::EKF2_DRAG_CTRL>) _param_ekf2_drag_ctrl,		///< drag fusion selection
 		// Multi-rotor drag specific force fusion

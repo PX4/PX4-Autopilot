@@ -8,7 +8,8 @@
 #
 # A submodule at another commit is never reset: that is how changes to a
 # submodule are developed and tested. Set GIT_SUBMODULES_ARE_EVIL to skip
-# the check entirely.
+# the check entirely. Paths given as arguments limit the check to those
+# submodules.
 
 [ -n "$GIT_SUBMODULES_ARE_EVIL" ] && exit 0
 
@@ -21,8 +22,17 @@ git rev-parse --is-inside-work-tree > /dev/null 2>&1 || exit 0
 # naming only those so submodules at another commit are left alone. Run in
 # PX4 and then, through foreach, in every submodule, which reaches nested
 # submodules missing inside a submodule someone changed.
+submodule_paths="-- $*"
+
+# a path that is not a submodule makes git submodule status list nothing, so
+# the checks below would pass without looking at any submodule
+[ $# -eq 0 ] || git submodule status -- "$@" > /dev/null || {
+	echo -e "\033[31mError: not a submodule in: $*\033[0m"
+	exit 1
+}
+
 fetch_missing='
-	missing=$(git submodule status | sed -n "s/^-[0-9a-f]* \([^ ]*\).*/\1/p")
+	missing=$(git submodule status $submodule_paths | sed -n "s/^-[0-9a-f]* \([^ ]*\).*/\1/p")
 	[ -z "$missing" ] || {
 		echo "Fetching submodules in ${displaypath:-.}:" $missing
 		git submodule --quiet sync --recursive -- $missing &&
@@ -34,7 +44,7 @@ eval "$fetch_missing" && git submodule --quiet foreach --recursive "$fetch_missi
 }
 
 # '+' at another commit, 'U' merge conflict
-changed=$(git submodule status --recursive | sed -n "s/^[+U][0-9a-f]* \([^ ]*\).*/   \1/p")
+changed=$(git submodule status --recursive $submodule_paths | sed -n "s/^[+U][0-9a-f]* \([^ ]*\).*/   \1/p")
 if [ -n "$changed" ]; then
 	if [ "$CI" = "true" ]; then
 		echo -e "\033[31mError: submodules not at the commit PX4 records:\033[0m"

@@ -28,14 +28,17 @@ class CheckSubmodulesTest(unittest.TestCase):
                     if k not in ('CI', 'GIT_SUBMODULES_ARE_EVIL') and not k.startswith('GIT_')}
         self.env.update(GIT_ENV)
 
-        # lib, with a nested submodule inner, is a submodule of the checkout at ext/lib
+        # lib, with a nested submodule inner, is a submodule of the checkout at
+        # ext/lib, next to other at ext/other
         inner = self.repo('inner')
         lib = self.repo('lib')
         self.git(lib, 'submodule', 'add', '-q', inner, 'inner')
         self.git(lib, 'commit', '-qm', 'add inner')
+        other = self.repo('other')
         top = self.repo('top')
         self.git(top, 'submodule', 'add', '-q', lib, 'ext/lib')
-        self.git(top, 'commit', '-qm', 'add lib')
+        self.git(top, 'submodule', 'add', '-q', other, 'ext/other')
+        self.git(top, 'commit', '-qm', 'add lib and other')
 
         self.checkout = os.path.join(self.tmp, 'checkout')
         self.git(self.tmp, 'clone', '-q', top, self.checkout)
@@ -43,6 +46,7 @@ class CheckSubmodulesTest(unittest.TestCase):
         shutil.copy(SCRIPT, os.path.join(self.checkout, 'Tools'))
         self.lib = os.path.join(self.checkout, 'ext', 'lib')
         self.inner = os.path.join(self.lib, 'inner')
+        self.other = os.path.join(self.checkout, 'ext', 'other')
 
     def repo(self, name):
         path = os.path.join(self.tmp, name)
@@ -54,8 +58,8 @@ class CheckSubmodulesTest(unittest.TestCase):
         return subprocess.run(['git', *args], cwd=cwd, env=self.env, check=True,
                               capture_output=True, text=True).stdout.strip()
 
-    def check(self, **env):
-        return subprocess.run(['Tools/check_submodules.sh'], cwd=self.checkout,
+    def check(self, *paths, **env):
+        return subprocess.run(['Tools/check_submodules.sh', *paths], cwd=self.checkout,
                               env={**self.env, **env}, capture_output=True, text=True)
 
     def fetched(self, path):
@@ -71,6 +75,7 @@ class CheckSubmodulesTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertTrue(self.fetched(self.lib))
         self.assertTrue(self.fetched(self.inner))
+        self.assertTrue(self.fetched(self.other))
 
     def test_recorded_commits_need_nothing(self):
         self.check()
@@ -107,6 +112,27 @@ class CheckSubmodulesTest(unittest.TestCase):
         self.assertEqual(self.check().returncode, 0)
         self.assertTrue(self.fetched(self.inner))
         self.assertEqual(self.git(self.lib, 'rev-parse', 'HEAD'), head)
+
+    def test_paths_limit_the_fetch(self):
+        result = self.check('ext/lib')
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertTrue(self.fetched(self.lib))
+        self.assertTrue(self.fetched(self.inner))
+        self.assertFalse(self.fetched(self.other))
+
+    def test_paths_limit_the_changed_check(self):
+        self.check()
+        self.change(self.other)
+        result = self.check('ext/lib', CI='true')
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertEqual(result.stdout, '')
+        self.assertEqual(self.check('ext/other', CI='true').returncode, 1)
+
+    def test_path_not_a_submodule_fails(self):
+        result = self.check('ext/lib', 'ext/none')
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn('ext/none', result.stdout)
+        self.assertFalse(self.fetched(self.lib))
 
     def test_git_submodules_are_evil_skips_everything(self):
         result = self.check(GIT_SUBMODULES_ARE_EVIL='1')

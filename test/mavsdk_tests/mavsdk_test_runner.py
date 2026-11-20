@@ -11,20 +11,32 @@ from integration_test_runner import test_runner, logger_helper
 import integration_test_runner.process_helper as ph
 from typing import Any, Dict, List, NoReturn
 
+TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# pytest exit code when no test matches the filter.
+PYTEST_NO_TESTS_COLLECTED = 5
+
 
 class TesterInterfaceMavsdk(test_runner.TesterInterface):
 
     def query_test_cases(self, build_dir: str, filter: str) -> List[str]:
-        cmd = os.path.join(build_dir, 'mavsdk_tests/mavsdk_tests')
-        args = ["--list-test-names-only", filter]
-        p = subprocess.Popen(
-            [cmd] + args,
-            stdin=subprocess.PIPE,
+        """Return the pytest node IDs matching a marker expression."""
+        p = subprocess.run(
+            [sys.executable, "-m", "pytest", "--collect-only", "-q",
+             "-m", filter],
+            cwd=TEST_DIR,
             stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT)
-        assert p.stdout is not None
-        cases = str(p.stdout.read().decode("utf-8")).strip().split('\n')
-        return cases
+            stderr=subprocess.STDOUT,
+            universal_newlines=True)
+        if p.returncode == PYTEST_NO_TESTS_COLLECTED:
+            # Most likely a typo, which would otherwise silently skip tests.
+            print("No tests match the filter '{}'".format(filter))
+            sys.exit(1)
+        if p.returncode != 0:
+            print(p.stdout)
+            print("Collecting tests with filter '{}' failed".format(filter))
+            sys.exit(1)
+        return [line for line in p.stdout.splitlines() if "::" in line]
 
     def create_test_runner(self,
                            workspace_dir: str,
@@ -36,7 +48,7 @@ class TesterInterfaceMavsdk(test_runner.TesterInterface):
                            verbose: bool,
                            build_dir: str) -> ph.Runner:
         return ph.TestRunnerMavsdk(
-            workspace_dir,
+            TEST_DIR,
             log_dir,
             model,
             case,
@@ -136,7 +148,7 @@ def is_everything_ready(config: Dict[str, str], build_dir: str) -> bool:
             result = False
         if not os.path.isfile(os.path.join(build_dir, 'bin/px4')):
             print("PX4 SITL is not built\n"
-                  "run `DONT_RUN=1 make px4_sitl_default mavsdk_tests`")
+                  "run `DONT_RUN=1 make px4_sitl_default`")
             result = False
         if config.get('simulator') == 'gazebo':
             if is_running('gzserver'):
@@ -148,10 +160,13 @@ def is_everything_ready(config: Dict[str, str], build_dir: str) -> bool:
                       "run `killall gzclient` and try again")
                 result = False
 
-    if not os.path.isfile(os.path.join(build_dir,
-                                       'mavsdk_tests/mavsdk_tests')):
-        print("Test runner is not built\n"
-              "run `DONT_RUN=1 make px4_sitl_default mavsdk_tests`")
+    try:
+        import mavsdk  # type: ignore # noqa: F401
+        import pytest  # noqa: F401
+    except ImportError as e:
+        requirements = os.path.normpath(os.path.join(
+            TEST_DIR, '..', '..', 'Tools', 'setup', 'test-requirements.txt'))
+        print("{}\nrun `pip install -r {}`".format(e, requirements))
         result = False
 
     return result

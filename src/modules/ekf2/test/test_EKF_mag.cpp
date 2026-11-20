@@ -40,6 +40,7 @@
 #include "sensor_simulator/sensor_simulator.h"
 #include "sensor_simulator/ekf_wrapper.h"
 #include "test_helper/reset_logging_checker.h"
+#include <lib/world_magnetic_model/geo_mag_declination.h>
 
 class EkfMagTest : public ::testing::Test
 {
@@ -64,6 +65,161 @@ public:
 	}
 
 	const uint32_t _init_duration_s{6};
+
+	// Climb at 1 m/s until the in-flight alignment at 1.5 m, with an onboard source disturbing the
+	// field from 1 m (as when the actuators are enabled at launch)
+	void climbToInFlightAlignment(const Vector3f &onboard_disturbance)
+	{
+		_ekf->set_in_air_status(true);
+		_ekf->set_vehicle_at_rest(false);
+
+		float baro_height = _sensor_simulator._baro.getData();
+		bool disturbance_started = false;
+		int iterations = 0;
+
+		while (!_ekf->control_status_flags().mag_aligned_in_flight && (iterations++ < 1000)) {
+			baro_height += 0.01f;
+			_sensor_simulator._baro.setData(baro_height);
+			_sensor_simulator.runMicroseconds(10000);
+
+			if (!disturbance_started && (_ekf->getHagl() > 1.f)) {
+				_sensor_simulator._mag.setBias(onboard_disturbance);
+				disturbance_started = true;
+			}
+		}
+
+		ASSERT_TRUE(disturbance_started);
+		ASSERT_TRUE(_ekf->control_status_flags().mag_aligned_in_flight);
+	}
+
+	Vector3f getWmmEarthField()
+	{
+		const gnssSample gnss = _sensor_simulator._gps.getDefaultGpsData();
+		const float declination = radians(get_mag_declination_degrees(gnss.lat, gnss.lon));
+		const float inclination = radians(get_mag_inclination_degrees(gnss.lat, gnss.lon));
+		const float strength = get_mag_strength_gauss(gnss.lat, gnss.lon);
+		return Dcmf(Eulerf(0.f, -inclination, declination)) * Vector3f(strength, 0.f, 0.f);
+	}
+
+	// Look up the WMM from GNSS while aligning on the ground, then lose GNSS before takeoff
+	void alignOnGroundWithWmmThenLoseGnss()
+	{
+		_sensor_simulator._gps.setMinRequiredGnssHealthTime(1e6);
+		_ekf_wrapper.enableGpsFusion();
+		_sensor_simulator.startGps();
+		_sensor_simulator.runSeconds(_init_duration_s);
+		_sensor_simulator.stopGps();
+		_sensor_simulator.runSeconds(10); // GNSS fusion stops after the 7 s reset timeout
+	}
+
+	// Yaw at a constant rate while level, updating the true heading
+	void yawAtConstantRate(float yaw_rate, float duration_s, const Vector3f &mag_earth, float &heading)
+	{
+		static constexpr uint32_t dt_us = 10000;
+		const Vector3f specific_force(0.f, 0.f, -CONSTANTS_ONE_G);
+		_sensor_simulator._imu.setData(specific_force, Vector3f(0.f, 0.f, yaw_rate));
+
+		for (int i = 0; i < static_cast<int>(duration_s * 1e6f / dt_us); i++) {
+			heading = wrap_pi(heading + yaw_rate * dt_us * 1e-6f);
+			_sensor_simulator._mag.setData(Dcmf(Eulerf(0.f, 0.f, heading)).transpose() * mag_earth);
+			_sensor_simulator.runMicroseconds(dt_us);
+		}
+
+		_sensor_simulator._imu.setData(specific_force, Vector3f());
+	}
+
+	// The heading is aligned on the ground with a field shifted by 30 degrees, with the WMM known
+	// but GNSS lost before takeoff. The ground disturbance is either onboard and stays in flight,
+	// or comes from the ground and disappears during the climb.
+	void checkInFlightRecoveryFromGroundHeadingError(bool is_disturbance_onboard)
+	{
+		const Vector3f mag_earth_wmm = getWmmEarthField();
+		_sensor_simulator._mag.setData(mag_earth_wmm);
+
+		// on the ground the vehicle does not rotate, so a ground anomaly is simulated in the body frame
+		const float heading_error = radians(30.f);
+		const Vector3f ground_disturbance = Dcmf(Eulerf(0.f, 0.f, heading_error)).transpose() * mag_earth_wmm - mag_earth_wmm;
+		const Vector3f flight_disturbance = is_disturbance_onboard ? ground_disturbance : Vector3f();
+		_sensor_simulator._mag.setBias(ground_disturbance);
+		alignOnGroundWithWmmThenLoseGnss();
+
+		ASSERT_FALSE(_ekf->isNorthEastAidingActive());
+		ASSERT_NEAR(_ekf_wrapper.getYawAngle(), heading_error, radians(1.f));
+		const int quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
+
+		ASSERT_NO_FATAL_FAILURE(climbToInFlightAlignment(flight_disturbance));
+
+		// the wrong heading is kept, as nothing in the field shows it is wrong yet
+		EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), quat_reset_counter);
+		EXPECT_NEAR(_ekf_wrapper.getYawAngle(), heading_error, radians(1.f));
+
+		// yawing makes the bias observable
+		float heading = 0.f;
+		yawAtConstantRate(radians(10.f), 120.f, mag_earth_wmm, heading);
+
+		// the bias is learned and declination fusion keeps the earth field, so the heading
+		// converges to the true one without being reset
+		EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), quat_reset_counter);
+		EXPECT_NEAR(wrap_pi(_ekf_wrapper.getYawAngle() - heading), 0.f, radians(2.f))
+				<< "Yaw: " << degrees(_ekf_wrapper.getYawAngle()) << " deg, true: " << degrees(heading) << " deg";
+
+		const Vector3f mag_bias = _ekf->getMagBias();
+		EXPECT_TRUE(isEqual(mag_bias, flight_disturbance, 0.02f))
+				<< "Mag bias: " << mag_bias(0) << ", " << mag_bias(1) << ", " << mag_bias(2);
+
+		const Vector3f mag_earth = _ekf->getMagEarthField();
+		EXPECT_NEAR(atan2f(mag_earth(1), mag_earth(0)), atan2f(mag_earth_wmm(1), mag_earth_wmm(0)), radians(1.f));
+	}
+
+	// The mag stops for good in flight without North-East aiding and the heading drifts, then
+	// GNSS fusion starts while the vehicle accelerates horizontally
+	void checkGnssStartAfterMagLossInFlight(float heading_drift, int expected_yaw_emergency_resets)
+	{
+		_sensor_simulator._mag.setData(Vector3f(0.218f, 0.f, 0.43f));
+		_sensor_simulator.runSeconds(_init_duration_s);
+		ASSERT_NO_FATAL_FAILURE(climbToInFlightAlignment(Vector3f()));
+		_sensor_simulator.runSeconds(5);
+
+		ASSERT_NEAR(_ekf_wrapper.getYawAngle(), 0.f, radians(1.f));
+
+		_sensor_simulator._mag.stop();
+		_sensor_simulator.runSeconds(2);
+
+		const float drift_rate = radians(10.f);
+		const Vector3f specific_force(0.f, 0.f, -CONSTANTS_ONE_G);
+		_sensor_simulator._imu.setData(specific_force, Vector3f(0.f, 0.f, drift_rate));
+		_sensor_simulator.runSeconds(heading_drift / drift_rate);
+		_sensor_simulator._imu.setData(specific_force, Vector3f());
+
+		// the wrong heading is still considered aligned
+		ASSERT_TRUE(_ekf->control_status_flags().yaw_align);
+		ASSERT_NEAR(wrap_pi(_ekf_wrapper.getYawAngle() - heading_drift), 0.f, radians(1.f));
+		const int quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
+
+		_sensor_simulator._gps.setMinRequiredGnssHealthTime(1e6);
+		_ekf_wrapper.enableGpsFusion();
+		_sensor_simulator.startGps();
+
+		const Vector3f velocity_targets[] = {{5.f, 0.f, 0.f}, {0.f, 5.f, 0.f}, {-5.f, 0.f, 0.f}, {0.f, -5.f, 0.f}};
+		bool yaw_emergency_reset = false;
+
+		for (int i = 0; i < 40; i++) {
+			_sensor_simulator.setTrajectoryTargetVelocity(velocity_targets[(i / 5) % 4]);
+
+			for (int k = 0; k < 100; k++) {
+				_sensor_simulator.runTrajectorySeconds(0.01f);
+
+				yaw_emergency_reset = yaw_emergency_reset || _ekf->information_event_flags().yaw_aligned_to_imu_gps;
+			}
+		}
+
+		EXPECT_EQ(yaw_emergency_reset, expected_yaw_emergency_resets > 0);
+		EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), quat_reset_counter + expected_yaw_emergency_resets);
+		EXPECT_TRUE(_ekf->control_status_flags().gnss_vel);
+		EXPECT_TRUE(_ekf->control_status_flags().gnss_pos);
+		EXPECT_NEAR(_ekf_wrapper.getYawAngle(), 0.f, radians(5.f))
+				<< "Yaw: " << degrees(_ekf_wrapper.getYawAngle()) << " deg";
+	}
 };
 
 TEST_F(EkfMagTest, fusionStartWithReset)
@@ -240,17 +396,20 @@ TEST_F(EkfMagTest, velocityRotationOnYawReset)
 	const matrix::Dcm2f R_ned_to_body_before(-yaw_before);
 	const Vector2f vel_body_before = R_ned_to_body_before * Vector2f(vel_before);
 
-	// WHEN: Mag heading suddenly changes by more than 0.3 rad (90 degrees)
-	const float new_mag_heading = yaw_before + M_PI_F / 2.f;
-	mag_data = Vector3f(0.2f * cosf(new_mag_heading), -0.2f * sinf(new_mag_heading), 0.4f);
-	_sensor_simulator._mag.setData(mag_data);
-	_sensor_simulator.runSeconds(8.f);
+	// WHEN: GNSS yaw fusion starts with a heading that differs by more than 0.3 rad (90 degrees)
+	const float new_heading = yaw_before + M_PI_F / 2.f;
+	_ekf_wrapper.enableGpsHeadingFusion();
+	_sensor_simulator._gnss_yaw.setYaw(new_heading);
+	_sensor_simulator.startGnssYaw();
+	_sensor_simulator.runSeconds(2.f);
 
-	// THEN: the yaw should be reset to the new mag heading
+	ASSERT_FALSE(_ekf->isNorthEastAidingActive());
+
+	// THEN: the yaw should be reset to the GNSS heading
 	const float yaw_after = _ekf_wrapper.getYawAngle();
-	EXPECT_NEAR(yaw_after, new_mag_heading, radians(5.0f))
+	EXPECT_NEAR(yaw_after, new_heading, radians(5.0f))
 			<< "Yaw after: " << degrees(yaw_after)
-			<< " Expected: " << degrees(new_mag_heading);
+			<< " Expected: " << degrees(new_heading);
 
 	// AND: the NED velocity should be rotated to maintain consistent body-frame velocity
 	const Vector3f vel_after = _ekf->getVelocity();
@@ -270,40 +429,6 @@ TEST_F(EkfMagTest, velocityRotationOnYawReset)
 	// Verify that the yaw change was sufficient to trigger velocity rotation (> 0.3 rad)
 	const float yaw_change = fabsf(wrap_pi(yaw_after - yaw_before));
 	EXPECT_GT(yaw_change, 0.3f) << "Yaw change: " << degrees(yaw_change) << " deg";
-}
-
-TEST_F(EkfMagTest, manualYawExpiresWhenHeadingIsFused)
-{
-	// GIVEN: mag fusion is aligned in flight, so the mag remains the heading source
-	// even after a manual heading reset
-	const float mag_heading = M_PI_F / 4.f;
-	_sensor_simulator._mag.setData(Vector3f(0.2f * cosf(mag_heading), -0.2f * sinf(mag_heading), 0.4f));
-	_sensor_simulator.runSeconds(_init_duration_s);
-
-	_ekf->set_in_air_status(true);
-	_ekf->set_vehicle_at_rest(false);
-	_sensor_simulator._rng.setData(5.f, 100);
-	_sensor_simulator.startRangeFinder();
-	_sensor_simulator.runSeconds(5.f);
-
-	ASSERT_TRUE(_ekf_wrapper.isIntendingMagHeadingFusion() || _ekf_wrapper.isIntendingMag3DFusion());
-	ASSERT_FALSE(_ekf->control_status_flags().yaw_manual);
-
-	// WHEN: the heading is set manually
-	_ekf->resetHeadingToExternalObservation(mag_heading + radians(30.f), radians(2.f));
-	_sensor_simulator.runSeconds(1.f);
-
-	// THEN: the manual heading is protected from being overridden by the mag
-	EXPECT_TRUE(_ekf->control_status_flags().yaw_manual);
-
-	// AND WHEN: the mag keeps being fused as heading source for a long time
-	_sensor_simulator.runSeconds(20.f);
-	EXPECT_TRUE(_ekf->control_status_flags().yaw_manual);
-
-	_sensor_simulator.runSeconds(15.f);
-
-	// THEN: the heading is mag derived again and the manual reset no longer protected
-	EXPECT_FALSE(_ekf->control_status_flags().yaw_manual);
 }
 
 TEST_F(EkfMagTest, manualYawSurvivesWithGnssAidingOnly)
@@ -355,9 +480,7 @@ TEST_F(EkfMagTest, manualYawOnGroundBlocksMagHeadingFusionIndefinitely)
 	EXPECT_FALSE(_ekf_wrapper.isIntendingMagHeadingFusion());
 	EXPECT_FALSE(_ekf_wrapper.isIntendingMag3DFusion());
 
-	// AND: this does not resolve itself while the vehicle stays on the ground. No heading
-	// observation is fused, so the manual heading never expires, which in turn keeps mag
-	// heading fusion disabled.
+	// AND: this does not resolve itself while the vehicle stays on the ground
 	_sensor_simulator.runSeconds(120.f);
 
 	EXPECT_TRUE(_ekf->control_status_flags().yaw_manual);
@@ -375,7 +498,7 @@ TEST_F(EkfMagTest, manualYawOnGroundBlocksMagHeadingFusionIndefinitely)
 	EXPECT_FALSE(_ekf->control_status_flags().mag_field_disturbed);
 }
 
-TEST_F(EkfMagTest, manualYawSurvivesTakeoffUntilHeadingFused)
+TEST_F(EkfMagTest, manualYawSurvivesTakeoffAndMagFusion)
 {
 	// GIVEN: the heading was set manually on the ground, before any in-flight mag alignment
 	const float mag_heading = M_PI_F / 4.f;
@@ -397,21 +520,19 @@ TEST_F(EkfMagTest, manualYawSurvivesTakeoffUntilHeadingFused)
 	_sensor_simulator.startRangeFinder();
 	_sensor_simulator.runSeconds(5.f);
 
-	// THEN: the mag becomes the heading source again, but the manual heading is neither
-	// overridden by the alignment nor immediately declared stale by it
+	// THEN: the mag becomes the heading source again, without overriding the manual heading
 	EXPECT_TRUE(_ekf->control_status_flags().mag_aligned_in_flight);
 	EXPECT_TRUE(_ekf_wrapper.isIntendingMag3DFusion());
 	EXPECT_TRUE(_ekf->control_status_flags().yaw_manual);
 	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), manual_heading, radians(1.f));
 
-	// AND WHEN: the mag has been driving the heading for long enough
-	_sensor_simulator.runSeconds(20.f);
+	// AND WHEN: the mag keeps being fused as heading source for a long time
+	_sensor_simulator.runSeconds(60.f);
+
+	// THEN: the manual heading is still kept
+	EXPECT_TRUE(_ekf_wrapper.isIntendingMag3DFusion());
 	EXPECT_TRUE(_ekf->control_status_flags().yaw_manual);
-
-	_sensor_simulator.runSeconds(15.f);
-
-	// THEN: the manual heading expires
-	EXPECT_FALSE(_ekf->control_status_flags().yaw_manual);
+	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), manual_heading, radians(1.f));
 }
 
 TEST_F(EkfMagTest, magHeadingChangeRateLimited)
@@ -532,6 +653,427 @@ TEST_F(EkfMagTest, inFlightResetUsesCurrentFieldAtLowMagRate)
 
 	// THEN: the reset used the field measured shortly before, not a stale one
 	// (a filter that lags by ~0.6 s leaves a ~9 degree error here)
-	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), new_heading, radians(2.f))
-			<< "Yaw after reset: " << degrees(_ekf_wrapper.getYawAngle()) << " deg";
+	const Vector3f mag_earth = _ekf->getMagEarthField();
+	const float mag_earth_heading = -atan2f(mag_earth(1), mag_earth(0));
+	EXPECT_NEAR(mag_earth_heading, new_heading, radians(2.f))
+			<< "Earth field heading after reset: " << degrees(mag_earth_heading) << " deg";
+}
+
+TEST_F(EkfMagTest, inFlightAlignmentKeepsHeading)
+{
+	// GIVEN: the heading was aligned on the ground with an undisturbed field and no WMM
+	const Vector3f mag_earth_ground(0.2f, 0.f, 0.4f);
+	_sensor_simulator._mag.setData(mag_earth_ground);
+	_sensor_simulator.runSeconds(_init_duration_s);
+
+	ASSERT_NEAR(_ekf_wrapper.getYawAngle(), 0.f, radians(1.f));
+	const int quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
+
+	// WHEN: an onboard source shifts the measured heading by 45 degrees just before the alignment
+	const Vector3f onboard_disturbance(0.f, -0.2f, 0.f);
+	ASSERT_NO_FATAL_FAILURE(climbToInFlightAlignment(onboard_disturbance));
+
+	// THEN: the heading is not reset to the disturbed field
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), quat_reset_counter);
+	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), 0.f, radians(1.f))
+			<< "Yaw after alignment: " << degrees(_ekf_wrapper.getYawAngle()) << " deg";
+
+	// AND: without a WMM, the calibration is trusted and the disturbance is rotated into the earth field
+	const Vector3f mag_earth = _ekf->getMagEarthField();
+	const Vector3f mag_bias = _ekf->getMagBias();
+	EXPECT_TRUE(isEqual(mag_bias, Vector3f()))
+			<< "Mag bias: " << mag_bias(0) << ", " << mag_bias(1) << ", " << mag_bias(2);
+	EXPECT_TRUE(isEqual(mag_earth, mag_earth_ground + onboard_disturbance, 0.01f))
+			<< "Earth field: " << mag_earth(0) << ", " << mag_earth(1) << ", " << mag_earth(2);
+}
+
+TEST_F(EkfMagTest, inFlightAlignmentWithWmmKeepsHeading)
+{
+	// GIVEN: the WMM was looked up from GNSS and the heading aligned with an undisturbed field on
+	// the ground, then GNSS was lost before takeoff
+	const Vector3f mag_earth_wmm = getWmmEarthField();
+	_sensor_simulator._mag.setData(mag_earth_wmm);
+	alignOnGroundWithWmmThenLoseGnss();
+
+	ASSERT_FALSE(_ekf->isNorthEastAidingActive());
+	ASSERT_NEAR(_ekf_wrapper.getYawAngle(), 0.f, radians(1.f));
+	const int quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
+
+	// WHEN: an onboard source shifts the measured heading by 45 degrees just before the alignment
+	const Vector3f onboard_disturbance = Dcmf(Eulerf(0.f, 0.f, radians(45.f))).transpose() * mag_earth_wmm - mag_earth_wmm;
+	ASSERT_NO_FATAL_FAILURE(climbToInFlightAlignment(onboard_disturbance));
+
+	// THEN: the heading is not reset to the disturbed field
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), quat_reset_counter);
+	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), 0.f, radians(1.f))
+			<< "Yaw after alignment: " << degrees(_ekf_wrapper.getYawAngle()) << " deg";
+
+	// AND: with a WMM, the heading is trusted and the disturbance is attributed to the body
+	Vector3f mag_bias = _ekf->getMagBias();
+	EXPECT_TRUE(isEqual(mag_bias, onboard_disturbance, 0.01f))
+			<< "Mag bias: " << mag_bias(0) << ", " << mag_bias(1) << ", " << mag_bias(2);
+
+	// AND: the mag fusion keeps accepting the disturbed field, so no fusion-failing reset follows
+	_sensor_simulator.runSeconds(30);
+
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), quat_reset_counter);
+	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), 0.f, radians(1.f))
+			<< "Yaw 30 s after alignment: " << degrees(_ekf_wrapper.getYawAngle()) << " deg";
+	mag_bias = _ekf->getMagBias();
+	EXPECT_TRUE(isEqual(mag_bias, onboard_disturbance, 0.01f))
+			<< "Mag bias: " << mag_bias(0) << ", " << mag_bias(1) << ", " << mag_bias(2);
+}
+
+TEST_F(EkfMagTest, inFlightRecoveryFromHardIronHeadingError)
+{
+	// GIVEN: an uncalibrated hard iron offset made the heading aligned on the ground wrong
+	// WHEN: the vehicle takes off with the offset still present and yaws
+	// THEN: the heading converges to the true one as the offset is learned
+	checkInFlightRecoveryFromGroundHeadingError(true);
+}
+
+TEST_F(EkfMagTest, inFlightRecoveryFromGroundAnomalyHeadingError)
+{
+	// GIVEN: a ground magnetic anomaly made the heading aligned on the ground wrong
+	// WHEN: the vehicle climbs away from the anomaly and yaws
+	// THEN: the heading converges to the true one as the bias learned at the alignment decays
+	checkInFlightRecoveryFromGroundHeadingError(false);
+}
+
+TEST_F(EkfMagTest, fusionFailingKeepsHeading)
+{
+	// GIVEN: a vehicle flying without North-East aiding, fusing the mag in 3D with the WMM known
+	const Vector3f mag_earth_wmm = getWmmEarthField();
+	_sensor_simulator._mag.setData(mag_earth_wmm);
+	alignOnGroundWithWmmThenLoseGnss();
+	ASSERT_NO_FATAL_FAILURE(climbToInFlightAlignment(Vector3f()));
+	_sensor_simulator.runSeconds(5);
+
+	ASSERT_FALSE(_ekf->isNorthEastAidingActive());
+	ASSERT_TRUE(_ekf_wrapper.isIntendingMag3DFusion());
+	ASSERT_NEAR(_ekf_wrapper.getYawAngle(), 0.f, radians(1.f));
+	const int quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
+
+	// WHEN: the measured field suddenly rotates by 90 degrees, so that the fusion fails
+	const Vector3f disturbance = Dcmf(Eulerf(0.f, 0.f, radians(90.f))).transpose() * mag_earth_wmm - mag_earth_wmm;
+	_sensor_simulator._mag.setBias(disturbance);
+	_sensor_simulator.runSeconds(30);
+
+	// THEN: the heading is not reset to the disturbed field
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), quat_reset_counter);
+	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), 0.f, radians(1.f))
+			<< "Yaw: " << degrees(_ekf_wrapper.getYawAngle()) << " deg";
+
+	// AND: the disturbance is attributed to the body
+	const Vector3f mag_bias = _ekf->getMagBias();
+	EXPECT_TRUE(isEqual(mag_bias, disturbance, 0.01f))
+			<< "Mag bias: " << mag_bias(0) << ", " << mag_bias(1) << ", " << mag_bias(2);
+}
+
+TEST_F(EkfMagTest, fusionFailingWithoutWmmKeepsHeading)
+{
+	// GIVEN: a vehicle flying without North-East aiding, fusing the mag in 3D without a WMM
+	const Vector3f mag_earth(0.2f, 0.f, 0.4f);
+	_sensor_simulator._mag.setData(mag_earth);
+	_sensor_simulator.runSeconds(_init_duration_s);
+	ASSERT_NO_FATAL_FAILURE(climbToInFlightAlignment(Vector3f()));
+	_sensor_simulator.runSeconds(5);
+
+	ASSERT_TRUE(_ekf_wrapper.isIntendingMag3DFusion());
+	ASSERT_NEAR(_ekf_wrapper.getYawAngle(), 0.f, radians(1.f));
+	const int quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
+
+	// WHEN: the measured field suddenly rotates by 90 degrees, so that the fusion fails
+	_sensor_simulator._mag.setData(Dcmf(Eulerf(0.f, 0.f, radians(90.f))).transpose() * mag_earth);
+
+	// THEN: the heading is not reset to the disturbed field. The declination fusion then
+	// only pulls it by a few degrees
+	for (int i = 0; i < 40; i++) {
+		_sensor_simulator.runSeconds(2);
+		EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), quat_reset_counter);
+		EXPECT_NEAR(_ekf_wrapper.getYawAngle(), 0.f, radians(10.f))
+				<< "Yaw: " << degrees(_ekf_wrapper.getYawAngle()) << " deg";
+	}
+}
+
+TEST_F(EkfMagTest, wmmUpdateInFlightKeepsHeading)
+{
+	// GIVEN: a heading aligned on the ground without a WMM, using a saved declination that is 20
+	// degrees off, and a vehicle then flying without North-East aiding
+	const gnssSample gnss = _sensor_simulator._gps.getDefaultGpsData();
+	const float declination_error = radians(20.f);
+	_ekf->getParamHandle()->ekf2_mag_decl = get_mag_declination_degrees(gnss.lat, gnss.lon) - degrees(declination_error);
+
+	const Vector3f mag_earth_wmm = getWmmEarthField();
+	_sensor_simulator._mag.setRateHz(15);
+	_sensor_simulator._mag.setData(mag_earth_wmm);
+	_sensor_simulator.runSeconds(_init_duration_s);
+	ASSERT_NO_FATAL_FAILURE(climbToInFlightAlignment(Vector3f()));
+	_sensor_simulator.runSeconds(10);
+
+	ASSERT_FALSE(_ekf->isNorthEastAidingActive());
+	ASSERT_TRUE(_ekf_wrapper.isIntendingMag3DFusion());
+	ASSERT_NEAR(_ekf_wrapper.getYawAngle(), -declination_error, radians(1.f));
+	const int quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
+
+	// WHEN: the origin is set, which makes the WMM available
+	ASSERT_TRUE(_ekf->setEkfGlobalOrigin(gnss.lat, gnss.lon, gnss.alt));
+	_sensor_simulator.runSeconds(10);
+
+	// THEN: the earth field is reset to the WMM, without resetting the heading
+	Vector3f mag_earth = _ekf->getMagEarthField();
+	EXPECT_NEAR(atan2f(mag_earth(1), mag_earth(0)), atan2f(mag_earth_wmm(1), mag_earth_wmm(0)), radians(1.f));
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), quat_reset_counter);
+	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), -declination_error, radians(1.f))
+			<< "Yaw: " << degrees(_ekf_wrapper.getYawAngle()) << " deg";
+
+	// AND WHEN: the vehicle yaws
+	float heading = 0.f;
+	yawAtConstantRate(radians(10.f), 60.f, mag_earth_wmm, heading);
+
+	// THEN: the heading converges to the true one without being reset
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), quat_reset_counter);
+	EXPECT_NEAR(wrap_pi(_ekf_wrapper.getYawAngle() - heading), 0.f, radians(2.f))
+			<< "Yaw: " << degrees(_ekf_wrapper.getYawAngle()) << " deg, true: " << degrees(heading) << " deg";
+}
+
+TEST_F(EkfMagTest, wmmUpdateOnGroundKeepsManualHeading)
+{
+	// GIVEN: a vehicle on the ground without a WMM, with the heading set manually
+	const gnssSample gnss = _sensor_simulator._gps.getDefaultGpsData();
+	const Vector3f mag_earth_wmm = getWmmEarthField();
+	_sensor_simulator._mag.setRateHz(15);
+	_sensor_simulator._mag.setData(mag_earth_wmm);
+	_sensor_simulator.runSeconds(_init_duration_s);
+
+	const float manual_heading = radians(30.f);
+	_ekf->resetHeadingToExternalObservation(manual_heading, radians(2.f));
+	_sensor_simulator.runSeconds(2);
+	const int quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
+
+	// WHEN: the origin is set, which makes the WMM available
+	ASSERT_TRUE(_ekf->setEkfGlobalOrigin(gnss.lat, gnss.lon, gnss.alt));
+	_sensor_simulator.runSeconds(10);
+
+	// THEN: the earth field is reset to the WMM, and the manual heading is kept
+	const Vector3f mag_earth = _ekf->getMagEarthField();
+	EXPECT_NEAR(atan2f(mag_earth(1), mag_earth(0)), atan2f(mag_earth_wmm(1), mag_earth_wmm(0)), radians(1.f));
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), quat_reset_counter);
+	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), manual_heading, radians(1.f))
+			<< "Yaw: " << degrees(_ekf_wrapper.getYawAngle()) << " deg";
+}
+
+TEST_F(EkfMagTest, magDropoutInFlightKeepsHeading)
+{
+	// GIVEN: a vehicle flying without North-East aiding, with the mag as heading source
+	const Vector3f mag_earth(0.2f, 0.f, 0.4f);
+	_sensor_simulator._mag.setData(mag_earth);
+	_sensor_simulator.runSeconds(_init_duration_s);
+	ASSERT_NO_FATAL_FAILURE(climbToInFlightAlignment(Vector3f()));
+	_sensor_simulator.runSeconds(5);
+
+	ASSERT_TRUE(_ekf_wrapper.isIntendingMag3DFusion());
+	ASSERT_NEAR(_ekf_wrapper.getYawAngle(), 0.f, radians(1.f));
+	const int quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
+
+	// WHEN: the mag data stops
+	_sensor_simulator._mag.stop();
+	_sensor_simulator.runSeconds(2);
+
+	// THEN: the mag fusion stops, and the heading is still considered aligned
+	EXPECT_FALSE(_ekf->control_status_flags().mag);
+	EXPECT_TRUE(_ekf->control_status_flags().yaw_align);
+
+	// AND WHEN: the mag data comes back with the field rotated by 90 degrees
+	_sensor_simulator._mag.setData(Dcmf(Eulerf(0.f, 0.f, radians(90.f))).transpose() * mag_earth);
+	_sensor_simulator._mag.start();
+	_sensor_simulator.runSeconds(10);
+
+	// THEN: the mag fusion resumes without resetting the heading to the new field
+	EXPECT_TRUE(_ekf_wrapper.isIntendingMag3DFusion());
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), quat_reset_counter);
+	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), 0.f, radians(5.f))
+			<< "Yaw: " << degrees(_ekf_wrapper.getYawAngle()) << " deg";
+}
+
+TEST_F(EkfMagTest, magDropoutOnGroundRealignsHeading)
+{
+	// GIVEN: a vehicle on the ground without North-East aiding, with the mag as heading source
+	const Vector3f mag_earth(0.2f, 0.f, 0.4f);
+	_sensor_simulator._mag.setData(mag_earth);
+	_sensor_simulator.runSeconds(_init_duration_s);
+
+	ASSERT_TRUE(_ekf_wrapper.isIntendingMagHeadingFusion());
+	ASSERT_NEAR(_ekf_wrapper.getYawAngle(), 0.f, radians(1.f));
+
+	// WHEN: the mag data stops
+	_sensor_simulator._mag.stop();
+	_sensor_simulator.runSeconds(2);
+
+	// THEN: the heading is no longer considered aligned
+	EXPECT_FALSE(_ekf->control_status_flags().yaw_align);
+
+	// AND WHEN: the mag data comes back with the field rotated by 90 degrees
+	_sensor_simulator._mag.setData(Dcmf(Eulerf(0.f, 0.f, radians(90.f))).transpose() * mag_earth);
+	_sensor_simulator._mag.start();
+	_sensor_simulator.runSeconds(2);
+
+	// THEN: the heading is re-aligned to the new field
+	EXPECT_TRUE(_ekf->control_status_flags().yaw_align);
+	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), radians(90.f), radians(2.f))
+			<< "Yaw: " << degrees(_ekf_wrapper.getYawAngle()) << " deg";
+}
+
+TEST_F(EkfMagTest, magDropoutOnGroundKeepsManualHeading)
+{
+	// GIVEN: a heading set manually, then a flight that made the mag the heading source, and the
+	// vehicle back on the ground without North-East aiding
+	const Vector3f mag_earth(0.2f, 0.f, 0.4f);
+	_sensor_simulator._mag.setData(mag_earth);
+	_sensor_simulator.runSeconds(_init_duration_s);
+
+	const float manual_heading = radians(30.f);
+	_ekf->resetHeadingToExternalObservation(manual_heading, radians(2.f));
+	_sensor_simulator.runSeconds(2);
+	ASSERT_NO_FATAL_FAILURE(climbToInFlightAlignment(Vector3f()));
+	_sensor_simulator.runSeconds(5);
+
+	_ekf->set_in_air_status(false);
+	_ekf->set_vehicle_at_rest(true);
+	_sensor_simulator.runSeconds(5);
+
+	ASSERT_TRUE(_ekf->control_status_flags().yaw_manual);
+	ASSERT_TRUE(_ekf_wrapper.isIntendingMag3DFusion());
+	ASSERT_NEAR(_ekf_wrapper.getYawAngle(), manual_heading, radians(1.f));
+	const int quat_reset_counter = _ekf_wrapper.getQuaternionResetCounter();
+
+	// WHEN: the mag data stops
+	_sensor_simulator._mag.stop();
+	_sensor_simulator.runSeconds(2);
+
+	// THEN: the mag fusion stops, and the heading is still considered aligned
+	EXPECT_FALSE(_ekf->control_status_flags().mag);
+	EXPECT_TRUE(_ekf->control_status_flags().yaw_align);
+
+	// AND WHEN: the mag data comes back with the field rotated by 90 degrees
+	_sensor_simulator._mag.setData(Dcmf(Eulerf(0.f, 0.f, radians(90.f))).transpose() * mag_earth);
+	_sensor_simulator._mag.start();
+	_sensor_simulator.runSeconds(10);
+
+	// THEN: the manual heading is kept
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), quat_reset_counter);
+	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), manual_heading, radians(5.f))
+			<< "Yaw: " << degrees(_ekf_wrapper.getYawAngle()) << " deg";
+}
+
+TEST_F(EkfMagTest, gnssStartAfterMagLossInFlightCorrectsHeadingError)
+{
+	// GIVEN: a mag lost in flight without North-East aiding, and a heading that drifted by 60 degrees
+	// WHEN: GNSS fusion starts while the vehicle accelerates horizontally
+	// THEN: the GNSS data is accepted and corrects the heading without a reset
+	checkGnssStartAfterMagLossInFlight(radians(60.f), 0);
+}
+
+TEST_F(EkfMagTest, gnssStartAfterMagLossInFlightResetsReversedHeading)
+{
+	// GIVEN: a mag lost in flight without North-East aiding, and a heading that drifted by 180 degrees
+	// WHEN: GNSS fusion starts while the vehicle accelerates horizontally
+	// THEN: the GNSS data is rejected and a single yaw emergency reset recovers the heading
+	checkGnssStartAfterMagLossInFlight(radians(180.f), 1);
+}
+
+TEST_F(EkfMagTest, magBiasObservableAfterYawing)
+{
+	// GIVEN: a vehicle hovering after the in-flight alignment
+	const Vector3f mag_earth_wmm = getWmmEarthField();
+	_sensor_simulator._mag.setData(mag_earth_wmm);
+	alignOnGroundWithWmmThenLoseGnss();
+	ASSERT_NO_FATAL_FAILURE(climbToInFlightAlignment(Vector3f()));
+	_sensor_simulator.runSeconds(30);
+
+	ASSERT_FALSE(_ekf->isMagBiasObservable());
+
+	// WHEN: it yaws by 100 degrees
+	float heading = 0.f;
+	yawAtConstantRate(radians(10.f), 10.f, mag_earth_wmm, heading);
+
+	// THEN: the mag bias is observable
+	EXPECT_TRUE(_ekf->isMagBiasObservable());
+
+	// AND: it stays so when the vehicle yaws back
+	yawAtConstantRate(radians(-10.f), 10.f, mag_earth_wmm, heading);
+	EXPECT_TRUE(_ekf->isMagBiasObservable());
+}
+
+TEST_F(EkfMagTest, magBiasNotObservableWhenYawingBackAndForth)
+{
+	// GIVEN: a vehicle hovering after the in-flight alignment
+	const Vector3f mag_earth_wmm = getWmmEarthField();
+	_sensor_simulator._mag.setData(mag_earth_wmm);
+	alignOnGroundWithWmmThenLoseGnss();
+	ASSERT_NO_FATAL_FAILURE(climbToInFlightAlignment(Vector3f()));
+
+	// WHEN: it keeps yawing back and forth by 5 degrees
+	float heading = 0.f;
+
+	for (int i = 0; i < 20; i++) {
+		yawAtConstantRate(radians(10.f), 0.5f, mag_earth_wmm, heading);
+		yawAtConstantRate(radians(-10.f), 1.f, mag_earth_wmm, heading);
+		yawAtConstantRate(radians(10.f), 0.5f, mag_earth_wmm, heading);
+	}
+
+	// THEN: the mag bias is not observable
+	EXPECT_FALSE(_ekf->isMagBiasObservable());
+}
+
+TEST_F(EkfMagTest, fusionFailingMakesMagBiasUnobservable)
+{
+	// GIVEN: a vehicle flying without North-East aiding, that yawed a full turn
+	const Vector3f mag_earth_wmm = getWmmEarthField();
+	_sensor_simulator._mag.setData(mag_earth_wmm);
+	alignOnGroundWithWmmThenLoseGnss();
+	ASSERT_NO_FATAL_FAILURE(climbToInFlightAlignment(Vector3f()));
+	float heading = 0.f;
+	yawAtConstantRate(radians(20.f), 18.f, mag_earth_wmm, heading);
+
+	ASSERT_TRUE(_ekf->isMagBiasObservable());
+
+	// WHEN: the measured field suddenly rotates by 90 degrees, so that the fusion fails and the
+	// error is attributed to the mag bias
+	const Vector3f disturbance = Dcmf(Eulerf(0.f, 0.f, radians(90.f))).transpose() * mag_earth_wmm - mag_earth_wmm;
+	_sensor_simulator._mag.setBias(disturbance);
+	_sensor_simulator.runSeconds(30);
+
+	ASSERT_TRUE(isEqual(_ekf->getMagBias(), disturbance, 0.01f));
+
+	// THEN: the new mag bias is not observable
+	EXPECT_FALSE(_ekf->isMagBiasObservable());
+
+	// AND: it becomes observable once the vehicle yaws again
+	yawAtConstantRate(radians(10.f), 10.f, mag_earth_wmm, heading);
+	EXPECT_TRUE(_ekf->isMagBiasObservable());
+}
+
+TEST_F(EkfMagTest, headingResetDoesNotMakeMagBiasObservable)
+{
+	// GIVEN: a vehicle hovering after the in-flight alignment
+	const Vector3f mag_earth_wmm = getWmmEarthField();
+	_sensor_simulator._mag.setData(mag_earth_wmm);
+	alignOnGroundWithWmmThenLoseGnss();
+	ASSERT_NO_FATAL_FAILURE(climbToInFlightAlignment(Vector3f()));
+
+	ASSERT_FALSE(_ekf->isMagBiasObservable());
+
+	// WHEN: the heading is reset by 120 degrees without the vehicle rotating, and the mag is fused
+	// at the new heading
+	const float heading = radians(120.f);
+	_ekf->resetHeadingToExternalObservation(heading, radians(2.f));
+	_sensor_simulator._mag.setData(Dcmf(Eulerf(0.f, 0.f, heading)).transpose() * mag_earth_wmm);
+	_sensor_simulator.runSeconds(5);
+
+	ASSERT_NEAR(_ekf_wrapper.getYawAngle(), heading, radians(2.f));
+	ASSERT_TRUE(_ekf->aid_src_mag().fused);
+
+	// THEN: the mag bias is not observable
+	EXPECT_FALSE(_ekf->isMagBiasObservable());
 }

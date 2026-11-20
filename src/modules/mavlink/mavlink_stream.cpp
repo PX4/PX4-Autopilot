@@ -75,13 +75,13 @@ MavlinkStream::update(const hrt_abstime &t)
 		return 0;
 	}
 
-	// One of the previous iterations sent the update
-	// already before the deadline
-	if (_last_sent > t) {
+	// Most streams are not due on a given loop, so check that first.
+	if (not_due(t, (_mavlink->get_main_loop_delay() / 10) * 3)) {
 		return -1;
 	}
 
 	int64_t dt = t - _last_sent;
+
 	int interval = _interval;
 
 	if (!const_rate()) {

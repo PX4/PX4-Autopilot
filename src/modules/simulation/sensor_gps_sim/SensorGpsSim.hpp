@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include <mathlib/math/WhiteGaussianNoise.hpp>
 #include <lib/failure_injection/FailureInjection.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
@@ -84,12 +85,6 @@ private:
 
 	void publishWithFailures(int instance, sensor_gnss_s gnss, uORB::PublicationMulti<sensor_gnss_s> &pub);
 
-	// generate white Gaussian noise sample with std=1
-	static float generate_wgn();
-
-	// generate white Gaussian noise sample as a 3D vector with specified std
-	matrix::Vector3f noiseGauss3f(float stdx, float stdy, float stdz) { return matrix::Vector3f(generate_wgn() * stdx, generate_wgn() * stdy, generate_wgn() * stdz); }
-
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position_groundtruth)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position_groundtruth)};
@@ -124,8 +119,8 @@ private:
 	static constexpr float _vel_markov_time{0.54f};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SIM_GPS_USED>)      _sim_gps_used,
-		(ParamFloat<px4::params::SENS_GNSS1_OFFX>) _param_gnss1_offx,
-		(ParamFloat<px4::params::SENS_GNSS1_OFFY>) _param_gnss1_offy
+		(ParamInt<px4::params::SIM_GPS_USED>)      _param_sim_gps_used,
+		(ParamFloat<px4::params::SENS_GNSS1_OFFX>) _param_sens_gnss1_offx,
+		(ParamFloat<px4::params::SENS_GNSS1_OFFY>) _param_sens_gnss1_offy
 	)
 };

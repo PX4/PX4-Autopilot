@@ -47,6 +47,7 @@
 #include <px4_platform_common/log.h>
 
 #include <drivers/drv_pwm_output.h>         // to get PWM flags
+#include <drivers/drv_sensor.h>             // to get the simulated sensor device types
 #include <lib/drivers/device/Device.hpp>
 
 using namespace math;
@@ -55,16 +56,47 @@ using namespace time_literals;
 
 ModuleBase::Descriptor Sih::desc{task_spawn, custom_command, print_usage};
 
+#if defined(__PX4_POSIX)
+// Poses for the orient command, named after the face pointing down as the calibration names them
+static constexpr struct {
+	const char *name;
+	float roll;
+	float pitch;
+} orient_sides[] = {
+	{"down", 0.f, 0.f},
+	{"up", M_PI_F, 0.f},
+	{"front", 0.f, -M_PI_F / 2.f},
+	{"back", 0.f, M_PI_F / 2.f},
+	{"left", -M_PI_F / 2.f, 0.f},
+	{"right", M_PI_F / 2.f, 0.f},
+};
+
+static constexpr float ORIENT_RATE_MAX = M_PI_F;	// [rad/s] turn rate between poses
+static constexpr float ORIENT_YAW_RATE = 1.5f;		// [rad/s] rotation about the vertical
+static constexpr float ORIENT_WOBBLE = 0.4f;		// [rad] tilt swing while rotating, so the accel never reads still
+static constexpr float ORIENT_WOBBLE_FREQ = 0.5f;	// [Hz]
+static constexpr hrt_abstime ORIENT_ALL_HOLD = 10_s;	// still on each side for the accel calibration,
+static constexpr hrt_abstime ORIENT_ALL_ROTATE = 10_s;	// then rotating for the mag calibration
+#endif // __PX4_POSIX
+
 Sih::Sih() :
 	ModuleParams(nullptr)
 {
 	srand(1234); // initialize the random seed once before calling generate_wgn()
+
+	device::Device::DeviceId device_id{};
+	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+	device_id.devid_s.bus = 0;
+	device_id.devid_s.address = 0;
+	device_id.devid_s.devtype = DRV_FLOW_DEVTYPE_SIM;
+	_optical_flow_device_id = device_id.devid;
 }
 
 Sih::~Sih()
 {
 	perf_free(_loop_perf);
 	perf_free(_loop_interval_perf);
+	_terrain = Terrain{}; // free the DEM
 }
 
 void Sih::run()
@@ -72,16 +104,27 @@ void Sih::run()
 	_px4_accel.set_temperature(T1_C);
 	_px4_gyro.set_temperature(T1_C);
 
+	// the vehicle type is needed by parameters_updated() to place the vehicle on the terrain
+	_vehicle = static_cast<VehicleType>(constrain(_param_sih_vehicle_type.get(),
+					    static_cast<int32_t>(VehicleType::First),
+					    static_cast<int32_t>(VehicleType::Last)));
+
 	parameters_updated();
+
+	if (_param_sih_of_en.get()) {
+		// Advertise before the simulated clock starts running: the sensors module brings up its
+		// optical flow pipeline when the topic first appears, and it only looks for it while
+		// updating its parameters. Advertising here makes it visible for the startup scan even
+		// though the first sample is only published once the control pipeline is alive.
+		_optical_flow_pub.advertise();
+	}
 
 	const hrt_abstime task_start = hrt_absolute_time();
 	_last_run = task_start;
 	_airspeed_time = task_start;
 	_dist_snsr_time = task_start;
+	_optical_flow_time = task_start;
 	_ranging_beacon_time = task_start;
-	_vehicle = static_cast<VehicleType>(constrain(_sih_vtype.get(),
-					    static_cast<int32_t>(VehicleType::First),
-					    static_cast<int32_t>(VehicleType::Last)));
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	lockstep_loop();
@@ -102,7 +145,7 @@ static uint64_t micros()
 
 void Sih::lockstep_loop()
 {
-	int rate = math::min(_imu_gyro_ratemax.get(), _imu_integration_rate.get());
+	int rate = math::min(_param_imu_gyro_ratemax.get(), _param_imu_integ_rate.get());
 
 	// default to 400Hz (2500 us interval)
 	if (rate <= 0) {
@@ -192,7 +235,7 @@ static void timer_callback(void *sem)
 
 void Sih::realtime_loop()
 {
-	int rate = _imu_gyro_ratemax.get();
+	int rate = _param_imu_gyro_ratemax.get();
 
 	// default to 250 Hz (4000 us interval)
 	if (rate <= 0) {
@@ -224,10 +267,20 @@ void Sih::updateFailureConfig()
 			     == failure_injection::Mode::Off);
 	_distance_sensor_blocked = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR, 1)
 				    == failure_injection::Mode::Off);
+	_optical_flow_blocked = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_OPTICAL_FLOW, 1)
+				 == failure_injection::Mode::Off);
 	_accel_blocked = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_ACCEL, 1)
 			  == failure_injection::Mode::Off);
 	_gyro_blocked = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_GYRO, 1)
 			 == failure_injection::Mode::Off);
+
+	_stuck_motor_mask = 0;
+
+	for (int i = 0; i < NUM_ACTUATORS_MAX; i++) {
+		if (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SYSTEM_MOTOR, i + 1) == failure_injection::Mode::Stuck) {
+			_stuck_motor_mask |= 1u << i;
+		}
+	}
 }
 
 void Sih::sensor_step()
@@ -253,9 +306,21 @@ void Sih::sensor_step()
 
 	read_motors(dt);
 
-	generate_force_and_torques(dt);
+#if defined(__PX4_POSIX)
+	orient_update(now);
 
+	if (_orient_mode == OrientMode::Off) {
+		generate_force_and_torques(dt);
+		equations_of_motion(dt);
+
+	} else {
+		orient_step(now, dt);
+	}
+
+#else
+	generate_force_and_torques(dt);
 	equations_of_motion(dt);
+#endif // __PX4_POSIX
 
 	reconstruct_sensors_signals(now);
 
@@ -268,10 +333,28 @@ void Sih::sensor_step()
 	}
 
 	// distance sensor published at 50 Hz
-	if (now - _dist_snsr_time >= 20_ms
-	    && fabs(_distance_snsr_override) < 10000) {
+	if (_param_sih_distsnsr_en.get() && now - _dist_snsr_time >= 20_ms) {
 		_dist_snsr_time = now;
 		send_dist_snsr(now);
+	}
+
+	// The optical flow is integrated every iteration and published at SIH_OF_RATE, but only
+	// once the control pipeline is alive. Publishing while the system is still starting up
+	// races with the sensors module bringing up its optical flow pipeline and deadlocks the
+	// simulation, as this thread is the one advancing the lockstep clock.
+	if (_param_sih_of_en.get()) {
+		if (_last_actuator_output_time > 0) {
+			accumulate_optical_flow(dt);
+
+			if (now - _optical_flow_time >= _optical_flow_interval_us) {
+				_optical_flow_time = now;
+				send_optical_flow(now);
+			}
+
+		} else {
+			// keep the integration interval aligned with the first publication
+			_optical_flow_time = now;
+		}
 	}
 
 	// ranging beacon published at 2 Hz (each beacon at 0.5 Hz)
@@ -287,84 +370,93 @@ void Sih::sensor_step()
 
 void Sih::parameters_updated()
 {
-	_T_MAX = _sih_t_max.get();
-	_Q_MAX = _sih_q_max.get();
-	_L_ROLL = _sih_l_roll.get();
-	_L_PITCH = _sih_l_pitch.get();
-	_KDV = _sih_kdv.get();
-	_KDW = _sih_kdw.get();
-	_F_T_MAX = _sih_f_thrust_max.get();
-	_F_Q_MAX = _sih_f_torque_max.get();
+	_T_MAX = _param_sih_t_max.get();
+	_Q_MAX = _param_sih_q_max.get();
+	_L_ROLL = _param_sih_l_roll.get();
+	_L_PITCH = _param_sih_l_pitch.get();
+	_KDV = _param_sih_kdv.get();
+	_KDW = _param_sih_kdw.get();
+	_F_T_MAX = _param_sih_f_t_max.get();
+	_F_Q_MAX = _param_sih_f_q_max.get();
 
 	// update the thruster models
 	for (size_t i = 0; i < NUM_DYN_THRUSTER; i++) {
-		if (_sih_f_ct0.get() > 0.0f && _sih_f_cp0.get() > 0.0f) {
-			_thruster[i] = Thruster(_sih_forward_diameter_inch.get(), _sih_forward_rpm_max.get(),
-						_sih_f_ct0.get(), _sih_f_ct1.get(), _sih_f_ct2.get(),
-						_sih_f_cp0.get(), _sih_f_cp1.get(), _sih_f_cp2.get());
+		if (_param_sih_f_ct0.get() > 0.0f && _param_sih_f_cp0.get() > 0.0f) {
+			_thruster[i] = Thruster(_param_sih_f_dia_inch.get(), _param_sih_f_rpm_max.get(),
+						_param_sih_f_ct0.get(), _param_sih_f_ct1.get(), _param_sih_f_ct2.get(),
+						_param_sih_f_cp0.get(), _param_sih_f_cp1.get(), _param_sih_f_cp2.get());
 
 		} else {
 			_thruster[i] = Thruster(_F_T_MAX, _F_Q_MAX);
 		}
 	}
 
-	if (_sih_f_ct0.get() > 0.0f && _sih_f_cp0.get() > 0.0f) {
+	if (_param_sih_f_ct0.get() > 0.0f && _param_sih_f_cp0.get() > 0.0f) {
 		_F_T_MAX = _thruster[0].get_T_max();
 		_F_Q_MAX = _thruster[0].get_Q_max();
 
-		if (fabsf(_F_T_MAX - _sih_f_thrust_max.get()) > 1.0e-5f) {
-			_sih_f_thrust_max.set(_F_T_MAX);
-			_sih_f_thrust_max.commit();
+		if (fabsf(_F_T_MAX - _param_sih_f_t_max.get()) > 1.0e-5f) {
+			_param_sih_f_t_max.set(_F_T_MAX);
+			_param_sih_f_t_max.commit();
 			PX4_INFO("SIH_F_CT0 > 0, using propeller dynamic model, overriding SIH_F_T_MAX");
 		}
 
-		if (fabsf(_F_Q_MAX - _sih_f_torque_max.get()) > 1.0e-5f) {
-			_sih_f_torque_max.set(_F_Q_MAX);
-			_sih_f_torque_max.commit();
+		if (fabsf(_F_Q_MAX - _param_sih_f_q_max.get()) > 1.0e-5f) {
+			_param_sih_f_q_max.set(_F_Q_MAX);
+			_param_sih_f_q_max.commit();
 			PX4_INFO("SIH_F_CP0 > 0, using propeller dynamic model, overriding SIH_F_Q_MAX");
 		}
 	}
 
 	if (!_lpos_ref.isInitialized()
-	    || (fabsf(static_cast<float>(_lpos_ref.getProjectionReferenceLat()) - _sih_lat0.get()) > FLT_EPSILON)
-	    || (fabsf(static_cast<float>(_lpos_ref.getProjectionReferenceLon()) - _sih_lon0.get()) > FLT_EPSILON)
-	    || (fabsf(_lpos_ref_alt - _sih_h0.get()) > FLT_EPSILON)) {
-		_lpos_ref.initReference(static_cast<double>(_sih_lat0.get()), static_cast<double>(_sih_lon0.get()));
-		_lpos_ref_alt = _sih_h0.get();
+	    || (fabsf(static_cast<float>(_lpos_ref.getProjectionReferenceLat()) - _param_sih_loc_lat0.get()) > FLT_EPSILON)
+	    || (fabsf(static_cast<float>(_lpos_ref.getProjectionReferenceLon()) - _param_sih_loc_lon0.get()) > FLT_EPSILON)
+	    || (fabsf(_terrain.defaultAltitude() - _param_sih_loc_h0.get()) > FLT_EPSILON)) {
+		const double lat0 = static_cast<double>(_param_sih_loc_lat0.get());
+		const double lon0 = static_cast<double>(_param_sih_loc_lon0.get());
+		_lpos_ref.initReference(lat0, lon0);
+
+		// start on the ground: flat at SIH_LOC_H0, or on the terrain model
+		_terrain.setDefaultAltitude(_param_sih_loc_h0.get());
+		_lpos_ref_alt = _terrain.vehicleGroundAltitude(lat0, lon0);
+		_ground_alt = _lpos_ref_alt;
 
 		// Reset earth position, velocity and attitude
-		_lla.setLatitudeDeg(static_cast<double>(_sih_lat0.get()));
-		_lla.setLongitudeDeg(static_cast<double>(_sih_lon0.get()));
+		_lla.setLatitudeDeg(lat0);
+		_lla.setLongitudeDeg(lon0);
 		_lla.setAltitude(_lpos_ref_alt);
 		_p_E = _lla.toEcef();
 
 		const Dcmf R_E2N = _lla.computeRotEcefToNed();
 		_R_N2E = R_E2N.transpose();
 		_v_E = _R_N2E * _v_N;
-		_q = Quatf(Eulerf(0.f, 0.f, _sih_yaw0.get()));
+		_q = Quatf(Eulerf(0.f, 0.f, _param_sih_loc_yaw0.get()));
 		_q_E = Quatf(_R_N2E) * _q;
 		_q_E.normalize();
 	}
 
-	_MASS = _sih_mass.get();
+	_MASS = _param_sih_mass.get();
 
-	_I = diag(Vector3f(_sih_ixx.get(), _sih_iyy.get(), _sih_izz.get()));
-	_I(0, 1) = _I(1, 0) = _sih_ixy.get();
-	_I(0, 2) = _I(2, 0) = _sih_ixz.get();
-	_I(1, 2) = _I(2, 1) = _sih_iyz.get();
+	_I = diag(Vector3f(_param_sih_ixx.get(), _param_sih_iyy.get(), _param_sih_izz.get()));
+	_I(0, 1) = _I(1, 0) = _param_sih_ixy.get();
+	_I(0, 2) = _I(2, 0) = _param_sih_ixz.get();
+	_I(1, 2) = _I(2, 1) = _param_sih_iyz.get();
 
 	// guards against too small determinants
 	_Im1 = 100.0f * inv(static_cast<typeof _I>(100.0f * _I));
 
-	_distance_snsr_min = _sih_distance_snsr_min.get();
-	_distance_snsr_max = _sih_distance_snsr_max.get();
-	_distance_snsr_override = _sih_distance_snsr_override.get();
+	_distance_snsr_min = _param_sih_distsnsr_min.get();
+	_distance_snsr_max = _param_sih_distsnsr_max.get();
+	_distance_snsr_override = _param_sih_distsnsr_ovr.get();
+	_distance_snsr_noise = _param_sih_distsnsr_noi.get();
 	_px4_rangefinder.set_min_distance(_distance_snsr_min);
 	_px4_rangefinder.set_max_distance(_distance_snsr_max);
 
-	_T_TAU = _sih_thrust_tau.get();
+	_optical_flow_interval_us = static_cast<hrt_abstime>(roundf(1e6f / math::max(_param_sih_of_rate.get(), 1.f)));
 
-	_v_wind_N = Vector3f(_sih_wind_n.get(), _sih_wind_e.get(), 0.f);
+	_T_TAU = _param_sih_t_tau.get();
+
+	_v_wind_N = Vector3f(_param_sih_wind_n.get(), _param_sih_wind_e.get(), 0.f);
 }
 
 void Sih::read_motors(const float dt)
@@ -379,8 +471,15 @@ void Sih::read_motors(const float dt)
 				_u[i] = actuators_out.output[i];
 
 			} else {
-				float u_sp = actuators_out.output[i];
-				_u[i] = _u[i] + dt / _T_TAU * (u_sp - _u[i]); // first order transfer function with time constant tau
+				const int motor_index = motor_index_from_actuator(i);
+
+				if (motor_index >= 0 && (_stuck_motor_mask & (1u << motor_index))) {
+					_u[i] = 0.f; // rotor stuck: no thrust and no RPM, the ESC keeps reporting
+
+				} else {
+					float u_sp = actuators_out.output[i];
+					_u[i] = _u[i] + dt / _T_TAU * (u_sp - _u[i]); // first order transfer function with time constant tau
+				}
 			}
 		}
 
@@ -397,13 +496,33 @@ uint8_t Sih::num_motors() const
 
 	case VehicleType::TailsitterVTOL: return NUM_DYN_THRUSTER; // motors at index 0..1, surfaces at 4..5
 
-	case VehicleType::StandardVTOL:   return 4;                // hover motors at 0..3; pusher at 7 excluded for simplicity
+	case VehicleType::StandardVTOL:   return 5;                // hover motors at 0..3, pusher at 7 (Motor5)
 
 	case VehicleType::FixedWing:      return 1;                // motor at index 3, surfaces at 0..2 are skipped
 
 	case VehicleType::RoverAckermann: return 1;
 
+	case VehicleType::RoverDifferential: return 2; // right wheel at 0, left wheel at 1
+
 	default:                          return 0;
+	}
+}
+
+int Sih::motor_index_from_actuator(int actuator_index) const
+{
+	switch (_vehicle) {
+	case VehicleType::FixedWing:      return actuator_index < 3 ? -1 : actuator_index - 3; // surfaces at 0..2
+
+	case VehicleType::TailsitterVTOL: return actuator_index > 3 ? -1 : actuator_index;     // surfaces after the motors
+
+	case VehicleType::StandardVTOL:
+		if (actuator_index < 4) { return actuator_index; } // hover motors
+
+		return actuator_index == 7 ? 4 : -1;              // pusher (Motor5) at 7, surfaces at 4..6
+
+	case VehicleType::RoverAckermann: return actuator_index == 0 ? -1 : actuator_index - 1; // steering at 0
+
+	default:                          return actuator_index;
 	}
 }
 
@@ -417,13 +536,11 @@ void Sih::publish_esc_status()
 	float max_rpm = 10000.f;
 
 	if (_vehicle == VehicleType::FixedWing || _vehicle == VehicleType::TailsitterVTOL || _vehicle == VehicleType::StandardVTOL) {
-		max_rpm = _sih_forward_rpm_max.get();
+		max_rpm = _param_sih_f_rpm_max.get();
 	}
 
 	for (int i = 0; i < NUM_ACTUATORS_MAX && motor_idx < num_motors(); i++) {
-		if ((_vehicle == VehicleType::FixedWing && i < 3)
-		    || (_vehicle == VehicleType::TailsitterVTOL && i > 3)
-		    || (_vehicle == VehicleType::RoverAckermann && i == 0)) {
+		if (motor_index_from_actuator(i) < 0) {
 			continue; // control surface / steering channel, not a motor
 		}
 
@@ -518,6 +635,9 @@ void Sih::generate_force_and_torques(const float dt)
 
 	} else if (_vehicle == VehicleType::RoverAckermann) {
 		generate_rover_ackermann_dynamics(_u[1], _u[0], dt);
+
+	} else if (_vehicle == VehicleType::RoverDifferential) {
+		generate_rover_differential_dynamics(_u[0], _u[1]);
 	}
 }
 
@@ -598,10 +718,10 @@ void Sih::generate_rover_ackermann_dynamics(const float throttle_cmd, const floa
 		// Link: https://srianumakonda.medium.com/everything-you-need-to-know-about-self-driving-in-30-minutes-b38d68bd3427
 		const float a_y = C * delta / _MASS - fabsf(v_B(0)) * _w_B(2)
 				  - 2 * C * v_B(1) / (_MASS * fabsf(v_B(0))); // [m/s^2] Lateral acceleration
-		const float psi_dot_dot = WHEEL_BASE * C * delta / _sih_izz.get()
-					  - C * WHEEL_BASE * WHEEL_BASE  * _w_B(2) / (_sih_izz.get() * fabsf(v_B(0))); // [rad/s^2] Yaw acceleration
+		const float psi_dot_dot = WHEEL_BASE * C * delta / _param_sih_izz.get()
+					  - C * WHEEL_BASE * WHEEL_BASE  * _w_B(2) / (_param_sih_izz.get() * fabsf(v_B(0))); // [rad/s^2] Yaw acceleration
 		F_y = _MASS * a_y; // Lateral force [N]
-		M_z = _sih_izz.get() * psi_dot_dot; // [Nm] Yaw moment
+		M_z = _param_sih_izz.get() * psi_dot_dot; // [Nm] Yaw moment
 	}
 
 	_T_B = Vector3f(F_x, F_y, 0.f);
@@ -636,6 +756,40 @@ void Sih::generate_rover_ackermann_dynamics(const float throttle_cmd, const floa
 
 }
 
+void Sih::generate_rover_differential_dynamics(const float right_cmd, const float left_cmd)
+{
+	// Unicycle model: each wheel is driven towards the ground speed its motor command asks for, with the force limited
+	// by the traction of the wheel, and the wheels do not let the rover slip sideways.
+	static constexpr float WHEEL_TRACK = 0.6f;     // [m] Distance between the left and right wheels, matches RD_WHEEL_TRACK
+	static constexpr float MAX_WHEEL_SPEED = 2.f;  // [m/s] Wheel ground speed at full motor command, matches RO_MAX_THR_SPEED
+	static constexpr float WHEEL_SPEED_TAU = 0.2f; // [s] Time constant of the wheel speed response
+	static constexpr float LATERAL_TAU = 0.05f;    // [s] Time constant of the lateral slip decay
+	static constexpr float MU = 0.8f;              // [-] Friction coefficient between the wheels and the ground
+
+	const Vector3f v_B = _q.rotateVectorInverse(_v_N); // Nav -> Body
+	const float yaw_rate = _w_B(2); // [rad/s] positive when turning right
+
+	// Ground speed of each wheel [m/s], turning right slows down the right wheel
+	const float v_right = v_B(0) - yaw_rate * WHEEL_TRACK / 2.f;
+	const float v_left = v_B(0) + yaw_rate * WHEEL_TRACK / 2.f;
+
+	// Longitudinal force [N]: force per wheel
+	const float wheel_gain = _MASS / (2.f * WHEEL_SPEED_TAU); // [N/(m/s)] per wheel, the forward speed responds with WHEEL_SPEED_TAU
+	const float max_wheel_force = MU * _MASS * CONSTANTS_ONE_G / 2.f; // [N] the weight is shared by both sides
+	const float F_right = constrain(wheel_gain * (MAX_WHEEL_SPEED * right_cmd - v_right), -max_wheel_force, max_wheel_force);
+	const float F_left = constrain(wheel_gain * (MAX_WHEEL_SPEED * left_cmd - v_left), -max_wheel_force, max_wheel_force);
+
+	// Lateral force [N]: provides the centripetal force of the turn and removes any sideways velocity
+	const float max_lateral_force = MU * _MASS * CONSTANTS_ONE_G;
+	const float F_y = constrain(_MASS * (yaw_rate * v_B(0) - v_B(1) / LATERAL_TAU), -max_lateral_force, max_lateral_force);
+
+	_T_B = Vector3f(F_right + F_left, F_y, 0.f); // Forces [N]
+	_Mt_B = Vector3f(0.f, 0.f, (F_left - F_right) * WHEEL_TRACK / 2.f); // Moments [Nm]
+
+	_Fa_E = Vector3f(); // [N] Second order drag and friction: rolling resistance is part of the wheel speed response, no aerodynamic drag at rover speeds
+	_Ma_B = -_KDW * _w_B; // [Nm] First order angular damper
+}
+
 void Sih::equations_of_motion(const float dt)
 {
 	const Vector3f gravity_acceleration_E = Vector3f(_R_N2E.col(2)) * LatLonAlt::Wgs84::gravity(
@@ -649,7 +803,7 @@ void Sih::equations_of_motion(const float dt)
 	const float force_down = Vector3f(_R_N2E.transpose() * sum_of_forces_E)(2);
 	Vector3f ground_force_E;
 
-	if ((_lla.altitude() - _lpos_ref_alt) < 0.f && force_down > 0.f) {
+	if (_lla.altitude() < _ground_alt && force_down > 0.f) {
 		if (_vehicle == VehicleType::Quadcopter
 		    || _vehicle == VehicleType::Hexacopter
 		    || _vehicle == VehicleType::TailsitterVTOL
@@ -665,7 +819,8 @@ void Sih::equations_of_motion(const float dt)
 			_grounded = true;
 
 		} else if (_vehicle == VehicleType::FixedWing
-			   || _vehicle == VehicleType::RoverAckermann) {
+			   || _vehicle == VehicleType::RoverAckermann
+			   || _vehicle == VehicleType::RoverDifferential) {
 			Vector3f down_u = _R_N2E.col(2);
 			ground_force_E = -down_u * sum_of_forces_E * down_u;
 
@@ -709,8 +864,144 @@ void Sih::equations_of_motion(const float dt)
 
 	ecefToNed();
 
+	// ground below the new position, for the next contact check and the sensors
+	_ground_alt = _terrain.vehicleGroundAltitude(_lla.latitude_deg(), _lla.longitude_deg());
+
+	// the ground force only stops the vertical motion, keep the vehicle from sinking into rising terrain
+	static constexpr float MAX_PENETRATION = 0.05f; // [m]
+
+	if (_lla.altitude() < _ground_alt - MAX_PENETRATION) {
+		_lla.setAltitude(_ground_alt - MAX_PENETRATION);
+		_p_E = _lla.toEcef();
+
+		if (_v_N(2) > 0.f) {
+			_v_N(2) = 0.f;
+			_v_E = _R_N2E * _v_N;
+			_v_apparent_N = _v_N + _v_wind_N;
+		}
+	}
+
 	_lpos_ref.project(_lla.latitude_deg(), _lla.longitude_deg(), _lpos(0), _lpos(1));
 	_lpos(2) = -(_lla.altitude() - _lpos_ref_alt);
+}
+
+#if defined(__PX4_POSIX)
+void Sih::orient_update(const hrt_abstime &now)
+{
+	static_assert(sizeof(orient_sides) / sizeof(orient_sides[0]) == ORIENT_SIDE_COUNT, "orient side table");
+
+	int request = _orient_request.load();
+
+	if (request == ORIENT_NONE || !_orient_request.compare_exchange(&request, ORIENT_NONE)) {
+		return;
+	}
+
+	if (request == ORIENT_OFF) {
+		if (_orient_mode != OrientMode::Off) {
+			_orient_mode = OrientMode::Leveling;
+		}
+
+		return;
+	}
+
+	if (_orient_mode == OrientMode::Off) {
+		if (!_grounded) {
+			PX4_WARN("orient: vehicle not on the ground");
+			return;
+		}
+
+		_orient_yaw = Eulerf(_q).psi();
+	}
+
+	_orient_start = now;
+
+	if (request == ORIENT_ALL) {
+		_orient_mode = OrientMode::AllSides;
+		_orient_side = -1;
+
+	} else {
+		_orient_mode = (request >= ORIENT_ROTATE) ? OrientMode::Rotate : OrientMode::Hold;
+		_orient_side = request % ORIENT_ROTATE;
+	}
+}
+
+void Sih::orient_step(const hrt_abstime &now, const float dt)
+{
+	bool rotate = (_orient_mode == OrientMode::Rotate);
+	hrt_abstime rotate_start = _orient_start;
+
+	if (_orient_mode == OrientMode::AllSides) {
+		static constexpr hrt_abstime side_time = ORIENT_ALL_HOLD + ORIENT_ALL_ROTATE;
+		const hrt_abstime elapsed = now - _orient_start;
+		const int side = elapsed / side_time;
+
+		if (side >= ORIENT_SIDE_COUNT) {
+			PX4_INFO("orient: all sides done");
+			_orient_mode = OrientMode::Leveling;
+
+		} else {
+			if (side != _orient_side) {
+				PX4_INFO("orient: %s side", orient_sides[side].name);
+				_orient_side = side;
+			}
+
+			rotate = (elapsed % side_time) >= ORIENT_ALL_HOLD;
+			rotate_start = _orient_start + side * side_time + ORIENT_ALL_HOLD;
+		}
+	}
+
+	const Quatf q_yaw{AxisAnglef(Vector3f(0.f, 0.f, 1.f), _orient_yaw)};
+	Quatf q_target = q_yaw;
+
+	if (_orient_mode != OrientMode::Leveling) {
+		const Quatf q_side{Eulerf(orient_sides[_orient_side].roll, orient_sides[_orient_side].pitch, 0.f)};
+
+		if (rotate) {
+			const float t = (now - rotate_start) * 1e-6f;
+			const float tilt = ORIENT_WOBBLE * sinf(2.f * M_PI_F * ORIENT_WOBBLE_FREQ * t);
+			const Quatf q_spin = Quatf(AxisAnglef(Vector3f(0.f, 0.f, 1.f), ORIENT_YAW_RATE * t));
+			const Quatf q_wobble = Quatf(AxisAnglef(Vector3f(1.f, 0.f, 0.f), tilt));
+			q_target = q_yaw * q_spin * q_wobble * q_side;
+
+		} else {
+			q_target = q_yaw * q_side;
+		}
+	}
+
+	// turn towards the target at a bounded rate, with the gyro reading the turn
+	Quatf q_error = _q.inversed() * q_target;
+	q_error.canonicalize();
+	Vector3f rotation = AxisAnglef(q_error);
+	const float max_angle = ORIENT_RATE_MAX * dt;
+
+	if (rotation.norm() > max_angle) {
+		rotation = rotation.normalized() * max_angle;
+	}
+
+	if (_orient_mode == OrientMode::Leveling && rotation.norm() < 1e-4f) {
+		_orient_mode = OrientMode::Off;
+		_w_B.zero();
+		return;
+	}
+
+	_w_B = (dt > FLT_EPSILON) ? rotation / dt : Vector3f{};
+
+	// at rest in place
+	_specific_force_E = -Vector3f(_R_N2E.col(2)) * LatLonAlt::Wgs84::gravity(_lla.latitude_rad());
+	_v_E.zero();
+	_v_E_dot.zero();
+	_v_N_dot.zero();
+
+	_q_E = Quatf(_R_N2E) * _q * Quatf(AxisAnglef(rotation));
+	_q_E.normalize();
+
+	ecefToNed();
+}
+#endif // __PX4_POSIX
+
+float Sih::ground_distance(float max_distance) const
+{
+	return _terrain.rayDistance(_lla.latitude_deg(), _lla.longitude_deg(), _lla.altitude(), _q.dcm_z(), max_distance);
 }
 
 void Sih::ecefToNed()
@@ -740,13 +1031,13 @@ void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
 	Vector3f gyro_noise;
 
 	if (false && _T_B.longerThan(FLT_EPSILON)) { // too much noise at least for the low update rate O.O
-		accel_noise = noiseGauss3f(0.5f, 1.7f, 1.4f);
-		gyro_noise = noiseGauss3f(0.14f, 0.07f, 0.03f);
+		accel_noise = math::noiseGauss3f(0.5f, 1.7f, 1.4f);
+		gyro_noise = math::noiseGauss3f(0.14f, 0.07f, 0.03f);
 
 	} else {
 		// Lower noise when not armed
-		accel_noise = noiseGauss3f(0.1f, 0.1f, 0.1f);
-		gyro_noise = noiseGauss3f(0.01f, 0.01f, 0.01f);
+		accel_noise = math::noiseGauss3f(0.1f, 0.1f, 0.1f);
+		gyro_noise = math::noiseGauss3f(0.01f, 0.01f, 0.01f);
 	}
 
 	Vector3f specific_force_B = R_E2B * _specific_force_E;
@@ -772,12 +1063,17 @@ void Sih::send_airspeed(const hrt_abstime &time_now_us)
 	}
 
 	// TODO: send differential pressure instead?
+	device::Device::DeviceId device_id{};
+	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+	device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_SIM;
+
 	airspeed_s airspeed{};
 	airspeed.timestamp_sample = time_now_us;
+	airspeed.device_id = device_id.devid;
 
 	const Vector3f v_apparent_B = _q.rotateVectorInverse(_v_apparent_N);
 	const float v_pitot = (_vehicle == VehicleType::TailsitterVTOL) ? -v_apparent_B(2) : v_apparent_B(0);
-	airspeed.true_airspeed_m_s = fmaxf(0.1f, v_pitot + generate_wgn() * 0.2f);
+	airspeed.true_airspeed_m_s = fmaxf(0.1f, v_pitot + math::generate_wgn() * 0.2f);
 	airspeed.indicated_airspeed_m_s = airspeed.true_airspeed_m_s * sqrtf(_wing_l.get_rho() / RHO);
 	airspeed.confidence = 0.7f;
 	airspeed.timestamp = hrt_absolute_time();
@@ -791,20 +1087,127 @@ void Sih::send_dist_snsr(const hrt_abstime &time_now_us)
 	}
 
 	float current_distance;
+	int8_t signal_quality;
 
 	if (_distance_snsr_override >= 0.f) {
+		// forced reading, let the driver flag it if it falls outside of the configured range
 		current_distance = _distance_snsr_override;
+		signal_quality = -1;
 
 	} else {
-		current_distance = -_lpos(2) / _q.dcm_z()(2);
+		// the quality is decided on the true distance rather than on the noisy reading, so
+		// that a measurement sitting at a range limit does not flicker in and out of validity
+		const float true_distance = ground_distance(_distance_snsr_max);
 
-		if (current_distance > _distance_snsr_max) {
-			// this is based on lightware lw20 behaviour
-			current_distance = UINT16_MAX / 100.f;
+		if (!PX4_ISFINITE(true_distance) || true_distance > _distance_snsr_max) {
+			// nothing within reach, the sensor reports its saturated raw reading
+			current_distance = DISTSNSR_OUT_OF_RANGE;
+			signal_quality = 0;
+
+		} else if (true_distance < _distance_snsr_min) {
+			// closer than the minimum range: the reading saturates and cannot be trusted
+			current_distance = _distance_snsr_min;
+			signal_quality = 0;
+
+		} else {
+			current_distance = math::max(true_distance + generate_wgn() * _distance_snsr_noise, 0.f);
+
+			// the returned signal gets weaker as the target moves away
+			const float derate_start = DISTSNSR_QUALITY_DERATE * _distance_snsr_max;
+			const float derate_span = _distance_snsr_max - derate_start;
+
+			if (true_distance > derate_start && derate_span > FLT_EPSILON) {
+				const float derated = (true_distance - derate_start) / derate_span;
+				signal_quality = static_cast<int8_t>(constrain(roundf(100.f - 99.f * derated), 1.f, 100.f));
+
+			} else {
+				signal_quality = 100;
+			}
 		}
 	}
 
-	_px4_rangefinder.update(hrt_absolute_time(), current_distance);
+	_px4_rangefinder.update(time_now_us, current_distance, signal_quality);
+}
+
+void Sih::accumulate_optical_flow(const float dt)
+{
+	// An optical flow sensor integrates the angular displacement of the ground image over its
+	// integration interval. The sign convention of sensor_optical_flow is such that a positive
+	// value is produced by a right handed rotation of the sensor about the body axis, which
+	// gives the translation over the ground the opposite sign (see the flow observation model
+	// in the EKF).
+	const float distance = ground_distance(_param_sih_of_h_max.get());
+
+	if (!PX4_ISFINITE(distance) || distance > _param_sih_of_h_max.get()) {
+		// too high above the ground, or not looking at it: no image to track
+		_optical_flow_tracking = false;
+		_optical_flow_dt += dt;
+		return;
+	}
+
+	const Vector3f v_B = _q.rotateVectorInverse(_v_N); // ground relative velocity in body frame
+
+	// the flow produced by the translation over the ground scales with the inverse of the
+	// distance, which is kept bounded to stay well behaved when landed
+	const Vector2f translation_flow = Vector2f(-v_B(1), v_B(0)) / math::max(distance, FLOW_MIN_DISTANCE);
+	const Vector2f flow_rate = Vector2f(_w_B(0), _w_B(1)) + translation_flow;
+
+	if (flow_rate.norm() > FLOW_MAX_RATE) {
+		// the image moves too fast for the sensor to correlate two consecutive frames
+		_optical_flow_tracking = false;
+	}
+
+	_optical_flow_integral += flow_rate * dt;
+	_optical_flow_dt += dt;
+}
+
+void Sih::send_optical_flow(const hrt_abstime &time_now_us)
+{
+	Vector2f pixel_flow = _optical_flow_integral;
+	const float integration_time = _optical_flow_dt;
+	const bool tracking = _optical_flow_tracking;
+
+	// start a new integration interval
+	_optical_flow_integral.setZero();
+	_optical_flow_dt = 0.f;
+	_optical_flow_tracking = true;
+
+	if (_optical_flow_blocked || integration_time < FLT_EPSILON) {
+		return;
+	}
+
+	sensor_optical_flow_s flow{};
+	flow.timestamp_sample = time_now_us;
+	flow.device_id = _optical_flow_device_id;
+
+	if (tracking) {
+		// white noise on the flow rate estimate, integrated over the interval
+		pixel_flow += Vector2f(generate_wgn(), generate_wgn()) * (_param_sih_of_noise.get() * integration_time);
+		flow.quality = UINT8_MAX;
+
+	} else {
+		pixel_flow.setZero();
+		flow.quality = 0;
+	}
+
+	pixel_flow.copyTo(flow.pixel_flow);
+	flow.integration_timespan_us = static_cast<uint32_t>(roundf(integration_time * 1e6f));
+
+	// the sensor has neither a gyro nor a rangefinder: the flow module completes the sample
+	// with the vehicle gyro and the downward facing distance sensor
+	flow.delta_angle[0] = flow.delta_angle[1] = flow.delta_angle[2] = NAN;
+	flow.delta_angle_available = false;
+	flow.distance_m = NAN;
+	flow.distance_available = false;
+
+	flow.max_flow_rate = FLOW_MAX_RATE;
+	flow.min_ground_distance = 0.f;
+	flow.max_ground_distance = _param_sih_of_h_max.get();
+	flow.mode = sensor_optical_flow_s::MODE_LOWLIGHT;
+	flow.error_count = 0;
+
+	flow.timestamp = hrt_absolute_time();
+	_optical_flow_pub.publish(flow);
 }
 
 void Sih::send_ranging_beacon(const hrt_abstime &time_now_us)
@@ -817,7 +1220,7 @@ void Sih::send_ranging_beacon(const hrt_abstime &time_now_us)
 			for (uint8_t i = 0; i < NUM_RANGING_BEACONS; i++) {
 				_lpos_ref.reproject(RANGING_BEACON_OFFSETS[i].north_m, RANGING_BEACON_OFFSETS[i].east_m,
 						    _ranging_beacons[i].lat_deg, _ranging_beacons[i].lon_deg);
-				_ranging_beacons[i].alt_m = _sih_h0.get() + RANGING_BEACON_OFFSETS[i].alt_offset_m;
+				_ranging_beacons[i].alt_m = _param_sih_loc_h0.get() + RANGING_BEACON_OFFSETS[i].alt_offset_m;
 			}
 		}
 
@@ -829,8 +1232,8 @@ void Sih::send_ranging_beacon(const hrt_abstime &time_now_us)
 		const matrix::Vector3d delta_ecef = beacon_ecef - _p_E;
 		const double true_range_m = delta_ecef.norm();
 
-		const float noise_std = _sih_ranging_beacon_noise.get();
-		const float noise_m = (noise_std > 0.f) ? generate_wgn() * noise_std : 0.f;
+		const float noise_std = _param_sih_rngbc_noise.get();
+		const float noise_m = (noise_std > 0.f) ? math::generate_wgn() * noise_std : 0.f;
 		const double measured_range_m = math::max(0.0, true_range_m + static_cast<double>(noise_m));
 
 		ranging_beacon_s msg{};
@@ -913,6 +1316,8 @@ void Sih::publish_ground_truth(const hrt_abstime &time_now_us)
 		local_position.heading_good_for_control = true;
 		local_position.unaided_heading = NAN;
 
+		local_position.dist_bottom = _lla.altitude() - _ground_alt;
+
 		local_position.timestamp = hrt_absolute_time();
 		_local_position_ground_truth_pub.publish(local_position);
 	}
@@ -925,44 +1330,10 @@ void Sih::publish_ground_truth(const hrt_abstime &time_now_us)
 		global_position.lon = _lla.longitude_deg();
 		global_position.alt = _lla.altitude();
 		global_position.alt_ellipsoid = global_position.alt;
-		global_position.terrain_alt = -_lpos(2);
+		global_position.terrain_alt = _ground_alt;
 		global_position.timestamp = hrt_absolute_time();
 		_global_position_ground_truth_pub.publish(global_position);
 	}
-}
-
-float Sih::generate_wgn()   // generate white Gaussian noise sample with std=1
-{
-	// algorithm 1:
-	// float temp=((float)(rand()+1))/(((float)RAND_MAX+1.0f));
-	// return sqrtf(-2.0f*logf(temp))*cosf(2.0f*M_PI_F*rand()/RAND_MAX);
-	// algorithm 2: from BlockRandGauss.hpp
-	static float V1, V2, S;
-	static bool phase = true;
-	float X;
-
-	if (phase) {
-		do {
-			float U1 = (float)rand() / (float)RAND_MAX;
-			float U2 = (float)rand() / (float)RAND_MAX;
-			V1 = 2.0f * U1 - 1.0f;
-			V2 = 2.0f * U2 - 1.0f;
-			S = V1 * V1 + V2 * V2;
-		} while (S >= 1.0f || fabsf(S) < 1e-8f);
-
-		X = V1 * float(sqrtf(-2.0f * float(logf(S)) / S));
-
-	} else {
-		X = V2 * float(sqrtf(-2.0f * float(logf(S)) / S));
-	}
-
-	phase = !phase;
-	return X;
-}
-
-Vector3f Sih::noiseGauss3f(float stdx, float stdy, float stdz)
-{
-	return Vector3f(generate_wgn() * stdx, generate_wgn() * stdy, generate_wgn() * stdz);
 }
 
 int Sih::print_status()
@@ -998,9 +1369,25 @@ int Sih::print_status()
 
 	} else if (_vehicle == VehicleType::RoverAckermann) {
 		PX4_INFO("Rover Ackermann");
+
+	} else if (_vehicle == VehicleType::RoverDifferential) {
+		PX4_INFO("Rover Differential");
 	}
 
+	_terrain.printStatus();
+
+	PX4_INFO("ground altitude: %.2f m", (double)_ground_alt);
 	PX4_INFO("vehicle landed: %d", _grounded);
+
+#if defined(__PX4_POSIX)
+
+	if (_orient_mode != OrientMode::Off) {
+		PX4_INFO("orient: %s", (_orient_mode == OrientMode::Leveling || _orient_side < 0) ? "moving" :
+			 orient_sides[_orient_side].name);
+	}
+
+#endif // __PX4_POSIX
+
 	PX4_INFO("local position NED (m)");
 	_lpos.print();
 	PX4_INFO("local velocity NED (m/s)");
@@ -1030,8 +1417,59 @@ int Sih::run_trampoline(int argc, char *argv[])
 	}, argc, argv);
 }
 
+#if defined(__PX4_POSIX)
+bool Sih::load_terrain(int argc, char *argv[])
+{
+	_terrain = Terrain{};
+
+	int myoptind = 1;
+	int ch;
+	const char *myoptarg = nullptr;
+	const char *terrain_path = nullptr;
+
+	while ((ch = px4_getopt(argc, argv, "t:", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 't':
+			terrain_path = myoptarg;
+			break;
+
+		default:
+			print_usage("unrecognized flag");
+			return false;
+		}
+	}
+
+	if (!terrain_path) {
+		return true;
+	}
+
+	int32_t vehicle_type = 0;
+	param_get(param_find("SIH_VEHICLE_TYPE"), &vehicle_type);
+	const VehicleType vehicle = static_cast<VehicleType>(vehicle_type);
+
+	if (vehicle != VehicleType::Quadcopter
+	    && vehicle != VehicleType::Hexacopter
+	    && vehicle != VehicleType::FixedWing
+	    && vehicle != VehicleType::TailsitterVTOL
+	    && vehicle != VehicleType::StandardVTOL) {
+		PX4_ERR("terrain is not supported for SIH_VEHICLE_TYPE %" PRId32, vehicle_type);
+		return false;
+	}
+
+	return _terrain.load(terrain_path);
+}
+#endif // __PX4_POSIX
+
 int Sih::task_spawn(int argc, char *argv[])
 {
+#if defined(__PX4_POSIX)
+
+	if (!load_terrain(argc, argv)) {
+		return -1;
+	}
+
+#endif
+
 	desc.task_id = px4_task_spawn_cmd("sih",
 					  SCHED_DEFAULT,
 					  SCHED_PRIORITY_MAX,
@@ -1060,6 +1498,48 @@ Sih *Sih::instantiate(int argc, char *argv[])
 
 int Sih::custom_command(int argc, char *argv[])
 {
+#if defined(__PX4_POSIX)
+	Sih *sih = get_instance<Sih>(desc);
+
+	if (!is_running(desc) || !sih) {
+		return print_usage("not running");
+	}
+
+	if (argc >= 2 && !strcmp(argv[0], "orient")) {
+		int request = ORIENT_NONE;
+
+		if (!strcmp(argv[1], "off")) {
+			request = ORIENT_OFF;
+
+		} else if (!strcmp(argv[1], "all")) {
+			request = ORIENT_ALL;
+
+		} else {
+			for (int side = 0; side < ORIENT_SIDE_COUNT; side++) {
+				if (!strcmp(argv[1], orient_sides[side].name)) {
+					request = side;
+				}
+			}
+
+			if (request != ORIENT_NONE && argc >= 3) {
+				if (strcmp(argv[2], "rotate") != 0) {
+					return print_usage("unknown orient option");
+				}
+
+				request += ORIENT_ROTATE;
+			}
+		}
+
+		if (request == ORIENT_NONE) {
+			return print_usage("unknown side");
+		}
+
+		sih->_orient_request.store(request);
+		return 0;
+	}
+
+#endif // __PX4_POSIX
+
 	return print_usage("unknown command");
 }
 
@@ -1087,11 +1567,27 @@ Quaternion representation is used for the attitude.
 Forward Euler is used for integration.
 Most of the variables are declared global in the .hpp file to avoid stack overflow.
 
+### Examples
+Pose the vehicle on the ground for accel and mag calibration (SITL only), sides named as the calibration names them.
+With `rotate` it turns about the vertical with a tilt swing, as the mag calibration asks for:
+$ simulator_sih orient left rotate
+
+Each side in turn: 10 s still, then 10 s rotating, then level. This completes either calibration.
+$ simulator_sih orient all
+
+Level the vehicle and resume the flight dynamics:
+$ simulator_sih orient off
 
 )DESCR_STR");
 
     PRINT_MODULE_USAGE_NAME("simulator_sih", "simulation");
     PRINT_MODULE_USAGE_COMMAND("start");
+#if defined(__PX4_POSIX)
+    PRINT_MODULE_USAGE_PARAM_STRING('t', nullptr, "<file>", "Terrain elevation GeoTIFF (DEM), SITL only", true);
+    PRINT_MODULE_USAGE_COMMAND_DESCR("orient", "Pose the vehicle on the ground for calibration");
+    PRINT_MODULE_USAGE_ARG("down|up|front|back|left|right|all|off", "Side facing down, every side in turn, or level", false);
+    PRINT_MODULE_USAGE_ARG("rotate", "Rotate about the vertical", true);
+#endif // __PX4_POSIX
     PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
     return 0;

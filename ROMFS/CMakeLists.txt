@@ -125,6 +125,7 @@ add_custom_command(
 		${romfs_copy_files}
 		${jinja_templates}
 		${module_config_files}
+		${PX4_BINARY_DIR}/px4_boardconfig.h
 		${romfs_cmake_files}
 		${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
 		${PX4_SOURCE_DIR}/Tools/px4airframes/markdownout.py
@@ -133,6 +134,7 @@ add_custom_command(
 		${PX4_SOURCE_DIR}/Tools/px4airframes/srcscanner.py
 		${PX4_SOURCE_DIR}/Tools/px4airframes/xmlout.py
 		${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
+		${PX4_SOURCE_DIR}/Tools/module_config/output_groups_from_timer_config.py
 	)
 
 
@@ -153,7 +155,8 @@ add_custom_command(
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
 		--rc-dir ${romfs_gen_root_dir}/init.d
 		--serial-ports ${board_serial_ports} ${added_arguments}
-		--config-files ${module_config_files} #--verbose
+		--config-files ${module_config_files}
+		--board-config ${BOARD_CONFIG} #--verbose
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/filepaths/generate_config.py
 		--rc-dir ${romfs_gen_root_dir}/init.d
 		--params-file ${CONFIG_BOARD_PARAM_FILE}
@@ -257,12 +260,13 @@ set(OPTIONAL_BOARD_EXTRAS)
 file(GLOB OPTIONAL_BOARD_EXTRAS ${PX4_BOARD_DIR}/extras/*)
 
 # bootloader (optional)
-#  - if systemcmds/bl_update included and board bootloader available then generate rc.board_bootloader_upgrade and copy bootloader binary
+#  - if systemcmds/bl_update included and board bootloader available then copy bootloader binary
+#  - and generate rc.board_bootloader_upgrade for px4fmu_common, the only rcS that runs it
 #  - otherwise remove bootloader binary from extras in final ROMFS
 foreach(board_extra_file ${OPTIONAL_BOARD_EXTRAS})
 	file(RELATIVE_PATH extra_file_base_name ${PX4_BOARD_DIR}/extras/ ${board_extra_file})
 	if(${extra_file_base_name} MATCHES "${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin")
-		if(CONFIG_SYSTEMCMDS_BL_UPDATE)
+		if(CONFIG_SYSTEMCMDS_BL_UPDATE AND ("${config_romfs_root}" STREQUAL "px4fmu_common"))
 			# generate rc.board_bootloader_upgrade
 			set(BOARD_FIRMWARE_BIN "${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin")
 			message(STATUS "ROMFS:  Adding platforms/nuttx/init/rc.board_bootloader_upgrade -> /etc/init.d/rc.board_bootloader_upgrade")
@@ -288,17 +292,36 @@ foreach(board_extra_file ${OPTIONAL_BOARD_EXTRAS})
 			list(APPEND extras_dependencies
 				rc.board_bootloader_upgrade.stamp
 			)
-		else()
+		elseif(NOT CONFIG_SYSTEMCMDS_BL_UPDATE)
 			# remove bootloader from extras
 			list(REMOVE_ITEM OPTIONAL_BOARD_EXTRAS ${board_extra_file})
 		endif()
+	elseif(${extra_file_base_name} MATCHES "_io-v[0-9]+_default\\.bin$")
+		# px4io firmware is no longer kept per board, see CONFIG_BOARD_IO below
+		file(RELATIVE_PATH extra_file_relative_source ${PX4_SOURCE_DIR} ${board_extra_file})
+		message(FATAL_ERROR "Delete ${extra_file_relative_source}: the px4io firmware is now taken from "
+			"boards/<vendor>/<io board>/extras/ via CONFIG_BOARD_IO and must not be kept per board.")
 	endif()
 endforeach()
+
+# px4io firmware (optional)
+#  - the binary is kept once per IO board, in boards/<vendor>/<model>/extras/<CONFIG_BOARD_IO>.bin
+#  - regenerate it with "make px4io_update", CI checks it with "make check_px4io"
+if(CONFIG_DRIVERS_PX4IO AND CONFIG_BOARD_IO)
+	if(NOT CONFIG_BOARD_IO MATCHES "^([^_]+)_(.+)_([^_]+)$")
+		message(FATAL_ERROR "BOARD_IO '${CONFIG_BOARD_IO}' is not of the form <vendor>_<model>_<label>")
+	endif()
+	set(px4io_firmware_bin ${PX4_SOURCE_DIR}/boards/${CMAKE_MATCH_1}/${CMAKE_MATCH_2}/extras/${CONFIG_BOARD_IO}.bin)
+	if(NOT EXISTS ${px4io_firmware_bin})
+		message(FATAL_ERROR "px4io firmware not found at: ${px4io_firmware_bin} (run make px4io_update)")
+	endif()
+	list(APPEND OPTIONAL_BOARD_EXTRAS ${px4io_firmware_bin})
+endif()
 
 foreach(board_extra_file ${OPTIONAL_BOARD_EXTRAS})
 
 	if(EXISTS "${board_extra_file}")
-		file(RELATIVE_PATH extra_file_base_name ${PX4_BOARD_DIR}/extras/ ${board_extra_file})
+		get_filename_component(extra_file_base_name ${board_extra_file} NAME)
 		file(RELATIVE_PATH extra_file_relative_source ${PX4_SOURCE_DIR} ${board_extra_file})
 		message(STATUS "ROMFS:  Adding ${extra_file_relative_source} -> /etc/extras/${extra_file_base_name}")
 
@@ -306,7 +329,7 @@ foreach(board_extra_file ${OPTIONAL_BOARD_EXTRAS})
 			OUTPUT
 				${romfs_gen_root_dir}/extras/${extra_file_base_name}
 				${extra_file_base_name}.stamp
-			COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PX4_BOARD_DIR}/extras/${extra_file_base_name} ${romfs_gen_root_dir}/extras/${extra_file_base_name}
+			COMMAND ${CMAKE_COMMAND} -E copy_if_different ${board_extra_file} ${romfs_gen_root_dir}/extras/${extra_file_base_name}
 			COMMAND ${CMAKE_COMMAND} -E touch ${extra_file_base_name}.stamp
 			DEPENDS
 				${board_extra_file}

@@ -39,6 +39,8 @@
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/board_common.h>
+#include <stdio.h>
 #include "arm_internal.h"
 #ifdef CONFIG_ARCH_FAMILY_IMXRT117x
 #  include <hardware/rt117x/imxrt117x_ocotp.h>
@@ -52,6 +54,8 @@
 
 #define CHIP_TAG     "i.MX RT11?0 r??"
 #define CHIP_TAG_LEN sizeof(CHIP_TAG)-1
+/* Room for the optional " <flash part name>" suffix */
+#define CHIP_STR_LEN sizeof(CHIP_TAG)+16
 
 #define SI_REV(n)             ((n & 0x7000000) >> 24)
 #define DIFPROG_TYPE(n)       ((n & 0xF000) >> 12)
@@ -61,12 +65,17 @@
 int board_mcu_version(char *rev, const char **revstr, const char **errata)
 {
 	uint32_t info = getreg32(IMXRT_ANADIG_MISC_MISC_DIFPROG);
-	static char chip[sizeof(CHIP_TAG)] = CHIP_TAG;
+	static char chip[CHIP_STR_LEN] = CHIP_TAG;
 	*revstr = chip;
 
 	chip[CHIP_TAG_LEN - 6] = '0' + DIFPROG_TYPE(info);
 	chip[CHIP_TAG_LEN - 2] = 'A' + (DIFPROG_REV_MAJOR(info) - 10);
 	chip[CHIP_TAG_LEN - 1] = '0' + DIFPROG_REV_MINOR(info);
+
+	/* Optional, only boards that identify their flash provide the name */
+	if (board_get_flash_type_name != NULL && board_get_flash_type_name() != NULL) {
+		snprintf(&chip[CHIP_TAG_LEN], CHIP_STR_LEN - CHIP_TAG_LEN, " %s", board_get_flash_type_name());
+	}
 
 	*rev = '0' + SI_REV(getreg32(IMXRT_OCOTP_FUSE(18)));
 
@@ -92,16 +101,24 @@ int board_mcu_version(char *rev, const char **revstr, const char **errata)
 //                            876543210
 #define CHIP_TAG     "i.MX RT10?? r?.?"
 #define CHIP_TAG_LEN sizeof(CHIP_TAG)-1
+/* Room for the optional " <flash part name>" suffix */
+#define CHIP_STR_LEN sizeof(CHIP_TAG)+16
 
 int board_mcu_version(char *rev, const char **revstr, const char **errata)
 {
 	uint32_t info = getreg32(IMXRT_USB_ANALOG_DIGPROG);
-	static char chip[sizeof(CHIP_TAG)] = CHIP_TAG;
+	static char chip[CHIP_STR_LEN] = CHIP_TAG;
 
 	chip[CHIP_TAG_LEN - 1] = '0' +  DIGPROG_MINOR(info);
 	chip[CHIP_TAG_LEN - 3] = '1' + DIGPROG_MAJOR_LOWER(info);
 	chip[CHIP_TAG_LEN - 6] = getreg32(0x401F867C) == 0x10 ? '4' : '2';
 	chip[CHIP_TAG_LEN - 7] = DIGPROG_MAJOR_UPPER(info)  == 0x6a ? '5' : '6';
+
+	/* Optional, only boards that identify their flash provide the name */
+	if (board_get_flash_type_name != NULL && board_get_flash_type_name() != NULL) {
+		snprintf(&chip[CHIP_TAG_LEN], CHIP_STR_LEN - CHIP_TAG_LEN, " %s", board_get_flash_type_name());
+	}
+
 	*revstr = chip;
 	*rev = '0' + DIGPROG_MINOR(info);
 

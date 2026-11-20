@@ -2457,28 +2457,28 @@ void VnUartPacket_parseBinaryOutputRaw(
  * \param[in] packet The associated packet.
  * \param[out] tag The register's Tag field.
  */
-void VnUartPacket_parseUserTag(VnUartPacket *packet, char* tag);
+void VnUartPacket_parseUserTag(VnUartPacket *packet, char* tag, size_t tagLength);
 
 /** \brief Parses a response from reading the User Tag register.
  *
  * \param[in] packet The associated packet.
  * \param[out] tag The register's Tag field.
  */
-void VnUartPacket_parseUserTagRaw(char *packet, char* tag);
+void VnUartPacket_parseUserTagRaw(char *packet, char* tag, size_t tagLength);
 
 /** \brief Parses a response from reading the Model Number register.
  *
  * \param[in] packet The associated packet.
  * \param[out] productName The register's Product Name field.
  */
-void VnUartPacket_parseModelNumber(VnUartPacket *packet, char* productName);
+void VnUartPacket_parseModelNumber(VnUartPacket *packet, char* productName, size_t productNameLength);
 
 /** \brief Parses a response from reading the Model Number register.
  *
  * \param[in] packet The associated packet.
  * \param[out] productName The register's Product Name field.
  */
-void VnUartPacket_parseModelNumberRaw(char *packet, char* productName);
+void VnUartPacket_parseModelNumberRaw(char *packet, char* productName, size_t productNameLength);
 
 /** \brief Parses a response from reading the Hardware Revision register.
  *
@@ -2513,14 +2513,14 @@ void VnUartPacket_parseSerialNumberRaw(char *packet, uint32_t* serialNum);
  * \param[in] packet The associated packet.
  * \param[out] firmwareVersion The register's Firmware Version field.
  */
-void VnUartPacket_parseFirmwareVersion(VnUartPacket *packet, char* firmwareVersion);
+void VnUartPacket_parseFirmwareVersion(VnUartPacket *packet, char* firmwareVersion, size_t firmwareVersionLength);
 
 /** \brief Parses a response from reading the Firmware Version register.
  *
  * \param[in] packet The associated packet.
  * \param[out] firmwareVersion The register's Firmware Version field.
  */
-void VnUartPacket_parseFirmwareVersionRaw(char *packet, char* firmwareVersion);
+void VnUartPacket_parseFirmwareVersionRaw(char *packet, char* firmwareVersion, size_t firmwareVersionLength);
 
 /** \brief Parses a response from reading the Serial Baud Rate register.
  *

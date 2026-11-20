@@ -36,28 +36,33 @@
  */
 
 #include "Safety.hpp"
-#include <circuit_breaker/circuit_breaker.h>
+#include <lib/parameters/param.h>
 
 using namespace time_literals;
 
 Safety::Safety()
 {
-	// Safety can be turned off with the CBRK_IO_SAFETY parameter.
-	_safety_disabled = circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY);
+	// Safety can be turned off with the COM_SAFETY_MODE parameter.
+	int32_t com_safety_mode = 0;
+	param_get(param_find("COM_SAFETY_MODE"), &com_safety_mode);
+
+	_safety_disabled = (SafetyMode)com_safety_mode == SafetyMode::ALWAYS_OFF;
 
 	if (_safety_disabled) {
-		_button_available = true;
 		_safety_off = true;
 	}
+
+	// the button has no effect in SafetyMode::MAVLINK_ONLY, so don't announce it as available.
+	_button_disabled = (SafetyMode)com_safety_mode == SafetyMode::MAVLINK_ONLY;
 }
 
 bool Safety::safetyButtonHandler()
 {
-	if (!_safety_disabled) {
-		if (!_button_available && _safety_button_sub.advertised()) {
-			_button_available = true;
-		}
+	if (!_button_disabled && !_button_available && _safety_button_sub.advertised()) {
+		_button_available = true;
+	}
 
+	if (!_safety_disabled && !_button_disabled) {
 		button_event_s button_event;
 
 		while (_safety_button_sub.update(&button_event)) {

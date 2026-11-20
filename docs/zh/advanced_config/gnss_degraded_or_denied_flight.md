@@ -70,9 +70,9 @@ To enable the mode:
 1. Set [EKF2_GPS_MODE](../advanced_config/parameter_reference.md#EKF2_GPS_MODE) to `1`.
 2. Ensure that GNSS arming checks are enabled (a reliable GNSS signal is required before arming):
    - [COM_ARM_WO_GPS](../advanced_config/parameter_reference.md#COM_ARM_WO_GPS) - set to `0`
-   - [EKF2_GPS_CHECK](../advanced_config/parameter_reference.md#EKF2_GPS_CHECK) - set to default.
+   - [GNSS_CHECK](../advanced_config/parameter_reference.md#GNSS_CHECK) - set to default.
 
 ## 另见
 
 - [GNSS Fault Detection](../advanced_config/tuning_the_ecl_ekf.md#gnss-fault-detection) in _Using PX4's Navigation Filter (EKF2)_
-- [Fuse, Reset, or Reject? EKF2中处理多种数据源](https://www.youtube.com/watch?v=CMGQJNPiTJg) - _PX4开发者峰会2025_，Marco Hauswirth，Auterion AG
+- [融合、重置还是拒绝？ EKF2中处理多种数据源](https://www.youtube.com/watch?v=CMGQJNPiTJg) - _PX4开发者峰会2025_，Marco Hauswirth，Auterion AG

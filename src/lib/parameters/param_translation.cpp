@@ -210,6 +210,37 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2026-08-19: translate the single-sensor optical flow params to sensor slot 0
+	{
+		static constexpr const char *renames[][2] = {
+			{"EKF2_OF_CTRL", "EKF2_OF0_CTRL"},
+			{"EKF2_OF_GYR_SRC", "EKF2_OF0_GYR_SRC"},
+			{"EKF2_OF_N_MIN", "EKF2_OF0_N_MIN"},
+			{"EKF2_OF_N_MAX", "EKF2_OF0_N_MAX"},
+			{"EKF2_OF_QMIN", "EKF2_OF0_QMIN"},
+			{"EKF2_OF_QMIN_GND", "EKF2_OF0_QMINGND"},
+			{"EKF2_OF_GATE", "EKF2_OF0_GATE"},
+			{"EKF2_OF_DELAY", "SENS_FLOW0_DELAY"},
+			{"EKF2_OF_POS_X", "SENS_FLOW0_POS_X"},
+			{"EKF2_OF_POS_Y", "SENS_FLOW0_POS_Y"},
+			{"EKF2_OF_POS_Z", "SENS_FLOW0_POS_Z"},
+			{"SENS_FLOW_MINHGT", "SENS_FLOW0_HMIN"},
+			{"SENS_FLOW_MAXHGT", "SENS_FLOW0_HMAX"},
+			{"SENS_FLOW_MAXR", "SENS_FLOW0_MAXR"},
+			{"SENS_FLOW_ROT", "SENS_FLOW0_ROT"},
+			{"SENS_FLOW_RATE", "SENS_FLOW0_RATE"},
+			{"SENS_FLOW_SCALE", "SENS_FLOW0_SCALE"},
+		};
+
+		for (const auto &rename : renames) {
+			if (strcmp(rename[0], node->name) == 0) {
+				strcpy(node->name, rename[1]);
+				PX4_INFO("migrating %s -> %s", rename[0], rename[1]);
+				return param_modify_on_import_ret::PARAM_MODIFIED;
+			}
+		}
+	}
+
 	// 2026-03-11: translate MOT_POLE_COUNT to per-motor DSHOT_MOT_POL1-12
 	{
 		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("MOT_POLE_COUNT", node->name) == 0)) {
@@ -266,6 +297,35 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			snprintf(new_name, sizeof(new_name), "HEATER%c_SENS_ID", node->name[6]);
 			strcpy(node->name, new_name);
 			PX4_INFO("migrating %s -> %s", old_name, new_name);
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
+	// 2026-10-20: the single heater's SENS_* parameters became those of heater instance 1
+	{
+		static constexpr const char *kRenames[][2] {
+			{"SENS_IMU_TEMP", "HEATER1_TEMP"},
+			{"SENS_IMU_TEMP_FF", "HEATER1_TEMP_FF"},
+			{"SENS_IMU_TEMP_I", "HEATER1_TEMP_I"},
+			{"SENS_IMU_TEMP_P", "HEATER1_TEMP_P"},
+		};
+
+		for (const auto &rename : kRenames) {
+			if (strcmp(rename[0], node->name) == 0) {
+				strcpy(node->name, rename[1]);
+				PX4_INFO("migrating %s -> %s", rename[0], rename[1]);
+				return param_modify_on_import_ret::PARAM_MODIFIED;
+			}
+		}
+
+		// SENS_TEMP_ID 0 kept the heater from starting, while HEATER1_SENS_ID 0 selects a sensor and -1 disables it
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("SENS_TEMP_ID", node->name) == 0)) {
+			if (node->i32 == 0) {
+				node->i32 = -1;
+			}
+
+			strcpy(node->name, "HEATER1_SENS_ID");
+			PX4_INFO("migrating %s -> %s", "SENS_TEMP_ID", "HEATER1_SENS_ID");
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
@@ -393,6 +453,8 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			{"EKF2_REQ_HDRIFT", "GNSS_REQ_HDRIFT"},
 			{"EKF2_REQ_VDRIFT", "GNSS_REQ_VDRIFT"},
 			{"EKF2_REQ_FIX", "GNSS_REQ_FIX"},
+			{"EKF2_REQ_SACC", "GNSS_REQ_SACC"},
+			{"EKF2_REQ_GPS_H", "GNSS_REQ_TIME"},
 		};
 
 		for (const auto &rename : kRenames) {
@@ -404,23 +466,64 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
-	// 2026-09-30: EKF2_REQ_SACC and EKF2_REQ_GPS_H stay EKF2 parameters for EKF2's own thresholds and waits, while the
-	// GNSS checks use GNSS_REQ_SACC and GNSS_REQ_TIME. A value tuned before the checks moved applied to both, so it is
-	// copied to the check parameter. Parameters are exported sorted by name, so a GNSS_* value saved alongside is
-	// imported after this and takes precedence.
+	// 2026-10-06: translate CBRK_IO_SAFETY -> COM_SAFETY_MODE. Any value but the breaker key had safety enabled, with
+	// both the switch and the MAVLink command able to turn it off.
 	{
-		static constexpr const char *kCopies[][2] {
-			{"EKF2_REQ_SACC", "GNSS_REQ_SACC"},
-			{"EKF2_REQ_GPS_H", "GNSS_REQ_TIME"},
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("CBRK_IO_SAFETY", node->name) == 0)) {
+			node->i32 = (node->i32 == 22027) ? 0 : 1;
+			strcpy(node->name, "COM_SAFETY_MODE");
+			PX4_INFO("migrating %s -> %s", "CBRK_IO_SAFETY", "COM_SAFETY_MODE");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
+	// 2026-10-20: the auxiliary global position parameters became per-source EKF2_AGP<n>_* parameters, so the single
+	// source configured before goes to the first slot. That slot is only used once EKF2_AGP0_ID is set to the source's id.
+	// v1.17 messages had none, but a v1.17 source now arrives with id 1 either way: the message translation node assigns
+	// it, and it is GlobalPositionMeasurementInterface's default.
+	{
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("EKF2_AGP_CTRL", node->name) == 0) && (node->i32 != 0)) {
+			const int32_t agp_id = 1;
+			param_set(param_find("EKF2_AGP0_ID"), &agp_id);
+			PX4_INFO("setting EKF2_AGP0_ID to %" PRId32, agp_id);
+		}
+
+		static constexpr const char *kRenames[][2] {
+			{"EKF2_AGP_CTRL", "EKF2_AGP0_CTRL"},
+			{"EKF2_AGP_MODE", "EKF2_AGP0_MODE"},
+			{"EKF2_AGP_DELAY", "EKF2_AGP0_DELAY"},
+			{"EKF2_AGP_NOISE", "EKF2_AGP0_NOISE"},
+			{"EKF2_AGP_GATE", "EKF2_AGP0_GATE"},
 		};
 
-		for (const auto &copy : kCopies) {
-			if ((node->type == bson_type_t::BSON_DOUBLE) && (strcmp(copy[0], node->name) == 0)) {
-				const float value = static_cast<float>(node->d);
-				param_set(param_find(copy[1]), &value);
-				PX4_INFO("copying %s -> %s", copy[0], copy[1]);
-				return param_modify_on_import_ret::PARAM_NOT_MODIFIED;
+		for (const auto &rename : kRenames) {
+			if (strcmp(rename[0], node->name) == 0) {
+				strcpy(node->name, rename[1]);
+				PX4_INFO("migrating %s -> %s", rename[0], rename[1]);
+				return param_modify_on_import_ret::PARAM_MODIFIED;
 			}
+		}
+	}
+
+	// 2026-11-17: the failure detector checks the tilt error from the attitude setpoint instead of absolute roll and pitch.
+	// The old limits and trigger times mean something else now and are not taken over, only a check disabled for both
+	// roll and pitch stays disabled. The other old parameter may still follow in the import, so both are tracked.
+	{
+		static bool roll_disabled = false, pitch_disabled = false; // FD_FAIL_R and FD_FAIL_P default to 60°
+
+		const bool is_roll = (node->type == bson_type_t::BSON_INT32) && (strcmp("FD_FAIL_R", node->name) == 0);
+		const bool is_pitch = (node->type == bson_type_t::BSON_INT32) && (strcmp("FD_FAIL_P", node->name) == 0);
+
+		if (is_roll || is_pitch) {
+			(is_roll ? roll_disabled : pitch_disabled) = (node->i32 == 0);
+
+			if (roll_disabled && pitch_disabled) {
+				float max_tilt_error_deg = -1.f;
+				param_set(param_find("FD_TILT_ERROR"), &max_tilt_error_deg);
+				PX4_INFO("migrating FD_FAIL_R and FD_FAIL_P -> FD_TILT_ERROR (disabled)");
+			}
+
+			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
 		}
 	}
 

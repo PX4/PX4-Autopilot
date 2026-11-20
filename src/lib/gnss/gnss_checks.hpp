@@ -45,6 +45,7 @@ struct gnssChecksSample {
 	double lon{};           ///< longitude (deg)
 	float alt{};            ///< altitude above MSL (m)
 	matrix::Vector3f vel{}; ///< NED velocity (m/s)
+	bool vel_valid{};       ///< the receiver reports the NED velocity as valid
 	float hacc{};           ///< 1-std horizontal position error (m)
 	float vacc{};           ///< 1-std vertical position error (m)
 	float sacc{};           ///< 1-std speed error (m/s)
@@ -59,7 +60,7 @@ class GnssChecks final
 {
 public:
 	struct Params {
-		int32_t check_mask{2047};
+		int32_t check_mask{6143};
 		int32_t req_nsats{6};
 		float req_pdop{2.5f};
 		float req_eph{3.f};
@@ -67,6 +68,7 @@ public:
 		float req_sacc{0.5f};
 		float req_hdrift{0.1f};
 		float req_vdrift{0.2f};
+		float req_hkin{2.f};
 		int32_t req_fix{3};
 		uint64_t min_health_time_us{10'000'000};
 	};
@@ -74,17 +76,27 @@ public:
 	void setParams(const Params &params) { _params = params; }
 
 	/*
-	 * Return true if the GNSS solution quality is adequate. The strict checks apply until the first pass and again
-	 * whenever the vehicle is disarmed on the ground; the drift checks run only at rest on the ground.
+	 * Return true if the sample may be used. The strict checks (the GNSS_REQ_* thresholds, satellite count, PDOP, and
+	 * drift at rest on the ground) decide until they pass and again whenever the vehicle is disarmed on the ground. The
+	 * relaxed checks (fixed, looser limits) decide otherwise while the strict ones fail. Both run on every sample.
 	*/
 	bool run(const gnssChecksSample &gnss, bool armed, bool in_air, bool vehicle_at_rest);
 	bool passed() const { return _passed; }
 
-	// The last run applied the strict thresholds: never passed yet, or disarmed on the ground
+	// The strict checks decided the last run: they haven't passed since the vehicle was disarmed on the ground, or they
+	// pass
 	bool strict() const { return _strict; }
 
-	// Failed checks, as vehicle_gnss_s::CHECK_* bits
-	uint16_t getFailFlags() const { return _fail_flags; }
+	// The last sample passed the strict checks, and no check that decided passed() failed for the required pass
+	// duration. Once the relaxed checks decide, a sample that fails only the strict ones doesn't restart that duration,
+	// so that a single one doesn't drop the receiver's rank for GNSS_REQ_TIME: the selection's own hold rides through it.
+	bool passedStrict() const { return _passed_strict; }
+
+	// The enabled checks the last sample failed at the strict thresholds, as vehicle_gnss_s::CHECK_* bits
+	uint16_t getStrictFailFlags() const { return _strict_fail_flags & getEnabledChecks(); }
+
+	// The enabled checks the last sample failed at the relaxed thresholds, as vehicle_gnss_s::CHECK_* bits
+	uint16_t getRelaxedFailFlags() const { return _relaxed_fail_flags & getEnabledChecks(); }
 
 	// The checks enabled in GNSS_CHECK, as vehicle_gnss_s::CHECK_* bits
 	uint16_t getEnabledChecks() const { return static_cast<uint16_t>(_params.check_mask) & kAllChecks; }
@@ -92,12 +104,14 @@ public:
 	float horizontal_position_drift_rate_m_s() const { return _horizontal_position_drift_rate_m_s; }
 	float vertical_position_drift_rate_m_s() const { return _vertical_position_drift_rate_m_s; }
 	float filtered_horizontal_velocity_m_s() const { return _filtered_horizontal_velocity_m_s; }
+	float horizontal_kinematic_inconsistency_m_s() const { return _kinematic_inconsistency_ne_filt.norm(); }
 
 private:
 	static constexpr uint16_t kAllChecks = vehicle_gnss_s::CHECK_NSATS | vehicle_gnss_s::CHECK_PDOP | vehicle_gnss_s::CHECK_EPH
 					       | vehicle_gnss_s::CHECK_EPV | vehicle_gnss_s::CHECK_SACC | vehicle_gnss_s::CHECK_HDRIFT
 					       | vehicle_gnss_s::CHECK_VDRIFT | vehicle_gnss_s::CHECK_HSPEED | vehicle_gnss_s::CHECK_VSPEED
-					       | vehicle_gnss_s::CHECK_SPOOFED | vehicle_gnss_s::CHECK_FIX | vehicle_gnss_s::CHECK_JAMMED;
+					       | vehicle_gnss_s::CHECK_SPOOFED | vehicle_gnss_s::CHECK_FIX | vehicle_gnss_s::CHECK_JAMMED
+					       | vehicle_gnss_s::CHECK_HKIN;
 
 	// A receiver that has not passed for this long qualifies from scratch again, as after a failure. 7 s is the
 	// outage after which the EKF stops using GNSS, and after which it used to reset these checks.
@@ -109,21 +123,23 @@ private:
 		_time_last_pass_us = 0;
 		_time_last_fail_us = 0;
 		resetDriftFilters();
+		_kinematic_inconsistency_ne_filt.setZero();
 	}
 
 	// How long the checks must pass after a failure before passed() is true
-	uint64_t getRequiredPassDurationUs() const
+	uint64_t getRequiredPassDurationUs(bool relaxed) const
 	{
-		return _initial_checks_passed ? math::max((uint64_t)1e6, (uint64_t)_params.min_health_time_us / 10)
+		return relaxed ? math::max((uint64_t)1e6, (uint64_t)_params.min_health_time_us / 10)
 		       : (uint64_t)_params.min_health_time_us;
 	}
 
-	void setFail(uint16_t check, bool failed);
-	bool enabledChecksPass(uint16_t checks) const { return (_fail_flags & checks & getEnabledChecks()) == 0; }
+	static void setFail(uint16_t &fail_flags, uint16_t check, bool failed);
+	bool enabledChecksPass(uint16_t fail_flags, uint16_t checks) const { return (fail_flags & checks & getEnabledChecks()) == 0; }
 
-	bool runSimplifiedChecks(const gnssChecksSample &gnss);
-	bool runInitialFixChecks(const gnssChecksSample &gnss, bool in_air, bool vehicle_at_rest);
+	bool runRelaxedChecks(const gnssChecksSample &gnss);
+	bool runStrictChecks(const gnssChecksSample &gnss, bool in_air, bool vehicle_at_rest);
 	void runOnGroundGnssChecks(const gnssChecksSample &gnss, bool in_air, bool vehicle_at_rest);
+	void runHorizontalKinematicConsistencyCheck(const gnssChecksSample &gnss);
 
 	void clearDriftChecks();
 	void resetDriftFilters();
@@ -133,7 +149,8 @@ private:
 		return (timestamp_to_check_us == 0) || (timestamp_to_check_us + timeout_period < now_us);
 	}
 
-	uint16_t _fail_flags{0};
+	uint16_t _strict_fail_flags{0};
+	uint16_t _relaxed_fail_flags{0};
 
 	float _horizontal_position_drift_rate_m_s{NAN};
 	float _vertical_position_drift_rate_m_s{NAN};
@@ -146,11 +163,17 @@ private:
 	matrix::Vector2f _vel_ne_filt{};
 
 	float _vel_d_filt{0.0f};		///< GNSS filtered Down velocity (m/sec)
+
+	matrix::Vector2f _vel_ne_prev{};
+	bool _vel_prev_valid{false};
+	uint8_t _fix_type_prev{0};
+	matrix::Vector2f _kinematic_inconsistency_ne_filt{}; ///< horizontal position change rate minus the mean velocity, NE, filtered (m/s)
 	uint64_t _time_last_fail_us{0};
 	uint64_t _time_last_pass_us{0};
-	bool _initial_checks_passed{false};
+	bool _initial_strict_checks_passed{false};
 	bool _strict{true};
 	bool _passed{false};
+	bool _passed_strict{false};
 
 	Params _params{};
 };

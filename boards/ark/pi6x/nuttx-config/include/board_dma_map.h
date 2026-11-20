@@ -33,6 +33,10 @@
 
 #pragma once
 
+// Streams are handed out first-free per controller at runtime and the serial
+// driver does not handle a failed allocation, so count every user, including
+// the DShot timers, against each controller's 8 streams.
+
 // DMAMUX1 Using at most 8 Channels on DMA1 --------   Assigned
 //                                                     V
 
@@ -51,15 +55,15 @@
 //#define DMAMAP_UART4_RX   DMAMAP_DMA12_UART4RX_0  /*  DMA1:63 EXT2 */
 //#define DMAMAP_UART4_TX   DMAMAP_DMA12_UART4TX_0  /*  DMA1:64 EXT2 */
 
-#define DMAMAP_USART6_RX  DMAMAP_DMA12_USART6RX_0   /* 5 DMA1:71 PX4IO */
-#define DMAMAP_USART6_TX  DMAMAP_DMA12_USART6TX_0   /* 6 DMA1:72 PX4IO */
+//#define DMAMAP_USART6_RX  DMAMAP_DMA12_USART6RX_0 /*  DMA1:71 RC */
+//#define DMAMAP_USART6_TX  DMAMAP_DMA12_USART6TX_0 /*  DMA1:72 RC */
 
 // Assigned in timer_config.cpp
 
-// Timer 4                                          /* 7 DMA1:32 TIM4UP */
-// Timer 5                                          /* 8 DMA1:50 TIM5UP */
+// Timer 4                                          /* 5 DMA1:32 TIM4UP */
+// Timer 5                                          /* 6 DMA1:59 TIM5UP */
 
-// DMAMUX2 Using at most 8 Channels on DMA2 --------   Assigned
+// DMAMUX1 Using at most 8 Channels on DMA2 --------   Assigned
 //                                                     V
 
 #define DMAMAP_SPI3_RX    DMAMAP_DMA12_SPI3RX_1     /* 1 DMA2:61 BMI088 */
@@ -69,10 +73,10 @@
 #define DMAMAP_USART3_TX  DMAMAP_DMA12_USART3TX_1   /* 4 DMA2:46 DEBUG */
 
 #define DMAMAP_UART5_RX   DMAMAP_DMA12_UART5RX_1    /* 5 DMA2:65 TELEM2 */
-#define DMAMAP_UART5_TX   DMAMAP_DMA12_UART5TX_1    /* 6 DMA2:66  TELEM2 */
+#define DMAMAP_UART5_TX   DMAMAP_DMA12_UART5TX_1    /* 6 DMA2:66 TELEM2 */
 
-#define DMAMAP_UART7_RX   DMAMAP_DMA12_UART7RX_1    /* 7 DMA1:79  TELEM1 */
-#define DMAMAP_UART7_TX   DMAMAP_DMA12_UART7TX_1    /* 8 DMA1:80  TELEM1 */
+#define DMAMAP_UART7_RX   DMAMAP_DMA12_UART7RX_1    /* 7 DMA2:79 TELEM1 */
+#define DMAMAP_UART7_TX   DMAMAP_DMA12_UART7TX_1    /* 8 DMA2:80 TELEM1 */
 
 // DMAMUX2 Using at most 8 Channels on BDMA --------   Assigned
 //                                                     V

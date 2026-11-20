@@ -57,6 +57,18 @@ EKF2Selector::~EKF2Selector()
 	Stop();
 }
 
+EKF2Selector::EstimatorInstance::EstimatorInstance(EKF2Selector *selector, uint8_t i) :
+	estimator_attitude_sub{selector, ORB_ID(estimator_attitude), i},
+	estimator_status_sub{selector, ORB_ID(estimator_status), i},
+	estimator_local_position_sub{ORB_ID(estimator_local_position), i},
+	estimator_global_position_sub{ORB_ID(estimator_global_position), i},
+	estimator_odometry_sub{ORB_ID(estimator_odometry), i},
+	estimator_wind_sub{ORB_ID(estimator_wind), i},
+	instance(i)
+{
+	healthy.set_hysteresis_time_from(false, 1_s);
+}
+
 void EKF2Selector::Stop()
 {
 	for (int i = 0; i < EKF2_MAX_INSTANCES; i++) {
@@ -162,8 +174,8 @@ bool EKF2Selector::UpdateErrorScores()
 			_last_update_us = sensors_status_imu.timestamp;
 
 			{
-				const float angle_rate_threshold = radians(_param_ekf2_sel_imu_angle_rate.get());
-				const float angle_threshold = radians(_param_ekf2_sel_imu_angle.get());
+				const float angle_rate_threshold = radians(_param_ekf2_sel_imu_rat.get());
+				const float angle_threshold = radians(_param_ekf2_sel_imu_ang.get());
 				uint8_t n_gyros = 0;
 				uint8_t n_gyro_exceedances = 0;
 				float largest_accumulated_gyro_error = 0.0f;
@@ -205,8 +217,8 @@ bool EKF2Selector::UpdateErrorScores()
 			}
 
 			{
-				const float accel_threshold = _param_ekf2_sel_imu_accel.get();
-				const float velocity_threshold = _param_ekf2_sel_imu_velocity.get();
+				const float accel_threshold = _param_ekf2_sel_imu_acc.get();
+				const float velocity_threshold = _param_ekf2_sel_imu_vel.get();
 				uint8_t n_accels = 0;
 				uint8_t n_accel_exceedances = 0;
 				float largest_accumulated_accel_error = 0.0f;

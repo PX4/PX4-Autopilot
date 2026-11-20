@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include <mathlib/math/WhiteGaussianNoise.hpp>
 #include <lib/failure_injection/FailureInjection.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
@@ -72,9 +73,6 @@ private:
 	void Run() override;
 	void updateFailureConfig();
 
-	// generate white Gaussian noise sample with std=1
-	static float generate_wgn();
-
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position_groundtruth)};
 
@@ -94,7 +92,7 @@ private:
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::SIM_BARO_OFF_P>) _sim_baro_off_p,
-		(ParamFloat<px4::params::SIM_BARO_OFF_T>) _sim_baro_off_t
+		(ParamFloat<px4::params::SIM_BARO_OFF_P>) _param_sim_baro_off_p,
+		(ParamFloat<px4::params::SIM_BARO_OFF_T>) _param_sim_baro_off_t
 	)
 };

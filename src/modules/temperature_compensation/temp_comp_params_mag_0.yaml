@@ -85,16 +85,19 @@ parameters:
         short: Magnetometer calibration reference temperature
       category: System
       type: float
+      unit: celcius
       default: 25.0
     TC_M0_TMIN:
       description:
         short: Magnetometer calibration minimum temperature
       category: System
       type: float
+      unit: celcius
       default: 0.0
     TC_M0_TMAX:
       description:
         short: Magnetometer calibration maximum temperature
       category: System
       type: float
+      unit: celcius
       default: 100.0

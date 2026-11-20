@@ -36,7 +36,7 @@ Order from [ARK Electronics](https://arkelectron.com/product/arkv6xrt) (US).
   - **Code store:** no internal flash. Code executes in place from a 64 MB external octal NOR on FlexSPI1, of which PX4 uses the first 4 MB.
   - **IO processor:** PX4IO v2, on carriers that fit one.
 - **Sensors**
-  - **IMU:** [InvenSense ICM-45686](https://invensense.tdk.com/products/motion-tracking/6-axis/icm-45686/) (SPI1), [InvenSense IIM-20670](https://invensense.tdk.com/products/motion-tracking/6-axis/iim-20670/) (SPI2), [ST LSM6DSV80X](https://www.st.com/en/mems-and-sensors/lsm6dsv80x.html) (SPI3)
+  - **IMU:** [InvenSense ICM-45686](https://www.invensense.tdk.com/en-us/products/6-axis/icm-45686) (SPI1), [InvenSense IIM-20670](https://www.invensense.tdk.com/en-us/products/motion-tracking/6-axis/iim-20670) (SPI2), [ST LSM6DSV80X](https://www.st.com/en/mems-and-sensors/lsm6dsv80x.html) (SPI3)
   - **Barometer:** [Bosch BMP390](https://www.bosch-sensortec.com/en/products/environmental-sensors/pressure-sensors/bmp390/) (I2C2)
   - **Magnetometer:** [ST IIS2MDC](https://www.st.com/en/mems-and-sensors/iis2mdc.html) (I2C3)
   - **Heater:** closed loop on the ICM-45686 die temperature

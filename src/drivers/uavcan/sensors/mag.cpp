@@ -91,7 +91,7 @@ void UavcanMagnetometerBridge::mag_sub_cb(const
 	// Register magnetometer capability with NodeInfoPublisher after first successful message
 	if (_node_info_publisher != nullptr) {
 		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(), mag->get_device_id(),
-				NodeInfoPublisher::DeviceCapability::MAGNETOMETER);
+				device_information_s::DEVICE_TYPE_MAGNETOMETER);
 	}
 
 	const float x = msg.magnetic_field_ga[0];
@@ -123,7 +123,7 @@ UavcanMagnetometerBridge::mag2_sub_cb(const
 	if (_node_info_publisher != nullptr) {
 		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
 				mag->get_device_id(),
-				NodeInfoPublisher::DeviceCapability::MAGNETOMETER);
+				device_information_s::DEVICE_TYPE_MAGNETOMETER);
 	}
 
 	const float x = msg.magnetic_field_ga[0];

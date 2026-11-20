@@ -165,41 +165,10 @@ public:
 	}
 
 	template <size_t Width>
-	void uncorrelateCovarianceSetVariance(size_t first, const Vector<Type, Width> &vec)
-	{
-		static_assert(Width <= M, "Width bigger than matrix");
-		assert(first + Width <= M);
-
-		SquareMatrix<Type, M> &self = *this;
-		// zero rows and columns
-		self.slice<Width, M>(first, 0) = Type(0);
-		self.slice<M, Width>(0, first) = Type(0);
-
-		// set diagonals
-		unsigned vec_idx = 0;
-
-		for (size_t idx = first; idx < first + Width; idx++) {
-			self(idx, idx) = vec(vec_idx);
-			vec_idx ++;
-		}
-	}
+	void uncorrelateCovarianceSetVariance(size_t first, const Vector<Type, Width> &vec);
 
 	template <size_t Width>
-	void uncorrelateCovarianceSetVariance(size_t first, Type val)
-	{
-		static_assert(Width <= M, "Width bigger than matrix");
-		assert(first + Width <= M);
-
-		SquareMatrix<Type, M> &self = *this;
-		// zero rows and columns
-		self.slice<Width, M>(first, 0) = Type(0);
-		self.slice<M, Width>(0, first) = Type(0);
-
-		// set diagonals
-		for (size_t idx = first; idx < first + Width; idx++) {
-			self(idx, idx) = val;
-		}
-	}
+	void uncorrelateCovarianceSetVariance(size_t first, Type val);
 
 	// make block diagonal symmetric by taking the average of the two corresponding off diagonal values
 	template <size_t Width>
@@ -316,6 +285,46 @@ public:
 		}
 	}
 };
+
+// defined out of the class so they are not implicitly inline, they are large and called often
+template<typename Type, size_t M>
+template<size_t Width>
+void SquareMatrix<Type, M>::uncorrelateCovarianceSetVariance(size_t first, const Vector<Type, Width> &vec)
+{
+	static_assert(Width <= M, "Width bigger than matrix");
+	assert(first + Width <= M);
+
+	SquareMatrix<Type, M> &self = *this;
+	// zero rows and columns
+	self.slice<Width, M>(first, 0) = Type(0);
+	self.slice<M, Width>(0, first) = Type(0);
+
+	// set diagonals
+	unsigned vec_idx = 0;
+
+	for (size_t idx = first; idx < first + Width; idx++) {
+		self(idx, idx) = vec(vec_idx);
+		vec_idx ++;
+	}
+}
+
+template<typename Type, size_t M>
+template<size_t Width>
+void SquareMatrix<Type, M>::uncorrelateCovarianceSetVariance(size_t first, Type val)
+{
+	static_assert(Width <= M, "Width bigger than matrix");
+	assert(first + Width <= M);
+
+	SquareMatrix<Type, M> &self = *this;
+	// zero rows and columns
+	self.slice<Width, M>(first, 0) = Type(0);
+	self.slice<M, Width>(0, first) = Type(0);
+
+	// set diagonals
+	for (size_t idx = first; idx < first + Width; idx++) {
+		self(idx, idx) = val;
+	}
+}
 
 using SquareMatrix2f = SquareMatrix<float, 2>;
 using SquareMatrix3f = SquareMatrix<float, 3>;

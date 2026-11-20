@@ -6,14 +6,14 @@
 
 // Translate ManualControlSetpoint v0 <--> v1
 #include <px4_msgs_old/msg/manual_control_setpoint_v0.hpp>
-#include <px4_msgs/msg/manual_control_setpoint.hpp>
+#include <px4_msgs_old/msg/manual_control_setpoint_v1.hpp>
 
 class ManualControlSetpointV1Translation {
 public:
 	using MessageOlder = px4_msgs_old::msg::ManualControlSetpointV0;
 	static_assert(MessageOlder::MESSAGE_VERSION == 0);
 
-	using MessageNewer = px4_msgs::msg::ManualControlSetpoint;
+	using MessageNewer = px4_msgs_old::msg::ManualControlSetpointV1;
 	static_assert(MessageNewer::MESSAGE_VERSION == 1);
 
 	static constexpr const char* kTopic = "fmu/out/manual_control_setpoint";

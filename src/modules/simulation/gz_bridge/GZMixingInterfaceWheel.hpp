@@ -78,9 +78,23 @@ private:
 	gz::transport::Node &_node;
 	pthread_mutex_t _node_mutex;
 
+	// wheel_encoders slot for the wheel motor on output channel `channel`, following the wheel
+	// order in WheelEncoders.msg. -1 if the channel is not a wheel motor or has no slot.
+	int wheelSlot(int channel) const;
+
 	MixingOutput _mixing_output{"SIM_GZ_WH", MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 
 	gz::transport::Node::Publisher _actuators_pub;
+	hrt_abstime _prev_t{0};
+
+	// One entry per wheel_encoders slot, independent of which rover modules are built
+	static constexpr int MAX_WHEELS = sizeof(wheel_encoders_s::wheel_speed) / sizeof(wheel_encoders_s::wheel_speed[0]);
+
+	// Resolution of the simulated encoders, in the range of typical quadrature encoders
+	static constexpr uint32_t SIM_COUNTS_PER_REV = 1024;
+
+	float  _prev_wheel_speed[MAX_WHEELS] {}; // [rad/s]
+	float  _wheel_angle[MAX_WHEELS] {}; // [rad] Unwrapped wheel angle since the first callback
 
 	uORB::Publication<wheel_encoders_s> _wheel_encoders_pub{ORB_ID(wheel_encoders)};
 };

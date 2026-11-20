@@ -74,6 +74,8 @@ public:
 
 	// Cache home as the pad's absolute position if it is near the landed vehicle's recent GNSS fix.
 	bool updateHomeReference(bool report_distance_warning = true);
+	// Disabling the task ends the monitored flight; do not reuse its pad after re-enabling.
+	void clearHomeReference() { _home_ref = {}; }
 
 private:
 	friend class ::VisionTargetEstTest;

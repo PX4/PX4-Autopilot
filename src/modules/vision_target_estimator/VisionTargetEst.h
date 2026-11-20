@@ -129,6 +129,8 @@ protected:
 	void restartTimedOutEstimators();
 	// Collect inputs, downsample acceleration, and tick the enabled estimators once per cycle.
 	void updateEstimators();
+	// Invalidate the old NED state and delayed observations when EKF attitude jumps.
+	void handleAttitudeReset(const vehicle_attitude_s &attitude);
 	void updatePosEst(const matrix::Vector3f &gps_pos_offset_ned,
 			  const matrix::Vector3f &vel_offset_ned,
 			  const bool vel_offset_updated,
@@ -174,6 +176,9 @@ protected:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_attitude_sub{this, ORB_ID(vehicle_attitude)};
+
+	uint8_t _attitude_reset_counter{0};
+	bool _attitude_reset_counter_valid{false};
 
 	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
@@ -233,8 +238,8 @@ private:
 		(ParamInt<px4::params::VTE_TASK_MASK>) _param_vte_task_mask,
 		(ParamFloat<px4::params::VTE_BTOUT>) _param_vte_btout,
 		(ParamFloat<px4::params::VTE_TGT_TOUT>) _param_vte_tgt_tout,
-		(ParamFloat<px4::params::VTE_M_REC_TOUT>) _param_vte_mrec_tout,
-		(ParamFloat<px4::params::VTE_M_UPD_TOUT>) _param_vte_mupd_tout,
+		(ParamFloat<px4::params::VTE_M_REC_TOUT>) _param_vte_m_rec_tout,
+		(ParamFloat<px4::params::VTE_M_UPD_TOUT>) _param_vte_m_upd_tout,
 		(ParamInt<px4::params::VTE_AID_MASK>) _param_vte_aid_mask
 	)
 };

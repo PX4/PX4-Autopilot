@@ -262,11 +262,13 @@ inline bool publishVisionPos(uORB::Publication<fiducial_marker_pos_report_s> &pu
 inline bool publishUavGnss(uORB::Publication<vehicle_gnss_s> &pub, double lat, double lon, float alt,
 			   float eph, float epv, const matrix::Vector3f &vel_ned, float vel_var,
 			   bool vel_valid, hrt_abstime timestamp,
-			   const matrix::Vector3f &antenna_offset = matrix::Vector3f{})
+			   const matrix::Vector3f &antenna_offset = matrix::Vector3f{}, bool usable = true)
 {
 	vehicle_gnss_s msg{};
 	msg.timestamp = timestamp;
 	msg.timestamp_sample = timestamp;
+	msg.usable = usable;
+	msg.receiver.fix_type = sensor_gnss_s::FIX_TYPE_3D;
 	msg.receiver.latitude = static_cast<decltype(msg.receiver.latitude)>(lat);
 	msg.receiver.longitude = static_cast<decltype(msg.receiver.longitude)>(lon);
 	msg.receiver.altitude_msl = static_cast<decltype(msg.receiver.altitude_msl)>(alt);

@@ -93,6 +93,7 @@ parameters:
           MPC_VEL_MAX or MPC_VEL_MANUAL).
           If set to a negative value, the existing individual parameters are used.
       type: float
+      unit: m/s
       default: -10.0
       min: -20
       max: 20
@@ -180,7 +181,7 @@ parameters:
       unit: m/s^3
       min: 0.5
       max: 500
-      decimal: 0
+      decimal: 1
       increment: 1
     SPC_MAN_Y_MAX:
       description:

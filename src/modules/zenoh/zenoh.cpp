@@ -130,7 +130,7 @@ int ZENOH::generate_rmw_zenoh_topic_keyexpr(const char *topic, const uint8_t *ri
 				"%02x%02x%02x%02x%02x%02x%02x%02x"
 				"%02x%02x%02x%02x%02x%02x%02x%02x"
 				"%02x%02x%02x%02x%02x%02x%02x%02x",
-				_zenoh_domain_id.get(), topic, type,
+				_param_zenoh_domain_id.get(), topic, type,
 				rihs_hash[0], rihs_hash[1], rihs_hash[2], rihs_hash[3],
 				rihs_hash[4], rihs_hash[5], rihs_hash[6], rihs_hash[7],
 				rihs_hash[8], rihs_hash[9], rihs_hash[10], rihs_hash[11],
@@ -143,7 +143,7 @@ int ZENOH::generate_rmw_zenoh_topic_keyexpr(const char *topic, const uint8_t *ri
 #else
 		return snprintf(keyexpr, KEYEXPR_SIZE, "%" PRId32 "%s/"
 				KEYEXPR_MSG_NAME "%s_/TypeHashNotSupported",
-				_zenoh_domain_id.get(), topic, type);
+				_param_zenoh_domain_id.get(), topic, type);
 #endif
 	}
 
@@ -180,7 +180,7 @@ int ZENOH::generate_rmw_zenoh_topic_liveliness_keyexpr(const z_id_t *id, const c
 			"%02x%02x%02x%02x%02x%02x%02x%02x"
 			"%02x%02x%02x%02x%02x%02x%02x%02x"
 			"/::,7:,:,:,,",
-			_zenoh_domain_id.get(),
+			_param_zenoh_domain_id.get(),
 			id->id[0], id->id[1],  id->id[2], id->id[3], id->id[4], id->id[5], id->id[6],
 			id->id[7], id->id[8],  id->id[9], id->id[10], id->id[11], id->id[12], id->id[13],
 			id->id[14], id->id[15],
@@ -206,7 +206,7 @@ int ZENOH::generate_rmw_zenoh_topic_liveliness_keyexpr(const z_id_t *id, const c
 			"0/11/%s/%%/%%/px4_%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x/%s/"
 			KEYEXPR_MSG_NAME "%s_/TypeHashNotSupported"
 			"/::,7:,:,:,,",
-			_zenoh_domain_id.get(),
+			_param_zenoh_domain_id.get(),
 			id->id[0], id->id[1],  id->id[2], id->id[3], id->id[4], id->id[5], id->id[6],
 			id->id[7], id->id[8],  id->id[9], id->id[10], id->id[11], id->id[12], id->id[13],
 			id->id[14], id->id[15],
@@ -325,10 +325,10 @@ int ZENOH::setupSession()
 			sleep(5); // Wait 5 seconds when doing a retry
 		}
 
-	} while ((ret = z_open(&_s, z_move(config), NULL)) < 0);
+	} while ((ret = z_open(&_s, z_move(config), nullptr)) < 0);
 
 	// Start read and lease tasks for zenoh-pico
-	if (zp_start_read_task(z_loan_mut(_s), NULL) < 0 || zp_start_lease_task(z_loan_mut(_s), NULL) < 0) {
+	if (zp_start_read_task(z_loan_mut(_s), nullptr) < 0 || zp_start_lease_task(z_loan_mut(_s), nullptr) < 0) {
 		PX4_ERR("Unable to start read and lease tasks");
 		ret = -EINVAL;
 	}
@@ -364,7 +364,7 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 
 		z_owned_liveliness_token_t token;
 
-		if (z_liveliness_declare_token(z_loan(_s), &token, z_loan(ke), NULL) < 0) {
+		if (z_liveliness_declare_token(z_loan(_s), &token, z_loan(ke), nullptr) < 0) {
 			PX4_ERR("Unable to create liveliness token!\n");
 			return -1;
 		}
@@ -373,8 +373,12 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 #endif
 
 #ifdef Z_SUBSCRIBE
-	_zenoh_subscribers = (Zenoh_Subscriber **)malloc(sizeof(Zenoh_Subscriber *)*_sub_count);
-	memset(_zenoh_subscribers, 0x0, sizeof(Zenoh_Subscriber *)*_sub_count);
+	_zenoh_subscribers = (Zenoh_Subscriber **)calloc(_sub_count, sizeof(Zenoh_Subscriber *));
+
+	if (_sub_count > 0 && !_zenoh_subscribers) {
+		PX4_ERR("Failed to allocate subscribers");
+		return -1;
+	}
 
 	if (_zenoh_subscribers) {
 		char topic[TOPIC_INFO_SIZE];
@@ -386,7 +390,7 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 				_zenoh_subscribers[i] = genSubscriber(type, instance_no);
 				const uint8_t *rihs_hash = getRIHS01_Hash(type);
 
-				if (rihs_hash != NULL && _zenoh_subscribers[i] != 0 &&
+				if (rihs_hash != nullptr && _zenoh_subscribers[i] != nullptr &&
 				    generate_rmw_zenoh_topic_keyexpr(topic, rihs_hash, type, keyexpr) > 0) {
 					_zenoh_subscribers[i]->declare_subscriber(_s, keyexpr);
 #ifdef CONFIG_ZENOH_RMW_LIVELINESS
@@ -401,7 +405,7 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 
 						z_owned_liveliness_token_t token;
 
-						if (z_liveliness_declare_token(z_loan(_s), &token, z_loan(ke), NULL) < 0) {
+						if (z_liveliness_declare_token(z_loan(_s), &token, z_loan(ke), nullptr) < 0) {
 							PX4_ERR("Unable to create liveliness token!\n");
 							return -1;
 						}
@@ -410,12 +414,12 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 #endif
 
 				} else {
-					_zenoh_subscribers[i] = NULL;
+					_zenoh_subscribers[i] = nullptr;
 					PX4_ERR("Could not create a subscriber for type %s", type);
 				}
 
 			} else {
-				_zenoh_subscribers[i] = NULL;
+				_zenoh_subscribers[i] = nullptr;
 				PX4_ERR("Error parsing publisher config at index %i", i);
 			}
 		}
@@ -430,8 +434,12 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 #endif
 
 #ifdef Z_PUBLISH
-	_zenoh_publishers = (uORB_Zenoh_Publisher **)malloc(_pub_count * sizeof(uORB_Zenoh_Publisher *));
-	memset(_zenoh_publishers, 0x0, _pub_count * sizeof(uORB_Zenoh_Publisher *));
+	_zenoh_publishers = (uORB_Zenoh_Publisher **)calloc(_pub_count, sizeof(uORB_Zenoh_Publisher *));
+
+	if (_pub_count > 0 && !_zenoh_publishers) {
+		PX4_ERR("Failed to allocate publishers");
+		return -1;
+	}
 
 	if (_zenoh_publishers) {
 		char topic[TOPIC_INFO_SIZE];
@@ -439,11 +447,11 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 		int instance;
 		z_publisher_options_t global_opts;
 		z_publisher_options_default(&global_opts);
-		global_opts.congestion_control = (z_congestion_control_t)_zenoh_pub_cc.get();
-		global_opts.is_express = (bool)_zenoh_pub_expr.get();
-		global_opts.priority = (z_priority_t)_zenoh_pub_prio.get();
+		global_opts.congestion_control = (z_congestion_control_t)_param_zenoh_pub_cc.get();
+		global_opts.is_express = (bool)_param_zenoh_pub_expr.get();
+		global_opts.priority = (z_priority_t)_param_zenoh_pub_prio.get();
 #ifdef Z_FEATURE_UNSTABLE_API
-		global_opts.reliability = (z_reliability_t)_zenoh_pub_rel.get();
+		global_opts.reliability = (z_reliability_t)_param_zenoh_pub_rel.get();
 #endif
 
 		for (i = 0; i < _pub_count; i++) {
@@ -462,7 +470,7 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 				_zenoh_publishers[i] = genPublisher(type, instance);
 				const uint8_t *rihs_hash = getRIHS01_Hash(type);
 
-				if (rihs_hash && _zenoh_publishers[i] != 0 &&
+				if (rihs_hash && _zenoh_publishers[i] != nullptr &&
 				    generate_rmw_zenoh_topic_keyexpr(topic, rihs_hash, type, keyexpr) > 0) {
 #ifdef CONFIG_ZENOH_PUB_OPTION_OVERRIDE
 					_zenoh_publishers[i]->declare_publisher(_s, keyexpr, (uint8_t *)&_px4_guid, &pub_opts);
@@ -482,7 +490,7 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 
 						z_owned_liveliness_token_t token;
 
-						if (z_liveliness_declare_token(z_loan(_s), &token, z_loan(ke), NULL) < 0) {
+						if (z_liveliness_declare_token(z_loan(_s), &token, z_loan(ke), nullptr) < 0) {
 							PX4_ERR("Unable to create liveliness token!\n");
 							return -1;
 						}
@@ -491,12 +499,12 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 #endif
 
 				} else {
-					_zenoh_publishers[i] = NULL;
+					_zenoh_publishers[i] = nullptr;
 					PX4_ERR("Could not create a publisher for type %s", type);
 				}
 
 			} else {
-				_zenoh_publishers[i] = NULL;
+				_zenoh_publishers[i] = nullptr;
 				PX4_ERR("Error parsing publisher config at index %i", i);
 			}
 		}
@@ -557,6 +565,12 @@ void ZENOH::run()
 	_sub_count =  _config.getSubCount();
 	px4_pollfd_struct_t pfds[_pub_count];
 
+	// Publishers that fail to set up never get a poll fd assigned, a negative fd makes poll skip them
+	for (i = 0; i < _pub_count; i++) {
+		pfds[i] = {};
+		pfds[i].fd = -1;
+	}
+
 	const int setup_ret = setupSession();
 
 	if (setup_ret < 0) {
@@ -587,15 +601,27 @@ void ZENOH::run()
 		}
 	}
 
+	static constexpr hrt_abstime POLL_ERROR_WARN_INTERVAL = 1000000; // 1 s
+	hrt_abstime last_poll_warn = 0;
+
 	while (!should_exit()) {
 		int pret = px4_poll(pfds, _pub_count, 100);
 
 		if (pret == 0) {
 			//PX4_INFO("Zenoh poll timeout\n");
 
+		} else if (pret < 0) {
+			if (hrt_elapsed_time(&last_poll_warn) >= POLL_ERROR_WARN_INTERVAL) {
+				last_poll_warn = hrt_absolute_time();
+				PX4_ERR("poll error %d", errno);
+			}
+
+			// Back off instead of spinning, a failing poll returns immediately
+			px4_usleep(10000);
+
 		} else {
 			for (i = 0; i < _pub_count; i++) {
-				if (pfds[i].revents & POLLIN) {
+				if (_zenoh_publishers[i] && (pfds[i].revents & POLLIN)) {
 					ret = _zenoh_publishers[i]->update();
 
 					if (ret < 0) {
