@@ -62,7 +62,10 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ![DAKEFPV H743 Slim components](../../assets/flight_controller/dakefpv_h743slim/dakefpv_h743slim_bottom.jpg)
 
-The component side has the USB-C port, the microSD slot and two JST connectors: the 8-pin 4-in-1 ESC connector and a 4-pin CAN connector (`5V`, `CH`, `CL`, `GND`).
+The component side has the USB-C port, the microSD slot and two JST connectors, with their pins in silkscreen order:
+
+- 8-pin 4-in-1 ESC connector: `+` (battery), `-` (GND), `C` (current sensor, PC0), `T` (ESC telemetry), `1`–`4` (motor outputs `S1`–`S4`).
+- 4-pin CAN connector: `5V`, `CH`, `CL`, `GND`.
 
 | Pin              | Function                                                                | PX4 Default    |
 | ---------------- | ----------------------------------------------------------------------- | -------------- |
@@ -99,7 +102,7 @@ The component side has the USB-C port, the microSD slot and two JST connectors: 
 
 ## Power {#power}
 
-The board is powered from a 3S–12S LiPo battery (see [Electrical Data](#electrical_data) for the BEC outputs).
+The board is powered from a 3S–12S LiPo battery, connected either through the `+` and `-` pins of the ESC connector or to a `Vbat` or `BAT` pad and a ground (`G`) pad (see [Electrical Data](#electrical_data) for the BEC outputs).
 
 Battery voltage and current are measured by the board's analog inputs, with the current from the `Cur` pad.
 The default scaling is [BAT1_V_DIV](../advanced_config/parameter_reference.md#BAT1_V_DIV) = `16.0` and [BAT1_A_PER_V](../advanced_config/parameter_reference.md#BAT1_A_PER_V) = `83.3`; check these against your battery and ESC as described in [Battery Estimation Tuning](../config/battery.md).

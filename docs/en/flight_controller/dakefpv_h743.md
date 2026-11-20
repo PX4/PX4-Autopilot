@@ -39,14 +39,14 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - **Parameter storage:** processor flash
 - **SD card:** none (16MB onboard SPI NOR flash for logs)
 - **OSD:** AT7456E analog OSD, and MSP DisplayPort for digital VTX (DJI/HDZero/OpenIPC)
-- **Plug-in connectors:** receiver (4-pin), analog camera (3-pin), analog VTX (4-pin), HD VTX (6-pin), ESC (8-pin)
+- **Plug-in connectors:** ESC (12-pin), cameras (6-pin), GPS (6-pin), receiver (4-pin), HD VTX (6-pin), LED and buzzer (4-pin)
 - **Buzzer:** Yes
 
 ### Electrical Data {#electrical_data}
 
 - **Input voltage:** 4S–12S LiPo
-- **BEC 3.3V:** 2A
-- **BEC 5V:** 2.5A
+- **BEC 3.3V:** 0.5A
+- **BEC 5V:** 3A
 - **BEC 12V:** 3A (GPIO-controlled, for VTX)
 - **Power monitoring:** analog battery voltage and current
 
@@ -65,9 +65,58 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 ![DAKEFPV H743 top](../../assets/flight_controller/dakefpv_h743/dakefpv_h743_top.png)
 ![DAKEFPV H743 bottom](../../assets/flight_controller/dakefpv_h743/dakefpv_h743_bottom.png)
 
+The pad side has the solder pads; signal pins use 3.3V logic.
+
+| Pad                | Signal                                                        | MCU pin     | Voltage |
+| ------------------ | ------------------------------------------------------------- | ----------- | ------- |
+| `BAT`              | Battery input (also measured as the battery voltage)          | PC1 (sense) | Battery |
+| `GND`, `GD`        | Ground                                                        |             |         |
+| `12V`              | 12V BEC output for the VTX and cameras, switched by `PIO2`    |             | 12V     |
+| `5V`               | 5V BEC output                                                 |             | 5V      |
+| `4V5`              | 4.5V output, also powered from USB                            |             | 4.5V    |
+| `5Vin`             | USB 5V input, for an external USB connector                   |             | 5V      |
+| `D+`, `D-`         | USB data, for an external USB connector                       | PA12, PA11  |         |
+| `CU`               | Battery current sensor input                                  | PC0         |         |
+| `RSSI`             | Analog RSSI input, not used by PX4                            | PC5         |         |
+| `M1`–`M4`          | Motor outputs 1–4                                             | PA0–PA3     |         |
+| `M5`–`M8`          | Motor outputs 5–8                                             | PD12–PD15   |         |
+| `S1`, `S2`         | Servo outputs 9–10                                            | PE5, PE6    |         |
+| `S3`, `S4`         | Servo outputs 11–12                                           | PC8, PC9    |         |
+| `LED`              | WS2812 LED strip, not supported by the default firmware       | PE9         |         |
+| `B-`               | Buzzer negative pin                                           | PC2         |         |
+| `CAM1`, `CAM2`     | Analog camera inputs, selected by `PIO1`                      |             |         |
+| `VTX`              | Analog video output to the VTX (with OSD overlay)             |             |         |
+| `OSD`              | Camera control output, not used by PX4                        | PB8         |         |
+| `PIO1`             | Camera switch: high selects `CAM1`, low `CAM2`                | PE2         |         |
+| `PIO2`             | 12V BEC enable: high is on                                    | PE3         |         |
+| `PIO3`             | User-defined output                                           | PE4         |         |
+| `T1`, `R1`         | USART1 TX/RX (`GPS1`)                                         | PA9, PA10   |         |
+| `T2`, `R2`         | USART2 TX/RX (`TELEM1`)                                       | PD5, PD6    |         |
+| `R3`               | USART3 RX (`TELEM2`); USART3 TX has no pad                    | PD9         |         |
+| `T4`               | UART4 TX (`TELEM3`); UART4 RX is on the HD VTX connector only | PD1         |         |
+| `T5`, `R5`         | UART5 TX/RX (RC input)                                        | PB6, PB5    |         |
+| `T6`, `R6`         | USART6 TX/RX (`TELEM4`)                                       | PC6, PC7    |         |
+| `T7`, `R7`         | UART7 TX/RX (system console)                                  | PE8, PE7    |         |
+| `T8`, `R8`         | UART8 TX/RX (`GPS2`)                                          | PE1, PE0    |         |
+| `SDA`, `SCL`       | I2C2                                                          | PB11, PB10  |         |
+| `C`, `D`, `G`, `3` | SWD debug pads (see [Debug Port](#debug_port))                | PA14, PA13  | 3.3V    |
+
+The component side has the USB-C port, the boot button and six plug-in connectors:
+
+| Connector              | Pins, in silkscreen order                                                                                                                        |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ESC (12-pin)           | `+` (battery), `-` (GND), `C` (current sensor, PC0), `T` (ESC telemetry), `1`–`8` (`M1`–`M8`)                                                    |
+| Cameras (6-pin)        | `12V`, `GND`, `CAM1`, `12V`, `GND`, `CAM2`                                                                                                       |
+| GPS (6-pin)            | `5V`, `GD`, `R1` (USART1 RX), `T1` (USART1 TX), `DA` (I2C2 SDA), `CL` (I2C2 SCL)                                                                 |
+| Receiver (4-pin)       | `TX5` (UART5 TX), `RX5` (UART5 RX), `4V5`, `GND`                                                                                                 |
+| HD VTX (6-pin)         | `12V`, `GND`, `TX4` (UART4 TX, PD1), `D/V` (UART4 RX, PD0, or analog video, set by the `Dji`/`VTX` jumper), `GD`, `R5` (S.BUS from the air unit) |
+| LED and buzzer (4-pin) | `B-` (buzzer), `LED`, `GD`, `5V`                                                                                                                 |
+
+According to DAKEFPV, the HD VTX connector's `R5` pin goes through an inverter to UART5 RX, so that the S.BUS output of a digital air unit can be used for RC input.
+
 ## Power {#power}
 
-The board is powered from a 4S–12S LiPo battery (see [Electrical Data](#electrical_data) for the BEC outputs).
+The board is powered from a 4S–12S LiPo battery, connected either through the `+` and `-` pins of the ESC connector or to the `BAT` and `GND` pads (see [Electrical Data](#electrical_data) for the BEC outputs).
 
 Battery voltage and current are measured by the board's analog inputs, with a current sensor input of up to 130A.
 The default scaling is [BAT1_V_DIV](../advanced_config/parameter_reference.md#BAT1_V_DIV) = `16.0` and [BAT1_A_PER_V](../advanced_config/parameter_reference.md#BAT1_A_PER_V) = `83.3`; check these against your battery and ESC as described in [Battery Estimation Tuning](../config/battery.md).
@@ -116,19 +165,19 @@ All-`00` or all-`ff` means the SPI transaction failed rather than the chip being
 
 ## Serial Port Mapping {#serial_port_mapping}
 
-| UART   | Device       | Port           | Board pads |
-| ------ | ------------ | -------------- | ---------- |
-| USART1 | `/dev/ttyS0` | `GPS1`         | `T1`/`R1`  |
-| USART2 | `/dev/ttyS1` | `TELEM1`       | `T2`/`R2`  |
-| USART3 | `/dev/ttyS2` | `TELEM2`       | `T3`/`R3`  |
-| UART4  | `/dev/ttyS3` | `TELEM3`       | `T4`/`R4`  |
-| UART5  | `/dev/ttyS4` | RC input       | `T5`/`R5`  |
-| USART6 | `/dev/ttyS5` | `TELEM4`       | `T6`/`R6`  |
-| UART7  | `/dev/ttyS6` | System console | `T7`/`R7`  |
-| UART8  | `/dev/ttyS7` | `GPS2`         | `T8`/`R8`  |
+| UART   | Device       | Port           | Board pads             |
+| ------ | ------------ | -------------- | ---------------------- |
+| USART1 | `/dev/ttyS0` | `GPS1`         | `T1`/`R1`              |
+| USART2 | `/dev/ttyS1` | `TELEM1`       | `T2`/`R2`              |
+| USART3 | `/dev/ttyS2` | `TELEM2`       | `R3` (RX only)         |
+| UART4  | `/dev/ttyS3` | `TELEM3`       | `T4`, HD VTX connector |
+| UART5  | `/dev/ttyS4` | RC input       | `T5`/`R5`              |
+| USART6 | `/dev/ttyS5` | `TELEM4`       | `T6`/`R6`              |
+| UART7  | `/dev/ttyS6` | System console | `T7`/`R7`              |
+| UART8  | `/dev/ttyS7` | `GPS2`         | `T8`/`R8`              |
 
 ::: warning
-The pads are silkscreened by UART number, so `T4`/`R4` is UART4 — which PX4 exposes as `TELEM3`, not `TELEM4`.
+The pads are silkscreened by UART number, so `T4` is UART4 — which PX4 exposes as `TELEM3`, not `TELEM4`.
 :::
 
 ## Assembly {#assembly}
@@ -142,7 +191,7 @@ The pads are silkscreened by UART number, so `T4`/`R4` is UART4 — which PX4 ex
 A remote control (RC) radio system is required if you want to _manually_ control your vehicle (PX4 does not require a radio system for autonomous flight modes).
 You will need to [select a compatible transmitter/receiver](../getting_started/rc_transmitter_receiver.md) and then _bind_ them so that they communicate (read the instructions that come with your specific transmitter/receiver).
 
-Connect the receiver to the `T5`/`R5` pads (UART5, `/dev/ttyS4`), which go directly to the flight controller.
+Connect the receiver to the 4-pin receiver connector (`TX5`, `RX5`, `4V5`, `GND`) or to the `T5`/`R5` pads (UART5, `/dev/ttyS4`), which go directly to the flight controller.
 PX4 detects the protocol automatically, with no configuration needed: CRSF/ELRS, GHST, S.BUS, DSM, SUMD and ST24 are supported.
 For CRSF, ELRS and GHST, connect both `T5` and `R5` so that telemetry can be sent back to the receiver.
 DSM receivers can't be bound from PX4 or _QGroundControl_ on this board, so bind the receiver using its own bind procedure.
@@ -158,7 +207,8 @@ For other receivers, set [RC_RSSI_PWM_CHAN](../advanced_config/parameter_referen
 
 ### GPS & Compass {#gps_compass}
 
-Connect a [GPS/compass module](../gps_compass/index.md) to `GPS1` (`T1`/`R1` pads), with its compass on the `SDA`/`SCL` pads (I2C2: PB11/PB10).
+Connect a [GPS/compass module](../gps_compass/index.md) to the 6-pin GPS connector (`5V`, `GD`, `R1`, `T1`, `DA`, `CL`), which carries `GPS1` and I2C2 for the compass.
+The same signals are on the `T1`/`R1` and `SDA`/`SCL` pads.
 A second GPS can be connected to `GPS2` (`T8`/`R8`): set [GPS_2_CONFIG](../advanced_config/parameter_reference.md#GPS_2_CONFIG) to `GPS 2`.
 
 The board has no built-in compass, so compass use is disabled by default ([SYS_HAS_MAG](../advanced_config/parameter_reference.md#SYS_HAS_MAG) = `0`, [EKF2_MAG_TYPE](../advanced_config/parameter_reference.md#EKF2_MAG_TYPE) = `5` (None)).
@@ -167,7 +217,8 @@ If you connect an external compass, set `SYS_HAS_MAG` to `1` and `EKF2_MAG_TYPE`
 ### Telemetry Radios (Optional) {#telemetry}
 
 [Telemetry radios](../telemetry/index.md) connect to `TELEM1` (`T2`/`R2` pads), which runs MAVLink by default and needs no further configuration.
-`TELEM2` (`T3`/`R3`) and `TELEM4` (`T6`/`R6`) are also free for other serial peripherals; `TELEM3` is used by the digital VTX by default.
+`TELEM4` (`T6`/`R6`) is also free for other serial peripherals; `TELEM3` is used by the digital VTX by default.
+`TELEM2` only has its RX line broken out (the `R3` pad), so it can only be used for receive-only inputs such as ESC telemetry ([DSHOT_TEL_CFG](../advanced_config/parameter_reference.md#DSHOT_TEL_CFG)).
 
 ### OSD {#osd}
 
@@ -175,9 +226,10 @@ The AT7456E analog OSD is on SPI2 and is enabled by default for PAL ([OSD_ATXXXX
 Set it to `1` for NTSC, or `0` to disable the analog OSD; a reboot is required.
 Analog OSD and digital HD OSD can run at the same time.
 
-The digital VTX (DJI/HDZero/OpenIPC) connects to the `T4`/`R4` pads — UART4, PX4 `TELEM3` (`/dev/ttyS3`), which is the default ([MSP_OSD_CONFIG](../advanced_config/parameter_reference.md#MSP_OSD_CONFIG) = `103`).
+The digital VTX (DJI/HDZero/OpenIPC) connects to the 6-pin HD VTX connector or the `T4` pad — UART4, PX4 `TELEM3` (`/dev/ttyS3`), which is the default ([MSP_OSD_CONFIG](../advanced_config/parameter_reference.md#MSP_OSD_CONFIG) = `103`).
 
-MSP DisplayPort only uses the flight controller's TX line, so `T4` and a ground are enough; `R4` is not needed unless the VTX also talks back.
+MSP DisplayPort only uses the flight controller's TX line, so `T4` (or the connector's `TX4` pin) and a ground are enough.
+UART4 RX is only on the connector's `D/V` pin, and is not needed unless the VTX also talks back.
 
 ::: info UART4 pin mapping
 UART4 is on PD0 (RX) and PD1 (TX) on this variant, and no peripheral swap is applied.
@@ -235,8 +287,9 @@ Alternatively, [load the firmware](../config/firmware.md) with _QGroundControl_,
 
 The [PX4 System Console](../debug/system_console.md) runs on UART7 (`T7`/`R7` pads).
 
-The FMU [SWD interface](../debug/swd_debug.md) is on solder pads (there is no Pixhawk debug connector):
+The FMU [SWD interface](../debug/swd_debug.md) is on four small solder pads next to the `M5`–`M8` pads (there is no Pixhawk debug connector):
 
-- SWDIO: PA13
-- SWCLK: PA14
-- GND
+- `C`: SWCLK (PA14)
+- `D`: SWDIO (PA13)
+- `G`: GND
+- `3`: 3.3V
