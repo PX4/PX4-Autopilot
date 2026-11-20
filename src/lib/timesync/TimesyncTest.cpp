@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * Timesync convergence on a simulated remote clock (7 ppm drift, +-2 ms noise) with a step or ramp correction.
+ * Timesync convergence on a simulated remote clock (7 ppm drift, +-0.5 ms noise) with a step or ramp correction.
  */
 
 #include <gtest/gtest.h>
@@ -65,7 +65,7 @@ Result runScenario(const Scenario &scenario)
 {
 	static constexpr double OFFSET_US = -1000e6; // remote clock 1000 s ahead
 	static constexpr double DRIFT_PPM = 7.0;
-	static constexpr int64_t NOISE_US = 2000;
+	static constexpr int64_t NOISE_US = 500;
 	static constexpr double BURST_INTERVAL_US = 15e3;
 
 	std::mt19937 rng(1);

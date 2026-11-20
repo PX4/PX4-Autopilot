@@ -59,7 +59,7 @@ static constexpr time_t PX4_EPOCH_SECS = 1234567890ULL;
 // SKEW_RANDOM_WALK : skew random walk density [1/s], higher follows clock corrections faster
 // INITIAL_SKEW_STD : prior skew std [s/s], i.e. crystal tolerance
 static constexpr double MEASUREMENT_NOISE_STD = 1e-3;
-static constexpr double OFFSET_RANDOM_WALK = 1e-9;
+static constexpr double OFFSET_RANDOM_WALK = 1e-8;
 static constexpr double SKEW_RANDOM_WALK = 7e-13;
 static constexpr double INITIAL_SKEW_STD = 100e-6;
 
