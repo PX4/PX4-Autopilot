@@ -10,3 +10,9 @@ menuconfig USER_MC_ATT_CONTROL
 	depends on BOARD_PROTECTED && MODULES_MC_ATT_CONTROL
 	---help---
 		Put mc_att_control in userspace memory
+
+config MODE_TURTLE
+	bool "Turtle recovery mode"
+	default n
+	depends on MODULES_MC_ATT_CONTROL && MODULES_CONTROL_ALLOCATOR
+	depends on DRIVERS_DSHOT || PLATFORM_POSIX

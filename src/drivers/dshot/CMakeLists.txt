@@ -55,3 +55,7 @@ px4_add_module(
 	MODULE_CONFIG
 		module.yaml
 	)
+
+if(CONFIG_MODE_TURTLE)
+	px4_add_unit_gtest(SRC DShotDirectionTest.cpp)
+endif()

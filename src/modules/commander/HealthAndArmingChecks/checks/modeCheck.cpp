@@ -33,8 +33,79 @@
 
 #include "modeCheck.hpp"
 
+#if defined(CONFIG_MODE_TURTLE)
+static bool isFresh(hrt_abstime timestamp, hrt_abstime timeout)
+{
+	const hrt_abstime now = hrt_absolute_time();
+	return timestamp != 0 && timestamp <= now && now - timestamp < timeout;
+}
+
+bool ModeChecks::copyTurtleControl(turtle_control_s &turtle, hrt_abstime nav_state_timestamp)
+{
+	return _turtle_control_sub.copy(&turtle) && turtle.timestamp >= nav_state_timestamp && isFresh(turtle.timestamp, 250_ms);
+}
+
+ModeChecks::TurtleArmingStatus ModeChecks::turtleArmingStatus(const vehicle_status_s &status)
+{
+	TurtleArmingStatus result{};
+	motor_direction_status_s direction{};
+
+	if (_motor_direction_status_sub.copy(&direction)) {
+		result.timestamp_disarmed = direction.timestamp_disarmed;
+		result.direction_active = direction.state == motor_direction_status_s::STATE_PENDING || direction.reversed_mask != 0;
+		result.direction_normal = !result.direction_active && isFresh(direction.timestamp, 300_ms);
+	}
+
+	if (status.nav_state == vehicle_status_s::NAVIGATION_STATE_TURTLE && result.direction_normal) {
+		turtle_control_s turtle{};
+		control_allocator_status_s allocation{};
+		result.ready_to_arm = copyTurtleControl(turtle, status.nav_state_timestamp)
+				      && turtle.enabled && turtle.ready_to_arm && !turtle.disarm_requested
+				      && _turtle_allocator_status_sub.copy(&allocation) && allocation.turtle_mode_active
+				      && allocation.turtle_geometry_valid && allocation.timestamp >= status.nav_state_timestamp
+				      && isFresh(allocation.timestamp, 250_ms);
+	}
+
+	return result;
+}
+#endif
+
 void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 {
+#if defined(CONFIG_MODE_TURTLE)
+	const auto turtle_mode = static_cast<NavModes>(1u << vehicle_status_s::NAVIGATION_STATE_TURTLE);
+
+	int32_t turtle_enabled = 0;
+	int32_t throw_enabled = 0;
+	param_get(_turtle_enable_handle, &turtle_enabled);
+	param_get(_throw_enable_handle, &throw_enabled);
+
+	if (!turtle_enabled || throw_enabled || context.status().is_vtol) {
+		reporter.failsafeFlags().mode_not_supported |= static_cast<uint32_t>(turtle_mode);
+	}
+
+	if (!context.isArmed()) {
+		const TurtleArmingStatus turtle = turtleArmingStatus(context.status());
+
+		if (!turtle.ready_to_arm) {
+			/* EVENT
+			 */
+			reporter.armingCheckFailure(turtle_mode, health_component_t::system,
+						    events::ID("check_turtle_not_ready"),
+						    events::Log::Error, "Turtle recovery not ready");
+		}
+
+		if (turtle.direction_active) {
+			/* EVENT
+			 */
+			reporter.armingCheckFailure(NavModes::All, health_component_t::system,
+						    events::ID("check_motor_direction_pending"),
+						    events::Log::Error, "Waiting for normal motor direction");
+		}
+	}
+
+#endif
+
 	if (!context.isArmed()) {
 		if (reporter.failsafeFlags().mode_req_prevent_arming & (1u << context.status().nav_state)) {
 			/* EVENT

@@ -14,6 +14,7 @@
       - [Altitude Cruise Mode (MC)](flight_modes_mc/altitude_cruise.md)
       - [Stabilized Mode (MC)](flight_modes_mc/manual_stabilized.md)
       - [Acro Mode (MC)](flight_modes_mc/acro.md)
+      - [Turtle Mode (MC)](flight_modes_mc/turtle.md)
       - [Orbit Mode (MC)](flight_modes_mc/orbit.md)
       - [Takeoff Mode (MC)](flight_modes_mc/takeoff.md)
       - [Land Mode (MC)](flight_modes_mc/land.md)

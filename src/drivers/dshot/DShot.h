@@ -40,6 +40,12 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/esc_eeprom_write.h>
+#if defined(CONFIG_MODE_TURTLE)
+#include <uORB/topics/motor_direction_request.h>
+#include <uORB/topics/motor_direction_status.h>
+
+#include "DShotDirection.hpp"
+#endif
 
 #include "DShotCommon.h"
 #include "DShotTelemetry.h"
@@ -122,11 +128,21 @@ private:
 	}
 
 	uint16_t esc_armed_mask(uint16_t *outputs, uint8_t num_outputs);
+	uint32_t motor_mask_from_channels(uint32_t channels, unsigned num_outputs) const;
 
 	void update_motor_outputs(uint16_t *outputs, int num_outputs);
 	void update_motor_commands(int num_outputs);
 	void select_next_command();
 	void clear_edt_confirmation(int motor_index);
+
+#if defined(CONFIG_MODE_TURTLE)
+	bool motor_direction_active() const { return _direction.active(); }
+	bool update_motor_direction(uint16_t *outputs, unsigned num_outputs);
+	uint16_t supported_direction_mask() const;
+	void publish_direction_status(const motor_direction_request_s *rejected = nullptr);
+#else
+	static constexpr bool motor_direction_active() { return false; }
+#endif
 
 	bool set_next_telemetry_index(); // Returns true when the telemetry index has wrapped, indicating all configured motors have been sampled.
 	bool process_serial_telemetry();
@@ -165,6 +181,14 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription _esc_eeprom_write_sub{ORB_ID(esc_eeprom_write)};
+#if defined(CONFIG_MODE_TURTLE)
+	uORB::Subscription _direction_request_sub {ORB_ID(motor_direction_request)};
+	uORB::Publication<motor_direction_status_s> _direction_status_pub{ORB_ID(motor_direction_status)};
+	DShotDirection _direction{};
+	hrt_abstime _last_direction_status{0};
+	uint32_t _initialized_output_mask{0};
+	uint32_t _dshot_timer_channels{0};
+#endif
 
 	uORB::PublicationMultiData<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
 	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};

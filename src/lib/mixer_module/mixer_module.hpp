@@ -171,6 +171,9 @@ public:
 
 	const actuator_armed_s &armed() const { return _armed; }
 	bool isActuatorTestRunning() const { return _actuator_test.inTestMode(); }
+#if defined(CONFIG_MODE_TURTLE)
+	void resetActuatorTest() { _actuator_test.reset(); }
+#endif
 
 	void setAllFailsafeValues(uint16_t value);
 	void setAllDisarmedValues(uint16_t value);

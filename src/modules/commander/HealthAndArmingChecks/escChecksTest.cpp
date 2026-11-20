@@ -67,6 +67,10 @@ public:
 		param_set_no_notification(param_find("COM_SPOOLUP_TIME"), &spoolup);
 		const float trigger_time = 0.2f; // keeps the motor failure tests short
 		param_set_no_notification(param_find("MOTFAIL_UND_TIME"), &trigger_time);
+
+#if defined(CONFIG_MODE_TURTLE)
+		publishDirection(0);
+#endif
 	}
 
 	void TearDown() override
@@ -132,9 +136,10 @@ public:
 		}
 	}
 
-	void runCheck(bool armed = false)
+	void runCheck(bool armed = false, uint8_t nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL)
 	{
 		vehicle_status_s status{};
+		status.nav_state = nav_state;
 
 		if (armed) { status.arming_state = vehicle_status_s::ARMING_STATE_ARMED; }
 
@@ -147,6 +152,28 @@ public:
 		_can_arm = reporter.armingCheckResults().can_arm == NavModes::All;
 		_health_error_escs = reporter.healthResults().error & health_component_t::motors_escs;
 	}
+
+#if defined(CONFIG_MODE_TURTLE)
+	void publishDirection(uint16_t reversed_mask)
+	{
+		motor_direction_status_s direction{};
+		direction.timestamp = hrt_absolute_time();
+		direction.reversed_mask = reversed_mask;
+		_motor_direction_status_pub.publish(direction);
+	}
+
+	void publishCommands(std::array<float, 4> command, hrt_abstime age = 0)
+	{
+		actuator_motors_s motors{};
+		motors.timestamp = hrt_absolute_time() - age;
+
+		for (int i = 0; i < actuator_motors_s::NUM_CONTROLS; ++i) {
+			motors.control[i] = i < 4 ? command[i] : NAN;
+		}
+
+		_actuator_motors_pub.publish(motors);
+	}
+#endif
 
 	// Publish a quad ESC status with the given RPM per motor and the stuck fault on `stuck_index`, plus the motor commands
 	void publishSpinup(std::array<int32_t, 4> rpm, std::array<float, 4> command, int stuck_index = -1,
@@ -205,7 +232,10 @@ public:
 
 	uORB::Publication<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
 	uORB::Publication<actuator_motors_s> _actuator_motors_pub{ORB_ID(actuator_motors)};
-	hrt_abstime _esc_time{0}; // simulated ESC sample time, starts at the real time of the first fly()
+#if defined(CONFIG_MODE_TURTLE)
+	uORB::Publication<motor_direction_status_s> _motor_direction_status_pub {ORB_ID(motor_direction_status)};
+#endif
+	hrt_abstime _esc_time {0}; // simulated ESC sample time, starts at the real time of the first fly()
 	failsafe_flags_s _failsafe_flags{};
 	bool _can_arm{true};
 	bool _health_error_escs{false};
@@ -259,6 +289,108 @@ TEST_F(EscChecksTest, EscsNotArmedFailAfterArmingTimeout)
 	EXPECT_TRUE(_check.getEscArmStatus());
 	EXPECT_TRUE(_health_error_escs);
 }
+
+#if defined(CONFIG_MODE_TURTLE)
+TEST(EscChecksExpectedArmedMask, UsesMotorFunctionsAndKeepsUnmappedEscsRequired)
+{
+	esc_status_s esc_status{};
+	esc_status.esc_count = 4;
+	actuator_motors_s motors{};
+	esc_status.esc[0].actuator_function = esc_report_s::ACTUATOR_FUNCTION_MOTOR1 + 2;
+	esc_status.esc[1].actuator_function = esc_report_s::ACTUATOR_FUNCTION_MOTOR1;
+	esc_status.esc[2].actuator_function = esc_report_s::ACTUATOR_FUNCTION_MOTOR1 + 2;
+	esc_status.esc[3].actuator_function = esc_report_s::ACTUATOR_FUNCTION_MOTOR1 + 3;
+	motors.control[2] = NAN;
+	EXPECT_EQ(EscChecks::escsExpectedArmedMask(esc_status, motors), 0b1001u);
+
+	// Incomplete mappings retain the entire original mask, even with stopped motor commands.
+	esc_status.esc[3].actuator_function = 0;
+	EXPECT_EQ(EscChecks::escsExpectedArmedMask(esc_status, motors), 0b1111u);
+	motors.control[0] = NAN;
+	EXPECT_EQ(EscChecks::escsExpectedArmedMask(esc_status, motors), 0b1111u);
+	motors.control[2] = 0.f;
+	EXPECT_EQ(EscChecks::escsExpectedArmedMask(esc_status, motors), 0b1111u);
+}
+
+TEST(EscChecksExpectedArmedMask, UsesLogicalMotorBitsBeyondEscCount)
+{
+	esc_status_s esc_status{};
+	esc_status.esc_count = 2;
+	actuator_motors_s motors{};
+	esc_status.esc[5].actuator_function = esc_report_s::ACTUATOR_FUNCTION_MOTOR1 + 5;
+	esc_status.esc[2].actuator_function = esc_report_s::ACTUATOR_FUNCTION_MOTOR1 + 2;
+	motors.control[2] = NAN;
+	EXPECT_EQ(EscChecks::escsExpectedArmedMask(esc_status, motors), 1u << 5);
+	motors.control[5] = NAN;
+	EXPECT_EQ(EscChecks::escsExpectedArmedMask(esc_status, motors), 0u);
+}
+
+TEST_F(EscChecksTest, StoppedMotorsDoNotRequireArmedTelemetry)
+{
+	publishCommands({0.5f, NAN, 0.5f, NAN});
+	publishWithStaleEsc(-1, 0, 0b0101);
+	runCheck(true, vehicle_status_s::NAVIGATION_STATE_TURTLE);
+	px4_usleep(EscChecks::ESC_ARMING_TIMEOUT_US + 50_ms);
+	publishCommands({0.5f, NAN, 0.5f, NAN});
+	publishWithStaleEsc(-1, 0, 0b0101);
+	runCheck(true, vehicle_status_s::NAVIGATION_STATE_TURTLE);
+
+	EXPECT_FALSE(_failsafe_flags.fd_esc_arming_failure);
+	EXPECT_FALSE(_check.getEscArmStatus());
+	EXPECT_FALSE(_health_error_escs);
+}
+
+TEST_F(EscChecksTest, StoppedMotorsStillRequireArmedTelemetryInFlightModes)
+{
+	publishCommands({0.5f, NAN, 0.5f, NAN});
+	publishWithStaleEsc(-1, 0, 0b0101);
+	runCheck(true);
+	px4_usleep(EscChecks::ESC_ARMING_TIMEOUT_US + 50_ms);
+	publishCommands({0.5f, NAN, 0.5f, NAN});
+	publishWithStaleEsc(-1, 0, 0b0101);
+	runCheck(true);
+
+	EXPECT_TRUE(_failsafe_flags.fd_esc_arming_failure);
+	EXPECT_TRUE(_check.getEscArmStatus());
+}
+
+TEST_F(EscChecksTest, StaleStopCommandsKeepEscArmingChecksEnabled)
+{
+	publishCommands({NAN, NAN, NAN, NAN}, EscChecks::ESC_OFFLINE_TIMEOUT_US + 50_ms);
+	publishWithStaleEsc(-1, 0, 0b0000);
+	runCheck(true, vehicle_status_s::NAVIGATION_STATE_TURTLE);
+	px4_usleep(EscChecks::ESC_ARMING_TIMEOUT_US + 50_ms);
+	publishWithStaleEsc(-1, 0, 0b0000);
+	runCheck(true, vehicle_status_s::NAVIGATION_STATE_TURTLE);
+
+	EXPECT_TRUE(_failsafe_flags.fd_esc_arming_failure);
+	EXPECT_TRUE(_check.getEscArmStatus());
+}
+
+TEST_F(EscChecksTest, InvalidCommandTimestampsKeepEscArmingChecksEnabled)
+{
+	const std::array<hrt_abstime, 2> timestamps{0, hrt_absolute_time() + 5_s};
+
+	for (const hrt_abstime timestamp : timestamps) {
+		actuator_motors_s motors{};
+		motors.timestamp = timestamp;
+
+		for (float &control : motors.control) {
+			control = NAN;
+		}
+
+		_actuator_motors_pub.publish(motors);
+		publishWithStaleEsc(-1, 0, 0b0000);
+		runCheck(true, vehicle_status_s::NAVIGATION_STATE_TURTLE);
+		px4_usleep(EscChecks::ESC_ARMING_TIMEOUT_US + 50_ms);
+		publishWithStaleEsc(-1, 0, 0b0000);
+		runCheck(true, vehicle_status_s::NAVIGATION_STATE_TURTLE);
+		EXPECT_TRUE(_failsafe_flags.fd_esc_arming_failure);
+		EXPECT_TRUE(_check.getEscArmStatus());
+		runCheck(false);
+	}
+}
+#endif
 
 // A stale ESC is ignored when COM_ARM_CHK_ESCS is disabled
 TEST_F(EscChecksTest, EscOfflineIgnoredWithChecksDisabled)
@@ -449,6 +581,33 @@ TEST_F(EscChecksTest, ReversibleMotorNotJudged)
 	EXPECT_EQ(_check.getMotorFailureMask(), 0u);
 	EXPECT_FALSE(_failsafe_flags.fd_motor_failure);
 }
+
+#if defined(CONFIG_MODE_TURTLE)
+TEST_F(EscChecksTest, TemporarilyReversedMotorSkipsForwardCurrentModel)
+{
+	const uint8_t functions[4] {kMotor1 + 2, kMotor1, kMotor1 + 3, kMotor1 + 1};
+	fly(200_ms, -1, 0, functions);
+	publishDirection(0b0100);
+	fly(600_ms, 0, 0, functions);
+	EXPECT_EQ(_check.getMotorFailureMask(), 0u);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_failure);
+
+	publishDirection(0);
+	fly(600_ms, 0, 0, functions); // Normal direction restores current monitoring.
+	EXPECT_EQ(_check.getMotorFailureMask(), 0b0100u);
+	EXPECT_TRUE(_failsafe_flags.fd_motor_failure);
+}
+
+TEST_F(EscChecksTest, TemporaryReversalDoesNotMaskOtherMotorFailures)
+{
+	const uint8_t functions[4] {kMotor1 + 2, kMotor1, kMotor1 + 3, kMotor1 + 1};
+	fly(200_ms, -1, 0, functions);
+	publishDirection(0b0100);
+	fly(600_ms, 3, 0, functions);
+	EXPECT_EQ(_check.getMotorFailureMask(), 0b0010u);
+	EXPECT_TRUE(_failsafe_flags.fd_motor_failure);
+}
+#endif
 
 // Every ESC is judged on its own, also when two ESCs share a motor function.
 TEST_F(EscChecksTest, EscSharingMotorFunctionJudgedSeparately)

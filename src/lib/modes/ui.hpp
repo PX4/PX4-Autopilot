@@ -59,6 +59,7 @@ static inline uint32_t getValidNavStates(uint32_t mode_not_supported = 0)
 		(1u << vehicle_status_s::NAVIGATION_STATE_TERMINATION) |
 		(1u << vehicle_status_s::NAVIGATION_STATE_OFFBOARD) |
 		(1u << vehicle_status_s::NAVIGATION_STATE_STAB) |
+		(1u << vehicle_status_s::NAVIGATION_STATE_TURTLE) |
 		(1u << vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF) |
 		(1u << vehicle_status_s::NAVIGATION_STATE_AUTO_LAND) |
 		(1u << vehicle_status_s::NAVIGATION_STATE_DESCEND) |
@@ -87,7 +88,7 @@ inline const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX]
 	"Termination",
 	"Offboard",
 	"Stabilized",
-	"16: UNUSED2",
+	"Turtle",
 	"Takeoff",
 	"Land",
 	"Follow Target",

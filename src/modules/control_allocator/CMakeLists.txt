@@ -56,3 +56,13 @@ px4_add_module(
 		px4_work_queue
 		SlewRate
 )
+
+if(CONFIG_MODE_TURTLE AND BUILD_TESTING)
+	px4_add_unit_gtest(SRC TurtleControlGateTest.cpp)
+	px4_add_unit_gtest(SRC TurtleMixingTest.cpp)
+	add_dependencies(unit-TurtleControlGate uorb_headers parameters_header)
+	add_dependencies(unit-TurtleMixing uorb_headers parameters_header)
+	px4_add_functional_gtest(SRC TurtleAllocatorTest.cpp
+		LINKLIBS modules__control_allocator VehicleActuatorEffectiveness ActuatorEffectiveness ControlAllocation
+	)
+endif()

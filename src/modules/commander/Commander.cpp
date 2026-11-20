@@ -485,6 +485,13 @@ int Commander::custom_command(int argc, char *argv[])
 			} else if (!strcmp(argv[1], "manual_parking")) {
 				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_MANUAL_PARKING);
 
+#if defined(CONFIG_MODE_TURTLE)
+
+			} else if (!strcmp(argv[1], "turtle")) {
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_TURTLE);
+
+#endif
+
 			} else if (!strcmp(argv[1], "auto:mission")) {
 				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_AUTO,
 						     PX4_CUSTOM_SUB_MODE_AUTO_MISSION);
@@ -671,6 +678,26 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 		return TRANSITION_NOT_CHANGED;
 	}
 
+#if defined(CONFIG_MODE_TURTLE)
+	const bool turtle_mode = _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_TURTLE;
+	const bool turtle_intended = _user_mode_intention.get() == vehicle_status_s::NAVIGATION_STATE_TURTLE;
+	const auto turtle = _health_and_arming_checks.turtleArmingStatus();
+	const bool restoring = turtle.direction_active || (_turtle_disarmed_timestamp != 0
+			       && (!turtle.direction_normal || turtle.timestamp_disarmed < _turtle_disarmed_timestamp));
+
+	if (restoring || (turtle_mode != turtle_intended)
+	    || (turtle_mode && (!turtle.ready_to_arm || calling_reason == arm_disarm_reason_t::mission_start))) {
+		mavlink_log_critical(&_mavlink_log_pub, "Arming denied: turtle recovery not ready\t");
+		events::send(events::ID("commander_arm_denied_turtle"), events::Log::Critical,
+			     "Arming denied: turtle recovery not ready");
+		tune_negative(true);
+		return TRANSITION_DENIED;
+	}
+
+#else
+	constexpr bool turtle_mode = false;
+#endif
+
 	if (_vehicle_status.calibration_enabled
 	    || _vehicle_status.rc_calibration_in_progress
 	    || _actuator_armed.in_esc_calibration_mode) {
@@ -684,9 +711,17 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 
 	// allow a grace period for re-arming: preflight checks don't need to pass during that time, for example for accidental in-air disarming
 	if (calling_reason == arm_disarm_reason_t::rc_switch
+#if defined(CONFIG_MODE_TURTLE)
+	    && _turtle_disarmed_timestamp == 0
+#endif
 	    && ((_last_disarmed_timestamp != 0) && (hrt_elapsed_time(&_last_disarmed_timestamp) < 5_s))) {
 
 		run_preflight_checks = false;
+	}
+
+	// Recovery always uses Commander checks, including RC re-arm and forced-arm requests.
+	if (turtle_mode) {
+		run_preflight_checks = true;
 	}
 
 	if (run_preflight_checks) {
@@ -735,7 +770,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 	// Capture a fresh home position on the ground before the motors spin (prop wash perturbs the
 	// baro), but only at a real mission start: skip a mid-mission re-arm (seq_current > 0) and any
 	// in-air re-arm.
-	if (_param_com_home_en.get() && !_config_overrides.disable_auto_set_home
+	if (!turtle_mode && _param_com_home_en.get() && !_config_overrides.disable_auto_set_home
 	    && _vehicle_land_detected.landed
 	    && (!_mission_in_progress || _mission_result_sub.get().seq_current == 0)) {
 		_home_position.setHomePosition();
@@ -744,6 +779,10 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 	_vehicle_status.armed_time = hrt_absolute_time();
 	_vehicle_status.arming_state = vehicle_status_s::ARMING_STATE_ARMED;
 	_vehicle_status.latest_arming_reason = (uint8_t)calling_reason;
+#if defined(CONFIG_MODE_TURTLE)
+	_turtle_armed = turtle_mode;
+	_turtle_disarmed_timestamp = 0;
+#endif
 
 	mavlink_log_info(&_mavlink_log_pub, "Armed by %s\t", arm_disarm_reason_str(calling_reason));
 	events::send<events::px4::enums::arm_disarm_reason_t>(events::ID("commander_armed_by"), events::Log::Info,
@@ -759,6 +798,11 @@ transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason, bool f
 	if (!isArmed()) {
 		return TRANSITION_NOT_CHANGED;
 	}
+
+#if defined(CONFIG_MODE_TURTLE)
+	// Recovery is a ground operation; an inverted aircraft need not satisfy the flight land detector.
+	forced |= _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_TURTLE;
+#endif
 
 	if (!forced) {
 		const bool landed = (_vehicle_land_detected.landed || _vehicle_land_detected.maybe_landed
@@ -781,6 +825,15 @@ transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason, bool f
 			return TRANSITION_DENIED;
 		}
 	}
+
+#if defined(CONFIG_MODE_TURTLE)
+
+	if (_turtle_armed) {
+		_turtle_disarmed_timestamp = hrt_absolute_time();
+		_turtle_armed = false;
+	}
+
+#endif
 
 	_vehicle_status.armed_time = 0;
 	_vehicle_status.arming_state = vehicle_status_s::ARMING_STATE_DISARMED;
@@ -952,6 +1005,13 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_MANUAL_PARKING) {
 					desired_nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL_PARKING;
+
+#if defined(CONFIG_MODE_TURTLE)
+
+				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_TURTLE) {
+					desired_nav_state = vehicle_status_s::NAVIGATION_STATE_TURTLE;
+
+#endif
 
 				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_POSCTL) {
 					switch (custom_sub_mode) {
@@ -1940,6 +2000,14 @@ void Commander::executeActionRequest(const action_request_s &action_request)
 
 			_status_changed = true;
 			_actuator_armed.kill = true;
+
+#if defined(CONFIG_MODE_TURTLE)
+
+			if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_TURTLE) {
+				disarm(arm_disarm_reason_t::kill_switch, true);
+			}
+
+#endif
 		}
 
 		break;
@@ -2113,11 +2181,15 @@ void Commander::run()
 
 			// Arm automatically on boot once preflight checks pass
 			// _arm_on_boot_done prevents re-arming after disarming
-			const bool should_arm_on_boot = _arm_on_boot_requested
-							&& !_arm_on_boot_done
-							&& !isArmed()
-							&& hrt_elapsed_time(&_boot_timestamp) > 5_s
-							&& pre_flight_checks_pass;
+			const bool should_arm_on_boot =
+#if defined(CONFIG_MODE_TURTLE)
+				_vehicle_status.nav_state != vehicle_status_s::NAVIGATION_STATE_TURTLE &&
+#endif
+				_arm_on_boot_requested
+				&& !_arm_on_boot_done
+				&& !isArmed()
+				&& hrt_elapsed_time(&_boot_timestamp) > 5_s
+				&& pre_flight_checks_pass;
 
 			if (should_arm_on_boot) {
 				if (arm(arm_disarm_reason_t::mission_start, false) != TRANSITION_DENIED) {
@@ -2559,6 +2631,20 @@ bool Commander::handleModeIntentionAndFailsafe()
 	const FailsafeBase::Action prev_failsafe_action = _failsafe.selectedAction();
 	const uint8_t prev_failsafe_defer_state = _vehicle_status.failsafe_defer_state;
 
+#if defined(CONFIG_MODE_TURTLE)
+
+	if (_turtle_armed) {
+		turtle_control_s turtle{};
+		const bool control_valid = _health_and_arming_checks.copyTurtleControl(turtle);
+
+		if (!control_valid || !turtle.enabled || turtle.disarm_requested || _failsafe_flags.manual_control_signal_lost
+		    || _actuator_armed.kill || _user_mode_intention.get() != vehicle_status_s::NAVIGATION_STATE_TURTLE) {
+			disarm(arm_disarm_reason_t::command_internal, true);
+		}
+	}
+
+#endif
+
 	FailsafeBase::State state{};
 	state.armed = isArmed();
 	state.vtol_in_transition_mode = _vehicle_status.in_transition_mode;
@@ -2593,6 +2679,16 @@ bool Commander::handleModeIntentionAndFailsafe()
 			false);
 	_vehicle_status.nav_state =
 		_mode_management.getNavStateReplacementIfValid(FailsafeBase::modeFromAction(_failsafe.selectedAction(), _user_mode_intention.get()));
+#if defined(CONFIG_MODE_TURTLE)
+
+	// A recovery failsafe stops the motors instead of handing an armed vehicle to a flight controller.
+	if (_turtle_armed && (_vehicle_status.nav_state != vehicle_status_s::NAVIGATION_STATE_TURTLE
+			      || _failsafe.selectedAction() > FailsafeBase::Action::Warn)) {
+		disarm(arm_disarm_reason_t::failsafe, true);
+	}
+
+#endif
+
 	_vehicle_status.executor_in_charge = _mode_management.modeExecutorInCharge(); // Set this in sync with nav_state
 	_vehicle_status.nav_state_display = _mode_management.getNavStateDisplay(_vehicle_status.nav_state);
 
@@ -3312,7 +3408,7 @@ The commander module contains the state machine for mode switching and failsafe 
 	PRINT_MODULE_USAGE_COMMAND("land");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("transition", "VTOL transition");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("mode", "Change flight mode");
-	PRINT_MODULE_USAGE_ARG("manual|acro|offboard|stabilized|altctl|posctl|altitude_cruise|manual_parking|position:slow|auto:mission|auto:loiter|auto:course|auto:rtl|auto:takeoff|auto:land|auto:precland|ext1",
+	PRINT_MODULE_USAGE_ARG("manual|acro|offboard|stabilized|altctl|posctl|altitude_cruise|manual_parking|turtle|position:slow|auto:mission|auto:loiter|auto:course|auto:rtl|auto:takeoff|auto:land|auto:precland|ext1",
 			"Flight mode", false);
 	PRINT_MODULE_USAGE_COMMAND("pair");
 	PRINT_MODULE_USAGE_COMMAND("termination");

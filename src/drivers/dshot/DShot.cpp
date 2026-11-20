@@ -83,7 +83,7 @@ int DShot::init()
 
 void DShot::Run()
 {
-	if (should_exit()) {
+	if (should_exit() && !motor_direction_active()) {
 		ScheduleClear();
 		_mixing_output.unregister();
 		exit_and_cleanup(desc);
@@ -106,7 +106,7 @@ void DShot::Run()
 		_esc_status_pub.publish(_esc_status);
 	}
 
-	if (_parameter_update_sub.updated()) {
+	if (!motor_direction_active() && _parameter_update_sub.updated()) {
 		update_params();
 	}
 
@@ -118,7 +118,21 @@ void DShot::Run()
 	handle_vehicle_commands();
 
 	// check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread)
-	_mixing_output.updateSubscriptions(true);
+	if (!motor_direction_active()) {
+		_mixing_output.updateSubscriptions(true);
+	}
+
+#if defined(CONFIG_MODE_TURTLE)
+
+	if (hrt_elapsed_time(&_last_direction_status) >= 100_ms) {
+		publish_direction_status();
+	}
+
+	if (_direction.pending()) {
+		ScheduleDelayed(1_ms);
+	}
+
+#endif
 
 	perf_end(_cycle_perf);
 }
@@ -135,6 +149,18 @@ bool DShot::updateOutputs(float *outputs, unsigned num_outputs, unsigned num_con
 		hw_outputs[i] = static_cast<uint16_t>(lroundf(outputs[i]));
 	}
 
+#if defined(CONFIG_MODE_TURTLE)
+
+	if (update_motor_direction(hw_outputs, num_outputs)) {
+		for (unsigned i = 0; i < num_outputs; ++i) {
+			outputs[i] = DSHOT_DISARM_VALUE;
+		}
+
+		return true;
+	}
+
+#endif
+
 	_esc_status.esc_armed_flags = esc_armed_mask(hw_outputs, num_outputs);
 	bool armed = _esc_status.esc_armed_flags != 0;
 
@@ -147,20 +173,14 @@ bool DShot::updateOutputs(float *outputs, unsigned num_outputs, unsigned num_con
 
 	_armed_prev = armed;
 
-	if (!armed) {
-		// Select next command to send (if any)
-		if (_telemetry.telemetryResponseFinished() &&
-		    _current_command.finished() && _telemetry.commandResponseFinished()) {
-			select_next_command();
-		}
+	// Select commands only while stopped; otherwise keep the normal output path.
+	if (!armed && _telemetry.telemetryResponseFinished()
+	    && _current_command.finished() && _telemetry.commandResponseFinished()) {
+		select_next_command();
+	}
 
-		// Send command if available
-		if (!_current_command.finished()) {
-			update_motor_commands(num_outputs);
-
-		} else {
-			update_motor_outputs(hw_outputs, num_outputs);
-		}
+	if (!armed && !_current_command.finished()) {
+		update_motor_commands(num_outputs);
 
 	} else {
 		update_motor_outputs(hw_outputs, num_outputs);
@@ -171,9 +191,168 @@ bool DShot::updateOutputs(float *outputs, unsigned num_outputs, unsigned num_con
 	return true;
 }
 
+uint32_t DShot::motor_mask_from_channels(uint32_t channels, unsigned num_outputs) const
+{
+	uint32_t motors = 0;
+
+	for (unsigned channel = 0; channel < num_outputs; ++channel) {
+		const int motor = motor_index_from_output(channel);
+
+		if (motor >= 0 && (channels & (1u << channel))) {
+			motors |= 1u << motor;
+		}
+	}
+
+	return motors;
+}
+
+#if defined(CONFIG_MODE_TURTLE)
+uint16_t DShot::supported_direction_mask() const
+{
+	if (_3d_enabled || !_hardware_initialized) {
+		return 0;
+	}
+
+	uint16_t seen = 0;
+	uint16_t supported = 0;
+	uint16_t duplicates = 0;
+
+	for (unsigned channel = 0; channel < DSHOT_MAXIMUM_CHANNELS; ++channel) {
+		const int motor = motor_index_from_output(channel);
+
+		if (motor >= 0) {
+			const uint16_t bit = 1u << motor;
+			duplicates |= seen & bit;
+			seen |= bit;
+
+			if ((_initialized_output_mask & _dshot_timer_channels) & (1u << channel)) {
+				supported |= bit;
+			}
+		}
+	}
+
+	return supported & ~duplicates;
+}
+
+void DShot::publish_direction_status(const motor_direction_request_s *rejected)
+{
+	motor_direction_status_s status{};
+	status.timestamp = hrt_absolute_time();
+	status.timestamp_disarmed = _direction.timestampDisarmed();
+	status.request_id = rejected ? rejected->request_id : _direction.requestId();
+	status.supported_motor_mask = supported_direction_mask();
+	status.motor_mask = rejected ? rejected->motor_mask : _direction.mask();
+	status.reversed_mask = _direction.reversedMask();
+	status.state = rejected ? motor_direction_status_s::STATE_REJECTED :
+		       _direction.pending() ? motor_direction_status_s::STATE_PENDING :
+		       _direction.phase() == DShotDirection::Phase::Complete ? motor_direction_status_s::STATE_COMPLETE :
+		       motor_direction_status_s::STATE_IDLE;
+	_direction_status_pub.publish(status);
+	_last_direction_status = status.timestamp;
+}
+
+bool DShot::update_motor_direction(uint16_t *outputs, unsigned num_outputs)
+{
+	const auto &armed = _mixing_output.armed();
+	_direction.observeArming(armed.timestamp, armed.armed);
+	const bool can_drive = armed.armed && !armed.kill && !armed.lockdown && !armed.termination && !should_exit();
+	motor_direction_request_s request{};
+
+	// The request can arrive before the mixer observes the corresponding arm update.
+	const bool new_request = can_drive && _direction.canRequest() && _direction_request_sub.update(&request);
+	const hrt_abstime now = hrt_absolute_time();
+
+	if (!can_drive && _direction.cancel(now)) {
+		publish_direction_status();
+	}
+
+	if (new_request) {
+		const uint16_t supported = supported_direction_mask();
+		const bool mask_supported = (request.motor_mask & supported) == request.motor_mask;
+		const bool idle = _current_command.finished() && !_dshot_programming_active;
+		const bool accepted = mask_supported && idle && esc_armed_mask(outputs, num_outputs) == 0
+				      && _direction.requestReverse(now, request.timestamp, request.timestamp_sample, request.request_id,
+						      request.motor_mask);
+
+		publish_direction_status(accepted ? nullptr : &request);
+	}
+
+	if (_direction.active()) {
+		_mixing_output.resetActuatorTest();
+		esc_eeprom_write_s ignored{};
+
+		while (_esc_eeprom_write_sub.update(&ignored)) {}
+	}
+
+	const bool pending = _direction.pending();
+	_direction.update(now);
+
+	if (pending && !_direction.pending()) {
+		publish_direction_status();
+	}
+
+	if (!pending && !_direction.throttleInhibited() && !should_exit()) {
+		return false;
+	}
+
+	for (unsigned i = 0; i < num_outputs; ++i) {
+		outputs[i] = DSHOT_DISARM_VALUE;
+	}
+
+	_esc_status.esc_armed_flags = 0;
+
+	const bool responses_finished = _telemetry.commandResponseFinished() && _telemetry.telemetryResponseFinished();
+
+	if (_direction.commandDue(now) && responses_finished) {
+		static constexpr uint16_t DirectionNormal = 20;
+		static constexpr uint16_t DirectionReversed = 21;
+		const uint16_t command = _direction.restoring() ? DirectionNormal : DirectionReversed;
+
+		for (unsigned i = 0; i < num_outputs; ++i) {
+			const int motor = motor_index_from_output(i);
+			const bool target = motor >= 0 && (_direction.mask() & (1u << motor));
+			// Bluejay/BLHeli_S require the telemetry bit for DShot commands.
+			up_dshot_motor_command(i, target ? command : uint16_t{DSHOT_CMD_MOTOR_STOP}, target);
+		}
+
+		const uint32_t submitted_channels = up_dshot_trigger();
+		const uint16_t submitted_motors = motor_mask_from_channels(submitted_channels, num_outputs);
+		_direction.commandAttempted(hrt_absolute_time(), submitted_motors);
+
+	} else if (_direction.phase() != DShotDirection::Phase::Command || !responses_finished) {
+		if (_direction.phase() == DShotDirection::Phase::Stop) {
+			// Keep ESC telemetry fresh during the motor stop interval.
+			update_motor_outputs(outputs, num_outputs);
+
+		} else {
+			// Plain stop frames between and after bursts: they end the ESC's count of identical commands, so
+			// every burst is received on its own, and they drain outstanding responses without a new request.
+			for (unsigned i = 0; i < num_outputs; ++i) {
+				up_dshot_motor_command(i, DSHOT_CMD_MOTOR_STOP, false);
+			}
+		}
+
+		up_dshot_trigger();
+	}
+
+	return true;
+}
+#endif
+
 // TODO: this needs a refactor
 void DShot::select_next_command()
 {
+#if defined(CONFIG_MODE_TURTLE)
+
+	if (_direction.active()) {
+		// Consume programming requests made during a temporary-direction session.
+		esc_eeprom_write_s ignored{};
+		_esc_eeprom_write_sub.update(&ignored);
+		return;
+	}
+
+#endif
+
 	// Settings Programming
 	// NOTE: only update when we're not actively programming an ESC
 	if (!_dshot_programming_active) {
@@ -849,7 +1028,8 @@ void DShot::handle_vehicle_commands()
 
 	// Wait for an outstanding settings read, which completes within COMMAND_RESPONSE_TIMEOUT: a setting changed
 	// before it lands would have the read restore the old cache.
-	while (_current_command.finished() && _telemetry.commandResponseFinished() && _vehicle_command_sub.update(&command)) {
+	while ((motor_direction_active() || (_current_command.finished() && _telemetry.commandResponseFinished()))
+	       && _vehicle_command_sub.update(&command)) {
 
 		switch (command.command) {
 		case vehicle_command_s::VEHICLE_CMD_CONFIGURE_ACTUATOR:
@@ -896,7 +1076,7 @@ void DShot::handle_configure_actuator(const vehicle_command_s &command)
 	command_ack.target_component = command.source_component;
 	command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 
-	if (_dshot_programming_active) {
+	if (_dshot_programming_active || motor_direction_active()) {
 		// Programming spans many commands and would take the next frames as an address and value.
 		command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 
@@ -955,6 +1135,10 @@ void DShot::handle_configure_actuator(const vehicle_command_s &command)
 
 void DShot::handle_esc_request_eeprom(const vehicle_command_s &command)
 {
+	if (motor_direction_active()) {
+		return;
+	}
+
 	PX4_DEBUG("Received ESC_REQUEST_EEPROM");
 	PX4_DEBUG("esc_index: %d", (int)command.param2);
 
@@ -1062,23 +1246,19 @@ void DShot::mixerChanged()
 		PX4_DEBUG("BDShot Output mask changed: 0x%" PRIx32 " -> 0x%" PRIx32, _bdshot_output_mask, new_bdshot_output_mask);
 		_bdshot_output_mask = new_bdshot_output_mask;
 
-		// Compute motor-order BDShot mask
-		uint32_t new_bdshot_motor_mask = 0;
-
-		for (int actuator_channel = 0; actuator_channel < DSHOT_MAXIMUM_CHANNELS; actuator_channel++) {
-			int motor_index = motor_index_from_output(actuator_channel);
-
-			if (motor_index >= 0 && (new_bdshot_output_mask & (1 << actuator_channel))) {
-				new_bdshot_motor_mask |= (1 << motor_index);
-			}
-		}
-
-		_bdshot_motor_mask = new_bdshot_motor_mask;
+		_bdshot_motor_mask = motor_mask_from_channels(new_bdshot_output_mask, DSHOT_MAXIMUM_CHANNELS);
 		PX4_DEBUG("Motor mask: 0x%" PRIx32 ", BDShot motor mask: 0x%" PRIx32, _motor_mask, _bdshot_motor_mask);
 
+#if defined(CONFIG_MODE_TURTLE)
+		const int initialized = up_dshot_init(_output_mask, _bdshot_output_mask, _dshot_frequency, _bdshot_edt_enabled);
+		_initialized_output_mask = initialized > 0 ? static_cast<uint32_t>(initialized) : 0;
+		_hardware_initialized = _initialized_output_mask != 0;
+		up_dshot_arm(_hardware_initialized);
+#else
 		up_dshot_init(_output_mask, _bdshot_output_mask, _dshot_frequency, _bdshot_edt_enabled);
 		up_dshot_arm(true);
 		_hardware_initialized = true;
+#endif
 	}
 }
 
@@ -1137,6 +1317,10 @@ bool DShot::initialize_dshot()
 		}
 	}
 
+#if defined(CONFIG_MODE_TURTLE)
+	_dshot_timer_channels = dshot_timer_channels;
+#endif
+
 	if (dshot_timer_channels == 0) {
 		PX4_INFO("No channels configured");
 		return false;
@@ -1187,6 +1371,10 @@ int DShot::print_status()
 	print_spacer();
 
 	// Configuration
+#if defined(CONFIG_MODE_TURTLE)
+	PX4_INFO("Temporary direction: supported=0x%x reversed=0x%x pending=%d",
+		 (unsigned)supported_direction_mask(), (unsigned)_direction.reversedMask(), _direction.pending());
+#endif
 	PX4_INFO("Configuration:");
 	PX4_INFO("  Output Mask:        0x%02lx (%u channels)", (unsigned long)_output_mask, _motor_count);
 	PX4_INFO("  BDShot Telemetry:   %s", _bdshot_output_mask ? "Enabled" : "Disabled");

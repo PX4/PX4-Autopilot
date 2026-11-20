@@ -118,6 +118,14 @@ public:
 	uint16_t getMotorFailureMask() const {return _esc_checks.getMotorFailureMask(); }
 	bool getEscArmStatus() const { return _esc_checks.getEscArmStatus(); }
 
+#if defined(CONFIG_MODE_TURTLE)
+	ModeChecks::TurtleArmingStatus turtleArmingStatus() { return _mode_checks.turtleArmingStatus(_context.status()); }
+	bool copyTurtleControl(turtle_control_s &turtle)
+	{
+		return _mode_checks.copyTurtleControl(turtle, _context.status().nav_state_timestamp);
+	}
+#endif
+
 #ifndef CONSTRAINED_FLASH
 	ExternalChecks &externalChecks() { return _external_checks; }
 #endif

@@ -49,8 +49,27 @@ bool UserModeIntention::change(uint8_t user_intended_nav_state, ModeChangeSource
 		user_intended_nav_state = _handler->getReplacedModeIfAny(user_intended_nav_state);
 	}
 
-	// Always allow mode change while disarmed
-	bool always_allow = force || !isArmed();
+#if defined(CONFIG_MODE_TURTLE)
+
+	// Recovery can only be entered while disarmed, including forced mode requests.
+	if (user_intended_nav_state == vehicle_status_s::NAVIGATION_STATE_TURTLE
+	    && isArmed() && _vehicle_status.nav_state != vehicle_status_s::NAVIGATION_STATE_TURTLE) {
+		return false;
+	}
+
+	// Leaving Turtle disarms before normal control resumes, so destination flight checks do not prevent exit.
+	const bool leaving_turtle = _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_TURTLE;
+#else
+
+	if (user_intended_nav_state == vehicle_status_s::NAVIGATION_STATE_TURTLE) {
+		return false;
+	}
+
+	constexpr bool leaving_turtle = false;
+#endif
+
+	// Always allow mode change while disarmed.
+	const bool always_allow = force || !isArmed() || leaving_turtle;
 	bool allow_change = true;
 
 	if (!always_allow) {

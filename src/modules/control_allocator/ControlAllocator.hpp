@@ -56,6 +56,10 @@
 
 #include "ActuatorGroupPreflightCheck.hpp"
 
+#if defined(CONFIG_MODE_TURTLE)
+#include "TurtleControlGate.hpp"
+#endif
+
 #include <ControlAllocation.hpp>
 #include <ControlAllocationPseudoInverse.hpp>
 #include <ControlAllocationSequentialDesaturation.hpp>
@@ -152,6 +156,10 @@ private:
 
 	void publish_actuator_controls();
 
+#if defined(CONFIG_MODE_TURTLE)
+	void publish_turtle_controls();
+#endif
+
 	void handle_stopped_motors(const hrt_abstime now);
 
 	float get_ice_shedding_output(hrt_abstime now);
@@ -217,9 +225,19 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	// Poll status and control mode on torque/Turtle updates or the backup schedule.
+	// Callbacks here would add motor publications between normal torque updates.
+	uORB::Subscription _vehicle_status_sub {ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
-	uORB::Subscription _failure_detector_status_sub{ORB_ID(failure_detector_status)};
+
+#if defined(CONFIG_MODE_TURTLE)
+	uORB::SubscriptionCallbackWorkItem _turtle_control_sub {this, ORB_ID(turtle_control)};
+	uORB::Subscription _motor_direction_status_sub{ORB_ID(motor_direction_status)};
+	turtle_control_s _turtle_control{};
+	motor_direction_status_s _motor_direction_status{};
+	TurtleControlGate _turtle_gate;
+#endif
+	uORB::Subscription _failure_detector_status_sub {ORB_ID(failure_detector_status)};
 
 	matrix::Vector3f _torque_sp;
 	matrix::Vector3f _thrust_sp;

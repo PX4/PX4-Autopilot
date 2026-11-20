@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "mode_requirements.hpp"
+#include <px4_boardconfig.h>
 #include <uORB/topics/vehicle_status.h>
 
 namespace mode_util
@@ -179,6 +180,19 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_OFFBOARD, flags.mode_req_angular_velocity);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_OFFBOARD, flags.mode_req_attitude);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_OFFBOARD, flags.mode_req_offboard_signal);
+
+	// NAVIGATION_STATE_TURTLE
+#if defined(CONFIG_MODE_TURTLE)
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_TURTLE, flags.mode_req_attitude);
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_TURTLE, flags.mode_req_manual_control);
+
+	if (vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+		setRequirement(vehicle_status_s::NAVIGATION_STATE_TURTLE, flags.mode_not_supported);
+	}
+
+#else
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_TURTLE, flags.mode_not_supported);
+#endif
 
 	// NAVIGATION_STATE_STAB
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_STAB, flags.mode_req_angular_velocity);

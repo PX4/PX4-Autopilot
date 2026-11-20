@@ -36,6 +36,11 @@
 #include "../Common.hpp"
 
 #include <uORB/Subscription.hpp>
+#if defined(CONFIG_MODE_TURTLE)
+#include <uORB/topics/turtle_control.h>
+#include <uORB/topics/motor_direction_status.h>
+#include <uORB/topics/control_allocator_status.h>
+#endif
 
 class ModeChecks : public HealthAndArmingCheckBase
 {
@@ -45,7 +50,26 @@ public:
 
 	void checkAndReport(const Context &context, Report &reporter) override;
 
+#if defined(CONFIG_MODE_TURTLE)
+	struct TurtleArmingStatus {
+		hrt_abstime timestamp_disarmed{0};
+		bool ready_to_arm{false};
+		bool direction_normal{false};
+		bool direction_active{false};
+	};
+
+	TurtleArmingStatus turtleArmingStatus(const vehicle_status_s &status);
+	bool copyTurtleControl(turtle_control_s &turtle, hrt_abstime nav_state_timestamp);
+#endif
+
 private:
+#if defined(CONFIG_MODE_TURTLE)
+	const param_t _turtle_enable_handle {param_find("TRTL_EN")};
+	const param_t _throw_enable_handle {param_find("COM_THROW_EN")};
+	uORB::Subscription _turtle_control_sub {ORB_ID(turtle_control)};
+	uORB::Subscription _motor_direction_status_sub{ORB_ID(motor_direction_status)};
+	uORB::Subscription _turtle_allocator_status_sub{ORB_ID(control_allocator_status)};
+#endif
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamBool<px4::params::COM_ARM_MIS_REQ>) _param_com_arm_mis_req,
 					(ParamInt<px4::params::COM_RC_IN_MODE>) _param_com_rc_in_mode

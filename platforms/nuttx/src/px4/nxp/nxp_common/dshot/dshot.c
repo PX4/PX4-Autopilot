@@ -812,10 +812,10 @@ void up_bdshot_status(void)
 	}
 }
 
-void up_dshot_trigger(void)
+uint32_t up_dshot_trigger(void)
 {
 	if (!_dshot_armed) {
-		return;
+		return 0;
 	}
 
 	hrt_abstime now = hrt_absolute_time();
@@ -872,6 +872,7 @@ void up_dshot_trigger(void)
 	enable_shifter_status_interrupts(tx_mask);
 	enable_timer_status_interrupts(tx_mask);
 	px4_leave_critical_section(irqflags);
+	return tx_mask;
 }
 
 /* Expand packet from 16 bits to 48 to get T0H and T1H timing, each DShot bit becomes three

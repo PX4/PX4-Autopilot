@@ -296,6 +296,9 @@ set(msg_files
 	versioned/VtolVehicleStatus.msg
 	versioned/Wind.msg
 )
+if(CONFIG_MODE_TURTLE)
+	list(APPEND msg_files MotorDirectionRequest.msg MotorDirectionStatus.msg TurtleControl.msg)
+endif()
 if(CONFIG_GPS_UBX_SPAN)
 	list(APPEND msg_files SensorGnssSpectrum.msg)
 endif()

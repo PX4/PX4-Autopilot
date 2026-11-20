@@ -98,6 +98,15 @@ ControlAllocator::init()
 		return false;
 	}
 
+#if defined(CONFIG_MODE_TURTLE)
+
+	if (!_turtle_control_sub.registerCallback()) {
+		PX4_ERR("Turtle callback registration failed");
+		return false;
+	}
+
+#endif
+
 #ifndef ENABLE_LOCKSTEP_SCHEDULER // Backup schedule would interfere with lockstep
 	ScheduleDelayed(50_ms);
 #endif
@@ -126,6 +135,9 @@ ControlAllocator::parameters_updated()
 	update_allocation_method(updated); // must be called after update_effectiveness_source()
 
 	if (_num_control_allocation == 0) {
+#if defined(CONFIG_MODE_TURTLE)
+		_turtle_gate.configureGeometry(nullptr);
+#endif
 		return;
 	}
 
@@ -298,6 +310,9 @@ ControlAllocator::Run()
 {
 	if (should_exit()) {
 		_vehicle_torque_setpoint_sub.unregisterCallback();
+#if defined(CONFIG_MODE_TURTLE)
+		_turtle_control_sub.unregisterCallback();
+#endif
 		exit_and_cleanup(desc);
 		return;
 	}
@@ -323,10 +338,6 @@ ControlAllocator::Run()
 		}
 	}
 
-	if (_num_control_allocation == 0 || _actuator_effectiveness == nullptr) {
-		return;
-	}
-
 	{
 		vehicle_status_s vehicle_status;
 
@@ -334,6 +345,16 @@ ControlAllocator::Run()
 
 			_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
 			_is_vtol = vehicle_status.is_vtol;
+#if defined(CONFIG_MODE_TURTLE)
+			const bool turtle_selected = vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_TURTLE;
+
+			if (_turtle_gate.selected() != turtle_selected) {
+				_torque_sp.zero();
+				_thrust_sp.zero();
+			}
+
+			_turtle_gate.setSelected(turtle_selected, hrt_absolute_time(), _armed ? vehicle_status.armed_time : 0);
+#endif
 
 			ActuatorEffectiveness::FlightPhase flight_phase{ActuatorEffectiveness::FlightPhase::HOVER_FLIGHT};
 
@@ -356,7 +377,9 @@ ControlAllocator::Run()
 			}
 
 			// Forward to effectiveness source
-			_actuator_effectiveness->setFlightPhase(flight_phase);
+			if (_actuator_effectiveness != nullptr) {
+				_actuator_effectiveness->setFlightPhase(flight_phase);
+			}
 		}
 	}
 
@@ -366,6 +389,30 @@ ControlAllocator::Run()
 		if (_vehicle_control_mode_sub.update(&vehicle_control_mode)) {
 			_publish_controls = vehicle_control_mode.flag_control_allocation_enabled;
 		}
+	}
+
+#if defined(CONFIG_MODE_TURTLE)
+	_turtle_control_sub.update(&_turtle_control);
+	_motor_direction_status_sub.update(&_motor_direction_status);
+
+	if (_turtle_gate.selected()) {
+		publish_turtle_controls();
+		perf_end(_loop_perf);
+		return;
+	}
+
+#endif
+
+	if (_num_control_allocation == 0 || _actuator_effectiveness == nullptr) {
+#if defined(CONFIG_MODE_TURTLE)
+
+		if (_publish_controls && _turtle_gate.waitingForNormal()) {
+			publish_turtle_controls();
+		}
+
+#endif
+		perf_end(_loop_perf);
+		return;
 	}
 
 	// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
@@ -381,6 +428,9 @@ ControlAllocator::Run()
 
 	// Run allocator on torque changes
 	if (_vehicle_torque_setpoint_sub.update(&vehicle_torque_setpoint)) {
+#if defined(CONFIG_MODE_TURTLE)
+		_turtle_gate.observeTorque(vehicle_torque_setpoint.timestamp);
+#endif
 		_torque_sp = matrix::Vector3f(vehicle_torque_setpoint.xyz);
 
 		// the topic is also written externally; one non-finite component would reach every actuator
@@ -396,6 +446,10 @@ ControlAllocator::Run()
 	}
 
 	if (_vehicle_thrust_setpoint_sub.update(&vehicle_thrust_setpoint)) {
+#if defined(CONFIG_MODE_TURTLE)
+		_turtle_gate.observeThrust(vehicle_thrust_setpoint.timestamp);
+		do_update |= _turtle_gate.waitingForNormal();
+#endif
 		_thrust_sp = matrix::Vector3f(vehicle_thrust_setpoint.xyz);
 
 		_actuator_effectiveness->stopMotorsBasedOnThrustSetpoint(_thrust_sp);
@@ -489,7 +543,24 @@ ControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessUpdateReaso
 		return;
 	}
 
-	if (_actuator_effectiveness->getEffectivenessMatrix(config, reason)) {
+	const bool updated = _actuator_effectiveness->getEffectivenessMatrix(config, reason);
+
+#if defined(CONFIG_MODE_TURTLE)
+
+	if (reason == EffectivenessUpdateReason::CONFIGURATION_UPDATE) {
+		const ActuatorEffectivenessRotors::Geometry *geometry = nullptr;
+
+		if (updated && _effectiveness_source_id == EffectivenessSource::MULTIROTOR && _param_r_rev.get() == 0) {
+			// NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+			geometry = &static_cast<ActuatorEffectivenessMultirotor *>(_actuator_effectiveness)->geometry();
+		}
+
+		_turtle_gate.configureGeometry(geometry);
+	}
+
+#endif
+
+	if (updated) {
 		_last_effectiveness_update = hrt_absolute_time();
 
 		memcpy(_control_allocation_selection_indexes, config.matrix_selection_indexes,
@@ -741,12 +812,42 @@ ControlAllocator::get_ice_shedding_output(hrt_abstime now)
 	}
 }
 
+#if defined(CONFIG_MODE_TURTLE)
+void ControlAllocator::publish_turtle_controls()
+{
+	actuator_motors_s motors{};
+	motors.timestamp = hrt_absolute_time();
+	motors.timestamp_sample = _turtle_control.timestamp_sample;
+	_turtle_gate.mixTurtleControls(motors.timestamp, _armed && _publish_controls, _turtle_control,
+				       _motor_direction_status, motors.control);
+	_actuator_motors_pub.publish(motors);
+
+	if (_turtle_gate.selected()) {
+		// Commander waits for this acknowledgement before arming the recovery mode.
+		control_allocator_status_s status{};
+		status.timestamp = motors.timestamp;
+		status.turtle_mode_active = true;
+		status.turtle_geometry_valid = _turtle_gate.geometryValid();
+		_control_allocator_status_pub[0].publish(status);
+	}
+}
+#endif
+
 void
 ControlAllocator::publish_actuator_controls()
 {
 	if (!_publish_controls) {
 		return;
 	}
+
+#if defined(CONFIG_MODE_TURTLE)
+
+	if (!_turtle_gate.allowNormal(hrt_absolute_time(), _motor_direction_status)) {
+		publish_turtle_controls();
+		return;
+	}
+
+#endif
 
 	actuator_motors_s actuator_motors;
 	actuator_motors.timestamp = hrt_absolute_time();

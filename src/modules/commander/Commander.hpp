@@ -82,6 +82,9 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vtol_vehicle_status.h>
+#if defined(CONFIG_MODE_TURTLE)
+#include <uORB/topics/turtle_control.h>
+#endif
 
 using math::constrain;
 using systemlib::Hysteresis;
@@ -261,7 +264,11 @@ private:
 
 	hrt_abstime _boot_timestamp{0};
 	hrt_abstime _last_disarmed_timestamp{0};
-	bool _arm_on_boot_done{false};    ///< true once arm-on-boot has been attempted
+#if defined(CONFIG_MODE_TURTLE)
+	hrt_abstime _turtle_disarmed_timestamp {0};
+	bool _turtle_armed{false};
+#endif
+	bool _arm_on_boot_done {false};   ///< true once arm-on-boot has been attempted
 	bool _arm_on_boot_requested{false};
 	hrt_abstime _overload_start{0};		///< time when CPU overload started
 

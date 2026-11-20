@@ -645,6 +645,9 @@ int8_t ManualControl::navStateFromParam(int32_t param_value)
 		case 15: return vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF;
 		case 16: return vehicle_status_s::NAVIGATION_STATE_ALTITUDE_CRUISE;
 		case 17: return vehicle_status_s::NAVIGATION_STATE_MANUAL_PARKING;
+#if defined(CONFIG_MODE_TURTLE)
+		case 18: return vehicle_status_s::NAVIGATION_STATE_TURTLE;
+#endif
 
 		case 100: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL1;
 		case 101: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL2;

@@ -27,3 +27,8 @@ add_custom_target(test_results
         COMMENT "Running tests"
         WORKING_DIRECTORY ${PX4_BINARY_DIR})
 set_target_properties(test_results PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+# Exercise the hardware-independent direction sequencer on host test targets.
+if(CONFIG_MODE_TURTLE AND NOT CONFIG_DRIVERS_DSHOT)
+    px4_add_unit_gtest(SRC ${PX4_SOURCE_DIR}/src/drivers/dshot/DShotDirectionTest.cpp)
+endif()
