@@ -2,10 +2,11 @@ import pytest
 from mavsdk.plugins.telemetry import FlightMode  # type: ignore
 
 from autopilot_tester import MissionOptions, log
-from autopilot_tester_geofence import AutopilotTesterGeofence
+from autopilot_tester_geofence import ACTION_RETURN, AutopilotTesterGeofence
 from autopilot_tester_loiter import horizontal_distance
 
 TAKEOFF_ALTITUDE_M = 10.0
+MISSION_ALTITUDE_M = 15.0
 
 # At 5 m/s the vehicle is past a limit by the time the 5 Hz check sees it, and then it has to brake.
 OVERSHOOT_M = 20.0
@@ -58,7 +59,8 @@ def test_mission_is_held_at_contingency_geofence_home_distance(
     tester.store_home()
     tester.set_param_float("GF_MAX_HOR_DIST", 300.0)
     # Straight north, to 240 m.
-    tester.prepare_straight_mission(MissionOptions(leg_length_m=60.0, relative_altitude_m=15.0))
+    tester.prepare_straight_mission(
+        MissionOptions(leg_length_m=60.0, relative_altitude_m=MISSION_ALTITUDE_M))
     tester.arm()
     tester.start_and_wait_for_mission_sequence(1)
 
@@ -74,6 +76,39 @@ def test_mission_is_held_at_contingency_geofence_home_distance(
     log("Furthest from Home: {:.1f} m".format(furthest_m))
     assert 150.0 - POSITION_TOLERANCE_M < furthest_m < 150.0 + OVERSHOOT_M, \
         "Went {:.1f} m from Home".format(furthest_m)
+
+
+@pytest.mark.multicopter
+def test_contingency_geofence_return_lands_at_home(
+        tester_geofence: AutopilotTesterGeofence) -> None:
+    """With GF_CONT_ACTION Return a mission that comes within the margin flies back and lands.
+
+    The Return starts within the margin, so it first has to fly out of it."""
+    tester = tester_geofence
+    tester.wait_until_ready()
+    tester.store_home()
+    tester.set_param_int("GF_CONT_ACTION", ACTION_RETURN)
+    tester.set_rtl_altitude(MISSION_ALTITUDE_M)
+    # Home is 300 m from each edge.
+    tester.upload_inclusion_rectangle(-300.0, 300.0, -300.0, 300.0)
+    # Straight north, to 240 m.
+    tester.prepare_straight_mission(
+        MissionOptions(leg_length_m=60.0, relative_altitude_m=MISSION_ALTITUDE_M))
+    tester.arm()
+    tester.start_and_wait_for_mission_sequence(1)
+
+    # A mission that is being flown keeps its verdict, so the margin can be set behind it.
+    tester.set_param_float("GF_CONT_H_MARGIN", 150.0)
+    assert tester.home_distance_m() < 120.0, "The margin was set too late"
+    tester.start_tracking()
+    tester.wait_for_flight_mode(FlightMode.RETURN_TO_LAUNCH, 60)
+    tester.wait_until_disarmed(180)
+    tester.check_home_within(5.0)
+
+    closest_m = tester.min_fence_distance_m()
+    log("Closest to the fence: {:.1f} m".format(closest_m))
+    assert 150.0 - OVERSHOOT_M < closest_m < 150.0 + POSITION_TOLERANCE_M, \
+        "Came within {:.1f} m of the fence with a margin of 150 m".format(closest_m)
 
 
 @pytest.mark.multicopter
