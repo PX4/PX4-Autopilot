@@ -238,7 +238,7 @@ private:
 
 	uint8_t _last_served_nav_state{0xff};
 
-	SetpointSubscription _setpoint_subs[2];
+	SetpointSubscription _setpoint_subs[mode_util::MAX_NUM_SETPOINT_TOPICS];
 	uint8_t _setpoint_watch_nav_state{NAV_STATE_NONE}; ///< selected mode whose setpoints are watched, also while disarmed
 	hrt_abstime _last_setpoint_time{0}; ///< time of the last setpoint (now while landed), 0 while waiting for the first one
 	uint32_t _setpoint_configs_applied{0}; ///< bit per nav_state with a setpoint configuration applied since the last check

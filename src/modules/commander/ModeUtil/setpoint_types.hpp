@@ -80,7 +80,10 @@ enum class SetpointTypeResult : uint8_t {
  */
 SetpointTypeResult isSetpointTypeValid(SetpointType setpoint_type, uint8_t vehicle_type, bool is_vtol);
 
-using SetpointTopics = ORB_ID[2];
+/// Highest number of topics a setpoint type consists of
+static constexpr unsigned MAX_NUM_SETPOINT_TOPICS = 2;
+
+using SetpointTopics = ORB_ID[MAX_NUM_SETPOINT_TOPICS];
 
 /**
  * Get the uORB topics (instance 0) an external mode publishes for a setpoint type.

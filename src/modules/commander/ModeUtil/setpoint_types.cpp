@@ -223,8 +223,9 @@ SetpointTypeResult isSetpointTypeValid(SetpointType setpoint_type, uint8_t vehic
 
 void getSetpointTopics(SetpointType setpoint_type, SetpointTopics &topics)
 {
-	topics[0] = ORB_ID::INVALID;
-	topics[1] = ORB_ID::INVALID;
+	for (ORB_ID &topic : topics) {
+		topic = ORB_ID::INVALID;
+	}
 
 	switch (setpoint_type) {
 	case SetpointType::Invalid:

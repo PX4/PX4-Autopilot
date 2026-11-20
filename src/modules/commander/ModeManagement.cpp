@@ -767,8 +767,11 @@ void ModeManagement::checkSetpointTimeout(bool armed, bool landed, uint8_t user_
 		// Only samples published from now on count, also if the previous mode published on the same topics
 		mode_util::SetpointTopics topics;
 		mode_util::getSetpointTopics(mode.current_setpoint_type, topics);
-		_setpoint_subs[0].setTopic(topics[0]);
-		_setpoint_subs[1].setTopic(topics[1]);
+
+		for (unsigned i = 0; i < mode_util::MAX_NUM_SETPOINT_TOPICS; ++i) {
+			_setpoint_subs[i].setTopic(topics[i]);
+		}
+
 		_setpoint_watch_nav_state = nav_state;
 
 		// A new configuration starts the timeout. If instead the mode got activated with a configuration from before,
