@@ -150,7 +150,7 @@ TEST_F(GeofenceCircleTest, EveryFenceApplies)
 	EXPECT_FALSE(circleInside(-450.f, 0.f, 80.f)); // touches the inclusion
 }
 
-// The Home and altitude limits have their own contingency geofence parameters.
+// The distance from Home has its own check, isCloserThanContMaxDistToHome(), and altitudes have no margin.
 TEST_F(GeofenceCircleTest, HomeAndAltitudeLimitsAreNotChecked)
 {
 	setParam("GF_MAX_HOR_DIST", 100.f);

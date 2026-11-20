@@ -150,7 +150,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   A vehicle can for example hold at the contingency geofence, and only terminate if it still crosses the geofence.
   The names follow the SORA framework: messages about a breach or a refused target now call the existing geofence the emergency geofence.
   The margin applies to the maximum distance from Home and to the Geofence Plan.
-  Outside the contingency geofence arming is denied, missions are rejected, and _Go to location_ targets are refused unless its action is Warning.
+  Outside the contingency geofence missions are rejected, arming is denied unless its action is None, and _Go to location_ targets are refused unless its action is None or Warning.
   Return mode plans its route with the margin added.
 - [Flight termination](../advanced_config/flight_termination.md) can now be used instead of a Descent mode as a fallback failsafe mode, allowing safer landing for unpiloted vehicles that carry a parachute.
   See [Battery level failsafe](../config/safety.md#battery-level-failsafe) ([COM_LOW_BAT_ACT](../advanced_config/parameter_reference.md#COM_LOW_BAT_ACT)) and [Position Loss Failsafe Action](../config/safety.md#position-loss-failsafe-action) (new [COM_POS_FS_ACT](../advanced_config/parameter_reference.md#COM_POS_FS_ACT)). ([PX4-Autopilot#28064: feat(commander): add terminate options for critical battery and lost position failsafes](https://github.com/PX4/PX4-Autopilot/pull/28064)).

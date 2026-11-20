@@ -262,7 +262,6 @@ The contingency geofence is off while the margin is 0 (the default).
 | Contingency geofence margin | [GF_CONT_H_MARGIN](../advanced_config/parameter_reference.md#GF_CONT_H_MARGIN) | Horizontal distance from the emergency geofence. Disabled if 0. |
 
 The margin applies to the maximum distance from Home ([GF_MAX_HOR_DIST](../advanced_config/parameter_reference.md#GF_MAX_HOR_DIST)) and to every inclusion and exclusion area of the [Geofence Plan](../flying/geofence.md#geofence-plan): the vehicle breaches the contingency geofence once it comes closer to one of them than `GF_CONT_H_MARGIN`.
-It is a single distance, so there is only one fence to draw and upload.
 The maximum altitude ([GF_MAX_VER_DIST](../advanced_config/parameter_reference.md#GF_MAX_VER_DIST)) has no contingency geofence.
 
 `GF_CONT_H_MARGIN` is only available on flight controllers that [check the mission flight path](#mission-feasibility-checks) against the geofence (not on `px4_fmu-v2`, for example).
