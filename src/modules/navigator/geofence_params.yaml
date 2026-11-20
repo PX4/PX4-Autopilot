@@ -56,7 +56,7 @@ parameters:
     GF_CONT_ACTION:
       description:
         short: Contingency geofence breach action
-        long: If the emergency geofence is breached as well, the more severe of the two actions is taken.
+        long: If the emergency geofence is breached as well, the more severe of this action and GF_ACTION is taken.
       type: enum
       values:
         0: None
