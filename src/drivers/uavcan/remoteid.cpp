@@ -122,7 +122,7 @@ void UavcanRemoteIDController::send_basic_id()
 			return;
 		}
 
-		msg.id_type = dronecan::remoteid::BasicID::ODID_ID_TYPE_SERIAL_NUMBER;
+		msg.id_type = _odid_bid_lock_info.id.id_type;
 		msg.ua_type = _odid_bid_lock_info.id.ua_type;
 
 		for (unsigned i = 0; i < open_drone_id::UAS_ID_SIZE; ++i) {
