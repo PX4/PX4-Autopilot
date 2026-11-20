@@ -78,12 +78,15 @@ bool FlightTaskManualAcceleration::update()
 	static constexpr float factor_threshold = 0.8f; // threshold ratio of max_hagl
 	static constexpr float min_vel = 2.f; // minimum max-velocity near max_hagl
 
+	// the optical flow limits lower the speed full stick commands, but not the acceleration the pilot has to steer with
 	if (max_hagl_ratio > factor_threshold) {
 		const float vxy_max = math::min(vehicle_local_pos.vxy_max, _param_mpc_vel_manual.get());
-		_stick_acceleration_xy.setVelocityConstraint(interpolate(max_hagl_ratio, factor_threshold, 1.f, vxy_max, min_vel));
+		// near the height limit the speed comes down to min_vel, but it never goes above the flow limit itself
+		_stick_acceleration_xy.setVelocityLimit(math::min(vxy_max, interpolate(max_hagl_ratio, factor_threshold, 1.f,
+							vxy_max, min_vel)));
 
 	} else if (PX4_ISFINITE(vehicle_local_pos.vxy_max)) {
-		_stick_acceleration_xy.setVelocityConstraint(vehicle_local_pos.vxy_max);
+		_stick_acceleration_xy.setVelocityLimit(vehicle_local_pos.vxy_max);
 	}
 
 	_stick_acceleration_xy.generateSetpoints(_sticks.getPitchRollExpo(), _yaw, _yaw_setpoint, _position,
