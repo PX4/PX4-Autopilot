@@ -11,7 +11,7 @@ def test_precision_land(tester_vision_target: AutopilotTesterVisionTarget,
                         scenario: Scenario) -> None:
     """Scenarios:
 
-    - vision: TARGET_RELATIVE only.
+    - vision: TARGET_RELATIVE only, with unknown (NaN) uncertainties.
     - gnss: TARGET_ABSOLUTE and vehicle GNSS velocity.
     - vision_and_gnss: both target messages.
     - mission: landing from a mission whose land position is off, corrected by vision.
