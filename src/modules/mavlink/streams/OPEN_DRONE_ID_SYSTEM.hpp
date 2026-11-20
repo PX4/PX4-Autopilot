@@ -45,9 +45,6 @@ public:
 	static constexpr const char *get_name_static() { return "OPEN_DRONE_ID_SYSTEM"; }
 	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_OPEN_DRONE_ID_SYSTEM; }
 
-	const char *get_name() const override { return get_name_static(); }
-	uint16_t get_id() override { return get_id_static(); }
-
 	unsigned get_size() override
 	{
 		if (_vehicle_gnss_sub.advertised() && _home_position_sub.advertised()) {

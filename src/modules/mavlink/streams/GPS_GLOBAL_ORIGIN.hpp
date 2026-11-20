@@ -44,9 +44,6 @@ public:
 	static constexpr const char *get_name_static() { return "GPS_GLOBAL_ORIGIN"; }
 	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN; }
 
-	const char *get_name() const override { return get_name_static(); }
-	uint16_t get_id() override { return get_id_static(); }
-
 	unsigned get_size() override
 	{
 		if (_vehicle_local_position_sub.advertised()) {

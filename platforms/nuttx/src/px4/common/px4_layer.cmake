@@ -5,7 +5,10 @@ add_library(px4_layer
 		${PX4_SOURCE_DIR}/platforms/common/Serial.cpp
 		${PX4_SOURCE_DIR}/platforms/common/module_base.cpp
 		SerialImpl.cpp
+		px4_tanf.c
 	)
+
+set_source_files_properties(px4_tanf.c PROPERTIES COMPILE_OPTIONS "-fno-builtin")
 
 target_link_libraries(px4_layer
 	PRIVATE

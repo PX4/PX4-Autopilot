@@ -41,7 +41,7 @@
 class ParamLayer
 {
 public:
-	static constexpr param_t PARAM_COUNT = sizeof(px4::parameters) / sizeof(param_info_s);
+	static constexpr param_t PARAM_COUNT = px4::parameters_count;
 
 	ParamLayer(ParamLayer *parent = nullptr) : _parent(parent) {}
 
