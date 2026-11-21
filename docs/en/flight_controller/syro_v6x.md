@@ -320,7 +320,7 @@ For battery and power module configuration see [Battery and Power Module Setup](
 | Servo rail (`MAIN`/`AUX`) | 0V to 20V        | 25V              |
 
 A power module input between 5.85V and 10V does not damage the board: the power path selector disconnects it (see [Power](#power)).
-The servo rail is not regulated on the board; the limits above are those of its input capacitors.
+The servo rail is not regulated on the board; its absolute maximum is set by its 25V input capacitors.
 PX4 measures the servo rail voltage up to 9.9V; above that, the reported value stays at 9.9V.
 
 ::: warning
