@@ -60,3 +60,16 @@ parameters:
       min: 0
       increment: 0.01
       decimal: 2
+    VT_EF_FT_ACC:
+      description:
+        short: Front transition pusher failure acceleration
+        long: Minimum forward acceleration in a front transition at the transition throttle,
+          scaled with the pusher thrust while the throttle ramps up. Below it, the forward
+          propulsion failure quad-chute triggers, as with VT_EF_TIME. Set to 0 to disable.
+      type: float
+      default: 0.8
+      unit: m/s^2
+      min: 0.0
+      max: 10.0
+      increment: 0.1
+      decimal: 1

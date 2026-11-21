@@ -11,8 +11,7 @@ Accepted, not required: a headwind stronger than the pusher may be reported as a
 since the vehicle cannot make progress with pusher assist anyway.
 Known gaps of the VT_EF_* detector: a tailwind that carries the vehicle within VT_EF_VEL_ERR of
 its velocity setpoint hides the failure, and a pusher that fails in hover is only detected on the
-next pusher-assisted leg; a front transition before that is only aborted when airspeed is used
-(no_airspeed case).
+next pusher-assisted leg or at the start of the next front transition.
 
 The detection times are logged, so detectors can be compared with the same flights:
     test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 10 --model standard_vtol \\
@@ -22,7 +21,7 @@ SIH has constant wind only and a 0.2 kg vehicle, so the flights check behavior, 
 
 import pytest
 
-from autopilot_tester_pusher_failure import AutopilotTesterPusherFailure, FixedWingReached, Wind
+from autopilot_tester_pusher_failure import AutopilotTesterPusherFailure, Wind
 
 ALTITUDE_M = 20.0
 SETTLE_S = 10.0
@@ -103,13 +102,7 @@ def test_working_pusher_holding_position_in_strong_wind(
 
 
 @pytest.mark.vtol_pusher_failure
-@pytest.mark.parametrize("use_airspeed", [
-    True,
-    pytest.param(False, marks=pytest.mark.xfail(
-        strict=True, raises=FixedWingReached,
-        reason="no pusher check in front transitions yet: the open-loop transition "
-               "(VT_F_TR_OL_TM) completes")),
-], ids=["airspeed", "no_airspeed"])
+@pytest.mark.parametrize("use_airspeed", [True, False], ids=["airspeed", "no_airspeed"])
 def test_front_transition_with_failed_pusher(
         tester_pusher_failure: AutopilotTesterPusherFailure, use_airspeed: bool) -> None:
     """Requirement 1: the pusher stops in hover, then a front transition is commanded."""

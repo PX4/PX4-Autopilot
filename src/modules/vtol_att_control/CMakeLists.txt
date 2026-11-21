@@ -39,6 +39,8 @@ px4_add_module(
 		vtol_type.cpp
 		tailsitter.cpp
 		standard.cpp
+		FrontTransitionThrustCheck.cpp
+		FrontTransitionThrustCheck.hpp
 	MODULE_CONFIG
 		standard_params.yaml
 		tiltrotor_params.yaml
@@ -47,4 +49,5 @@ px4_add_module(
 		hysteresis
 	)
 
+px4_add_unit_gtest(SRC FrontTransitionThrustCheckTest.cpp EXTRA_SRCS FrontTransitionThrustCheck.cpp LINKLIBS mathlib)
 px4_add_functional_gtest(SRC test_vtol_quadchute.cpp LINKLIBS modules__vtol_att_control)
