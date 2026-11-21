@@ -509,7 +509,7 @@
                         },
                         "9": {
                             "name": "disarm",
-                            "description": "disarm"
+                            "description": "motor disarm"
                         },
                         "10": {
                             "name": "terminate",
