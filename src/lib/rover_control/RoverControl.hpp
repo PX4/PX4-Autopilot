@@ -88,7 +88,7 @@ ManualSticks mapSticks(const manual_control_setpoint_s &manual_control_setpoint,
  * @param can_drive_sideways True for rovers that use the lateral stick (mecanum)
  * @param tank_sticks True in manual parking on differential and mecanum rovers, where the left and right
  *                    vertical sticks drive the left and right wheels instead of the stick mapping
- * @return True if the sticks command forward motion, or lateral motion if used, of 0.2 or more
+ * @return True if a stick that drives the wheels is deflected by 0.2 or more
  */
 bool sticksCommandMotion(const manual_control_setpoint_s &manual_control_setpoint, int32_t stick_map, bool can_drive_sideways,
 			 bool tank_sticks);

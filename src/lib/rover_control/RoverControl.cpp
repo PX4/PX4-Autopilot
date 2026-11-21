@@ -67,13 +67,17 @@ ManualSticks mapSticks(const manual_control_setpoint_s &manual_control_setpoint,
 bool sticksCommandMotion(const manual_control_setpoint_s &manual_control_setpoint, int32_t stick_map, bool can_drive_sideways,
 			 bool tank_sticks)
 {
-	// Yaw is left out: turning on the spot doesn't move the rover away
 	const float arming_stick_threshold = 0.2f;
 	const ManualSticks sticks = mapSticks(manual_control_setpoint, stick_map);
+	const bool lateral = can_drive_sideways && fabsf(sticks.lateral) >= arming_stick_threshold;
 
-	// In manual parking the vertical sticks drive the left and right wheels, so forward is their average
-	const float forward = tank_sticks ? (manual_control_setpoint.throttle + manual_control_setpoint.pitch) / 2.f : sticks.forward;
-	return fabsf(forward) >= arming_stick_threshold || (can_drive_sideways && fabsf(sticks.lateral) >= arming_stick_threshold);
+	if (tank_sticks) {
+		const float left = manual_control_setpoint.throttle;
+		const float right = manual_control_setpoint.pitch;
+		return fabsf(left) >= arming_stick_threshold || fabsf(right) >= arming_stick_threshold || lateral;
+	}
+
+	return fabsf(sticks.forward) >= arming_stick_threshold || lateral;
 }
 
 float throttleControl(SlewRate<float> &motor_setpoint, const float throttle_setpoint,

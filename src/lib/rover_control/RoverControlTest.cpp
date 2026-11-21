@@ -1379,6 +1379,19 @@ TEST(sticksCommandMotion, parkingTurnOnTheSpot)
 	// WHEN: checked in manual parking, where this turns the rover on the spot
 	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, false, true);
 
-	// THEN: turning alone does not count as motion, as with the yaw stick in the other modes
-	EXPECT_FALSE(commands_motion);
+	// THEN: motion is commanded, since both sides of wheels are driven
+	EXPECT_TRUE(commands_motion);
+}
+
+TEST(sticksCommandMotion, parkingOneStickPartly)
+{
+	// GIVEN: the left stick pushed to 0.3 and the right stick centered
+	manual_control_setpoint_s manual_control_setpoint{};
+	manual_control_setpoint.throttle = 0.3f;
+
+	// WHEN: checked in manual parking
+	const bool commands_motion = RoverControl::sticksCommandMotion(manual_control_setpoint, kStickMapMode2, false, true);
+
+	// THEN: motion is commanded, since the left wheels are driven
+	EXPECT_TRUE(commands_motion);
 }
