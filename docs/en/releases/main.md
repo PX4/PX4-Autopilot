@@ -176,6 +176,8 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 - ESC/motor health is now reported in [SYS_STATUS](https://mavlink.io/en/messages/common.html#SYS_STATUS) using the [MAV_SYS_STATUS_SENSOR_PROPULSION](https://mavlink.io/en/messages/common.html#MAV_SYS_STATUS_SENSOR_PROPULSION) bit instead of [MAV_SYS_STATUS_SENSOR_MOTOR_OUTPUTS](https://mavlink.io/en/messages/common.html#MAV_SYS_STATUS_SENSOR_MOTOR_OUTPUTS).
   ([PX4-Autopilot#29192](https://github.com/PX4/PX4-Autopilot/pull/29192)).
+- `MAV_SYS_STATUS_SENSOR_MOTOR_OUTPUTS` now reports the safety interlock, with the enabled bit set when safety is off or disabled (`COM_SAFETY_MODE`) and the health bit always set.
+  ([PX4-Autopilot#29721](https://github.com/PX4/PX4-Autopilot/pull/29721)).
 - [SYS_STATUS](https://mavlink.io/en/messages/common.html#SYS_STATUS) now sets the [MAV_SYS_STATUS_EXTENSION_USED](https://mavlink.io/en/messages/common.html#MAV_SYS_STATUS_EXTENSION_USED) flag in `onboard_control_sensors_present` when extended sensor fields are used.
 - [TIME_ESTIMATE_TO_TARGET](https://mavlink.io/en/messages/common.html#TIME_ESTIMATE_TO_TARGET) reports `safe_return` as `-1` (landed or no estimate) when Return has no time estimate: before Home is set, on the ground unless Return would follow a mission landing, and with [RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 2 or 4 and a valid mission.
   It used to send `0`, or an undefined value with `RTL_TYPE` 2 and 4.
