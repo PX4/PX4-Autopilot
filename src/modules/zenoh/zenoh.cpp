@@ -285,6 +285,17 @@ bool ZENOH::waitForLink(const char *locator)
 	return !should_exit();
 }
 
+bool ZENOH::sleepUnlessStopped(uint32_t timeout_ms)
+{
+	static constexpr uint32_t interval_ms = 100;
+
+	for (uint32_t slept_ms = 0; slept_ms < timeout_ms && !should_exit(); slept_ms += interval_ms) {
+		px4_usleep(interval_ms * 1000);
+	}
+
+	return !should_exit();
+}
+
 int ZENOH::setupSession()
 {
 	char mode[NET_MODE_SIZE];
@@ -300,7 +311,7 @@ int ZENOH::setupSession()
 
 	PX4_INFO("Opening session...");
 
-	do {
+	while (true) {
 		z_config_default(&config);
 		zp_config_insert(z_loan_mut(config), Z_CONFIG_MODE_KEY, mode);
 
@@ -311,21 +322,27 @@ int ZENOH::setupSession()
 			zp_config_insert(z_loan_mut(config), Z_CONFIG_CONNECT_KEY, Z_CONFIG_MULTICAST_LOCATOR_DEFAULT);
 		}
 
+		ret = z_open(&_s, z_move(config), nullptr);
+
+		if (ret >= 0) {
+			break;
+		}
+
 		if (ret == _Z_ERR_TRANSPORT_OPEN_FAILED) {
 			PX4_WARN("Unable to open session, make sure zenohd is running on %s", locator);
 
 		} else if (ret == _Z_ERR_SCOUT_NO_RESULTS) {
 			PX4_WARN("Unable to open session, scout no results");
 
-		} else if (ret < 0) {
+		} else {
 			PX4_WARN("Unable to open session, ret: %d", ret);
 		}
 
-		if (ret != 0) {
-			sleep(5); // Wait 5 seconds when doing a retry
+		// Retry in 5 s, a stop request ends the wait
+		if (!sleepUnlessStopped(5000)) {
+			return -EINTR;
 		}
-
-	} while ((ret = z_open(&_s, z_move(config), nullptr)) < 0);
+	}
 
 	// Start read and lease tasks for zenoh-pico
 	if (zp_start_read_task(z_loan_mut(_s), nullptr) < 0 || zp_start_lease_task(z_loan_mut(_s), nullptr) < 0) {
