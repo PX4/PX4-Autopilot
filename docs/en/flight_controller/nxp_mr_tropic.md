@@ -30,7 +30,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Processor {#processor}
 
-- **Main FMU processor:** [NXP i.MX RT1064](https://www.nxp.com/products/i.MX-RT1064) Crossover MCU (32-bit Arm® Cortex®-M7 at 600 MHz, 1 MB on-chip SRAM with up to 512 KB configurable as tightly coupled memory, 4 MB on-chip flash)
+- **Main FMU processor:** [NXP i.MX RT1064](https://www.nxp.com/products/i.MX-RT1064) Crossover MCU (32-bit Arm® Cortex®-M7 at 600MHz, 1MB on-chip SRAM with up to 512KB configurable as tightly coupled memory, 4MB on-chip flash)
 
 ### Sensors {#sensors}
 
@@ -45,25 +45,29 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - **Serial ports:** 5 (`GPS`, `TELEM1`, `TELEM2`, `AUX`, `RC`), plus the debug console and an ESC telemetry input; `TELEM1` and `TELEM2` have full flow control
 - **I2C buses:** 3 (I2C4 internal; I2C1 and I2C3 external), with 1 external port (`I2C`) for additional sensors and payloads
 - **SPI buses:** 2 internal (SPI3, SPI4), plus 1 external (`SPI (OSD)`) with 1 chip select line, 1 data-ready line and 1 reset line, not used by the default firmware
-- **CAN buses:** 1 (CAN FD capable, currently configured as classic CAN, NXP TJA1462ATK transceiver, 120 Ω termination resistor on board)
-- **Ethernet:** 100BASE-T1, 100 Mbps, for transformerless applications and high-speed communication with mission computers (NXP TJA1103 PHY)
-- **USB:** USB-C, high speed (480 Mbps)
+- **CAN buses:** 1 (classic CAN in PX4; CAN FD-capable NXP TJA1462ATK transceiver, 120Ω termination resistor on board)
+- **Ethernet:** 100BASE-T1, 100Mbps, for transformerless applications and high-speed communication with mission computers (NXP TJA1103 PHY)
+- **USB:** USB-C, high speed (480Mbps)
 - **RC input:** Yes, dedicated input for [CRSF/ELRS](../telemetry/crsf_telemetry.md)
 - **Parameter storage:** flash
 - **SD card:** microSD slot
 
 ### Electrical Data {#electrical_data}
 
-- **Input voltage:** 5.5 V maximum
-- **USB power input:** 5 V
-- **Current draw:** typically 0.25–0.35 A at 5 V
-- **Power monitoring:** 1 digital input on `POWER` (Any power module with an INA226 at address `0x41`, or an INA228 or INA238 at `0x45`, is detected automatically.); no analog input
+- **Input voltage:** 5.5V maximum
+- **USB power input:** 5V
+- **Current draw:** typically 0.25–0.35A at 5V
+- **Power monitoring:** 1 digital input on `POWER` (INA226 at `0x41`, or INA228 or INA238 at `0x45`, detected automatically); no analog input
 
 ### Mechanical Data {#mechanical_data}
 
-- **Dimensions:** 46 x 45 x 1.57 mm
-- **Weight:** 12 g
-- **Operating and storage temperature:** 0–85 °C
+- **Dimensions:** 46 x 45 x 1.57mm
+- **Weight:** 12g
+- **Operating and storage temperature:** 0–85°C
+
+## Where to Buy {#store}
+
+Order from [NXP](https://www.nxp.com/design/design-center/development-boards-and-designs/MR-VMU-TROPIC).
 
 ## Pinouts {#pinouts}
 
@@ -75,19 +79,19 @@ The schematic is [SPF-94468_F.pdf](https://github.com/NXP-Robotics/MR-VMU-TROPIC
 
 ### Top Side Connectors
 
-| Connector | Label       | Function                                                            | Type                | Standard            |
-| --------- | ----------- | ------------------------------------------------------------------- | ------------------- | ------------------- |
-| `J2`      | `POWER`     | Power module input: 5 V and battery monitor I2C                     | Molex CLIK-Mate 1x6 | —                   |
-| `J3`      | `DEBUG`     | SWD and console                                                     | JST-SH 1x10         | DS-009 (Debug Full) |
-| `J4`      | `GPS`       | GPS, compass, safety switch and buzzer                              | JST-GH 1x10         | DS-009              |
-| `J5`      | `CAN`       | CAN FD, CAN-SIC (Signal Improvement) transceiver, 120 Ω termination | JST-GH 1x4          | DS-009              |
-| `J6`      | `SPI (OSD)` | External SPI port for an OSD board                                  | JST-GH 1x8          | —                   |
-| `J7`      | `AUX`       | Spare serial port                                                   | JST-GH 1x6          | —                   |
-| `J8`      | `TELEM1`    | Telemetry port 1, with flow control                                 | JST-GH 1x6          | DS-009              |
-| `J9`      | `TELEM2`    | Telemetry port 2, with flow control                                 | JST-GH 1x6          | DS-009              |
-| `J10`     | `I2C`       | External I2C bus, shared with `GPS`                                 | JST-GH 1x4          | DS-009              |
-| `J11`     | `RC`        | Serial RC receiver                                                  | JST-GH 1x4          | —                   |
-| `P1`      | `ETH`       | 100BASE-T1 100 Mbps Ethernet                                        | JST-GH 1x2          | —                   |
+| Connector | Label       | Function                                                           | Type                | Standard            |
+| --------- | ----------- | ------------------------------------------------------------------ | ------------------- | ------------------- |
+| `J2`      | `POWER`     | Power module input: 5V and battery monitor I2C                     | Molex CLIK-Mate 1x6 | —                   |
+| `J3`      | `DEBUG`     | SWD and console                                                    | JST-SH 1x10         | DS-009 (Debug Full) |
+| `J4`      | `GPS`       | GPS, compass, safety switch and buzzer                             | JST-GH 1x10         | DS-009              |
+| `J5`      | `CAN`       | CAN FD, CAN-SIC (Signal Improvement) transceiver, 120Ω termination | JST-GH 1x4          | DS-009              |
+| `J6`      | `SPI (OSD)` | External SPI port for an OSD board                                 | JST-GH 1x8          | —                   |
+| `J7`      | `AUX`       | Spare serial port                                                  | JST-GH 1x6          | —                   |
+| `J8`      | `TELEM1`    | Telemetry port 1, with flow control                                | JST-GH 1x6          | DS-009              |
+| `J9`      | `TELEM2`    | Telemetry port 2, with flow control                                | JST-GH 1x6          | DS-009              |
+| `J10`     | `I2C`       | External I2C bus, shared with `GPS`                                | JST-GH 1x4          | DS-009              |
+| `J11`     | `RC`        | Serial RC receiver                                                 | JST-GH 1x4          | —                   |
+| `P1`      | `ETH`       | 100BASE-T1 100Mbps Ethernet                                        | JST-GH 1x2          | —                   |
 
 ![MR-VMU-TROPIC top-side connectors](../../assets/flight_controller/nxp_mr_tropic/overview_top.svg)
 
@@ -105,16 +109,16 @@ The schematic is [SPF-94468_F.pdf](https://github.com/NXP-Robotics/MR-VMU-TROPIC
 ## Power {#power}
 
 The board has two power rails: **POWER** and **USB**.
-The **POWER** rail is supplied via the `J2` connector (the 6-circuit [2.00 mm pitch CLIK-Mate wire-to-board PCB receptacle](https://www.molex.com/en-us/products/part-detail/5024430670)) and directly powers the following ports: `I2C` (`J10`), `GPS` (`J4`), `AUX` (`J7`), `CAN` (`J5`), `TELEM1` (`J8`), `TELEM2` (`J9`), `RC` (`J11`) and `SPI (OSD)` (`J6`).
+The **POWER** rail is supplied via the `J2` connector (the 6-circuit [2.00mm pitch CLIK-Mate wire-to-board PCB receptacle](https://www.molex.com/en-us/products/part-detail/5024430670)) and directly powers the following ports: `I2C` (`J10`), `GPS` (`J4`), `AUX` (`J7`), `CAN` (`J5`), `TELEM1` (`J8`), `TELEM2` (`J9`), `RC` (`J11`) and `SPI (OSD)` (`J6`).
 
 ::: warning
-Feed only 5 V into `POWER` (`J2`): there is no regulator behind this connector, and a higher voltage damages the board.
-Every other 5 V pin on the board is an output: never feed power into it.
+Feed only 5V into `POWER` (`J2`): there is no regulator behind this connector, and a higher voltage damages the board.
+Every other 5V pin on the board is an output: never feed power into it.
 Any device connected to the ports listed above must be compatible with the **POWER** voltage rail.
 :::
 
 Battery monitoring is digital, over I2C (I2C3 on the `POWER` port).
-An INA226, INA228 or INA238 power monitor is detected automatically.
+Any power module with an INA226 at address `0x41`, or an INA228 or INA238 at `0x45`, is detected automatically.
 To start a specific one instead, [set](../advanced_config/parameters.md) [SENS_EN_INA226](../advanced_config/parameter_reference.md#SENS_EN_INA226), [SENS_EN_INA228](../advanced_config/parameter_reference.md#SENS_EN_INA228) or [SENS_EN_INA238](../advanced_config/parameter_reference.md#SENS_EN_INA238) to `1`.
 
 ::: info
@@ -127,17 +131,17 @@ See [Battery and Power Module Setup](../config/battery.md) for configuration.
 
 ### Normal Operation Maximum Ratings
 
-| Rail       | Minimum | Maximum |
-| ---------- | ------- | ------- |
-| **USB**    | 4.5 V   | 5.5 V   |
-| **POWER**  | 4.9 V   | 5.5 V   |
+| Rail      | Minimum | Maximum |
+| --------- | ------- | ------- |
+| **USB**   | 4.5V    | 5.5V    |
+| **POWER** | 4.9V    | 5.5V    |
 
 ### Absolute Maximum Ratings
 
-| Rail       | Minimum | Maximum |
-| ---------- | ------- | ------- |
-| **USB**    | 0 V     | 6 V     |
-| **POWER**  | 0 V     | 6 V     |
+| Rail      | Minimum | Maximum |
+| --------- | ------- | ------- |
+| **USB**   | 0V      | 6V      |
+| **POWER** | 0V      | 6V      |
 
 ## PWM Outputs {#pwm_outputs}
 
@@ -155,7 +159,7 @@ All outputs within the same group must use the same output protocol and rate.
 
 Outputs 1–4 are on `PWM_A` (`J13`) and outputs 5–8 on `PWM_B` (`J12`).
 Both headers follow the [Betaflight ESC connector standard](https://betaflight.com/docs/development/manufacturer/connector-standard#standard-esc-pin-configuration), so a 4-in-1 ESC with a standard 8-pin cable fits.
-The headers have no 5 V pin, and their battery voltage and current pins (1 and 3) are not connected: the board doesn't use the ESC's [BEC](../peripherals/pwm_escs_and_servo.md#power-connections) or read battery voltage or current from the ESC.
+The headers have no 5V pin, and their battery voltage and current pins (1 and 3) are not connected: the board doesn't use the ESC's [BEC](../peripherals/pwm_escs_and_servo.md#power-connections) or read battery voltage or current from the ESC.
 
 Serial ESC telemetry is received on pin 4 of both headers (`/dev/ttyS5`, ESC ONEWIRE) and is enabled by default.
 
@@ -202,7 +206,7 @@ The default firmware also includes DSM, GHST and S.BUS drivers.
 To use one of these protocols, set [RC_CRSF_PRT_CFG](../advanced_config/parameter_reference.md#RC_CRSF_PRT_CFG) to `Disabled`, and then set [RC_DSM_PRT_CFG](../advanced_config/parameter_reference.md#RC_DSM_PRT_CFG), [RC_GHST_PRT_CFG](../advanced_config/parameter_reference.md#RC_GHST_PRT_CFG) or [RC_SBUS_PRT_CFG](../advanced_config/parameter_reference.md#RC_SBUS_PRT_CFG) to `Radio Controller`.
 Only one protocol can be active on a port.
 
-DSM binding is not supported - receivers must be already bound.
+DSM binding is not supported: receivers must already be bound.
 PPM receivers are not supported, because `RC` is a serial port.
 PWM receivers, which need a PPM encoder, can't be used either.
 
