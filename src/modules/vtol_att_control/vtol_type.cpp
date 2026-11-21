@@ -358,12 +358,14 @@ QuadchuteReason VtolType::getQuadchuteReason()
 		return QuadchuteReason::TransitionAltitudeLoss;
 	}
 
-	if (isPitchExceeded()) {
-		return QuadchuteReason::MaximumPitchExceeded;
-	}
+	if (_v_control_mode->flag_control_attitude_enabled) {
+		if (isPitchExceeded()) {
+			return QuadchuteReason::MaximumPitchExceeded;
+		}
 
-	if (isRollExceeded()) {
-		return QuadchuteReason::MaximumRollExceeded;
+		if (isRollExceeded()) {
+			return QuadchuteReason::MaximumRollExceeded;
+		}
 	}
 
 	if (isFrontTransitionTimeout()) {

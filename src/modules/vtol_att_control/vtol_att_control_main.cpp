@@ -450,9 +450,12 @@ VtolAttitudeControl::Run()
 			// vehicle is in rotary wing mode
 			_vtol_vehicle_status.vehicle_vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 
-			if (mc_att_sp_updated) {
+			if (mc_att_sp_updated || !_vehicle_control_mode.flag_control_attitude_enabled) {
 				_vtol_type->update_mc_state();
-				_vehicle_attitude_sp_pub.publish(_vehicle_attitude_sp);
+
+				if (mc_att_sp_updated) {
+					_vehicle_attitude_sp_pub.publish(_vehicle_attitude_sp);
+				}
 			}
 
 			break;
@@ -461,9 +464,12 @@ VtolAttitudeControl::Run()
 			// vehicle is in fw mode
 			_vtol_vehicle_status.vehicle_vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 
-			if (fw_att_sp_updated) {
+			if (fw_att_sp_updated || !_vehicle_control_mode.flag_control_attitude_enabled) {
 				_vtol_type->update_fw_state();
-				_vehicle_attitude_sp_pub.publish(_vehicle_attitude_sp);
+
+				if (fw_att_sp_updated) {
+					_vehicle_attitude_sp_pub.publish(_vehicle_attitude_sp);
+				}
 			}
 
 			break;
