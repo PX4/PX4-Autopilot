@@ -7,7 +7,7 @@ The firmware does not measure distance.
 A separate downward facing [distance sensor](../sensor/rangefinders.md) is required for optical flow navigation.
 
 ::: info
-Dronaware Optical Flow is sold as a per-device licence.
+Dronaware Optical Flow is sold as a per-device licence (US$29).
 The firmware is flashed and activated from a web browser at [dronaware.com/opticalflow](https://dronaware.com/opticalflow/).
 This page describes firmware version 1.0.16 or later; update older boards before following it.
 :::
