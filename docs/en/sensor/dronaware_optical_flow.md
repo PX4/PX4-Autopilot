@@ -18,11 +18,11 @@ The following boards are currently available for activation.
 The UART column lists the default ESP32 pins that carry MAVLink to the flight controller.
 They can be customised during the flash session, as far as the board's free pins allow.
 
-| Board                                                                    | SoC      | Camera         | Default UART TX / RX (GPIO) |
-| ------------------------------------------------------------------------ | -------- | -------------- | --------------------------- |
-| [AI-Thinker ESP32-CAM](https://docs.ai-thinker.com/en/esp32-cam)         | ESP32    | OV2640, OV3660 | 1 / 3                       |
-| [LILYGO TTGO T-Journal](https://lilygo.cc/products/t-journal)            | ESP32    | OV2640         | 14 / 13                     |
-| [Waveshare ESP32-S3-CAM](https://docs.waveshare.com/ESP32-S3-CAM-OVxxxx) | ESP32-S3 | GC0308, OV3660 | 43 / 44                     |
+| Board                                                                                         | SoC      | Camera         | Default UART TX / RX (GPIO) |
+| --------------------------------------------------------------------------------------------- | -------- | -------------- | --------------------------- |
+| [AI-Thinker ESP32-CAM](https://randomnerdtutorials.com/esp32-cam-ai-thinker-pinout/)          | ESP32    | OV2640, OV3660 | 1 / 3                       |
+| [LILYGO TTGO T-Journal](https://lilygo.cc/products/t-journal)                                 | ESP32    | OV2640         | 14 / 13                     |
+| [Waveshare ESP32-S3-CAM](https://docs.waveshare.com/ESP32-S3-CAM-OVxxxx#interface-definition) | ESP32-S3 | GC0308, OV3660 | 43 / 44                     |
 
 The complete list of boards, with their test status, is maintained in the _Device compatibility_ section of the [Dronaware documentation](https://dronaware.com/opticalflow/#documentation).
 
