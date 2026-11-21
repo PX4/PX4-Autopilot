@@ -7,7 +7,7 @@ PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://int.woocoo.vip/) for hardware support or compliance issues.
 :::
 
-The CyberX-v10 is an advanced autopilot manufactured by [CyberCraft International Limited](https://int.woocoo.vip/detail?goodsId=298&name=CyberX-v10).
+The [CyberX-v10](https://int.woocoo.vip/detail?goodsId=298&name=CyberX-v10) is an advanced autopilot manufactured by [CyberCraft International Limited](https://int.woocoo.vip/).
 
 The autopilot is recommended for commercial system integration, but is also suitable for academic research and other applications.
 It brings you ultimate performance, stability, and reliability in every aspect.
@@ -22,29 +22,28 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Processor {#processor}
 
-- **Main FMU processor:** [STM32H743IIK6](https://www.st.com/en/microcontrollers-microprocessors/stm32h743ii.html) (32 Bit Arm® Cortex®-M7, 480 MHz, 2 MB Flash, 1 MB RAM)
-- **IO processor:** [STM32F103](https://www.st.com/en/microcontrollers-microprocessors/stm32f103.html) (PX4IO v2) (32 Bit Arm® Cortex®-M3, 24MHz, 128KB Flash, 20KB SRAM)
+- **Main FMU processor:** [STM32H743IIK6](https://www.st.com/en/microcontrollers-microprocessors/stm32h743ii.html) (32 Bit Arm® Cortex®-M7, 480MHz, 2MB Flash, 1MB RAM)
+- **IO processor:** [STM32F103](https://www.st.com/en/microcontrollers-microprocessors/stm32f103.html) (PX4IO v2; 32 Bit Arm® Cortex®-M3, 24MHz, 128KB Flash, 20KB SRAM)
 
 ### Sensors {#sensors}
 
 - **IMU:** [ICM-20689](https://product.tdk.cn/zh/search/sensor/mortion-inertial/imu/info?part_no=ICM-20689) (SPI1), [BMI088](https://www.bosch-sensortec.com/en/products/motion-sensors/imus/bmi088) (SPI3), [ICM-42688-P](https://www.invensense.tdk.com/en-us/products/6-axis/icm-42688-p) (SPI4)
 - **Barometer:** [BMP581](https://www.bosch-sensortec.com/en/products/environmental-sensors/pressure-sensors/bmp581) (SPI2), [ICP-20100](https://www.invensense.tdk.com/en-us/products/smartindustrial/icp-20100) (I2C4)
-- **Magnetometer:** [IST8310](https://www.isentek.com/cn/products/oo-MMAw5N5) (I2C3)
+- **Magnetometer:** [IST8310](https://www.isentek.com/en/products/oo-MMAw5N5) (I2C3)
 
 ### Interfaces {#interfaces}
 
 - **PWM outputs:** 16 (8 IO + 8 FMU)
 - **Serial ports:** 6 (`GPS1`, `GPS2`, `TEL1`, `TEL2`, `Uart5`, `Uart8`), `TEL1` and `TEL2` with flow control
-- **Connectors:** JST GH (1.25 mm pitch)
-- **Connectors:** JST GH (1.25 mm pitch)
+- **Connectors:** JST GH (1.25mm pitch)
 - **I2C buses:** 4 (I2C1 and I2C2 on the `GPS1` and `GPS2` ports; I2C3 and I2C4 shared between on-board sensors and the `I2C3` and `I2C4` ports; I2C3 also on `PWR2`)
 - **SPI buses:** 6, of which SPI6 is external with 2 chip select lines
 - **CAN buses:** 2 (`CAN1`, `CAN2`)
-- **Ethernet:** 100 Mbps, with transformer
+- **Ethernet:** 100Mbps, with transformer
 - **USB:** Type-C
 - **RC input:** SBUS/PPM on `S.Bin` or `RCin`, CRSF/GHST on `Uart8`
 - **RSSI input:** 1 analog
-- **Analog inputs:** 2 on the `ADC` port (3.3 V and 6.6 V)
+- **Analog inputs:** 2 on the `ADC` port (3.3V and 6.6V)
 - **Power inputs:** 1 (`PWR1`, `PWR2` or both, from the same power module)
 - **Parameter storage:** FRAM (FM25V02A) on SPI5
 - **SD card:** microSD card slot
@@ -52,16 +51,16 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Electrical Data {#electrical_data}
 
-- **Input voltage:** 4.75 V to 5.5 V (`PWR1`, `PWR2`)
-- **Current draw:** 500 mA
-- **USB power input:** 4.75 V to 5.25 V
-- **Power monitoring:** 1 analog (`PWR1`) and 1 digital (`PWR2`, INA228), both on by default
-- **Output current limits:** `TEL1` and `TEL2` combined 1.5 A; all other ports combined 1.5 A
+- **Input voltage:** 4.75V to 5.5V (`PWR1`, `PWR2`)
+- **Current draw:** 500mA
+- **USB power input:** 4.75V to 5.25V
+- **Power monitoring:** 1 analog (`PWR1`, on by default) and 1 digital (`PWR2`, INA228)
+- **Output current limits:** `TEL1` and `TEL2` combined 1.5A; all other ports combined 1.5A
 
 ### Mechanical Data {#mechanical_data}
 
-- **Dimensions:** 83 x 57 x 15.1 mm
-- **Weight:** 72.4 g
+- **Dimensions:** 83 x 57 x 15.1mm
+- **Weight:** 72.4g
 
 ## Where to Buy {#store}
 
@@ -98,8 +97,7 @@ The board has connectors for two power monitors.
 - `PWR2` -- I2C (6-pin)
 
 The board is configured by default for an analog power monitor on `PWR1`.
-An INA228 I2C power monitor (address 0x40) on `PWR2` is also started by default.
-Other I2C power monitors, such as the INA226 or INA238, must be started manually.
+I2C power monitors on `PWR2`, such as the INA228 (address 0x40), INA226 or INA238, are not started by default and must be started manually.
 
 The power module supplied with the CyberX-v10 has both an analog interface and a digital I2C interface.
 Connect the analog interface to `PWR1` and the I2C interface to `PWR2`.
@@ -110,7 +108,7 @@ See [Battery Estimation Tuning (Power Setup)](../config/battery.md) for how to c
 
 The CyberX-v10 has the following power configuration:
 
-- `PWR1`: One ADC channel for monitoring the main power input voltage.
+- `PWR1`: Two ADC channels for monitoring the main power input voltage and current.
 - `PWR2`: One I2C power monitor on the same power input, providing additional voltage/current measurements.
 - `USB`: USB power is provided for debugging and development purposes only.
 
@@ -123,16 +121,16 @@ Do not connect two different power modules.
 
 Under these conditions all power sources will be used in this order to power the system:
 
-1. `PWR1`/`PWR2` input (4.75 V to 5.5 V)
-2. `USB` input (4.75 V to 5.25 V)
+1. `PWR1`/`PWR2` input (4.75V to 5.5V)
+2. `USB` input (4.75V to 5.25V)
 
 **Absolute Maximum Ratings**
 
 Under these conditions the system will not draw any power (will not be operational), but will remain intact.
 
-1. `PWR1`/`PWR2` input (0 V to 6 V undamaged)
-2. `USB` input (0 V to 6 V undamaged)
-3. Servo rail input: `+` (VCC) pins of `M1` to `M16` (0 V to 6 V undamaged)
+1. `PWR1`/`PWR2` input (0V to 6V undamaged)
+2. `USB` input (0V to 6V undamaged)
+3. Servo rail input: `+` (VCC) pins of `M1` to `M16` (0V to 6V undamaged)
 
 ## PWM Outputs {#pwm_outputs}
 
@@ -161,7 +159,7 @@ If any channel in a group uses DShot then all channels in the group need to use 
 
 ## Ethernet {#ethernet}
 
-The board has a 100 Mbps Ethernet port with an on-board transformer, on the 4-pin `ETH` connector (TX+, TX-, RX+, RX-).
+The board has a 100Mbps Ethernet port with an on-board transformer, on the 4-pin `ETH` connector (TX+, TX-, RX+, RX-).
 
 MAVLink is enabled on Ethernet by default ([MAV_2_CONFIG](../advanced_config/parameter_reference.md#MAV_2_CONFIG) is set to `1000`), broadcasting on UDP port 14550.
 See [PX4 Ethernet Setup](../advanced_config/ethernet_setup.md) for how to configure the network.
@@ -212,7 +210,7 @@ The board has two RC input paths:
   SBUS/PPM receivers connect to `S.Bin` or `RCin`.
 - `Uart8` (4-pin) goes to the FMU, where the [rc_input](../modules/modules_driver_radio_control.md#rc-input) driver detects the protocol with no configuration.
   Use it for CRSF and GHST receivers, which the IO processor can't decode.
-  `Uart8` is full duplex: connect the receiver's `TX` to `RX`, and its `RX` to `TX` for CRSF telemetry.
+  `Uart8` is full duplex: connect the receiver's `TX` to `RX`, and its `RX` to `TX` for telemetry.
   [RC_PORT_CONFIG](../advanced_config/parameter_reference.md#RC_PORT_CONFIG) sets the port that `rc_input` uses, and defaults to `Radio Controller` (`Uart8`).
 
 Spektrum/DSM receivers are not supported.
@@ -272,7 +270,7 @@ make cyberx_v10_default
 ## Debug Port {#debug_port}
 
 The `DEBUG` port provides the [SWD interface](../debug/swd_debug.md) for both the FMU and the IO processor.
-It is a 6-pin JST GH (1.25 mm pitch) connector, not a [Pixhawk Debug](../debug/swd_debug.md#pixhawk-standard-debug-ports) port, with the pinout below.
+It is a 6-pin JST GH (1.25mm pitch) connector, not a [Pixhawk Debug](../debug/swd_debug.md#pixhawk-standard-debug-ports) port, with the pinout below.
 A `DEBUG` cable is supplied with the board.
 The port does not include the [PX4 System Console](../debug/system_console.md) UART.
 

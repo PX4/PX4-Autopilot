@@ -30,7 +30,7 @@ We'll go through each of these in detail in the following sections.
 | `I2C3`, `I2C4`    | I2C peripherals, such as an MS4525DO airspeed sensor                                                            |
 | `CAN1`, `CAN2`    | [DroneCAN](../dronecan/index.md) peripherals                                                                    |
 | `ETH`             | Ethernet devices, such as companion computers                                                                   |
-| `ADC`             | Two analog inputs (3.3 V and 6.6 V)                                                                             |
+| `ADC`             | Two analog inputs (3.3V and 6.6V)                                                                               |
 | `S.Bout+SPI6`     | SBUS output and external SPI bus                                                                                |
 | `M1`–`M8`         | IO PWM outputs, for ESCs and servos                                                                             |
 | `M9`–`M16`        | FMU PWM outputs, for ESCs, servos and camera triggers; `M9`–`M14` also support [DShot](../peripherals/dshot.md) |
@@ -83,9 +83,10 @@ The CyberX-v10 is supplied with a PMU Lite power module that supports 2S to 20S 
 The module has both an analog (ADC) and an I2C interface: connect its analog connector to `PWR1` and its I2C connector to `PWR2`.
 Do not connect a different power module to each port.
 
-The CyberX-v10 is configured by default for an analog power monitor on `PWR1`, and an INA228 I2C power monitor on `PWR2` that reports voltage and current.
-The power module's VCC output must provide at least 3 A continuous current, and should be 5.2 V.
-A lower voltage of 5 V is still acceptable but discouraged.
+The CyberX-v10 is configured by default for the analog power monitor on `PWR1`, which reports voltage and current.
+The INA228 I2C power monitor on `PWR2` is not started by default.
+The power module's VCC output must provide at least 3A continuous current, and should be 5.2V.
+A lower voltage of 5V is still acceptable but discouraged.
 
 ## Telemetry (Radio) System
 
@@ -115,7 +116,7 @@ Use the FMU outputs (`M9`–`M16`) for motors where possible: they have lower la
 ## Servo Power Supply
 
 The CyberX-v10 does not supply power to the servo rail.
-If the rail must power servos or other hardware, connect an external BEC (e.g. a BEC-equipped ESC or a separate 5 V BEC) to one of the power (+) pins on `M1`–`M16`.
+If the rail must power servos or other hardware, connect an external BEC (e.g. a BEC-equipped ESC or a separate 5V BEC) to one of the power (+) pins on `M1`–`M16`.
 For more information see [PWM Servos and ESCs](../peripherals/pwm_escs_and_servo.md).
 
 ::: info
