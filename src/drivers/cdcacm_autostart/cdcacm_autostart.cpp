@@ -324,6 +324,24 @@ void CdcAcmAutostart::state_connecting()
 		return;
 	}
 
+#if defined(CONFIG_DRIVERS_ESC_4WAY)
+
+	// Parse for an MSP request from an ESC configurator.
+	if (scan_buffer_for_msp()) {
+		if (start_esc_4way()) {
+			_state = UsbAutoStartState::connected;
+			_active_protocol = UsbProtocol::esc_4way;
+
+		} else {
+			_state = UsbAutoStartState::disconnecting;
+			_reschedule_time = 100_ms;
+		}
+
+		return;
+	}
+
+#endif
+
 	// Parse for carriage returns indicating someone is trying to use the nsh.
 	if (scan_buffer_for_carriage_returns()) {
 		if (start_nsh()) {
@@ -517,6 +535,41 @@ bool CdcAcmAutostart::scan_buffer_for_ublox_bytes()
 	return success;
 }
 
+#if defined(CONFIG_DRIVERS_ESC_4WAY)
+bool CdcAcmAutostart::scan_buffer_for_msp()
+{
+	// A whole MSP v1 request with a valid checksum, the first frame the ESC configurators send:
+	// '$' 'M' '<' size cmd payload[size] checksum (XOR of size, cmd and payload)
+	static constexpr int MSP_OVERHEAD = 6;
+
+	for (int i = 0; i + MSP_OVERHEAD <= _bytes_read; i++) {
+		if (_buffer[i] != '$' || _buffer[i + 1] != 'M' || _buffer[i + 2] != '<') {
+			continue;
+		}
+
+		const int size = (uint8_t)_buffer[i + 3];
+
+		if (i + MSP_OVERHEAD + size > _bytes_read) {
+			continue;
+		}
+
+		uint8_t checksum = 0;
+
+		for (int j = i + 3; j < i + MSP_OVERHEAD - 1 + size; j++) {
+			checksum ^= (uint8_t)_buffer[j];
+		}
+
+		if (checksum == (uint8_t)_buffer[i + MSP_OVERHEAD - 1 + size]) {
+			PX4_INFO("%s: launching esc_4way", USB_DEVICE_PATH);
+			_msp_offset = i;
+			return true;
+		}
+	}
+
+	return false;
+}
+#endif
+
 bool CdcAcmAutostart::start_mavlink()
 {
 	char mavlink_mode_string[16];
@@ -541,6 +594,26 @@ bool CdcAcmAutostart::start_nsh()
 	char *argv[] { (char *)"nshterm", (char *)USB_DEVICE_PATH, nullptr };
 	return execute_process(argv) > 0;
 }
+
+#if defined(CONFIG_DRIVERS_ESC_4WAY)
+// The server stops the output drivers itself at the first valid request
+bool CdcAcmAutostart::start_esc_4way()
+{
+	// The detected request was read from the port: hand it and what followed it to esc_4way
+	// as hex, so that the configurator's first request is answered
+	char request[2 * sizeof(_buffer) + 1] {};
+
+	for (int i = _msp_offset; i >= 0 && i < _bytes_read; i++) {
+		snprintf(&request[2 * (i - _msp_offset)], 3, "%02x", (uint8_t)_buffer[i]);
+	}
+
+	_msp_offset = -1;
+
+	char *argv[] { (char *)"esc_4way", (char *)"start", (char *)"-d", (char *)USB_DEVICE_PATH, (char *)"-r", request, nullptr };
+
+	return execute_process(argv) > 0;
+}
+#endif
 
 #if defined(CONFIG_SERIAL_PASSTHRU_UBLOX)
 bool CdcAcmAutostart::start_ublox_serial_passthru(speed_t baudrate)
@@ -650,6 +723,10 @@ int CdcAcmAutostart::print_status()
 
 	case UsbProtocol::ublox:
 		protocol = "ublox";
+		break;
+
+	case UsbProtocol::esc_4way:
+		protocol = "esc_4way";
 		break;
 	}
 

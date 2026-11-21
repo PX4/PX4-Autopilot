@@ -74,6 +74,7 @@
 
 #define CHANNEL_OUTPUT_BUFF_SIZE    17u
 #define CHANNEL_CAPTURE_BUFF_SIZE   32u
+#define BDSHOT_CYCLE_TIMEOUT_US     10000u // a burst and its capture take less than 1 ms
 
 #define DSHOT_OUTPUT_BUFFER_SIZE(channel_count) (DMA_ALIGN_UP(sizeof(uint32_t) * CHANNEL_OUTPUT_BUFF_SIZE * channel_count))
 #define DSHOT_CAPTURE_BUFFER_SIZE(channel_count) (DMA_ALIGN_UP(sizeof(uint16_t)* CHANNEL_CAPTURE_BUFF_SIZE * channel_count))
@@ -969,6 +970,17 @@ void dshot_motor_data_set(uint8_t channel, uint16_t data, bool telemetry)
 int up_dshot_arm(bool armed)
 {
 	int ret = PX4_OK;
+
+	if (!armed) {
+		// A capture in flight ends by claiming its timer's channels as outputs again and enabling
+		// them. Let it finish, so the outputs stay off and the caller can release the pins.
+		const hrt_abstime start = hrt_absolute_time();
+
+		for (int timer_index = 0; timer_index < MAX_IO_TIMERS; timer_index++) {
+			while (!_bdshot_cycle_complete[timer_index] && hrt_elapsed_time(&start) < BDSHOT_CYCLE_TIMEOUT_US) {
+			}
+		}
+	}
 
 	for (int timer_index = 0; timer_index < MAX_IO_TIMERS; timer_index++) {
 		io_timer_channel_mode_t mode = timer_configs[timer_index].bidirectional ? IOTimerChanMode_DshotInverted : IOTimerChanMode_Dshot;

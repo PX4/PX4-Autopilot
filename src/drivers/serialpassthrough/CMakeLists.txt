@@ -44,4 +44,5 @@ px4_add_module(
 
 if(CONFIG_SERIALPASSTHROUGH_BITBANG)
 	target_link_libraries(drivers__serialpassthrough PRIVATE arch_bitbang_uart)
+	add_dependencies(drivers__serialpassthrough output_functions_header)
 endif()
