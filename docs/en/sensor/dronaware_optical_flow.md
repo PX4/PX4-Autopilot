@@ -125,7 +125,7 @@ The firmware sends at most 125 messages per second.
 
 ## Verification
 
-1. In _QGroundControl_ open **Analyze Tools > MAVLink Inspector** and check that `OPTICAL_FLOW_RAD` is received at about 100 Hz (about 67 Hz with an OV2640 camera).
+1. In the [MAVLink Shell](../debug/mavlink_shell.md), run `uorb top sensor_optical_flow` and check that the topic updates at about 100 Hz (about 67 Hz with an OV2640 camera).
 2. In the [MAVLink Shell](../debug/mavlink_shell.md), run `listener sensor_optical_flow` and check that `quality` rises above zero over a textured surface.
 3. With the propellers removed, run `listener estimator_optical_flow_vel` in the MAVLink Shell, hold the vehicle over a textured surface and rotate it about its roll and pitch axes.
    `flow_rate_uncompensated` should follow `gyro_rate`, and `flow_rate_compensated` should stay near zero.
