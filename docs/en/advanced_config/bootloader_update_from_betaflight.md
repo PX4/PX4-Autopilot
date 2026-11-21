@@ -52,7 +52,7 @@ The button can be released after the board has powered up.
 ### dfu-util
 
 ::: info
-The [Holybro Kakute H7 v2](../flight_controller/kakuteh7v2.md), [Holybro Kakute H7](../flight_controller/kakuteh7.md) and [mini](../flight_controller/kakuteh7mini.md) flight controllers may require that you first run an additional command to erase flash parameters (in order to fix problems with parameter saving):
+The [Holybro Kakute H7 v2](../flight_controller/kakuteh7v2.md), [Holybro Kakute H7](../flight_controller/kakuteh7.md) and [mini](../flight_controller/kakuteh7mini.md), and the [DAKEFPV H743](../flight_controller/dakefpv_h743.md), [H743 Pro](../flight_controller/dakefpv_h743pro.md) and [H743 Slim](../flight_controller/dakefpv_h743slim.md) flight controllers may require that you first run an additional command to erase flash parameters (in order to fix problems with parameter saving):
 
 ```
 dfu-util -a 0 --dfuse-address 0x08000000:force:mass-erase:leave -D build/<target>/<target>.bin
@@ -91,6 +91,9 @@ $ make list_config_targets
 cuav_nora_bootloader
 cuav_x7pro_bootloader
 cubepilot_cubeorange_bootloader
+dakefpv_h743_bootloader
+dakefpv_h743pro_bootloader
+dakefpv_h743slim_bootloader
 holybro_durandal-v1_bootloader
 holybro_kakuteh7_bootloader
 holybro_kakuteh7v2_bootloader
