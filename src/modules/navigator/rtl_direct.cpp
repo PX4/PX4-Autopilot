@@ -284,7 +284,7 @@ void RtlDirect::set_rtl_item()
 			PositionYawSetpoint pos_yaw_sp {
 				.lat = loiter_center_lat,
 				.lon = loiter_center_lon,
-				.alt = _rtl_alt,
+				.alt = climbAltitude(),
 				.yaw = _param_wv_en.get() ? NAN : _navigator->get_local_position()->heading,
 			};
 			setLoiterToAltMissionItem(_mission_item, pos_yaw_sp, loiter_radius);
@@ -524,7 +524,7 @@ RtlDirect::RTLState RtlDirect::getActivationState()
 		// For safety reasons don't go into Return if landed.
 		activation_state = RTLState::IDLE;
 
-	} else if ((_global_pos_sub.get().alt < _rtl_alt) || _enforce_rtl_alt) {
+	} else if ((_global_pos_sub.get().alt < climbAltitude()) || _enforce_rtl_alt) {
 		activation_state = RTLState::CLIMBING;
 
 	} else if (geofenceAvoidanceActive()) {
@@ -565,12 +565,16 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 		// Otherwise, we move directly from vehicle position to loiter.
 		matrix::Vector2d pos_before_loiter{_global_pos_sub.get().lat, _global_pos_sub.get().lon};
 
+		// Altitude at which the vehicle starts moving to the loiter
+		float alt_before_loiter = _global_pos_sub.get().alt;
+
 		// Sum up time estimate for various segments of the landing procedure
 		switch (start_state_for_estimate) {
 		case RTLState::CLIMBING: {
-				// Climb segment is only relevant if the drone is below return altitude
-				if ((_global_pos_sub.get().alt < _rtl_alt) || _enforce_rtl_alt) {
-					_rtl_time_estimator.addVertDistance(_rtl_alt - _global_pos_sub.get().alt);
+				// Climb segment is only relevant if the drone is below the climb altitude
+				if ((_global_pos_sub.get().alt < climbAltitude()) || _enforce_rtl_alt) {
+					_rtl_time_estimator.addVertDistance(climbAltitude() - _global_pos_sub.get().alt);
+					alt_before_loiter = climbAltitude();
 				}
 			}
 
@@ -598,7 +602,8 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 					move_to_land_dist = max(0.f, move_to_land_dist - land_approach.loiter_radius_m);
 				}
 
-				_rtl_time_estimator.addDistance(move_to_land_dist, direction, 0.f);
+				// Above the return altitude, e.g. limited by RTL_MAX_ALT, the vehicle descends on the way
+				_rtl_time_estimator.addDistance(move_to_land_dist, direction, _rtl_alt - alt_before_loiter);
 			}
 
 		// FALLTHROUGH
@@ -697,6 +702,12 @@ void RtlDirect::parameters_update()
 		// this class attributes need updating (and do so).
 		updateParams();
 	}
+}
+
+float RtlDirect::climbAltitude() const
+{
+	// An enforced return altitude is reached before the transit, also when it is below the vehicle
+	return _enforce_rtl_alt ? _rtl_alt : _climb_alt;
 }
 
 float RtlDirect::landDelay() const

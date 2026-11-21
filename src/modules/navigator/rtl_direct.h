@@ -108,7 +108,13 @@ public:
 	rtl_time_estimate_s calc_rtl_time_estimate();
 
 	void setReturnAltMin(bool min) { _enforce_rtl_alt = min; }
-	void setRtlAlt(float alt) {_rtl_alt = alt;};
+	/**
+	 * @brief Set the altitudes of the return.
+	 *
+	 * @param rtl_alt AMSL altitude of the return leg to the destination
+	 * @param climb_alt AMSL altitude of the climb at the start of the return, at least rtl_alt
+	 */
+	void setRtlAlt(float rtl_alt, float climb_alt) { _rtl_alt = rtl_alt; _climb_alt = climb_alt; }
 
 	void setRtlPosition(const PositionYawSetpoint &position, const loiter_point_s &loiter_pos,
 			    bool destination_is_current_position = false);
@@ -176,6 +182,9 @@ private:
 
 	void setLoiterPosition();
 
+	/** AMSL altitude of the CLIMBING state */
+	float climbAltitude() const;
+
 	bool _enforce_rtl_alt{false};
 	bool _force_heading{false};
 	bool _destination_is_current_position{false}; ///< No landing altitude is known for a stop at the current position.
@@ -185,6 +194,7 @@ private:
 	PositionYawSetpoint _destination{(double)NAN, (double)NAN, NAN, NAN}; ///< the return position to fly to
 	loiter_point_s _land_approach;
 	float _rtl_alt{0.0f}; ///< AMSL altitude at which the vehicle should transit to the destination
+	float _climb_alt{0.0f}; ///< AMSL altitude to climb to before the transit, e.g. above _rtl_alt with RTL_MAX_ALT
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RTL_DESCEND_ALT>) _param_rtl_descend_alt,
