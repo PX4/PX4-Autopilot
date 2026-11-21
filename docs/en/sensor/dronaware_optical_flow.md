@@ -41,6 +41,8 @@ Connect the board to a spare flight controller UART (for example `TELEM2`):
 
 The firmware only transmits, so the flight controller TX to board RX line is unused (see [MAVLink Messages](#mavlink-messages)).
 Both sides use 3.3 V logic, so no level shifter is needed.
+Power the board as specified by its manufacturer.
+The AI-Thinker ESP32-CAM takes 5 V on its 5V pin; check other boards' requirements before powering them from the flight controller.
 
 ::: tip
 ESP32 camera boards draw current in short bursts while capturing frames.
