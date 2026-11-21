@@ -60,6 +60,7 @@ void Ekf::controlRangeHaglFusion(const imuSample &imu_sample)
 		_range_sensor.setMaxFogDistance(_params.ekf2_rng_fog);
 
 		_range_sensor.runChecks(imu_sample.time_us, _R_to_earth);
+		_control_status.flags.rng_stuck = _range_sensor.isStuck();
 
 		if (_range_sensor.isDataHealthy()) {
 			// correct the range data for position offset relative to the IMU
