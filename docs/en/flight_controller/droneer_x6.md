@@ -54,7 +54,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 ### Electrical Data {#electrical_data}
 
 - **Nominal input voltage:** 5V
-- **`POWER 1`, `POWER 2` input:** 4.75-5.25V (0V to 6V undamaged)
+- **`POWER 1` and `POWER 2` input:** 4.75-5.25V (0V to 6V undamaged)
 - **USB input:** 4.75-5.25V (0V to 5.5V undamaged)
 - **Servo rail input:** 0-9.9V (0V to 36V undamaged)
 - **Output current limits:** all ports combined: 1.5A
