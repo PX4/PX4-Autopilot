@@ -57,12 +57,6 @@ __BEGIN_DECLS
 #pragma pack(push, 1)
 typedef   uint8_t dsm_frame_t[DSM_BUFFER_SIZE]; /**< DSM dsm frame receive buffer */
 typedef   uint8_t dsm_buf_t[DSM_FRAME_SIZE * 2]; // Define working buffer
-
-typedef  struct dsm_decode_t {
-	dsm_frame_t frame;
-	dsm_buf_t buf;
-} dsm_decode_t;
-
 #pragma pack(pop)
 
 __EXPORT int	dsm_init(const char *device);

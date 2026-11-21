@@ -15,7 +15,6 @@ typedef  struct rc_decode_buf_ {
 	union {
 		crsf_frame_t crsf_frame;
 		ghst_frame_t ghst_frame;
-		dsm_decode_t dsm;
 		sbus_frame_t sbus_frame;
 		ReceiverFcPacket _strxpacket;
 		ReceiverFcPacketHoTT _hottrxpacket;
