@@ -4,9 +4,10 @@
 
 ::: warning
 PX4 does not manufacture this (or any) autopilot.
+Contact the [manufacturer](http://www.x-mav.cn/) for hardware support or compliance issues.
 :::
 
-The AP-H743v3 is a flight controller designed and manufactured by [X-MAV](http://www.x-mav.cn/)
+The AP-H743v3 is a flight controller designed and manufactured by [X-MAV](http://www.x-mav.cn/).
 
 ![AP-H743v3 Front View](../../assets/flight_controller/x-mav_ap-h743v3/ap-h743v3_front_view.png)
 
@@ -18,34 +19,35 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Processor {#processor}
 
-- FMU Processor: STM32H743 microcontroller
+- **Main FMU processor:** STM32H743VI (Arm Cortex-M7 at 480MHz, 2MB flash, 1MB RAM)
 
 ### Sensors {#sensors}
 
-- Accel/Gyro: BMI088/ICM45686 (dual IMUs)
-- Mag: QMC5883P
-- Barometer: SPA06
-- OSD: AT7456E
+- **IMU:** BMI088 (SPI1), ICM-45686 (SPI4)
+- **Barometer:** SPA06 (I2C1)
+- **Magnetometer:** QMC5883P (I2C1)
 
 ### Interfaces {#interfaces}
 
-- 8 UARTs
-- 8 PWM outputs
-- 2 CAN
-- 1 I2C
-- 1 SWD
-- MicroSD Card Slot
+- **PWM outputs:** 8
+- **Serial ports:** 8
+- **I2C buses:** 1 external (I2C4)
+- **CAN buses:** 2
+- **USB:** USB Type-C
+- **SD card:** microSD slot
+- **OSD:** AT7456E analog OSD
+- **Debug:** SWD
 
 ### Electrical Data {#electrical_data}
 
-- Support 2-8S(6-35V) Input
-- 12V 2A BEC; 5V 2A BEC
+- **Input voltage:** 2-8S (6-35V)
+- **BEC outputs:** 12V 2A, 5V 2A
 
 ### Mechanical Data {#mechanical_data}
 
-- Mounting: 30.5 x 30.5mm, Φ4mm
-- Dimensions: 36 x 36 x 8 mm
-- Weight: 9g
+- **Mounting holes:** 30.5 x 30.5mm, Φ4mm
+- **Dimensions:** 36 x 36 x 8mm
+- **Weight:** 9g
 
 ## Where to Buy {#store}
 
@@ -54,54 +56,63 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 ## Pinouts {#pinouts}
 
 ::: info
-All the connectors used on the board are SH1.0
+All the connectors used on the board are SH1.0.
 :::
 
-![X-MAV AP-H743v3 Front View](../../assets/flight_controller/x-mav_ap-h743v3/ap-h743v3_top_port.png)
+![X-MAV AP-H743v3 top connectors](../../assets/flight_controller/x-mav_ap-h743v3/ap-h743v3_top_port.png)
 
-![X-MAV AP-H743v3 Back View](../../assets/flight_controller/x-mav_ap-h743v3/ap-h743v3_bottom_port.png)
+![X-MAV AP-H743v3 bottom connectors](../../assets/flight_controller/x-mav_ap-h743v3/ap-h743v3_bottom_port.png)
 
 ## Power {#power}
 
-The board has an internal voltage sensor and connections on the ESC connector for an external current sensor input.
+The board is powered from the `VBAT` and `GND` pins of the ESC connector.
+It measures the battery voltage on `VBAT`, and reads an external current sensor on the `Curr` pin.
 The voltage sensor can handle up to 8S LiPo batteries.
 
 The default battery parameters are:
 
-- BAT1_A_PER_V 17
-- BAT1_N_CELLS 4
-- BAT1_V_CHARGED 4.2
-- BAT1_V_DIV 12.11
-- BAT1_V_EMPTY 3.2
+- [BAT1_A_PER_V](../advanced_config/parameter_reference.md#BAT1_A_PER_V): 17
+- [BAT1_N_CELLS](../advanced_config/parameter_reference.md#BAT1_N_CELLS): 4
+- [BAT1_V_CHARGED](../advanced_config/parameter_reference.md#BAT1_V_CHARGED): 4.2
+- [BAT1_V_DIV](../advanced_config/parameter_reference.md#BAT1_V_DIV): 12.11
+- [BAT1_V_EMPTY](../advanced_config/parameter_reference.md#BAT1_V_EMPTY): 3.2
 
-**Note**: These default multipliers are starting values. Since the current sensor is external (located on the ESC connector), you must adjust `BAT1_A_PER_V` according to your specific current sensor's characteristics.
+::: info
+These defaults are starting values.
+Set `BAT1_A_PER_V` to match your current sensor.
+See [Battery Estimation Tuning](../config/battery.md) for more information.
+:::
 
 ## PWM Outputs {#pwm_outputs}
 
 The AP-H743v3 supports up to 8 PWM outputs.
 
-All the channels support DShot and BiDir DShot.
+All outputs support [DShot](../peripherals/dshot.md) and [bidirectional DShot](../peripherals/dshot.md#bidirectional-dshot-telemetry).
+Outputs 1-4 default to DShot300.
 
-Outputs are grouped and every output within a group must use the same output protocol:
+Outputs are grouped, and all outputs within the same group must use the same output protocol and rate:
 
-1, 2, 3, 4 are Group 1;
+- Group 1: outputs 1-4 (Timer1)
+- Group 2: outputs 5-6 (Timer3)
+- Group 3: outputs 7-8 (Timer2)
 
-5, 6 are Group 2;
+## SD Card (Optional) {#sd_card}
 
-7, 8 are Group 3;
+The AP-H743v3 has a microSD card slot.
+For information about choosing and using an SD card see [SD Cards (Removable Memory)](../getting_started/px4_basic_concepts.md#sd-cards-removable-memory).
 
 ## Serial Port Mapping {#serial_port_mapping}
 
-| UART   | Device     | Port          |
-| ------ | ---------- | ------------- |
-| USART1 | /dev/ttyS0 | GPS1          |
-| USART2 | /dev/ttyS1 | TELEM1        |
-| USART3 | /dev/ttyS2 | EXT2          |
-| UART4  | /dev/ttyS3 | TELEM2        |
-| UART5  | /dev/ttyS4 | RC            |
-| USART6 | /dev/ttyS5 | TELEM3        |
-| UART7  | /dev/ttyS6 | ESC telemetry |
-| UART8  | /dev/ttyS7 | TELEM4        |
+| UART   | Device     | Port                         |
+| ------ | ---------- | ---------------------------- |
+| USART1 | /dev/ttyS0 | `GPS`                        |
+| USART2 | /dev/ttyS1 | `TELEM1`                     |
+| USART3 | /dev/ttyS2 | DJI O3 Air Unit (`EXT2`)     |
+| UART4  | /dev/ttyS3 | `TELEM2`                     |
+| UART5  | /dev/ttyS4 | `SBUS/CRSF`                  |
+| USART6 | /dev/ttyS5 | `TELEM3`                     |
+| UART7  | /dev/ttyS6 | ESC telemetry (`RX7` on ESC) |
+| UART8  | /dev/ttyS7 | `TELEM4`                     |
 
 ## Assembly {#assembly}
 
@@ -114,8 +125,32 @@ Outputs are grouped and every output within a group must use the same output pro
 
 A [Radio Control (RC) system](../getting_started/rc_transmitter_receiver.md) is required if you want to manually control your vehicle (PX4 does not require a radio system for autonomous flight modes).
 
-The RC port is connected to the FMU and you can attach a receiver that uses the protocols `DSM`, `SBUS`, `CSRF`, `GHST`, or other protocol listed in [Radio Control modules](../modules/modules_driver_radio_control.md).
-You will need to enable the protocol by setting the corresponding parameter `RC_xxxx_PRT_CFG`, such as [RC_CRSF_PRT_CFG](../advanced_config/parameter_reference.md#RC_CRSF_PRT_CFG) for a [CRSF receiver](../telemetry/crsf_telemetry.md).
+The `SBUS/CRSF` port is connected to the FMU (UART5).
+You can attach a receiver that uses DSM, S.BUS, CRSF, GHST, or another protocol listed in [Radio Control modules](../modules/modules_driver_radio_control.md).
+PX4 detects the protocol automatically ([RC_INPUT_PROTO](../advanced_config/parameter_reference.md#RC_INPUT_PROTO)).
+
+### GPS & Compass {#gps_compass}
+
+The `GPS` port carries GPS (USART1) and I2C (I2C4), for a [GPS/compass module](../gps_compass/index.md).
+The board also has an onboard QMC5883P magnetometer.
+See [Mounting a GPS/Compass](../assembly/mount_gps_compass.md) for more information.
+
+### Telemetry Radios (Optional) {#telemetry}
+
+The board has four [telemetry](../telemetry/index.md) ports, `TELEM1` to `TELEM4`.
+A telemetry radio connected to `TELEM1` needs no further configuration.
+
+### CAN {#can}
+
+The board has two CAN ports, `CAN1` and `CAN2`, for [DroneCAN](../dronecan/index.md) peripherals.
+DroneCAN is not enabled by default: set [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) to enable it.
+
+### OSD {#osd}
+
+The onboard AT7456E [analog OSD](../peripherals/osd.md#atxxxx-analog-osd) overlays PX4 status on the video from the camera on `VIDEO-IN`, and outputs it on `VIDEO-OUT` to an analog VTX.
+It is disabled by default: set [OSD_ATXXXX_CFG](../advanced_config/parameter_reference.md#OSD_ATXXXX_CFG) to `NTSC` or `PAL` and reboot.
+
+For an HD system, connect the air unit to the DJI O3 Air Unit connector and configure [MSP OSD](../peripherals/osd.md#msp-osd) on `EXT2`.
 
 ## Building Firmware {#building_firmware}
 
@@ -143,11 +178,15 @@ The firmware can be installed in any of the normal ways:
 Any multicopter / airplane / rover or boat that can be controlled with normal RC servos or Futaba S-Bus servos.
 The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
 
+The default airframe is Generic Quadcopter ([SYS_AUTOSTART](../advanced_config/parameter_reference.md#SYS_AUTOSTART) `4001`).
+
 ## Debug Port {#debug_port}
+
+The board has no serial [System Console](../debug/system_console.md).
 
 ### SWD {#swd}
 
-The SWD interface is located on the **bottom side** of the board (see Back View above).
+The [SWD](../debug/swd_debug.md) port is a 4-pin connector on the bottom side of the board (see [Pinouts](#pinouts)).
 Pin definitions (from left to right):
 
 | Pin | Signal     |
