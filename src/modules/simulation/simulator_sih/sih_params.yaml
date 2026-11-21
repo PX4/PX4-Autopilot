@@ -345,6 +345,7 @@ parameters:
         4: Hexacopter
         5: Rover Ackermann
         6: Rover Differential
+        7: Rover Mecanum
       default: 0
       reboot_required: true
     SIH_WIND_N:

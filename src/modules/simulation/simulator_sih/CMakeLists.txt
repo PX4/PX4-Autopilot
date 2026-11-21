@@ -88,6 +88,7 @@ if(PX4_PLATFORM MATCHES "posix")
 		hex
 		rover_ackermann
 		rover_differential
+		rover_mecanum
 	)
 
 	# find corresponding airframes

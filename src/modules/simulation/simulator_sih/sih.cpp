@@ -504,6 +504,8 @@ uint8_t Sih::num_motors() const
 
 	case VehicleType::RoverDifferential: return 2; // right wheel at 0, left wheel at 1
 
+	case VehicleType::RoverMecanum: return 4; // right front, left front, right back, left back
+
 	default:                          return 0;
 	}
 }
@@ -638,6 +640,9 @@ void Sih::generate_force_and_torques(const float dt)
 
 	} else if (_vehicle == VehicleType::RoverDifferential) {
 		generate_rover_differential_dynamics(_u[0], _u[1]);
+
+	} else if (_vehicle == VehicleType::RoverMecanum) {
+		generate_rover_mecanum_dynamics(_u[0], _u[1], _u[2], _u[3]);
 	}
 }
 
@@ -790,6 +795,59 @@ void Sih::generate_rover_differential_dynamics(const float right_cmd, const floa
 	_Ma_B = -_KDW * _w_B; // [Nm] First order angular damper
 }
 
+void Sih::generate_rover_mecanum_dynamics(const float right_front_cmd, const float left_front_cmd,
+		const float right_back_cmd, const float left_back_cmd)
+{
+	// Mecanum model: the rollers at 45 degrees let each wheel push the rover forwards and sideways at once. Each wheel is
+	// driven towards the speed its motor command asks for, with the force limited by the traction of the wheel.
+	// The wheel signs match the inverse kinematics in MecanumActControl::computeInverseKinematics().
+	static constexpr float WHEEL_TRACK = 0.6f;     // [m] Distance between the left and right wheels, matches RM_WHEEL_TRACK
+	static constexpr float MAX_WHEEL_SPEED = 2.f;  // [m/s] Wheel speed at full motor command, matches RO_MAX_THR_SPEED
+	static constexpr float WHEEL_SPEED_TAU = 0.2f; // [s] Time constant of the wheel speed response
+	static constexpr float MU = 0.8f;              // [-] Friction coefficient between the wheels and the ground
+
+	// Order of the wheels: right front, left front, right back, left back (motors 1 to 4)
+	static constexpr float LATERAL_SIGN[4] {-1.f, 1.f, 1.f, -1.f}; // moving right speeds up the left front and right back wheels
+	static constexpr float YAW_SIGN[4] {-1.f, 1.f, -1.f, 1.f};     // turning right slows down the right wheels
+	const float wheel_cmd[4] {right_front_cmd, left_front_cmd, right_back_cmd, left_back_cmd};
+
+	const Vector3f v_B = _q.rotateVectorInverse(_v_N); // Nav -> Body
+	const float yaw_rate = _w_B(2); // [rad/s] positive when turning right
+
+	const float wheel_gain = _MASS / (4.f * WHEEL_SPEED_TAU); // [N/(m/s)] per wheel, the body speed responds with WHEEL_SPEED_TAU
+	const float max_wheel_force = MU * _MASS * CONSTANTS_ONE_G / 4.f; // [N] the weight is shared by the four wheels
+
+	// Wheel forces [N] and the yaw moment they make [Nm]
+	float F_x = 0.f;
+	float F_y = 0.f;
+	float M_z = 0.f;
+
+	for (int i = 0; i < 4; i++) {
+		// Speed of the wheel along the direction it drives [m/s]
+		const float v_wheel = v_B(0) + LATERAL_SIGN[i] * v_B(1) + YAW_SIGN[i] * yaw_rate * WHEEL_TRACK / 2.f;
+		const float F_wheel = constrain(wheel_gain * (MAX_WHEEL_SPEED * wheel_cmd[i] - v_wheel), -max_wheel_force,
+						max_wheel_force);
+		F_x += F_wheel;
+		F_y += LATERAL_SIGN[i] * F_wheel;
+		M_z += YAW_SIGN[i] * F_wheel * WHEEL_TRACK / 2.f;
+	}
+
+	// The wheels turn with the body, so in a turn they also provide the centripetal force that keeps the body speed
+	// steady, otherwise the rover would drift out of the turn. The total force is limited by the traction of all wheels.
+	Vector2f F_xy(F_x - _MASS * yaw_rate * v_B(1), F_y + _MASS * yaw_rate * v_B(0));
+	const float max_force = MU * _MASS * CONSTANTS_ONE_G;
+
+	if (F_xy.norm() > max_force) {
+		F_xy = F_xy.normalized() * max_force;
+	}
+
+	_T_B = Vector3f(F_xy(0), F_xy(1), 0.f); // Forces [N]
+	_Mt_B = Vector3f(0.f, 0.f, M_z); // Moments [Nm]
+
+	_Fa_E = Vector3f(); // [N] Second order drag and friction: rolling resistance is part of the wheel speed response, no aerodynamic drag at rover speeds
+	_Ma_B = -_KDW * _w_B; // [Nm] First order angular damper
+}
+
 void Sih::equations_of_motion(const float dt)
 {
 	const Vector3f gravity_acceleration_E = Vector3f(_R_N2E.col(2)) * LatLonAlt::Wgs84::gravity(
@@ -820,7 +878,8 @@ void Sih::equations_of_motion(const float dt)
 
 		} else if (_vehicle == VehicleType::FixedWing
 			   || _vehicle == VehicleType::RoverAckermann
-			   || _vehicle == VehicleType::RoverDifferential) {
+			   || _vehicle == VehicleType::RoverDifferential
+			   || _vehicle == VehicleType::RoverMecanum) {
 			Vector3f down_u = _R_N2E.col(2);
 			ground_force_E = -down_u * sum_of_forces_E * down_u;
 
@@ -1372,6 +1431,9 @@ int Sih::print_status()
 
 	} else if (_vehicle == VehicleType::RoverDifferential) {
 		PX4_INFO("Rover Differential");
+
+	} else if (_vehicle == VehicleType::RoverMecanum) {
+		PX4_INFO("Rover Mecanum");
 	}
 
 	_terrain.printStatus();
