@@ -99,6 +99,10 @@ class AutopilotTesterPusherFailure(AutopilotTester):
         self.set_param_float("SIH_WIND_E", wind.from_east_m_s)
         self.sleep_for(settle_s)
 
+    def keep_heading(self) -> None:
+        """Turn weathervane off, so the nose stays north and the wind a head- or tailwind."""
+        self.set_param_int("WV_EN", 0)
+
     def start_multicopter_mission(self, waypoints: List[Tuple[float, float]],
                                   altitude_m: float) -> None:
         """Fly to each (north, east) waypoint relative to home in multicopter mode and land at
@@ -176,6 +180,13 @@ class AutopilotTesterPusherFailure(AutopilotTester):
         assert self._pusher_failure_time_s is not None, "fail_pusher() was not called"
         return self.wait_for_quadchute(
             self._pusher_failure_time_s, timeout_s, PUSHER_QUADCHUTE_EVENT)
+
+    def start_front_transition(self) -> float:
+        """Command a front transition, return the time it was commanded once it started."""
+        transition_time_s = self.time_s()
+        self.transition_to_fixedwing()
+        self.wait_until_transition_started(transition_time_s, 5)
+        return transition_time_s
 
     def try_transition_to_fixedwing(self) -> None:
         """Command a front transition once; it may be denied."""
