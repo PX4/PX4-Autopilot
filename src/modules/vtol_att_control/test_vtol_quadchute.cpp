@@ -100,15 +100,15 @@ protected:
 	}
 
 	// Pusher command of one Run() cycle, update_mc_state() only runs on a new attitude setpoint
-	float runCycle(VtolAttitudeControl &attc, Standard &standard, bool new_attitude_setpoint)
+	float runCycle(VtolAttitudeControl &attc, VtolType &vtol, bool new_attitude_setpoint)
 	{
-		standard.update_vtol_state();
+		vtol.update_vtol_state();
 
 		if (new_attitude_setpoint) {
-			standard.update_mc_state();
+			vtol.update_mc_state();
 		}
 
-		standard.fill_actuator_outputs();
+		vtol.fill_actuator_outputs();
 		return attc.get_thrust_setpoint_0()->xyz[0];
 	}
 };
@@ -141,8 +141,8 @@ TEST_F(VtolQuadchutePusherTest, DetectedQuadchuteStopsPusherAssist)
 	EXPECT_FALSE(PX4_ISFINITE(runCycle(attc, standard, true)));
 }
 
-// Pusher failures detected in multicopter mode block front transitions until VT_EF_TIME is set to 0 or reboot.
-class VtolPusherFailureTest : public VtolQuadchutePusherTest
+// Forward propulsion failures detected in multicopter mode block front transitions until VT_EF_TIME is set to 0 or reboot.
+class VtolForwardPropulsionFailureTest : public VtolQuadchutePusherTest
 {
 protected:
 	void SetUp() override
@@ -156,6 +156,7 @@ protected:
 	void TearDown() override
 	{
 		param_reset(param_find("VT_EF_TIME"));
+		param_reset(param_find("VT_TILT_MC"));
 		VtolQuadchutePusherTest::TearDown();
 	}
 
@@ -181,13 +182,15 @@ protected:
 		attc.vehicle_cmd_poll();
 	}
 
+	QuadchuteReason quadchuteReason(const VtolAttitudeControl &attc) const { return attc._quadchute_reason; }
+
 	// Fly multicopter mode until the quad-chute or the timeout, returns the flight time
-	hrt_abstime fly(VtolAttitudeControl &attc, Standard &standard, hrt_abstime timeout)
+	hrt_abstime fly(VtolAttitudeControl &attc, VtolType &vtol, hrt_abstime timeout)
 	{
 		const hrt_abstime start = hrt_absolute_time();
 
 		while (!attc.is_fixed_wing_system_failure() && hrt_elapsed_time(&start) < timeout) {
-			runCycle(attc, standard, true);
+			runCycle(attc, vtol, true);
 			px4_usleep(10_ms);
 		}
 
@@ -195,7 +198,7 @@ protected:
 	}
 };
 
-TEST_F(VtolPusherFailureTest, NoForwardMotionIsPusherFailure)
+TEST_F(VtolForwardPropulsionFailureTest, NoForwardMotionIsForwardPropulsionFailure)
 {
 	VtolAttitudeControl attc;
 	Standard standard(&attc);
@@ -205,7 +208,7 @@ TEST_F(VtolPusherFailureTest, NoForwardMotionIsPusherFailure)
 	EXPECT_TRUE(attc.is_fixed_wing_system_failure());
 	EXPECT_GE(flight_time, 100_ms); // not before VT_EF_TIME
 
-	// a front transition command clears the reason, the next update detects the latched pusher failure again
+	// a front transition command clears the reason, the next update detects the latched forward propulsion failure again
 	commandFrontTransition(attc);
 	ASSERT_TRUE(attc.is_fixed_wing_requested());
 	ASSERT_FALSE(attc.is_quadchute_active());
@@ -214,7 +217,7 @@ TEST_F(VtolPusherFailureTest, NoForwardMotionIsPusherFailure)
 	EXPECT_EQ(standard.get_mode(), mode::ROTARY_WING);
 }
 
-TEST_F(VtolPusherFailureTest, DisablingDetectionAllowsFrontTransitions)
+TEST_F(VtolForwardPropulsionFailureTest, DisablingDetectionAllowsFrontTransitions)
 {
 	VtolAttitudeControl attc;
 	Standard standard(&attc);
@@ -235,7 +238,7 @@ TEST_F(VtolPusherFailureTest, DisablingDetectionAllowsFrontTransitions)
 	EXPECT_EQ(standard.get_mode(), mode::TRANSITION_TO_FW);
 }
 
-TEST_F(VtolPusherFailureTest, PusherFailureReplacesCommandedQuadchute)
+TEST_F(VtolForwardPropulsionFailureTest, ForwardPropulsionFailureReplacesCommandedQuadchute)
 {
 	VtolAttitudeControl attc;
 	Standard standard(&attc);
@@ -250,7 +253,7 @@ TEST_F(VtolPusherFailureTest, PusherFailureReplacesCommandedQuadchute)
 	EXPECT_FALSE(PX4_ISFINITE(runCycle(attc, standard, true)));
 }
 
-TEST_F(VtolPusherFailureTest, ForwardVelocityCloseToSetpointIsNoPusherFailure)
+TEST_F(VtolForwardPropulsionFailureTest, ForwardVelocityCloseToSetpointIsNoForwardPropulsionFailure)
 {
 	VtolAttitudeControl attc;
 	Standard standard(&attc);
@@ -260,7 +263,7 @@ TEST_F(VtolPusherFailureTest, ForwardVelocityCloseToSetpointIsNoPusherFailure)
 	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
 }
 
-TEST_F(VtolPusherFailureTest, MovingBackwardWhenHoldingPositionIsPusherFailure)
+TEST_F(VtolForwardPropulsionFailureTest, MovingBackwardWhenHoldingPositionIsForwardPropulsionFailure)
 {
 	VtolAttitudeControl attc;
 	Standard standard(&attc);
@@ -270,7 +273,7 @@ TEST_F(VtolPusherFailureTest, MovingBackwardWhenHoldingPositionIsPusherFailure)
 	EXPECT_TRUE(attc.is_fixed_wing_system_failure());
 }
 
-TEST_F(VtolPusherFailureTest, PusherAssistBelowThresholdIsNoPusherFailure)
+TEST_F(VtolForwardPropulsionFailureTest, PusherAssistBelowThresholdIsNoForwardPropulsionFailure)
 {
 	VtolAttitudeControl attc;
 	Standard standard(&attc);
@@ -278,4 +281,53 @@ TEST_F(VtolPusherFailureTest, PusherAssistBelowThresholdIsNoPusherFailure)
 
 	fly(attc, standard, 300_ms);
 	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
+}
+
+// A tiltrotor assists with forward tilt instead of a pusher, which the same detection checks
+TEST_F(VtolForwardPropulsionFailureTest, TiltrotorWithoutForwardMotionIsForwardPropulsionFailure)
+{
+	VtolAttitudeControl attc;
+	Tiltrotor tiltrotor(&attc);
+	setHover(attc, 0.f);
+
+	fly(attc, tiltrotor, 2_s);
+	EXPECT_EQ(quadchuteReason(attc), QuadchuteReason::ForwardPropulsionFailure);
+	EXPECT_FLOAT_EQ(tiltrotor.pusher_assist(), 0.f); // the tilt goes back to VT_TILT_MC
+
+	// latched: a front transition command does not start a transition
+	commandFrontTransition(attc);
+	ASSERT_FALSE(attc.is_quadchute_active());
+	tiltrotor.update_vtol_state();
+	EXPECT_TRUE(attc.is_fixed_wing_system_failure());
+	EXPECT_EQ(tiltrotor.get_mode(), mode::ROTARY_WING);
+}
+
+TEST_F(VtolForwardPropulsionFailureTest, TiltrotorTiltAssistBelowThresholdIsNoForwardPropulsionFailure)
+{
+	// only the tilt above VT_TILT_MC counts: 0.1 + 0.35 of tilt assist is still below VT_EF_THROT (0.4)
+	const float tilt_mc = 0.1f;
+	param_set(param_find("VT_TILT_MC"), &tilt_mc);
+	VtolAttitudeControl attc;
+	Tiltrotor tiltrotor(&attc);
+	setHover(attc, 0.f, 5.f, -30.f);
+
+	fly(attc, tiltrotor, 300_ms);
+	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
+}
+
+TEST_F(VtolForwardPropulsionFailureTest, TiltrotorDisablingDetectionAllowsFrontTransitions)
+{
+	VtolAttitudeControl attc;
+	Tiltrotor tiltrotor(&attc);
+	setHover(attc, 0.f);
+	fly(attc, tiltrotor, 2_s);
+	ASSERT_TRUE(attc.is_fixed_wing_system_failure());
+
+	const float ef_time = 0.f;
+	param_set(param_find("VT_EF_TIME"), &ef_time);
+	static_cast<VtolType &>(tiltrotor).parameters_update();
+	commandFrontTransition(attc);
+	tiltrotor.update_vtol_state();
+	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
+	EXPECT_EQ(tiltrotor.get_mode(), mode::TRANSITION_TO_FW);
 }

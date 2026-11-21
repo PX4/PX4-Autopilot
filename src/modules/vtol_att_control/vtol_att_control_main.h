@@ -154,7 +154,7 @@ public:
 	float get_calibrated_airspeed() { return _calibrated_airspeed; }
 
 private:
-	friend class VtolPusherFailureTest; // exercises front transition commands after a pusher failure
+	friend class VtolForwardPropulsionFailureTest; // exercises front transition commands after a forward propulsion failure
 
 	void Run() override;
 	uORB::SubscriptionCallbackWorkItem _vehicle_torque_setpoint_virtual_fw_sub{this, ORB_ID(vehicle_torque_setpoint_virtual_fw)};
