@@ -225,40 +225,73 @@ Takeoff::set_takeoff_position()
 {
 	struct position_setpoint_triplet_s *rep = _navigator->get_takeoff_triplet();
 
+
 	float takeoff_altitude_amsl = 0.f;
 
-	if (rep->current.valid && PX4_ISFINITE(rep->current.alt)) {
-		takeoff_altitude_amsl = rep->current.alt;
+	if (rep->current.frame == position_setpoint_s::FRAME_GLOBAL) {
 
-	} else {
-		takeoff_altitude_amsl = _navigator->get_global_position()->alt + _navigator->get_param_mis_takeoff_alt();
-		mavlink_log_info(_navigator->get_mavlink_log_pub(),
-				 "Using default takeoff altitude: %.1f m\t", (double)_navigator->get_param_mis_takeoff_alt());
+		if (rep->current.valid && PX4_ISFINITE(rep->current.alt)) {
+			takeoff_altitude_amsl = rep->current.alt;
 
-		events::send<float>(events::ID("navigator_takeoff_default_alt"), {events::Log::Info, events::LogInternal::Info},
-				    "Using default takeoff altitude: {1:.2m}",
-				    _navigator->get_param_mis_takeoff_alt());
-	}
+		} else {
+			takeoff_altitude_amsl = _navigator->get_global_position()->alt + _navigator->get_param_mis_takeoff_alt();
+			mavlink_log_info(_navigator->get_mavlink_log_pub(),
+					 "Using default takeoff altitude: %.1f m\t", (double)_navigator->get_param_mis_takeoff_alt());
 
-	if (takeoff_altitude_amsl < _navigator->get_global_position()->alt) {
-		// If the suggestion is lower than our current alt, let's not go down.
-		takeoff_altitude_amsl = _navigator->get_global_position()->alt;
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Already higher than takeoff altitude\t");
-		events::send(events::ID("navigator_takeoff_already_higher"), {events::Log::Error, events::LogInternal::Info},
-			     "Already higher than takeoff altitude (not descending)");
-	}
-
-	if (!PX4_ISFINITE(_loiter_altitude_msl)) {
-		_loiter_altitude_msl = takeoff_altitude_amsl;
-
-		if (_navigator->get_loiter_min_alt() > FLT_EPSILON) {
-			_loiter_altitude_msl = math::max(_loiter_altitude_msl, takeoff_altitude_amsl + _navigator->get_loiter_min_alt());
-
+			events::send<float>(events::ID("navigator_takeoff_default_alt"), {events::Log::Info, events::LogInternal::Info},
+					    "Using default takeoff altitude: {1:.2m}",
+					    _navigator->get_param_mis_takeoff_alt());
 		}
+
+		if (takeoff_altitude_amsl < _navigator->get_global_position()->alt) {
+			// If the suggestion is lower than our current alt, let's not go down.
+			takeoff_altitude_amsl = _navigator->get_global_position()->alt;
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Already higher than takeoff altitude\t");
+			events::send(events::ID("navigator_takeoff_already_higher"), {events::Log::Error, events::LogInternal::Info},
+				     "Already higher than takeoff altitude (not descending)");
+		}
+
+		set_takeoff_item(&_mission_item, takeoff_altitude_amsl);
+
+		if (!PX4_ISFINITE(_loiter_altitude_msl)) {
+			_loiter_altitude_msl = takeoff_altitude_amsl;
+
+			if (_navigator->get_loiter_min_alt() > FLT_EPSILON) {
+				_loiter_altitude_msl = math::max(_loiter_altitude_msl, takeoff_altitude_amsl + _navigator->get_loiter_min_alt());
+
+			}
+		}
+
+	} else if (rep->current.frame == position_setpoint_s::FRAME_LOCAL_NED) {
+
+		float takeoff_height = 0.f;
+
+		if (rep->current.valid && PX4_ISFINITE(rep->current.z)) {
+			takeoff_height = rep->current.z;
+
+		} else {
+			takeoff_height = _navigator->get_local_position()->z - _navigator->get_param_mis_takeoff_alt();
+			mavlink_log_info(_navigator->get_mavlink_log_pub(),
+					 "Using default takeoff altitude: %.1f m\t", (double)_navigator->get_param_mis_takeoff_alt());
+
+			events::send<float>(events::ID("navigator_local_takeoff_default_alt"), {events::Log::Info, events::LogInternal::Info},
+					    "Using default takeoff altitude: {1:.2m}",
+					    _navigator->get_param_mis_takeoff_alt());
+		}
+
+		if (takeoff_height > _navigator->get_local_position()->z) {
+			// If the suggestion is lower than our current alt, let's not go down.
+			takeoff_height = _navigator->get_local_position()->z;
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Already higher than takeoff altitude\t");
+			events::send(events::ID("navigator_local_takeoff_already_higher"), {events::Log::Error, events::LogInternal::Info},
+				     "Already higher than takeoff altitude (not descending)");
+		}
+
+		set_local_takeoff_item(&_mission_item, takeoff_height);
+
 	}
 
 	// set current mission item to takeoff
-	set_takeoff_item(&_mission_item, takeoff_altitude_amsl);
 	_navigator->get_mission_result()->finished = false;
 	_navigator->set_mission_result_updated();
 	reset_mission_item_reached();
@@ -277,10 +310,18 @@ Takeoff::set_takeoff_position()
 			pos_sp_triplet->current.yaw = rep->current.yaw;
 		}
 
-		// Set the current latitude and longitude even if they are NAN
-		// NANs are handled in FlightTaskAuto.cpp
-		pos_sp_triplet->current.lat = rep->current.lat;
-		pos_sp_triplet->current.lon = rep->current.lon;
+		if (pos_sp_triplet->current.frame == position_setpoint_s::FRAME_LOCAL_NED) {
+			pos_sp_triplet->current.lat = static_cast<double>(NAN);
+			pos_sp_triplet->current.lon = static_cast<double>(NAN);
+			pos_sp_triplet->current.x = rep->current.x;
+			pos_sp_triplet->current.y = rep->current.y;
+
+		} else {
+			pos_sp_triplet->current.lat = rep->current.lat;
+			pos_sp_triplet->current.lon = rep->current.lon;
+			pos_sp_triplet->current.x = NAN;
+			pos_sp_triplet->current.y = NAN;
+		}
 
 		// mark this as done
 		memset(rep, 0, sizeof(*rep));

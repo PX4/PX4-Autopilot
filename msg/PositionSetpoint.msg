@@ -9,19 +9,37 @@ uint8 SETPOINT_TYPE_TAKEOFF=3	# takeoff setpoint
 uint8 SETPOINT_TYPE_LAND=4	# land setpoint, altitude must be ignored, descend until landing
 uint8 SETPOINT_TYPE_IDLE=5	# do nothing, switch off motors or keep at idle speed (MC)
 
+# Frame of reference for the lat/lon/alt fields (param5/6/7), mirrors MAV_FRAME.
+# Only frames relevant to position-bearing commands are listed.
+uint8 FRAME_GLOBAL = 0                  # WGS84 (MSL altitude)
+uint8 FRAME_LOCAL_NED=1			# NED local tangent frame (x: North, y: East, z: Down)
+uint8 FRAME_GLOBAL_RELATIVE_ALT = 3     # Altitude is relative to home
+uint8 FRAME_GLOBAL_INT = 5              # Same as FRAME_GLOBAL but coordinates are int32
+uint8 FRAME_GLOBAL_RELATIVE_ALT_INT = 6 # Same as FRAME_GLOBAL_RELATIVE_ALT but int32 coords
+uint8 FRAME_GLOBAL_TERRAIN_ALT = 10     # Altitude is meters above terrain (AGL)
+uint8 FRAME_GLOBAL_TERRAIN_ALT_INT = 11 # Same as FRAME_GLOBAL_TERRAIN_ALT but int32 coords
+
+
 uint8 LOITER_TYPE_ORBIT=0 	# Circular pattern
 uint8 LOITER_TYPE_FIGUREEIGHT=1 # Pattern resembling an 8
 
 bool valid			# true if setpoint is valid
 uint8 type			# setpoint type to adjust behavior of position controller
 
+uint8 frame			# setpoint frame.
+
 float32 vx			# local velocity setpoint in m/s in NED
 float32 vy			# local velocity setpoint in m/s in NED
 float32 vz			# local velocity setpoint in m/s in NED
 
-float64 lat			# latitude, in deg
-float64 lon			# longitude, in deg
-float32 alt			# altitude AMSL, in m
+float64 lat			# latitude, in deg. Only used when frame = 0 (FRAME_TYPE_GLOBAL)
+float64 lon			# longitude, in deg. Only used when frame = 0 (FRAME_TYPE_GLOBAL)
+float32 alt			# altitude AMSL, in m. Only used when frame = 0 (FRAME_TYPE_GLOBAL)
+
+float32 x			# north from local frame, in m. Only used when frame = 1 (FRAME_TYPE_LOCAL)
+float32 y			# east from local frame, in m. Only used when frame = 1 (FRAME_TYPE_LOCAL)
+float32 z			# down from local frame, in m. Only used when frame = 1 (FRAME_TYPE_LOCAL)
+
 float32 yaw			# yaw (only in hover), in rad [-PI..PI), NaN = leave to flight task
 
 float32 loiter_radius		# [m] [@range 0, INF] loiter major axis radius
