@@ -45,6 +45,7 @@
 #include <uORB/Publication.hpp>
 
 #include "standard.h"
+#include "tiltrotor.h"
 #include "vtol_att_control_main.h"
 
 using namespace matrix;
@@ -278,4 +279,91 @@ TEST_F(VtolPusherFailureTest, PusherAssistBelowThresholdIsNoPusherFailure)
 
 	fly(attc, standard, 300_ms);
 	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
+}
+
+class VtolAttitudeQuadchuteTest : public ::testing::Test
+{
+protected:
+	void SetUp() override
+	{
+		param_control_autosave(false);
+
+		const int32_t max_pitch = 70;
+		const int32_t max_roll = 70;
+		param_set(param_find("VT_FW_QC_P"), &max_pitch);
+		param_set(param_find("VT_FW_QC_R"), &max_roll);
+	}
+
+	void TearDown() override
+	{
+		param_reset(param_find("VT_FW_QC_P"));
+		param_reset(param_find("VT_FW_QC_R"));
+		param_reset(param_find("VT_FW_MIN_ALT"));
+		param_control_autosave(true);
+	}
+
+	void setArmedAttitude(VtolAttitudeControl &attc, float roll_deg, float pitch_deg, bool attitude_control_enabled)
+	{
+		attc.get_control_mode()->flag_armed = true;
+		attc.get_control_mode()->flag_control_attitude_enabled = attitude_control_enabled;
+		attc.get_land_detected()->landed = false;
+		Quatf(Eulerf(math::radians(roll_deg), math::radians(pitch_deg), 0.f)).copyTo(attc.get_att()->q);
+	}
+};
+
+TEST_F(VtolAttitudeQuadchuteTest, PitchAndRollLimitsDisabledWithoutAttitudeControl)
+{
+	VtolAttitudeControl attc;
+	Tiltrotor tiltrotor(&attc);
+
+	// Exceed roll threshold in FW Acro/Manual (flag_control_attitude_enabled == false)
+	setArmedAttitude(attc, 120.f, 0.f, false);
+	EXPECT_EQ(tiltrotor.getQuadchuteReason(), QuadchuteReason::None);
+	tiltrotor.check_quadchute_condition();
+	EXPECT_FALSE(attc.is_quadchute_active());
+
+	// Exceed pitch threshold (e.g. aerobatic loop) in FW Acro/Manual
+	setArmedAttitude(attc, 0.f, 85.f, false);
+	EXPECT_EQ(tiltrotor.getQuadchuteReason(), QuadchuteReason::None);
+	tiltrotor.check_quadchute_condition();
+	EXPECT_FALSE(attc.is_quadchute_active());
+}
+
+TEST_F(VtolAttitudeQuadchuteTest, PitchAndRollLimitsActiveWithAttitudeControl)
+{
+	{
+		VtolAttitudeControl attc;
+		Tiltrotor tiltrotor(&attc);
+		setArmedAttitude(attc, 85.f, 0.f, true);
+		EXPECT_EQ(tiltrotor.getQuadchuteReason(), QuadchuteReason::MaximumRollExceeded);
+		tiltrotor.check_quadchute_condition();
+		EXPECT_TRUE(attc.is_quadchute_active());
+		EXPECT_TRUE(attc.is_fixed_wing_system_failure());
+	}
+
+	{
+		VtolAttitudeControl attc;
+		Tiltrotor tiltrotor(&attc);
+		setArmedAttitude(attc, 0.f, 80.f, true);
+		EXPECT_EQ(tiltrotor.getQuadchuteReason(), QuadchuteReason::MaximumPitchExceeded);
+		tiltrotor.check_quadchute_condition();
+		EXPECT_TRUE(attc.is_quadchute_active());
+		EXPECT_TRUE(attc.is_fixed_wing_system_failure());
+	}
+}
+
+TEST_F(VtolAttitudeQuadchuteTest, MinAltQuadchuteStillActiveWithoutAttitudeControl)
+{
+	const float min_alt = 20.f;
+	param_set(param_find("VT_FW_MIN_ALT"), &min_alt);
+
+	VtolAttitudeControl attc;
+	Tiltrotor tiltrotor(&attc);
+	setArmedAttitude(attc, 0.f, 0.f, false);
+	attc.get_local_pos()->z = -10.f; // 10 m AGL < 20 m VT_FW_MIN_ALT
+
+	EXPECT_EQ(tiltrotor.getQuadchuteReason(), QuadchuteReason::MinimumAltBreached);
+	tiltrotor.check_quadchute_condition();
+	EXPECT_TRUE(attc.is_quadchute_active());
+	EXPECT_TRUE(attc.is_fixed_wing_system_failure());
 }
