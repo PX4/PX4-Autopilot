@@ -108,6 +108,11 @@ The board is powered from a 3S–12S LiPo battery, connected either through the 
 Battery voltage and current are measured by the board's analog inputs, with the current from the `Cur` pad.
 The default scaling is [BAT1_V_DIV](../advanced_config/parameter_reference.md#BAT1_V_DIV) = `16.0` and [BAT1_A_PER_V](../advanced_config/parameter_reference.md#BAT1_A_PER_V) = `83.3`; check these against your battery and ESC as described in [Battery Estimation Tuning](../config/battery.md).
 
+## Voltage Ratings {#voltage_ratings}
+
+The battery input takes a 3S–12S LiPo, and USB a standard 5V supply.
+Absolute maximum ratings for these inputs are not published.
+
 ## PWM Outputs {#pwm_outputs}
 
 All outputs within the same group must use the same output protocol and rate.
@@ -255,3 +260,7 @@ The FMU [SWD interface](../debug/swd_debug.md) is on four solder pads on the lef
 - `C`: SWCLK (PA14)
 - `G`: GND
 - `3`: 3.3V
+
+## Further Information {#further_information}
+
+- [DAKEFPV H743 Slim](https://www.dakefpv.com/pd.jsp?id=89) (DAKEFPV)

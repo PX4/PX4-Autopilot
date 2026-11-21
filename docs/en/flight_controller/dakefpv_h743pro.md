@@ -54,8 +54,8 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Mechanical Data {#mechanical_data}
 
-- **Weight:** 10g
 - **Mounting hole spacing:** 30.5 × 30.5mm, M4
+- **Weight:** 10g
 
 ## Where to Buy {#store}
 
@@ -119,6 +119,11 @@ The board is powered from a 4S–12S LiPo battery, connected either through the 
 
 Battery voltage and current are measured by the board's analog inputs.
 The default scaling is [BAT1_V_DIV](../advanced_config/parameter_reference.md#BAT1_V_DIV) = `16.0` and [BAT1_A_PER_V](../advanced_config/parameter_reference.md#BAT1_A_PER_V) = `83.3`; check these against your battery and ESC as described in [Battery Estimation Tuning](../config/battery.md).
+
+## Voltage Ratings {#voltage_ratings}
+
+The battery input takes a 4S–12S LiPo, and USB a standard 5V supply.
+Absolute maximum ratings for these inputs are not published.
 
 ## PWM Outputs {#pwm_outputs}
 
@@ -259,10 +264,10 @@ ArduPilot exposes the same swap as a runtime option (`SERIAL4_OPTIONS` bit 3, `S
 :::
 
 ::: info `Dji`/`VTX` solder jumper
-The three-pad solder jumper silkscreened `Dji` and `VTX` selects what the HD VTX connector's `RX4` pin carries: UART4 RX for a digital air unit, or the analog composite video signal when the connector drives an analog VTX.
+The three-pad solder jumper silkscreened `Dji` and `VTX` selects what the HD VTX connector's `D/V` pin carries: UART4 RX for a digital air unit, or the analog composite video signal when the connector drives an analog VTX.
 It is not in the OSD's transmit path, so it does not affect MSP DisplayPort output.
 
-For a digital air unit, fit a 0Ω resistor (or a solder bridge) on the `Dji` side so the connector's `RX4` pin carries UART4 RX.
+For a digital air unit, fit a 0Ω resistor (or a solder bridge) on the `Dji` side so the connector's `D/V` pin carries UART4 RX.
 This has been tested with an OpenIPC air unit on the stock harness.
 :::
 
@@ -319,3 +324,7 @@ The FMU [SWD interface](../debug/swd_debug.md) is on four small solder pads next
 - `D`: SWDIO (PA13)
 - `G`: GND
 - `3`: 3.3V
+
+## Further Information {#further_information}
+
+- [DAKEFPV H743 Pro](https://www.dakefpv.com/pd.jsp?id=116) (DAKEFPV)

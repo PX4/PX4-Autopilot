@@ -121,6 +121,11 @@ The board is powered from a 4S–12S LiPo battery, connected either through the 
 Battery voltage and current are measured by the board's analog inputs, with a current sensor input of up to 130A.
 The default scaling is [BAT1_V_DIV](../advanced_config/parameter_reference.md#BAT1_V_DIV) = `16.0` and [BAT1_A_PER_V](../advanced_config/parameter_reference.md#BAT1_A_PER_V) = `83.3`; check these against your battery and ESC as described in [Battery Estimation Tuning](../config/battery.md).
 
+## Voltage Ratings {#voltage_ratings}
+
+The battery input takes a 4S–12S LiPo, and USB a standard 5V supply.
+Absolute maximum ratings for these inputs are not published.
+
 ## PWM Outputs {#pwm_outputs}
 
 All outputs within the same group must use the same output protocol and rate.
@@ -237,10 +242,10 @@ UART4 is on PD0 (RX) and PD1 (TX) on this variant, and no peripheral swap is app
 :::
 
 ::: info `Dji`/`VTX` solder jumper
-The three-pad solder jumper silkscreened `Dji` and `VTX` selects what the HD VTX connector's `RX4` pin carries: UART4 RX for a digital air unit, or the analog composite video signal when the connector drives an analog VTX.
+The three-pad solder jumper silkscreened `Dji` and `VTX` selects what the HD VTX connector's `D/V` pin carries: UART4 RX for a digital air unit, or the analog composite video signal when the connector drives an analog VTX.
 It is not in the OSD's transmit path, so it does not affect MSP DisplayPort output.
 
-For a digital air unit, fit a 0Ω resistor (or a solder bridge) on the `Dji` side so the connector's `RX4` pin carries UART4 RX.
+For a digital air unit, fit a 0Ω resistor (or a solder bridge) on the `Dji` side so the connector's `D/V` pin carries UART4 RX.
 This has been tested with a digital air unit on the HD VTX connector.
 :::
 
@@ -297,3 +302,7 @@ The FMU [SWD interface](../debug/swd_debug.md) is on four small solder pads next
 - `D`: SWDIO (PA13)
 - `G`: GND
 - `3`: 3.3V
+
+## Further Information {#further_information}
+
+- [DAKEFPV H743](https://www.dakefpv.com/pd.jsp?id=66) (DAKEFPV)
