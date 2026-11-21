@@ -40,6 +40,7 @@ The following vehicle types are supported:
 | Standard VTOL (QuadPlane) <Badge type="tip" text="PX4 v1.16" />      | `make px4_sitl_sih sihsim_standard_vtol`      | Experimental |
 | Ackermann Rover <Badge type="tip" text="PX4 v1.16" />                | `make px4_sitl_sih sihsim_rover_ackermann`    | Experimental |
 | Differential Rover <Badge type="tip" text="PX4 v2.0" />              | `make px4_sitl_sih sihsim_rover_differential` | Experimental |
+| Mecanum Rover <Badge type="tip" text="PX4 v2.0" />                   | `make px4_sitl_sih sihsim_rover_mecanum`      | Experimental |
 | Quadrotor X with optical flow <Badge type="tip" text="PX4 v2.0" />   | `make px4_sitl_sih sihsim_quadx_flow`         | Experimental |
 | Standard VTOL with optical flow <Badge type="tip" text="PX4 v2.0" /> | `make px4_sitl_sih sihsim_standard_vtol_flow` | Experimental |
 
@@ -299,7 +300,7 @@ See [SIH on Flight Controller Hardware](hardware.md) for setup instructions.
 You still need to configure your vehicle type and [geometry](../config/actuators.md) (`CA_` parameters) and start any other defaults for that specific vehicle.
 
 ::: warning
-Not every vehicle can be simulated with SIH — there are currently [seven supported vehicle types](../advanced_config/parameter_reference.md#SIH_VEHICLE_TYPE) (quadcopter, fixed-wing, tailsitter, standard VTOL, hexacopter, Ackermann rover, differential rover), each of which has a relatively rigid implementation in [`sih.cpp`](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/simulation/simulator_sih/sih.cpp).
+Not every vehicle can be simulated with SIH — there are currently [eight supported vehicle types](../advanced_config/parameter_reference.md#SIH_VEHICLE_TYPE) (quadcopter, fixed-wing, tailsitter, standard VTOL, hexacopter, Ackermann rover, differential rover, mecanum rover), each of which has a relatively rigid implementation in [`sih.cpp`](https://github.com/PX4/PX4-Autopilot/blob/main/src/modules/simulation/simulator_sih/sih.cpp).
 :::
 
 The specific differences for SIH simulation airframes are listed in the sections below.
@@ -353,6 +354,7 @@ The dynamic models for the various vehicles are:
 - Tailsitter: based on Chiappinelli (2018), see references below
 - Ackermann rover: bicycle model with linear tire model
 - Differential rover: unicycle model, each wheel is driven towards its commanded speed up to the traction limit and the wheels do not slip sideways
+- Mecanum rover: each of the four wheels is driven towards its commanded speed up to the traction limit, and with its rollers at 45 degrees it pushes the rover both forwards and sideways
 
 **Propeller model with advance ratio**
 
