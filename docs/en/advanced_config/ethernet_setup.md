@@ -32,6 +32,7 @@ Supported flight controllers include:
 - [CUAV X25 EVO](../flight_controller/cuav_x25-evo.md)
 - [CUAV X25 SUPER](../flight_controller/cuav_x25-super.md)
 - [CUAV X25-MEGA](../flight_controller/cuav_x25-mega.md)
+- [CyberCraft CyberX-v10](../flight_controller/cyberx_v10.md)
 - [Holybro Pixhawk 5X](../flight_controller/pixhawk5x.md)
 - [Holybro Pixhawk 6X](../flight_controller/pixhawk6x.md)
 - [RaccoonLab FMUv6X Autopilot](../flight_controller/raccoonlab_fmu6x.md)
