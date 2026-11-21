@@ -2,7 +2,7 @@
 
 <Badge type="tip" text="main (PX4 v2.0)" />
 
-The [JRT PTGL-100](https://www.jrt-measure.com/) is a time-of-flight (ToF) laser [rangefinder](../sensor/rangefinders.md) operating at 905±5 nm, with a specified measurement range of 0.2–100 m (100 m against a 30% reflectance target) and a measurement rate of 100 Hz.
+The [JRT PTGL-100](https://www.jrt-measure.com/) is a time-of-flight (ToF) laser [rangefinder](../sensor/rangefinders.md) operating at 905±5nm, with a specified measurement range of 0.2–100m (100m against a 30% reflectance target) and a measurement rate of 100Hz.
 It connects to the flight controller using a UART (serial) port.
 
 ![JRT PTGL-100 module showing its two optical apertures](../../assets/hardware/sensors/ptgl100/ptgl100_hero.webp)
@@ -17,17 +17,17 @@ The Flycore includes the driver in its default firmware.
 
 ## Specifications {#specifications}
 
-- **Technology:** ToF (IR laser), 905±5 nm
-- **Range:** 0.2 m (90% reflectance) – 100 m (30% reflectance)
-- **Update rate:** 100 Hz
-- **Beam divergence:** ≤5 mrad (typical)
-- **Accuracy:** ±3 cm up to 30 m, ±7 cm at 30–50 m, ±15 cm at 50–100 m (90% reflectance target)
-- **Interface:** UART, 3.3 V TTL, 460800 baud (factory default)
-- **Input voltage:** 3.3–5 V DC
-- **Power consumption:** ≤0.45 W at 3.3 V and 25 °C (≤0.56 W at 60 °C)
-- **Dimensions:** 10.7 × 16.8 × 22 mm
-- **Weight:** 6±0.5 g
-- **Operating temperature:** −20 to +60 °C
+- **Technology:** ToF (IR laser), 905±5nm
+- **Range:** 0.2m (90% reflectance) – 100m (30% reflectance)
+- **Update rate:** 100Hz
+- **Beam divergence:** ≤5mrad (typical)
+- **Accuracy:** ±3cm up to 30m, ±7cm at 30–50m, ±15cm at 50–100m (90% reflectance target)
+- **Interface:** UART, 3.3V TTL, 460800 baud (factory default)
+- **Input voltage:** 3.3–5V DC
+- **Power consumption:** ≤0.45W at 3.3V and 25°C (≤0.56W at 60°C)
+- **Dimensions:** 10.7 × 16.8 × 22mm
+- **Weight:** 6±0.5g
+- **Operating temperature:** −20 to +60°C
 - **Ingress protection:** IP67
 - **Laser class:** Class 1 (IEC 60825-1)
 
@@ -53,13 +53,13 @@ For any other direction, set [SENS_PTGL100_ROT](../advanced_config/parameter_ref
 The [PTGL-100 manual](#further_information) (§7(2)) states that the sensor should not be used in direct sunlight.
 Contact JRT at [sales@jrt-measure.com](mailto:sales@jrt-measure.com) for guidance on outdoor use and any questions about this restriction.
 
-Keep glass and mirror-like surfaces out of the sensor's blind zone (closer than 0.2 m), and don't mount it facing another laser rangefinder at close range.
-If the sensor is fitted behind a protective window, the manual (§3.4) recommends H-K9L or fused-silica glass, 2–4 mm thick, with an 855–955 nm anti-reflection coating and an air gap of less than 0.5 mm to the sensor.
+Keep glass and mirror-like surfaces out of the sensor's blind zone (closer than 0.2m), and don't mount it facing another laser rangefinder at close range.
+If the sensor is fitted behind a protective window, the manual (§3.4) recommends H-K9L or fused-silica glass, 2–4mm thick, with an 855–955nm anti-reflection coating and an air gap of less than 0.5mm to the sensor.
 
 ### Pinouts {#pinouts}
 
-The module has a six-pin `HC-0.8-6PWT` connector (0.8 mm pitch).
-An adapter cable is needed to connect to flight controllers that follow the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) (which use 1.25 mm pitch JST-GH connectors).
+The module has a six-pin `HC-0.8-6PWT` connector (0.8mm pitch).
+An adapter cable is needed to connect to flight controllers that follow the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf) (which use 1.25mm pitch JST-GH connectors).
 
 On the module socket, the pins are numbered 1–6 towards the two optical apertures: pin 1 (`GND`) is furthest from them and pin 6 (`EN`) nearest.
 
@@ -78,10 +78,10 @@ The wires shown are all black, so use the connector orientation in the photograp
 | Pin | Signal | Description                                               |
 | --- | ------ | --------------------------------------------------------- |
 | 1   | GND    | Ground                                                    |
-| 2   | VCC    | 3.3–5 V supply                                            |
+| 2   | VCC    | 3.3–5V supply                                             |
 | 3   | NC     | Not connected                                             |
-| 4   | TXD    | UART TX (3.3 V TTL)                                       |
-| 5   | RXD    | UART RX (3.3 V TTL)                                       |
+| 4   | TXD    | UART TX (3.3V TTL)                                        |
+| 5   | RXD    | UART RX (3.3V TTL)                                        |
 | 6   | EN     | Enable: low for normal operation, high for low-power mode |
 
 ### Wiring {#wiring}
@@ -91,12 +91,12 @@ The supplied cable has six-pin connectors at both ends for the module's `HC-0.8-
 It can be used as a module-side pigtail by adapting the flight-controller end to the required connector and pinout.
 
 The PTGL-100 can be connected to any unused serial port (UART), such as `TELEM2`, `TELEM3` or `GPS2`.
-UART signals use 3.3 V TTL levels.
+UART signals use 3.3V TTL levels.
 
 | Module Pin | Module Signal | Connect To                |
 | ---------- | ------------- | ------------------------- |
 | 1          | GND           | Flight controller GND     |
-| 2          | VCC           | 3.3–5 V supply            |
+| 2          | VCC           | 3.3–5V supply             |
 | 4          | TXD           | Flight controller UART RX |
 | 5          | RXD           | Flight controller UART TX |
 | 6          | EN            | GND                       |
@@ -113,7 +113,7 @@ For example, connect the module to the Flycore [`TELEM3`](../flight_controller/a
 
 Pin 6 (`EN`) must be connected to GND for normal operation.
 You must join module pins 1 and 6 to `TELEM3` pin 3 in the adapter cable.
-The `TELEM3` VCC pin supplies 5 V, within the module's 3.3–5 V input range.
+The `TELEM3` VCC pin supplies 5V, within the module's 3.3–5V input range.
 This wiring, including `EN` connected to GND, has been tested on Flycore.
 
 Both TX and RX are required because PX4 sends the module a command to start continuous measurement.
@@ -165,7 +165,7 @@ listener distance_sensor -i 1 -n 10
 
 See [Rangefinders > Testing](../sensor/rangefinders.md#testing) for how to view the data in the _QGroundControl_ MAVLink Inspector and other generic steps.
 
-The driver publishes the sensor type (laser), the 0.2–100 m range limits, and the selected orientation.
+The driver publishes the sensor type (laser), the 0.2–100m range limits, and the selected orientation.
 
 ## Developer Information {#developer_information}
 
