@@ -14,10 +14,19 @@ They connect to the flight controller using a serial port (UART).
 | [TFmini-S](https://en.benewake.com/TFminiS/index_proid_325.html)       | 0.1–12 m | UART       | `1` (default)          |
 | [TFmini Plus](https://en.benewake.com/TFminiPlus/index_proid_323.html) | 0.1–12 m | UART       | `4`                    |
 
+::: details Discontinued
+
+The following model is supported by PX4 but is no longer in Benewake's product line-up.
+
+| Model  | Range    | Connection | `SENS_TFMINI_HW` value |
+| ------ | -------- | ---------- | ---------------------- |
+| TFmini | 0.3–12 m | UART       | `1`                    |
+
+:::
+
 PX4 reports distances from 0.4 m to 12 m for the TFmini-S and from 0.1 m to 12 m for the TFmini Plus.
 
-The original TFmini is no longer in Benewake's current product lineup, but the `TFMINI / TFMINI-S` setting remains for compatibility with it.
-The current [TFmini-i](https://en.benewake.com/TFminii/index_proid_324.html) is not supported by this driver: it connects via RS-485 or CAN (separate product versions) rather than UART, and is supplied with 7–30 V.
+The [TFmini-i](https://en.benewake.com/TFminii/index_proid_324.html) is not supported by PX4: it connects via RS-485 or CAN (separate hardware versions) and is powered from 7–30 V.
 
 ## Specifications {#specifications}
 
@@ -34,7 +43,7 @@ The current [TFmini-i](https://en.benewake.com/TFminii/index_proid_324.html) is 
 - **Weight:** 5 g (TFmini-S), 12 g (TFmini Plus)
 - **Operating temperature:** 0–60 °C (TFmini-S), -20 °C to 60 °C (TFmini Plus)
 - **Ingress protection:** IP65 (TFmini Plus)
-- **Photobiological safety:** Class 1 (EN 60825) (TFmini-S); exemption level (EN 62471) (TFmini Plus, LED source)
+- **Laser class:** Class 1, EN 60825 (TFmini-S); no laser class, exemption level EN 62471 (TFmini Plus)
 
 ## Where to Buy {#store}
 
