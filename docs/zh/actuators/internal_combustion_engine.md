@@ -1,22 +1,21 @@
-# Internal Combustion Engines (ICE)
+# 内燃机 (ICE)
 
-PX4 can operate a single spark-ignition internal combustion engine (ICE) — a petrol/nitro two- or four-stroke engine — as the propulsion system of a fixed-wing, VTOL, or helicopter vehicle.
+PX4 可以驱动单台火花点火式内燃机 (ICE) — 汽油或硝基燃料二冲程 / 四冲程发动机 — 作为固定翼、垂直起降或直升机机体的推进系统。
 
-Unlike an electric motor, an engine cannot simply be commanded to a thrust value: it has to be _started_ (choke, ignition, electric starter), it can _die_ in flight and need restarting, and it must be kept above a minimum idle speed to keep running at all.
-The [`internal_combustion_engine_control`](../modules/modules_system.md#internal-combustion-engine-control) module implements this logic as a state machine that drives four dedicated actuator outputs and closes the loop on a measured engine speed (RPM).
+与电机不同，内燃机不能直接接收指令输出指定推力：它需要_启动流程_（风门、点火、电启动机）；飞行中有可能熄火，需要重新启动；并且必须维持在最低怠速转速以上才能持续运转。
+[`internal_combustion_engine_control`](../modules/modules_system.md#internal-combustion-engine-control) 模块通过状态机实现这套控制逻辑，该模块输出四路专用执行器信号，并基于实测发动机转速（RPM）完成闭环控制。
 
 :::warning
-A running combustion engine with a propeller attached is dangerous.
-The engine can be commanded to start automatically (for example on arming, or on a VTOL transition to fixed-wing), and the starter motor will crank the propeller without further warning.
+带螺旋桨的运转中的内燃机具有危险性。发动机可被指令自动启动（例如在解锁时，或是 VTOL 切换至固定翼模式时），启动电机会直接带动螺旋桨转动，不会额外发出警告。
 
-- Always do your first bench tests with the propeller removed.
-- For continuous operation without a propeller, a flywheel is recommended.
-- Keep clear of the propeller arc whenever the vehicle is powered.
-- Verify that the engine stop functionality (ignition off, choke closed) reliably stops the engine before you rely on it.
+- 首次台架测试无比拆下螺旋桨。
+- 如果要在拆除螺旋桨的条件下持续运行，建议加装飞轮。
+- 机体上电后，务必原理螺旋桨旋转范围。
+- 依赖该停机功能之前，必须验证发动机停机功能（切断点火、关闭阻风门）能够可靠关停发动机。
 
 :::
 
-## Hardware Requirements
+## 硬件要求
 
 - **Throttle servo** connected to a PWM/AUX output.
 - **Ignition cut** on an output, typically through a relay or opto-isolated switch that shorts or interrupts the ignition circuit.

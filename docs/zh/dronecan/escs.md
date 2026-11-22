@@ -48,6 +48,8 @@ DroneCAN 电调应使用独立的专用 CAN 接口，因为电调消息可能占
 某些 DroneCAN 设备的行为偏离 DSDL 规范，需要在 PX4 端进行兼容处理。这些兼容处理默认禁用，可通过 [UAVCAN_QUIRKS](../advanced_config/parameter_reference.md#UAVCAN_QUIRKS) 位掩码参数启用。
 
 - **Hobbywing 电调：** 某些 Hobbywing DroneCAN 电调上报的 `uavcan.equipment.esc.Status.esc_index` 从 1 开始表示第一个电调，而不是规范要求的 0，但仍要求使用 `RawCommand.cmd[0]` 控制第一个电调。这会导致电调状态反馈（例如转速、电压、电流）被匹配到错误的电机。设置 `UAVCAN_QUIRKS` 的第 0 位，可修正这种索引偏移一位的问题。
+- **Scaled RPM telemetry:** some ESCs report `uavcan.equipment.esc.Status.rpm` off by a fixed factor (for example electrical instead of mechanical RPM).
+  Set [UAVCAN_ESC_RPMSC](../advanced_config/parameter_reference.md#UAVCAN_ESC_RPMSC) to the factor that converts the reported value to mechanical RPM.
 
 ## 可反转电机 {#reversible-motors}
 

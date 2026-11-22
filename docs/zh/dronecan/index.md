@@ -41,7 +41,9 @@ DroneCAN 以前称为 UAVCAN v0（或简称 UAVCAN）。该名称于 2022 年更
 - 用于 GNSS（GPS、GLONASS、北斗等）的 GNSS 接收机
   - [ARK GPS](../dronecan/ark_gps.md)
   - [ARK RTK GPS](../dronecan/ark_rtk_gps.md)
-  - [CubePilot Here3](https://www.cubepilot.org/#/here/here3)
+  - [CubePilot Here3/Here3+](https://docs.cubepilot.org/here-3-3+/here-3-manual)
+  - [CubePilot Here4](../dronecan/cubepilot_here4.md)
+  - [CubePilot HerePro](https://docs.cubepilot.org/herepro/herepro-manual)
   - [CUAV NEO v2 Pro GNSS](https://doc.cuav.net/gps/neo-series-gnss/en/neo-v2-pro.html)
   - [CUAV NEO 3 Pro GPS](../gps_compass/gps_cuav_neo_3pro.md)
   - [CUAV NEO 3X GPS](../gps_compass/gps_cuav_neo_3x.md)
@@ -132,7 +134,7 @@ PX4 的节点 ID 可以通过 [UAVCAN_NODE_ID](../advanced_config/parameter_refe
 :::info
 只有启用相应的 DroneCAN [传感器订阅](#sensors)后，相关传感器参数才可能存在（在 QGC 中可见）！
 
-例如，只有启用 [UAVCAN_SUB_FLOW](../advanced_config/parameter_reference.md#UAVCAN_SUB_FLOW) 后，[SENS_FLOW_MINHGT](../advanced_config/parameter_reference.md#SENS_FLOW_MINHGT) 参数才会出现。
+For example, [SENS_FLOW0_HMIN](../advanced_config/parameter_reference.md#SENS_FLOW0_HMIN) does not exist until [UAVCAN_SUB_FLOW](../advanced_config/parameter_reference.md#UAVCAN_SUB_FLOW) is enabled.
 :::
 
 例如，要使用已连接的 DroneCAN 智能电池，需要启用 [UAVCAN_SUB_BAT](../advanced_config/parameter_reference.md#UAVCAN_SUB_BAT) 参数，使 PX4 订阅并接收 [BatteryInfo](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#batteryinfo) DroneCAN 消息。如果使用的外设需要知道 PX4 是否已解锁，则需要设置 [UAVCAN_PUB_ARM](../advanced_config/parameter_reference.md#UAVCAN_PUB_ARM) 参数，使 PX4 开始发布 [ArmingStatus](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#armingstatus) 消息。当 [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) 为 `3`（电调输出）时，会自动发布 ArmingStatus。
@@ -241,11 +243,11 @@ PX4 DroneCAN 参数：
 
 其他 PX4 参数：
 
-- 设置 [SENS_FLOW_MINHGT](../advanced_config/parameter_reference.md#SENS_FLOW_MINHGT) 和 [SENS_FLOW_MAXHGT](../advanced_config/parameter_reference.md#SENS_FLOW_MAXHGT)，即光流传感器的最小和最大工作高度。
-- 设置 [SENS_FLOW_MAXR](../advanced_config/parameter_reference.md#SENS_FLOW_MAXR)，即传感器的最大光流角速率。
-- 通过设置 [EKF2_OF_CTRL](../advanced_config/parameter_reference.md#EKF2_OF_CTRL) 启用光流融合。
+- Set [SENS_FLOW0_HMIN](../advanced_config/parameter_reference.md#SENS_FLOW0_HMIN) and [SENS_FLOW0_HMAX](../advanced_config/parameter_reference.md#SENS_FLOW0_HMAX), the minimum and maximum height of the flow sensor.
+- Set [SENS_FLOW0_MAXR](../advanced_config/parameter_reference.md#SENS_FLOW0_MAXR) the maximum angular flow rate of the sensor.
+- Enable optical flow fusion by setting [EKF2_OF0_CTRL](../advanced_config/parameter_reference.md#EKF2_OF0_CTRL).
 - 要禁用 GPS 辅助（可选），请将 [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) 设为 `0`。
-- 如果光流模块未安装在机体重心处，可以使用 [EKF2_OF_POS_X](../advanced_config/parameter_reference.md#EKF2_OF_POS_X)、[EKF2_OF_POS_Y](../advanced_config/parameter_reference.md#EKF2_OF_POS_Y) 和 [EKF2_OF_POS_Z](../advanced_config/parameter_reference.md#EKF2_OF_POS_Z) 补偿偏移。
+- If the optical flow unit is not positioned at the vehicle centre of gravity you can account for the offset using [SENS_FLOW0_POS_X](../advanced_config/parameter_reference.md#SENS_FLOW0_POS_X), [SENS_FLOW0_POS_Y](../advanced_config/parameter_reference.md#SENS_FLOW0_POS_Y) and [SENS_FLOW0_POS_Z](../advanced_config/parameter_reference.md#SENS_FLOW0_POS_Z).
 
 光流传感器需要测距仪数据。不过，测距仪不必集成在同一模块中；若为独立设备，也可以不通过 DroneCAN 连接。如果测距仪通过 DroneCAN 连接（无论是内置还是独立设备），还需要按[距离传感器部分](#distance-sensor-range-finder)（见上文）所述启用它。
 

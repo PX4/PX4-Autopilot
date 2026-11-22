@@ -66,7 +66,7 @@ Agam FloRange 只有一个 CAN 连接器，因此通常位于总线末端。将 
 ### Mounting
 
 安装模块时，使传感器朝下，并使外壳上的 X 箭头指向机体前方。
-This corresponds to the default value (`0`) of the parameter [SENS_FLOW_ROT](../advanced_config/parameter_reference.md#SENS_FLOW_ROT).
+This corresponds to the default value (`0`) of the parameter [SENS_FLOW0_ROT](../advanced_config/parameter_reference.md#SENS_FLOW0_ROT).
 Change the parameter appropriately if using a different orientation.
 
 ## Firmware Setup
@@ -98,15 +98,15 @@ Agam FloRange 出厂时已预装较新的固件；如需自行构建并刷写最
 
 根据所使用的模块功能，在 _QGroundControl_ 中设置以下参数：
 
-- 通过 [EKF2_OF_CTRL](../advanced_config/parameter_reference.md#EKF2_OF_CTRL) 启用光流融合（默认启用）。
+- Enable optical flow fusion with [EKF2_OF0_CTRL](../advanced_config/parameter_reference.md#EKF2_OF0_CTRL) (enabled by default).
 - To optionally disable GPS aiding, set [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) to `0`.
 - 启用 [UAVCAN_SUB_FLOW](../advanced_config/parameter_reference.md#UAVCAN_SUB_FLOW)。
 - 启用 [UAVCAN_SUB_RNG](../advanced_config/parameter_reference.md#UAVCAN_SUB_RNG)。
 - 将 [UAVCAN_RNG_MIN](../advanced_config/parameter_reference.md#UAVCAN_RNG_MIN) 设为 `0.08`，即光流传感器的最小工作距离；将 [UAVCAN_RNG_MAX](../advanced_config/parameter_reference.md#UAVCAN_RNG_MAX) 设为 `30`，即距离传感器的最大量程。
 - 如果使用距离传感器进行高度辅助，请启用 [EKF2_RNG_CTRL](../advanced_config/parameter_reference.md#EKF2_RNG_CTRL)，并将 [EKF2_RNG_A_HMAX](../advanced_config/parameter_reference.md#EKF2_RNG_A_HMAX) 设为 `10`，将 [EKF2_RNG_QLTY_T](../advanced_config/parameter_reference.md#EKF2_RNG_QLTY_T) 设为 `0.2`。
-- 将 [SENS_FLOW_MINHGT](../advanced_config/parameter_reference.md#SENS_FLOW_MINHGT) 设为 `0.08`，即光流传感器的最小工作高度；将 [SENS_FLOW_MAXHGT](../advanced_config/parameter_reference.md#SENS_FLOW_MAXHGT) 设为 `30`，即距离传感器的最大量程。
-- 将 [SENS_FLOW_MAXR](../advanced_config/parameter_reference.md#SENS_FLOW_MAXR) 设为 `7.4`，以匹配 PAA3905 的最大光流角速率。
-- 可通过设置 [EKF2_OF_POS_X](../advanced_config/parameter_reference.md#EKF2_OF_POS_X)、[EKF2_OF_POS_Y](../advanced_config/parameter_reference.md#EKF2_OF_POS_Y)、[EKF2_OF_POS_Z](../advanced_config/parameter_reference.md#EKF2_OF_POS_Z) 和 [EKF2_RNG_POS_X](../advanced_config/parameter_reference.md#EKF2_RNG_POS_X)、[EKF2_RNG_POS_Y](../advanced_config/parameter_reference.md#EKF2_RNG_POS_Y)、[EKF2_RNG_POS_Z](../advanced_config/parameter_reference.md#EKF2_RNG_POS_Z) 参数，补偿模块相对于机体重心的偏移。
+- Set [SENS_FLOW0_HMIN](../advanced_config/parameter_reference.md#SENS_FLOW0_HMIN) to `0.08`, the minimum height of the flow sensor, and [SENS_FLOW0_HMAX](../advanced_config/parameter_reference.md#SENS_FLOW0_HMAX) to `30`, the maximum range of the distance sensor.
+- Set [SENS_FLOW0_MAXR](../advanced_config/parameter_reference.md#SENS_FLOW0_MAXR) to `7.4` to match the PAA3905 maximum angular flow rate.
+- The parameters [SENS_FLOW0_POS_X](../advanced_config/parameter_reference.md#SENS_FLOW0_POS_X), [SENS_FLOW0_POS_Y](../advanced_config/parameter_reference.md#SENS_FLOW0_POS_Y), [SENS_FLOW0_POS_Z](../advanced_config/parameter_reference.md#SENS_FLOW0_POS_Z) and [EKF2_RNG_POS_X](../advanced_config/parameter_reference.md#EKF2_RNG_POS_X), [EKF2_RNG_POS_Y](../advanced_config/parameter_reference.md#EKF2_RNG_POS_Y), [EKF2_RNG_POS_Z](../advanced_config/parameter_reference.md#EKF2_RNG_POS_Z) can be set to account for the offset of the module from the vehicle centre of gravity.
 
 当光流是水平位置和速度的唯一来源时，请降低水平位置增益 [MPC_XY_P](../advanced_config/parameter_reference.md#MPC_XY_P)（例如设为 `0.5`），以减小振荡。
 
