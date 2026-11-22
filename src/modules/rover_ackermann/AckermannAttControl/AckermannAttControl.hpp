@@ -38,6 +38,7 @@
 
 // Library includes
 #include <lib/rover_control/RoverControl.hpp>
+#include <lib/rover_control/RoverControllerWorkItem.hpp>
 #include <lib/pid/PID.hpp>
 #include <lib/slew_rate/SlewRateYaw.hpp>
 #include <math.h>
@@ -55,7 +56,7 @@
 /**
  * @brief Class for ackermann attitude control.
  */
-class AckermannAttControl : public ModuleParams
+class AckermannAttControl : public ModuleParams, public RoverControllerWorkItem
 {
 public:
 	/**
@@ -88,6 +89,9 @@ protected:
 	void updateParams() override;
 
 private:
+	void runController() override { updateAttControl(); }
+	void onEnable() override { _timestamp = hrt_absolute_time(); } // The first dt after (re-)enabling must not span the time spent disabled
+
 	/**
 	 * @brief Update uORB subscriptions used in attitude controller.
 	 */
@@ -119,7 +123,7 @@ private:
 		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed,
 		(ParamFloat<px4::params::RA_WHEEL_BASE>)    _param_ra_wheel_base,
 		(ParamFloat<px4::params::RA_MAX_STR_ANG>)   _param_ra_max_str_ang,
-		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_limit,
+		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_lim,
 		(ParamFloat<px4::params::RO_YAW_P>)         _param_ro_yaw_p,
 		(ParamFloat<px4::params::RO_YAW_STICK_DZ>)  _param_ro_yaw_stick_dz
 	)

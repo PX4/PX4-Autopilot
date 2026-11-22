@@ -38,7 +38,9 @@
 #include <lib/hysteresis/hysteresis.h>
 #include <lib/motor_failure_detector/MotorFailureDetector.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/actuator_motors.h>
+#include <uORB/topics/battery_status.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/failure_detector_status.h>
 
@@ -56,6 +58,9 @@ public:
 
 	// An ESC whose last telemetry report is older than this is reported offline
 	static constexpr hrt_abstime ESC_OFFLINE_TIMEOUT_US = 400_ms;
+
+	// Time the ESCs get to boot and report telemetry once powered
+	static constexpr hrt_abstime ESC_INIT_TIME_US = 3_s;
 
 	// Time an ESC may report disarmed while PX4 is armed, e.g. right after arming, before "Not all ESCs are armed" fires
 	// VertiQ ESCs over DroneCAN reliably report being armed after 800-890 ms
@@ -84,8 +89,12 @@ private:
 
 	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
 	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
+	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{ORB_ID::battery_status};
 
 	const hrt_abstime _start_time{hrt_absolute_time()};
+
+	bool _required_battery_missing{false};
+	hrt_abstime _escs_init_end{0}; // end of the boot time of ESCs powered by a required battery that just connected
 
 	uint16_t _motor_failure_mask = 0;
 	bool _esc_has_reported_current[esc_status_s::CONNECTED_ESC_MAX] {}; // true if ESC reported non-zero current before (some never report any)
@@ -96,6 +105,7 @@ private:
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamBool<px4::params::COM_ARM_CHK_ESCS>) _param_com_arm_chk_escs,
+					(ParamInt<px4::params::CBRK_SUPPLY_CHK>) _param_cbrk_supply_chk,
 					(ParamBool<px4::params::FD_ACT_EN>) _param_fd_act_en,
 					(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time,
 					(ParamFloat<px4::params::MOTFAIL_C2T>) _param_motfail_c2t,

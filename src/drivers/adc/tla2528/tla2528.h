@@ -65,7 +65,7 @@ private:
 	adc_report_s _adc_report{};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::ADC_TLA2528_REFV>) _adc_tla2528_refv
+		(ParamFloat<px4::params::ADC_TLA2528_REFV>) _param_adc_tla2528_refv
 	)
 
 	int init_reset();

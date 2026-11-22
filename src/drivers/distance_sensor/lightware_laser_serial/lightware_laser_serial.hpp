@@ -42,6 +42,8 @@
 #pragma once
 
 #include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/atomic.h>
+#include <px4_platform_common/time.h>
 #include <px4_platform_common/Serial.hpp>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
@@ -71,6 +73,9 @@ private:
 
 	PX4Rangefinder                  _px4_rangefinder;
 	device::Serial			_uart;
+
+	px4::atomic_bool		_stop_requested{false};
+	px4::atomic_bool		_stopped{false};
 
 	char 				_port[20] {};
 	int         		        _interval{100000};

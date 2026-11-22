@@ -659,6 +659,25 @@ I2CSPIDriverBase::I2CSPIDriverBase(const I2CSPIDriverConfig &config)
 {
 }
 
+int I2CSPIDriverBase::module_main(const char *verb, const BusCLIArguments &cli, BusInstanceIterator &iterator,
+				  void(*print_usage)(), instantiate_method instantiate)
+{
+	if (!strcmp(verb, "start")) {
+		return module_start(cli, iterator, print_usage, instantiate);
+	}
+
+	if (!strcmp(verb, "stop")) {
+		return module_stop(iterator);
+	}
+
+	if (!strcmp(verb, "status")) {
+		return module_status(iterator);
+	}
+
+	print_usage();
+	return -1;
+}
+
 int I2CSPIDriverBase::module_start(const BusCLIArguments &cli, BusInstanceIterator &iterator,
 				   void(*print_usage)(), instantiate_method instantiate)
 {

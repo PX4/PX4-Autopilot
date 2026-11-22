@@ -5,6 +5,9 @@ import argparse
 import os
 import sys
 
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../module_config'))
+from output_groups_from_timer_config import load_board_config
+
 try:
     from jinja2 import Environment, FileSystemLoader
 except ImportError as e:
@@ -162,6 +165,8 @@ parser.add_argument('--params-file', type=str, action='store',
                     help='Parameter output file', default=None)
 parser.add_argument('--ethernet', action='store_true',
                     help='Ethernet support')
+parser.add_argument('--board-config', type=str, action='store', default=None,
+                    help='board Kconfig boardconfig file, for Kconfig instance counts')
 parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
                     help='Verbose Output')
 
@@ -200,6 +205,15 @@ if ethernet_supported:
         'label': "Ethernet",
         'index': 1000
         })
+
+board_config = load_board_config(args.board_config)
+
+def get_num_instances(num_instances):
+    """ num_instances is an integer or {kconfig: SYMBOL, default: N} """
+    if isinstance(num_instances, dict):
+        return int(board_config.get('CONFIG_' + num_instances['kconfig'],
+                                    num_instances['default']))
+    return num_instances
 
 def parse_yaml_serial_config(yaml_config):
     """ parse the serial_config section from the yaml config file """
@@ -247,7 +261,10 @@ for tag, device in board_ports:
 # construct commands based on selected board
 commands = []
 for serial_command in serial_commands:
-    num_instances = serial_command.get('num_instances', 1)
+    num_instances_config = serial_command.get('num_instances', 1)
+    num_instances = get_num_instances(num_instances_config)
+    # a Kconfig count of 1 still needs ${i} set in the script
+    multi_instance = num_instances > 1 or isinstance(num_instances_config, dict)
     # TODO: use a loop in the script instead of explicitly enumerating all instances
     for i in range(num_instances):
         port_config = serial_command['port_config_param']
@@ -264,8 +281,10 @@ for serial_command in serial_commands:
         default_port = 0 # disabled
         if 'default' in port_config:
             if type(port_config['default']) == list:
-                assert len(port_config['default']) == num_instances
-                default_port_str = port_config['default'][i]
+                # with a Kconfig count, instances past the end of the list take its last entry
+                if not isinstance(num_instances_config, dict):
+                    assert len(port_config['default']) == num_instances
+                default_port_str = port_config['default'][min(i, len(port_config['default']) - 1)]
             else:
                 default_port_str = port_config['default']
 
@@ -281,7 +300,7 @@ for serial_command in serial_commands:
             'command': serial_command['command'],
             'label': serial_command['label'],
             'instance': i,
-            'multi_instance': num_instances > 1,
+            'multi_instance': multi_instance,
             'port_param_name': port_param_name,
             'default_port': default_port,
             'param_group': port_config['group'],

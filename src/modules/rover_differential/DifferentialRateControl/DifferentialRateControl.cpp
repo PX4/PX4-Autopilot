@@ -35,7 +35,9 @@
 
 using namespace time_literals;
 
-DifferentialRateControl::DifferentialRateControl(ModuleParams *parent) : ModuleParams(parent)
+DifferentialRateControl::DifferentialRateControl(ModuleParams *parent) :
+	ModuleParams(parent),
+	RoverControllerWorkItem("rover_differential_rate_control", ORB_ID(vehicle_angular_velocity))
 {
 	_surface_vehicle_steering_setpoint_pub.advertise();
 	_surface_vehicle_rate_status_pub.advertise();
@@ -52,7 +54,7 @@ void DifferentialRateControl::updateParams()
 	_pid_yaw_rate.setOutputLimit(1.f);
 
 	// Set up slew rate
-	_adjusted_yaw_rate_setpoint.setSlewRate(_param_ro_yaw_accel_limit.get() * M_DEG_TO_RAD_F);
+	_adjusted_yaw_rate_setpoint.setSlewRate(_param_ro_yaw_accel_lim.get() * M_DEG_TO_RAD_F);
 }
 
 void DifferentialRateControl::updateRateControl()
@@ -79,8 +81,8 @@ void DifferentialRateControl::updateRateControl()
 						_yaw_rate_setpoint : 0.f;
 		const float speed_diff_normalized = RoverControl::rateControl(_adjusted_yaw_rate_setpoint, _pid_yaw_rate,
 						    yaw_rate_setpoint, _vehicle_yaw_rate, _param_ro_max_thr_speed.get(), _param_ro_yaw_rate_corr.get(),
-						    _param_ro_yaw_accel_limit.get() * M_DEG_TO_RAD_F,
-						    _param_ro_yaw_decel_limit.get() * M_DEG_TO_RAD_F, _param_rd_wheel_track.get(), dt);
+						    _param_ro_yaw_accel_lim.get() * M_DEG_TO_RAD_F,
+						    _param_ro_yaw_decel_lim.get() * M_DEG_TO_RAD_F, _param_rd_wheel_track.get(), dt);
 		surface_vehicle_steering_setpoint_s surface_vehicle_steering_setpoint{};
 		surface_vehicle_steering_setpoint.timestamp = _timestamp;
 		surface_vehicle_steering_setpoint.normalized_steering_setpoint = speed_diff_normalized;

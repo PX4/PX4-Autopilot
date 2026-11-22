@@ -35,7 +35,9 @@
 
 using namespace time_literals;
 
-AckermannAttControl::AckermannAttControl(ModuleParams *parent) : ModuleParams(parent)
+AckermannAttControl::AckermannAttControl(ModuleParams *parent) :
+	ModuleParams(parent),
+	RoverControllerWorkItem("rover_ackermann_att_control", ORB_ID(vehicle_attitude))
 {
 	_surface_vehicle_rate_setpoint_pub.advertise();
 	_surface_vehicle_attitude_status_pub.advertise();
@@ -46,8 +48,8 @@ void AckermannAttControl::updateParams()
 {
 	ModuleParams::updateParams();
 
-	if (_param_ro_yaw_rate_limit.get() > FLT_EPSILON) {
-		_max_yaw_rate = _param_ro_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
+	if (_param_ro_yaw_rate_lim.get() > FLT_EPSILON) {
+		_max_yaw_rate = _param_ro_yaw_rate_lim.get() * M_DEG_TO_RAD_F;
 	}
 
 	// Set up PID controller
@@ -65,7 +67,8 @@ void AckermannAttControl::updateAttControl()
 
 	hrt_abstime timestamp_prev = _timestamp;
 	_timestamp = hrt_absolute_time();
-	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 10_ms) * 1e-6f;
+	// Runs on every vehicle_attitude publication (EKF2 output predictor at IMU_INTEG_RATE >= 100 Hz), allow for jitter
+	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 50_ms) * 1e-6f;
 
 	if (PX4_ISFINITE(_yaw_setpoint)) {
 		// Calculate yaw rate limit for slew rate
@@ -132,7 +135,7 @@ bool AckermannAttControl::runSanityChecks()
 		ret = false;
 	}
 
-	if (_param_ro_yaw_rate_limit.get() < FLT_EPSILON) {
+	if (_param_ro_yaw_rate_lim.get() < FLT_EPSILON) {
 		ret = false;
 	}
 

@@ -941,6 +941,12 @@ int up_dshot_arm(bool armed)
 		}
 	}
 
+	// Without an initialised channel FlexIO may still be clock gated, and an access to a gated
+	// i.MX RT peripheral stalls the bus instead of faulting
+	if (mask == 0) {
+		return 0;
+	}
+
 	_dshot_armed = armed;
 
 	if (!armed) {

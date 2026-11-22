@@ -69,7 +69,8 @@ bool HomePosition::hasMovedFromCurrentHomeLocation()
 		epv = _local_position_sub.get().epv;
 
 	} else if (_home_position_pub.get().valid_hpos && _home_position_pub.get().valid_alt) {
-		if (_valid) {
+		// Same source order as setHomePosition()
+		if (!_failsafe_flags.global_position_invalid) {
 			const vehicle_global_position_s &gpos = _global_position_sub.get();
 
 			get_distance_to_point_global_wgs84(_home_position_pub.get().lat, _home_position_pub.get().lon,

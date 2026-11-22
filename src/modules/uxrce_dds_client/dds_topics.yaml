@@ -123,6 +123,10 @@ publications:
     type: px4_msgs::msg::InputRc
     rate_limit: 10.
 
+  - topic: /fmu/out/wheel_encoders
+    type: px4_msgs::msg::WheelEncoders
+    rate_limit: 10.
+
 # Create uORB::Publication
 subscriptions:
   - topic: /fmu/in/register_ext_component_request
@@ -160,9 +164,6 @@ subscriptions:
 
   - topic: /fmu/in/obstacle_distance
     type: px4_msgs::msg::ObstacleDistance
-
-  - topic: /fmu/in/sensor_optical_flow
-    type: px4_msgs::msg::SensorOpticalFlow
 
   - topic: /fmu/in/goto_setpoint
     type: px4_msgs::msg::GotoSetpoint
@@ -233,8 +234,8 @@ subscriptions:
   - topic: /fmu/in/surface_vehicle_rate_setpoint
     type: px4_msgs::msg::SurfaceVehicleRateSetpoint
 
-  - topic: /fmu/in/rover_throttle_setpoint
-    type: px4_msgs::msg::RoverThrottleSetpoint
+  - topic: /fmu/in/surface_vehicle_thrust_setpoint
+    type: px4_msgs::msg::SurfaceVehicleThrustSetpoint
 
   - topic: /fmu/in/surface_vehicle_steering_setpoint
     type: px4_msgs::msg::SurfaceVehicleSteeringSetpoint
@@ -253,3 +254,8 @@ subscriptions_multi:
     type: px4_msgs::msg::RtcmData
     route_field: device_id
     max_instances: 4
+
+  - topic: /fmu/in/sensor_optical_flow
+    type: px4_msgs::msg::SensorOpticalFlow
+    route_field: device_id
+    max_instances: 2

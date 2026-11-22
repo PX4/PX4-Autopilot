@@ -626,21 +626,29 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 				  (_mission_item.nav_cmd == NAV_CMD_VTOL_LAND) &&
 				  !_land_detected_sub.get().landed;
 
+	// The landing sequence starts after a normal arrival or after a climb inserted before the landing item.
+	const bool starts_landing = _work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT
+				    || _work_item_type == WorkItemType::WORK_ITEM_TYPE_CLIMB;
+
+	// The steps before the descent keep the altitude of the position setpoint or of the climb just reached:
+	// a loiter climb counts as reached within the altitude acceptance radius, below its target.
+	float altitude = _global_pos_sub.get().alt;
+
+	if (pos_sp_triplet->current.valid
+	    && (pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION
+		|| _work_item_type == WorkItemType::WORK_ITEM_TYPE_CLIMB)) {
+		altitude = pos_sp_triplet->current.alt;
+	}
+
 	/* move to land wp as fixed wing */
 	if (needs_vtol_landing) {
-		if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT) {
+		if (starts_landing) {
 
 			new_work_item_type = WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND;
 
 			/* use current mission item as next position item */
 			num_found_items = 1u;
 			next_mission_items[0u] = _mission_item;
-
-			float altitude = _global_pos_sub.get().alt;
-
-			if (pos_sp_triplet->current.valid && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
-				altitude = pos_sp_triplet->current.alt;
-			}
 
 			_mission_item.altitude = altitude;
 			_mission_item.altitude_is_relative = false;
@@ -665,8 +673,7 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 		/* move to landing waypoint before descent if necessary */
 		if ((_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) &&
 		    do_need_move_to_item() &&
-		    (_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT ||
-		     _work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION)) {
+		    (starts_landing || _work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION)) {
 
 			new_work_item_type = WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND;
 
@@ -681,13 +688,6 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 				* XXX: We might want to change that at some point if it is clear to the user
 				* what the altitude means on this waypoint type.
 				*/
-			float altitude = _global_pos_sub.get().alt;
-
-			if (pos_sp_triplet->current.valid
-			    && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
-				altitude = pos_sp_triplet->current.alt;
-			}
-
 			_mission_item.altitude = altitude;
 			_mission_item.altitude_is_relative = false;
 			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
@@ -707,16 +707,9 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 		} else if ((_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) &&
 			   !do_need_move_to_item() &&
 			   PX4_ISFINITE(_mission_item.yaw) && (_mission_item.land_precision == 0) &&
-			   (_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT ||
+			   (starts_landing ||
 			    _work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND ||
 			    _work_item_type == WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION)) {
-
-			float altitude = _global_pos_sub.get().alt;
-
-			if (pos_sp_triplet->current.valid
-			    && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
-				altitude = pos_sp_triplet->current.alt;
-			}
 
 			new_work_item_type = WorkItemType::WORK_ITEM_TYPE_ALIGN_TO_LAND;
 
@@ -1126,9 +1119,9 @@ int MissionBase::getNonJumpItem(int32_t &mission_index, mission_item_s &mission,
 	}
 
 	if (new_mission.nav_cmd == NAV_CMD_DO_JUMP) {
-		// Ran out of iterations while still on a DO_JUMP (e.g. a jump loop or a chain longer than
-		// MAX_JUMP_ITERATION). Report failure instead of returning an unresolved jump as a valid
-		// item, which would otherwise be loaded as the current mission item.
+		// Ran out of iterations while still on a DO_JUMP (MAX_JUMP_ITERATION DO_JUMPs in a row, or the
+		// loop or chain of a mission that failed its check). Report failure instead of returning an
+		// unresolved jump as a valid item, which would otherwise be loaded as the current mission item.
 		PX4_ERR("Do Jump could not be resolved within %u iterations.", MAX_JUMP_ITERATION);
 		return PX4_ERROR;
 	}

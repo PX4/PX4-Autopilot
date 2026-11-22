@@ -26,6 +26,7 @@ parameters:
           MPC_XY_VEL_MAX or MPC_VEL_MANUAL).
           If set to a negative value, the existing individual parameters are used.
       type: float
+      unit: m/s
       default: -10.0
       min: -20
       max: 20
@@ -39,6 +40,7 @@ parameters:
           MPC_Z_VEL_MAX_UP or MPC_LAND_SPEED).
           If set to a negative value, the existing individual parameters are used.
       type: float
+      unit: m/s
       default: -3.0
       min: -3
       max: 8

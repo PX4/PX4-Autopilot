@@ -35,7 +35,9 @@
 
 using namespace time_literals;
 
-MecanumPosControl::MecanumPosControl(ModuleParams *parent) : ModuleParams(parent)
+MecanumPosControl::MecanumPosControl(ModuleParams *parent) :
+	ModuleParams(parent),
+	RoverControllerWorkItem("rover_mecanum_pos_control", ORB_ID(vehicle_local_position))
 {
 	_surface_vehicle_speed_setpoint_pub.advertise();
 	_pure_pursuit_status_pub.advertise();
@@ -70,9 +72,9 @@ void MecanumPosControl::updatePosControl()
 
 			float speed_setpoint{_cruising_speed};
 
-			if (!course_control && _param_ro_decel_limit.get() > FLT_EPSILON && _param_ro_jerk_limit.get() > FLT_EPSILON) {
-				speed_setpoint = math::min(math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_limit.get(),
-							   _param_ro_decel_limit.get(), distance_to_target, fabsf(_arrival_speed)), _cruising_speed);
+			if (!course_control && _param_ro_decel_lim.get() > FLT_EPSILON && _param_ro_jerk_lim.get() > FLT_EPSILON) {
+				speed_setpoint = math::min(math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_lim.get(),
+							   _param_ro_decel_lim.get(), distance_to_target, fabsf(_arrival_speed)), _cruising_speed);
 			}
 
 			// The speed controller tracks the ground velocity in body frame, so a velocity along the course setpoint needs no drift angle correction
@@ -94,15 +96,15 @@ void MecanumPosControl::updatePosControl()
 
 			surface_vehicle_speed_setpoint_s surface_vehicle_speed_setpoint{};
 			surface_vehicle_speed_setpoint.timestamp = timestamp;
-			surface_vehicle_speed_setpoint.speed_body_x = velocity_in_body_frame(0);
-			surface_vehicle_speed_setpoint.speed_body_y = velocity_in_body_frame(1);
+			surface_vehicle_speed_setpoint.x = velocity_in_body_frame(0);
+			surface_vehicle_speed_setpoint.y = velocity_in_body_frame(1);
 			_surface_vehicle_speed_setpoint_pub.publish(surface_vehicle_speed_setpoint);
 
 		} else {
 			surface_vehicle_speed_setpoint_s surface_vehicle_speed_setpoint{};
 			surface_vehicle_speed_setpoint.timestamp = timestamp;
-			surface_vehicle_speed_setpoint.speed_body_x = 0.f;
-			surface_vehicle_speed_setpoint.speed_body_y = 0.f;
+			surface_vehicle_speed_setpoint.x = 0.f;
+			surface_vehicle_speed_setpoint.y = 0.f;
 			_surface_vehicle_speed_setpoint_pub.publish(surface_vehicle_speed_setpoint);
 
 			if (!_stopped && fabsf(_vehicle_speed) < FLT_EPSILON) {
@@ -144,7 +146,7 @@ void MecanumPosControl::updateSubscriptions()
 		_start_ned = _start_ned.isAllFinite() ? _start_ned : _curr_pos_ned;
 		_arrival_speed = PX4_ISFINITE(surface_vehicle_position_setpoint.arrival_speed) ? surface_vehicle_position_setpoint.arrival_speed : 0.f;
 		_cruising_speed = PX4_ISFINITE(surface_vehicle_position_setpoint.cruising_speed) ? surface_vehicle_position_setpoint.cruising_speed :
-				  _param_ro_speed_limit.get();
+				  _param_ro_speed_lim.get();
 		_target_waypoint_ned = Vector2f(surface_vehicle_position_setpoint.target_ned[0], surface_vehicle_position_setpoint.target_ned[1]);
 		_course = NAN;
 		_stopped = false;
@@ -156,7 +158,7 @@ void MecanumPosControl::updateSubscriptions()
 		_start_ned = Vector2f(NAN, NAN);
 		_arrival_speed = 0.f;
 		_cruising_speed = PX4_ISFINITE(surface_vehicle_course_setpoint.speed) ?
-				  surface_vehicle_course_setpoint.speed : _param_ro_speed_limit.get();
+				  surface_vehicle_course_setpoint.speed : _param_ro_speed_lim.get();
 		_target_waypoint_ned = Vector2f(NAN, NAN);
 		_course = surface_vehicle_course_setpoint.course;
 		_stopped = false;
@@ -167,11 +169,11 @@ bool MecanumPosControl::runSanityChecks()
 {
 	bool ret = true;
 
-	if (_param_ro_yaw_rate_limit.get() < FLT_EPSILON) {
+	if (_param_ro_yaw_rate_lim.get() < FLT_EPSILON) {
 		ret = false;
 	}
 
-	if (_param_ro_speed_limit.get() < FLT_EPSILON) {
+	if (_param_ro_speed_lim.get() < FLT_EPSILON) {
 		ret = false;
 	}
 

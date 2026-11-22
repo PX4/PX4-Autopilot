@@ -62,13 +62,9 @@ private:
 		bool is_jump[kGeofencePathBatchSize];
 		size_t count{0};
 	};
-
-	static constexpr size_t kMaxJumpBranches = 16;
-	struct JumpBranch {
-		uint16_t index; // validated target or fallthrough, at most mission.count
-		uint16_t consecutive_jumps;
-	};
 #endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
+
+	enum class JumpTarget { Position, Jump, ReadFailed };
 
 	Navigator *_navigator{nullptr};
 	DatamanClient &_dataman_client;
@@ -77,21 +73,21 @@ private:
 	// Members, not locals, so they are not on the stack during the nested geofence path checks.
 	// Left uninitialized to save flash: each call writes them before reading them.
 	mission_item_s _checked_item;
-#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
 	mission_item_s _jump_candidate;
-	JumpBranch _pending_branches[kMaxJumpBranches];
-#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 
+	/**
+	 * Read from a DO_JUMP's target to the first position item or DO_JUMP, the jump itself included.
+	 * @param index The position item, or the item that could not be read.
+	 */
+	JumpTarget findJumpTarget(const mission_s &mission, int32_t target_index, size_t jump_index, size_t &index,
+				  mission_item_s &item);
+	bool checkJumpTarget(const mission_s &mission, const mission_item_s &jump_item, size_t jump_index);
 	bool checkMissionAgainstGeofence(const mission_s &mission, float home_alt, bool home_valid);
 #if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
-	bool checkJumpDestinations(const mission_s &mission, const mission_item_s &jump_item, size_t jump_index,
-				   const matrix::Vector2d *previous_position, GeofencePathBatch &batch);
-	bool rejectGeofenceJump(GeofencePathBatch &batch, size_t jump_index);
 	bool addGeofencePath(GeofencePathBatch &batch, const matrix::Vector2d &start, const matrix::Vector2d &end,
 			     size_t mission_index, float end_radius = 0.f, bool is_jump = false);
 	bool checkGeofencePathBatch(GeofencePathBatch &batch);
 	void logGeofencePathBreach(const GeofencePathBatch &batch, size_t index);
-	void logUnresolvedJump(size_t jump_index);
 #endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 	bool readSyncMissionItem(const mission_s &mission, size_t index, mission_item_s &item);
 	void logGeofenceUnavailable();

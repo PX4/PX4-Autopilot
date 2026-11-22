@@ -40,6 +40,7 @@
 
 // Libraries
 #include <lib/rover_control/RoverControl.hpp>
+#include <lib/rover_control/RoverControllerWorkItem.hpp>
 #include <lib/pid/PID.hpp>
 #include <lib/slew_rate/SlewRateYaw.hpp>
 #include <math.h>
@@ -58,7 +59,7 @@ using namespace time_literals;
 /**
  * @brief Class for mecanum attitude control.
  */
-class MecanumAttControl : public ModuleParams
+class MecanumAttControl : public ModuleParams, public RoverControllerWorkItem
 {
 public:
 	/**
@@ -91,6 +92,8 @@ protected:
 	void updateParams() override;
 
 private:
+	void runController() override { updateAttControl(); }
+	void onEnable() override { _timestamp = hrt_absolute_time(); } // The first dt after (re-)enabling must not span the time spent disabled
 
 	// uORB subscriptions
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
@@ -116,7 +119,7 @@ private:
 
 	// Parameters
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RO_YAW_RATE_LIM>) _param_ro_yaw_rate_limit,
+		(ParamFloat<px4::params::RO_YAW_RATE_LIM>) _param_ro_yaw_rate_lim,
 		(ParamFloat<px4::params::RO_YAW_P>)        _param_ro_yaw_p,
 		(ParamFloat<px4::params::RO_YAW_STICK_DZ>) _param_ro_yaw_stick_dz
 	)

@@ -35,8 +35,12 @@
 
 using namespace time_literals;
 
-AckermannActControl::AckermannActControl(ModuleParams *parent) : ModuleParams(parent)
+AckermannActControl::AckermannActControl(ModuleParams *parent) :
+	ModuleParams(parent),
+	RoverControllerWorkItem("rover_ackermann_act_control", ORB_ID(vehicle_angular_velocity))
 {
+	// Paced by the gyro like the rate controller, so actuator setpoints are published every cycle,
+	// also when no new steering setpoint arrives (e.g. the cycle after a mode change resets the rate controller)
 	updateParams();
 }
 
@@ -44,12 +48,12 @@ void AckermannActControl::updateParams()
 {
 	ModuleParams::updateParams();
 
-	if (_param_ra_str_rate_limit.get() > FLT_EPSILON && _param_ra_max_str_ang.get() > FLT_EPSILON) {
-		_servo_setpoint.setSlewRate((M_DEG_TO_RAD_F * _param_ra_str_rate_limit.get()) / _param_ra_max_str_ang.get());
+	if (_param_ra_str_rate_lim.get() > FLT_EPSILON && _param_ra_max_str_ang.get() > FLT_EPSILON) {
+		_servo_setpoint.setSlewRate((M_DEG_TO_RAD_F * _param_ra_str_rate_lim.get()) / _param_ra_max_str_ang.get());
 	}
 
-	if (_param_ro_accel_limit.get() > FLT_EPSILON && _param_ro_max_thr_speed.get() > FLT_EPSILON) {
-		_motor_setpoint.setSlewRate(_param_ro_accel_limit.get() / _param_ro_max_thr_speed.get());
+	if (_param_ro_accel_lim.get() > FLT_EPSILON && _param_ro_max_thr_speed.get() > FLT_EPSILON) {
+		_motor_setpoint.setSlewRate(_param_ro_accel_lim.get() / _param_ro_max_thr_speed.get());
 	}
 }
 
@@ -60,20 +64,20 @@ void AckermannActControl::updateActControl()
 	const float dt = math::constrain(_timestamp - timestamp_prev, 1_ms, 10_ms) * 1e-6f;
 
 	// Motor control
-	if (_rover_throttle_setpoint_sub.updated()) {
-		rover_throttle_setpoint_s rover_throttle_setpoint{};
-		_rover_throttle_setpoint_sub.copy(&rover_throttle_setpoint);
-		_throttle_setpoint = rover_throttle_setpoint.throttle_body_x;
+	if (_surface_vehicle_thrust_setpoint_sub.updated()) {
+		surface_vehicle_thrust_setpoint_s surface_vehicle_thrust_setpoint{};
+		_surface_vehicle_thrust_setpoint_sub.copy(&surface_vehicle_thrust_setpoint);
+		_throttle_setpoint = surface_vehicle_thrust_setpoint.x;
 	}
 
 	if (PX4_ISFINITE(_throttle_setpoint)) {
 		actuator_motors_s actuator_motors_sub{};
 		_actuator_motors_sub.copy(&actuator_motors_sub);
 		actuator_motors_s actuator_motors{};
-		actuator_motors.reversible_flags = _param_r_rev.get();
+		actuator_motors.reversible_flags = _param_ca_r_rev.get();
 		actuator_motors.control[0] = RoverControl::throttleControl(_motor_setpoint,
-					     _throttle_setpoint, actuator_motors_sub.control[0], _param_ro_accel_limit.get(),
-					     _param_ro_decel_limit.get(), _param_ro_max_thr_speed.get(), dt);
+					     _throttle_setpoint, actuator_motors_sub.control[0], _param_ro_accel_lim.get(),
+					     _param_ro_decel_lim.get(), _param_ro_max_thr_speed.get(), dt);
 		actuator_motors.timestamp = _timestamp;
 		_actuator_motors_pub.publish(actuator_motors);
 
@@ -90,7 +94,7 @@ void AckermannActControl::updateActControl()
 		actuator_servos_s actuator_servos_sub{};
 		_actuator_servos_sub.copy(&actuator_servos_sub);
 
-		if (_param_ra_str_rate_limit.get() > FLT_EPSILON
+		if (_param_ra_str_rate_lim.get() > FLT_EPSILON
 		    && _param_ra_max_str_ang.get() > FLT_EPSILON) { // Apply slew rate if configured
 			if (fabsf(_servo_setpoint.getState() - actuator_servos_sub.control[0]) > fabsf(
 				    _steering_setpoint -
@@ -115,7 +119,7 @@ void AckermannActControl::stopVehicle()
 {
 	_timestamp = hrt_absolute_time();
 	actuator_motors_s actuator_motors{};
-	actuator_motors.reversible_flags = _param_r_rev.get();
+	actuator_motors.reversible_flags = _param_ca_r_rev.get();
 	actuator_motors.control[0] = 0.f;
 	actuator_motors.timestamp = _timestamp;
 	_actuator_motors_pub.publish(actuator_motors);

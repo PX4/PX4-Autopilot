@@ -54,6 +54,10 @@ jobs:
         python3 -m unittest discover -s ai_review -t . -v
         python3 -m unittest -v test_pr_review_poster
 
+    - name: Test PR title check
+      working-directory: Tools/ci
+      run: python3 -m unittest -v test_check_pr_title
+
     - name: Check ROS workspace tooling
       run: |
         flake8 Tools/ros2/*.py

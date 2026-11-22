@@ -38,7 +38,7 @@ using namespace time_literals;
 AckermannManualMode::AckermannManualMode(ModuleParams *parent) : ModuleParams(parent)
 {
 	updateParams();
-	_rover_throttle_setpoint_pub.advertise();
+	_surface_vehicle_thrust_setpoint_pub.advertise();
 	_surface_vehicle_steering_setpoint_pub.advertise();
 	_surface_vehicle_rate_setpoint_pub.advertise();
 	_surface_vehicle_attitude_setpoint_pub.advertise();
@@ -49,55 +49,61 @@ AckermannManualMode::AckermannManualMode(ModuleParams *parent) : ModuleParams(pa
 void AckermannManualMode::updateParams()
 {
 	ModuleParams::updateParams();
-	_max_yaw_rate = _param_ro_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
+	_max_yaw_rate = _param_ro_yaw_rate_lim.get() * M_DEG_TO_RAD_F;
 }
 
 void AckermannManualMode::manual()
 {
 	manual_control_setpoint_s manual_control_setpoint{};
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
+	const RoverControl::ManualSticks sticks = RoverControl::mapSticks(manual_control_setpoint,
+			_param_ro_stick_map.get());
 	surface_vehicle_steering_setpoint_s surface_vehicle_steering_setpoint{};
 	surface_vehicle_steering_setpoint.timestamp = hrt_absolute_time();
-	surface_vehicle_steering_setpoint.normalized_steering_setpoint = manual_control_setpoint.roll;
+	surface_vehicle_steering_setpoint.normalized_steering_setpoint = sticks.yaw;
 	_surface_vehicle_steering_setpoint_pub.publish(surface_vehicle_steering_setpoint);
-	rover_throttle_setpoint_s rover_throttle_setpoint{};
-	rover_throttle_setpoint.timestamp = hrt_absolute_time();
-	rover_throttle_setpoint.throttle_body_x = manual_control_setpoint.throttle;
-	rover_throttle_setpoint.throttle_body_y = 0.f;
-	_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
+	surface_vehicle_thrust_setpoint_s surface_vehicle_thrust_setpoint{};
+	surface_vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
+	surface_vehicle_thrust_setpoint.x = sticks.forward;
+	surface_vehicle_thrust_setpoint.y = 0.f;
+	_surface_vehicle_thrust_setpoint_pub.publish(surface_vehicle_thrust_setpoint);
 }
 
 void AckermannManualMode::manualParking()
 {
 	manual_control_setpoint_s manual_control_setpoint{};
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
+	const RoverControl::ManualSticks sticks = RoverControl::mapSticks(manual_control_setpoint,
+			_param_ro_stick_map.get());
 	surface_vehicle_steering_setpoint_s surface_vehicle_steering_setpoint{};
 	surface_vehicle_steering_setpoint.timestamp = hrt_absolute_time();
-	surface_vehicle_steering_setpoint.normalized_steering_setpoint = manual_control_setpoint.roll;
+	surface_vehicle_steering_setpoint.normalized_steering_setpoint = sticks.yaw;
 	_surface_vehicle_steering_setpoint_pub.publish(surface_vehicle_steering_setpoint);
 
 	const float max_throttle = _param_ro_park_thr_max.get();
-	rover_throttle_setpoint_s rover_throttle_setpoint{};
-	rover_throttle_setpoint.timestamp = hrt_absolute_time();
-	rover_throttle_setpoint.throttle_body_x = max_throttle * manual_control_setpoint.throttle;
-	rover_throttle_setpoint.throttle_body_y = 0.f;
-	_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
+	surface_vehicle_thrust_setpoint_s surface_vehicle_thrust_setpoint{};
+	surface_vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
+	surface_vehicle_thrust_setpoint.x = max_throttle * sticks.forward;
+	surface_vehicle_thrust_setpoint.y = 0.f;
+	_surface_vehicle_thrust_setpoint_pub.publish(surface_vehicle_thrust_setpoint);
 }
 
 void AckermannManualMode::acro()
 {
 	manual_control_setpoint_s manual_control_setpoint{};
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
-	rover_throttle_setpoint_s rover_throttle_setpoint{};
-	rover_throttle_setpoint.timestamp = hrt_absolute_time();
-	rover_throttle_setpoint.throttle_body_x = manual_control_setpoint.throttle;
-	rover_throttle_setpoint.throttle_body_y = 0.f;
-	_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
+	const RoverControl::ManualSticks sticks = RoverControl::mapSticks(manual_control_setpoint,
+			_param_ro_stick_map.get());
+	surface_vehicle_thrust_setpoint_s surface_vehicle_thrust_setpoint{};
+	surface_vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
+	surface_vehicle_thrust_setpoint.x = sticks.forward;
+	surface_vehicle_thrust_setpoint.y = 0.f;
+	_surface_vehicle_thrust_setpoint_pub.publish(surface_vehicle_thrust_setpoint);
 	surface_vehicle_rate_setpoint_s surface_vehicle_rate_setpoint{};
 	surface_vehicle_rate_setpoint.timestamp = hrt_absolute_time();
-	surface_vehicle_rate_setpoint.yaw_rate_setpoint = matrix::sign(manual_control_setpoint.throttle) * _max_yaw_rate *
+	surface_vehicle_rate_setpoint.yaw_rate_setpoint = matrix::sign(sticks.forward) * _max_yaw_rate *
 			math::superexpo<float>
-			(manual_control_setpoint.roll, _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
+			(sticks.yaw, _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
 	_surface_vehicle_rate_setpoint_pub.publish(surface_vehicle_rate_setpoint);
 }
 
@@ -112,21 +118,23 @@ void AckermannManualMode::stab()
 
 	manual_control_setpoint_s manual_control_setpoint{};
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
-	rover_throttle_setpoint_s rover_throttle_setpoint{};
-	rover_throttle_setpoint.timestamp = hrt_absolute_time();
-	rover_throttle_setpoint.throttle_body_x = manual_control_setpoint.throttle;
-	rover_throttle_setpoint.throttle_body_y = 0.f;
-	_rover_throttle_setpoint_pub.publish(rover_throttle_setpoint);
+	const RoverControl::ManualSticks sticks = RoverControl::mapSticks(manual_control_setpoint,
+			_param_ro_stick_map.get());
+	surface_vehicle_thrust_setpoint_s surface_vehicle_thrust_setpoint{};
+	surface_vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
+	surface_vehicle_thrust_setpoint.x = sticks.forward;
+	surface_vehicle_thrust_setpoint.y = 0.f;
+	_surface_vehicle_thrust_setpoint_pub.publish(surface_vehicle_thrust_setpoint);
 
-	if (fabsf(manual_control_setpoint.roll) > FLT_EPSILON
-	    || fabsf(rover_throttle_setpoint.throttle_body_x) < FLT_EPSILON) {
+	if (fabsf(sticks.yaw) > FLT_EPSILON
+	    || fabsf(surface_vehicle_thrust_setpoint.x) < FLT_EPSILON) {
 		_stab_yaw_setpoint = NAN;
 
 		// Rate control
 		surface_vehicle_rate_setpoint_s surface_vehicle_rate_setpoint{};
 		surface_vehicle_rate_setpoint.timestamp = hrt_absolute_time();
-		surface_vehicle_rate_setpoint.yaw_rate_setpoint = matrix::sign(manual_control_setpoint.throttle) * _max_yaw_rate *
-				math::superexpo<float>(math::deadzone(manual_control_setpoint.roll,
+		surface_vehicle_rate_setpoint.yaw_rate_setpoint = matrix::sign(sticks.forward) * _max_yaw_rate *
+				math::superexpo<float>(math::deadzone(sticks.yaw,
 						       _param_ro_yaw_stick_dz.get()), _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
 		_surface_vehicle_rate_setpoint_pub.publish(surface_vehicle_rate_setpoint);
 
@@ -172,25 +180,27 @@ void AckermannManualMode::position()
 
 	manual_control_setpoint_s manual_control_setpoint{};
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
+	const RoverControl::ManualSticks sticks = RoverControl::mapSticks(manual_control_setpoint,
+			_param_ro_stick_map.get());
 
-	const float speed_setpoint = math::interpolate<float>(manual_control_setpoint.throttle,
-				     -1.f, 1.f, -_param_ro_speed_limit.get(), _param_ro_speed_limit.get());
+	const float speed_setpoint = math::interpolate<float>(sticks.forward,
+				     -1.f, 1.f, -_param_ro_speed_lim.get(), _param_ro_speed_lim.get());
 
-	if (fabsf(manual_control_setpoint.roll) > FLT_EPSILON
+	if (fabsf(sticks.yaw) > FLT_EPSILON
 	    || fabsf(speed_setpoint) < FLT_EPSILON) {
-		_pos_ctl_bearing = NAN;
+		_pos_ctl_yaw = NAN;
 
 		// Speed control
 		surface_vehicle_speed_setpoint_s surface_vehicle_speed_setpoint{};
 		surface_vehicle_speed_setpoint.timestamp = hrt_absolute_time();
-		surface_vehicle_speed_setpoint.speed_body_x = speed_setpoint;
+		surface_vehicle_speed_setpoint.x = speed_setpoint;
 		_surface_vehicle_speed_setpoint_pub.publish(surface_vehicle_speed_setpoint);
 
 		// Rate control
 		surface_vehicle_rate_setpoint_s surface_vehicle_rate_setpoint{};
 		surface_vehicle_rate_setpoint.timestamp = hrt_absolute_time();
-		surface_vehicle_rate_setpoint.yaw_rate_setpoint = matrix::sign(manual_control_setpoint.throttle) * _max_yaw_rate *
-				math::superexpo<float>(math::deadzone(manual_control_setpoint.roll,
+		surface_vehicle_rate_setpoint.yaw_rate_setpoint = matrix::sign(sticks.forward) * _max_yaw_rate *
+				math::superexpo<float>(math::deadzone(sticks.yaw,
 						       _param_ro_yaw_stick_dz.get()), _param_ro_yaw_expo.get(), _param_ro_yaw_supexpo.get());
 		_surface_vehicle_rate_setpoint_pub.publish(surface_vehicle_rate_setpoint);
 
@@ -212,14 +222,16 @@ void AckermannManualMode::position()
 		_surface_vehicle_position_setpoint_pub.publish(surface_vehicle_position_setpoint);
 
 	} else { // Follow an endless linear desired track
-		if (!PX4_ISFINITE(_pos_ctl_bearing)) {
-			// The bearing points backwards when driving in reverse
-			_pos_ctl_bearing = speed_setpoint > 0.f ? _vehicle_yaw : matrix::wrap_pi(_vehicle_yaw + M_PI_F);
+		if (!PX4_ISFINITE(_pos_ctl_yaw)) {
+			_pos_ctl_yaw = _vehicle_yaw;
 			_pos_ctl_start_position_ned = _curr_pos_ned;
 		}
 
+		// The bearing follows the stick: it points backwards when driving in reverse
+		const float bearing = speed_setpoint > 0.f ? _pos_ctl_yaw : matrix::wrap_pi(_pos_ctl_yaw + M_PI_F);
+
 		// Hold the linear desired track through the start position: the target is kept beyond the maximum lookahead, so it is never reached
-		const Vector2f bearing_direction(cosf(_pos_ctl_bearing), sinf(_pos_ctl_bearing));
+		const Vector2f bearing_direction(cosf(bearing), sinf(bearing));
 		const float distance_along_track = fabsf((_curr_pos_ned - _pos_ctl_start_position_ned) * bearing_direction);
 		const Vector2f target_ned = _pos_ctl_start_position_ned + (distance_along_track + _param_pp_lookahd_max.get()) *
 					    bearing_direction;
@@ -241,7 +253,7 @@ void AckermannManualMode::position()
 void AckermannManualMode::reset()
 {
 	_stab_yaw_setpoint = NAN;
-	_pos_ctl_bearing = NAN;
+	_pos_ctl_yaw = NAN;
 	_pos_ctl_start_position_ned = Vector2f(NAN, NAN);
 	_curr_pos_ned = Vector2f(NAN, NAN);
 }

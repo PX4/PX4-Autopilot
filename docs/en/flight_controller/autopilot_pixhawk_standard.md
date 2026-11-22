@@ -21,7 +21,7 @@ The boards in this category are:
 - [Holybro Pix32 v6](../flight_controller/holybro_pix32_v6.md) (FMUv6C)
 - [Holybro Pixhawk 5X](../flight_controller/pixhawk5x.md) (FMUv5X)
 - [mRo Pixracer](../flight_controller/pixracer.md) (FMUv4)
-- [Hex Cube Black](../flight_controller/pixhawk-2.md) (FMUv3)
+- [CubePilot Cube Black](../flight_controller/pixhawk-2.md) (FMUv3)
 - [mRo Pixhawk](../flight_controller/mro_pixhawk.md) (FMUv3)
 
 ## Discontinued

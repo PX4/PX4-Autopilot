@@ -104,7 +104,7 @@ float PerformanceModel::getMaximumClimbRate(float air_density) const
 	air_density = sanitiseAirDensity(air_density);
 	float climbrate_max = _param_fw_t_clmb_max.get();
 
-	const float service_ceiling = _param_service_ceiling.get();
+	const float service_ceiling = _param_fw_service_ceil.get();
 
 	if (service_ceiling > FLT_EPSILON) {
 		const float ceiling_pressure = getPressureFromAltitude(service_ceiling);

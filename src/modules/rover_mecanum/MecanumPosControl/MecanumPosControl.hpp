@@ -40,6 +40,7 @@
 // Libraries
 #include <matrix/matrix/math.hpp>
 #include <lib/pure_pursuit/PurePursuit.hpp>
+#include <lib/rover_control/RoverControllerWorkItem.hpp>
 #include <lib/geo/geo.h>
 #include <math.h>
 
@@ -59,7 +60,7 @@ using namespace matrix;
 /**
  * @brief Class for mecanum position control.
  */
-class MecanumPosControl : public ModuleParams
+class MecanumPosControl : public ModuleParams, public RoverControllerWorkItem
 {
 public:
 	/**
@@ -83,7 +84,7 @@ public:
 	/**
 	 * @brief Reset position controller.
 	 */
-	void reset() {_start_ned = Vector2f{NAN, NAN}; _target_waypoint_ned = Vector2f{NAN, NAN}; _course = NAN; _arrival_speed = 0.f; _cruising_speed = _param_ro_speed_limit.get(); _stopped = false;};
+	void reset() {_start_ned = Vector2f{NAN, NAN}; _target_waypoint_ned = Vector2f{NAN, NAN}; _course = NAN; _arrival_speed = 0.f; _cruising_speed = _param_ro_speed_lim.get(); _stopped = false;};
 
 protected:
 
@@ -94,6 +95,8 @@ protected:
 	void updateParams() override;
 
 private:
+	void runController() override { updatePosControl(); }
+
 	/**
 	 * @brief Update uORB subscriptions used in position controller.
 	 */
@@ -129,15 +132,15 @@ private:
 		(ParamFloat<px4::params::RO_SPEED_P>) 	    _param_ro_speed_p,
 		(ParamFloat<px4::params::RO_SPEED_I>)       _param_ro_speed_i,
 		(ParamFloat<px4::params::RO_YAW_STICK_DZ>)  _param_ro_yaw_stick_dz,
-		(ParamFloat<px4::params::RO_ACCEL_LIM>)     _param_ro_accel_limit,
-		(ParamFloat<px4::params::RO_DECEL_LIM>)     _param_ro_decel_limit,
-		(ParamFloat<px4::params::RO_JERK_LIM>)      _param_ro_jerk_limit,
-		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
+		(ParamFloat<px4::params::RO_ACCEL_LIM>)     _param_ro_accel_lim,
+		(ParamFloat<px4::params::RO_DECEL_LIM>)     _param_ro_decel_lim,
+		(ParamFloat<px4::params::RO_JERK_LIM>)      _param_ro_jerk_lim,
+		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_lim,
 		(ParamFloat<px4::params::RO_SPEED_TH>)      _param_ro_speed_th,
 		(ParamFloat<px4::params::PP_LOOKAHD_GAIN>)  _param_pp_lookahd_gain,
 		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max,
 		(ParamFloat<px4::params::PP_LOOKAHD_MIN>)   _param_pp_lookahd_min,
-		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_limit,
+		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_lim,
 		(ParamFloat<px4::params::RO_YAW_P>)  	    _param_ro_yaw_p,
 		(ParamFloat<px4::params::NAV_ACC_RAD>)      _param_nav_acc_rad
 	)
