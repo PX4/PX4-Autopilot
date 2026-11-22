@@ -62,6 +62,10 @@ Standard::parameters_update()
 	_param_vt_b_trans_ramp.set(math::min(_param_vt_b_trans_ramp.get(), _param_vt_b_trans_dur.get()));
 
 	clearForwardPropulsionFailureIfDisabled();
+
+	if (!isFtPusherCheckEnabled()) {
+		_ft_pusher_failed = false;
+	}
 }
 
 void Standard::update_vtol_state()
@@ -72,7 +76,7 @@ void Standard::update_vtol_state()
 	 */
 
 	// without forward propulsion a front transition would fail too, so this quad-chute stays until reboot
-	if (_forward_propulsion_failed) {
+	if (_forward_propulsion_failed || _ft_pusher_failed) {
 		_attc->quadchute(QuadchuteReason::ForwardPropulsionFailure);
 	}
 
@@ -132,6 +136,19 @@ void Standard::update_vtol_state()
 			/* NOTE: The failsafe transition to fixed-wing was removed because it can result in an
 			 * unsafe flying state. */
 			resetTransitionStates();
+
+			// not checked when the front transition interrupts a back transition, as the pusher just flew the vehicle,
+			// or without transition throttle
+			_ft_transition_throttle = getFrontTransitionThrottle();
+
+			if (_vtol_mode == vtol_mode::TRANSITION_TO_MC || _ft_transition_throttle < FLT_EPSILON) {
+				_ft_thrust_check.skip();
+
+			} else {
+				// the pusher thrust grows with the throttle squared, pusher assist may already push
+				_ft_thrust_check.start(math::sq(_pusher_throttle / _ft_transition_throttle));
+			}
+
 			_vtol_mode = vtol_mode::TRANSITION_TO_FW;
 
 		} else if (_vtol_mode == vtol_mode::FW_MODE) {
@@ -230,6 +247,8 @@ void Standard::update_transition_state()
 			_last_time_pusher_transition_update = now;
 		}
 
+		_ft_pusher_failed = _ft_pusher_failed || isPusherFailureDetectedInFrontTransition();
+
 		_airspeed_trans_blend_margin = getTransitionAirspeed() - getBlendAirspeed();
 
 		// do blending of mc and fw controls if a blending airspeed has been provided and the minimum transition time has passed
@@ -293,6 +312,21 @@ void Standard::update_mc_state()
 	_pusher_throttle = VtolType::pusher_assist();
 
 	_forward_propulsion_failed = _forward_propulsion_failed || isForwardPropulsionFailureDetected(_pusher_throttle);
+}
+
+bool Standard::isPusherFailureDetectedInFrontTransition()
+{
+	vehicle_acceleration_s vehicle_acceleration;
+
+	if (!isFtPusherCheckEnabled() || !_ft_thrust_check.isChecking() || can_transition_on_ground()
+	    || !_vehicle_acceleration_sub.update(&vehicle_acceleration)) {
+		return false;
+	}
+
+	// the pusher thrust grows with the throttle squared
+	const float thrust_share = math::sq(_pusher_throttle / _ft_transition_throttle);
+	return _ft_thrust_check.update(vehicle_acceleration.timestamp_sample, thrust_share, vehicle_acceleration.xyz[0],
+				       _param_vt_ef_ft_acc.get());
 }
 
 void Standard::update_fw_state()
