@@ -12,6 +12,10 @@ The firmware is flashed and activated from a web browser at [dronaware.com/optic
 This page describes firmware version 1.0.16 or later; update older boards before following it.
 :::
 
+::: warning
+Activation permanently secures the ESP-32 board, so afterwards it can only run Dronaware firmware. It can still be updated, re-flashed and switched to another supported camera from the browser.
+:::
+
 ## Supported Boards
 
 The following boards are currently available for activation.
