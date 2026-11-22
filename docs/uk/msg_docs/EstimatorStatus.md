@@ -65,6 +65,7 @@ pageClass: is-wide-page
 | <a id="#GPS_CHECK_FAIL_MAX_VERT_SPD_ERR"></a> GPS_CHECK_FAIL_MAX_VERT_SPD_ERR | `uint8` | 9        | 9 : maximum allowed vertical velocity discrepancy fail                            |
 | <a id="#GPS_CHECK_FAIL_SPOOFED"></a> GPS_CHECK_FAIL_SPOOFED                                                                                  | `uint8` | 10       | 10 : GPS signal is spoofed                                                        |
 | <a id="#GPS_CHECK_FAIL_JAMMED"></a> GPS_CHECK_FAIL_JAMMED                                                                                    | `uint8` | 11       | 11 : GPS signal is jammed                                                         |
+| <a id="#GPS_CHECK_FAIL_HKIN"></a> GPS_CHECK_FAIL_HKIN                                                                                        | `uint8` | 12       | 12 : GPS horizontal position change inconsistent with velocity                    |
 | <a id="#CS_TILT_ALIGN"></a> CS_TILT_ALIGN                                                                                                                         | `uint8` | 0        | 0 - true if the filter tilt alignment is complete                                                 |
 | <a id="#CS_YAW_ALIGN"></a> CS_YAW_ALIGN                                                                                                                           | `uint8` | 1        | 1 - true if the filter yaw alignment is complete                                                  |
 | <a id="#CS_GNSS_POS"></a> CS_GNSS_POS                                                                                                                             | `uint8` | 2        | 2 - true if GNSS position measurements are being fused                                            |
@@ -125,6 +126,7 @@ uint8 GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR = 8	# 8 : maximum allowed horizontal speed
 uint8 GPS_CHECK_FAIL_MAX_VERT_SPD_ERR = 9	# 9 : maximum allowed vertical velocity discrepancy fail
 uint8 GPS_CHECK_FAIL_SPOOFED = 10		# 10 : GPS signal is spoofed
 uint8 GPS_CHECK_FAIL_JAMMED = 11		# 11 : GPS signal is jammed
+uint8 GPS_CHECK_FAIL_HKIN = 12	# 12 : GPS horizontal position change inconsistent with velocity
 
 uint64 control_mode_flags	# Bitmask to indicate EKF logic state
 uint8 CS_TILT_ALIGN = 0		# 0 - true if the filter tilt alignment is complete

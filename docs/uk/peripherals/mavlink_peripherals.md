@@ -12,7 +12,13 @@ The most relevant parameters are described below (the full set are listed in the
 In order to assign a particular peripheral to a serial port we use the concept of a _MAVLink instance_.
 
 Кожен екземпляр MAVLink представляє певну конфігурацію MAVLink, яку ви можете застосувати до певного порту.
-At time of writing three MAVLink _instances_ are defined, each represented by a parameter [MAV_X_CONFIG](#MAV_X_CONFIG), where X is 0, 1, 2.
+Most boards define three MAVLink instances, each represented by a parameter [MAV_X_CONFIG](#MAV_X_CONFIG), where X is 0, 1, 2.
+A few boards define more, such as [Agam Autopilot v6X-RT](../flight_controller/agam_v6xrt.md), which has five (X is 0 to 4).
+
+:::info
+The number of instances is set at build time by the [Kconfig](../hardware/porting_guide_config.md) symbol `CONFIG_MAVLINK_NUM_CONFIG_INSTANCES`.
+At most 6 MAVLink instances can run at once (4 on constrained-memory boards), and USB uses one of them.
+:::
 
 Each instance has associated parameters that you can use to define the properties of the instance on that port, such as the set of streamed messages (see [MAV_X_MODE](#MAV_X_MODE) below), data rate ([MAV_X_RATE](#MAV_X_RATE)), whether incoming traffic is forwarded to other MAVLink instances ([MAV_X_FORWARD](#MAV_X_FORWARD)), and so on.
 
@@ -23,7 +29,7 @@ MAVLink instances are an abstract concept for a particular MAVLink configuration
 
 Параметри для кожного екземпляру є:
 
-- <a id="MAV_X_CONFIG"></a>[MAV_X_CONFIG](../advanced_config/parameter_reference.md#MAV_0_CONFIG) - Set the serial port (UART) for this instance "X", where X is 0, 1, 2.
+- <a id="MAV_X_CONFIG"></a>[MAV_X_CONFIG](../advanced_config/parameter_reference.md#MAV_0_CONFIG) - Set the serial port (UART) for this instance "X".
   It can be any unused port, e.g.: `TELEM2`, `TELEM3`, `GPS2` etc.
   For more information see [Serial Port Configuration](../peripherals/serial_configuration.md).
 - <a id="MAV_X_MODE"></a>[MAV_X_MODE](../advanced_config/parameter_reference.md#MAV_0_MODE) - Specify the [MAVLink profile](../mavlink/mavlink_profiles.md) for the instance, such as _Normal_ or _OSD_.

@@ -63,15 +63,22 @@ GNSS-baro calibration adjusts baro sensor offsets to align with absolute altitud
 This calibration is controlled by the [SENS_BAR_AUTOCAL](../advanced_config/parameter_reference.md#SENS_BAR_AUTOCAL) parameter (enabled by default).
 
 The algorithm monitors GNSS quality, collects altitude differences over a 2-second filtered window, and verifies stability within 4m tolerance.
-Once stable, it uses binary search to calculate pressure offsets that align baro altitude with GNSS altitude (0.1m precision), then applies the offset to all sensors and saves the parameters.
+Once stable, it uses binary search to calculate pressure offsets that align the baro altitude with the filtered GNSS altitude (0.1m precision), then applies the offset to all sensors and saves the parameters.
+
+While the vehicle stays on the ground and disarmed, the calibration keeps running: a baro drifting away from the GNSS altitude (for example from sensor warm-up or weather changes between boot and takeoff) is recalibrated once its offset, filtered over 5 seconds, exceeds 0.5 m.
+This tracking stops on arming and resumes after landing and disarming.
+It also stops until the next reboot once the altitude is set externally (`VEHICLE_CMD_EXTERNAL_POSITION_ESTIMATE`, for example the manual position reset of a ground station), as the GNSS altitude is then not trusted.
 
 Notes:
 
-- **EKF Independence**: GNSS-baro calibration operates independently of EKF2 altitude fusion settings.
-- **Execution Timing**: Calibration runs even when [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) altitude fusion is disabled.
-- **One-Time Process**: Each calibration session completes once per system startup.
+- **GNSS Height Fusion**: Calibration requires GNSS height fusion to be active ([EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL)).
+- **Ground Only**: Calibration only runs while landed.
+  The first calibration after boot also completes while armed, so arming early does not leave the baro uncalibrated.
+  After that the baro is only recalibrated while disarmed.
+- **Height Reset**: EKF2 resets its height to each new baro calibration when the baro is the height reference ([EKF2_HGT_REF](../advanced_config/parameter_reference.md#EKF2_HGT_REF)), so the estimated altitude follows the GNSS altitude until arming.
 - **Persistence**: Calibration offsets are saved to parameters and persist across reboots.
-- **Faulty GNSS Vulnerability**: If GNSS data is faulty during boot, the calibration will use incorrect altitude reference.
+- **Faulty GNSS Vulnerability**: The baro follows the GNSS altitude for as long as the vehicle is landed and disarmed.
+  A wrong GNSS altitude during boot is corrected once the GNSS altitude recovers, but a GNSS altitude that is still faulty at arming is the reference for the flight.
   See [Faulty GNSS Data During Boot](../advanced_config/tuning_the_ecl_ekf.md#faulty-gnss-data-during-boot) for mitigation strategies.
 
 ## Дивіться також

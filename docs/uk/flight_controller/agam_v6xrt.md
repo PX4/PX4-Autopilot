@@ -135,6 +135,8 @@ Notes:
 | LPUART10 | /dev/ttyS6 | TELEM3  |
 | LPUART11 | /dev/ttyS7 | EXT2    |
 
+The board has five [MAVLink instances](../peripherals/mavlink_peripherals.md#mavlink-instances) (`MAV_0_CONFIG` to `MAV_4_CONFIG`) rather than the usual three.
+
 ## Radio Control {#radio_control}
 
 Для того щоб керувати транспортним засобом _вручну_, потрібна система радіоуправління (RC) (PX4 не потребує системи радіоуправління для автономних режимів польоту).

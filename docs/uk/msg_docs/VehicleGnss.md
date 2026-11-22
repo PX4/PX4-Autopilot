@@ -47,20 +47,21 @@ Used in field(s): [selection_reason](#fld_selection_reason)
 
 Used in field(s): [failed_strict_checks](#fld_failed_strict_checks), [failed_relaxed_checks](#fld_failed_relaxed_checks)
 
-| Назва                                                          | Тип      | Значення | Опис                                       |
-| -------------------------------------------------------------- | -------- | -------- | ------------------------------------------ |
-| <a id="#CHECK_NSATS"></a> CHECK_NSATS     | `uint16` | 1        | Too few satellites                         |
-| <a id="#CHECK_PDOP"></a> CHECK_PDOP       | `uint16` | 2        | Position dilution of precision too high    |
-| <a id="#CHECK_EPH"></a> CHECK_EPH         | `uint16` | 4        | Horizontal position accuracy too low       |
-| <a id="#CHECK_EPV"></a> CHECK_EPV         | `uint16` | 8        | Vertical position accuracy too low         |
-| <a id="#CHECK_SACC"></a> CHECK_SACC       | `uint16` | 16       | Speed accuracy too low                     |
-| <a id="#CHECK_HDRIFT"></a> CHECK_HDRIFT   | `uint16` | 32       | Horizontal position drift at rest too high |
-| <a id="#CHECK_VDRIFT"></a> CHECK_VDRIFT   | `uint16` | 64       | Vertical position drift at rest too high   |
-| <a id="#CHECK_HSPEED"></a> CHECK_HSPEED   | `uint16` | 128      | Horizontal speed at rest too high          |
-| <a id="#CHECK_VSPEED"></a> CHECK_VSPEED   | `uint16` | 256      | Vertical speed at rest too high            |
-| <a id="#CHECK_SPOOFED"></a> CHECK_SPOOFED | `uint16` | 512      | Receiver reports spoofing                  |
-| <a id="#CHECK_FIX"></a> CHECK_FIX         | `uint16` | 1024     | Fix type too low                           |
-| <a id="#CHECK_JAMMED"></a> CHECK_JAMMED   | `uint16` | 2048     | Receiver reports jamming                   |
+| Назва                                                          | Тип      | Значення | Опис                                                  |
+| -------------------------------------------------------------- | -------- | -------- | ----------------------------------------------------- |
+| <a id="#CHECK_NSATS"></a> CHECK_NSATS     | `uint16` | 1        | Too few satellites                                    |
+| <a id="#CHECK_PDOP"></a> CHECK_PDOP       | `uint16` | 2        | Position dilution of precision too high               |
+| <a id="#CHECK_EPH"></a> CHECK_EPH         | `uint16` | 4        | Horizontal position accuracy too low                  |
+| <a id="#CHECK_EPV"></a> CHECK_EPV         | `uint16` | 8        | Vertical position accuracy too low                    |
+| <a id="#CHECK_SACC"></a> CHECK_SACC       | `uint16` | 16       | Speed accuracy too low                                |
+| <a id="#CHECK_HDRIFT"></a> CHECK_HDRIFT   | `uint16` | 32       | Horizontal position drift at rest too high            |
+| <a id="#CHECK_VDRIFT"></a> CHECK_VDRIFT   | `uint16` | 64       | Vertical position drift at rest too high              |
+| <a id="#CHECK_HSPEED"></a> CHECK_HSPEED   | `uint16` | 128      | Horizontal speed at rest too high                     |
+| <a id="#CHECK_VSPEED"></a> CHECK_VSPEED   | `uint16` | 256      | Vertical speed at rest too high                       |
+| <a id="#CHECK_SPOOFED"></a> CHECK_SPOOFED | `uint16` | 512      | Receiver reports spoofing                             |
+| <a id="#CHECK_FIX"></a> CHECK_FIX         | `uint16` | 1024     | Fix type too low                                      |
+| <a id="#CHECK_JAMMED"></a> CHECK_JAMMED   | `uint16` | 2048     | Receiver reports jamming                              |
+| <a id="#CHECK_HKIN"></a> CHECK_HKIN       | `uint16` | 4096     | Horizontal position change inconsistent with velocity |
 
 ## Source Message
 
@@ -111,6 +112,7 @@ uint16 CHECK_VSPEED  = 256  # Vertical speed at rest too high
 uint16 CHECK_SPOOFED = 512  # Receiver reports spoofing
 uint16 CHECK_FIX     = 1024 # Fix type too low
 uint16 CHECK_JAMMED  = 2048 # Receiver reports jamming
+uint16 CHECK_HKIN = 4096 # Horizontal position change inconsistent with velocity
 ```
 
 :::
