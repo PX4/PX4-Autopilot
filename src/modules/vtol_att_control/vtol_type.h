@@ -44,6 +44,7 @@
 #define VTOL_TYPE_H
 
 #include <drivers/drv_hrt.h>
+#include <lib/hysteresis/hysteresis.h>
 #include <lib/mathlib/mathlib.h>
 #include <px4_platform_common/module_params.h>
 
@@ -92,7 +93,7 @@ enum class QuadchuteReason {
 	TransitionAltitudeLoss,
 	MaximumPitchExceeded,
 	MaximumRollExceeded,
-	PusherFailure,
+	ForwardPropulsionFailure,
 };
 
 class VtolAttitudeControl;
@@ -329,6 +330,18 @@ protected:
 
 	int _altitude_reset_counter{0};
 
+	// multicopter forward propulsion failure detection, on the pusher throttle of a standard VTOL or the forward tilt of a tiltrotor
+	systemlib::Hysteresis _forward_propulsion_failure_hysteresis{false};
+	bool _forward_propulsion_failed{false}; ///< latched until reboot or until the detection is disabled
+
+	bool isForwardPropulsionCheckEnabled() const { return _param_vt_ef_time.get() > FLT_EPSILON; }
+
+	/** Pusher assist (from pusher_assist()) above VT_EF_THROT, but the forward velocity stays below its setpoint */
+	bool isForwardPropulsionFailureDetected(float assist);
+
+	/** Disabling the detection in flight clears a detected forward propulsion failure, e.g. a false positive in strong wind */
+	void clearForwardPropulsionFailureIfDisabled();
+
 	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
 					(ParamBool<px4::params::VT_ELEV_MC_LOCK>) _param_vt_elev_mc_lock,
 					(ParamFloat<px4::params::VT_FW_MIN_ALT>) _param_vt_fw_min_alt,
@@ -361,7 +374,10 @@ protected:
 					(ParamFloat<px4::params::MPC_LAND_ALT2>) _param_mpc_land_alt2,
 					(ParamFloat<px4::params::VT_LND_PITCH_MIN>) _param_vt_lnd_pitch_min,
 					(ParamFloat<px4::params::WEIGHT_BASE>) _param_weight_base,
-					(ParamFloat<px4::params::WEIGHT_GROSS>) _param_weight_gross
+					(ParamFloat<px4::params::WEIGHT_GROSS>) _param_weight_gross,
+					(ParamFloat<px4::params::VT_EF_TIME>) _param_vt_ef_time,
+					(ParamFloat<px4::params::VT_EF_THROT>) _param_vt_ef_throt,
+					(ParamFloat<px4::params::VT_EF_VEL_ERR>) _param_vt_ef_vel_err
 
 				       )
 
