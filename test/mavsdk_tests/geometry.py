@@ -85,3 +85,16 @@ def point_to_line_distance(point: Vec3, line_start: Vec3, line_end: Vec3) -> flo
                line_start[1] + t * direction[1],
                line_start[2] + t * direction[2])
     return norm(diff(closest, point))
+
+
+def point_to_segment_distance(point: Vec3, segment_start: Vec3, segment_end: Vec3) -> float:
+    """Shortest distance from a point to the segment between two points. A segment of zero
+    length is a point."""
+    segment = diff(segment_end, segment_start)
+    length_squared = dot(segment, segment)
+    t = dot(diff(point, segment_start), segment) / length_squared if length_squared > 0.0 else 0.0
+    t = min(max(t, 0.0), 1.0)
+    closest = (segment_start[0] + t * segment[0],
+               segment_start[1] + t * segment[1],
+               segment_start[2] + t * segment[2])
+    return norm(diff(closest, point))

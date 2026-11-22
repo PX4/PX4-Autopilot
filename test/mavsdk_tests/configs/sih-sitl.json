@@ -56,6 +56,16 @@
             "timeout_min": 15
         },
         {
+            "model": "quadx",
+            "test_filter": "ekf_failover",
+            "timeout_min": 10,
+            "env": {
+                "PX4_PARAM_SIH_IMU_COUNT": 2,
+                "PX4_PARAM_EKF2_MULTI_IMU": 2,
+                "PX4_PARAM_SENS_IMU_MODE": 0
+            }
+        },
+        {
             "model": "quadx_flow",
             "test_filter": "optical_flow",
             "timeout_min": 10
