@@ -1443,28 +1443,19 @@ MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 	}
 }
 
-/**
- * MAV_FRAME_*_INT frames are deprecated MAVLink synonyms of the plain global frames.
- * They are accepted on the link, but only the plain frame is stored and used internally.
- */
-static uint8_t mav_frame_without_int(uint8_t frame)
-{
-	switch (frame) {
-	case MAV_FRAME_GLOBAL_INT: return MAV_FRAME_GLOBAL;
-
-	case MAV_FRAME_GLOBAL_RELATIVE_ALT_INT: return MAV_FRAME_GLOBAL_RELATIVE_ALT;
-
-	case MAV_FRAME_GLOBAL_TERRAIN_ALT_INT: return MAV_FRAME_GLOBAL_TERRAIN_ALT;
-
-	default: return frame;
-	}
-}
+// mavlink_command_params.hpp uses raw frame values to stay self-contained: check them against the MAVLink enum
+static_assert(mavlink_cmd_params::frame_without_int(MAV_FRAME_GLOBAL_INT) == MAV_FRAME_GLOBAL, "");
+static_assert(mavlink_cmd_params::frame_without_int(MAV_FRAME_GLOBAL_RELATIVE_ALT_INT) == MAV_FRAME_GLOBAL_RELATIVE_ALT,
+	      "");
+static_assert(mavlink_cmd_params::frame_without_int(MAV_FRAME_GLOBAL_TERRAIN_ALT_INT) == MAV_FRAME_GLOBAL_TERRAIN_ALT,
+	      "");
+static_assert(mavlink_cmd_params::frame_without_int(MAV_FRAME_GLOBAL) == MAV_FRAME_GLOBAL, "");
 
 int
 MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_int_t *mavlink_mission_item,
 		struct mission_item_s *mission_item)
 {
-	const uint8_t frame = mav_frame_without_int(mavlink_mission_item->frame);
+	const uint8_t frame = mavlink_cmd_params::frame_without_int(mavlink_mission_item->frame);
 
 	if (frame == MAV_FRAME_GLOBAL || frame == MAV_FRAME_GLOBAL_RELATIVE_ALT) {
 		// This is a mission item with a global coordinate
@@ -2000,7 +1991,7 @@ uint32_t MavlinkMissionManager::crc32_for_mission_item(const mavlink_mission_ite
 	memcpy(&y_bits, &mission_item.y, sizeof(y_bits));
 
 	// Hash the plain frame so a mission gets the same ID whether it was uploaded with the *_INT synonyms or not
-	u.item.frame = mav_frame_without_int(mission_item.frame);
+	u.item.frame = mavlink_cmd_params::frame_without_int(mission_item.frame);
 	u.item.command = mission_item.command;
 	u.item.autocontinue = mission_item.autocontinue;
 	u.item.params[0] = mission_item.param1;

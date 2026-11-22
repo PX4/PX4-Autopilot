@@ -169,6 +169,21 @@ static inline bool int_param_is_unset(int32_t v)
 	return v == INT32_MAX || v == INT32_MIN;
 }
 
+// MAV_FRAME_*_INT are deprecated MAVLink synonyms of the plain global frames. They are
+// accepted on the link, but mapped to the plain frame so the rest of PX4 only sees that.
+static constexpr uint8_t frame_without_int(uint8_t frame)
+{
+	switch (frame) {
+	case 5: return 0;   // MAV_FRAME_GLOBAL_INT -> MAV_FRAME_GLOBAL
+
+	case 6: return 3;   // MAV_FRAME_GLOBAL_RELATIVE_ALT_INT -> MAV_FRAME_GLOBAL_RELATIVE_ALT
+
+	case 11: return 10; // MAV_FRAME_GLOBAL_TERRAIN_ALT_INT -> MAV_FRAME_GLOBAL_TERRAIN_ALT
+
+	default: return frame;
+	}
+}
+
 // Vehicle type bitmask for per-vehicle parameter support.
 // bit 0 = fixed-wing (FW), bit 1 = multicopter (MC), bit 2 = VTOL, bit 3 = rover.
 enum VehicleType : uint8_t {

@@ -722,11 +722,12 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	// current position is used (MAV_BOOL_TRUE). Other param1 values are denied by Commander.
 	if (cmd_mavlink.command == MAV_CMD_DO_SET_HOME && fabsf(cmd_mavlink.param1) < FLT_EPSILON
 	    && evaluate_target_ok(vcmd.command, vcmd.target_system, vcmd.target_component)) {
-		if (cmd_mavlink.frame == MAV_FRAME_GLOBAL || cmd_mavlink.frame == MAV_FRAME_GLOBAL_INT) {
+		const uint8_t frame = mavlink_cmd_params::frame_without_int(cmd_mavlink.frame);
+
+		if (frame == MAV_FRAME_GLOBAL) {
 			// already AMSL
 
-		} else if (cmd_mavlink.frame == MAV_FRAME_GLOBAL_RELATIVE_ALT
-			   || cmd_mavlink.frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
+		} else if (frame == MAV_FRAME_GLOBAL_RELATIVE_ALT) {
 			home_position_s home_position{};
 			_home_position_sub.copy(&home_position);
 
@@ -1419,12 +1420,12 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 			const double lon = target_global_int.lon_int / 1e7;
 			global_local_proj_ref.project(lat, lon, setpoint.position[0], setpoint.position[1]);
 
-			if (target_global_int.coordinate_frame == MAV_FRAME_GLOBAL
-			    || target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_INT) {
+			const uint8_t frame = mavlink_cmd_params::frame_without_int(target_global_int.coordinate_frame);
+
+			if (frame == MAV_FRAME_GLOBAL) {
 				setpoint.position[2] = local_pos.ref_alt - target_global_int.alt;
 
-			} else if (target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_RELATIVE_ALT
-				   || target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
+			} else if (frame == MAV_FRAME_GLOBAL_RELATIVE_ALT) {
 				home_position_s home_position{};
 				_home_position_sub.copy(&home_position);
 
@@ -1437,8 +1438,7 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 					return;
 				}
 
-			} else if (target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_TERRAIN_ALT
-				   || target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_TERRAIN_ALT_INT) {
+			} else if (frame == MAV_FRAME_GLOBAL_TERRAIN_ALT) {
 				vehicle_global_position_s vehicle_global_position{};
 				_vehicle_global_position_sub.copy(&vehicle_global_position);
 
