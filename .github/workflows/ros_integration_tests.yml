@@ -35,7 +35,7 @@ jobs:
             config: test/ros_tests/config-sih-zenoh.json
     runs-on: [runs-on,runner=8cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false,extras=s3-cache]
     container:
-      image: ghcr.io/px4/px4-dev-ros2:main-jazzy@sha256:975ade27fd951721bc1ca96519b004998358fa289d27b8c967548b8ab83d8689
+      image: ghcr.io/px4/px4-dev-ros2:main-jazzy@sha256:ad977ec1a3b3fadc1a68a34ec9f8bfd013f80a4236aaf4708c2eb031dc7f338f
     defaults:
       run:
         shell: bash
@@ -56,13 +56,6 @@ jobs:
         with:
           cache-key-prefix: ccache-ros-integration-jazzy-${{ runner.arch }}
           max-size: 1G
-
-      # TODO: drop once the pinned px4-dev-ros2 image ships rmw_zenoh_cpp
-      - name: Install rmw_zenoh
-        if: matrix.middleware == 'zenoh'
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends ros-jazzy-rmw-zenoh-cpp
 
       - name: Test ROS runner arguments
         run: python3 -m unittest discover -s test -p 'test_ros_test_runner.py'

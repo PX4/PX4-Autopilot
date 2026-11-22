@@ -70,7 +70,7 @@ void TrafficAvoidanceChecks::checkAndReport(const Context &context, Report &repo
 				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Traffic avoidance system missing");
 
 			} else {
-				mavlink_log_warning(reporter.mavlink_log_pub(), "Traffic avoidance system missing");
+				mavlink_log_warning(reporter.mavlink_log_pub(), "Traffic avoidance system missing\t");
 			}
 		}
 	}

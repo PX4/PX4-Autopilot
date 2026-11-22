@@ -39,6 +39,7 @@
 
 // Libraries
 #include <lib/rover_control/RoverControl.hpp>
+#include <lib/rover_control/RoverControllerWorkItem.hpp>
 #include <lib/pid/PID.hpp>
 #include <lib/slew_rate/SlewRate.hpp>
 #include <math.h>
@@ -55,7 +56,7 @@
 /**
  * @brief Class for ackermann rate control.
  */
-class AckermannRateControl : public ModuleParams
+class AckermannRateControl : public ModuleParams, public RoverControllerWorkItem
 {
 public:
 	/**
@@ -88,6 +89,9 @@ protected:
 	void updateParams() override;
 
 private:
+	void runController() override { updateRateControl(); }
+	void onEnable() override { _timestamp = hrt_absolute_time(); } // The first dt after (re-)enabling must not span the time spent disabled
+
 	/**
 	 * @brief Update uORB subscriptions used in rate controller.
 	 */
@@ -118,11 +122,11 @@ private:
 		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed,
 		(ParamFloat<px4::params::RA_WHEEL_BASE>)    _param_ra_wheel_base,
 		(ParamFloat<px4::params::RA_MAX_STR_ANG>)   _param_ra_max_str_ang,
-		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_limit,
+		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_lim,
 		(ParamFloat<px4::params::RO_YAW_RATE_TH>)   _param_ro_yaw_rate_th,
 		(ParamFloat<px4::params::RO_YAW_RATE_P>)    _param_ro_yaw_rate_p,
 		(ParamFloat<px4::params::RO_YAW_RATE_I>)    _param_ro_yaw_rate_i,
-		(ParamFloat<px4::params::RO_YAW_ACCEL_LIM>) _param_ro_yaw_accel_limit,
+		(ParamFloat<px4::params::RO_YAW_ACCEL_LIM>) _param_ro_yaw_accel_lim,
 		(ParamFloat<px4::params::RO_SPEED_TH>)      _param_ro_speed_th,
 		(ParamFloat<px4::params::RO_YAW_RATE_CORR>) _param_ro_yaw_rate_corr
 	)

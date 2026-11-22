@@ -63,6 +63,7 @@ static gnssChecksSample toChecksSample(const sensor_gnss_s &gnss)
 	sample.lon = gnss.longitude;
 	sample.alt = static_cast<float>(gnss.altitude_msl);
 	sample.vel = matrix::Vector3f(gnss.vel_north, gnss.vel_east, gnss.vel_down);
+	sample.vel_valid = gnss.vel_ned_valid;
 	sample.hacc = gnss.eph;
 	sample.vacc = gnss.epv;
 	sample.sacc = gnss.speed_accuracy;
@@ -149,6 +150,7 @@ void VehicleGPSPosition::ParametersUpdate(bool force)
 		checks_params.req_sacc = _param_gnss_req_sacc.get();
 		checks_params.req_hdrift = _param_gnss_req_hdrift.get();
 		checks_params.req_vdrift = _param_gnss_req_vdrift.get();
+		checks_params.req_hkin = _param_gnss_req_hkin.get();
 		checks_params.req_fix = _param_gnss_req_fix.get();
 		checks_params.min_health_time_us = static_cast<uint64_t>(_param_gnss_req_time.get() * 1e6f);
 
@@ -247,11 +249,7 @@ void VehicleGPSPosition::Run()
 			vehicle_gnss_s gnss_output{};
 			gnss_output.receiver = _latest_sample[selected];
 
-			const GpsParamSlot *slot = findParamSlot(gnss_output.receiver.device_id, selected);
-
-			if (slot) {
-				slot->offset.copyTo(gnss_output.antenna_offset);
-			}
+			antennaOffset(selected).copyTo(gnss_output.antenna_offset);
 
 			const uint64_t pps_timestamp = _pps_time_sync.correct_gnss_timestamp(gnss_output.receiver.timestamp,
 						       gnss_output.receiver.time_utc_usec);
@@ -277,6 +275,7 @@ void VehicleGPSPosition::Run()
 			_vehicle_gnss_pub.publish(gnss_output);
 
 			_selected_device_id = gnss_output.receiver.device_id;
+			_published_instance = selected;
 		}
 
 		PublishStatus();
@@ -482,6 +481,25 @@ void VehicleGPSPosition::PublishStatus()
 
 	const hrt_abstime now = hrt_absolute_time();
 
+	bool publishing[GPS_MAX_RECEIVERS] {};
+
+	for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		publishing[i] = (_latest_sample[i].timestamp != 0) && (now < _latest_sample[i].timestamp + GnssSelector::GNSS_TIMEOUT_US);
+	}
+
+	for (int i = 0; i < sensors_status_gnss_s::MAX_RECEIVERS; i++) {
+		status.inconsistency_horizontal[i] = NAN;
+		status.inconsistency_vertical[i] = NAN;
+	}
+
+	const int selected = _published_instance;
+	const bool compare = (selected >= 0) && publishing[selected];
+
+	// Level and facing north until an attitude publishes
+	vehicle_attitude_s attitude{};
+	const matrix::Quatf attitude_q = (compare && _vehicle_attitude_sub.copy(&attitude)) ? matrix::Quatf(attitude.q)
+					 : matrix::Quatf();
+
 	for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
 		const GnssChecks &checks = _gnss_checks[i];
 		const sensor_gnss_s &sample = _latest_sample[i];
@@ -489,16 +507,32 @@ void VehicleGPSPosition::PublishStatus()
 		status.device_ids[i] = sample.device_id;
 		status.healthy[i] = !_gnss_selector.hasFailed(i, now);
 		status.availability[i] = _gnss_selector.getAvailability(i);
+
+		if (compare && publishing[i]) {
+			const gnss_inconsistency::Inconsistency inconsistency = (i == selected) ? gnss_inconsistency::Inconsistency{0.f, 0.f}
+					: gnss_inconsistency::inconsistency(_latest_sample[selected], antennaOffset(selected), sample, antennaOffset(i),
+							attitude_q);
+			status.inconsistency_horizontal[i] = inconsistency.horizontal;
+			status.inconsistency_vertical[i] = inconsistency.vertical;
+		}
+
 		status.failed_strict_checks[i] = checks.getStrictFailFlags();
 		status.failed_relaxed_checks[i] = checks.getRelaxedFailFlags();
 		status.strict[i] = checks.strict();
 		status.drift_rate_horizontal[i] = checks.horizontal_position_drift_rate_m_s();
 		status.drift_rate_vertical[i] = checks.vertical_position_drift_rate_m_s();
 		status.speed_horizontal_filtered[i] = checks.filtered_horizontal_velocity_m_s();
+		status.kinematic_inconsistency_horizontal[i] = checks.horizontal_kinematic_inconsistency_m_s();
 	}
 
 	status.timestamp = hrt_absolute_time();
 	_sensors_status_gnss_pub.publish(status);
+}
+
+matrix::Vector3f VehicleGPSPosition::antennaOffset(int instance) const
+{
+	const GpsParamSlot *slot = findParamSlot(_latest_sample[instance].device_id, instance);
+	return slot ? slot->offset : matrix::Vector3f{};
 }
 
 int VehicleGPSPosition::resolvePreferredInstance() const

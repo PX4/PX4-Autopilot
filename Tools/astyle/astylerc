@@ -10,9 +10,5 @@ keep-one-line-blocks
 keep-one-line-statements
 align-pointer=name
 align-reference=name
--n #--suffix=none
-ignore-exclude-errors-x
-lineend=linux
-exclude=EASTL
 add-brackets
 max-code-length=140

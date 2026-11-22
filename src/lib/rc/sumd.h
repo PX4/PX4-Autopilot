@@ -105,5 +105,9 @@ __EXPORT int sumd_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_
 __EXPORT int sumd_decode(uint8_t byte, uint8_t *rssi, uint8_t *rx_count, uint16_t *channel_count,
 			 uint16_t *channels, uint16_t max_chan_count, bool *failsafe);
 
+/**
+ * Drop any partially received frame and wait for the next frame start.
+ */
+__EXPORT void sumd_reset(void);
 
 __END_DECLS

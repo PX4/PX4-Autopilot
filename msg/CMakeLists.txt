@@ -186,7 +186,6 @@ set(msg_files
 	RateCtrlStatus.msg
 	RcChannels.msg
 	RcParameterMap.msg
-	RoverThrottleSetpoint.msg
 	Rpm.msg
 	RtcmData.msg
 	RtlStatus.msg
@@ -224,6 +223,7 @@ set(msg_files
 	SurfaceVehicleSpeedSetpoint.msg
 	SurfaceVehicleSpeedStatus.msg
 	SurfaceVehicleSteeringSetpoint.msg
+	SurfaceVehicleThrustSetpoint.msg
 	SystemPower.msg
 	TakeoffStatus.msg
 	TaskStackInfo.msg
@@ -471,12 +471,16 @@ add_dependencies(uorb_msgs prebuild_targets uorb_headers)
 
 if(CONFIG_LIB_CDRSTREAM)
 	set(uorb_cdr_idl)
+	set(uorb_cdr_idlc)
 	set(uorb_cdr_msg)
 	set(uorb_cdr_hash)
 	set(uorb_cdr_idl_uorb)
 	set(idl_include_path ${PX4_BINARY_DIR}/uORB/idl)
 	set(idl_out_path ${idl_include_path}/px4/msg)
 	set(idl_rihs01_out_path ${idl_include_path}/px4)
+	# idlc compiles a copy with escaped identifiers, see msg2idl.py
+	set(idlc_include_path ${PX4_BINARY_DIR}/uORB/idlc)
+	set(idlc_out_path ${idlc_include_path}/px4/msg)
 	set(idl_uorb_path ${PX4_BINARY_DIR}/msg/px4/msg)
 
 	# Make sure that CycloneDDS has been checkout out
@@ -520,6 +524,7 @@ if(CONFIG_LIB_CDRSTREAM)
 		get_filename_component(msg ${msg_file} NAME_WE)
 		configure_file(${msg_file} ${idl_out_path}/${msg}.msg COPYONLY)
 		list(APPEND uorb_cdr_idl ${idl_out_path}/${msg}.idl)
+		list(APPEND uorb_cdr_idlc ${idlc_out_path}/${msg}.idl)
 		list(APPEND uorb_cdr_msg ${idl_out_path}/${msg}.msg)
 		list(APPEND uorb_cdr_hash ${idl_out_path}/${msg}.json)
 		list(APPEND uorb_cdr_idl_uorb ${idl_uorb_path}/${msg}.h)
@@ -528,13 +533,15 @@ if(CONFIG_LIB_CDRSTREAM)
 	# Generate IDL from .msg using rosidl_adapter
 	# Note this a submodule inside PX4 hence no ROS2 installation required
 	add_custom_command(
-		OUTPUT ${uorb_cdr_idl}
+		OUTPUT ${uorb_cdr_idl} ${uorb_cdr_idlc}
 		COMMAND ${CMAKE_COMMAND}
 		        -E env "PYTHONPATH=${PX4_SOURCE_DIR}/src/lib/cdrstream/rosidl/rosidl_adapter:${PX4_SOURCE_DIR}/src/lib/cdrstream/rosidl/rosidl_cli"
 			${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/src/lib/cdrstream/msg2idl.py
+			--idlc-output-dir ${idlc_out_path}
 			${uorb_cdr_msg}
 		DEPENDS
 			${uorb_cdr_msg}
+			${PX4_SOURCE_DIR}/src/lib/cdrstream/msg2idl.py
 			git_cyclonedds
 		COMMENT "Generating IDL from uORB topic headers"
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -542,6 +549,8 @@ if(CONFIG_LIB_CDRSTREAM)
 		)
 
 	file(CREATE_LINK ${idl_rihs01_out_path} ${idl_include_path}/px4_msgs SYMBOLIC)
+	file(MAKE_DIRECTORY ${idlc_out_path})
+	file(CREATE_LINK ${idlc_include_path}/px4 ${idlc_include_path}/px4_msgs SYMBOLIC)
 
 	# Generate IDL from .msg using rosidl_adapter
 	# Note this is a submodule inside PX4 hence no ROS2 installation required
@@ -565,9 +574,9 @@ if(CONFIG_LIB_CDRSTREAM)
 	include("${CYCLONEDDS_DIR}/cmake/Modules/Generate.cmake")
 	idlc_generate(TARGET uorb_cdrstream
                   FEATURES "cdrstream-desc"
-                  FILES ${uorb_cdr_idl}
-                  INCLUDES ${idl_include_path}
-                  BASE_DIR ${idl_include_path}
+                  FILES ${uorb_cdr_idlc}
+                  INCLUDES ${idlc_include_path}
+                  BASE_DIR ${idlc_include_path}
                   WARNINGS no-implicit-extensibility no-unsupported-annotations)
 	target_link_libraries(uorb_cdrstream INTERFACE cdr)
 
@@ -624,7 +633,8 @@ if(CONFIG_MODULES_ZENOH)
 		COMMENT "Generating Zenoh Topic Code"
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 		VERBATIM
-		)
-		add_library(zenoh_topics ${PX4_BINARY_DIR}/src/modules/zenoh/uorb_pubsub_factory.hpp)
-		set_target_properties(zenoh_topics PROPERTIES LINKER_LANGUAGE CXX)
+	)
+	add_custom_target(zenoh_topics
+		DEPENDS ${PX4_BINARY_DIR}/src/modules/zenoh/uorb_pubsub_factory.hpp
+	)
 endif()

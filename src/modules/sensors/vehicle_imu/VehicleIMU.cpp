@@ -124,7 +124,7 @@ bool VehicleIMU::ParametersUpdate(bool force)
 		_accel_calibration.ParametersUpdate();
 		_gyro_calibration.ParametersUpdate();
 
-		_notify_clipping = _param_sens_imu_notify_clipping.get();
+		_notify_clipping = _param_sens_imu_clpnoti.get();
 
 		if (accel_calibration_count != _accel_calibration.calibration_count()) {
 			// if calibration changed reset any existing learned calibration

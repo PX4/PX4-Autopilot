@@ -35,7 +35,9 @@
 
 using namespace time_literals;
 
-AckermannRateControl::AckermannRateControl(ModuleParams *parent) : ModuleParams(parent)
+AckermannRateControl::AckermannRateControl(ModuleParams *parent) :
+	ModuleParams(parent),
+	RoverControllerWorkItem("rover_ackermann_rate_control", ORB_ID(vehicle_angular_velocity))
 {
 	_surface_vehicle_steering_setpoint_pub.advertise();
 	_surface_vehicle_rate_status_pub.advertise();
@@ -45,7 +47,7 @@ AckermannRateControl::AckermannRateControl(ModuleParams *parent) : ModuleParams(
 void AckermannRateControl::updateParams()
 {
 	ModuleParams::updateParams();
-	_max_yaw_rate = _param_ro_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
+	_max_yaw_rate = _param_ro_yaw_rate_lim.get() * M_DEG_TO_RAD_F;
 
 	// Set up PID controller
 	_pid_yaw_rate.setGains(_param_ro_yaw_rate_p.get(), _param_ro_yaw_rate_i.get(), 0.f);
@@ -53,7 +55,7 @@ void AckermannRateControl::updateParams()
 	_pid_yaw_rate.setOutputLimit(1.f);
 
 	// Set up slew rate
-	_adjusted_yaw_rate_setpoint.setSlewRate(_param_ro_yaw_accel_limit.get() * M_DEG_TO_RAD_F);
+	_adjusted_yaw_rate_setpoint.setSlewRate(_param_ro_yaw_accel_lim.get() * M_DEG_TO_RAD_F);
 }
 
 void AckermannRateControl::updateRateControl()
@@ -73,7 +75,7 @@ void AckermannRateControl::updateRateControl()
 			float yaw_rate_limit = math::min(max_possible_yaw_rate, _max_yaw_rate);
 			float constrained_yaw_rate = math::constrain(_yaw_rate_setpoint, -yaw_rate_limit, yaw_rate_limit);
 
-			if (_param_ro_yaw_accel_limit.get() > FLT_EPSILON) { // Apply slew rate if configured
+			if (_param_ro_yaw_accel_lim.get() > FLT_EPSILON) { // Apply slew rate if configured
 				if (fabsf(_adjusted_yaw_rate_setpoint.getState() - _vehicle_yaw_rate) > fabsf(constrained_yaw_rate -
 						_vehicle_yaw_rate)) {
 					_adjusted_yaw_rate_setpoint.setForcedValue(_vehicle_yaw_rate);
@@ -171,10 +173,10 @@ bool AckermannRateControl::runSanityChecks()
 
 	}
 
-	if (_param_ro_yaw_rate_limit.get() < FLT_EPSILON) {
+	if (_param_ro_yaw_rate_lim.get() < FLT_EPSILON) {
 		ret = false;
 		events::send<float>(events::ID("ackermann_rate_control_conf_invalid_yaw_rate_lim"), events::Log::Error,
-				    "Invalid configuration of necessary parameter RO_YAW_RATE_LIM", _param_ro_yaw_rate_limit.get());
+				    "Invalid configuration of necessary parameter RO_YAW_RATE_LIM", _param_ro_yaw_rate_lim.get());
 
 	}
 

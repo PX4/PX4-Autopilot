@@ -91,6 +91,6 @@ private:
 					(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _param_mpc_z_vel_max_up,
 					(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _param_mpc_z_vel_max_dn,
 					(ParamFloat<px4::params::MPC_MAN_Y_MAX>) _param_mpc_man_y_max,
-					(ParamInt<px4::params::MC_SLOW_MAP_PTCH>) _param_mc_slow_map_pitch
+					(ParamInt<px4::params::MC_SLOW_MAP_PTCH>) _param_mc_slow_map_ptch
 				       )
 };

@@ -20,11 +20,16 @@ The boards in this category are:
 - [Holybro Pixhawk 6C Mini](../flight_controller/pixhawk6c_mini.md) (FMUv6C)
 - [Holybro Pix32 v6](../flight_controller/holybro_pix32_v6.md) (FMUv6C)
 - [Holybro Pixhawk 5X](../flight_controller/pixhawk5x.md) (FMUv5X)
-- [Holybro Pixhawk 4](../flight_controller/pixhawk4.md) (FMUv5)
-- [Holybro Pixhawk 4 Mini](../flight_controller/pixhawk4_mini.md) (FMUv5) - Discontinued by Holybro but supported by PX4
-- [Drotek Pixhawk 3 Pro](../flight_controller/pixhawk3_pro.md) (FMUv4pro) - Discontinued by Drotek but supported by PX4
 - [mRo Pixracer](../flight_controller/pixracer.md) (FMUv4)
-- [CUAV Pixhack v3](../flight_controller/pixhack_v3.md) (FMUv3)
 - [Hex Cube Black](../flight_controller/pixhawk-2.md) (FMUv3)
 - [mRo Pixhawk](../flight_controller/mro_pixhawk.md) (FMUv3)
-- [Holybro Pixhawk Mini](../flight_controller/pixhawk_mini.md) (FMUv3) - Discontinued by Holybro but supported by PX4
+
+## Discontinued
+
+These boards are no longer manufactured, but are still supported by PX4:
+
+- [Holybro Pixhawk 4](../flight_controller/pixhawk4.md) (FMUv5)
+- _Holybro Pixhawk 4 Mini_ (FMUv5) — last published in [PX4 v1.16](https://docs.px4.io/v1.16/en/flight_controller/pixhawk4_mini)
+- _Drotek Pixhawk 3 Pro_ (FMUv4pro) — last published in [PX4 v1.15](https://docs.px4.io/v1.15/en/flight_controller/pixhawk3_pro)
+- _CUAV Pixhack v3_ (FMUv3) — last published in [PX4 v1.15](https://docs.px4.io/v1.15/en/flight_controller/pixhack_v3)
+- _Holybro Pixhawk Mini_ (FMUv3) — last published in [PX4 v1.16](https://docs.px4.io/v1.16/en/flight_controller/pixhawk_mini)

@@ -342,7 +342,7 @@ void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv) const
 
 		if (_control_status.flags.opt_flow) {
 			float gndclearance = math::max(_params.ekf2_min_rng, 0.1f);
-			vel_err_conservative = math::max(getHagl(), gndclearance) * Vector2f(_aid_src_optical_flow.innovation).norm();
+			vel_err_conservative = math::max(getHagl(), gndclearance) * _flow_aiding.maxActiveInnovNorm();
 		}
 
 #endif // CONFIG_EKF2_OPTICAL_FLOW
@@ -408,9 +408,10 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 	const bool relying_on_optical_flow = isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.opt_flow);
 
 	if (relying_on_optical_flow) {
-		// Calculate optical flow limits
-		float flow_hagl_min = _flow_min_distance;
-		float flow_hagl_max = _flow_max_distance;
+		float flow_hagl_min;
+		float flow_hagl_max;
+		float flow_max_rate;
+		_flow_aiding.getLimits(*this, flow_hagl_min, flow_hagl_max, flow_max_rate);
 
 		// only limit optical flow height is dependent on range finder or terrain estimate invalid (precaution)
 		if ((!_control_status.flags.opt_flow_terrain && _control_status.flags.rng_terrain)
@@ -423,7 +424,7 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 		const float flow_constrained_height = math::constrain(getHagl(), flow_hagl_min, flow_hagl_max);
 
 		// Allow ground relative velocity to use 50% of available flow sensor range to allow for angular motion
-		float flow_vxy_max = 0.5f * _flow_max_rate * flow_constrained_height;
+		float flow_vxy_max = 0.5f * flow_max_rate * flow_constrained_height;
 		flow_hagl_max = math::max(flow_hagl_max * 0.9f, flow_hagl_max - 1.0f);
 
 		*vxy_max = flow_vxy_max;
@@ -518,9 +519,7 @@ float Ekf::getHorizontalVelocityInnovationTestRatio() const
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 
 	if (isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.opt_flow)) {
-		for (auto &test_ratio_filtered : _aid_src_optical_flow.test_ratio_filtered) {
-			test_ratio = math::max(test_ratio, fabsf(test_ratio_filtered));
-		}
+		test_ratio = math::max(test_ratio, _flow_aiding.maxActiveTestRatioFiltered());
 	}
 
 #endif // CONFIG_EKF2_OPTICAL_FLOW
@@ -687,10 +686,14 @@ float Ekf::getHeightAboveGroundInnovationTestRatio() const
 
 # if defined(CONFIG_EKF2_OPTICAL_FLOW)
 
-	if (_control_status.flags.opt_flow_terrain) {
-		hagl_sum += sqrtf(math::max(fabsf(_aid_src_optical_flow.test_ratio_filtered[0]),
-					    _aid_src_optical_flow.test_ratio_filtered[1]));
-		n_hagl_sources++;
+	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+		const OpticalFlowSource &src = _flow_aiding.source(i);
+
+		if (src._terrain) {
+			hagl_sum += sqrtf(math::max(fabsf(src._aid_src.test_ratio_filtered[0]),
+						    src._aid_src.test_ratio_filtered[1]));
+			n_hagl_sources++;
+		}
 	}
 
 # endif // CONFIG_EKF2_OPTICAL_FLOW
@@ -868,13 +871,13 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 
 	// optical flow active
 	if (_control_status.flags.opt_flow
-	    && isRecent(_aid_src_optical_flow.time_last_fuse, _params.no_aid_timeout_max)
+	    && isRecent(_flow_aiding.timeLastFuse(), _params.no_aid_timeout_max)
 	   ) {
 		inertial_dead_reckoning = false;
 
 	} else {
 		if (!_control_status.flags.in_air && _fc.of.intended()
-		    && isRecent(_aid_src_optical_flow.timestamp_sample, _params.no_aid_timeout_max)
+		    && isRecent(_flow_aiding.latestSampleTimestamp(), _params.no_aid_timeout_max)
 		   ) {
 			// currently landed, but optical flow aiding should be possible once in air
 			aiding_expected_in_air = true;
@@ -1074,8 +1077,8 @@ void Ekf::updateIMUBiasInhibit(const imuSample &imu_delayed)
 	}
 }
 
-void Ekf::fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index,
-				     bool constrain_variances)
+void Ekf::accumulateDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index,
+		VectorState &state_correction, bool constrain_variances)
 {
 	VectorState K;  // Kalman gain vector for any single observation - sequential fusion is used.
 
@@ -1131,8 +1134,18 @@ void Ekf::fuseDirectStateMeasurement(const float innov, const float innov_var, c
 		constrainStateVariances();
 	}
 
-	// apply the state corrections
-	fuse(K, innov);
+	// correct the a priori innovation for the accumulated state correction, then accumulate the
+	// correction of this measurement instead of applying it
+	const float innov_corrected = innov + state_correction(state_index);
+	state_correction -= K * innov_corrected;
+}
+
+void Ekf::fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index,
+				     bool constrain_variances)
+{
+	VectorState state_correction;
+	accumulateDirectStateMeasurement(innov, innov_var, R, state_index, state_correction, constrain_variances);
+	applyStateCorrection(state_correction);
 }
 
 Ekf::VectorState Ekf::computeKalmanGain(const VectorState &H, const float innov_var) const
@@ -1141,7 +1154,8 @@ Ekf::VectorState Ekf::computeKalmanGain(const VectorState &H, const float innov_
 	return multiplySparse(P, H, NonZeroIndices(H)) / innov_var;
 }
 
-bool Ekf::measurementUpdate(VectorState &K, const VectorState &H, const float R, const float innovation)
+bool Ekf::accumulateMeasurementUpdate(VectorState &K, const VectorState &H, const float R, const float innovation,
+				      VectorState &state_correction)
 {
 	clearInhibitedStateKalmanGains(K);
 
@@ -1195,9 +1209,25 @@ bool Ekf::measurementUpdate(VectorState &K, const VectorState &H, const float R,
 
 	constrainStateVariances();
 
-	// apply the state corrections
-	fuse(K, innovation);
+	// correct the a priori innovation for the accumulated state correction, then accumulate the
+	// correction of this measurement instead of applying it
+	const float innov_corrected = innovation + H.dot(state_correction);
+	state_correction -= K * innov_corrected;
 	return true;
+}
+
+bool Ekf::measurementUpdate(VectorState &K, const VectorState &H, const float R, const float innovation)
+{
+	VectorState state_correction;
+	accumulateMeasurementUpdate(K, H, R, innovation, state_correction);
+	applyStateCorrection(state_correction);
+	return true;
+}
+
+void Ekf::applyStateCorrection(const VectorState &correction)
+{
+	// fuse() applies -K * innovation as the correction
+	fuse(correction, -1.f);
 }
 
 void Ekf::resetAidSourceStatusZeroInnovation(estimator_aid_source1d_s &status) const

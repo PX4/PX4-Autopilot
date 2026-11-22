@@ -3,7 +3,7 @@
 This topic shows how to determine the mapping between USART/UART serial port device names (e.g. "ttyS0") and the associated ports on a flight controller, such as `TELEM1`, `TELEM2`, `GPS1`, `RC SBUS`, `Debug console`.
 
 Інструкції використовуються для генерації таблиць відповідності портів серійного зв'язку у документації контролера польоту.
-For example: [Pixhawk 4 > Serial Port Mapping](../flight_controller/pixhawk4.md#serial-port-mapping).
+For example: [Pixhawk 4 > Serial Port Mapping](../flight_controller/pixhawk4.md#serial_port_mapping).
 
 :::info
 The function assigned to each port does not _have to_ match the name (in most cases), and is set using a [Serial Port Configuration](../peripherals/serial_configuration.md).
@@ -117,17 +117,17 @@ ttyS5 CONFIG_STM32F7_UART7=y DEBUG
 ttyS6 CONFIG_STM32F7_UART8=y PX4IO
 ```
 
-In the [flight controller docs](../flight_controller/pixhawk4.md#serial-port-mapping) the resulting table is:
+In the [flight controller docs](../flight_controller/pixhawk4.md#serial_port_mapping) the resulting table is:
 
-| UART   | Пристрій   | Порт                                          |
-| ------ | ---------- | --------------------------------------------- |
-| UART1  | /dev/ttyS0 | GPS                                           |
-| USART2 | /dev/ttyS1 | TELEM1 (керування потоком) |
-| USART3 | /dev/ttyS2 | TELEM2 (керування потоком) |
-| UART4  | /dev/ttyS3 | TELEM4                                        |
-| USART6 | /dev/ttyS4 | RC SBUS                                       |
-| UART7  | /dev/ttyS5 | Debug Console                                 |
-| UART8  | /dev/ttyS6 | PX4IO                                         |
+| UART   | Пристрій     | Порт                                         | Flow Control |
+| ------ | ------------ | -------------------------------------------- | ------------ |
+| USART1 | `/dev/ttyS0` | `GPS MODULE` (`GPS1`)     |              |
+| USART2 | `/dev/ttyS1` | `TELEM1`                                     | Так          |
+| USART3 | `/dev/ttyS2` | `TELEM2`                                     | Так          |
+| UART4  | `/dev/ttyS3` | `UART & I2C B` (`TELEM4`) |              |
+| USART6 | `/dev/ttyS4` | RC SBUS                                      |              |
+| UART7  | `/dev/ttyS5` | `FMU Debug` (Console)     |              |
+| UART8  | `/dev/ttyS6` | PX4IO                                        |              |
 
 ## Інші архітектури
 

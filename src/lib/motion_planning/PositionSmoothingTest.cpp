@@ -315,3 +315,32 @@ TEST_F(PositionSmoothingStraightLegTest, fliesAStraightLeg)
 {
 	EXPECT_LT(flyLegMaxAltitudeError(), 1.f);
 }
+
+TEST_F(PositionSmoothingTest, resetContinuesAcceleration)
+{
+	// GIVEN: A trajectory reset while braking horizontally and climbing
+	const Vector3f acceleration(-2.5f, 0.f, 0.f);
+	const Vector3f velocity(2.f, 0.f, -1.f);
+	const Vector3f position(0.f, 0.f, -2.f);
+	_position_smoothing.reset(acceleration, velocity, position);
+
+	// WHEN: Only an altitude is targeted and the horizontal velocity has to go to zero
+	const float dt = 0.02f;
+	PositionSmoothing::PositionSmoothingSetpoints out;
+	_position_smoothing.generateSetpoints(position, Vector3f(NAN, NAN, -10.f), Vector3f(0.f, 0.f, NAN), dt, false,
+					      out);
+
+	// THEN: The braking continues instead of restarting from zero acceleration
+	EXPECT_NEAR(out.acceleration(0), acceleration(0), MAX_JERK * dt + 1e-4f);
+	EXPECT_NEAR(out.velocity(0), velocity(0) + acceleration(0) * dt, MAX_JERK * dt * dt);
+
+	// AND WHEN: It continues
+	for (int i = 0; i < 10; i++) {
+		const Vector3f previous_acceleration = out.acceleration;
+		_position_smoothing.generateSetpoints(out.position, Vector3f(NAN, NAN, -10.f), Vector3f(0.f, 0.f, NAN), dt,
+						      false, out);
+
+		// THEN: The acceleration only changes within the jerk limit
+		EXPECT_LE(fabsf(out.acceleration(0) - previous_acceleration(0)), MAX_JERK * dt + 1e-4f);
+	}
+}

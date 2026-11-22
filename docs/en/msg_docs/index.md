@@ -22,7 +22,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [ArmingCheckRequest](ArmingCheckRequest.md) — Arming check request.
 - [AuxGlobalPosition](AuxGlobalPosition.md) — Auxiliary global position.
 - [BatteryStatus](BatteryStatus.md) — Battery status.
-- [ConfigOverrides](ConfigOverrides.md) — Configurable overrides by (external) modes or mode executors.
+- [ConfigOverrides](ConfigOverrides.md) — Configuration overrides from external modes or mode executors.
 - [Event](Event.md) — Events interface.
 - [FixedWingLateralSetpoint](FixedWingLateralSetpoint.md) — Fixed Wing Lateral Setpoint message.
 - [FixedWingLongitudinalSetpoint](FixedWingLongitudinalSetpoint.md) — Fixed Wing Longitudinal Setpoint message.
@@ -238,7 +238,6 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [RateCtrlStatus](RateCtrlStatus.md)
 - [RcChannels](RcChannels.md)
 - [RcParameterMap](RcParameterMap.md)
-- [RoverThrottleSetpoint](RoverThrottleSetpoint.md) — Rover Throttle setpoint.
 - [Rpm](Rpm.md)
 - [RtcmData](RtcmData.md) — RTCM3 data exchanged with GNSS receivers.
 - [RtlStatus](RtlStatus.md)
@@ -277,6 +276,7 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [SurfaceVehicleSpeedSetpoint](SurfaceVehicleSpeedSetpoint.md) — Surface Vehicle Speed Setpoint.
 - [SurfaceVehicleSpeedStatus](SurfaceVehicleSpeedStatus.md) — Surface Vehicle Speed Status.
 - [SurfaceVehicleSteeringSetpoint](SurfaceVehicleSteeringSetpoint.md) — Surface Vehicle Steering Setpoint.
+- [SurfaceVehicleThrustSetpoint](SurfaceVehicleThrustSetpoint.md) — Surface Vehicle Thrust Setpoint.
 - [SystemPower](SystemPower.md)
 - [TakeoffStatus](TakeoffStatus.md) — Status of the takeoff state machine currently just available for multicopters.
 - [TargetGnss](TargetGnss.md) — Landing target GNSS position in WGS84 coordinates, and optional NED velocity, from a target-mounted receiver.
@@ -316,5 +316,5 @@ Graphs showing how these are used [can be found here](../middleware/uorb_graph.m
 - [VteOrientation](VteOrientation.md) — Vision Target Estimator orientation state, exposing the full yaw filter output with covariances for logging and tuning.
 - [VtePosition](VtePosition.md) — Vision Target Estimator position state, exposing the full per-axis Kalman filter state with covariances for logging and tuning.
 - [Vtx](Vtx.md)
-- [WheelEncoders](WheelEncoders.md)
+- [WheelEncoders](WheelEncoders.md) — Wheel encoder readings.
 - [YawEstimatorStatus](YawEstimatorStatus.md)

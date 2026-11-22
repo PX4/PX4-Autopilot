@@ -84,6 +84,13 @@ CanardHandle::CanardHandle(uint32_t node_id, const size_t capacity, const size_t
 
 }
 
+void CanardHandle::close()
+{
+	if (_can_interface) {
+		_can_interface->close();
+	}
+}
+
 CanardHandle::~CanardHandle()
 {
 	if (_can_interface) {

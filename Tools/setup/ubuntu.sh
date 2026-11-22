@@ -79,7 +79,6 @@ echo "[ubuntu.sh] Installing PX4 general dependencies"
 
 sudo apt-get update -y --quiet
 sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
-	astyle \
 	build-essential \
 	ccache \
 	cmake \
@@ -216,6 +215,9 @@ if [[ $INSTALL_SIM == "true" ]]; then
 	# General simulation dependencies
 	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
 		bc \
+		libgeotiff-dev \
+		libproj-dev \
+		libtiff-dev \
 		;
 
 	# Gazebo Harmonic installation (Ubuntu 22.04+)

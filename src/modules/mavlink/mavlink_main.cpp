@@ -311,6 +311,12 @@ Mavlink::mavlink_update_parameters()
 	// Refresh atomic snapshots of params read by the receiver thread, so the
 	// receiver doesn't read the (non-atomic) ModuleParams members directly.
 	_use_hil_gps_atomic.store(_param_mav_usehilgps.get());
+	_hb_forw_en_atomic.store(_param_mav_hb_forw_en.get());
+	_fwdextsp_atomic.store(_param_mav_fwdextsp.get());
+	_hash_chk_en_atomic.store(_param_mav_hash_chk_en.get());
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+	_failure_injection_en_atomic.store(_param_sys_failure_en.get());
+#endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER
 
 	setProtocolVersion(_param_mav_proto_ver.get());
 
@@ -319,6 +325,8 @@ Mavlink::mavlink_update_parameters()
 		_param_mav_type.commit_no_notification();
 		PX4_ERR("MAV_TYPE parameter invalid, resetting to 0.");
 	}
+
+	_mav_type_atomic.store(_param_mav_type.get());
 }
 
 bool Mavlink::set_channel()
@@ -789,6 +797,15 @@ Mavlink::mavlink_open_uart(const int baud, const char *uart_name, const FLOW_CON
 	/* Put in raw mode */
 	cfmakeraw(&uart_config);
 #endif
+
+	if (_raw_mode) {
+		/* no input/output processing, 8N1, no modem control; keep the baud rate */
+		memset(&uart_config, 0, sizeof(uart_config));
+		uart_config.c_cflag = CS8 | CREAD | CLOCAL;
+		uart_config.c_cc[VMIN] = 1;
+		cfsetispeed(&uart_config, speed);
+		cfsetospeed(&uart_config, speed);
+	}
 
 	if ((termios_state = tcsetattr(_uart_fd, TCSANOW, &uart_config)) < 0) {
 		PX4_WARN("ERR SET CONF %s\n", uart_name);
@@ -1657,7 +1674,7 @@ Mavlink::update_rate_mult()
 	} else if (_radio_status_available) {
 
 		// check for RADIO_STATUS timeout and reset
-		if (hrt_elapsed_time(&_rstatus.timestamp) > (_param_mav_radio_timeout.get() * 1_s)) {
+		if (hrt_elapsed_time(&_rstatus.timestamp) > (_param_mav_radio_tout.get() * 1_s)) {
 			_radio_status_available = false;
 			log_radio_timeout = true;
 
@@ -1805,6 +1822,9 @@ constexpr StreamRateDefault streams_mode_normal[] = {
 	{"VFR_HUD", 4.0f},
 	{"VIBRATION", 0.1f},
 	{"WIND_COV", 0.5f},
+#if defined(CONFIG_MODULES_ROVER_ACKERMANN) || defined(CONFIG_MODULES_ROVER_DIFFERENTIAL) || defined(CONFIG_MODULES_ROVER_MECANUM)
+	{"WHEEL_DISTANCE", 1.0f},
+#endif
 
 #if !defined(CONSTRAINED_FLASH)
 	{"DEBUG", 1.0f},
@@ -1888,6 +1908,9 @@ constexpr StreamRateDefault streams_mode_onboard[] = {
 	{"VFR_HUD", 10.0f},
 	{"VIBRATION", 0.5f},
 	{"WIND_COV", 10.0f},
+#if defined(CONFIG_MODULES_ROVER_ACKERMANN) || defined(CONFIG_MODULES_ROVER_DIFFERENTIAL) || defined(CONFIG_MODULES_ROVER_MECANUM)
+	{"WHEEL_DISTANCE", 1.0f},
+#endif
 
 #if !defined(CONSTRAINED_FLASH)
 	{"DEBUG", 10.0f},
@@ -2063,6 +2086,9 @@ constexpr StreamRateDefault streams_mode_config[] = {
 	{"VFR_HUD", 20.0f},
 	{"VIBRATION", 2.5f},
 	{"WIND_COV", 10.0f},
+#if defined(CONFIG_MODULES_ROVER_ACKERMANN) || defined(CONFIG_MODULES_ROVER_DIFFERENTIAL) || defined(CONFIG_MODULES_ROVER_MECANUM)
+	{"WHEEL_DISTANCE", 1.0f},
+#endif
 
 #if !defined(CONSTRAINED_FLASH)
 	{"DEBUG", 50.0f},
@@ -2409,7 +2435,7 @@ Mavlink::task_main(int argc, char *argv[])
 	int temp_int_arg;
 #endif
 
-	while ((ch = px4_getopt(argc, argv, "b:r:d:n:u:o:m:t:c:F:fswxzZp", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "b:r:d:n:u:o:m:t:c:F:fswxzZpa", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
 			if (px4_get_parameter_value(myoptarg, _baudrate) != 0) {
@@ -2651,6 +2677,10 @@ Mavlink::task_main(int argc, char *argv[])
 
 		case 'Z':
 			_flow_control = FLOW_CONTROL_OFF;
+			break;
+
+		case 'a':
+			_raw_mode = true;
 			break;
 
 		default:
@@ -3410,7 +3440,7 @@ void Mavlink::publish_telemetry_status()
 void Mavlink::configure_sik_radio()
 {
 	/* radio config check */
-	if (_uart_fd >= 0 && _param_sik_radio_id.get() != 0) {
+	if (_uart_fd >= 0 && _param_mav_sik_radio_id.get() != 0) {
 		/* request to configure radio and radio is present */
 		FILE *fs = fdopen(_uart_fd, "w");
 
@@ -3421,9 +3451,9 @@ void Mavlink::configure_sik_radio()
 			fflush(fs);
 			px4_usleep(1200000);
 
-			if (_param_sik_radio_id.get() > 0) {
+			if (_param_mav_sik_radio_id.get() > 0) {
 				/* set channel */
-				fprintf(fs, "ATS3=%" PRIu32 "\r\n", _param_sik_radio_id.get());
+				fprintf(fs, "ATS3=%" PRIu32 "\r\n", _param_mav_sik_radio_id.get());
 				px4_usleep(200000);
 
 			} else {
@@ -3454,8 +3484,8 @@ void Mavlink::configure_sik_radio()
 		}
 
 		/* reset param and save */
-		_param_sik_radio_id.set(0);
-		_param_sik_radio_id.commit_no_notification();
+		_param_mav_sik_radio_id.set(0);
+		_param_mav_sik_radio_id.commit_no_notification();
 	}
 }
 
@@ -3621,6 +3651,7 @@ Mavlink::display_status()
 	printf("\t  rx loss: %.1f%%\n", (double)_tstatus.rx_message_lost_rate * 100.0);
 	printf("\t  rx unknown messages: %" PRIu32 "\n", _tstatus.rx_unknown_message_count);
 	printf("\t  rx bad signatures: %" PRIu32 "\n", _tstatus.rx_bad_signature_count);
+	printf("\t  rx bad CRCs: %" PRIu32 "\n", _tstatus.rx_bad_crc_count);
 
 #if !defined(CONSTRAINED_FLASH)
 	_receiver.print_detailed_rx_stats();
@@ -4028,6 +4059,7 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_PARAM_FLAG('x', "Enable FTP", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('z', "Force hardware flow control always on", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('Z', "Force hardware flow control always off", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('a', "Configure serial port in raw mode (8N1, no termios processing), e.g. for NuttX RPMsg ttys", true);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop-all", "Stop all instances");
 

@@ -65,7 +65,7 @@ private:
 	adc_report_s _adc_report{};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::ADC_ADS7128_REFV>) _adc_ads7128_refv
+		(ParamFloat<px4::params::ADC_ADS7128_REFV>) _param_adc_ads7128_refv
 	)
 
 	int init_reset();

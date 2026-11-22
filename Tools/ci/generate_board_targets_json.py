@@ -339,10 +339,10 @@ if (args.group):
                     chip_label = chip
 
                 # Gather all (manufacturer -> targets) for this chip family
-                # NXP chip families (imxrt, kinetis, s32k) pool all manufacturers
+                # NXP chip families (imxrt, imx9, kinetis, s32k) pool all manufacturers
                 # under "nxp" since all boards use NXP silicon regardless of
                 # which directory they live in (e.g., px4/fmu-v6xrt is imxrt).
-                nxp_chips = tuple(ci_config.get('nxp_chip_families', ['imxrt', 'kinetis', 's32k']))
+                nxp_chips = tuple(ci_config.get('nxp_chip_families', ['imxrt', 'imx9', 'kinetis', 's32k']))
                 man_targets = {}
                 for (c, m), targets in chip_man_buckets.items():
                     if c == chip:
