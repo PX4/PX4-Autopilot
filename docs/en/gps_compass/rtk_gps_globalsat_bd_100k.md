@@ -1,6 +1,7 @@
 # GlobalSat BD-100K RTK GNSS
 
 The [GlobalSat BD-100K](https://www.globalsat.com.tw/en/product-285502/Dual-Band-RTK-Receiver-for-Drone-and-Autopilot-BD-100K.html) is an L1/L5 dual-band RTK GNSS receiver that connects to the flight controller using UART.
+It is based on the AIROHA AG3335A and includes a compass, barometer, safety switch, buzzer and LED.
 Powered by an advanced multi-frequency GNSS engine, the BD-100K delivers centimetre-level positioning, fast RTK convergence, and robust tracking in challenging environments such as urban canyons or dense foliage.
 Its integrated sensors and Pixhawk-compatible interface make it an ideal upgrade for professional UAV platforms requiring higher navigation accuracy and reliability.
 
@@ -14,18 +15,23 @@ Typical applications include:
 
 ## Specifications {#specifications}
 
+- **Receiver:** AIROHA AG3335A
 - **Constellations:** Multi-constellation, multi-frequency all-in-view tracking; SBAS ranging (WAAS, EGNOS, MSAS and GAGAN)
 - **Bands:** L1 + L5, with RTK centimetre-level positioning
 - **RTK:** Fast RTK fix and strong anti-multipath design
 - **Protocol:** NMEA 0183 V3.01 / V4.1 (GGA, GSA, GSV, RMC, VTG, GLL, ZDA, GRS, GST); AIROHA PAIR proprietary commands (not supported on PX4)
+- **Update rate:** 1-10Hz (default 5Hz)
+- **Position accuracy:** <1.5m (CEP50); centimetre-level with RTK corrections
 - **Sensitivity:** High tracking sensitivity for operation in weak-signal environments; fast time to first fix (TTFF) under low-signal conditions
 - **Compass:** Built-in (IST8310)
-- **Barometer:** Built-in (not used by PX4)
+- **Barometer:** Built-in (MS5611, not used by PX4)
 - **Other:** Safety switch, buzzer and tri-colour LED (Pixhawk-compatible status indicators); backup power for hot-start performance
 - **Antenna:** Integrated dual-band patch antenna
-- **Interface:** UART (2.8 V TTL) on a 10-pin JST-GH connector
-- **Input voltage:** 5 V
-- **Dimensions:** 47.0 mm diameter × 17.0 mm height (±0.2 mm)
+- **Interface:** UART (2.8V TTL) on a 10-pin JST-GH connector
+- **Input voltage:** 5V
+- **Current draw:** 25mA typical (GNSS); buzzer up to 80mA, LEDs up to 60mA
+- **Dimensions:** 47.0mm diameter × 17.0mm height (±0.2mm)
+- **Weight:** 42g (including cable)
 - **Enclosure:** Water-resistant, with anti-slip bottom design
 - **Made in:** Taiwan
 
@@ -51,12 +57,13 @@ For more information, see [Mounting a Compass](../assembly/mount_gps_compass.md)
 The GlobalSat BD-100K uses UART output via a JST-GH-10P connector.
 Connect it to the 10-pin `GPS1` port (the "Full GPS + Safety Switch Port") on flight controllers that use the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf).
 See [Pinouts](#pinouts) for the pin assignments.
-The receiver is powered with 5 V from the port (pin 1); its UART signals are 2.8 V TTL and its I2C signals 3.3 V.
+The receiver is powered with 5V from the port (pin 1); its UART signals are 2.8V TTL and its I2C signals 3.3V.
 
 ## PX4 Configuration {#px4_configuration}
 
 PX4 communicates with this receiver using the NMEA protocol (this is not included in firmware for boards with constrained flash).
 To enable, set [GPS_1_PROTOCOL](../advanced_config/parameter_reference.md#GPS_1_PROTOCOL) to `6` (`NMEA (generic)`) and reboot the vehicle.
+No baud rate setting is needed: PX4 detects the receiver's factory rate of 230400 baud automatically.
 
 To use the receiver as a secondary GPS, set [GPS_2_CONFIG](../advanced_config/parameter_reference.md#GPS_2_CONFIG) to the port it is connected to, and [GPS_2_PROTOCOL](../advanced_config/parameter_reference.md#GPS_2_PROTOCOL) to `6`, and reboot.
 See [Secondary GPS Configuration (UART)](../gps_compass/index.md#secondary-gps-configuration-uart) for more information.
@@ -82,4 +89,4 @@ For RTK, `fix_type` is `5` for an RTK float solution and `6` for RTK fixed.
 
 - [GlobalSat BD-100K](https://www.globalsat.com.tw/en/product-285502/Dual-Band-RTK-Receiver-for-Drone-and-Autopilot-BD-100K.html) (product page)
 - [BD-100M/BD-100K User Manual](https://www.globalsat.com.tw/files/BD-100MK_user_manual_latest.pdf)
-- [BD-100M/BD-100K Hardware Data Sheet](https://www.globalsat.com.tw/files/BD-100K_Hardware_Data_Sheet_latest.pdf)
+- [BD-100K Hardware Data Sheet](https://www.globalsat.com.tw/files/BD-100K_Hardware_Data_Sheet_latest.pdf)

@@ -1,7 +1,7 @@
 # GlobalSat BD-100M GNSS
 
 The [GlobalSat BD-100M](https://www.globalsat.com.tw/en/product-285501/Dual-Band-GNSS-Receiver-for-Drone-and-Autopilot-BD-100M.html) is a compact, L1/L5 dual-band GNSS receiver that connects to the flight controller using UART.
-It includes a compass, barometer, safety switch, buzzer and LED.
+It is based on the AIROHA AG3335M and includes a compass, barometer, safety switch, buzzer and LED.
 
 Typical applications include:
 
@@ -13,18 +13,22 @@ Typical applications include:
 
 ## Specifications {#specifications}
 
+- **Receiver:** AIROHA AG3335M
 - **Constellations:** Multi-constellation, multi-frequency all-in-view tracking; SBAS ranging (WAAS, EGNOS, MSAS and GAGAN)
 - **Bands:** L1 + L5
 - **Protocol:** NMEA 0183 V3.01 / V4.1 (GGA, GSA, GSV, RMC, VTG, GLL, ZDA, GRS, GST); AIROHA PAIR proprietary commands (not supported on PX4)
+- **Update rate:** 1-10Hz (default 5Hz)
+- **Position accuracy:** <1.5m (CEP50)
 - **Sensitivity:** High tracking sensitivity for operation in weak-signal environments; fast time to first fix (TTFF) under low-signal conditions
 - **Compass:** Built-in (IST8310)
-- **Barometer:** Built-in (not used by PX4)
+- **Barometer:** Built-in (MS5611, not used by PX4)
 - **Other:** Safety switch, buzzer and tri-colour LED (Pixhawk-compatible status indicators); backup power for hot-start performance
 - **Antenna:** Integrated dual-band patch antenna
-- **Interface:** UART (2.8 V TTL) on a 10-pin JST-GH connector
-- **Input voltage:** 5 V
-- **Power:** Low power consumption for UAV applications
-- **Dimensions:** 47.0 mm diameter × 17.0 mm height (±0.2 mm)
+- **Interface:** UART (2.8V TTL) on a 10-pin JST-GH connector
+- **Input voltage:** 5V
+- **Current draw:** 25mA typical (GNSS); buzzer up to 80mA, LEDs up to 60mA
+- **Dimensions:** 47.0mm diameter × 17.0mm height (±0.2mm)
+- **Weight:** 42g (including cable)
 - **Enclosure:** Water-resistant, with anti-slip bottom design
 - **Made in:** Taiwan
 
@@ -32,8 +36,8 @@ Typical applications include:
 
 Order this module from:
 
-- [GlobalSat BD-100M](https://www.amazon.com/dp/B0HKZZRKZ9) GPS/GNSS (option 1)
-- [GlobalSat BD-100M](https://www.gpscity.com/us-globalsat-bd-100m-dual-band-gnss-receiver-for-drone-and-autopilot) GPS/GNSS (option 2)
+- [GlobalSat BD-100M](https://www.amazon.com/dp/B0HKZZRKZ9) GPS/GNSS (Amazon)
+- [GlobalSat BD-100M](https://www.gpscity.com/us-globalsat-bd-100m-dual-band-gnss-receiver-for-drone-and-autopilot) GPS/GNSS (GPS City)
 
 ## Hardware Setup {#hardware_setup}
 
@@ -51,12 +55,13 @@ For more information, see [Mounting a Compass](../assembly/mount_gps_compass.md)
 The GlobalSat BD-100M uses UART output via a JST-GH-10P connector.
 Connect it to the 10-pin `GPS1` port (the "Full GPS + Safety Switch Port") on flight controllers that use the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf).
 See [Pinouts](#pinouts) for the pin assignments.
-The receiver is powered with 5 V from the port (pin 1); its UART signals are 2.8 V TTL and its I2C signals 3.3 V.
+The receiver is powered with 5V from the port (pin 1); its UART signals are 2.8V TTL and its I2C signals 3.3V.
 
 ## PX4 Configuration {#px4_configuration}
 
 PX4 communicates with this receiver using the NMEA protocol (this is not included in firmware for boards with constrained flash).
 To enable, set [GPS_1_PROTOCOL](../advanced_config/parameter_reference.md#GPS_1_PROTOCOL) to `6` (`NMEA (generic)`) and reboot the vehicle.
+No baud rate setting is needed: PX4 detects the receiver's factory rate of 230400 baud automatically.
 
 To use the receiver as a secondary GPS, set [GPS_2_CONFIG](../advanced_config/parameter_reference.md#GPS_2_CONFIG) to the port it is connected to, and [GPS_2_PROTOCOL](../advanced_config/parameter_reference.md#GPS_2_PROTOCOL) to `6`, and reboot.
 See [Secondary GPS Configuration (UART)](../gps_compass/index.md#secondary-gps-configuration-uart) for more information.
@@ -79,4 +84,4 @@ In the [QGroundControl MAVLink Console](../debug/mavlink_shell.md#qgroundcontrol
 
 - [GlobalSat BD-100M](https://www.globalsat.com.tw/en/product-285501/Dual-Band-GNSS-Receiver-for-Drone-and-Autopilot-BD-100M.html) (product page)
 - [BD-100M/BD-100K User Manual](https://www.globalsat.com.tw/files/BD-100MK_user_manual_latest.pdf)
-- [BD-100M/BD-100K Hardware Data Sheet](https://www.globalsat.com.tw/files/BD-100M_Hardware_Data_Sheet_latest.pdf)
+- [BD-100M Hardware Data Sheet](https://www.globalsat.com.tw/files/BD-100M_Hardware_Data_Sheet_latest.pdf)
