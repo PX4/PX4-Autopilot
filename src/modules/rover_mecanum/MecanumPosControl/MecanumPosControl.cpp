@@ -141,6 +141,16 @@ void MecanumPosControl::updateSubscriptions()
 	if (_rover_position_setpoint_sub.updated()) {
 		rover_position_setpoint_s rover_position_setpoint;
 		_rover_position_setpoint_sub.copy(&rover_position_setpoint);
+
+		if (PX4_ISFINITE(rover_position_setpoint.yaw)) {
+		_yaw_setpoint = rover_position_setpoint.yaw;
+
+		} else if (!PX4_ISFINITE(_yaw_setpoint)) {
+			_yaw_setpoint = _vehicle_yaw;
+		}
+
+
+		
 		_start_ned = Vector2f(rover_position_setpoint.start_ned[0], rover_position_setpoint.start_ned[1]);
 		_start_ned = _start_ned.isAllFinite() ? _start_ned : _curr_pos_ned;
 		_arrival_speed = PX4_ISFINITE(rover_position_setpoint.arrival_speed) ? rover_position_setpoint.arrival_speed : 0.f;

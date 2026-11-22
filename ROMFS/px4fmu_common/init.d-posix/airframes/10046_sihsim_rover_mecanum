@@ -1,0 +1,48 @@
+#!/bin/sh
+# @name SIH Mecanum Rover
+# @type Rover
+# @class Rover
+
+# Existing mecanum controller defaults, including reversible motors.
+. ${R}etc/init.d/rc.rover_mecanum_defaults
+
+PX4_SIMULATOR=${PX4_SIMULATOR:=sihsim}
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=rover_mecanum}
+
+param set-default SIH_VEHICLE_TYPE 6
+
+# Map SIH output slots to the function's argument order:
+# _u[0] = front-left
+# _u[1] = front-right
+# _u[2] = rear-left
+# _u[3] = rear-right
+param set-default PWM_MAIN_FUNC1 102
+param set-default PWM_MAIN_FUNC2 101
+param set-default PWM_MAIN_FUNC3 104
+param set-default PWM_MAIN_FUNC4 103
+
+# Initial physical parameters.
+param set SIH_MASS 3
+param set SIH_IXX 0.0172
+param set SIH_IYY 0.0241
+param set SIH_IZZ 0.0381
+param set SIH_IXZ 0
+param set-default SIH_KDW 10
+
+# Simulated sensors.
+param set-default SENS_EN_GPSSIM 1
+param set-default SENS_EN_BAROSIM 1
+param set-default SENS_EN_MAGSIM 1
+
+# Distance between left and right wheels.
+param set-default RM_WHEEL_TRACK 2.0
+
+# The model gives 40 N maximum forward force
+# and 8 N/(m/s) drag: ideal straight-line terminal speed = 5 m/s.
+param set-default RO_MAX_THR_SPEED 5
+param set-default RO_SPEED_LIM 1
+param set-default RO_ACCEL_LIM 1
+param set-default RO_DECEL_LIM 1
+param set-default RO_JERK_LIM 2
+param set-default RO_YAW_RATE_LIM 60
+param set-default RO_YAW_P 1

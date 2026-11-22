@@ -371,7 +371,10 @@ void Sih::generate_force_and_torques(const float dt)
 
 	} else if (_vehicle == VehicleType::RoverAckermann) {
 		generate_rover_ackermann_dynamics(_u[1], _u[0], dt);
+	} else if (_vehicle == VehicleType::RoverMecanum) {
+		generate_rover_mecanum_dynamics(_u[0], _u[1], _u[2], _u[3], dt);
 	}
+
 }
 
 void Sih::generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd,
@@ -493,6 +496,48 @@ void Sih::generate_rover_ackermann_dynamics(const float throttle_cmd, const floa
 
 }
 
+void Sih::generate_rover_mecanum_dynamics(const float front_left_cmd, const float front_right_cmd, const float rear_left_cmd, const float rear_right_cmd, const float dt) {
+	// The inputs are normalized commands [-1,1]
+	// --- Constants ---
+	static constexpr float MAX_WHEEL_FORCE = 1.5f;   // [N] per wheel
+	static constexpr float HALF_LENGTH = 0.15f;      // [m] center to axle
+	static constexpr float HALF_WIDTH  = 0.125f;     // [m] center to wheel
+ 
+
+	// --- Compute forces and moments ---
+
+	const float F_x = MAX_WHEEL_FORCE * (front_left_cmd + front_right_cmd + rear_left_cmd + rear_right_cmd); //Foward force
+	const float F_y = MAX_WHEEL_FORCE * (front_left_cmd - front_right_cmd - rear_left_cmd + rear_right_cmd); // Lateral force [N]
+	const float M_z = (HALF_LENGTH + HALF_WIDTH)* MAX_WHEEL_FORCE * (front_left_cmd - front_right_cmd + rear_left_cmd - rear_right_cmd); // Yaw moment [N/m]
+
+	_T_B = Vector3f(F_x, F_y, 0.f);
+	_Mt_B = Vector3f(0.f, 0.f, M_z);
+
+	// --- Compute drag/friction forces and moments ---
+	// Simplified resistance coefficients; initial values for testing.
+	static constexpr float DRAG_X = 4.0f;          // [N/(m/s)]
+	static constexpr float DRAG_Y = 5.0f;          // [N/(m/s)] Rollers are less efficient sideways
+	static constexpr float DRAG_YAW = 0.3f;        // [Nm/(rad/s)]
+
+	const Vector3f v_B = _q.rotateVectorInverse(_v_N); // The velocity relative to the ground expressed along the body's axes
+
+	const Vector3f resistance_B(
+		-DRAG_X * v_B(0),
+		-DRAG_Y * v_B(1),
+		0.f
+	);
+
+	_Fa_E = _q_E.rotateVector(resistance_B);
+
+	// Preserve existing roll/pitch damping; specify yaw damping separately.
+	_Ma_B = Vector3f(
+		-_KDW * _w_B(0),
+		-_KDW * _w_B(1),
+		-DRAG_YAW * _w_B(2)
+	);
+
+	}
+
 float Sih::computeGravity(const double lat)
 {
 	// Somigliana formula for gravitational acceleration
@@ -531,7 +576,8 @@ void Sih::equations_of_motion(const float dt)
 			_grounded = true;
 
 		} else if (_vehicle == VehicleType::FixedWing
-			   || _vehicle == VehicleType::RoverAckermann) {
+			   || _vehicle == VehicleType::RoverAckermann 
+			   || _vehicle == VehicleType::RoverMecanum) {
 			Vector3f down_u = _R_N2E.col(2);
 			ground_force_E = -down_u * sum_of_forces_E * down_u;
 
@@ -824,7 +870,11 @@ int Sih::print_status()
 
 	} else if (_vehicle == VehicleType::RoverAckermann) {
 		PX4_INFO("Rover Ackermann");
+	} else if (_vehicle == VehicleType::RoverMecanum) {
+		PX4_INFO("Rover Mecanum");
 	}
+
+
 
 	PX4_INFO("vehicle landed: %d", _grounded);
 	PX4_INFO("local position NED (m)");

@@ -595,6 +595,10 @@ div.frame_variant td, div.frame_variant th {
    <tr><th>Name</th><th></th></tr>
  </thead>
 <tbody>
+<tr id="rover_rover_sih_mecanum_rover">
+  <td>SIH Mecanum Rover</td>
+  <td><p><code>SYS_AUTOSTART</code> = 10046</p></td>
+</tr>
 <tr id="rover_rover_sih_rover_ackermann">
  <td>SIH Rover Ackermann</td>
  <td>Maintainer: John Doe &lt;john@example.com&gt;<p><code>SYS_AUTOSTART</code> = 1104</p></td>

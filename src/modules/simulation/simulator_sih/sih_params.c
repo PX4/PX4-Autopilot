@@ -335,6 +335,7 @@ PARAM_DEFINE_FLOAT(SIH_T_TAU, 0.05f);
  * @value 3 Standard VTOL
  * @value 4 Hexacopter
  * @value 5 Rover Ackermann
+ * @value 6 Rover Mecanum
  * @reboot_required true
  * @group Simulation In Hardware
  */

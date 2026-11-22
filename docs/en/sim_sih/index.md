@@ -29,6 +29,7 @@ The Desktop computer is only used to display the virtual vehicle.
 - SIH for Standard VTOL from PX4 v1.16.
 - SIH for MC Hexacopter X from `main` (expected to be PX4 v1.17).
 - SIH for Ackermann Rover from `main`.
+- SIH for Mecanum Rover from `main`.
 
 ### Benefits
 
@@ -140,6 +141,7 @@ To set up/start SIH:
    - [SIH Tailsitter Duo](../airframes/airframe_reference.md#vtol_simulation_sih_tailsitter_duo)
    - [SIH Standard VTOL QuadPlane](../airframes/airframe_reference.md#vtol_simulation_sih_standard_vtol_quadplane)
    - [SIH Ackermann Rover](../airframes/airframe_reference.md#rover_rover_sih_rover_ackermann)
+   - [SIH Mecanum Rover](../airframes/airframe_reference.md#rover_rover_sih_mecanum_rover)
 
 The autopilot will then reboot.
 The `sih` module is started on reboot, and the vehicle should be displayed on the ground control station map.
@@ -225,6 +227,11 @@ To run SIH as SITL:
 
      ```sh
      make px4_sitl sihsim_rover_ackermann
+     ```
+   - Mecanum Rover
+
+     ```sh
+     make px4_sitl sihsim_rover_mecanum
      ```
 
 ### Change Simulation Speed
@@ -362,6 +369,7 @@ The dynamic models for the various vehicles are:
 - Fixed-wing: Inspired by the PhD thesis: "Dynamics modeling of agile fixed-wing unmanned aerial vehicles." Khan, Waqas, supervised by Nahon, Meyer, McGill University, PhD thesis, 2016.
 - Tailsitter: Inspired by the master's thesis: "Modeling and control of a flying wing tailsitter unmanned aerial vehicle." Chiappinelli, Romain, supervised by Nahon, Meyer, McGill University, Masters thesis, 2018.
 - Ackermann Rover: Based on lateral vehicle dynamics of the bicycle model adapted from [Sri Anumakonda, Everything you need to know about Self-Driving Cars in <30 minutes](https://srianumakonda.medium.com/everything-you-need-to-know-about-self-driving-in-30-minutes-b38d68bd3427)
+- Mecanum Rover: Simplified planar model with four command-proportional wheel forces, combined into longitudinal force, lateral force, and yaw moment using the existing mecanum controller's motor mixing conventions. Includes separate linear damping for longitudinal, lateral, and yaw motion. Wheel slip and detailed roller-contact dynamics are not modeled.
 
 ## Video
 
