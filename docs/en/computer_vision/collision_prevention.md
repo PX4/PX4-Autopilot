@@ -22,7 +22,7 @@ The vehicle restricts the current velocity in order to slow down as it gets clos
 In order to move away from (or parallel to) an obstacle, the user must command the vehicle to move toward a setpoint that does not bring the vehicle closer to the obstacle.
 The algorithm will make minor adjustments to the setpoint direction if it is determined that a “better” setpoint exists within a fixed margin on either side of the requested setpoint.
 
-Users are notified through _QGroundControl_ while _Collision Prevention_ is actively controlling velocity setpoints.
+When _Collision Prevention_ starts cutting the commanded motion by more than half, _QGroundControl_ shows the distance and bearing of the closest obstacle within 45° of the commanded direction.
 
 PX4 software setup is covered in the next section.
 If you are using a distance sensor attached to your flight controller for collision prevention, it will need to be attached and configured as described in [PX4 Distance Sensor](#rangefinder).
@@ -52,8 +52,10 @@ Configure the sensor as described in the [Sony AS-DT1](../sensor/sony_asdt1.md) 
 
 ### Agam FloRange
 
-[Agam FloRange](../dronecan/agam_florange.md) DroneCAN modules can be mounted horizontally, with the orientation of each set on the module using [SENS_AFBR_ROT](../advanced_config/parameter_reference.md#SENS_AFBR_ROT).
-Its distance sensor measures along a single beam about 2° wide, so use it as an additional safety measure rather than as the main collision prevention sensor.
+<Badge type="tip" text="main (PX4 v2.0)" />
+
+[Agam FloRange](../dronecan/agam_florange.md) DroneCAN modules can be mounted horizontally, with each module's orientation set by its own [SENS_AFBR_ROT](../advanced_config/parameter_reference.md#SENS_AFBR_ROT) parameter.
+The distance sensor measures along a single beam about 2° wide, so use the modules as an additional safety measure rather than as the main collision prevention sensor.
 Set up the modules as described in [Agam FloRange > Collision Prevention](../dronecan/agam_florange.md#collision-prevention), then enable collision prevention with [CP_DIST](#CP_DIST).
 
 ### Other Rangefinders
@@ -100,7 +102,7 @@ This helps to fine-tune user input to 'guide' the vehicle around obstacles rathe
 
 ### Range Data Loss
 
-If the autopilot does not receive range data from any sensor for longer than 0.5s, it will output a warning _No range data received, no movement allowed_.
+If the autopilot does not receive range data from any sensor for longer than 0.5s, it will not allow any movement.
 This will force the velocity setpoints in xy to zero.
 After 5 seconds of not receiving any data, the vehicle will switch into [HOLD mode](../flight_modes_mc/hold.md).
 If you want the vehicle to be able to move again, you will need to disable Collision Prevention by either setting the parameter [CP_DIST](#CP_DIST) to a negative value, or switching to a mode other than [Position mode](../flight_modes_mc/position.md) (e.g. to _Altitude mode_ or _Stabilized mode_).

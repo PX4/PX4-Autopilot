@@ -72,6 +72,8 @@ Mount the module with the sensors facing down and the X arrow on the enclosure p
 This corresponds to the default value (`0`) of the parameter [SENS_FLOW_ROT](../advanced_config/parameter_reference.md#SENS_FLOW_ROT).
 Change the parameter appropriately if using a different orientation.
 
+For collision prevention, a module can also be mounted facing horizontally (see [Collision Prevention](#collision-prevention)).
+
 ## Firmware Setup
 
 Agam FloRange runs the [PX4 DroneCAN Firmware](px4_cannode_fw.md).
@@ -118,29 +120,30 @@ When optical flow is the only source of horizontal position/velocity, reduce the
 ### Collision Prevention
 
 ::: warning
-The distance sensor has a very narrow field of view: it measures along a single beam about 2° wide, which covers a spot roughly 7 cm across at 2 m.
+The distance sensor has a very narrow field of view: it measures along a single beam about 2° wide, which covers a spot roughly 7cm across at 2m.
 Obstacles outside that beam, including thin ones such as poles, wires and branches, are not detected.
 Agam FloRange is not suited as the main sensor for Collision Prevention.
-Use it only as an additional safety measure, and do not rely on it alone to avoid obstacles.
+Use it only as an additional safety measure.
 :::
 
 Agam FloRange reports the mounting orientation of its distance sensor to the flight controller, as set on the module by [SENS_AFBR_ROT](#SENS_AFBR_ROT) (downward facing by default).
 A module mounted facing horizontally can therefore be used for [Collision Prevention](../computer_vision/collision_prevention.md), alongside a downward-facing module used for optical flow and height:
 
-- On the horizontal module, set [SENS_AFBR_ROT](#SENS_AFBR_ROT) to its yaw rotation, for example `0` (No rotation) when facing forward, and reboot the module.
+- On the horizontal module, set [SENS_AFBR_ROT](#SENS_AFBR_ROT) to its yaw rotation, for example `0` (`No rotation`) when facing forward, and reboot the module.
   Optical flow is disabled on a module that is not facing down.
 - Leave the downward-facing module at its default.
 - To tell identical modules apart and configure each one, see [Node ID Allocation](index.md#node-id-allocation) and [QGC CANNODE Parameter Configuration](index.md#qgc-cannode-parameter-configuration).
+- On the flight controller, enable collision prevention with [CP_DIST](../computer_vision/collision_prevention.md#CP_DIST) and set [CP_GO_NO_DATA](../computer_vision/collision_prevention.md#CP_GO_NO_DATA) to `1` so the vehicle can move in directions the modules don't cover.
 
 ## Agam FloRange Configuration
 
 On the module, you may need to configure the following parameters:
 
-| Parameter                                                                                                | Description                                                                                                                              |
-| -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="CANNODE_NODE_ID"></a>[CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID) | CAN node ID. Set to `0` (default) for dynamic node allocation, or to `1`-`125` for a static node ID.                                     |
-| <a id="CANNODE_TERM"></a>[CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM)          | Built-in CAN bus termination. Set to `1` if the module is the last node on the CAN bus (see [Wiring](#wiring)).                          |
-| <a id="SENS_AFBR_ROT"></a>[SENS_AFBR_ROT](../advanced_config/parameter_reference.md#SENS_AFBR_ROT)       | Module mounting orientation. Optical flow is only enabled when facing down (default); see [Collision Prevention](#collision-prevention). |
+| Parameter                                                                                                | Description                                                                                                                                        |
+| -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="CANNODE_NODE_ID"></a>[CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID) | CAN node ID. Set to `0` (default) for dynamic node allocation, or to `1`-`125` for a static node ID.                                               |
+| <a id="CANNODE_TERM"></a>[CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM)          | Built-in CAN bus termination. Set to `1` if the module is the last node on the CAN bus (see [Wiring](#wiring)).                                    |
+| <a id="SENS_AFBR_ROT"></a>[SENS_AFBR_ROT](../advanced_config/parameter_reference.md#SENS_AFBR_ROT)       | Module mounting orientation. Optical flow is only enabled when the module faces down (default); see [Collision Prevention](#collision-prevention). |
 
 ## LED Meanings
 
