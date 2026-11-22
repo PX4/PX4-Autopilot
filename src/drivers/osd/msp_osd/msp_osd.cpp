@@ -136,8 +136,9 @@ MspOsd::MspOsd(const char *device) :
 	_display.set_period(_param_osd_scroll_rate.get() * 1000ULL);
 	_display.set_dwell(_param_osd_dwell_time.get() * 1000ULL);
 
-	// back up device name for connection later
-	strcpy(_device, device);
+	// back up device name for connection later (length checked in task_spawn)
+	strncpy(_device, device, sizeof(_device) - 1);
+	_device[sizeof(_device) - 1] = '\0';
 
 	// _is_initialized = true;
 	PX4_INFO("MSP OSD running on %s", _device);
@@ -619,6 +620,11 @@ int MspOsd::task_spawn(int argc, char *argv[])
 
 	if (!device) {
 		PX4_ERR("Missing device");
+		return PX4_ERROR;
+	}
+
+	if (strlen(device) >= sizeof(_device)) {
+		PX4_ERR("device path too long (max %zu): %s", sizeof(_device) - 1, device);
 		return PX4_ERROR;
 	}
 
