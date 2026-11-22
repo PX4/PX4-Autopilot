@@ -247,17 +247,15 @@ QGC auto-connects on port **14550** by default. MAVSDK connects on **14540**. No
 ### Fault and Failure Testing {#fault-testing}
 
 SIH publishes one IMU by default.
-Set [SIH_IMU_COUNT](../advanced_config/parameter_reference.md#SIH_IMU_COUNT) to 2 together with [EKF2_MULTI_IMU](../advanced_config/parameter_reference.md#EKF2_MULTI_IMU) 2 and `SENS_IMU_MODE` 0 to get a second IMU with independent noise and one EKF instance per IMU, which activates the estimator instance selector.
-Leaving `SIH_IMU_COUNT` at 1 keeps the single IMU setup, so a simulation that does not need multi-EKF does not pay for a second estimator.
+Set [SIH_IMU_COUNT](../advanced_config/parameter_reference.md#SIH_IMU_COUNT) to 2 together with [EKF2_MULTI_IMU](../advanced_config/parameter_reference.md#EKF2_MULTI_IMU) 2 and [SENS_IMU_MODE](../advanced_config/parameter_reference.md#SENS_IMU_MODE) 0 to get a second IMU with independent noise and one EKF instance per IMU, which activates the estimator instance selector.
 
-Sensor faults are injected with [failure injection](../debug/failure_injection.md), which targets individual IMUs:
+[Failure injection](../debug/failure_injection.md) addresses each IMU on its own with `-i`, so a fault can hit the IMU behind one estimator instance while the other instance keeps clean data:
 
-- `failure accel off -i 2` stops the accelerometer of the second IMU only.
-  Use it for hard faults such as a dead sensor.
-- `failure accel garbage -i 2` keeps that accelerometer publishing but rails its Z axis at the measurement range, so the driver reports the samples as clipping.
-  Use it when the sensor has to keep publishing while the data it publishes goes bad, which is what degrades one EKF instance without silencing it.
-  A sensor that is simply off cannot produce this state.
-  Garbage accelerometer data is produced by SIH, so it does nothing on real hardware.
+- `failure accel off -i 2` stops the accelerometer of the second IMU.
+- `failure accel stuck -i 2`, `failure accel wrong -i 2`, `failure accel garbage -i 2` and `failure accel drift -i 2` keep that accelerometer publishing but freeze or corrupt its samples, which degrades one estimator instance without silencing the sensor.
+  The `SYS_FAIL_A_*` parameters set the size of the bias, noise and drift, see [Supported Failure Types](../debug/failure_injection.md#supported-failure-types).
+
+The same works for the gyro with `failure gyro`.
 
 ### Multi-Vehicle Simulation
 

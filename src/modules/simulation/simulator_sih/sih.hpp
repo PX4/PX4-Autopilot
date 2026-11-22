@@ -143,17 +143,6 @@ private:
 	static constexpr uint32_t IMU_DEVICE_ID[IMU_COUNT] {1310988, 1310996};
 	uint8_t _imu_count{1};
 
-	// Measurement range of the simulated accelerometers. This has to match _range in
-	// PX4Accelerometer, which defaults to 16 g, because that is what the driver compares a
-	// sample against when it decides the sample is clipped. A real accelerometer rails here
-	// rather than reporting the true value.
-	static constexpr float ACCEL_RANGE_MS2 = 16.f * CONSTANTS_ONE_G;
-
-	// Standard deviation of the noise a Garbage accelerometer reports on its Z axis. Several
-	// times the measurement range, so most samples rail and the estimator sees a steady stream
-	// of clipped ones rather than the occasional outlier.
-	static constexpr float GARBAGE_ACCEL_NOISE_MS2 = 3.f * ACCEL_RANGE_MS2;
-
 	PX4Accelerometer  _px4_accel_first{IMU_DEVICE_ID[0]};
 	PX4Gyroscope      _px4_gyro_first{IMU_DEVICE_ID[0]};
 	PX4Accelerometer *_px4_accel[IMU_COUNT] {&_px4_accel_first, nullptr};

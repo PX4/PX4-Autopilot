@@ -1053,24 +1053,11 @@ void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
 	const Vector3f specific_force_B = R_E2B * _specific_force_E;
 	const Vector3f earth_spin_rate_B = R_E2B * Vector3f(0.f, 0.f, CONSTANTS_EARTH_SPIN_RATE);
 
-	// Publish to all simulated IMUs with independent noise. Off and Stuck are applied by
-	// PX4Accelerometer and PX4Gyroscope per uORB instance, so only Garbage is handled here.
+	// Publish to all simulated IMUs with independent noise. Failure injection on the gyro and the
+	// accelerometer is applied per uORB instance by PX4Gyroscope and PX4Accelerometer.
 	for (uint8_t i = 0; i < _imu_count; i++) {
-		Vector3f accel_noise = math::noiseGauss3f(0.1f, 0.1f, 0.1f);
-		Vector3f gyro_noise = math::noiseGauss3f(0.01f, 0.01f, 0.01f);
-
-		Vector3f accel = specific_force_B + accel_noise;
-
-		if (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_ACCEL,
-					 i + 1) == failure_injection::Mode::Garbage) {
-			// A garbage accelerometer reports far more than the vehicle is doing. The result is
-			// railed at the measurement range, because a real accelerometer cannot report past it
-			// and the driver decides a sample is clipped by comparing against that range.
-			accel(2) = math::constrain(accel(2) + GARBAGE_ACCEL_NOISE_MS2 * generate_wgn(),
-						   -ACCEL_RANGE_MS2, ACCEL_RANGE_MS2);
-		}
-
-		const Vector3f gyro = _w_B + earth_spin_rate_B + gyro_noise;
+		const Vector3f accel = specific_force_B + math::noiseGauss3f(0.1f, 0.1f, 0.1f);
+		const Vector3f gyro = _w_B + earth_spin_rate_B + math::noiseGauss3f(0.01f, 0.01f, 0.01f);
 
 		// update IMU every iteration
 		_px4_accel[i]->update(time_now_us, accel(0), accel(1), accel(2));
