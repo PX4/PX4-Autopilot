@@ -184,6 +184,7 @@ private:
 	// polled at a quarter frame time: 20 retries = 5 frame times without
 	// progress before recoverFromTriggerStall() aborts and reconfigures.
 	static constexpr uint32_t kMaxTriggerRetries = 20;
+	static constexpr hrt_abstime kTriggerMargin = 1000; // one system tick, us
 	uint32_t _trigger_retry_count{0};
 
 	// Consecutive CONFIGURE failures (350 ms apart) before the device is
@@ -227,14 +228,14 @@ private:
 	uint32_t _measurement_inverval {1000000 / 50}; // 50Hz
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SENS_AFBR_MODE>)     _p_sens_afbr_mode,
-		(ParamInt<px4::params::SENS_AFBR_RATE>)     _p_sens_afbr_rate,
-		(ParamInt<px4::params::SENS_AFBR_DFM>)      _p_sens_afbr_dfm,
-		(ParamInt<px4::params::SENS_AFBR_SNM>)      _p_sens_afbr_snm,
-		(ParamInt<px4::params::SENS_AFBR_ROT>)      _p_sens_afbr_rot,
-		(ParamInt<px4::params::SENS_AFBR_PROF>)     _p_sens_afbr_prof,
-		(ParamInt<px4::params::SENS_AFBR_QMIN>)     _p_sens_afbr_qmin,
-		(ParamFloat<px4::params::SENS_AFBR_OFS_LO>) _p_sens_afbr_ofs_lo,
-		(ParamFloat<px4::params::SENS_AFBR_OFS_HI>) _p_sens_afbr_ofs_hi
+		(ParamInt<px4::params::SENS_AFBR_MODE>)     _param_sens_afbr_mode,
+		(ParamInt<px4::params::SENS_AFBR_RATE>)     _param_sens_afbr_rate,
+		(ParamInt<px4::params::SENS_AFBR_DFM>)      _param_sens_afbr_dfm,
+		(ParamInt<px4::params::SENS_AFBR_SNM>)      _param_sens_afbr_snm,
+		(ParamInt<px4::params::SENS_AFBR_ROT>)      _param_sens_afbr_rot,
+		(ParamInt<px4::params::SENS_AFBR_PROF>)     _param_sens_afbr_prof,
+		(ParamInt<px4::params::SENS_AFBR_QMIN>)     _param_sens_afbr_qmin,
+		(ParamFloat<px4::params::SENS_AFBR_OFS_LO>) _param_sens_afbr_ofs_lo,
+		(ParamFloat<px4::params::SENS_AFBR_OFS_HI>) _param_sens_afbr_ofs_hi
 	);
 };

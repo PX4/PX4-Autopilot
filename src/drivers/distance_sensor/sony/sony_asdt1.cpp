@@ -139,6 +139,9 @@ int AS_DT1::init()
 			PX4_WARN("flshow: no complete response after %u tries", static_cast<unsigned>(FLSHOW_RETRY_LIMIT));
 		}
 
+		// Opened in the shell task, so close it here as well.
+		close_port();
+
 	} else {
 		start();
 	}
@@ -226,18 +229,36 @@ void AS_DT1::print_info()
 
 void AS_DT1::start()
 {
+	_stop_requested.store(false);
+	_stopped.store(false);
 	_current_baud = ASDT1_DESIRED_BAUD;
 	ScheduleNow();
 }
 
 void AS_DT1::stop()
 {
+	// The serial port is opened in Run() on the work queue. File descriptors are
+	// per task group on NuttX, so it must also be closed there and not from the
+	// shell calling stop. Let Run() close it and wait until it has.
+	_stop_requested.store(true);
+	ScheduleNow();
+
+	for (int i = 0; i < 100 && !_stopped.load(); i++) {
+		px4_usleep(10000);
+	}
+
 	ScheduleClear();
-	close_port();
 }
 
 void AS_DT1::Run()
 {
+	if (_stop_requested.load()) {
+		ScheduleClear();
+		close_port();
+		_stopped.store(true);
+		return;
+	}
+
 	if (_fd < 0) {
 		if (open_port() != PX4_OK) {
 			return;

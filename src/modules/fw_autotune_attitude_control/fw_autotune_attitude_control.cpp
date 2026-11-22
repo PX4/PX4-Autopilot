@@ -64,7 +64,7 @@ bool FwAutotuneAttitudeControl::init()
 		return false;
 	}
 
-	_signal_filter.setParameters(static_cast<uint64_t>(_publishing_dt_s * 1e6f), 200_ms); // runs in the slow publishing loop
+	_signal_filter.setParameters(_publishing_dt_s, .2f); // runs in the slow publishing loop
 
 	if (!_vehicle_torque_setpoint_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
@@ -819,7 +819,7 @@ const Vector3f FwAutotuneAttitudeControl::getIdentificationSignal()
 	const float t = static_cast<float>(now - _state_start_time) * 1e-6f;
 	float signal = 0.0f;
 
-	switch (_param_fw_sysid_signal_type.get()) {
+	switch (_param_fw_at_sysid_type.get()) {
 	case  static_cast<int32_t>(SignalType::kStep): {
 			if (_steps_counter > _max_steps) {
 				_signal_sign = (_signal_sign == 1) ? 0 : 1;
@@ -842,13 +842,13 @@ const Vector3f FwAutotuneAttitudeControl::getIdentificationSignal()
 
 			signal = signal_generator::getLinearSineSweep(_param_fw_at_sysid_f0.get(),
 					_param_fw_at_sysid_f1.get(),
-					_param_fw_sysid_time.get(), t);
+					_param_fw_at_sysid_time.get(), t);
 		}
 		break;
 
 	case static_cast<int32_t>(SignalType::kLogSineSweep): {
 			signal = signal_generator::getLogSineSweep(_param_fw_at_sysid_f0.get(), _param_fw_at_sysid_f1.get(),
-					_param_fw_sysid_time.get(), t);
+					_param_fw_at_sysid_time.get(), t);
 		}
 		break;
 

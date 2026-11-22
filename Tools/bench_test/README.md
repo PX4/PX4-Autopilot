@@ -70,7 +70,8 @@ pip install -e "Tools/bench_test[ulog]"  # + pyulog for deep ULog verification
 ## Requirements
 
 - Python 3.8+.
-- Required: `pymavlink`, `pyserial` (`pip3 install --user pymavlink pyserial`).
+- Required: `pymavlink` >= 2.4.42 (ships the `mavftp` module), `pyserial`
+  (`pip3 install --user 'pymavlink>=2.4.42' pyserial`).
 - Optional: `pyulog` (deep .ulg verification; a magic-byte check is the
   fallback).
 
@@ -196,7 +197,7 @@ why the stress tests loop.
 | bench/storage_stress | SD card and FAT filesystem under the logger's feet | Sequential write/read below the floor, fsync latency spikes that cause log dropouts, or file churn failures |
 | bench/log_transfer | logger + MAVFTP (FILE_TRANSFER_PROTOCOL replies are nested sends) | A burst-read download that stops mid-file, or a ULog that fails integrity checks |
 | bench/serial_loopback | UART driver TX/RX path through a physical loopback jumper (fixture) | Lost or corrupted bytes through the jumper, or a port that cannot sustain the byte rate |
-| sih/flight_mission | commander/navigator/land-detector flight logic on real NuttX scheduling | Arming, takeoff, waypoint progression, RTL, land detection or auto-disarm failing per-phase timeouts |
+| sih/flight_mission | commander/navigator/land-detector flight logic on real NuttX scheduling | Arming, takeoff, waypoint progression, Return, land detection or auto-disarm failing per-phase timeouts |
 
 ## Bench tests (real firmware, no simulation)
 
@@ -339,7 +340,7 @@ Skips with a warning when the firmware lacks `serial_test`
 
 Switches the board to a SIH airframe (`SYS_AUTOSTART=1100`, `SYS_HITL=2`,
 physics simulated on the FMU, `pwm_out_sim` in place of real outputs), flies
-takeoff, a 3-waypoint square, and RTL as an auto mission with per-phase
+takeoff, a 3-waypoint square, and Return as an auto mission with per-phase
 timeouts (arming, airborne, waypoint progression, touchdown, auto-disarm),
 downloads the flight ULog, and restores the original configuration even on
 failure.

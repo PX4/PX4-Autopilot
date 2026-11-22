@@ -78,12 +78,20 @@ public:
 		if (uORB::SubscriptionCallbackWorkItem::update(&sensor_gnss_relative)) {
 			ardupilot::gnss::RelPosHeading rel_pos_heading{};
 
-			rel_pos_heading.timestamp.usec = bus_timestamp_usec(getNode(), sensor_gnss_relative.timestamp_sample);
+			// 0 is UNKNOWN: the receiver latency is then applied by the autopilot
+			if (sensor_gnss_relative.timestamp_sample != 0) {
+				rel_pos_heading.timestamp.usec = bus_timestamp_usec(getNode(), sensor_gnss_relative.timestamp_sample);
+			}
 
-			rel_pos_heading.reported_heading_acc_available = sensor_gnss_relative.heading_valid; // bool
+			const bool heading_valid = sensor_gnss_relative.heading_valid && PX4_ISFINITE(sensor_gnss_relative.heading);
+
+			rel_pos_heading.reported_heading_acc_available = heading_valid; // bool
 			rel_pos_heading.reported_heading_deg = math::degrees(sensor_gnss_relative.heading); // float32
 			rel_pos_heading.reported_heading_acc_deg = math::degrees(sensor_gnss_relative.heading_accuracy); // float32
-			rel_pos_heading.relative_distance_m = sensor_gnss_relative.position_length; // float16
+
+			// ArduPilot ignores reported_heading_acc_available and takes any heading whose baseline matches its
+			// configured one, so an invalid heading also reports a zero baseline, which fails its minimum separation
+			rel_pos_heading.relative_distance_m = heading_valid ? sensor_gnss_relative.position_length : 0.f; // float16
 			rel_pos_heading.relative_down_pos_m = sensor_gnss_relative.position[2]; // float16
 
 			uavcan::Publisher<ardupilot::gnss::RelPosHeading>::broadcast(rel_pos_heading);

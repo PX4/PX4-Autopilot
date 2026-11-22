@@ -34,6 +34,23 @@ You can use the online version of the tool for small log files (< 32Mb), or run 
 
 ![Data Comets](../../assets/flight_log_analysis/data_comets/data_comets_overview.gif)
 
+### DroneBundle Flight Log Viewer
+
+[DroneBundle Flight Log Viewer](https://dronebundle.com/tools/flight-log-viewer/px4) is a free web tool for reviewing a flight and sharing it, rather than for tuning.
+It opens ULog files (`.ulg`) and MAVLink telemetry logs (`.tlog`) in the browser, with no account or installation required.
+Logs are processed locally, except that a file the viewer can't open is sent to DroneBundle for analysis and deleted after one day.
+
+Key features:
+
+- Flight path on a map, with a summary of duration, distance, maximum altitude and speed, and battery used.
+- Replay with live altitude, speed, heading, battery and satellite readouts, and a timeline of flight modes.
+- 3D view of the flight over terrain.
+- Altitude, speed, battery and attitude charts on a shared timeline.
+- Export a PDF flight report, a spreadsheet of every reading, or the processed log.
+- Telemetry logs that hold several flights are split into separate flights.
+
+![DroneBundle Flight Log Viewer](../../assets/flight_log_analysis/dronebundle/dronebundle_flight_log_viewer.jpg)
+
 ### FlightPlot
 
 [FlightPlot](https://github.com/PX4/FlightPlot) is a desktop based tool for log analysis. It can be downloaded from [FlightPlot Downloads](https://github.com/PX4/FlightPlot/releases) (Linux, MacOS, Windows).
@@ -117,6 +134,21 @@ Source code and downloads are available on [Github](https://github.com/PlotJuggl
 ![PlotJuggler](../../assets/flight_log_analysis/plot_juggler/plotjuggler_example_view.png)
 
 See [Log Analysis using Plot Juggler](../log/plotjuggler_log_analysis.md) for an introduction.
+
+### PX4 ULog Viewer (VS Code Extension)
+
+[PX4 ULog Viewer](https://github.com/anilkir/vscode-ulog-viewer) opens ULog files (`.ulg`, `.ulog`) directly in _VS Code_, _Cursor_, and other _VS Code_-compatible editors.
+Logs are parsed locally and never leave your machine.
+
+Key features:
+
+- Plot any numeric field of any logged uORB topic in time-synchronised panels.
+- Replay the flight on a 2D map with a HUD of key flight data.
+- Browse parameters (including in-flight changes), log metadata, messages, and raw ULog file structure.
+
+Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=anilkir.vscode-ulog-viewer) or the [Open VSX Registry](https://open-vsx.org/extension/anilkir/vscode-ulog-viewer).
+
+![PX4 ULog Viewer](../../assets/flight_log_analysis/vscode_ulog_viewer/vscode_ulog_viewer.webp)
 
 ### PX4Tools
 
@@ -206,6 +238,6 @@ Key features:
 - Actions and Triggers to automate custom post-flight analysis and generate reports.
 - Interactive visualization for time-series data, maps, events, and console logs.
 
-See [Working with PX4 Logs](https://docs.roboto.ai/user-guides/working-with-px4-logs.html) for an introduction.
+See [Working with PX4 Logs](https://www.roboto.ai/docs/user-guides/working-with-px4-logs) for an introduction.
 
 ![Roboto](../../assets/flight_log_analysis/roboto/roboto-px4-flight-log-analysis.jpg)

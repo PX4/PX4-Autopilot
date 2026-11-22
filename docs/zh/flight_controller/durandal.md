@@ -196,12 +196,6 @@ No Debug port is exposed for the I/O board.
 - [Telemetry Radio Modules](../telemetry/index.md)
 - [Rangefinders/Distance sensors](../sensor/rangefinders.md)
 
-## 支持的平台/机身
-
-Any multicopter / airplane / rover or boat that can be controlled with normal RC servos or Futaba S-Bus servos.
-
-The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
-
 ## 针脚定义
 
 _Durandal_ pinouts are listed below.

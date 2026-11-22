@@ -79,7 +79,7 @@ Used in field(s): [warning](#fld_warning)
 | <a id="#WARNING_EMERGENCY"></a> WARNING_EMERGENCY | `uint8` | 3 | Immediate landing required                                                                                                                                                           |
 | <a id="#WARNING_FAILED"></a> WARNING_FAILED       | `uint8` | 4 | Battery has failed completely                                                                                                                                                        |
 | <a id="#WARNING_UNHEALTHY"></a> WARNING_UNHEALTHY | `uint8` | 6 | Battery is diagnosed to be defective or an error occurred, usage is discouraged / prohibited. Possible causes (faults) are listed in faults field |
-| <a id="#WARNING_CHARGING"></a> WARNING_CHARGING   | `uint8` | 7 | Battery is charging                                                                                                                                                                  |
+| <a id="#WARNING_CHARGING"></a> WARNING_CHARGING   | `uint8` | 7 | Battery is charging and no other warning applies. A state, not a severity: do not compare it by value                                                |
 
 ### FAULT {#FAULT}
 
@@ -165,7 +165,7 @@ uint8 WARNING_CRITICAL = 2 # Critical voltage, return / abort immediately
 uint8 WARNING_EMERGENCY = 3 # Immediate landing required
 uint8 WARNING_FAILED = 4 # Battery has failed completely
 uint8 WARNING_UNHEALTHY = 6 # Battery is diagnosed to be defective or an error occurred, usage is discouraged / prohibited. Possible causes (faults) are listed in faults field
-uint8 WARNING_CHARGING = 7 # Battery is charging
+uint8 WARNING_CHARGING = 7 # Battery is charging and no other warning applies. A state, not a severity: do not compare it by value
 
 uint16 faults # [@enum FAULT] Smart battery supply status/fault flags (bitmask) for health indication
 uint8 FAULT_DEEP_DISCHARGE = 0 # Battery has deep discharged

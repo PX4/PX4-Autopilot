@@ -96,6 +96,88 @@ TEST(Ringbuffer, AllocateAndDeallocate)
 	// The second time we forget to clean up, but we expect no leak.
 }
 
+class RingbufferReallocation : public ::testing::TestWithParam<size_t>
+{
+protected:
+	void check_reallocated(Ringbuffer &buf)
+	{
+		const size_t capacity = GetParam();
+		buf.deallocate();
+		ASSERT_TRUE(buf.allocate(capacity));
+		// Keep these non-fatal so stale indices still reach the sanitizer-backed
+		// write/read below, which catches out-of-bounds reuse after shrinking.
+		EXPECT_EQ(buf.space_used(), 0u);
+		EXPECT_EQ(buf.space_available(), capacity - 1);
+
+		uint8_t byte = 0;
+		EXPECT_EQ(buf.pop_front(&byte, sizeof(byte)), 0u);
+
+		TempData data{capacity - 1};
+		data.paint(41);
+		ASSERT_TRUE(buf.push_back(data.buf(), data.size()));
+		EXPECT_EQ(buf.space_used(), data.size());
+		EXPECT_EQ(buf.space_available(), 0u);
+		EXPECT_FALSE(buf.push_back(&byte, sizeof(byte)));
+
+		TempData out{data.size()};
+		ASSERT_EQ(buf.pop_front(out.buf(), out.size()), out.size());
+		EXPECT_EQ(data, out);
+		EXPECT_EQ(buf.space_used(), 0u);
+		EXPECT_EQ(buf.space_available(), capacity - 1);
+		EXPECT_EQ(buf.pop_front(&byte, sizeof(byte)), 0u);
+	}
+};
+
+TEST_P(RingbufferReallocation, PartiallyUsed)
+{
+	Ringbuffer buf;
+	ASSERT_TRUE(buf.allocate(16));
+	TempData data{4};
+	data.paint();
+	ASSERT_TRUE(buf.push_back(data.buf(), data.size()));
+	TempData out{2};
+	ASSERT_EQ(buf.pop_front(out.buf(), out.size()), out.size());
+	ASSERT_EQ(buf.space_used(), 2u);
+
+	check_reallocated(buf);
+}
+
+TEST_P(RingbufferReallocation, Drained)
+{
+	Ringbuffer buf;
+	ASSERT_TRUE(buf.allocate(16));
+	TempData data{12};
+	data.paint();
+	ASSERT_TRUE(buf.push_back(data.buf(), data.size()));
+	TempData out{data.size()};
+	ASSERT_EQ(buf.pop_front(out.buf(), out.size()), out.size());
+	ASSERT_EQ(data, out);
+	ASSERT_EQ(buf.space_used(), 0u);
+
+	check_reallocated(buf);
+}
+
+TEST_P(RingbufferReallocation, Wrapped)
+{
+	Ringbuffer buf;
+	ASSERT_TRUE(buf.allocate(16));
+	TempData first{12};
+	first.paint();
+	ASSERT_TRUE(buf.push_back(first.buf(), first.size()));
+	TempData out{10};
+	ASSERT_EQ(buf.pop_front(out.buf(), out.size()), out.size());
+
+	// Wrap the tail while the head is still near the end of the old allocation.
+	TempData second{8};
+	second.paint(12);
+	ASSERT_TRUE(buf.push_back(second.buf(), second.size()));
+	ASSERT_EQ(buf.space_used(), 10u);
+
+	check_reallocated(buf);
+}
+
+INSTANTIATE_TEST_SUITE_P(NewCapacity, RingbufferReallocation, ::testing::Values(size_t{8}, size_t{32}));
+
 TEST(Ringbuffer, PushATooBigMessage)
 {
 	Ringbuffer buf;

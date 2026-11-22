@@ -39,14 +39,21 @@ ModuleBase::Descriptor RoverAckermann::desc{task_spawn, custom_command, print_us
 
 RoverAckermann::RoverAckermann() :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
 	updateParams();
 }
 
 bool RoverAckermann::init()
 {
-	if (!_vehicle_angular_velocity_sub.registerCallback()) {
+	// The module registers its gyro callback first and keeps it, so the setpoints it generates reach the controllers in the same cycle.
+	// The controllers only check their trigger here, they register it while enabled, see enableControllers().
+	if (!_vehicle_angular_velocity_sub.registerCallback()
+	    || !_ackermann_pos_control.init()
+	    || !_ackermann_speed_control.init()
+	    || !_ackermann_att_control.init()
+	    || !_ackermann_rate_control.init()
+	    || !_ackermann_act_control.init()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
@@ -67,7 +74,7 @@ void RoverAckermann::Run()
 		return;
 	}
 
-	// Drain the trigger. The gyro paces the loop; its value is not used here.
+	// Drain the trigger. The gyro paces the setpoint generation; its value is not used here.
 	vehicle_angular_velocity_s angular_velocity;
 	_vehicle_angular_velocity_sub.update(&angular_velocity);
 
@@ -100,12 +107,17 @@ void RoverAckermann::Run()
 	if (_vehicle_control_mode.flag_armed && _sanity_checks_passed) {
 		_was_armed = true;
 		generateSetpoints();
-		updateControllers();
+		enableControllers(true);
 
 	} else if (_was_armed) { // Reset all controllers and stop the vehicle
+		enableControllers(false);
 		reset();
 		_ackermann_act_control.stopVehicle();
 		_was_armed = false;
+
+	} else {
+		enableControllers(false);
+		_ackermann_act_control.stopVehicle();
 	}
 
 	// reschedule backup
@@ -117,11 +129,34 @@ void RoverAckermann::generateSetpoints()
 	vehicle_status_s vehicle_status{};
 	_vehicle_status_sub.copy(&vehicle_status);
 
+	// Each entry into Guided Course takes the speed the rover is driving at
+	if (vehicle_status.nav_state != _nav_state) {
+		_nav_state = vehicle_status.nav_state;
+		_auto_mode.reset();
+	}
+
+	// Navigator stores and acks the speed, Guided Course applies it right away
+	vehicle_command_s vehicle_command{};
+
+	while (_vehicle_command_sub.update(&vehicle_command)) {
+		// Zero stops driving. Negative is -1 "no change" or -2 "default" in MAVLink,
+		// and the speed the mode was entered with is the default there, so both keep the speed.
+		if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED
+		    && _nav_state == vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE && vehicle_command.param2 > -FLT_EPSILON) {
+			_auto_mode.setCourseSpeed(vehicle_command.param2);
+		}
+	}
+
 	switch (vehicle_status.nav_state) {
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
 		_auto_mode.autoControl();
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_GUIDED_COURSE:
+		_auto_mode.guidedCourse();
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
@@ -130,6 +165,10 @@ void RoverAckermann::generateSetpoints()
 
 	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
 		_manual_mode.manual();
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_MANUAL_PARKING:
+		_manual_mode.manualParking();
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_ACRO:
@@ -150,27 +189,36 @@ void RoverAckermann::generateSetpoints()
 
 }
 
-void RoverAckermann::updateControllers()
+void RoverAckermann::enableControllers(const bool enabled)
 {
-	if (_vehicle_control_mode.flag_control_position_enabled) {
-		_ackermann_pos_control.updatePosControl();
+	const bool pos_was_enabled = _ackermann_pos_control.enabled();
+	const bool speed_was_enabled = _ackermann_speed_control.enabled();
+	const bool rate_was_enabled = _ackermann_rate_control.enabled();
+	const bool act_was_enabled = _ackermann_act_control.enabled();
+
+	// Enable top-down, so newly enabled controllers run in cascade order in this cycle
+	bool registered = _ackermann_pos_control.setEnabled(enabled && _vehicle_control_mode.flag_control_position_enabled);
+	registered = _ackermann_speed_control.setEnabled(enabled && _vehicle_control_mode.flag_control_velocity_enabled) && registered;
+	registered = _ackermann_att_control.setEnabled(enabled && _vehicle_control_mode.flag_control_attitude_enabled) && registered;
+	registered = _ackermann_rate_control.setEnabled(enabled && _vehicle_control_mode.flag_control_rates_enabled) && registered;
+	registered = _ackermann_act_control.setEnabled(enabled && _vehicle_control_mode.flag_control_allocation_enabled) && registered;
+
+	// Callbacks sharing a trigger topic run in registration order: keep the position controller ahead of the speed
+	// controller (vehicle_local_position) and the rate controller ahead of the actuator controller (vehicle_angular_velocity)
+	if (!pos_was_enabled && _ackermann_pos_control.enabled() && speed_was_enabled && _ackermann_speed_control.enabled()) {
+		registered = _ackermann_speed_control.reregisterTrigger() && registered;
 	}
 
-	if (_vehicle_control_mode.flag_control_velocity_enabled) {
-		_ackermann_speed_control.updateSpeedControl();
+	if (!rate_was_enabled && _ackermann_rate_control.enabled() && act_was_enabled && _ackermann_act_control.enabled()) {
+		registered = _ackermann_act_control.reregisterTrigger() && registered;
 	}
 
-	if (_vehicle_control_mode.flag_control_attitude_enabled) {
-		_ackermann_att_control.updateAttControl();
+	// Report a failure once, the controllers retry on every cycle
+	if (!registered && !_controller_registration_failed) {
+		PX4_ERR("controller callback registration failed, retrying");
 	}
 
-	if (_vehicle_control_mode.flag_control_rates_enabled) {
-		_ackermann_rate_control.updateRateControl();
-	}
-
-	if (_vehicle_control_mode.flag_control_allocation_enabled) {
-		_ackermann_act_control.updateActControl();
-	}
+	_controller_registration_failed = !registered;
 }
 
 void RoverAckermann::runSanityChecks()
@@ -205,6 +253,7 @@ void RoverAckermann::reset()
 	_ackermann_att_control.reset();
 	_ackermann_rate_control.reset();
 	_manual_mode.reset();
+	_auto_mode.reset();
 }
 
 int RoverAckermann::task_spawn(int argc, char *argv[])

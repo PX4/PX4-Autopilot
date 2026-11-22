@@ -110,7 +110,7 @@ Image and workflow SHA overrides are for testing candidates; adopting a candidat
 ## Testing A PX4 Checkout With ROS
 
 The standalone `ghcr.io/px4/px4-dev-ros2` image provides Ubuntu 22.04/ROS Humble (`main-humble`) and Ubuntu 24.04/ROS Jazzy (`main-jazzy`) toolchains for native `amd64` and `arm64`.
-Both include Micro XRCE-DDS Agent v2.4.3, PX4's source-build dependencies and the dependencies required by the pinned ROS repositories.
+Both include Micro XRCE-DDS Agent v2.4.3, the `rmw_zenoh_cpp` middleware and router, PX4's source-build dependencies and the dependencies required by the pinned ROS repositories.
 They are also available on Docker Hub as `px4io/px4-dev-ros2`, with matching tags in both registries.
 They contain no repository checkouts, packaged PX4 firmware or compiled ROS workspace, and their entrypoint sources only the selected ROS underlay.
 The packaged SIH/Gazebo ROS images remain Ubuntu 24.04/Jazzy only.
@@ -140,7 +140,7 @@ GIT_COMMON_DIR=$(git rev-parse --path-format=absolute --git-common-dir)
 docker run --rm -it \
   -v "$SOURCE:$SOURCE" -v "$GIT_COMMON_DIR:$GIT_COMMON_DIR" -w "$SOURCE" \
   -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory \
-  -e "GIT_CONFIG_VALUE_0=$SOURCE" px4-dev-ros2:local bash
+  -e "GIT_CONFIG_VALUE_0=*" px4-dev-ros2:local bash
 ```
 
 The same absolute mounts support both ordinary checkouts and git worktrees.
@@ -171,6 +171,9 @@ python3 test/ros_test_runner.py --config-file test/ros_tests/config-sih.json \
   --px4-ros2-interface-lib-build-dir /opt/px4_ros2_ci/build/px4_ros2_cpp
 ```
 
+The runner starts and restarts the Micro XRCE-DDS Agent between tests.
+Add `--middleware zenoh` to run the same tests over Zenoh instead: the runner then manages the `rmw_zenohd` router and sets `PX4_ROS2_MIDDLEWARE=zenoh` and `RMW_IMPLEMENTATION=rmw_zenoh_cpp` for PX4 and the tests.
+
 The workspace helper requires a new or empty directory, imports the standard `ros2.repos` manifest with vcstool, and replaces message/service definitions with those from the current PX4 checkout, including removal of deleted definitions.
 Each run imports the pinned repositories directly with vcstool, without reusing an existing source or compiled workspace.
 It preserves all library packages, examples and Python tests.
@@ -178,6 +181,8 @@ An optional second argument selects another interface-library commit using its f
 The helper prints the resolved source manifest, repository commits and PX4 commit; it does not build the workspace.
 
 ROS integration CI builds PX4 afresh for each pull request and only sources the Jazzy underlay before building this separate workspace.
+It runs the tests once over uXRCE-DDS and once over Zenoh.
+The Zenoh run (`test/ros_tests/config-sih-zenoh.json`) covers only the mode tests: Zenoh does not yet synchronize timestamps with ROS, so EKF2 rejects the position interface measurements.
 Its manual `px4_ros2_ref` input selects a full interface-library commit SHA; leaving it empty uses `ros2.repos`.
 CI prepares and builds the ROS workspace on every run using the current checkout's message/service definitions.
 Only the compiler cache is restored, not an old source, build or install workspace.
@@ -195,6 +200,24 @@ Both ROS development images and the CI toolchain reuse `Tools/setup/ubuntu.sh --
 Already installed Ubuntu/ROS Python versions are constrained during installation instead of gratuitously upgrading the ROS stack.
 The SIH image does not acquire Gazebo or the NuttX toolchain.
 Installing the complete source-build toolset increases cold image-build time and size; existing native architecture and incremental cache boundaries remain in use.
+
+## Testing A PX4 Checkout With ROS and Gazebo
+
+The `ghcr.io/px4/px4-dev-ros2-gazebo` image extends `ghcr.io/px4/px4-dev-ros2` by calling `Tools/setup/ubuntu.sh --no-nuttx` and therefore installing Gz Harmonic.
+This allows to test PX4 changes in Gazebo.
+To build the image locally and the start the container to build PX4, run
+
+```sh
+bash Tools/packaging/containers/prepare_context.sh
+ROS_DISTRO=jazzy docker buildx bake -f Tools/packaging/containers/docker-bake.hcl ros2-gazebo-dev \
+  --set ros2-gazebo-dev.tags=px4-dev-ros2-gazebo:local --load
+SOURCE=$(pwd -P)
+GIT_COMMON_DIR=$(git rev-parse --path-format=absolute --git-common-dir)
+docker run --rm -it \
+  -v "$SOURCE:$SOURCE" -v "$GIT_COMMON_DIR:$GIT_COMMON_DIR" -w "$SOURCE" \
+  -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory \
+  -e "GIT_CONFIG_VALUE_0=*" px4-dev-ros2-gazebo:local bash
+```
 
 ## Container SBOMs
 

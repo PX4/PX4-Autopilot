@@ -1,6 +1,6 @@
 # 利用视觉或运动捕捉系统进行位置估计
 
-可视惯性测距（VIO）和运动捕捉（MOCAP）系统允许载具在全局位置源不可用或不可靠时（例如在室内，或在桥下飞行时）导航。 等等……
+可视惯性测距（VIO）和运动捕捉（MOCAP）系统允许载具在全局位置源不可用或不可靠时（例如在室内，或在桥下飞行时）导航。等等……
 
 Both VIO and MoCap determine a vehicle's _pose_ (position and attitude) from "visual" information.
 它们之间的主要区别是框架透视图：
@@ -319,9 +319,7 @@ If those steps are consistent, you can try your first flight.
 Put the robot on the ground and start streaming MoCap feedback.
 Lower your left (throttle) stick and arm the motors.
 
-此时，设置为位置控制模式。
-如果切换成功，飞控会闪绿灯。
-绿灯代表：你的外部位置信息已经注入到飞控中，并且位置控制模式已经切换成功。
+此时，设置为位置控制模式。如果切换成功，飞控会闪绿灯。绿灯代表：你的外部位置信息已经注入到飞控中，并且位置控制模式已经切换成功。
 
 Put your left stick at the middle, this is the dead zone.
 With this stick value, the robot maintains its altitude;

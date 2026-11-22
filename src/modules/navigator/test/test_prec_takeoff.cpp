@@ -95,6 +95,9 @@ protected:
 		prec_takeoff_status_s status;
 
 		while (_status_sub.update(&status)) {}
+
+		// Replace a target retained from a previous test with an invalid one
+		_target_pub.publish({});
 	}
 
 	void TearDown() override

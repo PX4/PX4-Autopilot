@@ -215,7 +215,25 @@ int LSM6DSV::probe()
 		return PX4_ERROR;
 	}
 
-	// 16X vs 32X: read CTRL8 bit2 (hardware-reserved, differs per variant)
+	// 16X vs 32X: CTRL8 bit2 is must-be-0 on the 16X and must-be-1 on the 32X, so it identifies the part
+	// only at its reset value. A warm restart keeps whatever the previous firmware wrote there (drivers
+	// without 32X support write the 16X encoding), so reset first, powered down per ST's reset procedure.
+	RegisterSetAndClearBits(Register::CTRL1, 0, CTRL1_BIT::ODR_XL_MASK);
+	RegisterSetAndClearBits(Register::CTRL2, 0, CTRL2_BIT::ODR_G_MASK);
+	RegisterWrite(Register::CTRL3, CTRL3_BIT::SW_RESET);
+
+	bool reset_complete = false;
+
+	for (int attempt = 0; attempt < 10 && !reset_complete; attempt++) {
+		px4_usleep(1000);
+		reset_complete = (RegisterRead(Register::CTRL3) & CTRL3_BIT::SW_RESET) == 0;
+	}
+
+	if (!reset_complete) {
+		DEVICE_DEBUG("software reset timed out");
+		return PX4_ERROR;
+	}
+
 	const uint8_t ctrl8 = RegisterRead(Register::CTRL8);
 	_device_variant = (ctrl8 & Bit2) ? DeviceVariant::LSM6DSV32X : DeviceVariant::LSM6DSV16X;
 

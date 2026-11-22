@@ -61,7 +61,7 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 						    events::Log::Error, "Geofence violation: exceeding maximum distance to Home");
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Geofence: exceeding maximum distance to Home");
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Geofence: exceeding maximum distance to Home\t");
 			}
 		}
 
@@ -77,7 +77,7 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 						    events::Log::Error, "Geofence violation: exceeding maximum altitude above Home");
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Geofence: exceeding maximum altitude above Home");
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Geofence: exceeding maximum altitude above Home\t");
 			}
 		}
 
@@ -93,7 +93,7 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 						    events::Log::Error, "Geofence violation: approaching or outside geofence");
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Geofence: approaching or outside geofence");
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Geofence: approaching or outside geofence\t");
 			}
 		}
 	}
@@ -107,10 +107,10 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 		 * </profile>
 		 */
 		reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_gf_no_home"),
-					    events::Log::Error, "Geofence RTL requires valid home");
+					    events::Log::Error, "Geofence Return action requires valid home");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Geofence RTL requires valid home");
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Geofence Return action requires valid home");
 		}
 	}
 }

@@ -55,6 +55,8 @@
  */
 #pragma once
 
+#include <mathlib/math/WhiteGaussianNoise.hpp>
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
@@ -79,6 +81,7 @@
 #include <uORB/topics/failure_injection.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/sensor_optical_flow.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -87,6 +90,14 @@
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 #include <sys/time.h>
+#endif
+
+#if defined(SIH_TERRAIN_DEM)
+#include "terrain/TerrainDem.hpp"
+using Terrain = TerrainDem;
+#else
+#include "terrain/TerrainFlat.hpp"
+using Terrain = TerrainFlat;
 #endif
 
 using namespace time_literals;
@@ -120,11 +131,6 @@ public:
 	/** @see ModuleBase::run() */
 	void run() override;
 
-	static float generate_wgn();    // generate white Gaussian noise sample
-
-	// generate white Gaussian noise sample as a 3D vector with specified std
-	static matrix::Vector3f noiseGauss3f(float stdx, float stdy, float stdz);
-
 private:
 	void parameters_updated();
 	void updateFailureConfig();
@@ -153,9 +159,10 @@ private:
 	PX4Accelerometer *_px4_accel[IMU_COUNT] {&_px4_accel_first, nullptr};
 	PX4Gyroscope     *_px4_gyro[IMU_COUNT] {&_px4_gyro_first, nullptr};
 	PX4Rangefinder   _px4_rangefinder{10092548}; // 10092548: DRV_DIST_DEVTYPE_SIM, BUS: 0, ADDR: 0, TYPE: SIMULATION
-	uORB::Publication<airspeed_s>         _airspeed_pub{ORB_ID(airspeed)};
-	uORB::Publication<ranging_beacon_s>   _ranging_beacon_pub{ORB_ID(ranging_beacon)};
-	uORB::Publication<esc_status_s>       _esc_status_pub{ORB_ID(esc_status)};
+	uORB::Publication<airspeed_s>            _airspeed_pub{ORB_ID(airspeed)};
+	uORB::Publication<ranging_beacon_s>      _ranging_beacon_pub{ORB_ID(ranging_beacon)};
+	uORB::Publication<esc_status_s>          _esc_status_pub{ORB_ID(esc_status)};
+	uORB::Publication<sensor_optical_flow_s> _optical_flow_pub{ORB_ID(sensor_optical_flow)};
 
 	// groundtruth
 	uORB::Publication<vehicle_angular_velocity_s> _angular_velocity_ground_truth_pub{ORB_ID(vehicle_angular_velocity_groundtruth)};
@@ -169,6 +176,8 @@ private:
 
 	bool _airspeed_blocked{false};
 	bool _distance_sensor_blocked{false};
+	bool _optical_flow_blocked{false};
+	uint16_t _stuck_motor_mask{0};
 
 	// hard constants
 	static constexpr uint16_t NUM_ACTUATORS_MAX = 9;
@@ -196,6 +205,16 @@ private:
 	};
 	RangingBeaconConfig _ranging_beacons[NUM_RANGING_BEACONS] {};
 
+	// Distance sensor simulation constants
+	// fraction of the measurement range above which the returned signal starts to get weaker
+	static constexpr float DISTSNSR_QUALITY_DERATE = 0.8f;
+	// out of range reading, this is based on lightware lw20 behaviour
+	static constexpr float DISTSNSR_OUT_OF_RANGE = UINT16_MAX / 100.f;
+
+	// Optical flow simulation constants, the values are taken from the PAW3902
+	static constexpr float FLOW_MAX_RATE = 7.4f;   // maximum measurable angular flow rate [rad/s]
+	static constexpr float FLOW_MIN_DISTANCE = 0.1f; // lower bound on the range scaling the flow [m]
+
 	static constexpr float T1_C = 15.0f;                        // ground temperature in Celsius
 	static constexpr float T1_K = T1_C - atmosphere::kAbsoluteNullCelsius;   // ground temperature in Kelvin
 	static constexpr float TEMP_GRADIENT = -6.5f / 1000.0f;    // temperature gradient in degrees per metre
@@ -210,6 +229,8 @@ private:
 	void read_motors(const float dt);
 	void publish_esc_status();
 	uint8_t num_motors() const;
+	// motor number (Motor1 = 0) driven by an actuator channel, or -1 for control surfaces and steering channels
+	int motor_index_from_actuator(int actuator_index) const;
 
 	// generate the motors thrust and torque in the body frame
 	void generate_force_and_torques(const float dt);
@@ -221,14 +242,51 @@ private:
 	void reconstruct_sensors_signals(const hrt_abstime &time_now_us);
 	void send_airspeed(const hrt_abstime &time_now_us);
 	void send_dist_snsr(const hrt_abstime &time_now_us);
+	void accumulate_optical_flow(const float dt);
+	void send_optical_flow(const hrt_abstime &time_now_us);
 	void send_ranging_beacon(const hrt_abstime &time_now_us);
+
 	void publish_ground_truth(const hrt_abstime &time_now_us);
 	void generate_fw_aerodynamics(const float roll_cmd, const float pitch_cmd, const float yaw_cmd, const float thrust_for_prowash);
 	void generate_ts_aerodynamics();
 	void generate_rover_ackermann_dynamics(const float throttle_cmd, const float steering_cmd, const float dt);
+	void generate_rover_differential_dynamics(const float right_cmd, const float left_cmd);
 	void sensor_step();
 
 	void ecefToNed();
+
+#if defined(__PX4_POSIX)
+	// orient command: poses the vehicle on the ground for accel and mag calibration.
+	// SITL only: Commander denies sensor calibration when SIH runs on flight controller hardware.
+	void orient_update(const hrt_abstime &now);
+	void orient_step(const hrt_abstime &now, const float dt);
+
+	static constexpr int ORIENT_SIDE_COUNT = 6;
+	static constexpr int ORIENT_NONE = -1;	// no request
+	static constexpr int ORIENT_OFF = ORIENT_SIDE_COUNT;
+	static constexpr int ORIENT_ALL = ORIENT_SIDE_COUNT + 1;
+	static constexpr int ORIENT_ROTATE = 8;	// added to a side
+
+	enum class OrientMode {Off, Hold, Rotate, AllSides, Leveling};
+
+	px4::atomic_int _orient_request{ORIENT_NONE};	// set by the CLI, taken by the simulation loop
+	OrientMode _orient_mode{OrientMode::Off};
+	int _orient_side{0};
+	hrt_abstime _orient_start{0};
+	float _orient_yaw{0.f};	// heading kept while posing
+#endif // __PX4_POSIX
+
+	// distance from the vehicle to the terrain measured along the body down axis, NAN if the
+	// body down axis does not point at the ground or nothing is hit within max_distance
+	float ground_distance(float max_distance) const;
+
+#if defined(__PX4_POSIX)
+	// terrain from the start arguments: the -t DEM, flat without it
+	// false (and print the reason) on error or if the vehicle type does not support terrain
+	static bool load_terrain(int argc, char *argv[]);
+#endif
+
+	static inline Terrain _terrain{}; // loaded by task_spawn(), the SIH task stack is too small for the terrain libraries
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	void lockstep_loop();
@@ -251,6 +309,13 @@ private:
 	hrt_abstime _dist_snsr_time{0};
 	hrt_abstime _ranging_beacon_time{0};
 	uint8_t _ranging_beacon_idx{0};
+
+	// optical flow accumulation over one integration interval
+	hrt_abstime _optical_flow_time{0};
+	matrix::Vector2f _optical_flow_integral{};
+	float _optical_flow_dt{0.f};
+	bool _optical_flow_tracking{true};
+	uint32_t _optical_flow_device_id{0};
 
 	bool _grounded{true}; // whether the vehicle is on the ground
 
@@ -287,7 +352,7 @@ private:
 	float       _Q[NUM_DYN_THRUSTER] {};         // thruster torque (Nm)
 	Thruster    _thruster[NUM_DYN_THRUSTER] {};	// thruster objects
 
-	enum class VehicleType {Quadcopter, FixedWing, TailsitterVTOL, StandardVTOL, Hexacopter, RoverAckermann, First = Quadcopter, Last = RoverAckermann}; // numbering dependent on parameter SIH_VEHICLE_TYPE
+	enum class VehicleType {Quadcopter, FixedWing, TailsitterVTOL, StandardVTOL, Hexacopter, RoverAckermann, RoverDifferential, First = Quadcopter, Last = RoverDifferential}; // numbering dependent on parameter SIH_VEHICLE_TYPE
 	VehicleType _vehicle = VehicleType::Quadcopter;
 
 	// aerodynamic segments for the fixedwing
@@ -325,55 +390,63 @@ private:
 	// parameters
 	MapProjection _lpos_ref{};
 	float _lpos_ref_alt;
+	float _ground_alt{0.f};  // ground altitude below the vehicle [m AMSL]
 	float _MASS, _T_MAX, _Q_MAX, _L_ROLL, _L_PITCH, _KDV, _KDW, _T_TAU, _F_T_MAX, _F_Q_MAX;
 	matrix::Matrix3f _I;    // vehicle inertia matrix
 	matrix::Matrix3f _Im1;  // inverse of the inertia matrix
 
-	float _distance_snsr_min, _distance_snsr_max, _distance_snsr_override;
+	float _distance_snsr_min, _distance_snsr_max, _distance_snsr_override, _distance_snsr_noise;
+	hrt_abstime _optical_flow_interval_us{20_ms};
 
 	esc_status_s _esc_status{};
 
 	// parameters defined in sih_params.c
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _imu_gyro_ratemax,
-		(ParamInt<px4::params::IMU_INTEG_RATE>) _imu_integration_rate,
-		(ParamFloat<px4::params::SIH_MASS>) _sih_mass,
-		(ParamFloat<px4::params::SIH_IXX>) _sih_ixx,
-		(ParamFloat<px4::params::SIH_IYY>) _sih_iyy,
-		(ParamFloat<px4::params::SIH_IZZ>) _sih_izz,
-		(ParamFloat<px4::params::SIH_IXY>) _sih_ixy,
-		(ParamFloat<px4::params::SIH_IXZ>) _sih_ixz,
-		(ParamFloat<px4::params::SIH_IYZ>) _sih_iyz,
-		(ParamFloat<px4::params::SIH_T_MAX>) _sih_t_max,
-		(ParamFloat<px4::params::SIH_Q_MAX>) _sih_q_max,
-		(ParamFloat<px4::params::SIH_L_ROLL>) _sih_l_roll,
-		(ParamFloat<px4::params::SIH_L_PITCH>) _sih_l_pitch,
-		(ParamFloat<px4::params::SIH_KDV>) _sih_kdv,
-		(ParamFloat<px4::params::SIH_KDW>) _sih_kdw,
-		(ParamFloat<px4::params::SIH_LOC_LAT0>) _sih_lat0,
-		(ParamFloat<px4::params::SIH_LOC_LON0>) _sih_lon0,
-		(ParamFloat<px4::params::SIH_LOC_H0>) _sih_h0,
-		(ParamFloat<px4::params::SIH_LOC_YAW0>) _sih_yaw0,
-		(ParamFloat<px4::params::SIH_DISTSNSR_MIN>) _sih_distance_snsr_min,
-		(ParamFloat<px4::params::SIH_DISTSNSR_MAX>) _sih_distance_snsr_max,
-		(ParamFloat<px4::params::SIH_DISTSNSR_OVR>) _sih_distance_snsr_override,
-		(ParamFloat<px4::params::SIH_T_TAU>) _sih_thrust_tau,
+		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_ratemax,
+		(ParamInt<px4::params::IMU_INTEG_RATE>) _param_imu_integ_rate,
+		(ParamFloat<px4::params::SIH_MASS>) _param_sih_mass,
+		(ParamFloat<px4::params::SIH_IXX>) _param_sih_ixx,
+		(ParamFloat<px4::params::SIH_IYY>) _param_sih_iyy,
+		(ParamFloat<px4::params::SIH_IZZ>) _param_sih_izz,
+		(ParamFloat<px4::params::SIH_IXY>) _param_sih_ixy,
+		(ParamFloat<px4::params::SIH_IXZ>) _param_sih_ixz,
+		(ParamFloat<px4::params::SIH_IYZ>) _param_sih_iyz,
+		(ParamFloat<px4::params::SIH_T_MAX>) _param_sih_t_max,
+		(ParamFloat<px4::params::SIH_Q_MAX>) _param_sih_q_max,
+		(ParamFloat<px4::params::SIH_L_ROLL>) _param_sih_l_roll,
+		(ParamFloat<px4::params::SIH_L_PITCH>) _param_sih_l_pitch,
+		(ParamFloat<px4::params::SIH_KDV>) _param_sih_kdv,
+		(ParamFloat<px4::params::SIH_KDW>) _param_sih_kdw,
+		(ParamFloat<px4::params::SIH_LOC_LAT0>) _param_sih_loc_lat0,
+		(ParamFloat<px4::params::SIH_LOC_LON0>) _param_sih_loc_lon0,
+		(ParamFloat<px4::params::SIH_LOC_H0>) _param_sih_loc_h0,
+		(ParamFloat<px4::params::SIH_LOC_YAW0>) _param_sih_loc_yaw0,
+		(ParamInt<px4::params::SIH_DISTSNSR_EN>) _param_sih_distsnsr_en,
+		(ParamFloat<px4::params::SIH_DISTSNSR_MIN>) _param_sih_distsnsr_min,
+		(ParamFloat<px4::params::SIH_DISTSNSR_MAX>) _param_sih_distsnsr_max,
+		(ParamFloat<px4::params::SIH_DISTSNSR_OVR>) _param_sih_distsnsr_ovr,
+		(ParamFloat<px4::params::SIH_DISTSNSR_NOI>) _param_sih_distsnsr_noi,
+		(ParamInt<px4::params::SIH_OF_EN>) _param_sih_of_en,
+		(ParamFloat<px4::params::SIH_OF_RATE>) _param_sih_of_rate,
+		(ParamFloat<px4::params::SIH_OF_NOISE>) _param_sih_of_noise,
+		(ParamFloat<px4::params::SIH_OF_H_MAX>) _param_sih_of_h_max,
+		(ParamFloat<px4::params::SIH_T_TAU>) _param_sih_t_tau,
 		// forward propeller
-		(ParamFloat<px4::params::SIH_F_T_MAX>) _sih_f_thrust_max,
-		(ParamFloat<px4::params::SIH_F_Q_MAX>) _sih_f_torque_max,
-		(ParamFloat<px4::params::SIH_F_CT0>) _sih_f_ct0,
-		(ParamFloat<px4::params::SIH_F_CT1>) _sih_f_ct1,
-		(ParamFloat<px4::params::SIH_F_CT2>) _sih_f_ct2,
-		(ParamFloat<px4::params::SIH_F_CP0>) _sih_f_cp0,
-		(ParamFloat<px4::params::SIH_F_CP1>) _sih_f_cp1,
-		(ParamFloat<px4::params::SIH_F_CP2>) _sih_f_cp2,
-		(ParamFloat<px4::params::SIH_F_DIA_INCH>) _sih_forward_diameter_inch,
-		(ParamFloat<px4::params::SIH_F_RPM_MAX>) _sih_forward_rpm_max,
-		(ParamInt<px4::params::BAT1_SOURCE>) _bat1_source,
-		(ParamInt<px4::params::SIH_VEHICLE_TYPE>) _sih_vtype,
-		(ParamFloat<px4::params::SIH_WIND_N>) _sih_wind_n,
-		(ParamFloat<px4::params::SIH_WIND_E>) _sih_wind_e,
-		(ParamFloat<px4::params::SIH_RNGBC_NOISE>) _sih_ranging_beacon_noise,
-		(ParamInt<px4::params::SIH_IMU_COUNT>) _sih_imu_count
+		(ParamFloat<px4::params::SIH_F_T_MAX>) _param_sih_f_t_max,
+		(ParamFloat<px4::params::SIH_F_Q_MAX>) _param_sih_f_q_max,
+		(ParamFloat<px4::params::SIH_F_CT0>) _param_sih_f_ct0,
+		(ParamFloat<px4::params::SIH_F_CT1>) _param_sih_f_ct1,
+		(ParamFloat<px4::params::SIH_F_CT2>) _param_sih_f_ct2,
+		(ParamFloat<px4::params::SIH_F_CP0>) _param_sih_f_cp0,
+		(ParamFloat<px4::params::SIH_F_CP1>) _param_sih_f_cp1,
+		(ParamFloat<px4::params::SIH_F_CP2>) _param_sih_f_cp2,
+		(ParamFloat<px4::params::SIH_F_DIA_INCH>) _param_sih_f_dia_inch,
+		(ParamFloat<px4::params::SIH_F_RPM_MAX>) _param_sih_f_rpm_max,
+		(ParamInt<px4::params::BAT1_SOURCE>) _param_bat1_source,
+		(ParamInt<px4::params::SIH_VEHICLE_TYPE>) _param_sih_vehicle_type,
+		(ParamFloat<px4::params::SIH_WIND_N>) _param_sih_wind_n,
+		(ParamFloat<px4::params::SIH_WIND_E>) _param_sih_wind_e,
+		(ParamFloat<px4::params::SIH_RNGBC_NOISE>) _param_sih_rngbc_noise,
+		(ParamInt<px4::params::SIH_IMU_COUNT>) _param_sih_imu_count
 	)
 };

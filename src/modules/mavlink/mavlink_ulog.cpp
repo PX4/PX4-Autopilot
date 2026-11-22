@@ -48,7 +48,7 @@ MavlinkULog *MavlinkULog::_instance = nullptr;
 px4_sem_t MavlinkULog::_lock;
 
 
-MavlinkULog::MavlinkULog(int datarate, float max_rate_factor, uint8_t target_system, uint8_t target_component)
+MavlinkULog::MavlinkULog(int datarate, float max_rate_factor, uint32_t target_system, uint8_t target_component)
 	: _target_system(target_system), _target_component(target_component),
 	  _max_rate_factor(max_rate_factor),
 	  _max_num_messages(math::max(1, (int)ceilf((_rate_calculation_delta_t / 1e6f) * _max_rate_factor * datarate /
@@ -119,10 +119,9 @@ int MavlinkULog::handle_update(mavlink_channel_t channel)
 					msg.sequence = ulog_data.msg_sequence;
 					msg.length = ulog_data.length;
 					msg.first_message_offset = ulog_data.first_message_offset;
-					msg.target_system = _target_system;
 					msg.target_component = _target_component;
 					memcpy(msg.data, ulog_data.data, sizeof(msg.data));
-					mavlink_msg_logging_data_acked_send_struct(channel, &msg);
+					mavlink_msg_send_struct_target(channel, LOGGING_DATA_ACKED, &msg, _target_system);
 				}
 			}
 		}
@@ -156,20 +155,18 @@ int MavlinkULog::handle_update(mavlink_channel_t channel)
 				msg.sequence = ulog_data.msg_sequence;
 				msg.length = ulog_data.length;
 				msg.first_message_offset = ulog_data.first_message_offset;
-				msg.target_system = _target_system;
 				msg.target_component = _target_component;
 				memcpy(msg.data, ulog_data.data, sizeof(msg.data));
-				mavlink_msg_logging_data_acked_send_struct(channel, &msg);
+				mavlink_msg_send_struct_target(channel, LOGGING_DATA_ACKED, &msg, _target_system);
 
 			} else {
 				mavlink_logging_data_t msg;
 				msg.sequence = ulog_data.msg_sequence;
 				msg.length = ulog_data.length;
 				msg.first_message_offset = ulog_data.first_message_offset;
-				msg.target_system = _target_system;
 				msg.target_component = _target_component;
 				memcpy(msg.data, ulog_data.data, sizeof(msg.data));
-				mavlink_msg_logging_data_send_struct(channel, &msg);
+				mavlink_msg_send_struct_target(channel, LOGGING_DATA, &msg, _target_system);
 			}
 		}
 
@@ -206,7 +203,7 @@ void MavlinkULog::initialize()
 	_init = true;
 }
 
-MavlinkULog *MavlinkULog::try_start(int datarate, float max_rate_factor, uint8_t target_system,
+MavlinkULog *MavlinkULog::try_start(int datarate, float max_rate_factor, uint32_t target_system,
 				    uint8_t target_component)
 {
 	MavlinkULog *ret = nullptr;

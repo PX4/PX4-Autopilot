@@ -73,7 +73,7 @@ else
 		if px4io start
 		then
 			echo "PX4IO restart OK"
-			tune_control play-t 17 # tune 17 = PROG_PX4IO_OK
+			tune_control play -t 17 # tune 17 = PROG_PX4IO_OK
 		else
 			echo "PX4IO restart failed"
 			tune_control play -t 18 # tune 18 = PROG_PX4IO_ERR

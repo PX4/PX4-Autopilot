@@ -19,6 +19,7 @@ COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 # Install PX4 Requirements
 COPY requirements.txt /tmp/requirements.txt
+COPY test-requirements.txt /tmp/test-requirements.txt
 COPY ubuntu.sh /tmp/ubuntu.sh
 
 RUN bash /tmp/ubuntu.sh --no-sim-tools

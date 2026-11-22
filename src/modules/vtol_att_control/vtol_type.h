@@ -92,6 +92,7 @@ enum class QuadchuteReason {
 	TransitionAltitudeLoss,
 	MaximumPitchExceeded,
 	MaximumRollExceeded,
+	PusherFailure,
 };
 
 class VtolAttitudeControl;
@@ -219,6 +220,7 @@ public:
 	float pusher_assist();
 
 	virtual void blendThrottleAfterFrontTransition(float scale) {};
+	virtual void blendPitchAfterFrontTransition(float scale) {};
 
 	mode get_mode() {return _common_vtol_mode;}
 
@@ -281,7 +283,6 @@ protected:
 	struct vehicle_attitude_setpoint_s *_mc_virtual_att_sp;	// virtual mc attitude setpoint
 	struct vehicle_attitude_setpoint_s *_fw_virtual_att_sp;	// virtual fw attitude setpoint
 	struct vehicle_control_mode_s		*_v_control_mode;	//vehicle control mode
-	struct vtol_vehicle_status_s 		*_vtol_vehicle_status;
 	struct vehicle_torque_setpoint_s 		*_vehicle_torque_setpoint_virtual_mc;
 	struct vehicle_torque_setpoint_s 		*_vehicle_torque_setpoint_virtual_fw;
 	struct vehicle_thrust_setpoint_s 		*_vehicle_thrust_setpoint_virtual_mc;
@@ -335,7 +336,7 @@ protected:
 					(ParamInt<px4::params::VT_FW_QC_P>) _param_vt_fw_qc_p,
 					(ParamInt<px4::params::VT_FW_QC_R>) _param_vt_fw_qc_r,
 					(ParamFloat<px4::params::VT_QC_T_ALT_LOSS>) _param_vt_qc_t_alt_loss,
-					(ParamInt<px4::params::VT_FW_QC_HMAX>) _param_quadchute_max_height,
+					(ParamInt<px4::params::VT_FW_QC_HMAX>) _param_vt_fw_qc_hmax,
 					(ParamFloat<px4::params::VT_F_TR_OL_TM>) _param_vt_f_tr_ol_tm,
 					(ParamFloat<px4::params::VT_TRANS_MIN_TM>) _param_vt_trans_min_tm,
 

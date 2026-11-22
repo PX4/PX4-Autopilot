@@ -75,7 +75,7 @@ public:
 	{
 		_sensor_simulator.startGps();
 
-		_ekf->set_min_required_gps_health_time(1e6);
+		_sensor_simulator._gps.setMinRequiredGnssHealthTime(1e6);
 		_ekf->set_in_air_status(false);
 		_ekf->set_vehicle_at_rest(true);
 
@@ -103,7 +103,7 @@ public:
 		const float max_flow_rate = 5.f;
 		const float min_ground_distance = 0.f;
 		const float max_ground_distance = 50.f;
-		_ekf->set_optical_flow_limits(max_flow_rate, min_ground_distance, max_ground_distance);
+		_ekf->flowSource(0).setLimits(max_flow_rate, min_ground_distance, max_ground_distance);
 		_sensor_simulator.startFlow();
 
 		_ekf->set_in_air_status(true);

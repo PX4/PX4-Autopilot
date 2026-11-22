@@ -15,8 +15,8 @@ parameters:
                 1: PPM
                 2: SBUS
                 3: DSM
-                4: ST24
-                5: SUMD
+                4: SUMD
+                5: ST24
                 6: CRSF
                 7: GHST
             min: -1

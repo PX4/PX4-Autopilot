@@ -79,6 +79,28 @@ public:
 	 * @return 0 if updated / sent, -1 if unchanged
 	 */
 	int update(const hrt_abstime &t);
+
+	/**
+	 * True if update(t) would only call update_data() and return: the stream was sent before and is not due
+	 * yet at its nominal interval. The rate multiplier is at most 1, so it can only lengthen the interval: a
+	 * stream that is not due at its nominal interval is not due at all (exact up to 2^24 us, the integer range
+	 * of a float).
+	 * @param margin the margin of update(), 30% of the main loop delay
+	 */
+	bool not_due(const hrt_abstime &t, int64_t margin) const
+	{
+		return (_last_sent != 0)
+		       && ((_last_sent > t)
+			   || ((_interval > 0) && (_interval >= margin) && (_interval <= (1 << 24))
+			       && ((int64_t)(t - _last_sent) <= _interval - margin)));
+	}
+
+	/**
+	 * True once update_data() was found to be the default one, which does nothing: then update() can be
+	 * skipped while the stream is not due.
+	 */
+	bool default_update_data() const { return _default_update_data; }
+
 	virtual const char *get_name() const = 0;
 	virtual uint16_t get_id() = 0;
 
@@ -132,13 +154,16 @@ protected:
 	 * Function to collect/update data for the streams at a high rate independent of
 	 * actual stream rate.
 	 *
-	 * This function is called at every iteration of the mavlink module.
+	 * This function is called at every iteration of the mavlink module. This default one does nothing, and
+	 * records that, so that the module can skip the streams using it while they are not due: an override
+	 * must not call it.
 	 */
-	virtual void update_data() { }
+	virtual void update_data() { _default_update_data = true; }
 
 private:
 	hrt_abstime _last_sent{0};
 	bool _first_message_sent{false};
+	bool _default_update_data{false};
 };
 
 

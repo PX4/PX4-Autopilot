@@ -63,7 +63,7 @@
 #include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_gnss.h>
 #include <uORB/topics/mag_worker_data.h>
 
 using namespace matrix;
@@ -173,15 +173,15 @@ static unsigned progress_percentage(mag_worker_data_t *worker_data)
 static float get_sphere_radius()
 {
 	// if GPS is available use real field intensity from world magnetic model
-	uORB::SubscriptionMultiArray<sensor_gps_s, 3> gps_subs{ORB_ID::vehicle_gps_position};
+	uORB::SubscriptionMultiArray<vehicle_gnss_s, 3> gnss_subs{ORB_ID::vehicle_gnss};
 
-	for (auto &gps_sub : gps_subs) {
-		sensor_gps_s gps;
+	for (auto &gnss_sub : gnss_subs) {
+		vehicle_gnss_s gnss;
 
-		if (gps_sub.copy(&gps)) {
-			if (hrt_elapsed_time(&gps.timestamp) < 100_s && (gps.fix_type >= 2) && (gps.eph < 1000)) {
+		if (gnss_sub.copy(&gnss)) {
+			if (hrt_elapsed_time(&gnss.timestamp) < 100_s && (gnss.receiver.fix_type >= 2) && (gnss.receiver.eph < 1000)) {
 				// magnetic field data returned by the geo library using the current GPS position
-				return get_mag_strength_gauss(gps.latitude_deg, gps.longitude_deg);
+				return get_mag_strength_gauss(gnss.receiver.latitude, gnss.receiver.longitude);
 			}
 		}
 	}
@@ -191,7 +191,6 @@ static float get_sphere_radius()
 
 static calibrate_return mag_calibration_worker(detect_orientation_return orientation, void *data)
 {
-	const hrt_abstime calibration_started = hrt_absolute_time();
 	calibrate_return result = calibrate_return_ok;
 
 	mag_worker_data_t *worker_data = (mag_worker_data_t *)(data);
@@ -221,22 +220,12 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 
 	uORB::SubscriptionBlocking<sensor_gyro_s> gyro_sub{ORB_ID(sensor_gyro)};
 
-	hrt_abstime last_cancel_check = hrt_absolute_time();
-
 	while (fabsf(gyro_x_integral) < gyro_int_thresh_rad &&
 	       fabsf(gyro_y_integral) < gyro_int_thresh_rad &&
 	       fabsf(gyro_z_integral) < gyro_int_thresh_rad) {
 
-		// Throttle cancel check — calibrate_cancel_check() creates a new
-		// uORB::Subscription each call, triggering an O(n) topic lookup.
-		// At high sensor rates this dominates CPU. Check at most every 200ms.
-		if (hrt_elapsed_time(&last_cancel_check) > 200_ms) {
-			last_cancel_check = hrt_absolute_time();
-
-			if (calibrate_cancel_check(worker_data->mavlink_log_pub, calibration_started)) {
-				result = calibrate_return_cancelled;
-				return result;
-			}
+		if (calibrate_cancel_check(worker_data->mavlink_log_pub)) {
+			return calibrate_return_cancelled;
 		}
 
 		/* abort with timeout */
@@ -281,21 +270,12 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 	unsigned poll_errcount = 0;
 	unsigned calibration_counter_side = 0;
 
-	last_cancel_check = hrt_absolute_time();
-
 	while (hrt_absolute_time() < calibration_deadline &&
 	       calibration_counter_side < worker_data->calibration_points_perside) {
 
-		// Throttle cancel check — calibrate_cancel_check() creates a new
-		// uORB::Subscription each call, triggering an O(n) topic lookup.
-		// At high sensor rates this dominates CPU. Check at most every 200ms.
-		if (hrt_elapsed_time(&last_cancel_check) > 200_ms) {
-			last_cancel_check = hrt_absolute_time();
-
-			if (calibrate_cancel_check(worker_data->mavlink_log_pub, calibration_started)) {
-				result = calibrate_return_cancelled;
-				break;
-			}
+		if (calibrate_cancel_check(worker_data->mavlink_log_pub)) {
+			result = calibrate_return_cancelled;
+			break;
 		}
 
 		// Yield CPU — updatedBlocking() returns immediately when data is
@@ -1034,13 +1014,13 @@ int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radian
 		mag_earth_available = true;
 
 	} else {
-		uORB::Subscription vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
-		sensor_gps_s gps;
+		uORB::Subscription vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
+		vehicle_gnss_s gnss;
 
-		if (vehicle_gps_position_sub.copy(&gps)) {
-			if ((gps.timestamp != 0) && (gps.eph < 1000)) {
-				latitude_deg = (float)gps.latitude_deg;
-				longitude_deg = (float)gps.longitude_deg;
+		if (vehicle_gnss_sub.copy(&gnss)) {
+			if ((gnss.timestamp != 0) && (gnss.receiver.eph < 1000)) {
+				latitude_deg = (float)gnss.receiver.latitude;
+				longitude_deg = (float)gnss.receiver.longitude;
 				mag_earth_available = true;
 			}
 		}

@@ -9,6 +9,7 @@
 #include <uavcan_kinetis/thread.hpp>
 #include <uavcan/driver/can.hpp>
 #include <uavcan_kinetis/flexcan.hpp>
+#include <px4_platform_common/time.h>
 
 namespace uavcan_kinetis
 {
@@ -384,7 +385,7 @@ public:
 
 				const int res = driver.init(inout_bitrate, CanIface::SilentMode);
 
-				usleep(1000000);
+				px4_usleep(1000000);
 
 				if (res >= 0) {
 					for (uavcan::uint8_t iface = 0; iface < driver.getNumIfaces(); iface++) {

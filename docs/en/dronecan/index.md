@@ -44,7 +44,9 @@ Supported hardware includes (this is not an exhaustive list):
 - GNSS receivers for GNSS (GPS, GLONASS, BeiDou, and so on)
   - [ARK GPS](../dronecan/ark_gps.md)
   - [ARK RTK GPS](../dronecan/ark_rtk_gps.md)
-  - [CubePilot Here3](https://www.cubepilot.org/#/here/here3)
+  - [CubePilot Here3/Here3+](https://docs.cubepilot.org/here-3-3+/here-3-manual)
+  - [CubePilot Here4](../dronecan/cubepilot_here4.md)
+  - [CubePilot HerePro](https://docs.cubepilot.org/herepro/herepro-manual)
   - [CUAV NEO v2 Pro GNSS](https://doc.cuav.net/gps/neo-series-gnss/en/neo-v2-pro.html)
   - [CUAV NEO 3 Pro GPS](../gps_compass/gps_cuav_neo_3pro.md)
   - [CUAV NEO 3X GPS](../gps_compass/gps_cuav_neo_3x.md)
@@ -66,14 +68,13 @@ Supported hardware includes (this is not an exhaustive list):
 - Distance sensors
   - [ARK Dist](ark_dist.md)
   - [Ark Dist MR](ark_dist_mr.md)
-  - [ARK Flow](ark_flow.md)
-  - [Ark Flow MR](ark_flow_mr.md)
   - [Avionics Anonymous Laser Altimeter UAVCAN Interface](../dronecan/avanon_laser_interface.md)
   - [RaccoonLab uRangefidner and Rangefinders Adapter](https://docs.raccoonlab.co/guide/rangefinder/)
   - [Smartmicro Drone Altimeter](smartmicro_t132.md)
 - Grippers
   - [DroneCAN Electro-Permanent Magnet (EPM)](../peripherals/gripper_epm.md)
 - Optical Flow
+  - [Agam FloRange](agam_florange.md)
   - [Ark Flow](ark_flow.md)
   - [Ark Flow MR](ark_flow_mr.md)
 
@@ -142,7 +143,7 @@ Instead you must enable publication or subscription to the messages associated w
 ::: info
 Sensor parameters may not exist (be visible in QGC) until you have enabled the associated DroneCAN [sensor subscription](#sensors)!
 
-For example, [SENS_FLOW_MINHGT](../advanced_config/parameter_reference.md#SENS_FLOW_MINHGT) does not exist until [UAVCAN_SUB_FLOW](../advanced_config/parameter_reference.md#UAVCAN_SUB_FLOW) is enabled.
+For example, [SENS_FLOW0_HMIN](../advanced_config/parameter_reference.md#SENS_FLOW0_HMIN) does not exist until [UAVCAN_SUB_FLOW](../advanced_config/parameter_reference.md#UAVCAN_SUB_FLOW) is enabled.
 :::
 
 For example, to use a connected DroneCAN smart battery you would enable the [UAVCAN_SUB_BAT](../advanced_config/parameter_reference.md#UAVCAN_SUB_BAT) parameter, which would subscribe PX4 to receive [BatteryInfo](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#batteryinfo) DroneCAN messages.
@@ -192,7 +193,7 @@ GPS CANNODE parameter ([set using QGC](#qgc-cannode-parameter-configuration)):
 
 Other PX4 Parameters:
 
-- If the GPS is not positioned at the vehicle centre of gravity you can account for the offset using [SENS_GPS0_OFFX](../advanced_config/parameter_reference.md#SENS_GPS0_OFFX), [SENS_GPS0_OFFY](../advanced_config/parameter_reference.md#SENS_GPS0_OFFY) and [SENS_GPS0_OFFZ](../advanced_config/parameter_reference.md#SENS_GPS0_OFFZ).
+- If the GPS is not positioned at the vehicle centre of gravity you can account for the offset using [SENS_GNSS0_OFFX](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFX), [SENS_GNSS0_OFFY](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFY) and [SENS_GNSS0_OFFZ](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFZ).
 - If the GPS module provides yaw information, you can enable GPS yaw fusion by setting bit 3 of [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) to true.
 
 #### RTK GPS
@@ -228,7 +229,8 @@ These parameters can be [set on moving base and rover RTK CAN nodes](#qgc-cannod
 - [CANNODE_PUB_MBD](../advanced_config/parameter_reference.md#CANNODE_PUB_MBD) causes a moving base GPS unit to publish [MovingBaselineData](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#movingbaselinedata)RTCM messages onto the bus (for the rover)
 - [CANNODE_SUB_MBD](../advanced_config/parameter_reference.md#CANNODE_SUB_MBD) tells the rover that it should subscribe to [MovingBaselineData](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#movingbaselinedata) RTCM messages on the bus (from the moving base).
 
-For PX4 you will also need to set [GPS_YAW_OFFSET](../advanced_config/parameter_reference.md#GPS_YAW_OFFSET) to indicate the relative position of the moving base and rover: 0 if your Rover is in front of your Moving Base, 90 if Rover is right of Moving Base, 180 if Rover is behind Moving Base, or 270 if Rover is left of Moving Base.
+On the autopilot, set [SENS_GNSSn_HDG](../advanced_config/parameter_reference.md#SENS_GNSS0_HDG) to `Moving base rover` for the rover's slot (matched by [SENS_GNSSn_ID](../advanced_config/parameter_reference.md#SENS_GNSS0_ID)) and the antenna offsets of both nodes (see [heading baseline](../gps_compass/rtk_gps.md#configuring-gps-as-yaw-heading-source)).
+A node running older firmware subtracts its own `GPS_YAW_OFFSET`; leave that at 0.
 
 #### Barometer
 
@@ -262,11 +264,11 @@ PX4 DroneCAN parameters:
 
 Other PX4 parameters:
 
-- Set [SENS_FLOW_MINHGT](../advanced_config/parameter_reference.md#SENS_FLOW_MINHGT) and [SENS_FLOW_MAXHGT](../advanced_config/parameter_reference.md#SENS_FLOW_MAXHGT), the minimum and maximum height of the flow sensor.
-- Set [SENS_FLOW_MAXR](../advanced_config/parameter_reference.md#SENS_FLOW_MAXR) the maximum angular flow rate of the sensor.
-- Enable optical flow fusion by setting [EKF2_OF_CTRL](../advanced_config/parameter_reference.md#EKF2_OF_CTRL).
+- Set [SENS_FLOW0_HMIN](../advanced_config/parameter_reference.md#SENS_FLOW0_HMIN) and [SENS_FLOW0_HMAX](../advanced_config/parameter_reference.md#SENS_FLOW0_HMAX), the minimum and maximum height of the flow sensor.
+- Set [SENS_FLOW0_MAXR](../advanced_config/parameter_reference.md#SENS_FLOW0_MAXR) the maximum angular flow rate of the sensor.
+- Enable optical flow fusion by setting [EKF2_OF0_CTRL](../advanced_config/parameter_reference.md#EKF2_OF0_CTRL).
 - To disable GPS aiding (optional), set [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) to `0`.
-- If the optical flow unit is not positioned at the vehicle centre of gravity you can account for the offset using [EKF2_OF_POS_X](../advanced_config/parameter_reference.md#EKF2_OF_POS_X), [EKF2_OF_POS_Y](../advanced_config/parameter_reference.md#EKF2_OF_POS_Y) and [EKF2_OF_POS_Z](../advanced_config/parameter_reference.md#EKF2_OF_POS_Z).
+- If the optical flow unit is not positioned at the vehicle centre of gravity you can account for the offset using [SENS_FLOW0_POS_X](../advanced_config/parameter_reference.md#SENS_FLOW0_POS_X), [SENS_FLOW0_POS_Y](../advanced_config/parameter_reference.md#SENS_FLOW0_POS_Y) and [SENS_FLOW0_POS_Z](../advanced_config/parameter_reference.md#SENS_FLOW0_POS_Z).
 
 Optical flow sensors require rangefinder data.
 However the rangefinder need not be part of the same module, and if not, may not be connected via DroneCAN.
@@ -326,6 +328,17 @@ PX4 can upgrade device firmware over DroneCAN.
 ::: info
 PX4 identifies valid firmware binaries (`.bin`) based on the presence of an **APDescriptor** — a metadata block embedded in the `.bin` file that contains the target board ID, firmware version, and a checksum.
 PX4 uses this descriptor to match each binary to the correct node and to determine whether an update is needed.
+:::
+
+### Getting Firmware
+
+Every PX4 release publishes the firmware for CAN nodes built by PX4 as `<target>.uavcan.bin` (for example `cuav_can-gps-v1_default.uavcan.bin`), attached to the [GitHub release](https://github.com/PX4/PX4-Autopilot/releases).
+When you build a CAN node target yourself with `make <target>`, the `.uavcan.bin` file is written to `build/<target>/`.
+
+::: info
+Flight controller builds can no longer embed CAN node firmware in their ROMFS.
+The `CONFIG_BOARD_UAVCAN_PERIPHERALS` board option and the `px4_fmu-v5_uavcanv0periph` build that used it (embedding CUAV CAN GPS v1 firmware) were removed after PX4 v1.18.
+Copy the node's `.uavcan.bin` to the SD card as described below instead.
 :::
 
 ### Firmware Directories

@@ -29,9 +29,9 @@ pageClass: is-wide-page
 | <a id="fld_total_energy_balance_rate_sp"></a>total_energy_balance_rate_sp | `float32` |              |            | Energy balance rate setpoint [m^2/s^3]                                                                                   |
 | <a id="fld_total_energy_balance_rate"></a>total_energy_balance_rate       | `float32` |              |            | Energy balance rate estimate [m^2/s^3]                                                                                   |
 | <a id="fld_throttle_integ"></a>throttle_integ                             | `float32` |              |            | Throttle integrator value [-]                                                                                            |
-| <a id="fld_pitch_integ"></a>pitch_integ                                   | `float32` |              |            | Pitch integrator value [rad]                                                                                             |
+| <a id="fld_pitch_integ"></a>pitch_integ                                   | `float32` |              |            | Pitch integrator value [rad], a correction added to the pitch setpoint rather than a pitch angle                         |
 | <a id="fld_throttle_sp"></a>throttle_sp                                   | `float32` |              |            | Current throttle setpoint [-]                                                                                            |
-| <a id="fld_pitch_sp_rad"></a>pitch_sp_rad                                 | `float32` |              |            | Current pitch setpoint [rad]                                                                                             |
+| <a id="fld_pitch_sp_rad"></a>pitch_sp_rad                                 | `float32` |              |            | Current pitch setpoint [rad], absolute: angle of the fixed-wing body x-axis above the horizon, FW_PSP_OFF included       |
 | <a id="fld_throttle_trim"></a>throttle_trim                               | `float32` |              |            | estimated throttle value [0,1] required to fly level at equivalent_airspeed_sp in the current atmospheric conditions     |
 | <a id="fld_underspeed_ratio"></a>underspeed_ratio                         | `float32` |              |            | 0: no underspeed, 1: maximal underspeed. Controller takes measures to avoid stall proportional to ratio if >0.           |
 | <a id="fld_fast_descend_ratio"></a>fast_descend_ratio                     | `float32` |              |            | value indicating if fast descend mode is enabled with ramp up and ramp down [0-1]                                        |
@@ -67,10 +67,10 @@ float32 total_energy_balance_rate_sp	# Energy balance rate setpoint [m^2/s^3]
 float32 total_energy_balance_rate	# Energy balance rate estimate [m^2/s^3]
 
 float32 throttle_integ			# Throttle integrator value [-]
-float32 pitch_integ			# Pitch integrator value [rad]
+float32 pitch_integ			# Pitch integrator value [rad], a correction added to the pitch setpoint rather than a pitch angle
 
 float32 throttle_sp			# Current throttle setpoint [-]
-float32 pitch_sp_rad			# Current pitch setpoint [rad]
+float32 pitch_sp_rad			# Current pitch setpoint [rad], absolute: angle of the fixed-wing body x-axis above the horizon, FW_PSP_OFF included
 float32 throttle_trim			# estimated throttle value [0,1] required to fly level at equivalent_airspeed_sp in the current atmospheric conditions
 
 float32 underspeed_ratio		# 0: no underspeed, 1: maximal underspeed. Controller takes measures to avoid stall proportional to ratio if >0.

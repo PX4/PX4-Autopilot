@@ -10,7 +10,12 @@ This mechanism does not _encrypt_ the message payload.
 
 When signing is enabled, PX4 appends a 13-byte [signature](https://mavlink.io/en/guide/message_signing.html#signature) to every outgoing MAVLink 2 message.
 
-Incoming messages are checked against the shared secret key, and unsigned or incorrectly signed messages are rejected (with [exceptions for safety-critical messages](#unsigned-message-allowlist)).
+Signing uses a single secret key, shared by all MAVLink systems and components that communicate with each other: the ground station, PX4, and any companion computer, camera, or gimbal connected to it.
+
+Incoming messages are checked against this key, and unsigned or incorrectly signed messages are rejected (with [exceptions for safety-critical messages](#unsigned-message-allowlist)).
+Rejected messages are not forwarded to other links either.
+This includes messages that PX4 does not know (for example custom messages), which are only forwarded if they are signed with the shared key.
+Components that communicate through PX4 therefore need to use the same key as PX4.
 
 The signing implementation is built into the MAVLink module and is always available, with no special build flags required.
 The key is stored in an SD card:
@@ -58,6 +63,7 @@ When signing is **not active** (no key provisioned), the first `SETUP_SIGNING` w
 When signing is **already active**, key changes (including disabling) require that the `SETUP_SIGNING` message is signed with the current key.
 
 Note that `SETUP_SIGNING` is rejected while the vehicle is armed (disarm before provisioning or changing keys).
+`SETUP_SIGNING` is only applied if it is broadcast or addressed to PX4 (its target system and component).
 As per the MAVLink specification, `SETUP_SIGNING` is never forwarded to other links.
 
 ## Key Storage
@@ -112,19 +118,23 @@ For each incoming message, the MAVLink library checks whether a valid signature 
 If the message is unsigned or has an invalid signature, the library calls the `accept_unsigned` callback, which decides whether to accept or reject the message based on:
 
 1. **Signing not active**: If no key has been loaded, all messages are accepted.
-2. **Allowlisted message**: Certain [safety-critical messages](#unsigned-message-allowlist) are always accepted.
+2. **Allowlisted message**: Certain [safety-critical messages](#unsigned-message-allowlist) are accepted, some of them only on links configured for a traffic receiver.
 
 ## Unsigned Message Allowlist
 
-The following messages are **always** accepted unsigned, regardless of the signing state.
-These are safety-critical messages that may originate from systems that don't support signing:
+The following messages are accepted unsigned when signing is active.
+They are safety-critical messages that may originate from systems that don't support signing:
 
-| Повідомлення                                                                                 | ID  | Reason                                                   |
-| -------------------------------------------------------------------------------------------- | --- | -------------------------------------------------------- |
-| [HEARTBEAT](https://mavlink.io/en/messages/common.html#HEARTBEAT)                            | 0   | System discovery and liveness detection                  |
-| [RADIO_STATUS](https://mavlink.io/en/messages/common.html#RADIO_STATUS) | 109 | Radio link status from SiK radios and other radio modems |
-| [ADSB_VEHICLE](https://mavlink.io/en/messages/common.html#ADSB_VEHICLE) | 246 | ADS-B traffic information for collision avoidance        |
-| [COLLISION](https://mavlink.io/en/messages/common.html#COLLISION)                            | 247 | Collision threat warnings                                |
+| Повідомлення                                                                                 | ID  | Accepted unsigned on                     | Reason                                                   |
+| -------------------------------------------------------------------------------------------- | --- | ---------------------------------------- | -------------------------------------------------------- |
+| [HEARTBEAT](https://mavlink.io/en/messages/common.html#HEARTBEAT)                            | 0   | All links                                | System discovery and liveness detection                  |
+| [RADIO_STATUS](https://mavlink.io/en/messages/common.html#RADIO_STATUS) | 109 | All links                                | Radio link status from SiK radios and other radio modems |
+| [ADSB_VEHICLE](https://mavlink.io/en/messages/common.html#ADSB_VEHICLE) | 246 | Links in `ADS-B/Traffic (uAvionix)` mode | ADS-B traffic information for collision avoidance        |
+| [COLLISION](https://mavlink.io/en/messages/common.html#COLLISION)                            | 247 | Links in `ADS-B/Traffic (uAvionix)` mode | Collision threat warnings                                |
+
+Traffic receivers generally can't sign, but unsigned traffic accepted on any link would let anyone on a telemetry or network link inject phantom aircraft into [traffic avoidance](../peripherals/adsb_flarm.md).
+Unsigned `ADSB_VEHICLE` and `COLLISION` are therefore only accepted on a link whose [MAV_X_MODE](../advanced_config/parameter_reference.md#MAV_0_MODE) is set to `ADS-B/Traffic (uAvionix)`, which is how a traffic receiver on a serial port should be configured.
+On all other links they must be signed like any other message.
 
 ## Security Considerations
 
@@ -134,8 +144,15 @@ When signing is active, **all links require signed messages**.
 This means:
 
 - An attacker cannot send unsigned commands on any link.
+- Unsigned or incorrectly signed messages are not forwarded, so they don't reach components connected through PX4 (for example a companion computer), even if those don't check signatures themselves.
 - Changing or disabling the key requires sending a `SETUP_SIGNING` message **signed with the current key**.
 - Signing can be disabled via MAVLink by sending a signed `SETUP_SIGNING` with an all-zero key.
+
+### One shared key
+
+The key is symmetric: every device that holds it can both verify and sign messages, as any system and component ID.
+Signing therefore authenticates that a message comes from a device holding the key, not which device sent it.
+Only provision the key on devices you trust.
 
 ### Armed guard
 
@@ -169,16 +186,16 @@ Physical access to the SD card or debug port is required.
 - **No encryption**: Message signing provides **authentication and integrity only**.
   Messages are still sent in plaintext.
   An eavesdropper can read all message contents (telemetry, commands, parameters, missions) but cannot forge or modify them without the key.
-- **Allowlisted messages bypass signing**: A small set of [safety-critical messages](#unsigned-message-allowlist) are always accepted unsigned.
-  An attacker can spoof these specific messages (e.g. fake `ADSB_VEHICLE` traffic) even when signing is active.
+- **Allowlisted messages bypass signing**: A small set of [safety-critical messages](#unsigned-message-allowlist) are accepted unsigned.
+  An attacker can spoof `HEARTBEAT` and `RADIO_STATUS` on any link, and `ADSB_VEHICLE` and `COLLISION` on a link configured for a traffic receiver, even when signing is active.
 
 ### What signing does NOT protect against
 
-| Attack                                                | Why                                                     |
-| ----------------------------------------------------- | ------------------------------------------------------- |
-| Eavesdropping                                         | Messages are not encrypted                              |
-| SD card extraction                                    | Key file is readable by anyone with physical access     |
-| Spoofed `HEARTBEAT`/`RADIO_STATUS`/`ADSB`/`COLLISION` | These are allowlisted unsigned                          |
-| Lost key without SD card access                       | Requires SWD reflash                                    |
-| Key rotation                                          | No automatic mechanism; manual re-provisioning required |
-| In-flight key changes                                 | `SETUP_SIGNING` rejected while armed                    |
+| Attack                                                | Why                                                                                        |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Eavesdropping                                         | Messages are not encrypted                                                                 |
+| SD card extraction                                    | Key file is readable by anyone with physical access                                        |
+| Spoofed `HEARTBEAT`/`RADIO_STATUS`/`ADSB`/`COLLISION` | These are allowlisted unsigned (traffic only on traffic receiver links) |
+| Lost key without SD card access                       | Requires SWD reflash                                                                       |
+| Key rotation                                          | No automatic mechanism; manual re-provisioning required                                    |
+| In-flight key changes                                 | `SETUP_SIGNING` rejected while armed                                                       |

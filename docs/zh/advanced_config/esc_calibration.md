@@ -5,20 +5,16 @@ These instructions are only relevant to [PWM ESCs](../peripherals/pwm_escs_and_s
 [DShot](../peripherals/dshot.md) and [CAN](../can/index.md) ESCs ([DroneCAN](../dronecan/escs.md)/Cyphal) do not require this kind of calibration.
 :::
 
-电子速度控制器(ESC)根据飞行控制器的输入指令（FC）调节电机的速度（和方向）。
-电调响应的输入范围是可配置的，甚至同一型号的不同电调之间的默认范围也是不同的。
+电子速度控制器(ESC)根据飞行控制器的输入指令（FC）调节电机的速度（和方向）。电调响应的输入范围是可配置的，甚至同一型号的不同电调之间的默认范围也是不同的。
 
-此校准将使用来自飞行控制器的固定最大值 (2000us) 和最小值 (1000us) PWM 输入更新所有ESC。
-因此，载具上的所有ESC/电机都将以同样的方式在整个输入范围内响应飞行控制器的输入。
+此校准将使用来自飞行控制器的固定最大值 (2000us) 和最小值 (1000us) PWM 输入更新所有ESC。因此，载具上的所有ESC/电机都将以同样的方式在整个输入范围内响应飞行控制器的输入。
 
 建议使用此工具校准支持它的所有 PWM/OneShot ESC。
 
 :::info
 Calibration is particularly important for low-cost ESC, as they commonly vary a lot in their response to input.
 
-然而，也建议为高质量的控制员提供这种校准。
-即使这些都是工厂校准的，而且都应以同样的方式作出反应，但实际上输入范围可能有所不同。
-例如，如果控制器在离开工厂后被手动校准，它可能不再以同样的方式动作。
+然而，也建议为高质量的控制员提供这种校准。即使这些都是工厂校准的，而且都应以同样的方式作出反应，但实际上输入范围可能有所不同。例如，如果控制器在离开工厂后被手动校准，它可能不再以同样的方式动作。
 :::
 
 :::warning
@@ -36,8 +32,7 @@ OneShot ESCs should be [configured to use OneShot](../peripherals/oneshot.md#px4
 如果使用 Pixhawk 飞行控制器，推荐这样做的方式是通过USB单独为飞行控制器提供电力。 并在需要时连接/断开ESC的电池供电。
 Flight control systems that can't power the autopilot via USB will need a [different approach](#problem_power_module).
 
-如果电池通过电源模块连接，校准程序可以检测电池连接并用它来驱动校准序列。
-如果无法检测到电池电力，则根据超时执行校准顺序。
+如果电池通过电源模块连接，校准程序可以检测电池连接并用它来驱动校准序列。如果无法检测到电池电力，则根据超时执行校准顺序。
 
 ## 步骤
 
@@ -56,8 +51,7 @@ Flight control systems that can't power the autopilot via USB will need a [diffe
 2. Map the ESCs you're calibrating as motors in the vehicle's [Actuator Configuration](../config/actuators.md).
    只有映射的驱动器才能获得输出，并且只有被映射为电机的ESC将被校准。
 
-3. 拔下电池，断开ESC电源。
-   飞行控制器必须保持供电，例如将USB连接到地面站。
+3. 拔下电池，断开ESC电源。飞行控制器必须保持供电，例如将USB连接到地面站。
 
 4. Open the _QGroundControl_ **Settings > Power**, then press the **Calibrate** button.
 
@@ -80,10 +74,9 @@ Flight control systems that can't power the autopilot via USB will need a [diffe
 
 7. Go back to the [Actuator Configuration](../config/actuators.md) section.
 
-   在ESC 校准后，所有具有相同(重新)校准的 ESC的电机对同样的输入应以同样的方式动作。 驱动器配置中默认的 PWM 输出设置现在应该能开箱即用。
+   在ESC 校准后，所有具有相同(重新)校准的 ESC的电机对同样的输入应以同样的方式动作。驱动器配置中默认的 PWM 输出设置现在应该能开箱即用。
 
-   你需要确认电机确实正常工作。
-   由于默认配置值已经设置为保守的设置，您可能也希望调整它们以适用于您的特定的 ESC。
+   你需要确认电机确实正常工作。由于默认配置值已经设置为保守的设置，您可能也希望调整它们以适用于您的特定的 ESC。
 
    ::: info
    The steps below are similar to those described in [Actuator Configuration > Motor Configuration](../config/actuators.md#motor-configuration).

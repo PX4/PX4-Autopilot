@@ -111,13 +111,7 @@ public:
 	// get the derivative of the vertical position of the body frame origin in local NED earth frame
 	float getVerticalPositionDerivative() const { return _output_vert_new.vert_vel - _vel_imu_rel_body_ned(2); }
 
-	LatLonAlt getLatLonAlt() const
-	{
-		// rotate the position of the IMU relative to the boy origin into earth frame
-		const matrix::Vector3f pos_offset_earth{_R_to_earth_now * _imu_pos_body};
-		// subtract from the EKF position (which is at the IMU) to get position at the body origin
-		return _global_ref + (_output_new.pos - pos_offset_earth);
-	}
+	LatLonAlt getLatLonAlt() const;
 
 	// return an array containing the output predictor angular, velocity and position tracking
 	// error magnitudes (rad), (m/sec), (m)
@@ -187,7 +181,7 @@ private:
 	float _delta_vel_dt{};			// duration of delta velocity integration (s)
 
 	// output predictor states
-	matrix::Vector3f _delta_angle_corr{};	///< delta angle correction vector (rad)
+	matrix::Vector3f _delta_angle_corr_earth{};	///< delta angle correction vector, earth frame (rad)
 	matrix::Vector3f _vel_err_integ{};	///< integral of velocity tracking error (m)
 	matrix::Vector3f _pos_err_integ{};	///< integral of position tracking error (m.s)
 

@@ -36,8 +36,11 @@
 #include "../Common.hpp"
 
 #include <lib/hysteresis/hysteresis.h>
+#include <lib/motor_failure_detector/MotorFailureDetector.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/actuator_motors.h>
+#include <uORB/topics/battery_status.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/failure_detector_status.h>
 
@@ -48,37 +51,68 @@ public:
 	~EscChecks() = default;
 
 	void checkAndReport(const Context &context, Report &reporter) override;
+	void updateParams() override;
 
 	uint16_t getMotorFailureMask() const { return _motor_failure_mask; }
 	bool getEscArmStatus() const { return _esc_arm_hysteresis.get_state(); }
 
+	// An ESC whose last telemetry report is older than this is reported offline
+	static constexpr hrt_abstime ESC_OFFLINE_TIMEOUT_US = 400_ms;
+
+	// Time the ESCs get to boot and report telemetry once powered
+	static constexpr hrt_abstime ESC_INIT_TIME_US = 3_s;
+
+	// Time an ESC may report disarmed while PX4 is armed, e.g. right after arming, before "Not all ESCs are armed" fires
+	// VertiQ ESCs over DroneCAN reliably report being armed after 800-890 ms
+	static constexpr hrt_abstime ESC_ARMING_TIMEOUT_US = 900_ms;
+
+	// Post-arm spin-up check, as fractions of COM_SPOOLUP_TIME after arming:
+	// motors get until GRACE to start spinning. A motor that was not seen healthy at any check between GRACE and
+	// DECISION fails at the first check from DECISION on, so the decision falls well inside the spool-up window
+	static constexpr float ESC_SPINUP_GRACE_FRACTION = 0.5f;
+	static constexpr float ESC_SPINUP_DECISION_FRACTION = 0.8f;
+
+	/**
+	 * Motors that are commanded to run but report no RPM or a stuck fault.
+	 * Motors with a non-finite command (stopped) are never included.
+	 * @return bitmask indexed by motor number (Motor1 = bit 0)
+	 */
+	static uint16_t motorsNotSpinningMask(const esc_status_s &esc_status, const actuator_motors_s &actuator_motors);
+
 private:
+	bool checkSpinupAfterArm(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now);
 	uint16_t checkEscOnline(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now);
 	uint16_t checkEscStatus(const Context &context, Report &reporter, const esc_status_s &esc_status);
-	uint16_t checkMotorStatus(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now);
+	uint16_t checkMotorStatus(const Context &context, Report &reporter, const esc_status_s &esc_status);
 	void updateEscsStatus(const Context &context, Report &reporter, const esc_status_s &esc_status, hrt_abstime now);
 	void checkEscTemperature(Report &reporter, const esc_status_s &esc_status);
 
-
-	static constexpr hrt_abstime ESC_TIMEOUT_US = 400_ms;
-
 	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)};
 	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
+	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{ORB_ID::battery_status};
 
 	const hrt_abstime _start_time{hrt_absolute_time()};
 
+	bool _required_battery_missing{false};
+	hrt_abstime _escs_init_end{0}; // end of the boot time of ESCs powered by a required battery that just connected
+
 	uint16_t _motor_failure_mask = 0;
-	bool _esc_has_reported_current[esc_status_s::CONNECTED_ESC_MAX] {};
+	bool _esc_has_reported_current[esc_status_s::CONNECTED_ESC_MAX] {}; // true if ESC reported non-zero current before (some never report any)
 	bool _esc_over_temp_warned{false};
-	systemlib::Hysteresis _esc_undercurrent_hysteresis[esc_status_s::CONNECTED_ESC_MAX];
-	systemlib::Hysteresis _esc_overcurrent_hysteresis[esc_status_s::CONNECTED_ESC_MAX];
 	systemlib::Hysteresis _esc_arm_hysteresis;
+	uint16_t _motor_stuck_seen_ok_mask{0}; ///< motors seen spinning since the spin-up check window opened
+	MotorFailureDetector _motor_failure_detector;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamBool<px4::params::COM_ARM_CHK_ESCS>) _param_com_arm_chk_escs,
+					(ParamInt<px4::params::CBRK_SUPPLY_CHK>) _param_cbrk_supply_chk,
 					(ParamBool<px4::params::FD_ACT_EN>) _param_fd_act_en,
+					(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time,
 					(ParamFloat<px4::params::MOTFAIL_C2T>) _param_motfail_c2t,
-					(ParamFloat<px4::params::MOTFAIL_TIME>) _param_motfail_time,
-					(ParamFloat<px4::params::MOTFAIL_OFF>) _param_motfail_off,
+					(ParamFloat<px4::params::MOTFAIL_IDLE>) _param_motfail_idle,
+					(ParamFloat<px4::params::MOTFAIL_OVER>) _param_motfail_over,
+					(ParamFloat<px4::params::MOTFAIL_OVR_TIME>) _param_motfail_ovr_time,
+					(ParamFloat<px4::params::MOTFAIL_UNDER>) _param_motfail_under,
+					(ParamFloat<px4::params::MOTFAIL_UND_TIME>) _param_motfail_und_time,
 					(ParamFloat<px4::params::ESC_TEMP_WARN_TH>) _param_esc_temp_warn_th);
 };

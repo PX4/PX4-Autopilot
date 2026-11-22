@@ -49,7 +49,7 @@ static const char *kLogDir = PX4_STORAGEDIR "/log";
  * LOG_ERASE deletes this vehicle's logs too, and a listing request for one vehicle is
  * answered by all of them. Zero is the broadcast value for both fields.
  */
-static bool targeted_at_us(uint8_t target_system, uint8_t target_component)
+static bool targeted_at_us(uint32_t target_system, uint8_t target_component)
 {
 	return (target_system == 0 || target_system == mavlink_system.sysid)
 	       && (target_component == 0
@@ -118,19 +118,24 @@ void MavlinkLogHandler::handle_message(const mavlink_message_t *msg)
 void MavlinkLogHandler::state_idle()
 {
 	if (_current_entry.fp && _file_send_finished) {
-		fclose(_current_entry.fp);
-		_current_entry.fp = nullptr;
-
-		_current_entry.id = 0xffff;
-		_current_entry.time_utc = 0;
-		_current_entry.size_bytes = 0;
-		_current_entry.filepath[0] = 0;
-		_current_entry.offset = 0;
-
-		_entry_request.id = 0xffff;
-		_entry_request.start_offset = 0;
-		_entry_request.byte_count = 0;
+		close_current_entry();
 	}
+}
+
+void MavlinkLogHandler::close_files()
+{
+	close_current_entry();
+	_state = LogHandlerState::Idle;
+}
+
+void MavlinkLogHandler::close_current_entry()
+{
+	if (_current_entry.fp) {
+		fclose(_current_entry.fp);
+	}
+
+	_current_entry = LogEntry{};
+	_entry_request = LogEntryRequest{};
 }
 
 void MavlinkLogHandler::state_listing()
@@ -209,17 +214,56 @@ void MavlinkLogHandler::state_sending_data()
 {
 	static constexpr uint32_t MAVLINK_PACKET_SIZE = MAVLINK_NUM_NON_PAYLOAD_BYTES + MAVLINK_MSG_ID_LOG_DATA_LEN;
 	size_t bytes_sent = 0;
+	size_t max_bytes_to_send = MAX_BYTES_BURST;
 
-	while (_mavlink.get_free_tx_buf() > MAVLINK_PACKET_SIZE && bytes_sent < MAX_BYTES_BURST) {
+	if (_mavlink.get_free_tx_buf() <= MAVLINK_PACKET_SIZE) {
+		return;
+	}
+
+	// Pace the download against the link budget, the same way as an FTP burst.
+	// Otherwise the only bound is the local UART buffer, which knows nothing
+	// about what the radio behind it can carry, and we hand it several times
+	// its capacity.
+	const int datarate = _mavlink.radio_status_available() ? _mavlink.get_data_rate() : 0;
+
+	if (datarate > 0) {
+		const hrt_abstime now = hrt_absolute_time();
+
+		// The first packet goes out immediately, after that wait until the
+		// link has earned one.
+		if (_last_data_send != 0) {
+			// Scaled by the radio's own txbuf feedback, and deliberately not
+			// get_rate_mult(), see MavlinkFTP::send().
+			const float rate = (float)datarate * _mavlink.bulk_bandwidth_share() * _mavlink.radio_status_mult();
+			const float credit = (float)(now - _last_data_send) * rate / 1e6f;
+
+			if (credit < (float)MAVLINK_PACKET_SIZE) {
+				return;
+			}
+		}
+
+		// Exactly one packet per call, never a batch: a SiK radio only fits
+		// about three per transmit window and drops the rest. Credit is not
+		// banked either, so a pause cannot be spent at once.
+		_last_data_send = now;
+		max_bytes_to_send = MAVLINK_PACKET_SIZE;
+	}
+
+	while (_mavlink.get_free_tx_buf() > MAVLINK_PACKET_SIZE && bytes_sent < max_bytes_to_send) {
+
+		if (!_current_entry.fp) {
+			_state = LogHandlerState::Idle;
+			return;
+		}
 
 		// Only seek if we need to
 		long int offset = _current_entry.offset - ftell(_current_entry.fp);
 
 		if (offset && fseek(_current_entry.fp, offset, SEEK_CUR)) {
-			fclose(_current_entry.fp);
-			_current_entry.fp = nullptr;
 			PX4_DEBUG("seek error");
+			close_current_entry();
 			_state = LogHandlerState::Idle;
+			return;
 		}
 
 		// Prepare mavlink message
@@ -261,7 +305,7 @@ void MavlinkLogHandler::handle_log_request_list(const mavlink_message_t *msg)
 	mavlink_log_request_list_t request;
 	mavlink_msg_log_request_list_decode(msg, &request);
 
-	if (!targeted_at_us(request.target_system, request.target_component)) {
+	if (!targeted_at_us(mavlink_target_system(msg, request.target_system), request.target_component)) {
 		return;
 	}
 
@@ -288,7 +332,7 @@ void MavlinkLogHandler::handle_log_request_data(const mavlink_message_t *msg)
 	mavlink_log_request_data_t request;
 	mavlink_msg_log_request_data_decode(msg, &request);
 
-	if (!targeted_at_us(request.target_system, request.target_component)) {
+	if (!targeted_at_us(mavlink_target_system(msg, request.target_system), request.target_component)) {
 		return;
 	}
 
@@ -300,11 +344,7 @@ void MavlinkLogHandler::handle_log_request_data(const mavlink_message_t *msg)
 
 	// Handle switching to new request ID
 	if (request.id != _current_entry.id) {
-		// Close the old file
-		if (_current_entry.fp) {
-			fclose(_current_entry.fp);
-			_current_entry.fp = nullptr;
-		}
+		close_current_entry();
 
 		LogEntry entry = {};
 
@@ -319,6 +359,7 @@ void MavlinkLogHandler::handle_log_request_data(const mavlink_message_t *msg)
 
 		if (!entry.fp) {
 			PX4_DEBUG("Failed to open file %s", entry.filepath);
+			_state = LogHandlerState::Idle;
 			return;
 		}
 
@@ -339,6 +380,7 @@ void MavlinkLogHandler::handle_log_request_data(const mavlink_message_t *msg)
 	// Set the offset of the current entry to the requested offset
 	_current_entry.offset = _entry_request.start_offset;
 	_file_send_finished = false;
+	_last_data_send = 0;
 	_state = LogHandlerState::SendingData;
 }
 
@@ -347,7 +389,7 @@ void MavlinkLogHandler::handle_log_request_end(const mavlink_message_t *msg)
 	mavlink_log_request_end_t request;
 	mavlink_msg_log_request_end_decode(msg, &request);
 
-	if (!targeted_at_us(request.target_system, request.target_component)) {
+	if (!targeted_at_us(mavlink_target_system(msg, request.target_system), request.target_component)) {
 		return;
 	}
 
@@ -359,14 +401,14 @@ void MavlinkLogHandler::handle_log_erase(const mavlink_message_t *msg)
 	mavlink_log_erase_t request;
 	mavlink_msg_log_erase_decode(msg, &request);
 
-	if (!targeted_at_us(request.target_system, request.target_component)) {
+	if (!targeted_at_us(mavlink_target_system(msg, request.target_system), request.target_component)) {
 		return;
 	}
 
-	if (_current_entry.fp) {
-		fclose(_current_entry.fp);
-		_current_entry.fp = nullptr;
-	}
+	// Forget the open entry and the listing, the files behind them are about to go.
+	close_current_entry();
+	_num_logs = 0;
+	_logs_listed = false;
 
 	_state = LogHandlerState::Idle;
 	unlink(kLogListFilePath);

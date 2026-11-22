@@ -35,7 +35,7 @@
 #define OPEN_DRONE_ID_LOCATION_HPP
 
 #include <uORB/topics/home_position.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_gnss.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -62,7 +62,7 @@ private:
 
 	uORB::Subscription _home_position_sub{ORB_ID(home_position)};
 	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
@@ -122,14 +122,14 @@ private:
 			}
 		}
 
-		if (_vehicle_gps_position_sub.advertised()) {
-			sensor_gps_s vehicle_gps_position{};
+		if (_vehicle_gnss_sub.advertised()) {
+			vehicle_gnss_s vehicle_gnss{};
 
-			if (_vehicle_gps_position_sub.copy(&vehicle_gps_position)
-			    && (hrt_elapsed_time(&vehicle_gps_position.timestamp) < 10_s)) {
+			if (_vehicle_gnss_sub.copy(&vehicle_gnss)
+			    && (hrt_elapsed_time(&vehicle_gnss.timestamp) < 10_s)) {
 
-				if (vehicle_gps_position.vel_ned_valid) {
-					const matrix::Vector3f vel_ned{vehicle_gps_position.vel_n_m_s, vehicle_gps_position.vel_e_m_s, vehicle_gps_position.vel_d_m_s};
+				if (vehicle_gnss.receiver.vel_ned_valid) {
+					const matrix::Vector3f vel_ned{vehicle_gnss.receiver.vel_north, vehicle_gnss.receiver.vel_east, vehicle_gnss.receiver.vel_down};
 
 					// direction: calculate GPS course over ground angle
 					const float course = atan2f(vel_ned(1), vel_ned(0));
@@ -144,34 +144,34 @@ private:
 					const int speed_vertical_cm_s = roundf(-vel_ned(2) * 100.f);
 					msg.speed_vertical = math::constrain(speed_vertical_cm_s, -6200, 6200);
 
-					msg.speed_accuracy = open_drone_id_translations::odidSpeedAccForVariance(vehicle_gps_position.s_variance_m_s);
+					msg.speed_accuracy = open_drone_id_translations::odidSpeedAccForVariance(vehicle_gnss.receiver.speed_accuracy);
 
 					updated = true;
 				}
 
-				if (vehicle_gps_position.fix_type >= 2) {
-					msg.latitude = static_cast<int32_t>(round(vehicle_gps_position.latitude_deg * 1e7));
-					msg.longitude = static_cast<int32_t>(round(vehicle_gps_position.longitude_deg * 1e7));
+				if (vehicle_gnss.receiver.fix_type >= 2) {
+					msg.latitude = static_cast<int32_t>(round(vehicle_gnss.receiver.latitude * 1e7));
+					msg.longitude = static_cast<int32_t>(round(vehicle_gnss.receiver.longitude * 1e7));
 
 					// altitude_geodetic
-					if (vehicle_gps_position.fix_type >= 3) {
-						msg.altitude_geodetic = static_cast<float>(round(vehicle_gps_position.altitude_msl_m)); // [m]
+					if (vehicle_gnss.receiver.fix_type >= 3) {
+						msg.altitude_geodetic = static_cast<float>(round(vehicle_gnss.receiver.altitude_msl)); // [m]
 					}
 
-					msg.horizontal_accuracy = open_drone_id_translations::odidHorAccForEph(vehicle_gps_position.eph);
+					msg.horizontal_accuracy = open_drone_id_translations::odidHorAccForEph(vehicle_gnss.receiver.eph);
 
-					msg.vertical_accuracy = open_drone_id_translations::odidVerAccForEpv(vehicle_gps_position.epv);
+					msg.vertical_accuracy = open_drone_id_translations::odidVerAccForEpv(vehicle_gnss.receiver.epv);
 
 					updated = true;
 				}
 
-				if (vehicle_gps_position.time_utc_usec != 0) {
+				if (vehicle_gnss.receiver.time_utc_usec != 0) {
 					// timestamp: UTC then convert for this field using ((float) (time_week_ms % (60*60*1000))) / 1000
-					uint64_t utc_time_msec = vehicle_gps_position.time_utc_usec / 1000;
+					uint64_t utc_time_msec = vehicle_gnss.receiver.time_utc_usec / 1000;
 					msg.timestamp = ((float)(utc_time_msec % (60 * 60 * 1000))) / 1000;
 
 					msg.timestamp_accuracy = open_drone_id_translations::odidTimeForElapsed(hrt_elapsed_time(
-									 &vehicle_gps_position.timestamp));
+									 &vehicle_gnss.timestamp));
 
 					updated = true;
 				}

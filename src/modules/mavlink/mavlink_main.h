@@ -145,7 +145,7 @@ public:
 	static bool serial_instance_exists(const char *device_name, Mavlink *self);
 
 	static void forward_message(const mavlink_message_t *msg, Mavlink *self);
-	static bool component_was_seen(int system_id, int component_id, Mavlink &self);
+	static bool component_was_seen(uint32_t system_id, int component_id, Mavlink &self);
 
 	bool check_events() const { return _should_check_events.load(); }
 	void check_events_enable() { _should_check_events.store(true); }
@@ -154,9 +154,12 @@ public:
 	bool sending_parameters() const { return _sending_parameters.load(); }
 	void set_sending_parameters(bool sending) { _sending_parameters.store(sending); }
 
+	bool sending_all_parameters() const { return _sending_all_parameters.load(); }
+	void set_sending_all_parameters(bool sending) { _sending_all_parameters.store(sending); }
+
 	int get_uart_fd() const { return _uart_fd; }
 
-	int get_system_id() const { return mavlink_system.sysid; }
+	uint32_t get_system_id() const { return mavlink_system.sysid; }
 	int get_component_id() const { return mavlink_system.compid; }
 
 	const char *_device_name{DEFAULT_DEVICE_NAME};
@@ -235,7 +238,7 @@ public:
 			return "Low Bandwidth";
 
 		case MAVLINK_MODE_UAVIONIX:
-			return "uAvionix";
+			return "ADS-B/Traffic (uAvionix)";
 
 		case MAVLINK_MODE_DISTANCE_SENSOR:
 			return "DistanceSensor";
@@ -255,7 +258,7 @@ public:
 	// mavlink_update_parameters().
 	bool			get_use_hil_gps() { return _use_hil_gps_atomic.load(); }
 
-	bool			get_forward_externalsp() { return _param_mav_fwdextsp.get(); }
+	bool			get_forward_externalsp() { return _fwdextsp_atomic.load(); }
 
 	bool			get_flow_control_enabled() { return _flow_control_mode; }
 
@@ -318,12 +321,12 @@ public:
 	 */
 	void             	send_finish();
 
-	/**
-	 * Resend message as is, don't change sequence number and CRC.
-	 */
-	void			resend_message(mavlink_message_t *msg) { _mavlink_resend_uart(_channel, msg); }
-
 	void			handle_message(const mavlink_message_t *msg);
+
+	/**
+	 * Forward a received message to the other instances if forwarding is enabled.
+	 */
+	void			forward_if_enabled(const mavlink_message_t *msg);
 
 	int			get_instance_id() const { return _instance_id; }
 
@@ -425,7 +428,7 @@ public:
 
 	void			update_radio_status(const radio_status_s &radio_status);
 
-	unsigned		get_system_type() { return _param_mav_type.get(); }
+	unsigned		get_system_type() { return _mav_type_atomic.load(); }
 
 	Protocol 		get_protocol() const { return _protocol; }
 
@@ -493,7 +496,7 @@ public:
 
 	/** get ulog streaming if active, nullptr otherwise */
 	MavlinkULog		*get_ulog_streaming() { return _mavlink_ulog; }
-	void			try_start_ulog_streaming(uint8_t target_system, uint8_t target_component)
+	void			try_start_ulog_streaming(uint32_t target_system, uint8_t target_component)
 	{
 		if (_mavlink_ulog) { return; }
 
@@ -503,13 +506,13 @@ public:
 	const events::SendProtocol &get_events_protocol() const { return _events; };
 	bool ftp_enabled() const { return _ftp_on; }
 
-	bool hash_check_enabled() const { return _param_mav_hash_chk_en.get(); }
-	bool forward_heartbeats_enabled() const { return _param_mav_hb_forw_en.get(); }
+	bool hash_check_enabled() const { return _hash_chk_en_atomic.load(); }
+	bool forward_heartbeats_enabled() const { return _hb_forw_en_atomic.load(); }
 
 	bool failure_injection_enabled() const
 	{
 #if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
-		return _param_sys_failure_injection_enabled.get();
+		return _failure_injection_en_atomic.load();
 #else
 		return false;
 #endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER
@@ -534,9 +537,71 @@ public:
 
 	bool radio_status_critical() const;
 
-	bool accept_unsigned(uint32_t message_id) { return _sign_control.accept_unsigned(message_id); }
+	/// True while a radio is reporting RADIO_STATUS on this link.
+	bool radio_status_available() const;
+
+	/**
+	 * The multiplier derived purely from the radio's reported txbuf.
+	 *
+	 * Unlike get_rate_mult() this does not include the budget split between
+	 * streams, so it can be applied to a bulk transfer that has already been
+	 * given its own share without counting the reduction twice.
+	 */
+	float radio_status_mult() const;
+
+	bool ftp_burst_active() const { return _ftp_burst_active.load(); }
+	void set_ftp_burst_active(bool active) { _ftp_burst_active.store(active); }
+
+	bool log_download_active() const { return _log_download_active.load(); }
+	void set_log_download_active(bool active) { _log_download_active.store(active); }
+
+	/**
+	 * Share of the link budget that bulk transfers may use between them.
+	 * A parameter dump, an FTP burst and a log download each get a part of
+	 * this, never one each, or together they leave the streams nothing.
+	 */
+	static constexpr float kBulkBandwidthShare = 0.5f;
+
+	/**
+	 * Number of bulk transfers currently paced against the bulk share. An
+	 * FTP burst and a log download only count behind a radio, which is the
+	 * only case where they are paced at all.
+	 */
+	unsigned active_bulk_transfers() const
+	{
+		unsigned active = 0;
+
+		if (sending_all_parameters()) {
+			++active;
+		}
+
+		if (radio_status_available()) {
+			if (ftp_burst_active()) {
+				++active;
+			}
+
+			if (log_download_active()) {
+				++active;
+			}
+		}
+
+		return active;
+	}
+
+	/**
+	 * Share of the link budget for one bulk transfer, which is the whole
+	 * bulk share split between the transfers that are running.
+	 */
+	float bulk_bandwidth_share() const
+	{
+		const unsigned active = active_bulk_transfers();
+		return (active > 1) ? (kBulkBandwidthShare / (float)active) : kBulkBandwidthShare;
+	}
+
+	bool accept_unsigned(uint32_t message_id) { return _sign_control.accept_unsigned(message_id, _mode == MAVLINK_MODE_UAVIONIX); }
+	bool is_signing_active() const { return _sign_control.is_signing_active(); }
 	void set_signing_key_dirty() { _signing_key_dirty.store(true); }
-	void check_signing_key_dirty() { if (_signing_key_dirty.load()) { _signing_key_dirty.store(false); _sign_control.reload_key(); } }
+	void check_signing_key_dirty();
 
 
 private:
@@ -581,12 +646,13 @@ private:
 
 	px4::atomic_bool	_should_check_events{false};    /**< Events subscription: only one MAVLink instance should check */
 	px4::atomic_bool	_sending_parameters{false};     /**< True if parameters are currently sent out */
+	px4::atomic_bool	_sending_all_parameters{false}; /**< True while a full parameter dump is in progress */
 
 	unsigned		_main_loop_delay{1000};	/**< mainloop delay, depends on data rate */
 
 	List<MavlinkStream *>		_streams;
 
-	MavlinkShell		*_mavlink_shell{nullptr};
+	px4::atomic<MavlinkShell *>	_mavlink_shell{nullptr}; ///< written under _mavlink_shell_mutex, by the receiver thread and, once it has stopped, by the task; atomic for the unlocked fast check in handleMavlinkShellOutput()
 	pthread_mutex_t		_mavlink_shell_mutex{};
 	MavlinkULog		*_mavlink_ulog{nullptr};
 	static events::EventBuffer	*_event_buffer;
@@ -605,6 +671,13 @@ private:
 	int			_baudrate{57600};
 	int			_datarate{1000};		///< data rate for normal streams (attitude, position, etc.)
 	float			_rate_mult{1.0f};
+	px4::atomic_bool	_ftp_burst_active{false};       /**< True while an FTP burst is streaming */
+	px4::atomic_bool	_log_download_active{false};    /**< True while LOG_DATA is streaming */
+
+	float			_streams_const_rate{0.f};	///< theoretical bandwidth of the constant-rate streams, B/s
+	float			_streams_rate{0.f};		///< theoretical bandwidth of the other streams, B/s
+	hrt_abstime		_streams_rate_update{0};	///< when the stream bandwidths were last computed
+	bool			_streams_changed{true};		///< stream set or interval changed since then
 	float			_high_latency_freq{0.015f};	///< frequency of HIGH_LATENCY2 stream
 
 	bool			_radio_status_available{false};
@@ -623,6 +696,7 @@ private:
 	bool			_udp_initialised{false};
 
 	FLOW_CONTROL_MODE	_flow_control_mode{Mavlink::FLOW_CONTROL_OFF};
+	bool			_raw_mode{false};
 
 	uint64_t		_last_write_success_time{0};
 	uint64_t		_last_write_try_time{0};
@@ -632,9 +706,16 @@ private:
 	// Atomic so concurrent reads/writes are race-free without taking lock_send().
 	px4::atomic<uint8_t> _protocol_version{0}; ///< after initialization the only values are 1 and 2
 
-	// Atomic snapshot of MAV_USEHILGPS, written from the main mavlink thread
-	// in mavlink_update_parameters() and read from the receiver thread.
+	// Atomic snapshots of params read from the receiver thread, written from the
+	// main mavlink thread in mavlink_update_parameters().
 	px4::atomic_bool _use_hil_gps_atomic{false};
+	px4::atomic_bool _hb_forw_en_atomic{false};
+	px4::atomic_bool _fwdextsp_atomic{false};
+	px4::atomic_bool _hash_chk_en_atomic{false};
+	px4::atomic<int32_t> _mav_type_atomic{0};
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+	px4::atomic_bool _failure_injection_en_atomic {false};
+#endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER
 
 	px4::atomic<unsigned>	_bytes_tx{0};
 	px4::atomic<unsigned>	_bytes_txerr{0};
@@ -692,16 +773,16 @@ private:
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
 		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id,
 		(ParamInt<px4::params::MAV_PROTO_VER>) _param_mav_proto_ver,
-		(ParamInt<px4::params::MAV_SIK_RADIO_ID>) _param_sik_radio_id,
+		(ParamInt<px4::params::MAV_SIK_RADIO_ID>) _param_mav_sik_radio_id,
 		(ParamInt<px4::params::MAV_TYPE>) _param_mav_type,
 		(ParamBool<px4::params::MAV_USEHILGPS>) _param_mav_usehilgps,
 		(ParamBool<px4::params::MAV_FWDEXTSP>) _param_mav_fwdextsp,
 		(ParamBool<px4::params::MAV_HASH_CHK_EN>) _param_mav_hash_chk_en,
 		(ParamBool<px4::params::MAV_HB_FORW_EN>) _param_mav_hb_forw_en,
-		(ParamInt<px4::params::MAV_RADIO_TOUT>)      _param_mav_radio_timeout,
+		(ParamInt<px4::params::MAV_RADIO_TOUT>)      _param_mav_radio_tout,
 		(ParamInt<px4::params::SYS_HITL>) _param_sys_hitl
 #if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
-		, (ParamBool<px4::params::SYS_FAILURE_EN>) _param_sys_failure_injection_enabled
+		, (ParamBool<px4::params::SYS_FAILURE_EN>) _param_sys_failure_en
 #endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER
 	)
 

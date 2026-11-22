@@ -44,7 +44,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/prec_takeoff_status.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_gnss.h>
 #include <uORB/topics/vehicle_land_detected.h>
 
 #include "VteTask.h"
@@ -74,6 +74,8 @@ public:
 
 	// Cache home as the pad's absolute position if it is near the landed vehicle's recent GNSS fix.
 	bool updateHomeReference(bool report_distance_warning = true);
+	// Disabling the task ends the monitored flight; do not reuse its pad after re-enabling.
+	void clearHomeReference() { _home_ref = {}; }
 
 private:
 	friend class ::VisionTargetEstTest;
@@ -88,7 +90,7 @@ private:
 
 	uORB::Subscription _prec_takeoff_status_sub{ORB_ID(prec_takeoff_status)};
 	uORB::Subscription _home_position_sub{ORB_ID(home_position)};
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 
 	HomeReference _home_ref{};

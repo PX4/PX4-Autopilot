@@ -54,16 +54,23 @@ static constexpr uint16_t DIEID = 0x2260; // INA226 die + revision 0
 // Measurement scaling (from datasheet)
 static constexpr float V_LSB = 1.25e-3f; // bus voltage: V per LSB
 static constexpr float CAL_K = 5.12e-3f; // CALIBRATION = CAL_K / (current_lsb * R_SHUNT)
+static constexpr float CALIBRATION_MAX = 0x7fff; // CALIBRATION is a 15 bit field
 
 // Sample timing
-// Default ADC config produces one averaged sample every (588us + 588us) * 64 = 75.264 ms. Poll a hair slower.
-static constexpr hrt_abstime SAMPLE_INTERVAL_US = 100_ms;
+// Each tick triggers one conversion, (1100us shunt + 588us bus) * 4 averages = 6.752 ms, read on the next tick.
+static constexpr hrt_abstime SAMPLE_INTERVAL_US = 10_ms;
+// Worst case from the trigger to a completed conversion: maximum conversion times from the datasheet,
+// (1210us + 646us) * 4, plus the 40us recovery from power-down.
+static constexpr hrt_abstime CONVERSION_TIME_MAX_US = (1210 + 646) * 4 + 40;
+// The conversion starts when the trigger write ends, at least this many bit times after the write
+// starts: address, register pointer and two data bytes, not counting the ACKs.
+static constexpr uint32_t TRIGGER_WRITE_BITS = 32;
 
 // Recovery / robustness timing
 static constexpr hrt_abstime INIT_RETRY_INTERVAL_US = 500_ms;
 static constexpr hrt_abstime RESET_DELAY_US = 1_ms;
 static constexpr hrt_abstime DISCONNECT_DEBOUNCE_US = 2_s;
-static constexpr uint8_t MAX_CONSECUTIVE_FAILURES = DISCONNECT_DEBOUNCE_US / SAMPLE_INTERVAL_US;
+static constexpr hrt_abstime CONFIG_CHECK_INTERVAL_US = 100_ms;
 
 // Register map (subset used by this driver)
 enum class Register : uint8_t {
@@ -149,14 +156,14 @@ private:
 		UNINITIALIZED, // I2C::init() not yet called successfully — retry until it does
 		RESET, // soft-reset the device, then transition to CONFIGURE
 		CONFIGURE, // write CALIBRATION / CONFIGURATION, then transition to MEASURE
-		MEASURE, // steady-state: read BUSVOLTAGE / CURRENT, publish, repeat
+		MEASURE, // steady-state: trigger, read BUSVOLTAGE / CURRENT, publish, repeat
 	};
 
 	int collect();
 
-	// Rotates through the configuration registers one per call. Returns false
-	// if a read fails or the value doesn't match what we wrote.
-	bool checkConfigurationRotating();
+	// Returns PX4_OK, -EIO if the read fails, or -EBADMSG if CALIBRATION doesn't match
+	// what we wrote (the device has been reset behind our back).
+	int checkCalibration();
 
 	int registerRead(ina226::Register reg, uint16_t &value);
 	int registerWrite(ina226::Register reg, uint16_t value);
@@ -165,9 +172,11 @@ private:
 	Battery _battery;
 
 	State _state{State::UNINITIALIZED};
-	uint8_t _consecutive_failures{0};
+	hrt_abstime _failing_since{0}; // first failure of the current run of failures, 0 if none
 
-	uint8_t _next_reg_to_check{0};
+	hrt_abstime _last_config_check{0};
+	hrt_abstime _trigger_time{0}; // when the last conversion was triggered
+	const hrt_abstime _trigger_write_min_us; // shortest time the trigger write takes on the bus
 
 	// Configuration computed from params
 	float _current_lsb{0.f};
@@ -175,11 +184,9 @@ private:
 	uint16_t _config_value{0}; // CONFIGURATION register value we wrote
 
 	// Perf counters
-	perf_counter_t _sample_perf;
-	perf_counter_t _comms_errors;
-	perf_counter_t _collection_errors;
-	perf_counter_t _bad_register_perf;
-	perf_counter_t _reinit_perf;
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, "ina226_read")};
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, "ina226_com_err")};
+	perf_counter_t _reinit_perf{perf_alloc(PC_COUNT, "ina226_reinit")};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::INA226_CURRENT>) _param_ina226_current,

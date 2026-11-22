@@ -10,9 +10,8 @@ applyTo: "src/**,boards/**,platforms/**,msg/**,cmake/**,Makefile,CMakeLists.txt,
 - Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
 - Scope should match the primary area of changed files
 - Append `!` before the colon for breaking changes
-- Both squash merge and rebase merge are enabled; merge commits are disabled
-- Commits should be atomic and independently revertable
-- WIP or review-response commits should be squashed before merge
+- PRs are typically squash-merged, so the PR title becomes the commit message on `main`; merge commits are disabled
+- Review feedback is addressed with new commits; do not ask for a squash or force-push during review, except to rebase onto `main`
 
 ## Core Checks (always apply)
 

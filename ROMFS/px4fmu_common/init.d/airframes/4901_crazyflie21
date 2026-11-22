@@ -20,7 +20,7 @@
 . ${R}etc/init.d/rc.mc_defaults
 
 param set-default SYS_HAS_MAG 0
-param set-default EKF2_OF_CTRL 1
+param set-default EKF2_OF0_CTRL 1
 param set-default EKF2_GPS_CTRL 0
 param set-default EKF2_MAG_TYPE 5
 
@@ -55,6 +55,7 @@ param set-default PWM_MAIN_TIM0 3921
 param set-default PWM_MAIN_TIM1 3921
 
 # Square quadrotor X clockwise numbering
+param set-default CA_ROTOR_COUNT 4
 param set-default CA_ROTOR0_PX 1
 param set-default CA_ROTOR0_PY 1
 param set-default CA_ROTOR1_PX -1

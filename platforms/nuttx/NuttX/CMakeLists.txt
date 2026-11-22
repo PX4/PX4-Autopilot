@@ -38,6 +38,10 @@ set(APPS_DIR ${NUTTX_SRC_DIR}/apps)
 # NuttX build
 ###############################################################################
 
+# The NuttX libraries and apps are built by make invocations that ninja treats
+# as single opaque steps. Run them through a wrapper that adds parallel jobs.
+set(NUTTX_MAKE ${CMAKE_CURRENT_SOURCE_DIR}/tools/px4_nuttx_make.sh)
+
 configure_file(${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/Make.defs.in ${CMAKE_CURRENT_BINARY_DIR}/nuttx/Make.defs)
 
 set(EXTRA_NUTTX_CONFIG_FILE ${CMAKE_CURRENT_BINARY_DIR}/extra_config_options)
@@ -155,7 +159,7 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/apps/libapps.a
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/px4.pdat ${APPS_DIR}/builtin/registry/px4.pdat
 	COMMAND ${CMAKE_COMMAND} -E touch_nocreate ${APPS_DIR}/builtin/registry/.updated
 	COMMAND ${CMAKE_COMMAND} -E touch_nocreate ${APPS_DIR}/builtin/builtin_list.c
-	COMMAND make --no-print-directory --silent TOPDIR="${NUTTX_DIR}" > ${CMAKE_CURRENT_BINARY_DIR}/nuttx_apps.log
+	COMMAND ${NUTTX_MAKE} --no-print-directory --silent TOPDIR="${NUTTX_DIR}" > ${CMAKE_CURRENT_BINARY_DIR}/nuttx_apps.log
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${APPS_DIR}/libapps.a ${CMAKE_CURRENT_BINARY_DIR}/apps/libapps.a
 	DEPENDS ${nuttx_apps_files} nuttx_context ${NUTTX_DIR}/include/nuttx/config.h
 		${CMAKE_CURRENT_BINARY_DIR}/px4.bdat
@@ -189,7 +193,8 @@ function(add_nuttx_dir nuttx_lib nuttx_lib_dir kernel extra target)
 	endif()
 
 	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/nuttx/${nuttx_lib_dir}/lib${nuttx_lib}.a
-		COMMAND make -C ${nuttx_lib_dir} --no-print-directory --silent ${nuttx_lib_target} TOPDIR="${NUTTX_DIR}" KERNEL=${kernel} EXTRAFLAGS=${extra} ${bindir_arg}
+		BYPRODUCTS ${nuttx_${nuttx_lib}_byproducts}
+		COMMAND ${NUTTX_MAKE} -C ${nuttx_lib_dir} --no-print-directory --silent ${nuttx_lib_target} TOPDIR="${NUTTX_DIR}" KERNEL=${kernel} EXTRAFLAGS=${extra} ${bindir_arg}
 		COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_DIR}/${nuttx_lib_dir}/lib${nuttx_lib}.a ${CMAKE_CURRENT_BINARY_DIR}/nuttx/${nuttx_lib_dir}/lib${nuttx_lib}.a
 		DEPENDS
 			${nuttx_lib_files}
@@ -227,6 +232,11 @@ if (NOT CONFIG_BUILD_FLAT)
 	add_dependencies(nuttx_proxies_build nuttx_stubs_build) # can't build these in parallel
 	add_nuttx_dir(stubs syscall y -D__KERNEL__ stubs)
 else()
+	if(CONFIG_ARCH_RISCV)
+		# The arch make also builds the RISC-V startup code, as a head object
+		# next to libarch; platforms/nuttx/CMakeLists.txt links it.
+		set(nuttx_arch_byproducts ${NUTTX_DIR}/arch/risc-v/src/${CONFIG_ARCH_CHIP}_head.o)
+	endif()
 	add_nuttx_dir(arch arch/${CONFIG_ARCH}/src y -D__KERNEL__ all)
 	add_nuttx_dir(c libs/libc n "" all)
 	add_nuttx_dir(mm mm n "" mm)
@@ -234,6 +244,11 @@ endif()
 
 if(CONFIG_NET)
 	add_nuttx_dir(net net y -D__KERNEL__ all)
+endif()
+
+if(CONFIG_OPENAMP)
+	add_nuttx_dir(openamp openamp y -D__KERNEL__ all)
+	add_dependencies(nuttx_openamp nuttx_drivers)
 endif()
 
 ###############################################################################

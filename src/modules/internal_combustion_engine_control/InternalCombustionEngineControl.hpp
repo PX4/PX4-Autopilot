@@ -103,11 +103,6 @@ private:
 		Rest
 	};
 
-	enum class UserOnOffRequest {
-		Off,
-		On
-	} _user_request{UserOnOffRequest::Off};
-
 	enum class ICESource {
 		ArmingState,
 		Aux1,
@@ -119,6 +114,7 @@ private:
 	hrt_abstime _last_time_run{0};
 	hrt_abstime _rpm_timestamp{0};
 
+	bool _user_request_motor_on{false};
 	bool _ignition_on{false};
 	bool _is_engine_running{false};
 	bool _idle_control_active{false};
@@ -160,8 +156,8 @@ private:
 		(ParamFloat<px4::params::ICE_CHOKE_ST_DUR>) _param_ice_choke_st_dur,
 		(ParamFloat<px4::params::ICE_STRT_DUR>) _param_ice_strt_dur,
 		(ParamFloat<px4::params::ICE_MIN_RUN_RPM>) _param_ice_min_run_rpm,
-		(ParamInt<px4::params::ICE_STRT_ATTEMPT>) _param_ice_strt_attempts,
-		(ParamInt<px4::params::ICE_RUN_FAULT_D>) _param_ice_running_fault_detection,
+		(ParamInt<px4::params::ICE_STRT_ATTEMPT>) _param_ice_strt_attempt,
+		(ParamInt<px4::params::ICE_RUN_FAULT_D>) _param_ice_run_fault_d,
 		(ParamFloat<px4::params::ICE_STRT_THR>) _param_ice_strt_thr,
 		(ParamInt<px4::params::ICE_STOP_CHOKE>) _param_ice_stop_choke,
 		(ParamFloat<px4::params::ICE_THR_SLEW>) _param_ice_thr_slew,

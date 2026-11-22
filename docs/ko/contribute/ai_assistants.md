@@ -77,3 +77,7 @@ Contributions that ignore them may be closed by maintainers without detailed rev
 - **Review discussion is between humans.**
   Using an AI tool to help you understand a review comment is fine; posting model output you do not understand as your reply is not.
   AI-assisted review is acceptable when clearly labeled as such; presenting undisclosed AI review as your own reading is not.
+- **Automated AI reviews.**
+  Maintainers may request an [AI pull request review](../test_and_ci/ai_review.md) of your PR, which is posted as a labelled review comment.
+  Treat its findings like any other reviewer's: fix them or reply explaining why they do not apply.
+  It can be wrong, and maintainers make the final decision.

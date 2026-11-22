@@ -1,5 +1,10 @@
 # 模块参考：估计器
 
+:::info
+**This page is [auto-generated](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/px4moduledoc/markdownout.py) from the source code** using the build command: `make module_documentation`.
+Do not edit it directly; fix the module documentation in the [PX4-Autopilot](https://github.com/PX4/PX4-Autopilot) source instead.
+:::
+
 ## AttitudeEstimatorQ
 
 Source: [modules/attitude_estimator_q](https://github.com/PX4/PX4-Autopilot/tree/main/src/modules/attitude_estimator_q)
@@ -52,7 +57,7 @@ Source: [modules/ekf2](https://github.com/PX4/PX4-Autopilot/tree/main/src/module
 
 ### 描述
 
-基于扩展卡尔曼滤波器的姿态和位置估计器。 该模块同时应用于多旋翼和固定翼飞机。
+基于扩展卡尔曼滤波器的姿态和位置估计器。该模块同时应用于多旋翼和固定翼飞机。
 
 The documentation can be found on the [ECL/EKF Overview & Tuning](../advanced_config/tuning_the_ecl_ekf.md) page.
 

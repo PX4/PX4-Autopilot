@@ -17,8 +17,7 @@ Tune strings are defined using [ANSI Music notation](http://artscene.textfiles.c
 More information about the format can be found in [QBasic PLAY statement](https://en.wikibooks.org/wiki/QBasic/Appendix#PLAY) (Wikibooks) and has been reproduced in [tune_definition.desc](https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/tunes/tune_definition.desc).
 :::
 
-创建新调节的最简单方式是使用音乐编辑器。
-这允许您编辑音乐并在您的电脑上播放， 然后导出为 PX4 可以播放的格式。
+创建新调节的最简单方式是使用音乐编辑器。这允许您编辑音乐并在您的电脑上播放， 然后导出为 PX4 可以播放的格式。
 
 ANSI 音乐在 ANSI BBS 系统中很受欢迎，因此最好的编辑工具是 DOS 实用程序。
 On Windows, one option is to use _Melody Master_ within _Dosbox_.
@@ -54,8 +53,7 @@ On Windows, one option is to use _Melody Master_ within _Dosbox_.
    - Press **F7**, the scroll down the list of output formats on the right to get to ANSI.
      The file will be exported to the _root_ of the Melody Master directory (with the same name and a file-type specific extension).
 
-8. 打开文件。
-   输出可能看起来像这样：
+8. 打开文件。输出可能看起来像这样：
 
    ![ANSI Output from file](../../assets/tunes/tune_musicmaker_ansi_output.png)
 

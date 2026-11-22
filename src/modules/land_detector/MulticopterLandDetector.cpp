@@ -82,6 +82,9 @@ MulticopterLandDetector::MulticopterLandDetector()
 	_paramHandle.crawlSpeed = param_find("MPC_LAND_CRWL");
 	_minimum_thrust_8s_hysteresis.set_hysteresis_time_from(false, 8_s);
 	_freefall_hysteresis.set_hysteresis_time_from(false, 300_ms);
+
+	// all detection states are time-based hysteresis of 300 ms or longer, so 50 Hz is plenty
+	_set_update_interval(20_ms);
 }
 
 void MulticopterLandDetector::_update_topics()
@@ -209,8 +212,8 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 
 	_land_detected.horizontal_movement |= _horizontal_movement;
 
-	if (lpos_available && _vehicle_local_position.dist_bottom_valid && _param_lndmc_alt_gnd_effect.get() > 0) {
-		_below_gnd_effect_hgt = _vehicle_local_position.dist_bottom < _param_lndmc_alt_gnd_effect.get();
+	if (lpos_available && _vehicle_local_position.dist_bottom_valid && _param_lndmc_alt_gnd.get() > 0) {
+		_below_gnd_effect_hgt = _vehicle_local_position.dist_bottom < _param_lndmc_alt_gnd.get();
 
 	} else {
 		_below_gnd_effect_hgt = false;

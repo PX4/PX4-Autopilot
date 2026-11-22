@@ -46,7 +46,6 @@
 #include "estimator_interface.h"
 
 #if defined(CONFIG_EKF2_GNSS)
-# include "aid_sources/gnss/gnss_checks.hpp"
 # include "yaw_estimator/EKFGSF_yaw.h"
 #endif // CONFIG_EKF2_GNSS
 
@@ -138,20 +137,15 @@ public:
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	const auto &aid_src_optical_flow() const { return _aid_src_optical_flow; }
+	const auto &aid_src_optical_flow(uint8_t slot = 0) const { return _flow_aiding.source(slot)._aid_src; }
 
-	const Vector2f &getFlowVelBody() const { return _flow_vel_body; }
-	Vector2f getFlowVelNE() const { return Vector2f(_R_to_earth * Vector3f(getFlowVelBody()(0), getFlowVelBody()(1), 0.f)); }
+	const Vector2f &getFlowVelBody(uint8_t slot = 0) const { return _flow_aiding.source(slot)._vel_body; }
+	Vector2f getFlowVelNE(uint8_t slot = 0) const { return Vector2f(_R_to_earth * Vector3f(getFlowVelBody(slot)(0), getFlowVelBody(slot)(1), 0.f)); }
 
-	const Vector2f &getFilteredFlowVelBody() const { return _flow_vel_body_lpf.getState(); }
-	Vector2f getFilteredFlowVelNE() const { return Vector2f(_R_to_earth * Vector3f(getFilteredFlowVelBody()(0), getFilteredFlowVelBody()(1), 0.f)); }
+	const Vector2f &getFilteredFlowVelBody(uint8_t slot = 0) const { return _flow_aiding.source(slot)._vel_body_lpf.getState(); }
+	Vector2f getFilteredFlowVelNE(uint8_t slot = 0) const { return Vector2f(_R_to_earth * Vector3f(getFilteredFlowVelBody(slot)(0), getFilteredFlowVelBody(slot)(1), 0.f)); }
 
-	const Vector2f &getFlowCompensated() const { return _flow_rate_compensated; }
-	const Vector2f &getFlowUncompensated() const { return _flow_sample_delayed.flow_rate; }
-
-	const Vector3f getFlowGyro() const { return _flow_sample_delayed.gyro_rate; }
-	const Vector3f &getFlowGyroBias() const { return _flow_gyro_bias; }
-	const Vector3f &getFlowRefBodyRate() const { return _ref_body_rate; }
+	uint8_t getPrimaryFlowSlot() const { return _flow_aiding.primarySlot(); }
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION) && defined(MODULE_NAME)
@@ -285,7 +279,22 @@ public:
 	void fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index,
 					bool constrain_variances = true);
 
+	// Sequential update of one scalar of a vector observation: P is updated now, the state correction is
+	// added to state_correction. innov is the a priori innovation, corrected here for state_correction.
+	// Call applyStateCorrection() once after the last scalar.
+	void accumulateDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index,
+					      VectorState &state_correction, bool constrain_variances = true);
+
+	// Kalman gain P * H / innov_var for a scalar observation with Jacobian H
+	VectorState computeKalmanGain(const VectorState &H, const float innov_var) const;
+
 	bool measurementUpdate(VectorState &K, const VectorState &H, const float R, const float innovation);
+
+	// see accumulateDirectStateMeasurement()
+	bool accumulateMeasurementUpdate(VectorState &K, const VectorState &H, const float R, const float innovation,
+					 VectorState &state_correction);
+
+	void applyStateCorrection(const VectorState &correction);
 
 	// gyro bias
 	const Vector3f &getGyroBias() const { return _state.gyro_bias; } // get the gyroscope bias in rad/s
@@ -301,12 +310,16 @@ public:
 	// latitude-dependent gravity magnitude
 	float getGravityMss() const { return _gravity; }
 
+	// latitude-dependent Earth rotation rate in rad/s
+	const Vector3f &getEarthRateNED() const { return _earth_rate_NED; }
+
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	const Vector3f &getMagEarthField() const { return _state.mag_I; }
 
 	const Vector3f &getMagBias() const { return _state.mag_B; }
 	Vector3f getMagBiasVariance() const { return getStateVariance<State::mag_B>(); } // get the mag bias variance in Gauss
 	float getMagBiasLimit() const { return 0.5f; } // 0.5 Gauss
+	bool isMagBiasObservable() const { return _mag_bias_observable; }
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 	bool accel_bias_inhibited() const { return _accel_bias_inhibit[0] || _accel_bias_inhibit[1] || _accel_bias_inhibit[2]; }
@@ -401,14 +414,10 @@ public:
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_GNSS)
-	// set minimum continuous period without GPS fail required to mark a healthy GPS status
-	void set_min_required_gps_health_time(uint32_t time_us) { _min_gps_health_time_us = time_us; }
+	// After a GNSS heading failure, a yaw reset to the GNSS heading waits this long
+	void set_gnss_yaw_reset_wait(uint32_t time_us) { _gnss_yaw_reset_wait_us = time_us; }
 
-	const GnssChecks::gps_check_fail_status_u &gps_check_fail_status() const { return _gnss_checks.getFailStatus(); }
-	const decltype(GnssChecks::gps_check_fail_status_u::flags) &gps_check_fail_status_flags() const { return _gnss_checks.getFailStatus().flags; }
-	uint16_t gps_check_fail_status_enabled_mask() const { return _gnss_checks.getEnabledChecksFailStatusMask(); }
-
-	bool gps_checks_passed() const { return _gnss_checks.passed(); };
+	bool gps_checks_passed() const { return _gnss_usable; };
 
 	const BiasEstimator::status &getGpsHgtBiasEstimatorStatus() const { return _gps_hgt_b_est.getStatus(); }
 
@@ -473,6 +482,9 @@ public:
 
 	friend class AuxGlobalPosition;
 	friend class AgpSource;
+	friend class EkfFlowFusionOrderTest;
+	friend class OpticalFlowAiding;
+	friend class OpticalFlowSource;
 
 private:
 
@@ -537,23 +549,22 @@ private:
 	uint64_t _time_last_hor_vel_fuse{0};	///< time the last fusion of horizontal velocity measurements was performed (uSec)
 	uint64_t _time_last_ver_vel_fuse{0};	///< time the last fusion of verticalvelocity measurements was performed (uSec)
 	uint64_t _time_last_heading_fuse{0};
-	uint64_t _time_heading_fusion_start{0};	///< start of the current uninterrupted period of heading observation fusion, while yaw was set manually (uSec)
 	uint64_t _time_last_terrain_fuse{0};
 
 	LatLonAlt _last_known_gpos{};
 
 	Vector3f _earth_rate_NED{}; ///< earth rotation vector (NED) in rad/s
-	double _earth_rate_lat_ref_rad{0.0}; ///< latitude at which the earth rate was evaluated (radians)
+	double _earth_rate_lat_ref_rad{static_cast<double>(NAN)}; ///< latitude at which the earth rate was evaluated (radians)
 
 	float _gravity{CONSTANTS_ONE_G}; ///< latitude-dependent gravity magnitude (m/s^2)
 
 	Dcmf _R_to_earth{};	///< transformation matrix from body frame to earth frame from last EKF prediction
 
-	static constexpr uint64_t _kAccelHorizLpfTimeConstant = 1000000; // 1 s
+	static constexpr float _kAccelHorizLpfTimeConstant = 1.f;
 	AlphaFilter<Vector2f> _accel_horiz_lpf{_kAccelHorizLpfTimeConstant}; ///< Low pass filtered horizontal earth frame acceleration (m/sec**2)
 
 #if defined(CONFIG_EKF2_WIND)
-	static constexpr uint64_t _kHeightRateLpfTimeConstant = 10000000; // 10 s
+	static constexpr float _kHeightRateLpfTimeConstant = 10.f;
 	AlphaFilter<float> _height_rate_lpf{_kHeightRateLpfTimeConstant};
 #endif // CONFIG_EKF2_WIND
 
@@ -573,21 +584,6 @@ private:
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	estimator_aid_source1d_s _aid_src_rng_hgt {};
 #endif // CONFIG_EKF2_RANGE_FINDER
-
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	estimator_aid_source2d_s _aid_src_optical_flow {};
-
-	// optical flow processing
-	Vector3f _flow_gyro_bias{};	///< bias errors in optical flow sensor rate gyro outputs (rad/sec)
-	Vector3f _ref_body_rate{};
-
-	Vector2f _flow_vel_body{};                      ///< velocity from corrected flow measurement (body frame)(m/s)
-	AlphaFilter<Vector2f> _flow_vel_body_lpf{static_cast<uint64_t>(_dt_ekf_avg * 1e6f), _kSensorLpfTimeConstant}; ///< filtered velocity from corrected flow measurement (body frame)(m/s)
-	uint32_t _flow_counter{0};                      ///< number of flow samples read for initialization
-
-	Vector2f _flow_rate_compensated{}; ///< measured angular rate of the image about the X and Y body axes after removal of body rotation (rad/s), RH rotation is positive
-	AlphaFilter<Vector2f> _flow_rate_compensated_lpf{static_cast<uint64_t>(_dt_ekf_avg * 1e6f), _kSensorLpfTimeConstant};
-#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 	estimator_aid_source1d_s _aid_src_airspeed {};
@@ -616,6 +612,10 @@ private:
 	// height sensor status
 	bool _gps_intermittent{true};           ///< true if data into the buffer is intermittent
 
+	uint64_t _time_last_gnss_sample_accepted_us{0}; ///< last delayed-horizon time a GNSS sample was usable and within the velocity limit (us)
+	bool _gnss_usable{false};                   ///< the latest GNSS sample at the fusion time horizon was usable
+	bool _gnss_checks_passed_reported{false};   ///< gps_checks_passed was reported since the last reset
+
 	HeightBiasEstimator _gps_hgt_b_est{HeightSensor::GNSS, _height_sensor_ref};
 
 	estimator_aid_source1d_s _aid_src_gnss_hgt{};
@@ -624,8 +624,13 @@ private:
 
 	uint64_t _time_last_gnss_hgt_rejected{0};
 
+	// selection_count of the last GNSS sample used by the position and height control, to detect a receiver change
+	uint8_t _gnss_pos_selection_count{0};
+	uint8_t _gnss_hgt_selection_count{0};
+
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	estimator_aid_source1d_s _aid_src_gnss_yaw {};
+	uint64_t _time_last_gnss_yaw_fail_us{0}; ///< last fusion failure or spoofing/jamming report of the heading receiver
 # endif // CONFIG_EKF2_GNSS_YAW
 #endif // CONFIG_EKF2_GNSS
 
@@ -643,15 +648,15 @@ private:
 
 	// Variables used by the initial filter alignment
 	bool _is_first_imu_sample{true};
-	static constexpr uint64_t _kSensorLpfTimeConstant = 90000; // 90 ms
-	AlphaFilter<Vector3f> _accel_lpf{static_cast<uint64_t>(_dt_ekf_avg * 1e6f), _kSensorLpfTimeConstant};	///< filtered accelerometer measurement used to align tilt (m/s/s)
-	AlphaFilter<Vector3f> _gyro_lpf{static_cast<uint64_t>(_dt_ekf_avg * 1e6f), _kSensorLpfTimeConstant};	///< filtered gyro measurement used for alignment excessive movement check (rad/sec)
+	static constexpr float _kSensorLpfTimeConstant = 0.09f;
+	AlphaFilter<Vector3f> _accel_lpf{_dt_ekf_avg, _kSensorLpfTimeConstant};	///< filtered accelerometer measurement used to align tilt (m/s/s)
+	AlphaFilter<Vector3f> _gyro_lpf{_dt_ekf_avg, _kSensorLpfTimeConstant};	///< filtered gyro measurement used for alignment excessive movement check (rad/sec)
 
 #if defined(CONFIG_EKF2_BAROMETER)
 	estimator_aid_source1d_s _aid_src_baro_hgt {};
 
 	// Variables used to perform in flight resets and switch between height sources
-	AlphaFilter<float> _baro_lpf{static_cast<uint64_t>(_dt_ekf_avg * 1e6f), _kSensorLpfTimeConstant};	///< filtered barometric height measurement (m)
+	AlphaFilter<float> _baro_lpf{_dt_ekf_avg, _kSensorLpfTimeConstant};	///< filtered barometric height measurement (m)
 	uint32_t _baro_counter{0};		///< number of baro samples read during initialisation
 
 	HeightBiasEstimator _baro_b_est{HeightSensor::BARO, _height_sensor_ref};
@@ -660,17 +665,21 @@ private:
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// used by magnetometer fusion mode selection
-	AlphaFilter<float> _mag_heading_innov_lpf{static_cast<uint64_t>(_dt_ekf_avg * 1e6f), _kSensorLpfTimeConstant};
+	AlphaFilter<float> _mag_heading_innov_lpf{_dt_ekf_avg, _kSensorLpfTimeConstant};
 	uint32_t _min_mag_health_time_us{1'000'000}; ///< magnetometer is marked as healthy only after this amount of time
 
 	estimator_aid_source3d_s _aid_src_mag{};
 
-	AlphaFilter<Vector3f> _mag_lpf{static_cast<uint64_t>(_dt_ekf_avg * 1e6f), _kSensorLpfTimeConstant};	///< filtered magnetometer measurement for instant reset (Gauss)
+	AlphaFilter<Vector3f> _mag_lpf{_kSensorLpfTimeConstant};	///< filtered magnetometer measurement for instant reset (Gauss)
+	uint64_t _mag_lpf_time_last_us{0};
 	uint32_t _mag_counter{0};		///< number of magnetometer samples read during initialisation
 
 	// Variables used to control activation of post takeoff functionality
 	uint64_t _flt_mag_align_start_time{0};	///< time that inflight magnetic field alignment started (uSec)
 	uint64_t _time_last_mag_check_failing{0};
+
+	float _mag_bias_reset_heading{0.f};	///< heading at the last mag bias reset, moved along with heading resets (rad)
+	bool _mag_bias_observable{false};	///< true when the vehicle has yawed enough since the last mag bias reset
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 	// variables used to inhibit accel bias learning
@@ -717,7 +726,7 @@ private:
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// ekf sequential fusion of magnetometer measurements
-	bool fuseMag(const Vector3f &mag, const float R_MAG, VectorState &H, estimator_aid_source3d_s &aid_src,
+	bool fuseMag(const float R_MAG, VectorState &H, estimator_aid_source3d_s &aid_src,
 		     bool update_all_states = false, bool update_tilt = false);
 
 	// fuse magnetometer declination measurement
@@ -808,6 +817,7 @@ private:
 
 #if defined(CONFIG_EKF2_TERRAIN)
 	void initTerrain();
+	void resetTerrainTo(float new_terrain, float var);
 	float getTerrainVPos() const { return isTerrainEstimateValid() ? _state.terrain : _last_on_ground_posD; }
 	void controlTerrainFakeFusion();
 
@@ -821,10 +831,6 @@ private:
 	float getRngVar() const;
 # endif // CONFIG_EKF2_RANGE_FINDER
 
-# if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	void resetTerrainToFlow();
-# endif // CONFIG_EKF2_OPTICAL_FLOW
-
 #endif // CONFIG_EKF2_TERRAIN
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
@@ -836,27 +842,12 @@ private:
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	// control fusion of optical flow observations
-	void controlOpticalFlowFusion(const imuSample &imu_delayed);
-	void resetFlowFusion(const flowSample &flow_sample);
-	void stopFlowFusion();
-
-	void updateOnGroundMotionForOpticalFlowChecks();
-	void resetOnGroundMotionForOpticalFlowChecks();
-
-	// calculate the measurement variance for the optical flow sensor (rad/sec)^2
-	float calcOptFlowMeasVar(const flowSample &flow_sample) const;
-
-	// calculate optical flow body angular rate compensation
-	void calcOptFlowBodyRateComp(const flowSample &flow_sample);
-
-	float predictFlowHagl() const;
-	float predictFlowRange() const;
-	Vector2f predictFlow(const Vector3f &flow_gyro) const;
+	float predictFlowHagl(const Vector3f &sensor_pos_body) const;
+	float predictFlowRange(const Vector3f &sensor_pos_body) const;
+	Vector2f predictFlow(const Vector3f &sensor_pos_body, const Vector3f &flow_gyro) const;
 
 	// fuse optical flow line of sight rate measurements
-	bool fuseOptFlow(VectorState &H, bool update_terrain);
-
+	bool fuseOptFlow(estimator_aid_source2d_s &aid_src, VectorState &H, bool update_terrain);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
@@ -883,8 +874,6 @@ private:
 
 	// Control the filter fusion modes
 	void controlFusionModes(const imuSample &imu_delayed);
-
-	void updateYawManualValidity();
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	// control fusion of external vision observations
@@ -917,7 +906,7 @@ private:
 	bool fuseEvVelocity(estimator_aid_source3d_s &aid_src, const extVisionSample &ev_sample);
 	void fuseBodyVelocity(estimator_aid_source1d_s &aid_src, float &innov_var, VectorState &H)
 	{
-		VectorState Kfusion = P * H / innov_var;
+		VectorState Kfusion = computeKalmanGain(H, innov_var);
 		measurementUpdate(Kfusion, H, aid_src.observation_variance, aid_src.innovation);
 		aid_src.fused = true;
 	}
@@ -935,6 +924,7 @@ private:
 	void updateGnssPos(const gnssSample &gnss_sample, estimator_aid_source2d_s &aid_src);
 	bool isGnssVelResetAllowed() const;
 	bool isGnssPosResetAllowed() const;
+
 	void controlGnssYawEstimator(estimator_aid_source3d_s &aid_src_vel);
 	bool tryYawEmergencyReset();
 	void resetVelocityToGnss(estimator_aid_source3d_s &aid_src);
@@ -945,7 +935,7 @@ private:
 	bool isGnssHgtResetAllowed();
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
-	void controlGnssYawFusion(const gnssSample &gps_sample);
+	void controlGnssYawFusion(const imuSample &imu_delayed);
 	void stopGnssYawFusion();
 
 	// fuse the yaw angle obtained from a dual antenna GPS unit
@@ -955,7 +945,7 @@ private:
 	// return true if the reset was successful
 	bool resetYawToGnss(float gnss_yaw, float gnss_yaw_offset);
 
-	void updateGnssYaw(const gnssSample &gps_sample);
+	void updateGnssYaw(const gnssYawSample &gnss_yaw_sample);
 
 # endif // CONFIG_EKF2_GNSS_YAW
 
@@ -985,7 +975,7 @@ private:
 	// control fusion of magnetometer observations
 	void controlMagFusion(const imuSample &imu_sample);
 
-	bool checkHaglYawResetReq() const;
+	bool isMagInFlightAlignmentRequired() const;
 	bool isHeadingResetToMagAllowed() const;
 
 	void resetMagHeading(const Vector3f &mag);
@@ -993,6 +983,7 @@ private:
 	bool haglYawResetReq();
 
 	void checkMagHeadingConsistency(const magSample &mag_sample);
+	void updateMagBiasObservability();
 
 	bool checkMagField(const Vector3f &mag);
 	static bool isMeasuredMatchingExpected(float measured, float expected, float gate);
@@ -1090,8 +1081,8 @@ private:
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	HeightBiasEstimator _ev_hgt_b_est {HeightSensor::EV, _height_sensor_ref};
 	PositionBiasEstimator _ev_pos_b_est{PositionSensor::EV, _position_sensor_ref};
-	static constexpr uint64_t _kQuatErrorLpfTimeConstant = 10000000; // 10 s
-	AlphaFilter<Quatf> _ev_q_error_filt{static_cast<uint64_t>(_dt_ekf_avg * 1e6f), _kQuatErrorLpfTimeConstant};
+	static constexpr float _kQuatErrorLpfTimeConstant = 10.f;
+	AlphaFilter<Quatf> _ev_q_error_filt{_dt_ekf_avg, _kQuatErrorLpfTimeConstant};
 	bool _ev_q_error_initialized{false};
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 

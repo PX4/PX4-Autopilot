@@ -34,7 +34,7 @@
 #include "AUAV_Absolute.hpp"
 
 AUAV_Absolute::AUAV_Absolute(const I2CSPIDriverConfig &config) :
-	AUAV(config),
+	AUAV(config, STATUS_BYTE_EXPECTED_ABS),
 	_baro_external(config.external)
 {
 }

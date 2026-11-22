@@ -16,10 +16,7 @@ parameters:
     SDLOG_MODE:
       description:
         short: Logging Mode
-        long: 'Determines when to start and stop logging. By default, logging is started
-          when arming the system, and stopped when disarming. Note: The logging start/end
-          points that can be configured here only apply to SD logging. The mavlink
-          backend is started/stopped independently of these points.'
+        long: Only applies to SD card logging; MAVLink logging starts and stops independently.
       type: enum
       values:
         0: when armed until disarm (default)
@@ -54,13 +51,8 @@ parameters:
     SDLOG_MISSION:
       description:
         short: Mission Log
-        long: If enabled, a small additional "mission" log file will be written to
-          the SD card. The log contains just those messages that are useful for tasks
-          like generating flight statistics and geotagging. The different modes can
-          be used to further reduce the logged data (and thus the log file size).
-          For example, choose geotagging mode to only log data required for geotagging.
-          Note that the normal/full log is still created, and contains all the data
-          in the mission log (and more).
+        long: Writes a small extra log with only the messages needed for flight statistics
+          and geotagging. The full log is still written and contains all of this data.
       type: enum
       values:
         0: Disabled
@@ -70,33 +62,21 @@ parameters:
       reboot_required: true
     SDLOG_PROFILE:
       description:
-        short: Logging topic profile (integer bitmask)
-        long: 'This integer bitmask controls the set and rates of logged topics. The
-          default allows for general log analysis while keeping the log file size
-          reasonably small. Enabling multiple sets leads to higher bandwidth requirements
-          and larger log files. Set bits true to enable: 0 : Default set (used for
-          general log analysis) 1 : Full rate estimator (EKF2) replay topics 2 : Topics
-          for thermal calibration (high rate raw IMU and Baro sensor data) 3 : Topics
-          for system identification (high rate actuator control and IMU data) 4 :
-          Full rates for analysis of fast maneuvers (RC, attitude, rates and actuators)
-          5 : Debugging topics (debug_*.msg topics, for custom code) 6 : Topics for
-          sensor comparison (low rate raw IMU, Baro and magnetometer data) 7 : Topics
-          for computer vision and collision prevention 8 : Raw FIFO high-rate IMU
-          (Gyro) 9 : Raw FIFO high-rate IMU (Accel) 10: Logging of mavlink tunnel
-          message (useful for payload communication debugging)'
+        short: Logging topic profile
+        long: Each additional set increases bandwidth and log size.
       type: bitmask
       bit:
         0: Default set (general log analysis)
-        1: Estimator replay (EKF2)
-        2: Thermal calibration
-        3: System identification
-        4: High rate
-        5: Debug
-        6: Sensor comparison
+        1: Estimator replay (EKF2, full rate)
+        2: Thermal calibration (high-rate raw IMU and baro)
+        3: System identification (high-rate actuator and IMU)
+        4: High rate (RC, attitude, rates and actuators)
+        5: Debug (debug_*.msg topics)
+        6: Sensor comparison (low-rate raw IMU, baro and mag)
         7: Computer Vision and Avoidance
         8: Raw FIFO high-rate IMU (Gyro)
         9: Raw FIFO high-rate IMU (Accel)
-        10: Mavlink tunnel message logging
+        10: Mavlink tunnel message logging (payload debugging)
         11: High rate sensors
       default: 1
       min: 0
@@ -120,14 +100,9 @@ parameters:
     SDLOG_ROTATE:
       description:
         short: Maximum disk usage percentage
-        long: 'Maximum percentage of disk space that logs may occupy during operation,
-          including while writing a new log file. For example, a value of 90 means
-          at least 10% of disk is always kept free, even while writing. A value of
-          100 lets logs fill the disk completely. A value of 0 disables space-based
-          cleanup entirely. At log start, oldest logs are deleted as needed to
-          maintain this guarantee, accounting for the next file write of up to
-          SDLOG_MAX_SIZE. Cleanup always happens at log start (not boot) so logs
-          can be downloaded via FTP before deletion.'
+        long: The limit includes the log being written. Oldest logs are deleted at log start
+          (not boot), leaving room for a file of up to SDLOG_MAX_SIZE, so logs can
+          be downloaded before deletion. 100 lets logs fill the disk. Set to 0 to disable.
       type: int32
       default: 90
       min: 0
@@ -136,12 +111,9 @@ parameters:
     SDLOG_DIRS_MAX:
       description:
         short: Maximum number of log directories to keep
-        long: 'If greater than 0, the oldest log directories are deleted at log
-          start to keep the total directory count at or below this value. This
-          cleanup is orthogonal to the free-space cleanup driven by SDLOG_ROTATE
-          and SDLOG_MAX_SIZE, and is useful for capping log usage by count
-          independent of available disk size (e.g. in SITL). A value of 0
-          disables this count-based cleanup.'
+        long: At log start, oldest log directories are deleted to stay within this count.
+          Independent of SDLOG_ROTATE and SDLOG_MAX_SIZE, e.g. to cap logs by count in SITL.
+          Set to 0 to disable.
       type: int32
       default: 0
       min: 0

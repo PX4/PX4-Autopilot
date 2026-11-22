@@ -102,6 +102,7 @@ UavcanAirspeedBridge::ias_sub_cb(const
 	 * The proper solution is to be developed.
 	 */
 	report.timestamp   		= hrt_absolute_time();
+	report.device_id		= make_uavcan_device_id(msg);
 	report.indicated_airspeed_m_s   = msg.indicated_airspeed;
 	report.true_airspeed_m_s   	= _last_tas_m_s;
 
@@ -110,6 +111,6 @@ UavcanAirspeedBridge::ias_sub_cb(const
 	// Register device capability if not already done
 	if (_node_info_publisher != nullptr) {
 		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(),
-				0, NodeInfoPublisher::DeviceCapability::AIRSPEED); // Device ID not defined for airspeed message
+				0, device_information_s::DEVICE_TYPE_AIRSPEED); // Device ID not defined for airspeed message
 	}
 }

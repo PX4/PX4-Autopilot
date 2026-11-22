@@ -38,4 +38,7 @@ px4_add_library(tecs
 
 target_link_libraries(tecs PRIVATE geo)
 
+# TECS takes its inputs as aggregates filled with designated initializers: flag any field left out
+target_compile_options(tecs PRIVATE -Wmissing-field-initializers)
+
 px4_add_functional_gtest(SRC TECSTest.cpp LINKLIBS tecs motion_planning)

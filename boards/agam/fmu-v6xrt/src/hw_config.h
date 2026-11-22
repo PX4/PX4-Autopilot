@@ -68,7 +68,7 @@
 //#define USE_VBUS_PULL_DOWN
 #define INTERFACE_USART                1
 #define INTERFACE_USART_CONFIG         "/dev/ttyS0,1500000"
-#define BOARD_TYPE                     35
+#define BOARD_TYPE                     1949
 // The board has a 64 Mb part with 16384, 4K secors, but we artificialy limit it to 4 Mb
 // as 1024, 4K sectors
 #define BOARD_FLASH_SECTORS            1024 // Really (16384)
@@ -122,6 +122,24 @@
 
 #ifndef BOOT_DEVICES_FILTER_ONUSB
 #  define BOOT_DEVICES_FILTER_ONUSB (USB0_DEV|SERIAL0_DEV|SERIAL1_DEV)
+#endif
+
+/* Secure-boot variant: when the bootloader build pulls in crypto
+ * support (CONFIG_BOARD_CRYPTO=y -> PX4_CRYPTO), enable signature
+ * verification in the bootloader and tell it where to find the TOC
+ * the app linker reserves. The matching app variant
+ * (agam_fmu-v6xrt_secureboot) places the TOC at the same offset.
+ *
+ * The app image reserves 0x0-0x2000 for the FlexSPI boot header
+ * (IVT/boot data/DCD, see script.ld's .boot_hdr), and .vectors starts
+ * at 0x2000. 0x2800 leaves 2KiB past the vector table (936 B) and
+ * lands on a clean offset.
+ */
+#if defined(PX4_CRYPTO)
+#include <px4_platform_common/crypto_algorithms.h>
+#define BOOTLOADER_USE_SECURITY        1
+#define BOOTLOADER_SIGNING_ALGORITHM   CRYPTO_ED25519
+#define BOARD_IMAGE_TOC_OFFSET         0x2800
 #endif
 
 #endif /* HW_CONFIG_H_ */

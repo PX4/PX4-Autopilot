@@ -188,6 +188,10 @@ void SendProtocol::handle_request_event(const mavlink_message_t &msg) const
 
 	const uint16_t end_sequence = request_event.last_sequence + 1;
 
+	// Called from the receiver thread: lock_send() serializes access to the
+	// shared per-channel mavlink_status_t with Mavlink::task_main.
+	_mavlink.lock_send();
+
 	for (uint16_t sequence = request_event.first_sequence; sequence != end_sequence; ++sequence) {
 		if (_buffer.get_event(sequence, e)) {
 			PX4_DEBUG("sending requested event %i", sequence);
@@ -195,15 +199,16 @@ void SendProtocol::handle_request_event(const mavlink_message_t &msg) const
 
 		} else {
 			mavlink_response_event_error_t event_error{};
-			event_error.target_system = msg.sysid;
 			event_error.target_component = msg.compid;
 			event_error.sequence = sequence;
 			event_error.sequence_oldest_available = _buffer.get_oldest_sequence_after(sequence);
 			event_error.reason = MAV_EVENT_ERROR_REASON_UNAVAILABLE;
 			PX4_DEBUG("Event unavailable (seq=%i oldest=%i)", sequence, event_error.sequence_oldest_available);
-			mavlink_msg_response_event_error_send_struct(_mavlink.get_channel(), &event_error);
+			mavlink_msg_send_struct_target(_mavlink.get_channel(), RESPONSE_EVENT_ERROR, &event_error, msg.sysid);
 		}
 	}
+
+	_mavlink.unlock_send();
 }
 
 void SendProtocol::send_event(const Event &event) const

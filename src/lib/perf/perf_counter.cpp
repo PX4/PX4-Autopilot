@@ -546,7 +546,7 @@ perf_print_counter(perf_counter_t handle)
 			uint32_t tl = pce->time_least.load();
 			uint32_t tm = pce->time_most.load();
 			float m2 = pce->M2.load();
-			float rms = sqrtf(m2 / (ec - 1));
+			float rms = (ec > 1) ? sqrtf(m2 / (ec - 1)) : 0.f;
 			PX4_INFO_RAW("%s: %" PRIu64 " events, %" PRIu64 "us elapsed, %.2fus avg, min %" PRIu32 "us max %" PRIu32
 				     "us %5.3fus rms\n",
 				     handle->name, ec, tt,
@@ -563,7 +563,7 @@ perf_print_counter(perf_counter_t handle)
 			uint32_t tl = pci->time_least.load();
 			uint32_t tm = pci->time_most.load();
 			float m2 = pci->M2.load();
-			float rms = sqrtf(m2 / (ec - 1));
+			float rms = (ec > 1) ? sqrtf(m2 / (ec - 1)) : 0.f;
 
 			PX4_INFO_RAW("%s: %" PRIu64 " events, %.2fus avg, min %" PRIu32 "us max %" PRIu32 "us %5.3fus rms\n",
 				     handle->name, ec,
@@ -601,7 +601,7 @@ perf_print_counter_buffer(char *buffer, int length, perf_counter_t handle)
 			uint32_t tl = pce->time_least.load();
 			uint32_t tm = pce->time_most.load();
 			float m2 = pce->M2.load();
-			float rms = sqrtf(m2 / (ec - 1));
+			float rms = (ec > 1) ? sqrtf(m2 / (ec - 1)) : 0.f;
 			num_written = snprintf(buffer, length,
 					       "%s: %" PRIu64 " events, %" PRIu64 "us elapsed, %.2fus avg, min %" PRIu32 "us max %" PRIu32 "us %5.3fus rms",
 					       handle->name,
@@ -620,7 +620,7 @@ perf_print_counter_buffer(char *buffer, int length, perf_counter_t handle)
 			uint32_t tl = pci->time_least.load();
 			uint32_t tm = pci->time_most.load();
 			float m2 = pci->M2.load();
-			float rms = sqrtf(m2 / (ec - 1));
+			float rms = (ec > 1) ? sqrtf(m2 / (ec - 1)) : 0.f;
 
 			num_written = snprintf(buffer, length,
 					       "%s: %" PRIu64 " events, %.2f avg, min %" PRIu32 "us max %" PRIu32 "us %5.3fus rms",

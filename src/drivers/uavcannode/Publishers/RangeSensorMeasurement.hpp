@@ -80,6 +80,39 @@ public:
 			range_sensor.range = dist.current_distance;
 			range_sensor.field_of_view = dist.h_fov;
 
+			// Convert PX4 distance_sensor orientation to DroneCAN CoarseOrientation.
+			auto &orientation = range_sensor.beam_orientation_in_body_frame;
+
+			orientation.orientation_defined = true;
+			orientation.fixed_axis_roll_pitch_yaw[0] = 0;
+			orientation.fixed_axis_roll_pitch_yaw[1] = 0;
+			orientation.fixed_axis_roll_pitch_yaw[2] = 0;
+
+			if (dist.orientation <= distance_sensor_s::ROTATION_YAW_315) {
+				// PX4 yaw values 0..7 represent 45-degree steps.
+				// DroneCAN uses 6 units per 90 degrees.
+				int yaw = static_cast<int>(dist.orientation) * 3;
+
+				// Normalize into the signed DroneCAN int5 range.
+				if (yaw > 12) {
+					yaw -= 24;
+				}
+
+				orientation.fixed_axis_roll_pitch_yaw[2] = yaw;
+
+			} else if (dist.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING) {
+				// Downward: -90 degrees pitch.
+				orientation.fixed_axis_roll_pitch_yaw[1] = -6;
+
+			} else if (dist.orientation == distance_sensor_s::ROTATION_UPWARD_FACING) {
+				// Upward: +90 degrees pitch.
+				orientation.fixed_axis_roll_pitch_yaw[1] = 6;
+
+			} else {
+				// Unsupported or custom orientation.
+				orientation.orientation_defined = false;
+			}
+
 			// sensor type
 			switch (dist.type) {
 			case distance_sensor_s::MAV_DISTANCE_SENSOR_LASER:

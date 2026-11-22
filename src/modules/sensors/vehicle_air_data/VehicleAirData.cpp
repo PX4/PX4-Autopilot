@@ -262,16 +262,44 @@ void VehicleAirData::Run()
 		}
 	}
 
+	vehicle_status_s vehicle_status;
+
+	if (_vehicle_status_sub.update(&vehicle_status)) {
+		_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+	}
+
+	vehicle_command_s vehicle_command;
+
+	while (_vehicle_command_sub.update(&vehicle_command)) {
+		// an externally set altitude overrides the GNSS one
+		if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_EXTERNAL_POSITION_ESTIMATE
+		    && PX4_ISFINITE(vehicle_command.param7)) {
+			_external_altitude_set = true;
+		}
+	}
+
 	estimator_status_flags_s latest_estimator_status_flags;
+	bool baro_gnss_calibration_running = false;
 
 	if (_selected_sensor_sub_index >= 0
 	    && _estimator_status_flags_sub.copy(&latest_estimator_status_flags) && !latest_estimator_status_flags.cs_in_air) {
 		if (!_relative_calibration_done) {
 			_relative_calibration_done = UpdateRelativeCalibrations(time_now_us);
 
-		} else if (!_baro_gnss_calibration_done && _param_sens_baro_autocal.get() && latest_estimator_status_flags.cs_gps_hgt) {
-			_baro_gnss_calibration_done = BaroGNSSAltitudeOffset();
+		} else if (_param_sens_bar_autocal.get() && latest_estimator_status_flags.cs_gps_hgt
+			   && (!_armed || !_baro_gnss_calibration_done) && !_external_altitude_set) {
+			// first calibration may complete armed, later drift is only tracked while disarmed
+			baro_gnss_calibration_running = true;
+
+			if (BaroGNSSAltitudeOffset()) {
+				_baro_gnss_calibration_done = true;
+			}
 		}
+	}
+
+	if (!baro_gnss_calibration_running) {
+		// the stability window restarts from scratch once the calibration resumes
+		_t_first_gnss_sample = 0;
 	}
 
 	// Publish
@@ -513,42 +541,54 @@ void VehicleAirData::PrintStatus()
 
 bool VehicleAirData::BaroGNSSAltitudeOffset()
 {
-	static constexpr float kEpvReq = 8.f;
 	static constexpr float kDeltaOffsetTolerance = 4.f;
 	static constexpr uint64_t kLpfWindow = 2_s;
+	// time constant of the baro-GNSS offset filter after the first calibration
+	static constexpr uint64_t kTrackingTimeConstant = 5_s;
+	// wait after a filter reset before evaluating the offset, 3 time constants = 95% settled
+	static constexpr uint64_t kTrackingSettleTime = 3 * kTrackingTimeConstant;
+	// recalibrate when the filtered baro-GNSS offset exceeds this
+	static constexpr float kTrackingThreshold = 0.5f;
 
-	sensor_gps_s gps_pos;
+	vehicle_gnss_s vehicle_gnss;
 
-	if (!_vehicle_gps_position_sub.update(&gps_pos)) {
+	// no baro samples accumulated yet, leave the GNSS sample for the next run
+	if ((_data_sum_count[_selected_sensor_sub_index] == 0) || !_vehicle_gnss_sub.update(&vehicle_gnss)) {
 		return false;
 	}
 
 	const float pressure_sealevel = _param_sens_baro_qnh.get() * 100.0f;
 	const float baro_pressure = _data_sum[_selected_sensor_sub_index] / _data_sum_count[_selected_sensor_sub_index];
-	const float target_altitude = static_cast<float>(gps_pos.altitude_msl_m);
+	const float baro_altitude = getAltitudeFromPressure(baro_pressure, pressure_sealevel);
 
-	const float delta_alt =  getAltitudeFromPressure(baro_pressure, pressure_sealevel) - target_altitude;
+	const float delta_alt = baro_altitude - static_cast<float>(vehicle_gnss.receiver.altitude_msl);
 	bool gnss_baro_offset_stable = false;
 
-	if (gps_pos.epv > kEpvReq || _t_first_gnss_sample == 0) {
+	if (vehicle_gnss.failed_strict_checks || _t_first_gnss_sample == 0) {
+		_baro_gnss_offset_t1 = NAN;
 		_calibration_t_first = 0;
-		_t_first_gnss_sample = gps_pos.timestamp;
+		_t_first_gnss_sample = vehicle_gnss.timestamp;
 		return false;
 	}
 
 	if (_calibration_t_first == 0) {
-		_calibration_t_first = gps_pos.timestamp;
-		_delta_baro_gnss_lpf.setParameters(_calibration_t_first - _t_first_gnss_sample, kLpfWindow);
+		_calibration_t_first = vehicle_gnss.timestamp;
+		_delta_baro_gnss_lpf.setParameters(_calibration_t_first - _t_first_gnss_sample,
+						   _baro_gnss_calibration_done ? kTrackingTimeConstant : kLpfWindow);
 		_delta_baro_gnss_lpf.reset(delta_alt);
 
 	} else {
 		_delta_baro_gnss_lpf.update(delta_alt);
 	}
 
-	if (gps_pos.timestamp - _calibration_t_first > kLpfWindow && !PX4_ISFINITE(_baro_gnss_offset_t1)) {
+	if (_baro_gnss_calibration_done) {
+		gnss_baro_offset_stable = (vehicle_gnss.timestamp - _calibration_t_first > kTrackingSettleTime)
+					  && (fabsf(_delta_baro_gnss_lpf.getState()) > kTrackingThreshold);
+
+	} else if (vehicle_gnss.timestamp - _calibration_t_first > kLpfWindow && !PX4_ISFINITE(_baro_gnss_offset_t1)) {
 		_baro_gnss_offset_t1 = _delta_baro_gnss_lpf.getState();
 
-	} else if (gps_pos.timestamp - _calibration_t_first > 2 * kLpfWindow && PX4_ISFINITE(_baro_gnss_offset_t1)) {
+	} else if (vehicle_gnss.timestamp - _calibration_t_first > 2 * kLpfWindow && PX4_ISFINITE(_baro_gnss_offset_t1)) {
 		if (fabsf(_delta_baro_gnss_lpf.getState() - _baro_gnss_offset_t1) > kDeltaOffsetTolerance) {
 			_baro_gnss_offset_t1 = NAN;
 			_calibration_t_first = 0;
@@ -562,6 +602,11 @@ bool VehicleAirData::BaroGNSSAltitudeOffset()
 	if (!gnss_baro_offset_stable) {
 		return false;
 	}
+
+	// next check starts a new window
+	_t_first_gnss_sample = 0;
+
+	const float target_altitude = baro_altitude - _delta_baro_gnss_lpf.getState();
 
 	// Binary search
 	float low = -10000.0f;
@@ -586,12 +631,20 @@ bool VehicleAirData::BaroGNSSAltitudeOffset()
 		}
 	}
 
-	// add new offset to existing relative offsets
+	if (!PX4_ISFINITE(offset)) {
+		return false;
+	}
+
+	// add new offset to existing relative offsets, also of a sensor without a sample since the last publication
 	for (int instance = 0; instance < MAX_SENSOR_COUNT; ++instance) {
-		if (_calibration[instance].device_id() != 0 && _data_sum_count[instance] > 0) {
+		if (_calibration[instance].device_id() != 0) {
 			_calibration[instance].set_offset(_calibration[instance].offset() + offset);
 			_calibration[instance].ParametersSave(instance);
 			param_notify_changes();
+
+			// apply to samples accumulated with the old offset
+			_data_sum[instance] -= offset * _data_sum_count[instance];
+			_last_data[instance] -= offset;
 		}
 	}
 

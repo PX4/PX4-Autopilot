@@ -40,7 +40,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Де купити
 
-Order from [CORVON](https://corvon.tech).
+Order from [CORVON](https://www.corvon.tech/en).
 
 ## Physical / Mechanical
 

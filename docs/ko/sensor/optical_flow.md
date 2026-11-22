@@ -55,6 +55,11 @@ Reducing the optical flow scale factor can improve the situation.
 
 ## 유량 센서/카메라
 
+### Agam FloRange
+
+[Agam FloRange](../dronecan/agam_florange.md) is a [DroneCAN](../dronecan/index.md) optical flow sensor, [distance sensor](../sensor/rangefinders.md), and IMU.
+It has a PixArt PAA3905 optical flow sensor, Broadcom AFBR-S50LV85D 30-metre distance sensor, and InvenSense ICM-42688-P 6-Axis IMU.
+
 ### ARK Flow & ARK Flow MR
 
 [ARK Flow](../dronecan/ark_flow.md) is a [DroneCAN](../dronecan/index.md) optical flow sensor, [distance sensor](../sensor/rangefinders.md), and IMU.
@@ -108,3 +113,22 @@ For optical flow fusion using EKF2, set [EKF2_OF_CTRL](../advanced_config/parame
 | <a id="EKF2_OF_POS_Z"></a>[EKF2_OF_POS_Z](../advanced_config/parameter_reference.md#EKF2_OF_POS_Z) | 바디 프레임에서 광류 초점의 Z 위치 (기본값은 0.0m). |
 
 See [Using PX4's Navigation Filter (EKF2) > Optical flow](../advanced_config/tuning_the_ecl_ekf.md#optical-flow) for more information.
+
+## 시뮬레이션
+
+Optical flow can be simulated with [SIH](../sim_sih/index.md), which computes the flow from the simulated vehicle motion instead of rendering a camera image.
+As with real hardware, the simulated sensor reports the integrated flow only, so a downward facing [distance sensor](../sensor/rangefinders.md) has to be simulated alongside it — SIH provides one.
+
+Two ready-made airframes have flow enabled and the estimator configured for it:
+
+```sh
+# Multicopter navigating on optical flow only (GNSS fusion disabled)
+make px4_sitl_sih sihsim_quadx_flow
+
+# Standard VTOL navigating on optical flow only (GNSS fusion disabled)
+make px4_sitl_sih sihsim_standard_vtol_flow
+```
+
+The sensor itself is configured with the [`SIH_OF_*` parameters](../sim_sih/index.md#optical-flow) (rate, noise, and maximum ground distance).
+
+Optical flow is also simulated by [Gazebo Classic](../sim_gazebo_classic/index.md), which renders the downward facing camera image and runs flow computation on it.

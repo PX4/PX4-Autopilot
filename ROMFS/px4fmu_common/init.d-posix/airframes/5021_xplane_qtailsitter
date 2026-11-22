@@ -92,8 +92,8 @@ param set-default CAL_BARO1_PRIO 0
 param set-default EKF2_BARO_NOISE 1.0
 param set-default EKF2_BARO_GATE 10.0
 
-param set-default SENS_GPS0_DELAY 10
-param set-default SENS_GPS1_DELAY 10
+param set-default SENS_GNSS0_DELAY 10
+param set-default SENS_GNSS1_DELAY 10
 param set-default EKF2_GPS_P_NOISE 5.0
 param set-default EKF2_GPS_V_NOISE 0.30
 param set-default EKF2_GPS_P_GATE 10.0
@@ -111,7 +111,7 @@ param set-default SENS_IMU_MODE 0
 param set-default EKF2_ASP_DELAY 0.0
 param set-default EKF2_AVEL_DELAY 0.0
 param set-default EKF2_WIND_NSD 0.01
-param set-default EKF2_REQ_VDRIFT 1.0
+param set-default GNSS_REQ_VDRIFT 1.0
 
 param set-default IMU_GYRO_RATEMAX 200
 
@@ -298,10 +298,8 @@ param set-default RTL_RETURN_ALT 180
 param set-default RTL_DESCEND_ALT 150
 param set-default RTL_MIN_DIST 50
 
-param set-default FD_FAIL_R 85
-param set-default FD_FAIL_P 85
-param set-default FD_FAIL_R_TTRI 1.0
-param set-default FD_FAIL_P_TTRI 1.0
+param set-default FD_TILT_ERROR 85
+param set-default FD_TILT_ERROR_T 1
 param set-default WV_EN 0
 
 ################################################################################

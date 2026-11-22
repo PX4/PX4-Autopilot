@@ -133,7 +133,7 @@ __EXPORT void board_peripheral_reset(int ms)
 __EXPORT void board_on_reset(int status)
 {
 	for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
-		px4_arch_configgpio(PX4_MAKE_GPIO_INPUT(io_timer_channel_get_gpio_output(i)));
+		px4_arch_configgpio(io_timer_channel_get_gpio_output(i));
 	}
 
 	/*
@@ -154,7 +154,7 @@ __EXPORT void board_on_reset(int status)
  ****************************************************************************/
 struct flexspi_nor_config_s g_bootConfig;
 
-locate_code(".ramfunc")
+locate_code(".ramfunc") __attribute__((noinline))
 void imxrt_flash_romapi_initialize(void)
 {
 	memcpy((struct flexspi_nor_config_s *)&g_bootConfig, &g_flash_config,
@@ -171,7 +171,7 @@ void imxrt_flash_romapi_initialize(void)
 	arm_dmb();
 }
 
-locate_code(".ramfunc")
+locate_code(".ramfunc") __attribute__((noinline))
 void imxrt_flash_setup_prefetch_partition(void)
 {
 //Prefetch tuning to be determined

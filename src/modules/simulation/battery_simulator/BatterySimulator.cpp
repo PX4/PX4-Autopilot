@@ -179,7 +179,7 @@ float BatterySimulator::fullDischargeTime(int battery_index) const
 float BatterySimulator::minimumPercentage(int battery_index) const
 {
 	// Only a negative override means: use the floor shared by all batteries. Zero is a valid floor.
-	return (_min_pct_override[battery_index] >= 0.f) ? _min_pct_override[battery_index] : _param_bat_min_pct.get();
+	return (_min_pct_override[battery_index] >= 0.f) ? _min_pct_override[battery_index] : _param_sim_bat_min_pct.get();
 }
 
 int BatterySimulator::task_spawn(int argc, char *argv[])

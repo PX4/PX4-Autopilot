@@ -54,7 +54,7 @@
 namespace vision_target_estimator
 {
 
-static constexpr hrt_abstime kGpsDataTimeoutUs = 1_s;
+static constexpr hrt_abstime kGnssDataTimeoutUs = 1_s;
 // vehicle_land_detected has a 1 Hz heartbeat, so allow one full period plus scheduling jitter.
 static constexpr hrt_abstime kLandDetectedTimeoutUs = 2_s;
 
@@ -65,11 +65,13 @@ void PrecTakeoffTask::pollStatus()
 	if (_prec_takeoff_status_sub.update(&status)) {
 		_is_taking_off = status.state == prec_takeoff_status_s::PREC_TAKEOFF_STATE_ONGOING;
 	}
+
+	// Capture the pad while idle and landed: activation may arrive after liftoff.
+	updateHomeReference(false);
 }
 
 void PrecTakeoffTask::onActivate()
 {
-	_home_ref = {};
 	_home_dist_warned = false;
 	updateHomeReference(false);
 }
@@ -93,6 +95,25 @@ void PrecTakeoffTask::onPosEstStart(VTEPosition &pos)
 
 bool PrecTakeoffTask::updateHomeReference(const bool report_distance_warning)
 {
+	// Only trust home while on the ground, where the vehicle sits on the pad.
+	vehicle_land_detected_s land_detected;
+	const hrt_abstime now = TimeSourceProvider::nowUs();
+
+	if (!_vehicle_land_detected_sub.copy(&land_detected)
+	    || land_detected.timestamp == 0 || land_detected.timestamp > now
+	    || now - land_detected.timestamp >= kLandDetectedTimeoutUs) {
+		// Without continuous land detection, a later activation might belong to another flight.
+		clearHomeReference();
+		return false;
+	}
+
+	if (!land_detected.landed) {
+		return false;
+	}
+
+	// Revalidate on the ground so a later flight cannot reuse an old pad after
+	// home or GNSS becomes invalid. Once airborne, the validated reference is frozen.
+	clearHomeReference();
 	home_position_s home;
 
 	if (!_home_position_sub.copy(&home) || !home.valid_hpos || !home.valid_alt
@@ -100,26 +121,16 @@ bool PrecTakeoffTask::updateHomeReference(const bool report_distance_warning)
 		return false;
 	}
 
-	// Only trust home while on the ground, where the vehicle sits on the pad.
-	vehicle_land_detected_s land_detected;
-	const hrt_abstime now = TimeSourceProvider::nowUs();
+	vehicle_gnss_s gnss;
 
-	if (!_vehicle_land_detected_sub.copy(&land_detected) || !land_detected.landed
-	    || land_detected.timestamp == 0 || land_detected.timestamp > now
-	    || now - land_detected.timestamp >= kLandDetectedTimeoutUs) {
+	if (!_vehicle_gnss_sub.copy(&gnss) || gnss.receiver.fix_type < sensor_gnss_s::FIX_TYPE_3D
+	    || gnss.timestamp_sample == 0 || gnss.timestamp_sample > now
+	    || now - gnss.timestamp_sample >= kGnssDataTimeoutUs
+	    || !PX4_ISFINITE(gnss.receiver.latitude) || !PX4_ISFINITE(gnss.receiver.longitude)) {
 		return false;
 	}
 
-	sensor_gps_s gps;
-
-	if (!_vehicle_gps_position_sub.copy(&gps) || gps.fix_type < sensor_gps_s::FIX_TYPE_3D
-	    || gps.timestamp_sample == 0 || gps.timestamp_sample > now
-	    || now - gps.timestamp_sample >= kGpsDataTimeoutUs
-	    || !PX4_ISFINITE(gps.latitude_deg) || !PX4_ISFINITE(gps.longitude_deg)) {
-		return false;
-	}
-
-	const float dist_m = get_distance_to_next_waypoint(home.lat, home.lon, gps.latitude_deg, gps.longitude_deg);
+	const float dist_m = get_distance_to_next_waypoint(home.lat, home.lon, gnss.receiver.latitude, gnss.receiver.longitude);
 
 	if (!PX4_ISFINITE(dist_m) || dist_m > kMaxHomeDistM) {
 		if (report_distance_warning && !_home_dist_warned) {

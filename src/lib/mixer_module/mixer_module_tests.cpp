@@ -82,6 +82,14 @@ class OutputModuleTest : public OutputModuleInterface
 public:
 	OutputModuleTest() : OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default) {};
 
+	~OutputModuleTest() override
+	{
+		// Hide this test's commands from the next test: a zero actuator command is not inert
+		_actuator_motors_pub.unadvertise();
+		_actuator_servos_pub.unadvertise();
+		_actuator_armed_pub.unadvertise();
+	}
+
 	void Run() override
 	{
 		was_scheduled = true;

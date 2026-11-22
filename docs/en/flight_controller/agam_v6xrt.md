@@ -49,13 +49,13 @@ See [Agam's IMU triple redundancy notes](https://agamrobotics.gitbook.io/docs/au
   - 64MB external Octal SPI flash
 - On-board sensors — Agam Autopilot v6X-RT ships in two sensor-set variants (Sensor Set 1 and Sensor Set 3, per [Pixhawk Standards](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-020%20Pixhawk%20Autopilot%20v6X-RT%20Standard.pdf)):
   - Sensor Set 1:
-    - 2x [InvenSense ICM-42688-P IMU](https://www.invensense.tdk.com/products/motion-tracking/6-axis/icm-42688-p/)
-    - [Bosch BMI088 IMU](https://www.bosch-sensortec.com/products/motion-sensors/imus/bmi088/)
+    - 2x [InvenSense ICM-42688-P IMU](https://www.invensense.tdk.com/en-us/products/6-axis/icm-42688-p)
+    - [Bosch BMI088 IMU](https://www.bosch-sensortec.com/en/products/motion-sensors/imus/bmi088/)
     - [Bosch BMM150 Magnetometer](https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmm150-ds001.pdf)
     - 2x [Bosch BMP388 Barometer](https://www.bosch-sensortec.com/en/products/environmental-sensors/pressure-sensors/bmp390/)
   - Sensor Set 3:
     - 2x [TDK InvenSense ICM-45686 IMU](https://www.invensense.tdk.com/en-us/products/6-axis/icm-45686)
-    - [Bosch BMI088 IMU](https://www.bosch-sensortec.com/products/motion-sensors/imus/bmi088/)
+    - [Bosch BMI088 IMU](https://www.bosch-sensortec.com/en/products/motion-sensors/imus/bmi088/)
     - [Bosch BMM350 Magnetometer](https://www.bosch-sensortec.com/en/products/motion-sensors/magnetometers/bmm350)
     - 2x [Bosch BMP388 Barometer](https://www.bosch-sensortec.com/en/products/environmental-sensors/pressure-sensors/bmp390/)
 
@@ -135,6 +135,8 @@ Notes:
 | LPUART10 | /dev/ttyS6 | TELEM3  |
 | LPUART11 | /dev/ttyS7 | EXT2    |
 
+The board has five [MAVLink instances](../peripherals/mavlink_peripherals.md#mavlink-instances) (`MAV_0_CONFIG` to `MAV_4_CONFIG`) rather than the usual three.
+
 ## Radio Control {#radio_control}
 
 A remote control (RC) radio system is required if you want to _manually_ control your vehicle (PX4 does not require a radio system for autonomous flight modes).
@@ -184,6 +186,14 @@ To [build PX4](../dev_setup/building_px4.md) for this target:
 ```sh
 make agam_fmu-v6xrt_default
 ```
+
+## Secure Boot
+
+The board supports [Bootloader Secure Boot](../advanced_config/bootloader_secure_boot.md), which only runs firmware signed with a key the bootloader trusts.
+The build targets are:
+
+- `agam_fmu-v6xrt_bootloader_secureboot`: the secure bootloader.
+- `agam_fmu-v6xrt_secureboot`: PX4 firmware, signed as part of the build.
 
 ## Debug Port {#debug_port}
 

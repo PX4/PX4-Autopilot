@@ -99,8 +99,8 @@ If your threat model includes physical access, secure the SD card slot and debug
 - **Unaudited implementation**:
   The signing protocol was audited when it was drafted, but PX4's implementation of it has not been.
 - **Allowlisted messages**:
-  A small set of [safety-critical messages](message_signing.md#unsigned-message-allowlist) (`HEARTBEAT`, `RADIO_STATUS`, `ADSB_VEHICLE`, `COLLISION`) are always accepted unsigned on all links.
-  An attacker could spoof these specific messages.
+  A small set of [safety-critical messages](message_signing.md#unsigned-message-allowlist) is accepted unsigned: `HEARTBEAT` and `RADIO_STATUS` on all links, and `ADSB_VEHICLE` and `COLLISION` only on links in `ADS-B/Traffic (uAvionix)` mode.
+  An attacker could spoof these specific messages where they are accepted.
 - **Key management**:
   There is no automatic key rotation.
   Keys must be reprovisioned manually via a signed `SETUP_SIGNING` message.

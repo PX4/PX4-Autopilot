@@ -318,6 +318,7 @@ PMW3901::RunImpl()
 
 	sensor_optical_flow_s report{};
 	report.timestamp_sample = timestamp;
+	report.device_id = get_device_id();
 
 	report.pixel_flow[0] = static_cast<float>(delta_x);
 	report.pixel_flow[1] = static_cast<float>(delta_y);

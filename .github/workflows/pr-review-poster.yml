@@ -75,8 +75,14 @@ name: PR Review Poster
 #       "marker":     "<!-- pr-review-poster:clang-tidy -->",     // required, printable ASCII
 #       "event":      "COMMENT",                                   // required, "COMMENT" only
 #       "commit_sha": "0123456789abcdef0123456789abcdef01234567", // required, 40 hex chars
-#       "summary":    "Optional review summary text"              // optional
+#       "summary":    "Optional review summary text",             // optional
+#       "post_without_comments": false,  // optional: post summary alone
+#       "supersede_previous":    false   // optional: mark old COMMENT
+#                                        //   reviews as superseded
 #     }
+#
+# Both optional flags default to false (the clang-tidy behaviour); see
+# Tools/ci/pr-review-poster.py for what they do.
 #
 #   comments.json: JSON array of line-anchored review comment objects:
 #     [
@@ -103,6 +109,7 @@ on:
     # `pr-review` artifact exists.
     workflows:
       - "Static Analysis"
+      - "AI PR Review"
     types:
       - completed
 
@@ -118,10 +125,15 @@ jobs:
     # Only run for pull_request producer runs. Push-to-main and other
     # non-PR triggers have no review to post, so gating at the job level
     # surfaces those as a clean "Skipped" in the UI instead of a
-    # silent no-op buried inside the script.
+    # silent no-op buried inside the script. The AI review is started by
+    # a maintainer's `!ai-review` comment or a manual dispatch instead of
+    # pull_request, so its runs are accepted for those two events only.
     if: >-
       github.event.workflow_run.conclusion != 'cancelled'
-      && github.event.workflow_run.event == 'pull_request'
+      && (github.event.workflow_run.event == 'pull_request'
+          || (github.event.workflow_run.name == 'AI PR Review'
+              && (github.event.workflow_run.event == 'issue_comment'
+                  || github.event.workflow_run.event == 'workflow_dispatch')))
     steps:
       # Checkout runs first so the poster scripts are available AND so
       # that actions/checkout@v6's default clean step does not delete the

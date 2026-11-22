@@ -55,6 +55,7 @@
 #include "mag.h"
 #include "baro.h"
 #include "gps.h"
+#include "gnss_yaw.h"
 #include "flow.h"
 #include "range_finder.h"
 #include "vio.h"
@@ -95,8 +96,14 @@ public:
 	void startGps() { _gps.start(); }
 	void stopGps() { _gps.stop(); }
 
+	void startGnssYaw() { _gnss_yaw.start(); }
+	void stopGnssYaw() { _gnss_yaw.stop(); }
+
 	void startFlow() { _flow.start(); }
 	void stopFlow() { _flow.stop(); }
+
+	void startFlow1() { _flow1.start(); }
+	void stopFlow1() { _flow1.stop(); }
 
 	void startRangeFinder() { _rng.start(); }
 	void stopRangeFinder() { _rng.stop(); }
@@ -122,13 +129,16 @@ public:
 	Airspeed    _airspeed;
 	Baro        _baro;
 	Flow        _flow;
+	Flow        _flow1; // second optical flow sensor (slot 1)
 	Gps         _gps;
+	GnssYaw     _gnss_yaw;
 	Imu         _imu;
 	Mag         _mag;
 	RangeFinder _rng;
 	Vio         _vio;
 
 	VelocitySmoothing _trajectory[3];
+	Vector3f _trajectory_position_prev{};
 
 private:
 	void setSensorDataToDefault();

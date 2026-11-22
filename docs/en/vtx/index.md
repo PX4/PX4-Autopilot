@@ -281,16 +281,15 @@ The wire protocol and the device model are configured independently.
 
 `VTX_DEVICE` selects the specific VTX model and only enables device-specific workarounds. Leave at Generic unless your VTX is listed
 
-| Value   | Device        |
-| ------- | ------------- |
-| `0`     | Generic       |
-| `5120`  | Peak THOR T67 |
-| `10240` | Rush MAX SOLO |
+| Value  | Device                         |
+| ------ | ------------------------------ |
+| `0`    | Generic                        |
+| `5120` | Peak THOR - T35, T67, T78, T89 |
 
-Peak THOR devices speak SmartAudio and the Rush MAX SOLO speaks Tramp, so set `VTX_PROTOCOL` to match the model you select.
+Peak THOR devices speak SmartAudio, so set `VTX_PROTOCOL` to match the model you select.
 
 ### Known Device Workarounds
 
-**Peak THOR T67** (`VTX_DEVICE` = 5120):
-This device incorrectly reports pit mode status but otherwise functions normally.
+**Peak THOR - T35, T67, T78, T89** (`VTX_DEVICE` = 5120):
+These devices incorrectly report pit mode status but otherwise function normally.
 The driver applies a workaround to override the reported status with the actual configured state.

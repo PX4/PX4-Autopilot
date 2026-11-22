@@ -404,7 +404,12 @@ void FailsafeBase::removeAction(ActionOptions &action) const
 	// clear_condition to avoid triggering a failsafe after deferring is disabled.
 	const bool remove_while_deferring = _defer_failsafes && action.can_be_deferred;
 
-	if (action.clear_condition == ClearCondition::WhenConditionClears || remove_while_deferring) {
+	// The action did not start yet (still in the delayed Hold), so recovering is allowed.
+	// _current_delay is shared, so also check that no action beyond Hold is already running.
+	const bool remove_during_delay = action.clear_during_delay && _current_delay > 0
+					 && _selected_action <= Action::Hold;
+
+	if (action.clear_condition == ClearCondition::WhenConditionClears || remove_while_deferring || remove_during_delay) {
 		// Remove action
 		PX4_DEBUG("Caller %i: state changed to valid, removing action", action.id);
 		action.setInvalid();
@@ -609,6 +614,14 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 
 		returned_state.cause = Cause::Generic;
 
+		// If descend is not supported (e.g. for rovers), safely disarm instead of terminating.
+		// However, if the user explicitly configured the position failsafe action to Terminate, honor it.
+		if ((status_flags.mode_not_supported & (1u << vehicle_status_s::NAVIGATION_STATE_DESCEND))
+		    && _param_com_pos_fs_act.get() != (int32_t)PositionFailsafeAction::Terminate) {
+			selected_action = Action::Disarm;
+			break;
+		}
+
 	// fallthrough
 	case Action::Terminate:
 		selected_action = Action::Terminate;
@@ -625,7 +638,7 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 	}
 
 	// UX improvement (this is optional for safety): change failsafe to a warning in certain situations.
-	// If already landing, do not go into RTL
+	// If already landing, do not go into Return
 	if (returned_state.updated_user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND) {
 		if ((selected_action == Action::RTL || returned_state.delayed_action == Action::RTL)
 		    && modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_AUTO_LAND)) {
@@ -634,7 +647,7 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 		}
 	}
 
-	// If already in RTL, do not go into RTL again (would cause a Hold delay first, then re-start RTL)
+	// If already in Return, do not go into Return again (would cause a Hold delay first, then re-start Return)
 	if (returned_state.updated_user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
 		if ((selected_action == Action::RTL || returned_state.delayed_action == Action::RTL)
 		    && modeCanRun(status_flags, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL)) {
@@ -643,7 +656,7 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 		}
 	}
 
-	// If already precision landing, do not go into RTL or Land
+	// If already precision landing, do not go into Return or Land
 	if (returned_state.updated_user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND) {
 		if ((selected_action == Action::RTL || selected_action == Action::Land ||
 		     returned_state.delayed_action == Action::RTL || returned_state.delayed_action == Action::Land)
@@ -722,7 +735,8 @@ bool FailsafeBase::modeCanRun(const failsafe_flags_s &status_flags, uint8_t mode
 		(!status_flags.auto_mission_missing || ((status_flags.mode_req_mission & mode_mask) == 0)) &&
 		(!status_flags.offboard_control_signal_lost || ((status_flags.mode_req_offboard_signal & mode_mask) == 0)) &&
 		(!status_flags.home_position_invalid || ((status_flags.mode_req_home_position & mode_mask) == 0)) &&
-		((status_flags.mode_req_other & mode_mask) == 0);
+		((status_flags.mode_req_other & mode_mask) == 0) &&
+		((status_flags.mode_not_supported & mode_mask) == 0);
 }
 
 bool FailsafeBase::deferFailsafes(bool enabled, int timeout_s)

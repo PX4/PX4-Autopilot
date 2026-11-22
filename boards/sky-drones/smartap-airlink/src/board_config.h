@@ -270,10 +270,10 @@
 #define GPIO_nSAFETY_SWITCH_LED_OUT_INIT   /* PD10 */ (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTD|GPIO_PIN10)
 #define GPIO_nSAFETY_SWITCH_LED_OUT        /* PD10 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN10)
 
-/* Enable the FMU to control it if there is no px4io fixme:This should be BOARD_SAFETY_LED(__ontrue) */
+/* Enable the FMU to control it if there is no px4io */
 #define GPIO_LED_SAFETY GPIO_nSAFETY_SWITCH_LED_OUT
 #define GPIO_SAFETY_SWITCH_IN              /* PH4 */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTH|GPIO_PIN4)
-/* Enable the FMU to use the switch it if there is no px4io fixme:This should be BOARD_SAFTY_BUTTON() */
+/* Enable the FMU to use the switch if there is no px4io */
 #define GPIO_BTN_SAFETY GPIO_SAFETY_SWITCH_IN /* Enable the FMU to control it if there is no px4io */
 
 /* Power switch controls ******************************************************/

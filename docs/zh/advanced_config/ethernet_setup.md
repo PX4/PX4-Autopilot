@@ -2,8 +2,7 @@
 
 以太网连接提供了一种快速、可靠和灵活的通信选择，可替代使用USB或其他串行连接。
 
-它可以用于连接地面站、机载计算机和其他MAVLink系统。
-特别建议使用它连接到"原生"使用以太网的系统——例如IP数传。
+它可以用于连接地面站、机载计算机和其他MAVLink系统。特别建议使用它连接到"原生"使用以太网的系统——例如IP数传。
 
 本主题涵盖:
 
@@ -38,8 +37,7 @@ PX4 supports Ethernet connectivity on [Pixhawk 5X-standard](https://github.com/p
 
 ## 设置以太网网络
 
-要通过以太网连接系统，您需要将它们连接到同一个网络，以便每个系统有一个唯一的IP地址并且可以找到其他系统。
-可以使用DHCP服务器来分配地址，或者通过手动配置网络上每个系统的地址来完成。
+要通过以太网连接系统，您需要将它们连接到同一个网络，以便每个系统有一个唯一的IP地址并且可以找到其他系统。可以使用DHCP服务器来分配地址，或者通过手动配置网络上每个系统的地址来完成。
 
 我们不能提供一个确保可以在您的本地网络中工作的“开箱即用配置”。
 Therefore as an example of the kind of configuration you might do, below we show how to set up the systems on an IP network with static addresses in the range `10.41.10.Xxx`, where PX4 has a statically allocated address `10.41.10.2` (PX4-default) and the computer has address `10.41.10.1`.
@@ -167,21 +165,40 @@ You must separately configure the PX4 IP address and other _network settings_ ([
 
 PX4配置串行端口以通过MAVLink连接到地面站，使用下面的参数:
 
-| Parameter                                                                                                                                     | 值      | 描述                             |
-| --------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ------------------------------ |
-| [MAV_2_CONFIG](../advanced_config/parameter_reference.md#MAV_2_CONFIG)                              | 1000   | 配置以太网端口                        |
-| [MAV_2_BROADCAST](../advanced_config/parameter_reference.md#MAV_2_BROADCAST)                        | 1      | Broadcast `HEARTBEAT` messages |
-| [MAV_2_MODE](../advanced_config/parameter_reference.md#MAV_2_MODE)                                  | 0      | 发送“正常”的 MAVLink 消息集合（即地面站消息集合） |
-| [MAV_2_RADIO_CTL](../advanced_config/parameter_reference.md#MAV_2_RADIO_CTL)   | 0      | 禁用MAVLink流量控制                  |
-| [MAV_2_RATE](../advanced_config/parameter_reference.md#MAV_2_RATE)                                  | 100000 | 最大发送速率                         |
-| [MAV_2_REMOTE_PRT](../advanced_config/parameter_reference.md#MAV_2_REMOTE_PRT) | 14550  | MAVLink远程端口14550（地面站）          |
-| [MAV_2_UDP_PRT](../advanced_config/parameter_reference.md#MAV_2_UDP_PRT)       | 14550  | MAVLink网络端口14550（地面站）          |
+| Parameter                                                                                                                                                                                  | 值      | 描述                                                                                                                           |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| [MAV_2_CONFIG](../advanced_config/parameter_reference.md#MAV_2_CONFIG)                                                                           | 1000   | 配置以太网端口                                                                                                                      |
+| [MAV_2_BROADCAST](../advanced_config/parameter_reference.md#MAV_2_BROADCAST)                                                                     | 1      | Broadcast `HEARTBEAT` messages                                                                                               |
+| [MAV_2_MODE](../advanced_config/parameter_reference.md#MAV_2_MODE)                                                                               | 0      | 发送“正常”的 MAVLink 消息集合（即地面站消息集合）                                                                                               |
+| [MAV_2_RADIO_CTL](../advanced_config/parameter_reference.md#MAV_2_RADIO_CTL)                                                | 0      | 禁用MAVLink流量控制                                                                                                                |
+| [MAV_2_RATE](../advanced_config/parameter_reference.md#MAV_2_RATE)                                                                               | 100000 | 最大发送速率                                                                                                                       |
+| [MAV_2_REMOTE_IP](../advanced_config/parameter_reference.md#MAV_2_REMOTE_IP)<br><Badge type="tip" text="main (PX4 v2.0)" /> | 0      | Auto-discover the partner address from incoming packets (see [MAVLink Partner Address](#partner_address)) |
+| [MAV_2_REMOTE_PRT](../advanced_config/parameter_reference.md#MAV_2_REMOTE_PRT)                                              | 14550  | MAVLink远程端口14550（地面站）                                                                                                        |
+| [MAV_2_UDP_PRT](../advanced_config/parameter_reference.md#MAV_2_UDP_PRT)                                                    | 14550  | MAVLink网络端口14550（地面站）                                                                                                        |
 
 Normally a companion computer would use port `14540` (rather than `14550`) and stream the set of MAVLink messages specified in the `Onboard` profile.
 You can configure this setup by changing [MAV_2_REMOTE_PRT](../advanced_config/parameter_reference.md#MAV_2_REMOTE_PRT) and [MAV_2_UDP_PRT](../advanced_config/parameter_reference.md#MAV_2_UDP_PRT) to `14540` and [MAV_2_MODE](../advanced_config/parameter_reference.md#MAV_2_MODE) to `2` (Onboard).
 请注意，这仍将使用GCS配置文件正常工作。
 
 For more information on MAVLink serial port configuration see [MAVLink Peripherals (GCS/OSD/Companion)](../peripherals/mavlink_peripherals.md)
+
+### MAVLink Partner Address {#partner_address}
+
+By default, PX4 learns its MAVLink partner's address and port from the first UDP packet it receives on [MAV_2_UDP_PRT](../advanced_config/parameter_reference.md#MAV_2_UDP_PRT), and sends replies there.
+Until then, it broadcasts its MAVLink stream on the local network if [MAV_2_BROADCAST](../advanced_config/parameter_reference.md#MAV_2_BROADCAST) is `1` and [MAV_2_MODE](../advanced_config/parameter_reference.md#MAV_2_MODE) isn't `2` (Onboard).
+This is why the GCS initiates the connection in the [QGroundControl example](#qgroundcontrol-setup-example).
+
+If PX4 needs to initiate the connection to a partner with a known, fixed address, such as a companion computer that never sends the first packet, set [MAV_2_REMOTE_IP](../advanced_config/parameter_reference.md#MAV_2_REMOTE_IP) to the partner's address.
+The value is a 32-bit integer with the first octet in the most significant byte: for example, `192.168.1.2` is `-1062731518`.
+PX4 then sends to that address at port [MAV_2_REMOTE_PRT](../advanced_config/parameter_reference.md#MAV_2_REMOTE_PRT), and auto-discovery is disabled.
+Set it back to `0` (the default) to restore auto-discovery.
+Changes take effect after a reboot.
+
+:::tip
+The [startup script](../concept/system_startup.md) passes a non-zero value of this parameter to the `mavlink start` command's `-t` option (`-t p:MAV_2_REMOTE_IP`).
+If you start a MAVLink instance manually from the [console](../debug/consoles.md), `-t` accepts either a literal address (`-t 192.168.1.2`) or a reference to the parameter (`-t p:MAV_2_REMOTE_IP`).
+See the [mavlink module reference](../modules/modules_communication.md#mavlink_usage) for the full command usage.
+:::
 
 ## QGroundControl 设置示例
 

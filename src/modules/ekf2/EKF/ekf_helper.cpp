@@ -45,6 +45,46 @@
 #include <lib/world_magnetic_model/geo_mag_declination.h>
 #include <cstdlib>
 
+namespace
+{
+// Indices of the non-zero entries of an observation Jacobian, in increasing order.
+// Most observations depend on a handful of states only. Skipping the zero terms
+// of P * H while keeping the summation order leaves every partial sum unchanged
+// (s + P(i, j) * 0 == s for finite P), so the sparse product is bit-identical
+// to the dense one.
+struct NonZeroIndices {
+	explicit NonZeroIndices(const Ekf::VectorState &v)
+	{
+		for (unsigned i = 0; i < State::size; i++) {
+			// excludes +0 and -0 only: NaN entries are kept, as in the dense product
+			if (!(fabsf(v(i)) <= 0.f)) {
+				idx[count++] = i;
+			}
+		}
+	}
+
+	uint8_t idx[State::size];
+	uint8_t count{0};
+};
+
+Ekf::VectorState multiplySparse(const Ekf::SquareMatrixState &P, const Ekf::VectorState &H, const NonZeroIndices &nz)
+{
+	Ekf::VectorState PH;
+
+	for (unsigned i = 0; i < State::size; i++) {
+		float sum = 0.f;
+
+		for (unsigned k = 0; k < nz.count; k++) {
+			sum += P(i, nz.idx[k]) * H(nz.idx[k]);
+		}
+
+		PH(i) = sum;
+	}
+
+	return PH;
+}
+} // namespace
+
 bool Ekf::isHeightResetRequired() const
 {
 	// check if height is continuously failing because of accel errors
@@ -104,14 +144,21 @@ bool Ekf::setLatLonOrigin(const double latitude, const double longitude, const f
 		return false;
 	}
 
-	if (!_local_origin_lat_lon.isInitialized() && isLocalHorizontalPositionValid()) {
-		// Already navigating in a local frame, use the origin to initialize global position
+	if (!_local_origin_lat_lon.isInitialized()) {
+		// Until the first origin the local frame is referenced to lat/lon (0, 0). Keep the local position
+		// and place the global position where the new origin puts it: the latitude feeds the Earth rate,
+		// gravity and magnetic field model before any position aiding, and no reset needs reporting.
 		const Vector2f pos_prev = getLocalHorizontalPosition();
 		_local_origin_lat_lon.initReference(latitude, longitude, _time_delayed_us);
 		double new_latitude;
 		double new_longitude;
 		_local_origin_lat_lon.reproject(pos_prev(0), pos_prev(1), new_latitude, new_longitude);
-		resetHorizontalPositionTo(new_latitude, new_longitude, hpos_var);
+		_gpos.setLatLonDeg(new_latitude, new_longitude);
+		_output_predictor.resetLatLonTo(new_latitude, new_longitude);
+
+		if (PX4_ISFINITE(hpos_var)) {
+			P.uncorrelateCovarianceSetVariance<2>(State::pos.idx, math::max(sq(0.01f), hpos_var));
+		}
 
 	} else {
 		// Simply move the origin and compute the change in local position
@@ -142,11 +189,7 @@ bool Ekf::setAltOrigin(const float altitude, const float vpos_var)
 	} else {
 		const float delta_origin_alt = altitude - _local_origin_alt;
 		_local_origin_alt = altitude;
-		updateVerticalPositionResetStatus(-delta_origin_alt);
-
-#if defined(CONFIG_EKF2_TERRAIN)
-		updateTerrainResetStatus(-delta_origin_alt);
-#endif // CONFIG_EKF2_TERRAIN
+		updateVerticalPositionResetStatus(delta_origin_alt);
 	}
 
 	return true;
@@ -299,7 +342,7 @@ void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv) const
 
 		if (_control_status.flags.opt_flow) {
 			float gndclearance = math::max(_params.ekf2_min_rng, 0.1f);
-			vel_err_conservative = math::max(getHagl(), gndclearance) * Vector2f(_aid_src_optical_flow.innovation).norm();
+			vel_err_conservative = math::max(getHagl(), gndclearance) * _flow_aiding.maxActiveInnovNorm();
 		}
 
 #endif // CONFIG_EKF2_OPTICAL_FLOW
@@ -365,9 +408,10 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 	const bool relying_on_optical_flow = isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.opt_flow);
 
 	if (relying_on_optical_flow) {
-		// Calculate optical flow limits
-		float flow_hagl_min = _flow_min_distance;
-		float flow_hagl_max = _flow_max_distance;
+		float flow_hagl_min;
+		float flow_hagl_max;
+		float flow_max_rate;
+		_flow_aiding.getLimits(*this, flow_hagl_min, flow_hagl_max, flow_max_rate);
 
 		// only limit optical flow height is dependent on range finder or terrain estimate invalid (precaution)
 		if ((!_control_status.flags.opt_flow_terrain && _control_status.flags.rng_terrain)
@@ -380,7 +424,7 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 		const float flow_constrained_height = math::constrain(getHagl(), flow_hagl_min, flow_hagl_max);
 
 		// Allow ground relative velocity to use 50% of available flow sensor range to allow for angular motion
-		float flow_vxy_max = 0.5f * _flow_max_rate * flow_constrained_height;
+		float flow_vxy_max = 0.5f * flow_max_rate * flow_constrained_height;
 		flow_hagl_max = math::max(flow_hagl_max * 0.9f, flow_hagl_max - 1.0f);
 
 		*vxy_max = flow_vxy_max;
@@ -475,9 +519,7 @@ float Ekf::getHorizontalVelocityInnovationTestRatio() const
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 
 	if (isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.opt_flow)) {
-		for (auto &test_ratio_filtered : _aid_src_optical_flow.test_ratio_filtered) {
-			test_ratio = math::max(test_ratio, fabsf(test_ratio_filtered));
-		}
+		test_ratio = math::max(test_ratio, _flow_aiding.maxActiveTestRatioFiltered());
 	}
 
 #endif // CONFIG_EKF2_OPTICAL_FLOW
@@ -644,10 +686,14 @@ float Ekf::getHeightAboveGroundInnovationTestRatio() const
 
 # if defined(CONFIG_EKF2_OPTICAL_FLOW)
 
-	if (_control_status.flags.opt_flow_terrain) {
-		hagl_sum += sqrtf(math::max(fabsf(_aid_src_optical_flow.test_ratio_filtered[0]),
-					    _aid_src_optical_flow.test_ratio_filtered[1]));
-		n_hagl_sources++;
+	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+		const OpticalFlowSource &src = _flow_aiding.source(i);
+
+		if (src._terrain) {
+			hagl_sum += sqrtf(math::max(fabsf(src._aid_src.test_ratio_filtered[0]),
+						    src._aid_src.test_ratio_filtered[1]));
+			n_hagl_sources++;
+		}
 	}
 
 # endif // CONFIG_EKF2_OPTICAL_FLOW
@@ -825,13 +871,13 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 
 	// optical flow active
 	if (_control_status.flags.opt_flow
-	    && isRecent(_aid_src_optical_flow.time_last_fuse, _params.no_aid_timeout_max)
+	    && isRecent(_flow_aiding.timeLastFuse(), _params.no_aid_timeout_max)
 	   ) {
 		inertial_dead_reckoning = false;
 
 	} else {
 		if (!_control_status.flags.in_air && _fc.of.intended()
-		    && isRecent(_aid_src_optical_flow.timestamp_sample, _params.no_aid_timeout_max)
+		    && isRecent(_flow_aiding.latestSampleTimestamp(), _params.no_aid_timeout_max)
 		   ) {
 			// currently landed, but optical flow aiding should be possible once in air
 			aiding_expected_in_air = true;
@@ -1031,8 +1077,8 @@ void Ekf::updateIMUBiasInhibit(const imuSample &imu_delayed)
 	}
 }
 
-void Ekf::fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index,
-				     bool constrain_variances)
+void Ekf::accumulateDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index,
+		VectorState &state_correction, bool constrain_variances)
 {
 	VectorState K;  // Kalman gain vector for any single observation - sequential fusion is used.
 
@@ -1062,24 +1108,22 @@ void Ekf::fuseDirectStateMeasurement(const float innov, const float innov_var, c
 	//   =      P_temp     * (I - H.T * K.T) + K * R * K.T
 	//   =      P_temp - P_temp * H.T * K.T  + K * R * K.T
 
-	// Step 1: conventional update
-	// Compute P_temp and store it in P to avoid allocating more memory
+	// P_temp = P - K * PH^T is never stored: each entry is evaluated where it is used, first in
+	// P_temp * H (its column state_index), then in the stabilized update of the lower triangle,
+	// which is mirrored to the upper one. This is the same arithmetic as storing P_temp first.
 	// P is symmetric, so PH == H.T * P.T == H.T * P. Taking the row is faster as matrices are row-major
-	VectorState PH = P.row(state_index);
+	const VectorState PH = P.row(state_index);
+	VectorState P_temp_H;
 
 	for (unsigned i = 0; i < State::size; i++) {
-		for (unsigned j = 0; j < State::size; j++) {
-			P(i, j) -= K(i) * PH(j); // P is now not symmetric if K is not optimal (e.g.: some gains have been zeroed)
-		}
+		P_temp_H(i) = P(i, state_index) - K(i) * PH(state_index);
 	}
-
-	// Step 2: stabilized update
-	// P (or "P_temp") is not symmetric so we must take the column
-	PH = P.col(state_index);
 
 	for (unsigned i = 0; i < State::size; i++) {
 		for (unsigned j = 0; j <= i; j++) {
-			P(i, j) = P(i, j) - PH(i) * K(j) + K(i) * R * K(j);
+			// P_temp is not symmetric if K is not optimal (e.g.: some gains have been zeroed)
+			const float P_temp = P(i, j) - K(i) * PH(j);
+			P(i, j) = P_temp - P_temp_H(i) * K(j) + K(i) * R * K(j);
 			P(j, i) = P(i, j);
 		}
 	}
@@ -1090,11 +1134,28 @@ void Ekf::fuseDirectStateMeasurement(const float innov, const float innov_var, c
 		constrainStateVariances();
 	}
 
-	// apply the state corrections
-	fuse(K, innov);
+	// correct the a priori innovation for the accumulated state correction, then accumulate the
+	// correction of this measurement instead of applying it
+	const float innov_corrected = innov + state_correction(state_index);
+	state_correction -= K * innov_corrected;
 }
 
-bool Ekf::measurementUpdate(VectorState &K, const VectorState &H, const float R, const float innovation)
+void Ekf::fuseDirectStateMeasurement(const float innov, const float innov_var, const float R, const int state_index,
+				     bool constrain_variances)
+{
+	VectorState state_correction;
+	accumulateDirectStateMeasurement(innov, innov_var, R, state_index, state_correction, constrain_variances);
+	applyStateCorrection(state_correction);
+}
+
+Ekf::VectorState Ekf::computeKalmanGain(const VectorState &H, const float innov_var) const
+{
+	// K = P * H / innov_var
+	return multiplySparse(P, H, NonZeroIndices(H)) / innov_var;
+}
+
+bool Ekf::accumulateMeasurementUpdate(VectorState &K, const VectorState &H, const float R, const float innovation,
+				      VectorState &state_correction)
 {
 	clearInhibitedStateKalmanGains(K);
 
@@ -1115,23 +1176,31 @@ bool Ekf::measurementUpdate(VectorState &K, const VectorState &H, const float R,
 	//   =      P_temp     * (I - H.T * K.T) + K * R * K.T
 	//   =      P_temp - P_temp * H.T * K.T  + K * R * K.T
 
-	// Step 1: conventional update
-	// Compute P_temp and store it in P to avoid allocating more memory
-	// P is symmetric, so PH == H.T * P.T == H.T * P. Taking the row is faster as matrices are row-major
-	VectorState PH = P * H; // H is stored as a column vector. H is in fact H.T
+	// P_temp = P - K * PH^T is never stored: each entry is evaluated where it is used, first in
+	// P_temp * H (only its columns selected by H), then in the stabilized update of the lower
+	// triangle, which is mirrored to the upper one. This is the same arithmetic as storing P_temp first.
+	const VectorState K_local = K; // stores to P cannot alias the gain
+	const NonZeroIndices H_nz(H);
+	const VectorState PH = multiplySparse(P, H, H_nz); // H is stored as a column vector. H is in fact H.T
+	VectorState P_temp_H;
 
 	for (unsigned i = 0; i < State::size; i++) {
-		for (unsigned j = 0; j < State::size; j++) {
-			P(i, j) -= K(i) * PH(j); // P is now not symmetrical if K is not optimal (e.g.: some gains have been zeroed)
-		}
-	}
+		float sum = 0.f;
 
-	// Step 2: stabilized update
-	PH = P * H; // H is stored as a column vector. H is in fact H.T
+		for (unsigned k = 0; k < H_nz.count; k++) {
+			const unsigned j = H_nz.idx[k];
+			const float P_temp = P(i, j) - K_local(i) * PH(j);
+			sum += P_temp * H(j);
+		}
+
+		P_temp_H(i) = sum;
+	}
 
 	for (unsigned i = 0; i < State::size; i++) {
 		for (unsigned j = 0; j <= i; j++) {
-			P(i, j) = P(i, j) - PH(i) * K(j) + K(i) * R * K(j);
+			// P_temp is not symmetrical if K is not optimal (e.g.: some gains have been zeroed)
+			const float P_temp = P(i, j) - K_local(i) * PH(j);
+			P(i, j) = P_temp - P_temp_H(i) * K_local(j) + K_local(i) * R * K_local(j);
 			P(j, i) = P(i, j);
 		}
 	}
@@ -1140,9 +1209,25 @@ bool Ekf::measurementUpdate(VectorState &K, const VectorState &H, const float R,
 
 	constrainStateVariances();
 
-	// apply the state corrections
-	fuse(K, innovation);
+	// correct the a priori innovation for the accumulated state correction, then accumulate the
+	// correction of this measurement instead of applying it
+	const float innov_corrected = innovation + H.dot(state_correction);
+	state_correction -= K * innov_corrected;
 	return true;
+}
+
+bool Ekf::measurementUpdate(VectorState &K, const VectorState &H, const float R, const float innovation)
+{
+	VectorState state_correction;
+	accumulateMeasurementUpdate(K, H, R, innovation, state_correction);
+	applyStateCorrection(state_correction);
+	return true;
+}
+
+void Ekf::applyStateCorrection(const VectorState &correction)
+{
+	// fuse() applies -K * innovation as the correction
+	fuse(correction, -1.f);
 }
 
 void Ekf::resetAidSourceStatusZeroInnovation(estimator_aid_source1d_s &status) const

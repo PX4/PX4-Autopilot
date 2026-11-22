@@ -12,10 +12,10 @@ static const uint32_t		GPS_TIMEOUT = 1000000;	// 1.0 s
 void BlockLocalPositionEstimator::gpsInit()
 {
 	// check for good gps signal
-	uint8_t nSat = _sub_gps.get().satellites_used;
-	float eph = _sub_gps.get().eph;
-	float epv = _sub_gps.get().epv;
-	uint8_t fix_type = _sub_gps.get().fix_type;
+	uint8_t nSat = _sub_gnss.get().receiver.satellites_used;
+	float eph = _sub_gnss.get().receiver.eph;
+	float epv = _sub_gnss.get().receiver.epv;
+	uint8_t fix_type = _sub_gnss.get().receiver.fix_type;
 
 	if (
 		nSat < 6 ||
@@ -92,12 +92,12 @@ int BlockLocalPositionEstimator::gpsMeasure(Vector<double, n_y_gps> &y)
 {
 	// gps measurement
 	y.setZero();
-	y(0) = _sub_gps.get().latitude_deg;
-	y(1) = _sub_gps.get().longitude_deg;
-	y(2) = _sub_gps.get().altitude_msl_m;
-	y(3) = (double)_sub_gps.get().vel_n_m_s;
-	y(4) = (double)_sub_gps.get().vel_e_m_s;
-	y(5) = (double)_sub_gps.get().vel_d_m_s;
+	y(0) = _sub_gnss.get().receiver.latitude;
+	y(1) = _sub_gnss.get().receiver.longitude;
+	y(2) = _sub_gnss.get().receiver.altitude_msl;
+	y(3) = (double)_sub_gnss.get().receiver.vel_north;
+	y(4) = (double)_sub_gnss.get().receiver.vel_east;
+	y(5) = (double)_sub_gnss.get().receiver.vel_down;
 
 	// increament sums for mean
 	_gpsStats.update(y);
@@ -150,15 +150,15 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	float var_vz = _param_lpe_gps_vz.get() * _param_lpe_gps_vz.get();
 
 	// if field is not below minimum, set it to the value provided
-	if (_sub_gps.get().eph > _param_lpe_gps_xy.get()) {
-		var_xy = _sub_gps.get().eph * _sub_gps.get().eph;
+	if (_sub_gnss.get().receiver.eph > _param_lpe_gps_xy.get()) {
+		var_xy = _sub_gnss.get().receiver.eph * _sub_gnss.get().receiver.eph;
 	}
 
-	if (_sub_gps.get().epv > _param_lpe_gps_z.get()) {
-		var_z = _sub_gps.get().epv * _sub_gps.get().epv;
+	if (_sub_gnss.get().receiver.epv > _param_lpe_gps_z.get()) {
+		var_z = _sub_gnss.get().receiver.epv * _sub_gnss.get().receiver.epv;
 	}
 
-	float gps_s_stddev =  _sub_gps.get().s_variance_m_s;
+	float gps_s_stddev =  _sub_gnss.get().receiver.speed_accuracy;
 
 	if (gps_s_stddev > _param_lpe_gps_vxy.get()) {
 		var_vxy = gps_s_stddev * gps_s_stddev;

@@ -446,10 +446,10 @@
 #define GPIO_nSAFETY_SWITCH_LED_OUT_INIT   /* GPIO_EMC_B1_03 GPIO1_IO03 */ (GPIO_PORT1 | GPIO_PIN3 | GPIO_INPUT  | SAFETY_INIT_IOMUX)
 #define GPIO_nSAFETY_SWITCH_LED_OUT        /* GPIO_EMC_B1_03 GPIO1_IO03 */ (GPIO_PORT1 | GPIO_PIN3 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | SAFETY_IOMUX)
 
-/* Enable the FMU to control it if there is no px4io fixme:This should be BOARD_SAFETY_LED(__ontrue) */
+/* Enable the FMU to control it if there is no px4io */
 #define GPIO_LED_SAFETY GPIO_nSAFETY_SWITCH_LED_OUT
 #define GPIO_SAFETY_SWITCH_IN              /* GPIO_EMC_B1_24 GPIO1_IO24 */ (GPIO_PORT1 | GPIO_PIN24 | GPIO_INPUT | SAFETY_SW_IOMUX)
-/* Enable the FMU to use the switch it if there is no px4io fixme:This should be BOARD_SAFTY_BUTTON() */
+/* Enable the FMU to use the switch if there is no px4io */
 #define GPIO_BTN_SAFETY GPIO_SAFETY_SWITCH_IN /* Enable the FMU to control it if there is no px4io */
 
 

@@ -26,8 +26,8 @@ Additional technical information can be found at [Holybro Technical Documentatio
 
 The module comes with both GH 10-pin & 6-pin cables that are compatible with the GPS1 & GPS2 ports on flight controllers that use the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf), such as [Pixhawk 6x](../flight_controller/pixhawk6x.md) and [Pixhawk 6c](../flight_controller/pixhawk6c.md).
 
-It can also be used with Cubepilot Flight Controller.
-The 10Pin - 6Pin cable allows users to connect the UM982 to `GPS2` port on Cubepilot and Holybro Autopilots.
+It can also be used with CubePilot Flight Controller.
+The 10Pin - 6Pin cable allows users to connect the UM982 to `GPS2` port on CubePilot and Holybro Autopilots.
 
 The module can be used with one antenna or both antennas.
 If it is used with only one antenna, the right/primary antenna connector must be connected.
@@ -53,8 +53,7 @@ The Unicore module comes with two antennas, a primary (right connector) and a se
 You will need to set the following parameters:
 
 - [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL): Set bit 3 (8) to enable dual antenna heading into the yaw estimation.
-- [GPS_YAW_OFFSET](../advanced_config/parameter_reference.md#GPS_YAW_OFFSET): Set heading offset to 0 if the primary antenna is in the front.
-  The angle increases clock-wise, so set the offset to 90 degrees if the primary antenna is on the right side of the vehicle (and the secondary on the left side).
+- [SENS_GNSSn_HDG](../advanced_config/parameter_reference.md#SENS_GNSS0_HDG): `Dual antenna`, with [SENS_GNSSn_OFFX/Y/Z](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFX) the position of the primary antenna and [SENS_GNSSn_AUXX/Y/Z](../advanced_config/parameter_reference.md#SENS_GNSS0_AUXX) that of the secondary antenna.
 
 ### RTK Corrections
 

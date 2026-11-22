@@ -231,9 +231,7 @@ TEST_F(AttitudeControlFeedforwardTest, HighRateRampStillExact)
 
 TEST_F(AttitudeControlFeedforwardTest, YawRampOnlyAnalyticalFeedforwardContributes)
 {
-	// GIVEN: a yaw ramp with the analytical yawspeed setpoint matching. The reference
-	// model's damping is biased toward this known rate, so omega_ref settles to
-	// (0,0,omega) in q_ref's body frame and the FF reads out the body-z component.
+	// GIVEN: a yaw ramp with the analytical yawspeed setpoint matching
 	const float omega = 0.5f;
 	rampSetpoint(Vector3f(0.f, 0.f, omega), omega, kSettleSteps);
 
@@ -249,9 +247,6 @@ TEST_F(AttitudeControlFeedforwardTest, TiltedYawDoesNotDoubleCount)
 	// GIVEN: body locked at constant tilt, yawing around world-z at constant rate.
 	// Truth body angular velocity: ω_body = R_BW · (0, 0, yaw_rate)
 	//                                     = (-sin(tilt)·yaw_rate, 0, cos(tilt)·yaw_rate)
-	// The reference model bakes yaw_sp_move_rate into omega_ref via its damping bias,
-	// so the FF reproduces the body-frame projection of the world-z rotation —
-	// no separate analytical path, no double-count possible.
 	const float tilt = 0.5f;        // ~28.6° pitch
 	const float yaw_rate = 0.5f;    // ~28.6 dps
 	const Quatf q_pitch(AxisAnglef(Vector3f(0.f, tilt, 0.f)));
@@ -311,6 +306,45 @@ TEST_F(AttitudeControlFeedforwardTest, UnlockedYawDoesNotFeedBackSlavedHeading)
 	EXPECT_LT(fabsf(rate_setpoint(2)), 0.2f);
 	EXPECT_NEAR(rate_setpoint(0), 0.f, 1e-3f);
 	EXPECT_NEAR(rate_setpoint(1), 0.f, 1e-3f);
+}
+
+TEST_F(AttitudeControlFeedforwardTest, UnlockedHeadingDoesNotWindUpWhenVehicleCannotYaw)
+{
+	// GIVEN: a steady yaw-rate command the vehicle cannot follow (yaw held, e.g. still on the ground),
+	// so the heading setpoint never moves either
+	const float commanded = 0.2f;
+	const Quatf q_stuck;    // vehicle and setpoint both pinned at identity
+
+	for (int i = 0; i < 4 * kSettleSteps; i++) {    // 8 s at the test's setpoint rate
+		_attitude_control.setAttitudeSetpoint(q_stuck, commanded, (i == 0) ? -1.f : kDt);
+	}
+
+	// WHEN: evaluated at the actual (stuck) attitude, where a runaway reference shows up as a P term.
+	// MC_REF_FF does not scale the P law, so both ends of its range need checking.
+	for (const float ff_gain : {0.f, 1.f}) {
+		_attitude_control.setFeedForwardGain(ff_gain);
+		const Vector3f rate_setpoint = _attitude_control.update(q_stuck);
+
+		// THEN: the output is still just the commanded rate
+		EXPECT_NEAR(rate_setpoint(2), commanded, 1e-3f) << "MC_REF_FF = " << ff_gain;
+		EXPECT_NEAR(rate_setpoint(0), 0.f, 1e-3f) << "MC_REF_FF = " << ff_gain;
+		EXPECT_NEAR(rate_setpoint(1), 0.f, 1e-3f) << "MC_REF_FF = " << ff_gain;
+	}
+
+	// AND: the reference heading has not drifted off the setpoint
+	EXPECT_NEAR(Eulerf(_attitude_control.getReferenceAttitude()).psi(), 0.f, 1e-3f);
+}
+
+TEST_F(AttitudeControlFeedforwardTest, UnlockedHeadingReferenceTracksSetpoint)
+{
+	// GIVEN: the unlocked-heading regime, setpoint heading ramping at the vehicle's yaw rate
+	const float heading_ramp_rate = 0.8f;
+	const float commanded   = 0.05f;
+	const Quatf q_d = rampSetpoint(Vector3f(0.f, 0.f, heading_ramp_rate), commanded, kSettleSteps);
+
+	// THEN: the reference heading tracks the setpoint heading, so the yaw P term contributes nothing
+	EXPECT_NEAR(Eulerf(_attitude_control.getReferenceAttitude()).psi(), Eulerf(q_d).psi(),
+		    2.f * heading_ramp_rate * kDt);    // one setpoint sample of catch-up lag
 }
 
 TEST_F(AttitudeControlFeedforwardTest, LockedYawRampStillFeedsForward)
@@ -398,4 +432,83 @@ TEST_F(AttitudeControlFeedforwardTest, FractionalGainScalesAnticipation)
 	EXPECT_NEAR(rate_setpoint(0), 0.1f * omega, 1e-3f);
 	EXPECT_NEAR(rate_setpoint(1), 0.f, 1e-3f);
 	EXPECT_NEAR(rate_setpoint(2), 0.f, 1e-3f);
+}
+
+TEST_F(AttitudeControlFeedforwardTest, InvalidSetpointKeepsLastReference)
+{
+	// GIVEN: a settled reference on a tilted setpoint, vehicle level
+	const Quatf q_d(AxisAnglef(Vector3f(0.1f, 0.f, 0.f)));
+
+	for (int i = 0; i < kSettleSteps; i++) {
+		_attitude_control.setAttitudeSetpoint(q_d, 0.f, (i == 0) ? -1.f : kDt);
+	}
+
+	const Vector3f rate_setpoint_valid = _attitude_control.update(Quatf());
+	ASSERT_TRUE(rate_setpoint_valid.isAllFinite());
+	ASSERT_GT(rate_setpoint_valid.norm(), 0.1f);
+
+	// WHEN: one zero quaternion setpoint and one NaN quaternion setpoint arrive
+	const bool accepted_zero = _attitude_control.setAttitudeSetpoint(Quatf(0.f, 0.f, 0.f, 0.f), 0.f, kDt);
+	const Vector3f rate_setpoint_zero = _attitude_control.update(Quatf());
+	const bool accepted_nan = _attitude_control.setAttitudeSetpoint(Quatf(NAN, 0.f, 0.f, 0.f), 0.f, kDt);
+	const Vector3f rate_setpoint_nan = _attitude_control.update(Quatf());
+	// norm() overflows to inf although every component is finite
+	const bool accepted_overflow = _attitude_control.setAttitudeSetpoint(Quatf(1e20f, 0.f, 0.f, 0.f), 0.f, kDt);
+	const Vector3f rate_setpoint_overflow = _attitude_control.update(Quatf());
+
+	// THEN: they are rejected, the controller keeps tracking the last valid reference
+	EXPECT_FALSE(accepted_zero);
+	EXPECT_FALSE(accepted_nan);
+	EXPECT_FALSE(accepted_overflow);
+	EXPECT_TRUE(rate_setpoint_zero.isAllFinite());
+	EXPECT_TRUE(rate_setpoint_nan.isAllFinite());
+	EXPECT_NEAR((rate_setpoint_zero - rate_setpoint_valid).norm(), 0.f, 1e-5f);
+	EXPECT_NEAR((rate_setpoint_nan - rate_setpoint_valid).norm(), 0.f, 1e-5f);
+	EXPECT_NEAR((rate_setpoint_overflow - rate_setpoint_valid).norm(), 0.f, 1e-5f);
+
+	// WHEN: valid setpoints resume with a new attitude
+	const Quatf q_d_new(AxisAnglef(Vector3f(0.f, -0.2f, 0.f)));
+
+	bool accepted_new = true;
+
+	for (int i = 0; i < kSettleSteps; i++) {
+		accepted_new &= _attitude_control.setAttitudeSetpoint(q_d_new, 0.f, kDt);
+	}
+
+	// THEN: they are accepted and the reference converges on the new setpoint
+	EXPECT_TRUE(accepted_new);
+	EXPECT_TRUE(_attitude_control.getReferenceAttitude().isAllFinite());
+	EXPECT_NEAR(_attitude_control.update(q_d_new).norm(), 0.f, 1e-3f);
+}
+
+TEST_F(AttitudeControlFeedforwardTest, NonUnitSetpointIsAccepted)
+{
+	// GIVEN: a valid setpoint that is finite but not unit length
+	const Quatf q_d(AxisAnglef(Vector3f(0.f, 0.2f, 0.f)));
+
+	// WHEN: it is set scaled up and scaled down
+	const bool accepted_large = _attitude_control.setAttitudeSetpoint(q_d * 3.f, 0.f);
+	const bool accepted_small = _attitude_control.setAttitudeSetpoint(q_d * 0.01f, 0.f, kDt);
+
+	// THEN: both are accepted and normalized
+	EXPECT_TRUE(accepted_large);
+	EXPECT_TRUE(accepted_small);
+	EXPECT_NEAR(_attitude_control.getReferenceAttitude().norm(), 1.f, 1e-5f);
+	EXPECT_NEAR(_attitude_control.update(q_d).norm(), 0.f, 1e-3f);
+}
+
+TEST_F(AttitudeControlFeedforwardTest, InvalidFirstSetpointIsRejected)
+{
+	// WHEN: the first setpoint after boot is invalid
+	const bool accepted_zero = _attitude_control.setAttitudeSetpoint(Quatf(0.f, 0.f, 0.f, 0.f), 0.f);
+	const bool accepted_overflow = _attitude_control.setAttitudeSetpoint(Quatf(1e20f, 0.f, 0.f, 0.f), 0.f);
+
+	// THEN: it is rejected and the next valid setpoint initializes the reference
+	EXPECT_FALSE(accepted_zero);
+	EXPECT_FALSE(accepted_overflow);
+
+	const Quatf q_d(AxisAnglef(Vector3f(0.f, 0.2f, 0.f)));
+	EXPECT_TRUE(_attitude_control.setAttitudeSetpoint(q_d, 0.f, kDt));
+	EXPECT_TRUE(_attitude_control.getReferenceAttitude().isAllFinite());
+	EXPECT_NEAR(_attitude_control.update(q_d).norm(), 0.f, 1e-5f);
 }

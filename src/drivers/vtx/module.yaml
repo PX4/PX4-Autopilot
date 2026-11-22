@@ -65,11 +65,12 @@ parameters:
         default: 0
       VTX_FREQUENCY:
         description:
-          short: VTX frequency in MHz
+          short: VTX frequency
           long: |
             If the VTX frequency is set, it will overwrite the band and channel
             settings. Set to 0 to use band and channel settings.
         type: int32
+        unit: MHz
         min: 0
         max: 32000
         default: 0
@@ -141,7 +142,6 @@ parameters:
         # Note: values are due to legacy compatibility; keep in sync with msg/Vtx.msg
         values:
           0: Generic
-          5120: Peak THOR T67
-          10240: Rush MAX SOLO
+          5120: Peak THOR - T35, T67, T78, T89
         default: 0
         reboot_required: true

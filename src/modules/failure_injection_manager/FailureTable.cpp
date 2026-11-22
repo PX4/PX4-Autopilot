@@ -44,20 +44,21 @@ bool FailureTable::isSupported(uint8_t unit, uint8_t type)
 	// FAILURE_TYPE_OK is always accepted for a known unit (it clears the unit).
 	switch (unit) {
 	case failure_injection_s::FAILURE_UNIT_SENSOR_GYRO:
-	case failure_injection_s::FAILURE_UNIT_SENSOR_MAG:
-	case failure_injection_s::FAILURE_UNIT_SENSOR_BARO:
-	case failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR:
-		return type == failure_injection_s::FAILURE_TYPE_OK
-		       || type == failure_injection_s::FAILURE_TYPE_OFF
-		       || type == failure_injection_s::FAILURE_TYPE_STUCK;
-
 	case failure_injection_s::FAILURE_UNIT_SENSOR_ACCEL:
-		// GARBAGE is implemented by SIH only, like AIRSPEED WRONG below. On real hardware
-		// it is accepted and does nothing, because no driver produces the samples.
 		return type == failure_injection_s::FAILURE_TYPE_OK
 		       || type == failure_injection_s::FAILURE_TYPE_OFF
 		       || type == failure_injection_s::FAILURE_TYPE_STUCK
-		       || type == failure_injection_s::FAILURE_TYPE_GARBAGE;
+		       || type == failure_injection_s::FAILURE_TYPE_WRONG    // bias
+		       || type == failure_injection_s::FAILURE_TYPE_GARBAGE  // noise
+		       || type == failure_injection_s::FAILURE_TYPE_DRIFT;
+
+	case failure_injection_s::FAILURE_UNIT_SENSOR_MAG:
+	case failure_injection_s::FAILURE_UNIT_SENSOR_BARO:
+	case failure_injection_s::FAILURE_UNIT_SENSOR_DISTANCE_SENSOR:
+	case failure_injection_s::FAILURE_UNIT_SENSOR_VIO:
+		return type == failure_injection_s::FAILURE_TYPE_OK
+		       || type == failure_injection_s::FAILURE_TYPE_OFF
+		       || type == failure_injection_s::FAILURE_TYPE_STUCK;
 
 	case failure_injection_s::FAILURE_UNIT_SENSOR_GPS:
 	case failure_injection_s::FAILURE_UNIT_SENSOR_AIRSPEED:
@@ -66,13 +67,17 @@ bool FailureTable::isSupported(uint8_t unit, uint8_t type)
 		       || type == failure_injection_s::FAILURE_TYPE_STUCK
 		       || type == failure_injection_s::FAILURE_TYPE_WRONG;
 
-	case failure_injection_s::FAILURE_UNIT_SENSOR_VIO:
 	case failure_injection_s::FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE: // multi-target queue: no single value to freeze
 	case failure_injection_s::FAILURE_UNIT_BUS_CAN:
 		return type == failure_injection_s::FAILURE_TYPE_OK
 		       || type == failure_injection_s::FAILURE_TYPE_OFF;
 
 	case failure_injection_s::FAILURE_UNIT_SYSTEM_MOTOR:
+		return type == failure_injection_s::FAILURE_TYPE_OK
+		       || type == failure_injection_s::FAILURE_TYPE_OFF
+		       || type == failure_injection_s::FAILURE_TYPE_WRONG
+		       || type == failure_injection_s::FAILURE_TYPE_STUCK; // rotor stuck: still commanded, no thrust, ESC stays online
+
 	case failure_injection_s::FAILURE_UNIT_SYSTEM_ESC:
 	case failure_injection_s::FAILURE_UNIT_SYSTEM_BATTERY:
 		return type == failure_injection_s::FAILURE_TYPE_OK

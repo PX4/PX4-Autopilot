@@ -149,11 +149,6 @@ To [build PX4](../dev_setup/building_px4.md) for this target:
 make px4_fmu-v6x_default
 ```
 
-## 지원 플랫폼 및 기체
-
-일반 RC 서보 또는 Futaba S-Bus 서보로 제어 가능한 모든 멀티콥터/비행기/로버 또는 보트.
-The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
-
 ## 추가 정보
 
 - [Pixhawk Autopilot FMUv6X Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-012%20Pixhawk%20Autopilot%20v6X%20Standard.pdf)

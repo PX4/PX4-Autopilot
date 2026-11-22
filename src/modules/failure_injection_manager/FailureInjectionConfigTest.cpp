@@ -42,7 +42,7 @@
 #include <parameters/param.h>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/battery_status.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 
 // FailureInjection.hpp transitively pulls in px4_platform_common/defines.h (via
 // uORB Subscription), which defines an OK macro that would clash with the local
@@ -80,29 +80,30 @@ failure_injection_s make_config(uint8_t unit, uint16_t instance_mask, uint8_t fa
 }
 
 // Healthy 3D-fix sample, as a GNSS driver would publish it.
-sensor_gps_s clean_gps()
+sensor_gnss_s clean_gnss()
 {
-	sensor_gps_s gps{};
-	gps.timestamp = 1000;
-	gps.timestamp_sample = 900;
-	gps.fix_type = sensor_gps_s::FIX_TYPE_3D;
-	gps.latitude_deg = 47.0;
-	gps.longitude_deg = 8.0;
-	gps.altitude_msl_m = 500.0;
-	gps.altitude_ellipsoid_m = 500.0;
-	gps.eph = 0.9f;
-	gps.epv = 1.78f;
-	gps.satellites_used = 25;
-	gps.vel_n_m_s = 1.f;
-	gps.vel_e_m_s = 2.f;
-	gps.vel_d_m_s = 0.5f;
-	gps.vel_m_s = 2.236f;
-	gps.vel_ned_valid = true;
-	return gps;
+	sensor_gnss_s gnss{};
+	gnss.timestamp = 1000;
+	gnss.timestamp_sample = 900;
+	gnss.fix_type = sensor_gnss_s::FIX_TYPE_3D;
+	gnss.latitude = 47.0;
+	gnss.longitude = 8.0;
+	gnss.altitude_msl = 500.0;
+	gnss.altitude_ellipsoid = 500.0;
+	gnss.eph = 0.9f;
+	gnss.epv = 1.78f;
+	gnss.satellites_used = 25;
+	gnss.vel_north = 1.f;
+	gnss.vel_east = 2.f;
+	gnss.vel_down = 0.5f;
+	gnss.ground_speed = 2.236f;
+	gnss.vel_ned_valid = true;
+	return gnss;
 }
 
 constexpr uint8_t GYRO  = failure_injection_s::FAILURE_UNIT_SENSOR_GYRO;
 constexpr uint8_t GPS   = failure_injection_s::FAILURE_UNIT_SENSOR_GPS;
+constexpr uint8_t AIRSPEED = failure_injection_s::FAILURE_UNIT_SENSOR_AIRSPEED;
 constexpr uint8_t MOTOR = failure_injection_s::FAILURE_UNIT_SYSTEM_MOTOR;
 constexpr uint8_t ESC   = failure_injection_s::FAILURE_UNIT_SYSTEM_ESC;
 constexpr uint8_t BATTERY = failure_injection_s::FAILURE_UNIT_SYSTEM_BATTERY;
@@ -309,23 +310,23 @@ TEST(FailureInjectionConfig, ProcessGnssWrongSetsConfiguredFixType)
 	config.set(make_config(GPS, 0x1, WRONG)); // uORB instance 0 -> failure instance 1
 
 	const int32_t fix_types[] = {
-		sensor_gps_s::FIX_TYPE_2D,
-		sensor_gps_s::FIX_TYPE_NONE,
-		sensor_gps_s::FIX_TYPE_RTK_FLOAT,
-		sensor_gps_s::FIX_TYPE_RTK_FIXED,
+		sensor_gnss_s::FIX_TYPE_2D,
+		sensor_gnss_s::FIX_TYPE_NONE,
+		sensor_gnss_s::FIX_TYPE_RTK_FLOAT,
+		sensor_gnss_s::FIX_TYPE_RTK_FIXED,
 	};
 
 	for (const int32_t expected : fix_types) {
 		ASSERT_EQ(param_set(param_find("SYS_FAIL_GPS_WRG"), &expected), 0);
 
-		Stuck<sensor_gps_s> stuck;
-		sensor_gps_s gps = clean_gps();
+		Stuck<sensor_gnss_s> stuck;
+		sensor_gnss_s gnss = clean_gnss();
 
-		EXPECT_TRUE(process_gnss(config, 0, gps, stuck));
-		EXPECT_EQ(gps.fix_type, (uint8_t)expected);
+		EXPECT_TRUE(process_gnss(config, 0, gnss, stuck));
+		EXPECT_EQ(gnss.fix_type, (uint8_t)expected);
 	}
 
-	const int32_t default_fix_type = sensor_gps_s::FIX_TYPE_2D;
+	const int32_t default_fix_type = sensor_gnss_s::FIX_TYPE_2D;
 	param_set(param_find("SYS_FAIL_GPS_WRG"), &default_fix_type);
 }
 
@@ -333,54 +334,54 @@ TEST(FailureInjectionConfig, ProcessGnssWrongLeavesPositionUntouched)
 {
 	param_control_autosave(false);
 
-	const int32_t fix_type = sensor_gps_s::FIX_TYPE_2D;
+	const int32_t fix_type = sensor_gnss_s::FIX_TYPE_2D;
 	ASSERT_EQ(param_set(param_find("SYS_FAIL_GPS_WRG"), &fix_type), 0);
 
 	Config config;
 	config.set(make_config(GPS, 0x1, WRONG));
 
-	Stuck<sensor_gps_s> stuck;
-	const sensor_gps_s truth = clean_gps();
-	sensor_gps_s gps = truth;
+	Stuck<sensor_gnss_s> stuck;
+	const sensor_gnss_s truth = clean_gnss();
+	sensor_gnss_s gnss = truth;
 
-	EXPECT_TRUE(process_gnss(config, 0, gps, stuck));
+	EXPECT_TRUE(process_gnss(config, 0, gnss, stuck));
 
 	// Only the fix type changes: the reported solution stays coherent with the truth.
-	EXPECT_EQ(gps.fix_type, (uint8_t)sensor_gps_s::FIX_TYPE_2D);
-	EXPECT_DOUBLE_EQ(gps.latitude_deg, truth.latitude_deg);
-	EXPECT_DOUBLE_EQ(gps.longitude_deg, truth.longitude_deg);
-	EXPECT_DOUBLE_EQ(gps.altitude_msl_m, truth.altitude_msl_m);
-	EXPECT_DOUBLE_EQ(gps.altitude_ellipsoid_m, truth.altitude_ellipsoid_m);
-	EXPECT_FLOAT_EQ(gps.vel_n_m_s, truth.vel_n_m_s);
-	EXPECT_FLOAT_EQ(gps.vel_e_m_s, truth.vel_e_m_s);
-	EXPECT_FLOAT_EQ(gps.vel_d_m_s, truth.vel_d_m_s);
-	EXPECT_FLOAT_EQ(gps.vel_m_s, truth.vel_m_s);
-	EXPECT_FLOAT_EQ(gps.eph, truth.eph);
-	EXPECT_EQ(gps.satellites_used, truth.satellites_used);
+	EXPECT_EQ(gnss.fix_type, (uint8_t)sensor_gnss_s::FIX_TYPE_2D);
+	EXPECT_DOUBLE_EQ(gnss.latitude, truth.latitude);
+	EXPECT_DOUBLE_EQ(gnss.longitude, truth.longitude);
+	EXPECT_DOUBLE_EQ(gnss.altitude_msl, truth.altitude_msl);
+	EXPECT_DOUBLE_EQ(gnss.altitude_ellipsoid, truth.altitude_ellipsoid);
+	EXPECT_FLOAT_EQ(gnss.vel_north, truth.vel_north);
+	EXPECT_FLOAT_EQ(gnss.vel_east, truth.vel_east);
+	EXPECT_FLOAT_EQ(gnss.vel_down, truth.vel_down);
+	EXPECT_FLOAT_EQ(gnss.ground_speed, truth.ground_speed);
+	EXPECT_FLOAT_EQ(gnss.eph, truth.eph);
+	EXPECT_EQ(gnss.satellites_used, truth.satellites_used);
 }
 
 TEST(FailureInjectionConfig, ProcessGnssWrongLeavesUnselectedInstanceUntouched)
 {
 	param_control_autosave(false);
 
-	const int32_t fix_type = sensor_gps_s::FIX_TYPE_2D;
+	const int32_t fix_type = sensor_gnss_s::FIX_TYPE_2D;
 	ASSERT_EQ(param_set(param_find("SYS_FAIL_GPS_WRG"), &fix_type), 0);
 
 	Config config;
 	config.set(make_config(GPS, 0x2, WRONG)); // failure instance 2 -> uORB instance 1
 
-	Stuck<sensor_gps_s> stuck;
-	sensor_gps_s gps = clean_gps();
+	Stuck<sensor_gnss_s> stuck;
+	sensor_gnss_s gnss = clean_gnss();
 
-	EXPECT_TRUE(process_gnss(config, 0, gps, stuck));
-	EXPECT_EQ(gps.fix_type, (uint8_t)sensor_gps_s::FIX_TYPE_3D);
+	EXPECT_TRUE(process_gnss(config, 0, gnss, stuck));
+	EXPECT_EQ(gnss.fix_type, (uint8_t)sensor_gnss_s::FIX_TYPE_3D);
 
 	// The addressed instance is degraded.
-	Stuck<sensor_gps_s> stuck_1;
-	sensor_gps_s gps_1 = clean_gps();
+	Stuck<sensor_gnss_s> stuck_1;
+	sensor_gnss_s gnss_1 = clean_gnss();
 
-	EXPECT_TRUE(process_gnss(config, 1, gps_1, stuck_1));
-	EXPECT_EQ(gps_1.fix_type, (uint8_t)sensor_gps_s::FIX_TYPE_2D);
+	EXPECT_TRUE(process_gnss(config, 1, gnss_1, stuck_1));
+	EXPECT_EQ(gnss_1.fix_type, (uint8_t)sensor_gnss_s::FIX_TYPE_2D);
 }
 
 TEST(FailureInjectionConfig, ProcessGnssOffSuppressesPublication)
@@ -388,36 +389,36 @@ TEST(FailureInjectionConfig, ProcessGnssOffSuppressesPublication)
 	Config config;
 	config.set(make_config(GPS, 0x1, OFF));
 
-	Stuck<sensor_gps_s> stuck;
-	sensor_gps_s gps = clean_gps();
+	Stuck<sensor_gnss_s> stuck;
+	sensor_gnss_s gnss = clean_gnss();
 
-	EXPECT_FALSE(process_gnss(config, 0, gps, stuck));
+	EXPECT_FALSE(process_gnss(config, 0, gnss, stuck));
 	// Off suppresses instead of mutating.
-	EXPECT_EQ(gps.fix_type, (uint8_t)sensor_gps_s::FIX_TYPE_3D);
+	EXPECT_EQ(gnss.fix_type, (uint8_t)sensor_gnss_s::FIX_TYPE_3D);
 }
 
 TEST(FailureInjectionConfig, ProcessGnssStuckReplaysLastGoodSample)
 {
 	Config config;
-	Stuck<sensor_gps_s> stuck;
+	Stuck<sensor_gnss_s> stuck;
 
 	// A healthy cycle records the last good sample.
-	sensor_gps_s good = clean_gps();
+	sensor_gnss_s good = clean_gnss();
 	EXPECT_TRUE(process_gnss(config, 0, good, stuck));
 
 	config.set(make_config(GPS, 0x1, STUCK));
 
-	sensor_gps_s moved = clean_gps();
+	sensor_gnss_s moved = clean_gnss();
 	moved.timestamp = 2000;
 	moved.timestamp_sample = 1900;
-	moved.latitude_deg = 48.0;
-	moved.longitude_deg = 9.0;
+	moved.latitude = 48.0;
+	moved.longitude = 9.0;
 
 	EXPECT_TRUE(process_gnss(config, 0, moved, stuck));
 
 	// The frozen position comes back, with the live timestamps.
-	EXPECT_DOUBLE_EQ(moved.latitude_deg, good.latitude_deg);
-	EXPECT_DOUBLE_EQ(moved.longitude_deg, good.longitude_deg);
+	EXPECT_DOUBLE_EQ(moved.latitude, good.latitude);
+	EXPECT_DOUBLE_EQ(moved.longitude, good.longitude);
 	EXPECT_EQ(moved.timestamp, 2000u);
 	EXPECT_EQ(moved.timestamp_sample, 1900u);
 }
@@ -425,26 +426,132 @@ TEST(FailureInjectionConfig, ProcessGnssStuckReplaysLastGoodSample)
 TEST(FailureInjectionConfig, ProcessGnssRecoveryUsesLiveSample)
 {
 	Config config;
-	Stuck<sensor_gps_s> stuck;
+	Stuck<sensor_gnss_s> stuck;
 
-	sensor_gps_s initial = clean_gps();
+	sensor_gnss_s initial = clean_gnss();
 	EXPECT_TRUE(process_gnss(config, 0, initial, stuck));
 
 	config.set(make_config(GPS, 0x1, STUCK));
-	sensor_gps_s frozen = clean_gps();
-	frozen.latitude_deg = 48.0;
+	sensor_gnss_s frozen = clean_gnss();
+	frozen.latitude = 48.0;
 	EXPECT_TRUE(process_gnss(config, 0, frozen, stuck));
-	EXPECT_DOUBLE_EQ(frozen.latitude_deg, initial.latitude_deg);
+	EXPECT_DOUBLE_EQ(frozen.latitude, initial.latitude);
 
 	config.set(make_config(GPS, 0x1, OFF));
-	sensor_gps_s suppressed = clean_gps();
+	sensor_gnss_s suppressed = clean_gnss();
 	EXPECT_FALSE(process_gnss(config, 0, suppressed, stuck));
 
 	config.set(failure_injection_s{});
-	sensor_gps_s recovered = clean_gps();
-	recovered.latitude_deg = 48.0;
+	sensor_gnss_s recovered = clean_gnss();
+	recovered.latitude = 48.0;
 	EXPECT_TRUE(process_gnss(config, 0, recovered, stuck));
-	EXPECT_DOUBLE_EQ(recovered.latitude_deg, 48.0);
+	EXPECT_DOUBLE_EQ(recovered.latitude, 48.0);
+}
+
+// ===========================================================================
+// process_airspeed(): Off / Stuck / Wrong (pitot blockage ramp)
+// ===========================================================================
+
+namespace
+{
+
+differential_pressure_s make_differential_pressure(uint64_t timestamp, float differential_pressure_pa)
+{
+	differential_pressure_s differential_pressure{};
+	differential_pressure.timestamp = timestamp;
+	differential_pressure.timestamp_sample = timestamp;
+	differential_pressure.differential_pressure_pa = differential_pressure_pa;
+	return differential_pressure;
+}
+
+} // namespace
+
+TEST(FailureInjectionConfig, ProcessAirspeedWrongRampsDownToBlockageFloor)
+{
+	Config config;
+	config.set(make_config(AIRSPEED, 0x1, WRONG));
+
+	AirspeedState state;
+	const uint64_t onset = 1'000'000;
+
+	// The ramp starts at the first Wrong sample: no blockage yet.
+	differential_pressure_s differential_pressure = make_differential_pressure(onset, 100.f);
+	EXPECT_TRUE(process_airspeed(config, 0, differential_pressure, state));
+	EXPECT_FLOAT_EQ(differential_pressure.differential_pressure_pa, 100.f);
+
+	// Halfway through the 30 s ramp the pressure is linearly scaled.
+	differential_pressure = make_differential_pressure(onset + 15'000'000, 100.f);
+	EXPECT_TRUE(process_airspeed(config, 0, differential_pressure, state));
+	EXPECT_NEAR(differential_pressure.differential_pressure_pa, 50.f, 1e-3f);
+
+	// Past the ramp it holds at 30 % of the true value (70 % blockage).
+	differential_pressure = make_differential_pressure(onset + 60'000'000, 100.f);
+	EXPECT_TRUE(process_airspeed(config, 0, differential_pressure, state));
+	EXPECT_NEAR(differential_pressure.differential_pressure_pa, 30.f, 1e-3f);
+}
+
+TEST(FailureInjectionConfig, ProcessAirspeedClearingWrongRestartsRamp)
+{
+	Config config;
+	config.set(make_config(AIRSPEED, 0x1, WRONG));
+
+	AirspeedState state;
+	differential_pressure_s differential_pressure = make_differential_pressure(1'000'000, 100.f);
+	EXPECT_TRUE(process_airspeed(config, 0, differential_pressure, state));
+
+	config.set(failure_injection_s{});
+	differential_pressure = make_differential_pressure(61'000'000, 100.f);
+	EXPECT_TRUE(process_airspeed(config, 0, differential_pressure, state));
+	EXPECT_FLOAT_EQ(differential_pressure.differential_pressure_pa, 100.f);
+
+	// A new Wrong starts a fresh ramp from no blockage.
+	config.set(make_config(AIRSPEED, 0x1, WRONG));
+	differential_pressure = make_differential_pressure(62'000'000, 100.f);
+	EXPECT_TRUE(process_airspeed(config, 0, differential_pressure, state));
+	EXPECT_FLOAT_EQ(differential_pressure.differential_pressure_pa, 100.f);
+}
+
+TEST(FailureInjectionConfig, ProcessAirspeedWrongLeavesUnselectedInstanceUntouched)
+{
+	Config config;
+	config.set(make_config(AIRSPEED, 0x2, WRONG)); // failure instance 2 -> uORB instance 1
+
+	AirspeedState state;
+	differential_pressure_s differential_pressure = make_differential_pressure(1'000'000, 100.f);
+	EXPECT_TRUE(process_airspeed(config, 0, differential_pressure, state));
+
+	differential_pressure = make_differential_pressure(61'000'000, 100.f);
+	EXPECT_TRUE(process_airspeed(config, 0, differential_pressure, state));
+	EXPECT_FLOAT_EQ(differential_pressure.differential_pressure_pa, 100.f);
+}
+
+TEST(FailureInjectionConfig, ProcessAirspeedOffSuppressesPublication)
+{
+	Config config;
+	config.set(make_config(AIRSPEED, 0x1, OFF));
+
+	AirspeedState state;
+	differential_pressure_s differential_pressure = make_differential_pressure(1'000'000, 100.f);
+
+	EXPECT_FALSE(process_airspeed(config, 0, differential_pressure, state));
+	EXPECT_FLOAT_EQ(differential_pressure.differential_pressure_pa, 100.f);
+}
+
+TEST(FailureInjectionConfig, ProcessAirspeedStuckReplaysLastGoodSample)
+{
+	Config config;
+	AirspeedState state;
+
+	differential_pressure_s good = make_differential_pressure(1'000'000, 100.f);
+	EXPECT_TRUE(process_airspeed(config, 0, good, state));
+
+	config.set(make_config(AIRSPEED, 0x1, STUCK));
+
+	differential_pressure_s moved = make_differential_pressure(2'000'000, 250.f);
+	EXPECT_TRUE(process_airspeed(config, 0, moved, state));
+	EXPECT_FLOAT_EQ(moved.differential_pressure_pa, 100.f);
+	EXPECT_EQ(moved.timestamp, 2'000'000u);
+	EXPECT_EQ(moved.timestamp_sample, 2'000'000u);
 }
 
 // ===========================================================================

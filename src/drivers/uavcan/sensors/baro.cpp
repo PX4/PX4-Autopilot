@@ -120,7 +120,7 @@ void UavcanBarometerBridge::air_pressure_sub_cb(const
 	// Register barometer capability with NodeInfoPublisher after first successful message
 	if (_node_info_publisher != nullptr) {
 		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(), device_id,
-				NodeInfoPublisher::DeviceCapability::BAROMETER);
+				device_information_s::DEVICE_TYPE_BAROMETER);
 	}
 
 	// publish
@@ -172,7 +172,7 @@ void UavcanBarometerBridge::raw_air_data_sub_cb(const
 	// Register barometer capability with NodeInfoPublisher after first successful message
 	if (_node_info_publisher != nullptr) {
 		_node_info_publisher->registerDeviceCapability(msg.getSrcNodeID().get(), device_id,
-				NodeInfoPublisher::DeviceCapability::BAROMETER);
+				device_information_s::DEVICE_TYPE_BAROMETER);
 	}
 
 	// publish
