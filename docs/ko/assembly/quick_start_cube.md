@@ -66,12 +66,12 @@ Cube 액세서리에 포함된 장착 1.8mm 두께의 프레임보드 전용으�
 
 ## GPS + 나침반 + 안전 스위치 + LED
 
-The recommended GPS modules are the _Here_ and [Here+](../gps_compass/rtk_gps_hex_hereplus.md), both of which incorporate a GPS module, Compass, Safety Switch and [LEDs](../getting_started/led_meanings.md).
+The recommended GPS modules are the _Here_ and [Here+](../gps_compass/rtk_gps_cubepilot_hereplus.md), both of which incorporate a GPS module, Compass, Safety Switch and [LEDs](../getting_started/led_meanings.md).
 The difference between the modules is that _Here+_ supports centimeter level positioning via [RTK](../gps_compass/rtk_gps.md). RTK 지원을 제외하면, 두 모듈의 연결 방법은 같습니다.
 
 :::warning
-The [Here+](../gps_compass/rtk_gps_hex_hereplus.md) has been superseded by the [Here3](https://www.cubepilot.org/#/here/here3) a [DroneCAN](../dronecan/index.md) RTK-GNSS that incorporate a compass and [LEDs](../getting_started/led_meanings.md) (but no safety switch).
-See [DroneCAN](../dronecan/index.md) for _Here3_ wiring and PX4 configuration information.
+The [Here+](../gps_compass/rtk_gps_cubepilot_hereplus.md) has been superseded by [DroneCAN](../dronecan/index.md) RTK GNSS modules such as the [Here4](../dronecan/cubepilot_here4.md) and [HerePro](https://docs.cubepilot.org/herepro/herepro-manual), which incorporate a compass and [LEDs](../getting_started/led_meanings.md) (but no safety switch).
+See [DroneCAN](../dronecan/index.md) for wiring and PX4 configuration information, and [RTK GNSS](../gps_compass/rtk_gps.md#supported-devices) for other CubePilot modules.
 :::
 
 GPS/나침반은 차량 전방 표식를 사용하여 가능하면 전자 장치들에서 멀리 떨어진 프레임에 장착하는 것이 좋습니다. 나침반은 다른 전자 장치와 떨어지면 간섭이 줄어듦니다. It must be connected to the `GPS1` port using the supplied 8-pin cable.
@@ -130,7 +130,7 @@ Spektrum DSM, DSM2, and DSM-X Satellite RC receivers connect to the **SPKT/DSM**
 
 The Cube cannot directly connect to PPM or PWM receivers that have an _individual wire for each channel_.
 PWM receivers must therefore connect to the **RCIN** port _via_ a PPM encoder module,
-which may be purchased from hex.aero or proficnc.com.
+which may be purchased from [CubePilot](https://www.cubepilot.org/).
 
 ## 전원
 

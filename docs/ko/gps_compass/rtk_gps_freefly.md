@@ -42,7 +42,7 @@ Freefly RTK GPS는 PixHawk 자동조종장치에 연결할 수있는 8핀 JST-GH
 ### 핀배열
 
 Freefly GPS 핀배열은 아래와 같습니다.
-For some autopilots, like the [Hex Cube](../flight_controller/pixhawk-2.md) and [PixRacer](../flight_controller/pixracer.md), all that is needed is a 1-1 8-pin JST-GH cable.
+For some autopilots, like the [CubePilot Cube](../flight_controller/pixhawk-2.md) and [PixRacer](../flight_controller/pixracer.md), all that is needed is a 1-1 8-pin JST-GH cable.
 
 | 핀 | Freefly GPS                     |
 | - | ------------------------------- |

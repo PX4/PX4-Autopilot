@@ -11,8 +11,7 @@ pageClass: is-wide-page
 | 명칭                                                                                                      | 형식        | Unit [Frame] | Range/Enum | 설명                                                                       |
 | ------------------------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------ |
 | <a id="fld_timestamp"></a>timestamp                                                                     | `uint64`  |                                                                  |            | time since system start (microseconds)                |
-| <a id="fld_fd_roll"></a>fd_roll                                                    | `bool`    |                                                                  |            |                                                                          |
-| <a id="fld_fd_pitch"></a>fd_pitch                                                  | `bool`    |                                                                  |            |                                                                          |
+| <a id="fld_fd_tilt"></a>fd_tilt                                                    | `bool`    |                                                                  |            |                                                                          |
 | <a id="fld_fd_alt"></a>fd_alt                                                      | `bool`    |                                                                  |            |                                                                          |
 | <a id="fld_fd_ext"></a>fd_ext                                                      | `bool`    |                                                                  |            |                                                                          |
 | <a id="fld_fd_arm_escs"></a>fd_arm_escs                       | `bool`    |                                                                  |            |                                                                          |
@@ -34,8 +33,7 @@ Click here to see original file
 uint64 timestamp                    # time since system start (microseconds)
 
 # FailureDetector status
-bool fd_roll
-bool fd_pitch
+bool fd_tilt
 bool fd_alt
 bool fd_ext
 bool fd_arm_escs

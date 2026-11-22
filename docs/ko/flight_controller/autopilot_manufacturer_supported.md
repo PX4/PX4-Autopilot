@@ -18,6 +18,7 @@ This category includes boards that are not fully compliant with the pixhawk stan
 
 - [3DR Control N1](../flight_controller/3dr_ctrl-n1.md)
 - [Accton Godwit GA1](../flight_controller/accton-godwit_ga1.md)
+- [Accton Godwit G-FH7](../flight_controller/accton-godwit_gfh7.md)
 - [AEDROX AEDROXH7](../flight_controller/aedrox_aedroxh7.md)
 - [Agam Autopilot v6X-RT](../flight_controller/agam_v6xrt.md)
 - [AirMind MindPX](../flight_controller/mindpx.md)
@@ -51,6 +52,7 @@ This category includes boards that are not fully compliant with the pixhawk stan
 - [mRo Control Zero](../flight_controller/mro_control_zero_f7.md)
 - [NWBlue Pro H757](../flight_controller/nwblue_pro-h757.md)
 - [NXP MR-NavQ95](../flight_controller/nxp_mr_navq95.md)
+- [NXP MR-VMU-TROPIC](../flight_controller/nxp_mr_tropic.md)
 - [Radiolink PIX6](../flight_controller/radiolink_pix6.md)
 - [Sky-Drones AIRLink](../flight_controller/airlink.md)
 - [SPRacing SPRacingH7EXTREME](../flight_controller/spracingh7extreme.md)
