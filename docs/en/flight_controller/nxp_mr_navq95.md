@@ -7,44 +7,27 @@ PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://www.nxp.com) for hardware support or compliance issues.
 :::
 
-::: info
+The [MR-NavQ95](https://www.nxp.com/design/design-center/development-boards-and-designs/MR-NAVQ95) is a vehicle computer reference design from NXP Mobile Robotics, built around the NXP i.MX 95.
+Linux runs on the Cortex-A55 cores, and PX4 runs on the Cortex-M7 real-time core, started by MCUboot from the on-board octal NOR flash.
+The main board carries the i.MX 95 and the ICM-45686, BMM350 and BMP581 sensors.
+The NAVQ95-IO expansion board (the "IO board") carries the BMI088, the USB console, and the CAN, PWM, GPS, TELEM and I2C connectors.
+
+![MR-NavQ95](../../assets/flight_controller/nxp_mr_navq95/navq95.webp)
+
+::: tip
 The MR-NavQ95 is a reference design and not an end product.
 NXP provides the complete open-source [hardware design package](https://github.com/NXP-Robotics/MR-NAVQ95) and sells small quantities through NXP.com and electronics distributors worldwide.
 The intention is to provide a complete, tested, validated and flown reference set of hardware that a manufacturer can copy or modify as they wish and have manufactured at their preferred contract manufacturer.
 Contact your local NXP representative for more information.
 :::
 
-The [MR-NavQ95](https://www.nxp.com/design/design-center/development-boards-and-designs/MR-NAVQ95) is a vehicle computer reference design from NXP Mobile Robotics, built around the NXP i.MX 95.
-Linux runs on the Cortex-A55 cores, and PX4 runs on the Cortex-M7 real-time core, started by MCUboot from the on-board octal NOR flash.
-The two sides talk over RPMsg: PX4 keeps its parameters, dataman and logs on a filesystem served by Linux, and exposes its shell and two MAVLink links as virtual ttys on the Linux side.
-The main board carries the i.MX 95 and the ICM-45686, BMM350 and BMP581 sensors.
-The NAVQ95-IO expansion board (the "IO board") carries the BMI088, the USB console, and the CAN, PWM, GPS, TELEM and I2C connectors.
-
-![MR.NAVQ95](../../assets/flight_controller/nxp_mr_navq95/navq95.webp)
-
-![MR-NavQ95 block diagram](../../assets/flight_controller/nxp_mr_navq95/mr_navq95_block_diagram.svg)
-
-Because the i.MX 95 is an applications processor, the Linux side is a full companion computer rather than just a storage and telemetry bridge.
-It brings the parts of a mobile robotics stack that do not belong on a flight controller:
-
-- Up to 6x Arm Cortex-A55 application cores running Linux, next to the Cortex-M7 real-time core used by PX4 and a Cortex-M33 for boot and system control
-- eIQ Neutron NPU for on-device machine learning, for example object detection, segmentation or visual navigation, without an external accelerator
-- Image Signal Processor with multiple MIPI-CSI inputs, so several cameras (for example a stereo pair plus an RGB camera) can be attached at once
-- Arm Mali GPU and hardware H.264/H.265 encode and decode for video streaming and recording
-- Audio subsystem (SAI, microphone array support) for voice interaction and acoustic sensing
-- Networking: a gigabit RJ45 port on the main board straight off the SoC, plus a second SoC Ethernet port brought out as a SerDes lane (SGMII, USXGMII or XFI) on the Hirose board-to-board header `J17 B2B_ETH` for one networking expansion board:
-  - NAVQ95-T1SW: an NXP SJA1110 TSN switch on the SGMII link, with two 1000BASE-T1 and six 100BASE-T1 automotive Ethernet ports for multi-drop vehicle networks
-  - X-MR-NAVQ95E-T1P: a single NXP TJA1103 100BASE-T1 PHY
-  - An SFP+ cage board (to be released): the lane runs as XFI into the SFP+ cage, so the 10 Gbit link can be fibre with an optical module or copper with a direct-attach (DAC) cable
-- PCIe, USB and an on-board Wi-Fi/Bluetooth module for links to the ground station and to other vehicles
-
-::: info
-Only the Cortex-M7 side is PX4.
-All of the above is available to the application running on Linux, which talks to PX4 over the RPMsg MAVLink link described below.
-:::
-
 ::: info
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
+:::
+
+::: warning
+Support for this board in PX4 `main` is under development.
+For a stable version, use NXP's tested image based on PX4 v1.17 (see [Building Firmware](#building_firmware)).
 :::
 
 ## Specifications {#specifications}
@@ -109,6 +92,10 @@ The [connector index](https://nxp-robotics.github.io/robotics-docs/platforms/mr-
 The TELEM, GPS, I2C and CAN connectors follow the [Dronecode DS-009 connector standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf).
 The main board `J2 CONSOLE` header has its own pin order: pins 4 and 5 carry the RC UART (see [Radio Control](#radio_control)).
 The PWM header (IO board `J9 PWM`) has its own pin order.
+
+## Block Diagram {#block_diagram}
+
+![MR-NavQ95 block diagram](../../assets/flight_controller/nxp_mr_navq95/mr_navq95_block_diagram.svg)
 
 ## Power {#power}
 
@@ -237,6 +224,25 @@ The board brings up `can0` and `can1` only when [UAVCAN_ENABLE](../advanced_conf
 
 ## Linux Side {#linux_side}
 
+Because the i.MX 95 is an applications processor, the Linux side is a full companion computer rather than just a storage and telemetry bridge.
+It brings the parts of a mobile robotics stack that do not belong on a flight controller:
+
+- Up to 6x Arm Cortex-A55 application cores running Linux, next to the Cortex-M7 real-time core used by PX4 and a Cortex-M33 for boot and system control
+- eIQ Neutron NPU for on-device machine learning, for example object detection, segmentation or visual navigation, without an external accelerator
+- Image Signal Processor with multiple MIPI-CSI inputs, so several cameras (for example a stereo pair plus an RGB camera) can be attached at once
+- Arm Mali GPU and hardware H.264/H.265 encode and decode for video streaming and recording
+- Audio subsystem (SAI, microphone array support) for voice interaction and acoustic sensing
+- Networking: a gigabit RJ45 port on the main board straight off the SoC, plus a second SoC Ethernet port brought out as a SerDes lane (SGMII, USXGMII or XFI) on the Hirose board-to-board header `J17 B2B_ETH` for one networking expansion board:
+  - NAVQ95-T1SW: an NXP SJA1110 TSN switch on the SGMII link, with two 1000BASE-T1 and six 100BASE-T1 automotive Ethernet ports for multi-drop vehicle networks
+  - X-MR-NAVQ95E-T1P: a single NXP TJA1103 100BASE-T1 PHY
+  - An SFP+ cage board (to be released): the lane runs as XFI into the SFP+ cage, so the 10 Gbit link can be fibre with an optical module or copper with a direct-attach (DAC) cable
+- PCIe, USB and an on-board Wi-Fi/Bluetooth module for links to the ground station and to other vehicles
+
+::: info
+Only the Cortex-M7 side is PX4.
+All of the above is available to the application running on Linux, which talks to PX4 over the RPMsg MAVLink link described below.
+:::
+
 The Linux side must run the NavQ95 BSP built from [imx-manifest-navq95](https://github.com/NXP-Robotics/imx-manifest-navq95).
 It provides the RPMsg links PX4 depends on:
 
@@ -297,9 +303,9 @@ The PX4 topics then appear in ROS 2 on the board, as described in the [ROS 2 Use
 ## Building Firmware {#building_firmware}
 
 ::: warning
-Support for this board in PX4 `main` is under development.
-For a stable version, flash NXP's tested image based on PX4 v1.17, following [Installing and configuring software tools](https://nxp-robotics.github.io/robotics-docs/platforms/mr-navq95/user-manual/installing-software-tools.html#installing-and-configuring-software-tools).
-Use both the Linux and PX4 images from that page, rather than a Linux image built from [imx-manifest-navq95](https://github.com/NXP-Robotics/imx-manifest-navq95).
+Instead of building `main`, you can flash NXP's tested image based on PX4 v1.17, following [Installing and configuring software tools](https://nxp-robotics.github.io/robotics-docs/platforms/mr-navq95/user-manual/installing-software-tools.html#installing-and-configuring-software-tools).
+Flash it with the Linux image from the same page (built from `robotics-linux-manifest`).
+A Linux image built from [imx-manifest-navq95](https://github.com/NXP-Robotics/imx-manifest-navq95) is for PX4 `main` only.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
