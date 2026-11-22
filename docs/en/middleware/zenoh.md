@@ -152,6 +152,14 @@ This folder contains three key files:
 - **`pub.csv`** – Maps **uORB topics to ROS 2 topics** (used for publishing).
 - **`sub.csv`** – Maps **ROS 2 topics to uORB topics** (used for subscribing).
 
+#### Out-of-Tree Messages
+
+[Out-of-tree uORB messages](../advanced/out_of_tree_modules.md#out-of-tree-uorb-message-definitions) listed in `$EXTERNAL_MODULES_LOCATION/msg/dds_topics.yaml` are added to the default configuration too, with the same file format as for [uXRCE-DDS](../middleware/uxrce_dds.md#out-of-tree-messages).
+The build also adds a `CONFIG_ZENOH_PUBSUB_<MESSAGE>` KConfig key for each out-of-tree message, which is enabled with the other topics when `CONFIG_ZENOH_PUBSUB_ALL` is selected (the default).
+
+On the ROS 2 side, the messages must be part of `px4_msgs`, since the Zenoh key expression always uses the `px4_msgs` type namespace.
+`Tools/copy_to_ros_ws.sh <ros_ws_dir> <external_modules_location>` copies them there.
+
 #### Publisher Options
 
 Zenoh publisher behaviour can be controlled through global PX4 parameters:
