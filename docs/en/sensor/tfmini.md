@@ -2,46 +2,46 @@
 
 <Badge type="tip" text="PX4 v1.7" />
 
-The Benewake [TFmini-S](https://en.benewake.com/TFminiS/index_proid_325.html) and [TFmini Plus](https://en.benewake.com/TFminiPlus/index_proid_323.html) are small, low-power time-of-flight LiDAR [rangefinders](../sensor/rangefinders.md) with a range of 0.1–12 m and a 100 Hz default update rate.
+The Benewake [TFmini-S](https://en.benewake.com/TFminiS/index_proid_325.html) and [TFmini Plus](https://en.benewake.com/TFminiPlus/index_proid_323.html) are small, low-power time-of-flight LiDAR [rangefinders](../sensor/rangefinders.md) with a range of 0.1–12m and a 100Hz default update rate.
 They connect to the flight controller using a serial port (UART).
 
 ![TFmini LiDAR](../../assets/hardware/sensors/tfmini/tfmini_hero.jpg)
 
 ## Supported Models {#supported_models}
 
-| Model                                                                  | Range    | Connection | `SENS_TFMINI_HW` value |
-| ---------------------------------------------------------------------- | -------- | ---------- | ---------------------- |
-| [TFmini-S](https://en.benewake.com/TFminiS/index_proid_325.html)       | 0.1–12 m | UART       | `1` (default)          |
-| [TFmini Plus](https://en.benewake.com/TFminiPlus/index_proid_323.html) | 0.1–12 m | UART       | `4`                    |
+| Model                                                                  | Range   | Connection | `SENS_TFMINI_HW` value |
+| ---------------------------------------------------------------------- | ------- | ---------- | ---------------------- |
+| [TFmini-S](https://en.benewake.com/TFminiS/index_proid_325.html)       | 0.1–12m | UART       | `1` (default)          |
+| [TFmini Plus](https://en.benewake.com/TFminiPlus/index_proid_323.html) | 0.1–12m | UART       | `4`                    |
 
 ::: details Discontinued
 
 The following model is supported by PX4 but is no longer in Benewake's product line-up.
 
-| Model  | Range    | Connection | `SENS_TFMINI_HW` value |
-| ------ | -------- | ---------- | ---------------------- |
-| TFmini | 0.3–12 m | UART       | `1`                    |
+| Model  | Range   | Connection | `SENS_TFMINI_HW` value |
+| ------ | ------- | ---------- | ---------------------- |
+| TFmini | 0.3–12m | UART       | `1`                    |
 
 :::
 
-PX4 reports distances from 0.4 m to 12 m for the TFmini-S and from 0.1 m to 12 m for the TFmini Plus.
+PX4 reports distances from 0.4m to 12m for the TFmini-S and from 0.1m to 12m for the TFmini Plus.
 
-The [TFmini-i](https://en.benewake.com/TFminii/index_proid_324.html) is not supported by PX4: it connects via RS-485 or CAN (separate hardware versions) and is powered from 7–30 V.
+The [TFmini-i](https://en.benewake.com/TFminii/index_proid_324.html) is not supported by PX4: it connects via RS-485 or CAN (separate hardware versions) and is powered from 7–30V.
 
 ## Specifications {#specifications}
 
-- **Technology:** Time-of-flight, 850 nm infrared (VCSEL on the TFmini-S, LED on the TFmini Plus)
-- **Range:** 0.1–12 m at 90% reflectivity; 0.1–7 m (TFmini-S) or 0.1–4 m (TFmini Plus) at 10% reflectivity
-- **Update rate:** 100 Hz by default, adjustable 1–1000 Hz
+- **Technology:** Time-of-flight, 850nm infrared (VCSEL on the TFmini-S, LED on the TFmini Plus)
+- **Range:** 0.1–12m at 90% reflectivity; 0.1–7m (TFmini-S) or 0.1–4m (TFmini Plus) at 10% reflectivity
+- **Update rate:** 100Hz by default, adjustable 1–1000Hz
 - **Field of view:** 2° (TFmini-S), 3.6° (TFmini Plus)
-- **Accuracy:** ±6 cm below 6 m and ±1% from 6–12 m (TFmini-S); ±5 cm below 5 m and ±1% from 5–12 m (TFmini Plus)
-- **Resolution:** 1 cm
-- **Interface:** UART at 115200 baud, 8N1, 3.3 V (LVTTL); the sensors also support I2C, which the PX4 driver does not use
-- **Input voltage:** 5 V ±0.1 V (TFmini-S), 5 V ±0.5 V (TFmini Plus)
-- **Current draw:** ≤140 mA average, 200 mA peak (TFmini-S); ≤110 mA average, 140 mA peak (TFmini Plus)
-- **Dimensions:** 42 x 15 x 16 mm (TFmini-S), 35 x 18.5 x 21 mm (TFmini Plus)
-- **Weight:** 5 g (TFmini-S), 12 g (TFmini Plus)
-- **Operating temperature:** 0–60 °C (TFmini-S), -20 °C to 60 °C (TFmini Plus)
+- **Accuracy:** ±6cm below 6m and ±1% from 6–12m (TFmini-S); ±5cm below 5m and ±1% from 5–12m (TFmini Plus)
+- **Resolution:** 1cm
+- **Interface:** UART at 115200 baud, 8N1, 3.3V (LVTTL); the sensors also support I2C, which the PX4 driver does not use
+- **Input voltage:** 5V ±0.1V (TFmini-S), 5V ±0.5V (TFmini Plus)
+- **Current draw:** ≤140mA average, 200mA peak (TFmini-S); ≤110mA average, 140mA peak (TFmini Plus)
+- **Dimensions:** 42 x 15 x 16mm (TFmini-S), 35 x 18.5 x 21mm (TFmini Plus)
+- **Weight:** 5g (TFmini-S), 12g (TFmini Plus)
+- **Operating temperature:** 0–60°C (TFmini-S), -20°C to 60°C (TFmini Plus)
 - **Ingress protection:** IP65 (TFmini Plus)
 - **Laser class:** Class 1, EN 60825 (TFmini-S); no laser class, exemption level EN 62471 (TFmini Plus)
 
@@ -56,33 +56,33 @@ The [TFmini-i](https://en.benewake.com/TFminii/index_proid_324.html) is not supp
 
 Mount the sensor facing down: PX4 assumes a downward-facing sensor, and the orientation cannot be configured.
 
-Readings below the minimum range of the selected model (0.4 m for the TFmini-S, 0.1 m for the TFmini Plus) are reported as out of range.
+Readings below the minimum range of the selected model (0.4m for the TFmini-S, 0.1m for the TFmini Plus) are reported as out of range.
 
 ### Pinouts {#pinouts}
 
-The TFmini-S and TFmini Plus have a cable ending in a JST 1.25 mm 4-pin connector (Molex 51021-0400).
+The TFmini-S and TFmini Plus have a cable ending in a JST 1.25mm 4-pin connector (Molex 51021-0400).
 This is not the JST-GH connector used by flight controllers that follow the [Pixhawk Connector Standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf), so you will need an adapter cable to connect to those ports.
-The cable can be extended, but Benewake recommends keeping it shorter than 1 m.
+The cable can be extended, but Benewake recommends keeping it shorter than 1m.
 
 The wire colours are the same on both models, but the pin numbering differs.
 
 TFmini-S:
 
-| Pin | Wire colour | Signal                    |
-| --- | ----------- | ------------------------- |
-| 1   | Black       | GND                       |
-| 2   | Red         | +5 V                      |
-| 3   | White       | RX (UART receive, 3.3 V)  |
-| 4   | Green       | TX (UART transmit, 3.3 V) |
+| Pin | Wire colour | Signal                   |
+| --- | ----------- | ------------------------ |
+| 1   | Black       | GND                      |
+| 2   | Red         | +5V                      |
+| 3   | White       | RX (UART receive, 3.3V)  |
+| 4   | Green       | TX (UART transmit, 3.3V) |
 
 TFmini Plus:
 
-| Pin | Wire colour | Signal                    |
-| --- | ----------- | ------------------------- |
-| 1   | Red         | +5 V                      |
-| 2   | White       | RX (UART receive, 3.3 V)  |
-| 3   | Green       | TX (UART transmit, 3.3 V) |
-| 4   | Black       | GND                       |
+| Pin | Wire colour | Signal                   |
+| --- | ----------- | ------------------------ |
+| 1   | Red         | +5V                      |
+| 2   | White       | RX (UART receive, 3.3V)  |
+| 3   | Green       | TX (UART transmit, 3.3V) |
+| 4   | Black       | GND                      |
 
 ### Wiring {#wiring}
 
@@ -92,12 +92,12 @@ The TFmini can be connected to any unused serial port (UART), such as `TELEM2`, 
 | ----------- | ------------------------------------ |
 | Green (TX)  | Flight controller UART RX            |
 | White (RX)  | Flight controller UART TX (optional) |
-| Red (+5 V)  | 5 V supply                           |
+| Red (+5V)   | 5V supply                            |
 | Black (GND) | Flight controller GND                |
 
 The driver only reads from the sensor, so the sensor's RX wire does not need to be connected.
 
-The TFmini-S needs 5 V ±0.1 V and up to 140 mA (200 mA peak); the TFmini Plus needs 5 V ±0.5 V and up to 110 mA (140 mA peak).
+The TFmini-S needs 5V ±0.1V and up to 140mA (200mA peak); the TFmini Plus needs 5V ±0.5V and up to 110mA (140mA peak).
 Neither has over-voltage or reverse-polarity protection.
 
 ## Firmware Support {#firmware_support}
@@ -144,7 +144,7 @@ You can observe the published measurements with:
 listener distance_sensor
 ```
 
-The sensor type is reported as laser, with minimum and maximum distances of 0.4 m and 12 m for the TFmini-S, and 0.1 m and 12 m for the TFmini Plus.
+The sensor type is reported as laser, with minimum and maximum distances of 0.4m and 12m for the TFmini-S, and 0.1m and 12m for the TFmini Plus.
 
 The measurements can also be viewed in the `DISTANCE_SENSOR` message in the _QGroundControl MAVLink Inspector_.
 For more information see [Rangefinders > Testing](../sensor/rangefinders.md#testing).
