@@ -228,6 +228,10 @@ void Batmon::RunImpl()
 	}
 }
 
+// Number of per-cell voltages battery_status can carry
+static constexpr uint8_t kMaxCellCount = sizeof(battery_status_s::voltage_cell_v)
+		/ sizeof(battery_status_s::voltage_cell_v[0]);
+
 int Batmon::get_batmon_startup_info()
 {
 	int ret = PX4_OK;
@@ -240,7 +244,9 @@ int Batmon::get_batmon_startup_info()
 	// Read BatMon specific data
 	uint16_t num_cells;
 	ret = _interface->read_word(BATT_SMBUS_CELL_COUNT, num_cells);
-	_cell_count = math::min((uint8_t)num_cells, (uint8_t)MAX_CELL_COUNT);
+	// _cell_count bounds the copy into voltage_cell_v in RunImpl(), so clamp it to what
+	// the message can hold: a 15S/16S pack would otherwise write past the 14-element array.
+	_cell_count = math::min(math::min((uint8_t)num_cells, (uint8_t)MAX_CELL_COUNT), kMaxCellCount);
 
 	int32_t _num_cells = num_cells;
 	param_set(param_find("BAT1_N_CELLS"), &_num_cells);
