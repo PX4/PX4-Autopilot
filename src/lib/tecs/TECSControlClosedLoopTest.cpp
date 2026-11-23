@@ -126,8 +126,12 @@ static constexpr float DT = 0.02f;  // Simulation time step [s]
 // and altitude) which in theory should be 0. Does not need to equal DT, but if
 // the only source of error is euler discretisation, then the error should scale
 // linearly with DT (first order method).
-static constexpr float MAX_NUMERICAL_ERR_PER_DT = 1.0f;
+static constexpr float MAX_NUMERICAL_ERR_PER_DT = 0.5f;
 static constexpr float MAX_NUMERICAL_ERR = MAX_NUMERICAL_ERR_PER_DT * DT;
+
+// Without airspeed feedback the airspeed is open loop, and its discretisation
+// error is not corrected.
+static constexpr float MAX_NUMERICAL_ERR_OPENLOOP = 2.f * MAX_NUMERICAL_ERR;
 
 // Tolerance for settled tracking errors which do not go to zero with smaller DT
 // (but which do go to zero as time progresses). Choose settling time so the
@@ -428,12 +432,7 @@ TEST_F(TECSControlClosedLoopTest, AltitudeStepDown)
 	EXPECT_NEAR(_state.h, _alt_sp, TRACKING_ERROR_TOL);
 }
 
-// Disabled temporarily:
-//  - Throttle damping acts on the energy rate error against the low-passed estimate
-//  - This lag creates a fake error, which the feedback acts on (fix: #29877)
-//  - Because the feedback gain is assumed to be equal across the entire throttle range, but the actual
-//    gain is higher above trim, this only fails the test in the upward step
-TEST_F(TECSControlClosedLoopTest, DISABLED_AltitudeStepUp)
+TEST_F(TECSControlClosedLoopTest, AltitudeStepUp)
 {
 	run(10.f);
 
@@ -484,8 +483,7 @@ TEST_F(TECSControlClosedLoopTest, AltitudeStepUpDefaultTuningPitchOffset)
 	setAltitudeSetpoint(ALT_INIT + ALT_STEP);
 	run(120.f);
 
-	// DISABLED: Only works after filter lag fix #29877
-	// EXPECT_LT(_sim_stats.max_airspeed_error, TRACKING_ERROR_TOL) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
+	EXPECT_LT(_sim_stats.max_airspeed_error, TRACKING_ERROR_TOL) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
 
 	// Reset stats to capture errors after convergence
 	resetSimStats();
@@ -607,14 +605,12 @@ TEST_F(TECSControlClosedLoopTest, AirspeedlessSteadyStateCruise)
 // SEB_rate_sp / (V * g) asks for twice the demanded climb angle. A feedforward gain of 0.5 cancels this: the vehicle
 // then flies exactly the demanded climb rate, the SEB rate error stays zero, and the altitude error decays first order
 // with FW_T_ALT_TC. As in AltitudeStepDown, the pitch must follow the raw step as fast as the throttle and the demanded
-// sink rate must not exceed FW_T_SINK_MIN. The total energy rate filter (FW_T_STE_R_TC) is disabled, as its lag
-// makes the throttle damping briefly overfund the climb on the step up and speed the vehicle up.
+// sink rate must not exceed FW_T_SINK_MIN.
 
 TEST_F(TECSControlClosedLoopTest, AirspeedlessAltitudeStepHalfFeedforward)
 {
 	disableAirspeed();
 	_params.seb_rate_ff = 0.5f;
-	_params.ste_rate_time_const = 0.f;
 
 	run(10.f);
 
@@ -625,11 +621,11 @@ TEST_F(TECSControlClosedLoopTest, AirspeedlessAltitudeStepHalfFeedforward)
 		for (int i = 0; i < 30; i++) {
 			run(1.f);
 			const float expected_error = step * expf(-(_t - t_step) * _params.altitude_error_gain);
-			EXPECT_NEAR(_alt_sp - _state.h, expected_error, MAX_NUMERICAL_ERR) << "at t=" << _t << " s";
+			EXPECT_NEAR(_alt_sp - _state.h, expected_error, MAX_NUMERICAL_ERR_OPENLOOP) << "at t=" << _t << " s";
 		}
 	}
 
 	// The throttle feedforward funds the climb exactly, so the open loop airspeed does not move
-	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_NUMERICAL_ERR) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
-	EXPECT_LT(_sim_stats.max_pitch_integ_norm, MAX_NUMERICAL_ERR);
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_NUMERICAL_ERR_OPENLOOP) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
+	EXPECT_LT(_sim_stats.max_pitch_integ_norm, MAX_NUMERICAL_ERR_OPENLOOP);
 }
