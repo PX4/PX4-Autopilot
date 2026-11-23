@@ -790,8 +790,9 @@ void Navigator::run()
 
 				const bool local_frame = (cmd.frame == vehicle_command_s::VEHICLE_FRAME_LOCAL_NED);
 
-				// ignore Local frame takeoffs for fixed wings
-				if (!local_frame || _vstatus.vehicle_type != vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+				// Local-frame takeoff is only wired up for rotary-wing; see the matching reject in
+				// Commander.cpp's VEHICLE_CMD_NAV_TAKEOFF handling for why.
+				if (!local_frame || _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 					position_setpoint_triplet_s *rep = get_takeoff_triplet();
 
 					rep->current.loiter_radius = get_default_loiter_rad();
