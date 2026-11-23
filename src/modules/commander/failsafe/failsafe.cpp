@@ -92,7 +92,7 @@ FailsafeBase::ActionOptions Failsafe::fromNavDllOrRclActParam(int param_value)
 	return options;
 }
 
-FailsafeBase::ActionOptions Failsafe::fromGfActParam(int param_value)
+FailsafeBase::ActionOptions Failsafe::fromGfActParam(int param_value, bool force)
 {
 	ActionOptions options{};
 
@@ -127,6 +127,12 @@ FailsafeBase::ActionOptions Failsafe::fromGfActParam(int param_value)
 		options.action = Action::Land;
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
+	}
+
+	// GF_ACT_FORCE: no stick or mode-switch takeover, only disarming ends the action
+	if (force && options.action >= Action::Hold && options.action != Action::Terminate) {
+		options.allow_user_takeover = UserTakeoverAllowed::Never;
+		options.clear_condition = ClearCondition::OnDisarm;
 	}
 
 	return options;
@@ -649,7 +655,8 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 			       ActionOptions(Action::Hold).clearOn(ClearCondition::OnModeChangeOrDisarm));
 	}
 
-	CHECK_FAILSAFE(status_flags, geofence_breached, fromGfActParam(_param_gf_action.get()).cannotBeDeferred());
+	CHECK_FAILSAFE(status_flags, geofence_breached,
+		       fromGfActParam(_param_gf_action.get(), _param_gf_act_force.get()).cannotBeDeferred());
 
 	const hrt_abstime spoolup = static_cast<hrt_abstime>(_param_com_spoolup_time.get() * 1_s);
 

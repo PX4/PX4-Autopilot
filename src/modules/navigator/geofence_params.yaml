@@ -19,6 +19,15 @@ parameters:
       default: 2
       min: 0
       max: 5
+    GF_ACT_FORCE:
+      description:
+        short: Geofence action cannot be overridden
+        long: |-
+          If enabled, the Hold, Return or Land action triggered by a geofence violation
+          cannot be taken over with the sticks or the mode switch and is only cleared
+          by disarming (e.g. after landing or with the kill switch).
+      type: boolean
+      default: 0
     GF_SOURCE:
       description:
         short: Geofence source
