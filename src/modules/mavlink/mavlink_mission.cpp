@@ -765,6 +765,13 @@ MavlinkMissionManager::handle_mission_set_current(const mavlink_message_t *msg)
 	if (wpc.seq < _count[MAV_MISSION_TYPE_MISSION]) {
 		update_active_mission(_mission_dataman_id, _count[MAV_MISSION_TYPE_MISSION], wpc.seq, _crc32[MAV_MISSION_TYPE_MISSION]);
 
+		// Notify the requester immediately: the mission protocol requires a MISSION_CURRENT
+		// broadcast in response to MISSION_SET_CURRENT, even when the sequence is unchanged
+		// (in which case the navigator echo that send() waits for never arrives).
+		pthread_mutex_lock(&_shared_state_mutex);
+		send_mission_current(wpc.seq);
+		pthread_mutex_unlock(&_shared_state_mutex);
+
 	} else {
 		PX4_ERR("WPM: MISSION_SET_CURRENT seq=%d ERROR: not in list", wpc.seq);
 
