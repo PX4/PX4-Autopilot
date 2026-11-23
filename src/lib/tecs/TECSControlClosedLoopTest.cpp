@@ -516,6 +516,27 @@ TEST_F(TECSControlClosedLoopTest, AltitudeStepUp)
 	EXPECT_NEAR(_state.h, _alt_sp, TRACKING_ERROR_TOL);
 }
 
+// --- Throttle saturation above trim airspeed -----------------------------------
+//
+// A climb at the maximum climb rate takes all of the throttle. Accelerating to an airspeed setpoint above trim is
+// left to the throttle, so with none to spare the vehicle keeps climbing at the maximum climb rate and stays at
+// its airspeed.
+
+TEST_F(TECSControlClosedLoopTest, SaturatedClimbHoldsClimbRateWithAirspeedSetpointAboveTrim)
+{
+	setAltitudeSetpoint(ALT_INIT + 1000.f);
+	run(20.f);
+	EXPECT_NEAR(plantAltitudeRate(), _params.max_climb_rate, TRACKING_ERROR_TOL);
+
+	setAirspeedSetpoint(_params.equivalent_airspeed_trim + 2.f * AIRSPEED_STEP);
+
+	for (int i = 0; i < 30; i++) {
+		run(1.f);
+		EXPECT_NEAR(plantAltitudeRate(), _params.max_climb_rate, TRACKING_ERROR_TOL) << "at t=" << _t << " s";
+		EXPECT_NEAR(_state.V, _params.equivalent_airspeed_trim, TRACKING_ERROR_TOL) << "at t=" << _t << " s";
+	}
+}
+
 // --- Plant pitch-to-flight-path offset (model mismatch) -----------------------
 //
 // The plant flies level at pitch_cmd = 10 deg instead of 0 (e.g. incorrect FW_PSP_OFF).
