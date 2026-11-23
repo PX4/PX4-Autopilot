@@ -68,12 +68,10 @@ On the module socket, the pins are numbered 1–6 towards the two optical apertu
 Connector drawing reproduced with permission from JRT.
 
 The supplied cable is wired pin-to-pin: 1–1, 2–2, 3–3, 4–4, 5–5 and 6–6.
-The photograph below shows one end of the cable.
-With the connector viewed as shown and the wires pointing downwards, the contacts are numbered 1–6 from left to right.
-The leftmost contact corresponds to module pin 1 (`GND`).
+With the cable connector viewed as in the photograph below (wires pointing downwards), the contacts are numbered 1–6 from left to right, so pin 1 (`GND`) is the leftmost.
 The wires shown are all black, so use the connector orientation in the photograph to identify the contacts.
 
-![Supplied PTGL-100 cable connector with wires pointing downwards and contacts numbered 1 to 6 from left to right](../../assets/hardware/sensors/ptgl100/ptgl100_cable_pinout.png)
+![Supplied PTGL-100 cable connector with wires pointing downwards and contacts numbered 1 to 6 from left to right](../../assets/hardware/sensors/ptgl100/ptgl100_cable_pinout.webp)
 
 | Pin | Signal | Description                                               |
 | --- | ------ | --------------------------------------------------------- |
