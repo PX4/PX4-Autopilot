@@ -41,6 +41,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/estimator_status_flags.h>
@@ -262,6 +263,7 @@ public:
 	uORB::Publication<vehicle_attitude_s> _attitude_pub{ORB_ID(vehicle_attitude)};
 	uORB::Publication<vehicle_angular_velocity_s> _angular_velocity_pub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Publication<vehicle_gnss_s> _receiver_pub{ORB_ID(vehicle_gnss)};
+	uORB::Publication<estimator_selector_status_s> _selector_status_pub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription _event_sub{ORB_ID(event)};
 
 	health_report_s _report{};
@@ -647,6 +649,32 @@ TEST_F(EstimatorChecksTest, GnssIsPresentWhileTheEstimatorFusesIt)
 	publishEstimatorStatus(false, 0);
 	runCheck(false);
 	EXPECT_FALSE(isPresent(health_component_t::gps));
+}
+
+// #29845: on single-EKF builds (e.g. px4_fmu-v4pro, CONFIG_EKF2_MULTI_INSTANCE off) the
+// estimator selector is never published, so SENS_IMU_MODE 0 must not wait for it.
+// This case runs before MultiEkfStillFollowsTheSelectorPrimaryInstance below: publishing
+// the selector status advertises the topic for the rest of the test binary.
+TEST_F(EstimatorChecksTest, SingleEkfIsNotBlockedByMissingSelectorStatus)
+{
+	setParam("SENS_IMU_MODE", 0);
+	publishEstimatorStatus(true, 0);
+	runCheck(false);
+	EXPECT_TRUE(isPresent(health_component_t::local_position_estimate));
+	EXPECT_FALSE(armingError(health_component_t::local_position_estimate));
+}
+
+TEST_F(EstimatorChecksTest, MultiEkfStillFollowsTheSelectorPrimaryInstance)
+{
+	setParam("SENS_IMU_MODE", 0);
+	estimator_selector_status_s selector_status{};
+	selector_status.timestamp = hrt_absolute_time();
+	selector_status.primary_instance = 0;
+	_selector_status_pub.publish(selector_status);
+	publishEstimatorStatus(true, 0);
+	runCheck(false);
+	EXPECT_TRUE(isPresent(health_component_t::local_position_estimate));
+	EXPECT_FALSE(armingError(health_component_t::local_position_estimate));
 }
 
 TEST_F(EstimatorChecksTest, HighSensorBiasBlocksArming)
