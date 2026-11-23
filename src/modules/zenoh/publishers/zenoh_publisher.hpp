@@ -65,9 +65,12 @@ public:
 
 	virtual void print();
 
+	z_owned_liveliness_token_t *liveliness_token() { return &_liveliness_token; }
+
 protected:
 	int8_t publish(const uint8_t *, int size);
 
 	z_owned_publisher_t _pub;
+	z_owned_liveliness_token_t _liveliness_token;
 	RmwAttachment _attachment;
 };

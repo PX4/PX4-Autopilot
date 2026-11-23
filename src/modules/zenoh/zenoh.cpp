@@ -94,6 +94,7 @@ ZENOH::ZENOH():
 	ModuleParams(nullptr)
 {
 	z_internal_null(&_s);
+	z_internal_liveliness_token_null(&_node_token);
 }
 
 ZENOH::~ZENOH()
@@ -379,9 +380,7 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 			return -1;
 		}
 
-		z_owned_liveliness_token_t token;
-
-		if (z_liveliness_declare_token(z_loan(_s), &token, z_loan(ke), nullptr) < 0) {
+		if (z_liveliness_declare_token(z_loan(_s), &_node_token, z_loan(ke), nullptr) < 0) {
 			PX4_ERR("Unable to create liveliness token!\n");
 			return -1;
 		}
@@ -423,9 +422,8 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 							return -1;
 						}
 
-						z_owned_liveliness_token_t token;
-
-						if (z_liveliness_declare_token(z_loan(_s), &token, z_loan(ke), nullptr) < 0) {
+						if (z_liveliness_declare_token(z_loan(_s), _zenoh_subscribers[i]->liveliness_token(), z_loan(ke),
+									       nullptr) < 0) {
 							PX4_ERR("Unable to create liveliness token!\n");
 							return -1;
 						}
@@ -434,6 +432,7 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 #endif
 
 				} else {
+					delete _zenoh_subscribers[i];
 					_zenoh_subscribers[i] = nullptr;
 					PX4_ERR("Could not create a subscriber for type %s", type);
 				}
@@ -513,9 +512,8 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 							return -1;
 						}
 
-						z_owned_liveliness_token_t token;
-
-						if (z_liveliness_declare_token(z_loan(_s), &token, z_loan(ke), nullptr) < 0) {
+						if (z_liveliness_declare_token(z_loan(_s), _zenoh_publishers[i]->liveliness_token(), z_loan(ke),
+									       nullptr) < 0) {
 							PX4_ERR("Unable to create liveliness token!\n");
 							return -1;
 						}
@@ -524,6 +522,7 @@ int ZENOH::setupTopics(px4_pollfd_struct_t *pfds)
 #endif
 
 				} else {
+					delete _zenoh_publishers[i];
 					_zenoh_publishers[i] = nullptr;
 					PX4_ERR("Could not create a publisher for type %s", type);
 				}
@@ -574,6 +573,8 @@ void ZENOH::cleanupSession()
 		free(_zenoh_publishers);
 		_zenoh_publishers = nullptr;
 	}
+
+	z_liveliness_token_drop(z_liveliness_token_move(&_node_token));
 
 	if (z_internal_check(_s)) {
 		zp_stop_read_task(z_session_loan_mut(&_s));
