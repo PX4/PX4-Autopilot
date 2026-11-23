@@ -32,7 +32,7 @@
 ############################################################################
 
 set(NUTTX_CONFIG_DIR ${PX4_BOARD_DIR}/nuttx-config)
-set(APPS_DIR ${NUTTX_SRC_DIR}/apps)
+set(APPS_DIR ${NUTTX_APPS_DIR})
 
 ###############################################################################
 # NuttX build
@@ -181,8 +181,8 @@ function(add_nuttx_dir nuttx_lib nuttx_lib_dir kernel extra target)
 	endif()
 
 	file(GLOB_RECURSE nuttx_lib_files LIST_DIRECTORIES false
-		${CMAKE_CURRENT_SOURCE_DIR}/nuttx/${nuttx_lib_dir}/*.c
-		${CMAKE_CURRENT_SOURCE_DIR}/nuttx/${nuttx_lib_dir}/*.h
+		${NUTTX_DIR}/${nuttx_lib_dir}/*.c
+		${NUTTX_DIR}/${nuttx_lib_dir}/*.h
 	)
 
 	# Route kernel pass for mm/libc to kbin/; user pass uses bin/ for the
