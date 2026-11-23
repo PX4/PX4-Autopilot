@@ -100,6 +100,8 @@ public:
 	void check_active_mission(void);
 
 private:
+	friend class MavlinkMissionManagerTest;
+
 	enum MAVLINK_WPM_STATES _state {MAVLINK_WPM_STATE_IDLE};	///< Current state
 	enum MAV_MISSION_TYPE _mission_type {MAV_MISSION_TYPE_MISSION};	///< mission type of current transmission (only one at a time possible)
 	enum MISSION_STATE _mission_state {MISSION_STATE_UNKNOWN}; ///< Current mission state machine state
