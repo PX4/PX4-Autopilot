@@ -33,14 +33,18 @@ parameters:
       type: boolean
       default: 1
       reboot_required: true
-    UAVCAN_BITRATE:
+    UAVCAN_BAUD${i}:
       description:
-        short: UAVCAN CAN bus bitrate
-      type: int32
+        short: UAVCAN CAN${i} bitrate
+        long: Rates above 1 Mbps run the port as CAN FD with 1 Mbps arbitration, and this value is the data phase rate. Each port has its own rate, e.g. classic GNSS on CAN1 and CAN FD ESCs on CAN2. Do not mix classic and CAN FD nodes on one bus. Dynamic node ID allocation always uses classic frames. ESC commands use CAN FD when UAVCAN_ESC_IFACE selects only CAN FD ports.
+      type: enum
+      can_bitrate: true
+      num_instances:
+        kconfig: BOARD_UAVCAN_INTERFACES
+        default: 2
+      instance_start: 1
       default: 1000000
       unit: bit/s
-      min: 20000
-      max: 1000000
       reboot_required: true
     UAVCAN_RNG_MIN:
       description:

@@ -154,7 +154,8 @@ param set-default PWM_AUX_MAX8 10000
 
 # Propeller Plate
 param set-default UAVCAN_ENABLE 3
-param set-default UAVCAN_BITRATE 500000
+param set-default UAVCAN_BAUD1 500000
+param set-default UAVCAN_BAUD2 500000
 param set-default UAVCAN_EC_SIGNED 15
 
 param set-default UAVCAN_EC_FUNC1 301

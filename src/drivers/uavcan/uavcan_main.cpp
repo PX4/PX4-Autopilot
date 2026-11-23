@@ -47,6 +47,7 @@
 
 #include <inttypes.h>
 #include <cctype>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
@@ -76,11 +77,10 @@ UavcanNode *UavcanNode::_instance;
 
 static UavcanNode::CanInitHelper *can = nullptr;
 
-UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock, uavcan::NodeID node_id, uint32_t bitrate) :
+UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock, uavcan::NodeID node_id) :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::uavcan),
 	ModuleParams(nullptr),
 	_node_id(node_id),
-	_bitrate(bitrate),
 	_node(can_driver, system_clock, _pool_allocator),
 #if defined(CONFIG_UAVCAN_ARMING_CONTROLLER)
 	_arming_status_controller(_node),
@@ -420,8 +420,21 @@ UavcanNode::update_params()
 #endif
 }
 
+static unsigned loadUavcanIfaceBitrates(uint32_t *bitrates, unsigned max_ifaces)
+{
+	for (unsigned i = 0; i < max_ifaces; i++) {
+		char name[16];
+		snprintf(name, sizeof(name), "UAVCAN_BAUD%u", i + 1);
+		int32_t value = 1000000;
+		(void)param_get(param_find(name), &value);
+		bitrates[i] = static_cast<uint32_t>(value);
+	}
+
+	return max_ifaces;
+}
+
 int
-UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
+UavcanNode::start(uavcan::NodeID node_id)
 {
 	if (_instance != nullptr) {
 		PX4_WARN("Already started");
@@ -442,7 +455,7 @@ UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	/*
 	 * Node init
 	 */
-	_instance = new UavcanNode(can->driver, UAVCAN_DRIVER::SystemClock::instance(), node_id, bitrate);
+	_instance = new UavcanNode(can->driver, UAVCAN_DRIVER::SystemClock::instance(), node_id);
 
 	if (_instance == nullptr) {
 		PX4_ERR("Out of memory");
@@ -731,21 +744,35 @@ void
 UavcanNode::Run()
 {
 	if (!_node_init) {
+		uint32_t bitrates[UAVCAN_NUM_IFACES];
+		loadUavcanIfaceBitrates(bitrates, UAVCAN_NUM_IFACES);
+
 		/*
 		* CAN driver init
 		 * Note that we instantiate and initialize CanInitHelper only once, because the STM32's bxCAN driver
 		 * shipped with libuavcan does not support deinitialization.
 		 */
-		const int can_init_res = can->init(_bitrate);
+		const int can_init_res = can->init(bitrates, UAVCAN_NUM_IFACES);
 
 		if (can_init_res < 0) {
 			// retried every cycle, so report each error once
 			if (can_init_res != _can_init_error) {
-				PX4_ERR("CAN driver init failed %i at %" PRIu32 " bit/s", can_init_res, _bitrate);
+				PX4_ERR("CAN driver init failed %i", can_init_res);
 				_can_init_error = can_init_res;
 			}
 
 		} else {
+			bool any_canfd = false;
+
+			for (unsigned i = 0; i < UAVCAN_NUM_IFACES; i++) {
+				const bool canfd = uavcanBitrateIsCanFd(bitrates[i]);
+				any_canfd = any_canfd || canfd;
+				PX4_INFO("CAN%u: %" PRIu32 " bps%s", i + 1, bitrates[i],
+					 canfd ? " (CAN FD, 1 Mbps arbitration)" : "");
+			}
+
+			_instance->get_node().getDispatcher().setCanFdEnabled(any_canfd);
+
 			const int node_init_res = _instance->init(_node_id, can->driver.updateEvent());
 
 			// Not retried: init() would create the sensor bridges and servers a second time
@@ -1339,6 +1366,7 @@ UavcanNode::print_info()
 		auto iface = _node.getDispatcher().getCanIOManager().getCanDriver().getIface(i);
 
 		if (iface) {
+			printf("\tMode: %s\n", iface->isCanFd() ? "CAN FD" : "Classic CAN");
 #if defined(UAVCAN_SOCKETCAN_NUTTX)
 			UAVCAN_DRIVER::CanIface::BusErrors bus;
 
@@ -1666,13 +1694,8 @@ extern "C" __EXPORT int uavcan_main(int argc, char *argv[])
 			return 1;
 		}
 
-		// CAN bitrate
-		int32_t bitrate = 1000000;
-		(void)param_get(param_find("UAVCAN_BITRATE"), &bitrate);
-
-		// Start
-		PX4_INFO("Node ID %" PRIu32 ", bitrate %" PRIu32, node_id, bitrate);
-		return UavcanNode::start(node_id, bitrate);
+		PX4_INFO("Node ID %" PRIu32, node_id);
+		return UavcanNode::start(node_id);
 	}
 
 	/* commands below require the app to be started */

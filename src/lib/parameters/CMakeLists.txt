@@ -85,6 +85,21 @@ if(EXISTS ${PX4_BOARD_DIR}/src/timer_config.cpp)
 	set(board_timer_config_dep ${PX4_BOARD_DIR}/src/timer_config.cpp)
 endif()
 
+# UAVCAN_BAUDn / CANNODE_BITRATE list CAN FD rates only when the firmware is built with
+# UAVCAN_CANFD and the CAN backend can do FD (STM32H7 FDCAN or SocketCAN), matching
+# UAVCAN_SUPPORT_CANFD in src/drivers/uavcan/CMakeLists.txt.
+set(uavcan_param_args)
+if(CONFIG_UAVCAN_CANFD AND ("${CONFIG_NET_CAN}" STREQUAL "y" OR "${CONFIG_ARCH_CHIP}" MATCHES "stm32h7"))
+	list(APPEND uavcan_param_args --uavcan-canfd)
+endif()
+if(PX4_BOARD_DIR)
+	list(APPEND uavcan_param_args --board-dir ${PX4_BOARD_DIR})
+endif()
+set(board_h ${PX4_BOARD_DIR}/nuttx-config/include/board.h)
+if(NOT EXISTS ${board_h})
+	unset(board_h)
+endif()
+
 add_custom_command(OUTPUT ${generated_serial_params_file} ${generated_module_params_file}
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${generated_params_dir}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
@@ -100,6 +115,7 @@ add_custom_command(OUTPUT ${generated_serial_params_file} ${generated_module_par
 		--board-config ${BOARD_CONFIG}
 		--config-files ${module_config_files}
 		--board ${PX4_BOARD}
+		${uavcan_param_args}
 		#--verbose
 	DEPENDS
 		${module_config_files}
@@ -109,6 +125,7 @@ add_custom_command(OUTPUT ${generated_serial_params_file} ${generated_module_par
 		${PX4_SOURCE_DIR}/Tools/module_config/output_groups_from_timer_config.py
 		${board_timer_config_dep}
 		${PX4_BINARY_DIR}/px4_boardconfig.h
+		${board_h}
 	COMMENT "Generating serial_params.c"
 )
 

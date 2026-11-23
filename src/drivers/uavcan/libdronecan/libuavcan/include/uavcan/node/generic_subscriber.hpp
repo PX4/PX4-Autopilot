@@ -115,7 +115,7 @@ protected:
      * transfer. Returns true if decoding succeeded, false otherwise (after failure accounting).
      */
     bool decodeTransfer(IncomingTransfer& transfer, void* rx_struct,
-                        int (*decode_fn)(void* rx_struct, ScalarCodec& codec));
+                        int (*decode_fn)(void* rx_struct, ScalarCodec& codec, TailArrayOptimizationMode tao_mode));
 
     /**
      * Type-specific handler for a fully received transfer (message decoding followed by dispatch
@@ -236,7 +236,7 @@ class UAVCAN_EXPORT GenericSubscriber : public GenericSubscriberOnListener<Trans
 
     void handleIncomingTransfer(IncomingTransfer& transfer) override;
 
-    static int decodeForwarder(void* rx_struct, ScalarCodec& codec);
+    static int decodeForwarder(void* rx_struct, ScalarCodec& codec, TailArrayOptimizationMode tao_mode);
 
     int genericStart(bool (Dispatcher::*registration_method)(TransferListener*))
     {
@@ -291,9 +291,10 @@ protected:
  */
 template <typename DataSpec, typename DataStruct, typename TransferListenerType>
 int GenericSubscriber<DataSpec, DataStruct, TransferListenerType>::decodeForwarder(void* rx_struct,
-                                                                                   ScalarCodec& codec)
+                                                                                   ScalarCodec& codec,
+                                                                                   TailArrayOptimizationMode tao_mode)
 {
-    return DataStruct::decode(*static_cast<ReceivedDataStructureSpec*>(rx_struct), codec);
+    return DataStruct::decode(*static_cast<ReceivedDataStructureSpec*>(rx_struct), codec, tao_mode);
 }
 
 template <typename DataSpec, typename DataStruct, typename TransferListenerType>
