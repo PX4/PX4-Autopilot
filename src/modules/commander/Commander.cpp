@@ -806,6 +806,14 @@ transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason, bool f
 	_param_com_flight_uuid.set(flight_uuid);
 	_param_com_flight_uuid.commit_no_notification();
 
+	if (calling_reason == arm_disarm_reason_t::kill_switch) {
+		// After a kill the battery is often pulled right away: hold back the parameter writes that follow a
+		// disarm (flight time, learned sensor biases) so only the log file is closed on the SD card.
+		param_control_autosave(false);
+		_kill_param_save_paused_until = _last_disarmed_timestamp + KILL_PARAM_SAVE_PAUSE;
+		mavlink_log_info(&_mavlink_log_pub, "Kill: parameter saving paused	");
+	}
+
 	_status_changed = true;
 
 	return TRANSITION_CHANGED;
@@ -2511,6 +2519,16 @@ void Commander::checkWorkerThread()
 
 void Commander::handleAutoDisarm()
 {
+	// Resume parameter saving after the post-kill pause, or as soon as the vehicle is armed again
+	if ((_kill_param_save_paused_until != 0) && (isArmed() || (hrt_absolute_time() > _kill_param_save_paused_until))) {
+		_kill_param_save_paused_until = 0;
+		param_control_autosave(true);
+
+		if (!isArmed()) {
+			param_save_default(true);
+		}
+	}
+
 	// Auto disarm when landed or kill switch engaged
 	if (isArmed()) {
 

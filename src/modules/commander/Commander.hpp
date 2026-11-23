@@ -261,6 +261,9 @@ private:
 
 	hrt_abstime _boot_timestamp{0};
 	hrt_abstime _last_disarmed_timestamp{0};
+
+	static constexpr hrt_abstime KILL_PARAM_SAVE_PAUSE{10_s};	///< no parameter saving this long after a kill switch disarm
+	hrt_abstime _kill_param_save_paused_until{0};
 	bool _arm_on_boot_done{false};    ///< true once arm-on-boot has been attempted
 	bool _arm_on_boot_requested{false};
 	hrt_abstime _overload_start{0};		///< time when CPU overload started
