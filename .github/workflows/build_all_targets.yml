@@ -31,6 +31,8 @@
 #     <target>_canbootloader.bin
 #   - In-tree *_bootloader targets are attached as <target>_bootloader.bin
 #     (raw SWD image). Bootloader .px4 files are not attached.
+#   - px4io firmware is attached as <target>.bin (e.g. px4_io-v2_default.bin),
+#     the raw image the FMU flashes to the IO coprocessor.
 #
 # IMPORTANT: Version tags do NOT upload to stable/ or beta/. Only the
 # corresponding branch pushes control those directories. This prevents
@@ -394,6 +396,7 @@ jobs:
             artifacts/*.uavcan.bin
             artifacts/*_bootloader.bin
             artifacts/*_canbootloader.bin
+            artifacts/*_io-v*_default.bin
             artifacts/*.deb
             artifacts/**/*.sbom.spdx.json
           name: ${{ steps.upload-location.outputs.uploadlocation }}
