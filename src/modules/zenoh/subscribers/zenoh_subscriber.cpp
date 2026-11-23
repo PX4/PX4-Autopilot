@@ -56,10 +56,13 @@ void Zenoh_Subscriber::data_handler(const z_loaned_sample_t *sample)
 
 Zenoh_Subscriber::Zenoh_Subscriber()
 {
+	z_internal_subscriber_null(&_sub);
+	z_internal_liveliness_token_null(&_liveliness_token);
 }
 
 Zenoh_Subscriber::~Zenoh_Subscriber()
 {
+	z_liveliness_token_drop(z_liveliness_token_move(&_liveliness_token));
 	undeclare_subscriber();
 }
 

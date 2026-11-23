@@ -118,6 +118,7 @@ private:
 	Zenoh_Subscriber **_zenoh_subscribers = nullptr;
 
 	z_owned_session_t _s;
+	z_owned_liveliness_token_t _node_token;
 	// written by the module task, read by print_status() from the shell task
 	px4::atomic_bool _connected{false};
 

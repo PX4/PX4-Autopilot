@@ -66,8 +66,11 @@ public:
 
 	virtual void print();
 
+	z_owned_liveliness_token_t *liveliness_token() { return &_liveliness_token; }
+
 protected:
 	virtual void print(const char *type_string, const char *topic_string);
 
 	z_owned_subscriber_t _sub;
+	z_owned_liveliness_token_t _liveliness_token;
 };
