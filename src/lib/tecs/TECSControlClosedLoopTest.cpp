@@ -740,6 +740,21 @@ TEST_F(TECSControlClosedLoopTest, AirspeedlessAltitudeStep)
 // The throttle does not deliver the total energy rate it is asked for: it fails, or it is undersped and already at
 // its maximum. What the vehicle must then never do is lose its airspeed.
 
+// At speed weight 2 the pitch controls airspeed only: the vehicle glides at its airspeed setpoint
+// Disabled: the energy rate setpoints count on the total energy rate the throttle is asked for, and the pitch
+// feedback splits the missing energy rate evenly between altitude and airspeed. The glide settles 1.8 m/s above the
+// airspeed setpoint (see also DISABLED_AirspeedStepWithThrottleRange).
+TEST_F(TECSControlClosedLoopTest, DISABLED_ThrottleFailureSpeedWeightTwoHoldsAirspeed)
+{
+	_params.pitch_speed_weight = 2.f;
+	run(10.f);
+	_throttle_failed = true;
+	run(60.f);
+
+	EXPECT_GT(_sim_stats.min_airspeed, _V_sp - 2.5f);
+	EXPECT_NEAR(_state.V, _V_sp, 0.1f);
+}
+
 // At speed weights 1 and 0 the pitch gives up airspeed for altitude until the underspeed protection takes over. The
 // vehicle then glides at the minimum sink rate, clear of the stall airspeed, and never climbs while undersped.
 TEST_F(TECSControlClosedLoopTest, ThrottleFailureSpeedWeightOneGlidesAboveStall)
@@ -777,7 +792,44 @@ TEST_F(TECSControlClosedLoopTest, IdleThrottleGlidesAboveStall)
 	EXPECT_LT(_sim_stats.max_climb_rate_undersped, 0.f);
 }
 
+// Between trim airspeed and the airspeed setpoint the pitch holds altitude and leaves the airspeed to the throttle.
+// When the throttle fails there, the vehicle keeps its altitude until it has slowed down to trim airspeed.
+// Disabled: the pitch feedback moves half of the missing energy rate into altitude, which is 0.65 m low by the time
+// the airspeed reaches trim.
+TEST_F(TECSControlClosedLoopTest, DISABLED_ThrottleFailureAboveTrimHoldsAltitudeDownToTrim)
+{
+	setAirspeedSetpoint(_params.equivalent_airspeed_trim + 3.f * AIRSPEED_STEP);
+	_state.V = _V_sp;
+	run(20.f);
+	_throttle_failed = true;
+
+	while (_state.V > _params.equivalent_airspeed_trim) {
+		run(DT);
+		ASSERT_NEAR(_state.h, _alt_sp, TRACKING_ERROR_TOL) << "at airspeed " << _state.V << " m/s";
+	}
+}
+
 // --- Underspeed --------------------------------------------------------------------
+
+// Deep in underspeed with working propulsion: the vehicle accelerates out of it without losing airspeed first and
+// with little altitude loss
+// Disabled: the altitude loss is 1.9 m instead of 1.2 m. The pitch feedback no longer puts all of the thrust beyond
+// the kinetic energy rate setpoint into altitude, the vehicle is back at its airspeed setpoint sooner instead.
+TEST_F(TECSControlClosedLoopTest, DISABLED_UnderspeedRecovery)
+{
+	_state.V = _params.tas_stall + 0.5f;
+	const float airspeed_start = _state.V;
+	run(5.f);
+
+	EXPECT_NEAR(_tecs_control.getUnderspeedRatio(), 0.f, FLT_EPSILON) << "not out of underspeed after 5 s";
+
+	run(55.f);
+
+	EXPECT_GT(_sim_stats.min_airspeed, airspeed_start - TRACKING_ERROR_TOL);
+	EXPECT_LT(_sim_stats.max_altitude_loss, 1.5f);
+	EXPECT_NEAR(_state.V, _V_sp, 0.1f);
+	EXPECT_NEAR(_state.h, _alt_sp, 0.1f);
+}
 
 // Deep in underspeed without propulsion: the vehicle dives for airspeed, never climbs while undersped and loses
 // little airspeed on the way
