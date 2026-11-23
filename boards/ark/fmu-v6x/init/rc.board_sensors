@@ -91,6 +91,18 @@ then
 	iim42653 -R 6 -s -b 3 start
 fi
 
+if ver hwtypecmp ARKV6X002
+then
+	# Internal SPI bus LSM6DSV32X
+	lsm6dsv -R 3 -s -b 1 start
+
+	# Internal SPI bus LSM6DSV32X
+	lsm6dsv -R 9 -s -b 2 start
+
+	# Internal SPI bus LSM6DSV32X
+	lsm6dsv -R 6 -s -b 3 start
+fi
+
 # Internal magnetometer on I2C
 bmm150 -I start
 
