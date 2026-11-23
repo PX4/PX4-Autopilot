@@ -559,7 +559,7 @@ float TECSControl::_calcPitchControlOutput(const Input &input, const ControlValu
 	// Feedforward: the climb angle that flies the energy balance rate setpoint at the total energy rate setpoint
 	const float seb_rate_setpoint = specific_energy_rates.spe_rate.setpoint - specific_energy_rates.ske_rate.setpoint;
 	const float ste_rate_setpoint = specific_energy_rates.spe_rate.setpoint + specific_energy_rates.ske_rate.setpoint;
-	const float climb_angle_ff = param.seb_rate_ff * _sebRateToClimbAngle(seb_rate_setpoint, ste_rate_setpoint, input, param);
+	const float climb_angle_ff = _sebRateToClimbAngle(seb_rate_setpoint, ste_rate_setpoint, input, param);
 
 	// Damping: proportional feedback of the energy balance rate error
 	const float climb_angle_damping = _getControlError(seb_rate) * param.pitch_damping_gain
