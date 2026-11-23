@@ -333,6 +333,18 @@ parameters:
       type: float
       default: 0.05
       unit: s
+    SIH_T_START:
+      description:
+        short: thruster start-up dead time
+        long: Time a stopped thruster makes no thrust after being commanded to run, as an ESC
+          needs to start the motor. A reversal first spins down to standstill. 0 disables it.
+      type: float
+      default: 0.0
+      min: 0.0
+      max: 2.0
+      decimal: 2
+      increment: 0.01
+      unit: s
     SIH_VEHICLE_TYPE:
       description:
         short: Vehicle type
