@@ -93,8 +93,9 @@ static constexpr uint16_t MSC_CTRL_BURST_32 = (1 << 9);  // 32-bit burst mode
 static constexpr uint16_t GLOB_CMD_SW_RESET        = (1 << 7);
 static constexpr uint16_t GLOB_CMD_SENSOR_SELF_TEST = (1 << 2);
 
-// Self-test duration (datasheet t_ST)
-static constexpr uint32_t SELF_TEST_TIME_MS = 24;
+// Self-test duration (datasheet t_ST; ADIS16501 is 29 ms typ)
+static constexpr uint32_t SELF_TEST_TIME_MS       = 24;
+static constexpr uint32_t SELF_TEST_TIME_16501_MS = 35;
 
 // DIAG_STAT register bits
 enum DIAG_STAT_BIT : uint16_t {
@@ -116,9 +117,11 @@ enum DIAG_STAT_BIT : uint16_t {
 static constexpr uint32_t FILT_FLUSH_DELAY_US = 1100;
 
 // Group delay base values (no filtering, no decimation) from datasheet Table 8
-static constexpr float GROUP_DELAY_ACCEL_BASE_US = 1570.0f;
-static constexpr float GROUP_DELAY_GYRO_BASE_US  = 1437.0f;  // average of X=1510, Y=1510, Z=1290
-static constexpr float SAMPLE_PERIOD_US          = 500.0f;    // 1/2000 Hz = 500 us
+static constexpr float GROUP_DELAY_ACCEL_BASE_US       = 1570.0f;
+static constexpr float GROUP_DELAY_GYRO_BASE_US        = 1437.0f; // average of X=1510, Y=1510, Z=1290
+static constexpr float GROUP_DELAY_ACCEL_16501_BASE_US = 1370.0f;
+static constexpr float GROUP_DELAY_GYRO_16501_BASE_US  = 1487.0f; // average of X=1560, Y=1560, Z=1340 (MSC_CTRL bit 4 = 0)
+static constexpr float SAMPLE_PERIOD_US                = 500.0f;  // 1/2000 Hz = 500 us
 
 // RNG_MDL gyro range bits [3:2]
 static constexpr uint16_t RNG_MDL_GYRO_MASK  = 0x0C;
