@@ -428,12 +428,7 @@ TEST_F(TECSControlClosedLoopTest, AltitudeStepDown)
 	EXPECT_NEAR(_state.h, _alt_sp, TRACKING_ERROR_TOL);
 }
 
-// Disabled temporarily:
-//  - Throttle damping acts on the energy rate error against the low-passed estimate
-//  - This lag creates a fake error, which the feedback acts on (fix: #29877)
-//  - Because the feedback gain is assumed to be equal across the entire throttle range, but the actual
-//    gain is higher above trim, this only fails the test in the upward step
-TEST_F(TECSControlClosedLoopTest, DISABLED_AltitudeStepUp)
+TEST_F(TECSControlClosedLoopTest, AltitudeStepUp)
 {
 	run(10.f);
 
@@ -484,8 +479,7 @@ TEST_F(TECSControlClosedLoopTest, AltitudeStepUpDefaultTuningPitchOffset)
 	setAltitudeSetpoint(ALT_INIT + ALT_STEP);
 	run(120.f);
 
-	// DISABLED: Only works after filter lag fix #29877
-	// EXPECT_LT(_sim_stats.max_airspeed_error, TRACKING_ERROR_TOL) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
+	EXPECT_LT(_sim_stats.max_airspeed_error, TRACKING_ERROR_TOL) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
 
 	// Reset stats to capture errors after convergence
 	resetSimStats();
