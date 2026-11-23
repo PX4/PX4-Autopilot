@@ -183,6 +183,7 @@ public:
 	int getGeofenceAction() { return _param_gf_action.get(); }
 
 	float getMaxHorDistanceHome() { return _param_gf_max_hor_dist.get(); }
+	float getMaxVerDistanceHome() { return _param_gf_max_ver_dist.get(); }
 
 	bool isHomeRequired();
 

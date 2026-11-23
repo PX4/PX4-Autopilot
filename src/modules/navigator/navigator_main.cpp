@@ -1256,6 +1256,7 @@ void Navigator::geofence_breach_check()
 		}
 
 		if (!have_valid_position_for_breach_check) {
+			local_geofence_breach_check();
 			return;
 		}
 
@@ -1325,6 +1326,62 @@ void Navigator::geofence_breach_check()
 
 		_geofence_result_pub.publish(_geofence_result);
 	}
+}
+
+void Navigator::local_geofence_breach_check()
+{
+	// Without a global position (e.g. indoors on optical flow) the checks above cannot run.
+	// Enforce GF_MAX_HOR_DIST against the horizontal distance from the local home position and
+	// GF_MAX_VER_DIST against the height above ground measured by the distance sensor, or without a
+	// distance sensor (EKF2_RNG_CTRL 0) against the estimated height above the arming point.
+	const float max_hor_dist = _geofence.getMaxHorDistanceHome();
+	const float max_ver_dist = _geofence.getMaxVerDistanceHome();
+
+	if (max_hor_dist <= FLT_EPSILON && max_ver_dist <= FLT_EPSILON) {
+		return;
+	}
+
+	const bool armed = _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
+	const hrt_abstime now = hrt_absolute_time();
+	bool max_dist_triggered = false;
+	bool max_alt_triggered = false;
+
+	if (max_hor_dist > FLT_EPSILON && _local_pos.xy_valid && _home_pos.valid_lpos) {
+		const float dist_xy = hypotf(_local_pos.x - _home_pos.x, _local_pos.y - _home_pos.y);
+		max_dist_triggered = dist_xy >= max_hor_dist;
+	}
+
+	if (max_ver_dist > FLT_EPSILON) {
+		// Distance sensor height with sudden jumps (reflections while tilted) filtered out
+		const float range_height = _local_gf_height.update(_local_pos.dist_bottom_valid ? _local_pos.dist_bottom : NAN,
+					   _local_pos.v_z_valid ? _local_pos.vz : NAN, _local_pos.timestamp_sample);
+		const float armed_height = _local_gf_armed_height.update(_local_pos.z, _local_pos.z_valid,
+					   _local_pos.z_reset_counter, _local_pos.delta_z, armed);
+		const float height = (_param_ekf2_rng_ctrl.get() == 0) ? armed_height : range_height;
+
+		// Height unknown in flight counts as a breach rather than letting the vehicle climb unchecked
+		const bool alt_exceeded = PX4_ISFINITE(height) ? (height >= max_ver_dist) : armed;
+
+		// A reflection or a lost return makes the distance sensor jump for a moment (e.g. when tilting),
+		// so the breach is only reported once it has lasted LOCAL_GF_ALT_CONFIRM
+		if (!alt_exceeded) {
+			_local_gf_alt_breach_start = 0;
+
+		} else if (_local_gf_alt_breach_start == 0) {
+			_local_gf_alt_breach_start = now;
+		}
+
+		max_alt_triggered = alt_exceeded && (now - _local_gf_alt_breach_start >= LOCAL_GF_ALT_CONFIRM);
+	}
+
+	_geofence_result.geofence_max_dist_triggered = max_dist_triggered;
+	_geofence_result.geofence_max_alt_triggered = max_alt_triggered;
+	_geofence_result.geofence_custom_fence_triggered = false;
+
+	_last_geofence_check = now;
+	_geofence_result.timestamp = now;
+	_geofence_result.geofence_action = _geofence.getGeofenceAction();
+	_geofence_result_pub.publish(_geofence_result);
 }
 
 int Navigator::run_trampoline(int argc, char *argv[])

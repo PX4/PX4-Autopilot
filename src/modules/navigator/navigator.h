@@ -71,6 +71,7 @@
 #include <uORB/topics/telemetry_status.h>
 
 #include <lib/perf/perf_counter.h>
+#include <lib/robust_height/RobustHeight.hpp>
 #include <px4_platform_common/events.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
@@ -329,6 +330,11 @@ public:
 
 	void geofence_breach_check();
 
+	/**
+	 * Max distance and height limits in the local frame, used when no global position is available.
+	 */
+	void local_geofence_breach_check();
+
 	// Param access
 	int get_loiter_min_alt() const { return _param_nav_min_ltr_alt.get(); }
 	int get_landing_abort_min_alt() const { return _param_mis_lnd_abrt_alt.get(); }
@@ -429,6 +435,10 @@ private:
 	Geofence	_geofence;			/**< class that handles the geofence */
 	hrt_abstime _last_geofence_check{0};
 	bool _geofence_reposition_sent{false};	/**< true if a reposition triplet has been sent for the current breach */
+	static constexpr hrt_abstime LOCAL_GF_ALT_CONFIRM{500_ms};	/**< local vertical limit must be exceeded this long */
+	hrt_abstime _local_gf_alt_breach_start{0};	/**< since when the local vertical limit is exceeded, 0 if not */
+	RobustHeight _local_gf_height;			/**< distance sensor height without sudden jumps, for the local fence */
+	ArmedHeight _local_gf_armed_height;		/**< height above the arming point, for the local fence without a distance sensor */
 	hrt_abstime _time_loitering_after_gf_breach{0};	/**< latches breach state while loitering, prevents reposition center walking */
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 	GeofenceAvoidancePlanner _geofence_avoidance_planner; /**< Return path planner that routes around fences (visibility graph + Dijkstra) */
@@ -523,6 +533,9 @@ private:
 		(ParamFloat<px4::params::MIS_YAW_TMT>)        _param_mis_yaw_tmt,
 		(ParamFloat<px4::params::MIS_YAW_ERR>)        _param_mis_yaw_err,
 		(ParamInt<px4::params::MIS_LND_ABRT_ALT>)     _param_mis_lnd_abrt_alt,
-		(ParamFloat<px4::params::MIS_COMMAND_TOUT>) _param_mis_command_tout
+		(ParamFloat<px4::params::MIS_COMMAND_TOUT>) _param_mis_command_tout,
+
+		// non-navigator parameters: the local fence height source (0 = no distance sensor)
+		(ParamInt<px4::params::EKF2_RNG_CTRL>)      _param_ekf2_rng_ctrl
 	)
 };
