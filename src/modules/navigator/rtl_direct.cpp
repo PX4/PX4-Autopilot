@@ -654,6 +654,16 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 
 		// FALLTHROUGH
 		case RTLState::LAND: {
+				// Rovers start Return in this state and drive all the way to the destination
+				if (start_state_for_estimate == RTLState::LAND
+				    && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
+					matrix::Vector2f direction{};
+					get_vector_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, _destination.lat,
+								    _destination.lon, &direction(0), &direction(1));
+					_rtl_time_estimator.addDistance(get_distance_to_next_waypoint(_global_pos_sub.get().lat,
+									_global_pos_sub.get().lon, _destination.lat, _destination.lon), direction, 0.f);
+				}
+
 				float initial_altitude;
 
 				// Add land segment (second landing phase) which comes after LOITER
