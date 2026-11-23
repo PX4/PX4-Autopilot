@@ -67,7 +67,10 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 	const NavModes required_groups = (NavModes)reporter.failsafeFlags().mode_req_attitude;
 
 	// Change topics to primary estimator instance
-	if (_param_sens_imu_mode.get() == 0) { // multi-ekf
+	// The selector is only published while multi-EKF is running; on single-EKF builds
+	// (CONFIG_EKF2_MULTI_INSTANCE off) it never is, so a stale SENS_IMU_MODE of 0
+	// must not wait for it here, or arming is blocked forever (see #29845).
+	if ((_param_sens_imu_mode.get() == 0) && _estimator_selector_status_sub.advertised()) { // multi-ekf
 		estimator_selector_status_s estimator_selector_status;
 
 		if (_estimator_selector_status_sub.copy(&estimator_selector_status)) {
