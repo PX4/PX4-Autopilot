@@ -44,6 +44,9 @@
 
 using namespace matrix;
 
+// Allow several fixed-wing setpoint periods for the handoff to establish continuity.
+static constexpr hrt_abstime PITCH_HANDOFF_SETPOINT_TIMEOUT = 100_ms;
+
 Tailsitter::Tailsitter(VtolAttitudeControl *attc) :
 	VtolType(attc)
 {
@@ -106,8 +109,34 @@ bool Tailsitter::isBackTransitionCompleted()
 	return pitch >= PITCH_THRESHOLD_AUTO_TRANSITION_TO_MC || _time_since_trans_start > _param_vt_b_trans_dur.get();
 }
 
+void Tailsitter::onTransitionStart()
+{
+	_flag_was_in_trans_mode = false;
+	_front_transition_pitch = NAN;
+}
+
+void Tailsitter::onFrontTransitionCompleted()
+{
+	if (_land_detected->landed || !_v_control_mode->flag_control_altitude_enabled || !_flag_was_in_trans_mode
+	    || _v_att_sp->timestamp == 0 || hrt_elapsed_time(&_v_att_sp->timestamp) > PITCH_HANDOFF_SETPOINT_TIMEOUT) {
+		return;
+	}
+
+	// The transition setpoint is in the multicopter frame.
+	Quatf q_fw = _q_trans_sp * _q_fw_to_mc;
+	const float norm_squared = q_fw.norm_squared();
+
+	if (PX4_ISFINITE(norm_squared) && norm_squared > FLT_EPSILON) {
+		q_fw.normalize();
+		_front_transition_pitch = Eulerf(q_fw).theta();
+		_last_pitch_handoff_update = _trans_finished_ts;
+	}
+}
+
 void Tailsitter::onQuadchute()
 {
+	_front_transition_pitch = NAN;
+
 	if (_common_vtol_mode != mode::ROTARY_WING) {
 		// for the short period after the switch where there is no thrust published yet from the MC controller,
 		// keep publishing the last FW thrust (see fill_actuator_outputs)
@@ -208,14 +237,60 @@ void Tailsitter::update_transition_state()
 
 void Tailsitter::waiting_on_tecs()
 {
-	// copy the last trust value from the front transition
+	// Hold thrust while waiting for the fixed-wing setpoint.
 	_v_att_sp->thrust_body[0] = -_last_thr_in_mc;
+
+	if (hrt_elapsed_time(&_trans_finished_ts) > PITCH_HANDOFF_SETPOINT_TIMEOUT) {
+		_front_transition_pitch = NAN;
+	}
+
+	blendPitchAfterFrontTransition(0.f);
 }
 
 void Tailsitter::update_fw_state()
 {
-	VtolType::update_fw_state();
+	if (PX4_ISFINITE(_front_transition_pitch)) {
+		const hrt_abstime now = hrt_absolute_time();
+		const hrt_abstime fw_setpoint_time = _fw_virtual_att_sp->timestamp;
 
+		// After a gap or a change of control mode, use the normal fixed-wing reference.
+		if (!_v_control_mode->flag_control_altitude_enabled || fw_setpoint_time == 0 || fw_setpoint_time > now
+		    || now - fw_setpoint_time > PITCH_HANDOFF_SETPOINT_TIMEOUT
+		    || now - _last_pitch_handoff_update > PITCH_HANDOFF_SETPOINT_TIMEOUT) {
+			_front_transition_pitch = NAN;
+
+		} else {
+			_last_pitch_handoff_update = now;
+		}
+	}
+
+	VtolType::update_fw_state();
+}
+
+void Tailsitter::blendPitchAfterFrontTransition(float scale)
+{
+	if (!PX4_ISFINITE(_front_transition_pitch)) {
+		return;
+	}
+
+	Quatf q_fw(_v_att_sp->q_d);
+	const float norm_squared = q_fw.norm_squared();
+
+	if (!PX4_ISFINITE(norm_squared) || norm_squared <= FLT_EPSILON) {
+		_front_transition_pitch = NAN;
+		return;
+	}
+
+	q_fw.normalize();
+	Eulerf fw_attitude_setpoint(q_fw);
+
+	if (!fw_attitude_setpoint.isAllFinite()) {
+		_front_transition_pitch = NAN;
+		return;
+	}
+
+	fw_attitude_setpoint.theta() = (1.f - scale) * _front_transition_pitch + scale * fw_attitude_setpoint.theta();
+	Quatf(fw_attitude_setpoint).copyTo(_v_att_sp->q_d);
 }
 
 /**

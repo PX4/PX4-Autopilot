@@ -69,6 +69,7 @@ public:
 	void fill_actuator_outputs() override;
 	void waiting_on_tecs() override;
 	void blendThrottleAfterFrontTransition(float scale) override;
+	void blendPitchAfterFrontTransition(float scale) override;
 	void blendThrottleBeginningBackTransition(float scale);
 
 private:
@@ -77,6 +78,8 @@ private:
 	matrix::Quatf _q_trans_start;
 	matrix::Quatf _q_trans_sp;
 	matrix::Vector3f _trans_rot_axis;
+	float _front_transition_pitch{NAN};
+	hrt_abstime _last_pitch_handoff_update{0};
 
 	inline static const matrix::Quatf _q_fw_to_mc{matrix::Eulerf{0.f, M_PI_2_F, 0.f}};
 
@@ -84,7 +87,8 @@ private:
 
 	bool isFrontTransitionCompleted() override;
 	bool isBackTransitionCompleted() override;
-	void onTransitionStart() override { _flag_was_in_trans_mode = false; }
+	void onTransitionStart() override;
+	void onFrontTransitionCompleted() override;
 	void onQuadchute() override;
 	bool isPitchExceeded() override;
 	bool isRollExceeded() override;
