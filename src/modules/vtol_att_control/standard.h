@@ -57,7 +57,6 @@ public:
 	Standard(VtolAttitudeControl *_att_controller);
 	~Standard() override = default;
 
-	void update_vtol_state() override;
 	void update_transition_state() override;
 	void update_fw_state() override;
 	void update_mc_state() override;
@@ -67,16 +66,6 @@ public:
 	void blendPitchAfterFrontTransition(float scale) override;
 
 private:
-
-	enum class vtol_mode {
-		MC_MODE = 0,
-		TRANSITION_TO_FW,
-		TRANSITION_TO_MC,
-		FW_MODE
-	};
-
-	vtol_mode _vtol_mode{vtol_mode::MC_MODE};			/**< vtol flight mode, defined by enum vtol_mode */
-
 	float _pusher_throttle{0.0f};
 	float _airspeed_trans_blend_margin{0.0f};
 	hrt_abstime _last_time_pusher_transition_update{0};
@@ -86,6 +75,12 @@ private:
 	bool _pusher_failed{false}; ///< latched until reboot or until the detection is disabled
 
 	void parameters_update() override;
+
+	bool isBackTransitionCompleted() override;
+	void onFrontTransitionCompleted() override;
+	void onFrontTransitionAborted() override;
+	void onQuadchute() override;
+	void checkTypeSpecificQuadchute() override;
 
 	bool isPusherFailureDetectionEnabled() const { return _param_vt_ef_time.get() > FLT_EPSILON; }
 
