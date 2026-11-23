@@ -80,7 +80,6 @@ set(msg_files
 	EstimatorBias3d.msg
 	EstimatorEventFlags.msg
 	EstimatorFusionControl.msg
-	EstimatorGpsStatus.msg
 	EstimatorInnovations.msg
 	EstimatorSelectorStatus.msg
 	EstimatorSensorBias.msg
@@ -88,9 +87,11 @@ set(msg_files
 	EstimatorStatus.msg
 	EstimatorStatusFlags.msg
 	versioned/Event.msg
+	ExternalGimbalManagerStatus.msg
 	FigureEightStatus.msg
 	FailsafeFlags.msg
 	FailureDetectorStatus.msg
+	FailureInjection.msg
 	FlightPhaseEstimation.msg
 	FollowTarget.msg
 	FollowTargetEstimator.msg
@@ -99,6 +100,7 @@ set(msg_files
 	FixedWingLateralGuidanceStatus.msg
 	FixedWingLateralStatus.msg
 	FixedWingRunwayControl.msg
+	FixedWingTakeoffStatus.msg
 	GeneratorStatus.msg
 	GeofenceResult.msg
 	GeofenceStatus.msg
@@ -110,13 +112,13 @@ set(msg_files
 	GimbalManagerInformation.msg
 	GimbalManagerSetAttitude.msg
 	GimbalManagerSetManualControl.msg
+	GimbalManagerSetPitchyaw.msg
 	GimbalManagerStatus.msg
 	GpioConfig.msg
 	GpioIn.msg
 	GpioOut.msg
 	GpioRequest.msg
 	GpsDump.msg
-	GpsInjectData.msg
 	Gripper.msg
 	HealthReport.msg
 	HeaterStatus.msg
@@ -147,6 +149,7 @@ set(msg_files
 	NavigatorMissionItem.msg
 	NavigatorStatus.msg
 	NeuralControl.msg
+	NfsUp.msg
 	NormalizedUnsignedSetpoint.msg
 	ObstacleDistance.msg
 	OffboardControlMode.msg
@@ -183,16 +186,8 @@ set(msg_files
 	RateCtrlStatus.msg
 	RcChannels.msg
 	RcParameterMap.msg
-	RoverAttitudeSetpoint.msg
-	RoverAttitudeStatus.msg
-	RoverPositionSetpoint.msg
-	RoverRateSetpoint.msg
-	RoverRateStatus.msg
-	RoverSpeedSetpoint.msg
-	RoverSpeedStatus.msg
-	RoverSteeringSetpoint.msg
-	RoverThrottleSetpoint.msg
 	Rpm.msg
+	RtcmData.msg
 	RtlStatus.msg
 	RtlTimeEstimate.msg
 	SatelliteInfo.msg
@@ -201,9 +196,10 @@ set(msg_files
 	SensorBaro.msg
 	SensorCombined.msg
 	SensorCorrection.msg
+	SensorGnss.msg
 	SensorGnssRelative.msg
+	SensorGnssRf.msg
 	SensorGnssStatus.msg
-	SensorGps.msg
 	SensorGyro.msg
 	SensorGyroFft.msg
 	SensorGyroFifo.msg
@@ -213,10 +209,21 @@ set(msg_files
 	SensorPreflightMag.msg
 	SensorSelection.msg
 	SensorsStatus.msg
+	SensorsStatusGnss.msg
 	SensorsStatusImu.msg
 	SensorTemp.msg
 	SensorUwb.msg
 	SensorAirflow.msg
+	SurfaceVehicleAttitudeSetpoint.msg
+	SurfaceVehicleAttitudeStatus.msg
+	SurfaceVehicleCourseSetpoint.msg
+	SurfaceVehiclePositionSetpoint.msg
+	SurfaceVehicleRateSetpoint.msg
+	SurfaceVehicleRateStatus.msg
+	SurfaceVehicleSpeedSetpoint.msg
+	SurfaceVehicleSpeedStatus.msg
+	SurfaceVehicleSteeringSetpoint.msg
+	SurfaceVehicleThrustSetpoint.msg
 	SystemPower.msg
 	TakeoffStatus.msg
 	TaskStackInfo.msg
@@ -227,14 +234,17 @@ set(msg_files
 	TrajectorySetpoint6dof.msg
 	TransponderReport.msg
 	TuneControl.msg
+	UavcanFirmwareUpdate.msg
 	UavcanParameterRequest.msg
 	UavcanParameterValue.msg
 	UlogStream.msg
 	UlogStreamAck.msg
 	VehicleAcceleration.msg
 	VehicleAirData.msg
-	VehicleAngularAccelerationSetpoint.msg
 	VehicleConstraints.msg
+	VehicleControlMode.msg
+	VehicleGnss.msg
+	VehicleGnssHeading.msg
 	VehicleImu.msg
 	VehicleImuStatus.msg
 	VehicleLocalPositionSetpoint.msg
@@ -268,6 +278,8 @@ set(msg_files
 	versioned/RaptorStatus.msg
 	versioned/RegisterExtComponentReply.msg
 	versioned/RegisterExtComponentRequest.msg
+	versioned/SetpointConfig.msg
+	versioned/SetpointConfigReply.msg
 	versioned/TrajectorySetpoint.msg
 	versioned/UnregisterExtComponent.msg
 	versioned/VehicleAngularVelocity.msg
@@ -275,7 +287,6 @@ set(msg_files
 	versioned/VehicleAttitudeSetpoint.msg
 	versioned/VehicleCommandAck.msg
 	versioned/VehicleCommand.msg
-	versioned/VehicleControlMode.msg
 	versioned/VehicleGlobalPosition.msg
 	versioned/VehicleLandDetected.msg
 	versioned/VehicleLocalPosition.msg
@@ -285,7 +296,16 @@ set(msg_files
 	versioned/VtolVehicleStatus.msg
 	versioned/Wind.msg
 )
+if(CONFIG_GPS_UBX_SPAN)
+	list(APPEND msg_files SensorGnssSpectrum.msg)
+endif()
 list(SORT msg_files)
+
+if(CONFIG_NAVIGATOR_ADSB)
+	list(APPEND msg_files
+		DetectAndAvoid.msg
+		DetectAndAvoidMostUrgent.msg)
+endif()
 
 if(CONFIG_MODULES_VISION_TARGET_ESTIMATOR)
 	list(APPEND msg_files
@@ -298,7 +318,8 @@ if(CONFIG_MODULES_VISION_TARGET_ESTIMATOR)
 		VteBiasInitStatus.msg
 		FiducialMarkerPosReport.msg
 		FiducialMarkerYawReport.msg
-		PrecLandStatus.msg)
+		PrecLandStatus.msg
+		PrecTakeoffStatus.msg)
 endif()
 
 px4_list_make_absolute(msg_files ${CMAKE_CURRENT_SOURCE_DIR} ${msg_files})
@@ -450,12 +471,16 @@ add_dependencies(uorb_msgs prebuild_targets uorb_headers)
 
 if(CONFIG_LIB_CDRSTREAM)
 	set(uorb_cdr_idl)
+	set(uorb_cdr_idlc)
 	set(uorb_cdr_msg)
 	set(uorb_cdr_hash)
 	set(uorb_cdr_idl_uorb)
 	set(idl_include_path ${PX4_BINARY_DIR}/uORB/idl)
 	set(idl_out_path ${idl_include_path}/px4/msg)
 	set(idl_rihs01_out_path ${idl_include_path}/px4)
+	# idlc compiles a copy with escaped identifiers, see msg2idl.py
+	set(idlc_include_path ${PX4_BINARY_DIR}/uORB/idlc)
+	set(idlc_out_path ${idlc_include_path}/px4/msg)
 	set(idl_uorb_path ${PX4_BINARY_DIR}/msg/px4/msg)
 
 	# Make sure that CycloneDDS has been checkout out
@@ -499,6 +524,7 @@ if(CONFIG_LIB_CDRSTREAM)
 		get_filename_component(msg ${msg_file} NAME_WE)
 		configure_file(${msg_file} ${idl_out_path}/${msg}.msg COPYONLY)
 		list(APPEND uorb_cdr_idl ${idl_out_path}/${msg}.idl)
+		list(APPEND uorb_cdr_idlc ${idlc_out_path}/${msg}.idl)
 		list(APPEND uorb_cdr_msg ${idl_out_path}/${msg}.msg)
 		list(APPEND uorb_cdr_hash ${idl_out_path}/${msg}.json)
 		list(APPEND uorb_cdr_idl_uorb ${idl_uorb_path}/${msg}.h)
@@ -507,13 +533,15 @@ if(CONFIG_LIB_CDRSTREAM)
 	# Generate IDL from .msg using rosidl_adapter
 	# Note this a submodule inside PX4 hence no ROS2 installation required
 	add_custom_command(
-		OUTPUT ${uorb_cdr_idl}
+		OUTPUT ${uorb_cdr_idl} ${uorb_cdr_idlc}
 		COMMAND ${CMAKE_COMMAND}
 		        -E env "PYTHONPATH=${PX4_SOURCE_DIR}/src/lib/cdrstream/rosidl/rosidl_adapter:${PX4_SOURCE_DIR}/src/lib/cdrstream/rosidl/rosidl_cli"
 			${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/src/lib/cdrstream/msg2idl.py
+			--idlc-output-dir ${idlc_out_path}
 			${uorb_cdr_msg}
 		DEPENDS
 			${uorb_cdr_msg}
+			${PX4_SOURCE_DIR}/src/lib/cdrstream/msg2idl.py
 			git_cyclonedds
 		COMMENT "Generating IDL from uORB topic headers"
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -521,6 +549,8 @@ if(CONFIG_LIB_CDRSTREAM)
 		)
 
 	file(CREATE_LINK ${idl_rihs01_out_path} ${idl_include_path}/px4_msgs SYMBOLIC)
+	file(MAKE_DIRECTORY ${idlc_out_path})
+	file(CREATE_LINK ${idlc_include_path}/px4 ${idlc_include_path}/px4_msgs SYMBOLIC)
 
 	# Generate IDL from .msg using rosidl_adapter
 	# Note this is a submodule inside PX4 hence no ROS2 installation required
@@ -544,10 +574,10 @@ if(CONFIG_LIB_CDRSTREAM)
 	include("${CYCLONEDDS_DIR}/cmake/Modules/Generate.cmake")
 	idlc_generate(TARGET uorb_cdrstream
                   FEATURES "cdrstream-desc"
-                  FILES ${uorb_cdr_idl}
-                  INCLUDES ${idl_include_path}
-                  BASE_DIR ${idl_include_path}
-                  WARNINGS no-implicit-extensibility)
+                  FILES ${uorb_cdr_idlc}
+                  INCLUDES ${idlc_include_path}
+                  BASE_DIR ${idlc_include_path}
+                  WARNINGS no-implicit-extensibility no-unsupported-annotations)
 	target_link_libraries(uorb_cdrstream INTERFACE cdr)
 
 	# Generate and overwrite IDL header with custom headers for uORB operatability
@@ -583,13 +613,9 @@ if(CONFIG_LIB_CDRSTREAM)
 endif()
 
 if(CONFIG_MODULES_ZENOH)
-	# Update kconfig file for topics
-	execute_process(COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/zenoh/px_generate_zenoh_topic_files.py
-			--zenoh-config
-			-f ${msg_files}
-			-o ${PX4_SOURCE_DIR}/src/modules/zenoh/
-			-e ${PX4_SOURCE_DIR}/Tools/zenoh/templates/zenoh
-		)
+	# The Zenoh Kconfig.topics catalog is generated into the build tree in
+	# cmake/kconfig.cmake (it must exist before Kconfig is parsed). Here we only
+	# generate the per-board publisher/subscriber factory.
 	add_custom_command(
 		OUTPUT
 			${PX4_BINARY_DIR}/src/modules/zenoh/uorb_pubsub_factory.hpp
@@ -607,7 +633,8 @@ if(CONFIG_MODULES_ZENOH)
 		COMMENT "Generating Zenoh Topic Code"
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 		VERBATIM
-		)
-		add_library(zenoh_topics ${PX4_BINARY_DIR}/src/modules/zenoh/uorb_pubsub_factory.hpp)
-		set_target_properties(zenoh_topics PROPERTIES LINKER_LANGUAGE CXX)
+	)
+	add_custom_target(zenoh_topics
+		DEPENDS ${PX4_BINARY_DIR}/src/modules/zenoh/uorb_pubsub_factory.hpp
+	)
 endif()

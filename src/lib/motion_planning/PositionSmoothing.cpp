@@ -121,8 +121,10 @@ float PositionSmoothing::_getMaxZSpeed(const Vector3f(&waypoints)[3]) const
 	const bool target_next_different = fabsf(target(2) - next_target(2)) > 0.001f;
 
 	if (target_next_different) {
-		const float alpha = acosf(Vector2f((target_xy_z - start_position_xy_z)).unit_or_zero().dot(
-						  Vector2f((target_xy_z - next_target_xy_z)).unit_or_zero()));
+		// rounding can push the dot product of two unit vectors past 1, which acosf turns into NaN
+		const float cos_alpha = math::constrain(Vector2f((target_xy_z - start_position_xy_z)).unit_or_zero().dot(
+				Vector2f((target_xy_z - next_target_xy_z)).unit_or_zero()), -1.f, 1.f);
+		const float alpha = acosf(cos_alpha);
 
 		const float safe_alpha = math::constrain(alpha, 0.f, M_PI_F - FLT_EPSILON);
 		float accel_tmp = _trajectory[2].getMaxAccel();
@@ -155,10 +157,20 @@ const Vector3f PositionSmoothing::_getL1Point(const Vector3f &position, const Ve
 {
 	const Vector3f pos_traj(_trajectory[0].getCurrentPosition(), _trajectory[1].getCurrentPosition(),
 				_trajectory[2].getCurrentPosition());
-	const Vector3f u_prev_to_target = (waypoints[1] - waypoints[0]).unit_or_zero();
+	const Vector3f prev_to_target = waypoints[1] - waypoints[0];
+	const float leg_length = prev_to_target.length();
+	const Vector3f u_prev_to_target = (leg_length > FLT_EPSILON) ? prev_to_target / leg_length : Vector3f();
 	const Vector3f prev_to_pos(pos_traj - waypoints[0]);
-	const Vector3f prev_to_closest(u_prev_to_target * (prev_to_pos * u_prev_to_target));
-	const Vector3f closest_pt = waypoints[0] + prev_to_closest;
+	const float along_track = prev_to_pos * u_prev_to_target;
+
+	// If the trajectory has already passed the target, aim straight at it instead of
+	// projecting the look-ahead point further along the (extended) leg. Otherwise an
+	// overshoot of a not-yet-accepted waypoint marches the setpoint away from it forever.
+	if (along_track >= leg_length) {
+		return waypoints[1];
+	}
+
+	const Vector3f closest_pt = waypoints[0] + u_prev_to_target * along_track;
 
 	// Compute along-track error using L1 distance and cross-track error
 	const float crosstrack_error = (closest_pt - pos_traj).length();
@@ -208,6 +220,8 @@ const Vector3f PositionSmoothing::_generateVelocitySetpoint(const Vector3f &posi
 			_max_speed_previous = xy_speed;
 		}
 
+		// Scale one 3D direction to fit both limits, so the slower axis limits the other
+		// one and a leg that changes altitude is flown as a straight line
 		Vector3f vel_sp_constrained = u_pos_traj_to_dest * sqrtf(xy_speed * xy_speed + z_speed * z_speed);
 		math::trajectory::clampToXYNorm(vel_sp_constrained, xy_speed, 0.5f);
 		math::trajectory::clampToZNorm(vel_sp_constrained, z_speed, 0.5f);
@@ -285,37 +299,59 @@ void PositionSmoothing::_generateTrajectory(
 	}
 
 	/* Slow down the trajectory by decreasing the integration time based on the position error.
-	 * This is only performed when the drone is behind the trajectory
+	 * This is only performed when the drone is behind the trajectory.
+	 *
+	 * Horizontal and vertical lag are evaluated independently and stretched per-axis. We
+	 * deliberately do NOT fold Z lag into the XY stretch (and vice versa): a noisy altitude
+	 * reference shouldn't cap forward flight speed during a straight mission leg, and stalled
+	 * horizontal progress shouldn't freeze the climb profile. The Z check exists to keep the
+	 * commanded altitude from walking away from the drone when the alt setpoint is jittering.
 	 */
 	Vector2f position_trajectory_xy(_trajectory[0].getCurrentPosition(), _trajectory[1].getCurrentPosition());
 	Vector2f position_xy(position);
 	Vector2f vel_traj_xy(_trajectory[0].getCurrentVelocity(), _trajectory[1].getCurrentVelocity());
 	Vector2f drone_to_trajectory_xy(position_trajectory_xy - position_xy);
-	float position_error = drone_to_trajectory_xy.length();
+	float position_error_xy = drone_to_trajectory_xy.length();
 
-	float time_stretch = 1.f;
+	float time_stretch_xy = 1.f;
 
 	// Only stretch time if there's no division by zero and the drone isn't ahead of the position setpoint
 	if ((_max_allowed_horizontal_error > FLT_EPSILON)
 	    && drone_to_trajectory_xy.dot(vel_traj_xy) >= 0) {
-		time_stretch = 1.f - math::constrain(position_error / _max_allowed_horizontal_error, 0.f, 1.f);
+		time_stretch_xy = 1.f - math::constrain(position_error_xy / _max_allowed_horizontal_error, 0.f, 1.f);
 	}
 
 	if (drone_to_trajectory_xy.dot(vel_traj_xy) < 0.f) {
-		time_stretch = 1.f;
+		time_stretch_xy = 1.f;
 	}
 
-	for (int i = 0; i < 3; ++i) {
-		_trajectory[i].updateTraj(delta_time, time_stretch);
-		out_setpoints.jerk(i) = _trajectory[i].getCurrentJerk();
-		out_setpoints.acceleration(i) = _trajectory[i].getCurrentAcceleration();
-		out_setpoints.velocity(i) = _trajectory[i].getCurrentVelocity();
-		out_setpoints.position(i) = _trajectory[i].getCurrentPosition();
+	// Same idea for the vertical axis: only stretch when the virtual trajectory is leading the
+	// drone AND moving further away from it. Reversing trajectories (virtual coming back toward
+	// the drone) are left alone so we can recover without artificially slowing down.
+	float time_stretch_z = 1.f;
+	const float drone_to_traj_z = _trajectory[2].getCurrentPosition() - position(2);
+	const float vel_traj_z = _trajectory[2].getCurrentVelocity();
+
+	if ((_max_allowed_vertical_error > FLT_EPSILON)
+	    && drone_to_traj_z * vel_traj_z >= 0.f) {
+		time_stretch_z = 1.f - math::constrain(fabsf(drone_to_traj_z) / _max_allowed_vertical_error, 0.f, 1.f);
 	}
 
+	// Plan from the current state before integrating along the plan
 	for (int i = 0; i < 3; ++i) {
 		_trajectory[i].updateDurations(velocity_setpoint(i));
 	}
 
 	VelocitySmoothing::timeSynchronization(_trajectory, 3);
+
+	// Axis 0,1 (XY) get the horizontal stretch; axis 2 (Z) gets the vertical stretch.
+	const float axis_stretch[3] = { time_stretch_xy, time_stretch_xy, time_stretch_z };
+
+	for (int i = 0; i < 3; ++i) {
+		_trajectory[i].updateTraj(delta_time, axis_stretch[i]);
+		out_setpoints.jerk(i) = _trajectory[i].getCurrentJerk();
+		out_setpoints.acceleration(i) = _trajectory[i].getCurrentAcceleration();
+		out_setpoints.velocity(i) = _trajectory[i].getCurrentVelocity();
+		out_setpoints.position(i) = _trajectory[i].getCurrentPosition();
+	}
 }

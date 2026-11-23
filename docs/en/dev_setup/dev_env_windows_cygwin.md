@@ -14,7 +14,7 @@ The following instructions explain how to set up a (Cygwin-based) PX4 developmen
 This environment can be used to build PX4 for:
 
 - Pixhawk and other NuttX-based hardware
-- [jMAVSim Simulation](../sim_jmavsim/index.md)
+- jMAVSim simulation (removed from PX4, see the note in [Getting Started](#getting-started))
 
 <a id="installation"></a>
 
@@ -67,6 +67,11 @@ The toolchain uses a specially configured console window (started by running the
    You can now use the console/PX4-Autopilot repository to build PX4.
 
 1. For example, to run JMAVSim:
+
+   ::: info
+   jMAVSim has been removed from PX4, so this example only works with PX4 versions that still include it.
+   Current PX4 uses [SIH](../sim_sih/index.md) with the [Hawkeye](../sim_hawkeye/index.md) visualizer instead.
+   :::
 
    ```sh
    # Navigate to PX4-Autopilot repo

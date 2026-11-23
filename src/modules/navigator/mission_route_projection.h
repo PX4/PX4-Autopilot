@@ -1,0 +1,218 @@
+/****************************************************************************
+ *
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/**
+ * @file mission_route_projection.h
+ *
+ * Mission-route projection scanner. This unit owns mission segment scanning,
+ * route projection candidate buffering, and vehicle branch-in selection.
+ *
+ * @author Jonas Perolini <jonspero@me.com>
+ */
+
+#pragma once
+
+#include "mission_route_internal_types.h"
+#include "mission_route_provider.h"
+
+#include <float.h>
+#include <stdint.h>
+
+#include <lib/geo/geo.h>
+#include <matrix/math.hpp>
+
+namespace mission_route
+{
+
+class PathChecker;
+
+struct ProjectionScanRequest {
+	float home_altitude_amsl{NAN};
+	float xtrack_margin_m{0.f};
+
+	int32_t mission_index{-1}; /**< Item the vehicle targets; when set, the scan also locates its segment. */
+	bool is_flying_reverse{false};
+	ActiveJumpAnchor active_jump_anchor{}; /**< DO_JUMP whose edge the vehicle flies, empty for none. */
+};
+
+struct RouteDistanceSummary {
+	SegmentDistanceAlong current_segment_bounds{};
+	float route_length{0.f};
+	int32_t route_end_index{-1};
+	int32_t flown_jump_item_index{-1}; /**< The anchored DO_JUMP, or -1 for none or an ignored anchor. */
+};
+
+/** @brief Per-reference scan scratch maintained while walking the mission segments. */
+struct CandidateSearchState {
+	bool prev_projection_on_end{true};
+	float xtrack_limit_m{FLT_MAX}; /**< The farthest kept candidate once the buffer is full. */
+	float cos_lat{1.f}; /**< Cosine of the reference latitude, for the cross-track lower bound. */
+};
+
+struct ProjectionReference {
+	Position position{};
+	int32_t source_index{-1};
+	ProjectionCandidateBuffer candidate_buffer{};
+	CandidateSearchState search_state{}; /**< Scratch used by findProjectionCandidates, no meaning after the scan. */
+};
+
+/** @brief Fixed-size batch of reference points evaluated during a single scan pass. */
+struct ProjectionReferenceBatch {
+	uint8_t count{0};
+	ProjectionReference items[kMaxSafePointBatch] {};
+};
+
+/** @brief One ready-to-project segment of the mission route, yielded by RouteSegmentCursor. */
+struct RouteSegmentView {
+	Segment segment{};
+	SegmentPositions positions{};
+	MapProjection map_projection{}; /**< Centered on the segment start and reused for every reference in the batch. */
+	matrix::Vector2f segment_vector{0.f, 0.f}; /**< Cached start->end map vector; zero for zero-length segments. */
+
+	float start_dist_along_route_m{0.f}; /**< Along-route distance accumulated up to this segment's start. */
+	float length_m{0.f};
+
+	bool first_segment{false};
+	bool last_segment{false}; /**< Last nominal segment; trailing jump edges may still follow. */
+	bool zero_length_xy{false};
+	bool next_zero_length_xy{false}; /**< The next nominal segment is vertical. */
+};
+
+/**
+ * @brief Forward walk over the segments of the uploaded mission route.
+ *
+ * next() yields one ready-to-project RouteSegmentView per call, so consumers
+ * iterate complete segments without touching mission items or walk rules.
+ */
+class RouteSegmentCursor
+{
+public:
+	RouteSegmentCursor(const Provider &provider, float home_altitude_amsl) :
+		_provider(provider), _home_altitude_amsl(home_altitude_amsl) {}
+
+	/** @brief Locate the first route position. False on failure (see failureReason()). */
+	bool init();
+
+	/** @brief Advance to the next segment. False once the walk is over or has failed(). */
+	bool next(RouteSegmentView &view);
+
+	bool failed() const { return _failure_reason != FailureReason::kNone; }
+	FailureReason failureReason() const { return _failure_reason; }
+
+	/** @brief Along-route distance walked so far; the route length once the walk is over. */
+	float routeLength() const { return _dist_along_route_m; }
+
+	/** @brief Current nominal position; route end after a successful walk. */
+	int32_t nominalPositionIndex() const { return _segment.start.idx; }
+
+private:
+	bool prepareJumpSegment(int32_t index, const mission_item_s &jump_item, RouteSegmentView &view);
+	void prepareNominalSegment(const SegmentEndpoint &end, const Position &end_position, bool last_segment,
+				   RouteSegmentView &view);
+	void prepareSegmentView(bool last_segment, RouteSegmentView &view);
+	bool fail(FailureReason failure_reason);
+
+	const Provider &_provider;
+	const float _home_altitude_amsl;
+
+	Segment _segment{};
+	SegmentPositions _positions{};
+	SegmentEndpoint _next_endpoint{};
+	Position _next_position{};
+	int32_t _index{0};
+	int32_t _first_position_index{0};
+	float _dist_along_route_m{0.f};
+	bool _next_position_cached{false};
+	bool _done{false};
+	FailureReason _failure_reason{FailureReason::kNone};
+};
+
+/** @brief True when the vehicle targeting mission_index is flying on the given nominal segment. */
+bool isIndexInProjectionSegment(const Segment &segment, int32_t mission_index, bool is_flying_reverse);
+
+/**
+ * @brief Required VEHICLE_VTOL_STATE on one segment: the last explicit transition or implicit
+ * VTOL_TAKEOFF front transition before its target waypoint. Jump edges use the state before
+ * DO_JUMP, overridden by transitions between the jump target and its resolved waypoint.
+ * If no preceding mode command exists, infer the opposite mode from the next transition in
+ * nominal order, ignoring DO_JUMP targets and repeat counts. Lookahead stops at a landing,
+ * takeoff or failed read. Returns VEHICLE_VTOL_STATE_UNDEFINED when unresolved or the segment is invalid.
+ */
+uint8_t vtolStateForSegment(const Provider &provider, const Segment &segment);
+
+class MissionRouteProjection
+{
+public:
+	explicit MissionRouteProjection(const Provider &provider, const PathChecker *path_checker = nullptr) :
+		_provider(provider), _path_checker(path_checker) {}
+
+	/**
+	 * @brief Scan the mission and collect projection candidates for every reference point in the batch.
+	 * Each point keeps its kMaxSegmentCandidates closest projections. With a path checker, those whose segment
+	 * fails the geofence checks are removed. The search margin then applies from the closest one left.
+	 *
+	 * distance_summary is cleared on entry and populated only when kNone is returned.
+	 */
+	FailureReason findProjectionCandidates(const ProjectionScanRequest &request,
+					       ProjectionReferenceBatch &batch, RouteDistanceSummary &distance_summary) const;
+
+	/**
+	 * @brief Project the vehicle onto the mission route and choose the continuity-preserving branch-in candidate.
+	 *
+	 * projection_context is only valid when kNone is returned.
+	 */
+	FailureReason collectVehicleProjection(const MissionResumeRequest &request, ProjectionReferenceBatch &batch,
+					       ProjectionContext &projection_context) const;
+
+private:
+	/**
+	 * @brief Project one reference point onto one segment, apply local-minimum rules,
+	 * and keep the closest projections.
+	 *
+	 * @param force_candidate Skip the local-minimum rules; set for the vertical segment the
+	 * vehicle is currently flying.
+	 * @param flown_jump_item_index DO_JUMP whose edge the vehicle flies, -1 for none.
+	 */
+	void processCandidateForSegment(ProjectionReference &reference,
+					const RouteSegmentView &segment_view,
+					bool force_candidate,
+					int32_t flown_jump_item_index) const;
+
+	FailureReason findLoopBounds(const RouteProjectionCandidate &vehicle_projection, float home_altitude_amsl,
+				     SegmentDistanceAlong &loop_bounds) const;
+
+	const Provider &_provider;
+	const PathChecker *_path_checker;
+};
+
+} // namespace mission_route

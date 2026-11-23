@@ -69,8 +69,10 @@ TEST_F(RtcmTest, Stress_LongGarbageStreamThenValid)
 	std::mt19937 rng(99);
 
 	for (auto &byte : garbage) {
-		// Avoid preamble to ensure maximum discards
-		byte = (rng() % 0xD2) + 1;  // 0x01 to 0xD2, never 0xD3
+		// Avoid every protocol preamble to ensure maximum discards: 0xD3 (RTCM3)
+		// and 0x73 (SPARTN), which the framer also treats as a frame start when
+		// CONFIG_GPS_SPARTN is enabled.
+		byte = (rng() % 0x72) + 1;  // 0x01 to 0x72, never 0x73 or 0xD3
 	}
 
 	// Add in chunks to simulate streaming

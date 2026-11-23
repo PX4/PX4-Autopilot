@@ -57,17 +57,15 @@
 #include <uORB/topics/dataman_request.h>
 #include <uORB/topics/dataman_response.h>
 
+#include <px4_platform_common/atomic.h>
+
 #include "dataman.h"
 
 __BEGIN_DECLS
 __EXPORT int dataman_main(int argc, char *argv[]);
 __END_DECLS
 
-#ifdef CONFIG_FS_LITTLEFS
-static constexpr int TASK_STACK_SIZE = 2000;  /* littlefs needs more stack */
-#else
-static constexpr int TASK_STACK_SIZE = 1420;
-#endif
+static constexpr int TASK_STACK_SIZE = 2000;
 
 #ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 /* Private File based Operations */
@@ -126,7 +124,7 @@ static struct {
 			uint8_t *data_end;
 		} ram;
 	};
-	bool running;
+	px4::atomic_bool running{false};
 	bool silence = false;
 } dm_operations_data;
 
@@ -152,7 +150,7 @@ static constexpr size_t g_per_item_size_with_hdr[DM_KEY_NUM_KEYS] = {
 /* Table of offset for index 0 of each item type */
 static unsigned int g_key_offsets[DM_KEY_NUM_KEYS];
 
-static uint8_t dataman_clients_count = 1;
+static uint16_t dataman_clients_count = 1;
 
 static perf_counter_t _dm_read_perf{nullptr};
 static perf_counter_t _dm_write_perf{nullptr};
@@ -172,13 +170,14 @@ static enum {
 
 static px4_sem_t g_init_sema;
 
-static bool g_task_should_exit;	/**< if true, dataman task should exit */
+static px4::atomic_bool g_task_should_exit{false};	/**< if true, dataman task should exit */
+static px4_task_t g_task_id = -1;			/**< dataman task handle for join */
 
 /* Work queue management functions */
 
 static bool is_running()
 {
-	return dm_operations_data.running;
+	return dm_operations_data.running.load();
 }
 
 /* Calculate the offset in file of specific item */
@@ -546,6 +545,27 @@ _file_clear(dm_item_t item)
 #endif
 
 #ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
+/* Write zeros up to size, for file systems that can't seek past the end of a file */
+static off_t
+_file_extend(int fd, unsigned size)
+{
+	const uint8_t zeros[64] {};
+	off_t end = lseek(fd, 0, SEEK_END);
+
+	while ((end >= 0) && ((unsigned)end < size)) {
+		const unsigned remaining = size - (unsigned)end;
+		const ssize_t written = write(fd, zeros, (remaining < sizeof(zeros)) ? remaining : sizeof(zeros));
+
+		if (written <= 0) {
+			return -1;
+		}
+
+		end += written;
+	}
+
+	return end;
+}
+
 static int
 _file_initialize(unsigned max_offset)
 {
@@ -560,9 +580,15 @@ _file_initialize(unsigned max_offset)
 		return -1;
 	}
 
-	if ((unsigned)lseek(dm_operations_data.file.fd, max_offset, SEEK_SET) != max_offset) {
+	off_t offset = lseek(dm_operations_data.file.fd, max_offset, SEEK_SET);
+
+	if ((unsigned)offset != max_offset) {
+		offset = _file_extend(dm_operations_data.file.fd, max_offset);
+	}
+
+	if ((unsigned)offset != max_offset) {
 		close(dm_operations_data.file.fd);
-		PX4_WARN("Could not seek data manager file %s", k_data_manager_device_path);
+		PX4_WARN("Could not size data manager file %s", k_data_manager_device_path);
 		px4_sem_post(&g_init_sema); /* Don't want to hang startup */
 		return -1;
 	}
@@ -607,7 +633,7 @@ _file_initialize(unsigned max_offset)
 		g_dm_ops->write(DM_KEY_SAFE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&stats), sizeof(mission_stats_entry_s));
 	}
 
-	dm_operations_data.running = true;
+	dm_operations_data.running.store(true);
 
 	return 0;
 }
@@ -627,7 +653,7 @@ _ram_initialize(unsigned max_offset)
 
 	memset(dm_operations_data.ram.data, 0, max_offset);
 	dm_operations_data.ram.data_end = &dm_operations_data.ram.data[max_offset - 1];
-	dm_operations_data.running = true;
+	dm_operations_data.running.store(true);
 
 	return 0;
 }
@@ -637,7 +663,7 @@ static void
 _file_shutdown()
 {
 	close(dm_operations_data.file.fd);
-	dm_operations_data.running = false;
+	dm_operations_data.running.store(false);
 }
 #endif
 
@@ -645,7 +671,7 @@ static void
 _ram_shutdown()
 {
 	free(dm_operations_data.ram.data);
-	dm_operations_data.running = false;
+	dm_operations_data.running.store(false);
 }
 
 static int
@@ -683,12 +709,12 @@ task_main(int argc, char *argv[])
 		g_func_counts[i] = 0;
 	}
 
-	g_task_should_exit = false;
+	g_task_should_exit.store(false);
 
 	uORB::Publication<dataman_response_s> dataman_response_pub{ORB_ID(dataman_response)};
-	const int dataman_request_sub = orb_subscribe(ORB_ID(dataman_request));
+	const orb_sub_t dataman_request_sub = orb_subscribe(ORB_ID(dataman_request));
 
-	if (dataman_request_sub < 0) {
+	if (!orb_sub_valid(dataman_request_sub)) {
 		PX4_ERR("Failed to subscribe (%i)", errno);
 	}
 
@@ -698,7 +724,7 @@ task_main(int argc, char *argv[])
 	int ret = g_dm_ops->initialize(max_offset);
 
 	if (ret) {
-		g_task_should_exit = true;
+		g_task_should_exit.store(true);
 		goto end;
 	}
 
@@ -753,7 +779,7 @@ task_main(int argc, char *argv[])
 				switch (request.request_type) {
 
 				case DM_GET_ID:
-					if (dataman_clients_count < UINT8_MAX) {
+					if (dataman_clients_count < UINT16_MAX) {
 						response.client_id = dataman_clients_count++;
 						/* Send the timestamp of the request over the data buffer so that the "dataman client"
 						 * can distinguish whether the request was made by it. */
@@ -825,7 +851,7 @@ task_main(int argc, char *argv[])
 		}
 
 		/* time to go???? */
-		if (g_task_should_exit) {
+		if (g_task_should_exit.load()) {
 			break;
 		}
 	}
@@ -856,9 +882,11 @@ start()
 	px4_sem_setprotocol(&g_init_sema, SEM_PRIO_NONE);
 
 	/* start the worker thread with low priority for disk IO */
-	if (px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT - 10,
-			       PX4_STACK_ADJUSTED(TASK_STACK_SIZE), task_main,
-			       nullptr) < 0) {
+	g_task_id = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT - 10,
+				       PX4_STACK_ADJUSTED(TASK_STACK_SIZE), task_main,
+				       nullptr);
+
+	if (g_task_id < 0) {
 		px4_sem_destroy(&g_init_sema);
 		PX4_ERR("task start failed");
 		return -1;
@@ -887,7 +915,7 @@ static void
 stop()
 {
 	/* Tell the worker task to shut down */
-	g_task_should_exit = true;
+	g_task_should_exit.store(true);
 }
 
 static void
@@ -1017,6 +1045,8 @@ dataman_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "stop")) {
 		stop();
+		px4_task_join(g_task_id);
+		g_task_id = -1;
 #ifdef CONFIG_DATAMAN_PERSISTENT_STORAGE
 		free(k_data_manager_device_path);
 		k_data_manager_device_path = nullptr;

@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #pragma once
+#include <drivers/drv_hrt.h>
 #include <perf/perf_counter.h>
 #include "mavlink_bridge_header.h"
 
@@ -57,6 +58,18 @@ public:
 
 	void send();
 	void handle_message(const mavlink_message_t *msg);
+
+	/**
+	 * Close any open log file. Must be called from the thread that handles the
+	 * log messages (the receiver thread): on NuttX a FILE belongs to the task
+	 * group that opened it, and fclose() from another task (e.g. the destructor
+	 * running in 'mavlink stop') frees it while it stays linked in the owner's
+	 * stream list, which then frees it again on exit (double free).
+	 */
+	void close_files();
+
+	/// True while LOG_DATA is streaming out.
+	bool sending_data() const { return _state == LogHandlerState::SendingData; }
 
 private:
 	struct LogEntry {
@@ -95,6 +108,7 @@ private:
 
 	// state functions
 	void state_idle();
+	void close_current_entry();
 	void state_listing();
 	void state_sending_data();
 
@@ -123,6 +137,7 @@ private:
 	LogEntry 			_current_entry{};
 	LogEntryRequest 	_entry_request{};
 	bool 				_file_send_finished{};
+	hrt_abstime			_last_data_send{0};
 
 	perf_counter_t _create_file_elapsed{perf_alloc(PC_ELAPSED, MODULE_NAME": create file")};
 	perf_counter_t _listing_elapsed{perf_alloc(PC_ELAPSED, MODULE_NAME": listing")};

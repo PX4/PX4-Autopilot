@@ -139,6 +139,7 @@
 #define VDD_3V3_SENSORS_EN(on_true)       px4_arch_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, (on_true))
 
 #define VTX_9V_EN(on_true)                px4_arch_gpiowrite(GPIO_VTX_9V_EN, (on_true))
+#define PAYLOAD_POWER_EN(on_true)         VTX_9V_EN(on_true)
 
 #define CAM_SWITCH_CAM1                   px4_arch_gpiowrite(GPIO_CAM_SWITCH, false) // low is CAM1
 #define CAM_SWITCH_CAM2                   px4_arch_gpiowrite(GPIO_CAM_SWITCH, true)  // high is CAM2

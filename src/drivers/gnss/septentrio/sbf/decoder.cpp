@@ -248,6 +248,37 @@ int Decoder::parse(AttCovEuler *message) const
 	return PX4_ERROR;
 }
 
+int Decoder::parse(BaseVectorGeod *message) const
+{
+	if (can_parse() && id() == BlockID::BaseVectorGeod) {
+		static_assert(sizeof(*message) <= sizeof(_message.payload), "Buffer too small");
+		memcpy(message, _message.payload, sizeof(BaseVectorGeod));
+
+		// Sub-blocks can grow in later block revisions; the fields read here are at their start
+		if (message->n > 0 && message->sb_length >= sizeof(VectorInfoGeod)
+		    && sizeof(Header) + sizeof(BaseVectorGeod) <= _message.header.length) {
+			return PX4_OK;
+		}
+	}
+
+	return PX4_ERROR;
+}
+
+int Decoder::parse(AuxAntPositions *message) const
+{
+	if (can_parse() && id() == BlockID::AuxAntPositions) {
+		static_assert(sizeof(*message) <= sizeof(_message.payload), "Buffer too small");
+		memcpy(message, _message.payload, sizeof(AuxAntPositions));
+
+		if (message->n > 0 && message->sb_length >= sizeof(AuxAntPosSub)
+		    && sizeof(Header) + sizeof(AuxAntPositions) <= _message.header.length) {
+			return PX4_OK;
+		}
+	}
+
+	return PX4_ERROR;
+}
+
 void Decoder::reset()
 {
 	_current_index = 0;

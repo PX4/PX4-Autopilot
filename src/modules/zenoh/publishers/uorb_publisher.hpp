@@ -45,8 +45,6 @@
 #include <uORB/Subscription.hpp>
 #include <dds_serializer.h>
 
-#define CDR_SAFETY_MARGIN 24
-
 class uORB_Zenoh_Publisher : public Zenoh_Publisher
 {
 public:
@@ -63,7 +61,12 @@ public:
 		}
 	};
 
-	~uORB_Zenoh_Publisher() override = default;
+	~uORB_Zenoh_Publisher() override
+	{
+		if (_uorb_sub != ORB_SUB_INVALID) {
+			orb_unsubscribe(_uorb_sub);
+		}
+	}
 
 	// Update the uORB Subscription and broadcast a Zenoh ROS2 message
 	virtual z_result_t update() override
@@ -105,7 +108,7 @@ public:
 		pfd->events = POLLIN;
 	}
 
-	void print()
+	void print() override
 	{
 		printf("uORB %s -> ", _uorb_meta->o_name);
 		Zenoh_Publisher::print();
@@ -118,6 +121,6 @@ public:
 
 private:
 	const orb_metadata *_uorb_meta;
-	int _uorb_sub;
+	orb_sub_t _uorb_sub{ORB_SUB_INVALID};
 	const uint32_t *_cdr_ops;
 };

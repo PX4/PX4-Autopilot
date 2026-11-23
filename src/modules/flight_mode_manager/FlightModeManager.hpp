@@ -96,16 +96,11 @@ private:
 
 	/**
 	 * Switch to a specific task (for normal usage)
-	 * @param task index to switch to
+	 * @param new_task_index index to switch to
 	 * @return 0 on success, <0 on error
 	 */
 	FlightTaskError switchTask(FlightTaskIndex new_task_index);
 	FlightTaskError switchTask(int new_task_index);
-
-	/**
-	 * Call this method to get the description of a task error.
-	 */
-	const char *errorToString(const FlightTaskError error);
 
 	/**
 	 * Check if any task is active

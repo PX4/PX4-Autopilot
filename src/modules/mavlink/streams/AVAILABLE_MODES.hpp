@@ -93,6 +93,7 @@ private:
 		mavlink_available_modes_t available_modes{};
 		available_modes.mode_index = mode_index;
 		available_modes.number_modes = total_num_modes;
+		available_modes.seq = _dynamic_update_seq;
 		px4_custom_mode custom_mode{get_px4_custom_mode(nav_state)};
 		available_modes.custom_mode = custom_mode.data;
 		const bool cannot_be_selected = (vehicle_status.can_set_nav_states_mask & (1u << nav_state)) == 0;
@@ -147,9 +148,11 @@ private:
 		int mode_index = roundf(param2);
 		PX4_DEBUG("AVAILABLE_MODES request (%i)", mode_index);
 
+		// a subscription of its own, so the one of update_data() still sees every published sample
+		uORB::Subscription vehicle_status_sub{ORB_ID(vehicle_status)};
 		vehicle_status_s vehicle_status;
 
-		if (!_vehicle_status_sub.copy(&vehicle_status)) {
+		if (!vehicle_status_sub.copy(&vehicle_status)) {
 			return false;
 		}
 
@@ -225,9 +228,10 @@ private:
 			}
 		}
 
+		// the masks only change with a new vehicle_status, so copy it only then
 		vehicle_status_s vehicle_status;
 
-		if (_vehicle_status_sub.copy(&vehicle_status)) {
+		if (_vehicle_status_sub.update(&vehicle_status)) {
 			if (_last_valid_nav_states_mask == 0) {
 				_last_valid_nav_states_mask = vehicle_status.valid_nav_states_mask;
 			}

@@ -43,7 +43,7 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 IST8310::IST8310(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
-	_px4_mag(get_device_id(), config.rotation)
+	_px4_mag(get_device_id(), config.rotation, config.external)
 {
 }
 
@@ -271,6 +271,7 @@ bool IST8310::Configure()
 	}
 
 	_px4_mag.set_scale(1.f / 1320.f); // 1320 LSB/Gauss
+	_px4_mag.set_range(microTesla2Gauss(1600.f)); // x/y axis (z: 2500 uT)
 
 	return success;
 }

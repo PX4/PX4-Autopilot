@@ -80,6 +80,7 @@ public:
 
 	void RunImpl();
 	void print_status() override;
+	void custom_method(const BusCLIArguments &cli) override;
 	int probe();
 	virtual int init();
 

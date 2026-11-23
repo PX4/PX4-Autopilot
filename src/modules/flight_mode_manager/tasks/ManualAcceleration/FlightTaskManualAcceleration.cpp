@@ -52,14 +52,19 @@ bool FlightTaskManualAcceleration::activate(const trajectory_setpoint_s &last_se
 		_stick_acceleration_xy.resetVelocity(_velocity.xy());
 	}
 
-	_stick_acceleration_xy.resetAcceleration(Vector2f(last_setpoint.acceleration));
+	if (Vector2f(last_setpoint.acceleration).isAllFinite()) {
+		_stick_acceleration_xy.resetAcceleration(Vector2f(last_setpoint.acceleration));
+
+	} else {
+		_stick_acceleration_xy.resetAcceleration(_acceleration.xy());
+	}
 
 	return ret;
 }
 
 bool FlightTaskManualAcceleration::update()
 {
-	const vehicle_local_position_s vehicle_local_pos = _sub_vehicle_local_position.get();
+	const vehicle_local_position_s &vehicle_local_pos = _sub_vehicle_local_position.get();
 	setMaxDistanceToGround(vehicle_local_pos.hagl_max_xy);
 	bool ret = FlightTaskManualAltitudeSmoothVel::update();
 

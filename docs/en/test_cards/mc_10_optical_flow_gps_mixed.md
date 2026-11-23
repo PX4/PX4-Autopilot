@@ -10,7 +10,7 @@ Test that optical flow mixed with GPS works as expected
 
 Ensure there are no other sources of positioning besides optical flow
 
-- [EKF2_OF_CTRL](../advanced_config/parameter_reference.md#EKF2_OF_CTRL): `1`
+- [EKF2_OF0_CTRL](../advanced_config/parameter_reference.md#EKF2_OF0_CTRL): `1`
 - [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL): `7`
 - [EKF2_EV_CTRL](../advanced_config/parameter_reference.md#EKF2_EV_CTRL): `0`
 - [SYS_HAS_MAG](../advanced_config/parameter_reference.md#SYS_HAS_MAG): `1`
@@ -44,7 +44,7 @@ Ensure that the drone can go into [Altitude](../flight_modes_mc/altitude.md) / [
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Open QGC and navigate to MAVLink Console
 
-&nbsp;&nbsp;&nbsp;&nbsp;❏ Type `gps off` to disable GPS
+&nbsp;&nbsp;&nbsp;&nbsp;❏ Type `gps stop` to disable GPS
 
 &nbsp;&nbsp;&nbsp;&nbsp;❏ Drone should maintain position hold via optical flow
 

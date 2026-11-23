@@ -498,7 +498,7 @@ Since the Definitions and Data Sections use the same message header format, they
 - [QGroundControl](https://github.com/mavlink/qgroundcontrol): C++, ULog streaming via MAVLink and minimal parsing for GeoTagging.
 - [mavlink-router](https://github.com/mavlink-router/mavlink-router): C++, ULog streaming via MAVLink.
 - [MAVGAnalysis](https://github.com/ecmnet/MAVGCL): Java, ULog streaming via MAVLink and parser for plotting and analysis.
-- [PlotJuggler](https://github.com/facontidavide/PlotJuggler): C++/Qt application to plot logs and time series. 버전 2.1.3부터 ULog를 지원합니다.
+- [PlotJuggler](https://github.com/PlotJuggler/PlotJuggler): C++/Qt application to plot logs and time series. 버전 2.1.3부터 ULog를 지원합니다.
 - [ulogreader](https://github.com/maxsun/ulogreader): Javascript, ULog reader and parser outputs log in JSON object format.
 - [Foxglove](https://foxglove.dev): an integrated visualization and diagnosis tool for robotics data that supports ULog files.
 - [TypeScript ULog parser](https://github.com/foxglove/ulog): TypeScript, ULog reader that outputs JS objects.

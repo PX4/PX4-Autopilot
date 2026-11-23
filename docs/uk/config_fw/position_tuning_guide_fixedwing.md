@@ -51,6 +51,9 @@ the maximum allowed airspeed.
 - [FW_THR_MIN](../advanced_config/parameter_reference.md#FW_THR_MIN) - set to the minimum throttle the plane should fly at.
 - [FW_AIRSPD_MAX](../advanced_config/parameter_reference.md#FW_AIRSPD_MAX) - set to the maximum airspeed you achieved during level flight at `FW_THR_MAX`.
 
+TECS accelerates above trim airspeed with throttle only, rather than by descending (see [Speed and Altitude Weighting](../flight_stack/controller_diagrams.md#speed-and-altitude-weighting)).
+If `FW_AIRSPD_MAX` is set higher than the vehicle can reach in level flight at `FW_THR_MAX`, it will hold altitude and fly slower than commanded.
+
 #### 3rd: Pitch & Climb Rate Limits
 
 :::warning
@@ -74,7 +77,7 @@ Fly in stabilized mode, reduce throttle to `FW_THR_MIN` and adjust the pitch ang
 
 Specify the target climb and sink rate for autonomous missions by adjusting [FW_T_CLMB_R_SP](../advanced_config/parameter_reference.md#FW_T_CLMB_R_SP) and [FW_T_SINK_R_SP](../advanced_config/parameter_reference.md#FW_T_SINK_R_SP).
 Ці параметри вказують на швидкість, з якою транспортний засіб буде підніматися або сходити, щоб змінити висоту.
-Furthermore, these two values define the height rate limits commanded by the user in [Altitude mode](../flight_modes_fw/altitude.md) and [Position mode](../flight_modes_fw/position.md).
+Furthermore, these two values define the height rate limits commanded by the user in [Altitude mode](../flight_modes_fw/altitude.md) and [Cruise mode](../flight_modes_fw/cruise.md).
 
 ### Налаштування контролю траєкторії FW (Позиція)
 

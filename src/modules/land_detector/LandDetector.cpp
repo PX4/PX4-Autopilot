@@ -55,8 +55,8 @@ LandDetector::LandDetector() :
 	_land_detected.maybe_landed = true;
 	_land_detected.landed = true;
 	_land_detected.in_ground_effect = true;
-	_land_detected.in_descend = false;
-	_land_detected.has_low_throttle = false;
+	_land_detected.in_descend = true;
+	_land_detected.has_low_throttle = true;
 	_land_detected.vertical_movement = false;
 	_land_detected.horizontal_movement = false;
 	_land_detected.rotational_movement = false;
@@ -89,8 +89,8 @@ void LandDetector::Run()
 		updateParams();
 		_update_params();
 
-		_total_flight_time = static_cast<uint64_t>(_param_total_flight_time_high.get()) << 32;
-		_total_flight_time |= static_cast<uint32_t>(_param_total_flight_time_low.get());
+		_total_flight_time = static_cast<uint64_t>(_param_lnd_flight_t_hi.get()) << 32;
+		_total_flight_time |= static_cast<uint32_t>(_param_lnd_flight_t_lo.get());
 	}
 
 	actuator_armed_s actuator_armed;
@@ -103,6 +103,25 @@ void LandDetector::Run()
 
 	if (_vehicle_acceleration_sub.update(&vehicle_acceleration)) {
 		_acceleration = matrix::Vector3f{vehicle_acceleration.xyz};
+
+		const bool first_sample = (_time_last_acceleration_sample_us == 0);
+		const float dt_s = (vehicle_acceleration.timestamp_sample - _time_last_acceleration_sample_us) * 1e-6f;
+		_time_last_acceleration_sample_us = vehicle_acceleration.timestamp_sample;
+
+		if (first_sample || (dt_s > 1.f)) {
+			_specific_force_fast.reset(_acceleration);
+			_specific_force_slow.reset(_acceleration);
+		}
+
+		// Catches smooth accelerations, such as a takeoff roll, that the high-passed vibration metrics miss.
+		static constexpr float kSpecificForceChangeMax = 0.3f;
+
+		const matrix::Vector3f specific_force_change = _specific_force_fast.update(_acceleration, dt_s)
+				- _specific_force_slow.update(_acceleration, dt_s);
+
+		if (specific_force_change.longerThan(kSpecificForceChangeMax)) {
+			_time_last_move_detect_us = vehicle_acceleration.timestamp_sample;
+		}
 	}
 
 	vehicle_angular_velocity_s vehicle_angular_velocity{};
@@ -117,7 +136,20 @@ void LandDetector::Run()
 		}
 	}
 
-	_vehicle_local_position_sub.update(&_vehicle_local_position);
+	if (_vehicle_local_position_sub.update(&_vehicle_local_position)) {
+		// Catches constant velocity motion where the acceleration and vibration checks would fail.
+		static constexpr float kAidedVelocityMax = 1.f;
+		static constexpr float kAidedVelocityStdDevMax = 5.f;
+
+		const matrix::Vector2f velocity_xy{_vehicle_local_position.vx, _vehicle_local_position.vy};
+		const float velocity_threshold = math::max(kAidedVelocityMax, kAidedVelocityStdDevMax * _vehicle_local_position.evh);
+
+		if (_vehicle_local_position.v_xy_valid && !_vehicle_local_position.dead_reckoning
+		    && velocity_xy.longerThan(velocity_threshold)) {
+			_time_last_move_detect_us = _vehicle_local_position.timestamp_sample;
+		}
+	}
+
 	_vehicle_status_sub.update(&_vehicle_status);
 
 	_update_topics();
@@ -130,44 +162,46 @@ void LandDetector::Run()
 	_landed_hysteresis.set_state_and_update(_get_landed_state(), now_us);
 	_ground_effect_hysteresis.set_state_and_update(_get_ground_effect_state(), now_us);
 
-	const bool freefallDetected = _freefall_hysteresis.get_state();
-	const bool ground_contactDetected = _ground_contact_hysteresis.get_state();
-	const bool maybe_landedDetected = _maybe_landed_hysteresis.get_state();
-	const bool landDetected = _landed_hysteresis.get_state();
+	const bool freefall = _freefall_hysteresis.get_state();
+	const bool ground_contact = _ground_contact_hysteresis.get_state();
+	const bool maybe_landed = _maybe_landed_hysteresis.get_state();
+	const bool landed = _landed_hysteresis.get_state();
 	const bool in_ground_effect = _ground_effect_hysteresis.get_state();
 
 	UpdateVehicleAtRest();
 
-	const bool at_rest = landDetected && _at_rest;
+	const bool at_rest = landed && _at_rest;
 
-	// publish at 1 Hz, very first time, or when the result has changed
+	// publish at 1 Hz, very first time, or when the core land detection state (not diagnostic flags) changed
 	if ((hrt_elapsed_time(&_land_detected.timestamp) >= 1_s) ||
-	    (_land_detected.landed != landDetected) ||
-	    (_land_detected.freefall != freefallDetected) ||
-	    (_land_detected.maybe_landed != maybe_landedDetected) ||
-	    (_land_detected.ground_contact != ground_contactDetected) ||
+	    (_land_detected.freefall != freefall) ||
+	    (_land_detected.ground_contact != ground_contact) ||
+	    (_land_detected.maybe_landed != maybe_landed) ||
+	    (_land_detected.landed != landed) ||
 	    (_land_detected.in_ground_effect != in_ground_effect) ||
 	    (_land_detected.at_rest != at_rest)) {
 
-		if (!landDetected && _land_detected.landed && _takeoff_time == 0) { /* only set take off time once, until disarming */
+		if (!landed && _land_detected.landed && _takeoff_time == 0) { /* only set take off time once, until disarming */
 			// We did take off
 			_takeoff_time = now_us;
 		}
 
-		_land_detected.landed = landDetected;
-		_land_detected.freefall = freefallDetected;
-		_land_detected.maybe_landed = maybe_landedDetected;
-		_land_detected.ground_contact = ground_contactDetected;
+		_land_detected.freefall = freefall;
+		_land_detected.ground_contact = ground_contact;
+		_land_detected.maybe_landed = maybe_landed;
+		_land_detected.landed = landed;
 		_land_detected.in_ground_effect = in_ground_effect;
-		_land_detected.in_descend = _get_in_descend();
-		_land_detected.has_low_throttle = _get_has_low_throttle();
-		_land_detected.horizontal_movement = _get_horizontal_movement();
-		_land_detected.vertical_movement = _get_vertical_movement();
-		_land_detected.rotational_movement = _get_rotational_movement();
-		_land_detected.close_to_ground_or_skipped_check = _get_close_to_ground_or_skipped_check();
 		_land_detected.at_rest = at_rest;
 		_land_detected.timestamp = hrt_absolute_time();
 		_vehicle_land_detected_pub.publish(_land_detected);
+
+		// reset diagnostic flags for latching logic
+		_land_detected.vertical_movement = false;
+		_land_detected.horizontal_movement = false;
+		_land_detected.rotational_movement = false;
+		_land_detected.in_descend = true;
+		_land_detected.has_low_throttle = true;
+		_land_detected.close_to_ground_or_skipped_check = true;
 	}
 
 	// set the flight time when disarming (not necessarily when landed, because all param changes should
@@ -178,13 +212,13 @@ void LandDetector::Run()
 
 		uint32_t flight_time = (_total_flight_time >> 32) & 0xffffffff;
 
-		_param_total_flight_time_high.set(flight_time);
-		_param_total_flight_time_high.commit_no_notification();
+		_param_lnd_flight_t_hi.set(flight_time);
+		_param_lnd_flight_t_hi.commit_no_notification();
 
 		flight_time = _total_flight_time & 0xffffffff;
 
-		_param_total_flight_time_low.set(flight_time);
-		_param_total_flight_time_low.commit_no_notification();
+		_param_lnd_flight_t_lo.set(flight_time);
+		_param_lnd_flight_t_lo.commit_no_notification();
 	}
 
 	_previous_armed_state = _armed;

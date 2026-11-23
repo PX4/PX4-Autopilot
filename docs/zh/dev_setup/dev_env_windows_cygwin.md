@@ -10,11 +10,10 @@ The [Windows WSL2-Based Development Environment](../dev_setup/dev_env_windows_ws
 See [Toolchain Installation](../dev_setup/dev_env.md) for information about the environments and tools supported by the core development team.
 :::
 
-该工具链非常轻便，而且容易安装和使用。
-根据本文的指示构建的开发环境可以用编译：
+该工具链非常轻便，而且容易安装和使用。根据本文的指示构建的开发环境可以用编译：
 
 - 基于 NuttX 的硬件 (Pixhawk等)
-- [jMAVSim Simulation](../sim_jmavsim/index.md)
+- jMAVSim simulation (removed from PX4, see the note in [Getting Started](#getting-started))
 
 <a id="installation"></a>
 
@@ -72,6 +71,12 @@ The toolchain uses a specially configured console window (started by running the
    You can now use the console/PX4-Autopilot repository to build PX4.
 
 4. For example, to run JMAVSim:
+
+   ::: info
+   jMAVSim has been removed from PX4, so this example only works with PX4 versions that still include it.
+   Current PX4 uses [SIH](../sim_sih/index.md) with the [Hawkeye](../sim_hawkeye/index.md) visualizer instead.
+
+:::
 
    ```sh
    # Navigate to PX4-Autopilot repo

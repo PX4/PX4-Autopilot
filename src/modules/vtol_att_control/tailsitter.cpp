@@ -56,99 +56,62 @@ Tailsitter::parameters_update()
 
 }
 
-void Tailsitter::update_vtol_state()
+Eulerf Tailsitter::getFixedWingAttitudeEuler() const
 {
-	/* simple logic using a two way switch to perform transitions.
-	 * after flipping the switch the vehicle will start tilting in MC control mode, picking up
-	 * forward speed. After the vehicle has picked up enough and sufficient pitch angle the uav will go into FW mode.
-	 * For the backtransition the pitch is controlled in MC mode again and switches to full MC control reaching the sufficient pitch angle.
-	*/
+	// Tailsitter attitude is estimated in MC frame; rotate it to FW frame before checking FW limits.
+	return Eulerf(Quatf(_v_att->q) * _q_fw_to_mc);
+}
 
+bool Tailsitter::isPitchExceeded()
+{
+	if (_common_vtol_mode != mode::FIXED_WING) {
+		return false;
+	}
 
-	if (_vtol_vehicle_status->fixed_wing_system_failure) {
-		// Failsafe event, switch to MC mode immediately
-		if (_vtol_mode != vtol_mode::MC_MODE) {
-			_transition_start_timestamp = hrt_absolute_time();
-		}
+	// fixed-wing maximum pitch angle
+	if (_param_vt_fw_qc_p.get() > 0) {
+		const Eulerf euler = getFixedWingAttitudeEuler();
 
-		_vtol_mode = vtol_mode::MC_MODE;
-
-	} else if (!_attc->is_fixed_wing_requested()) {
-
-		switch (_vtol_mode) { // user switchig to MC mode
-		case vtol_mode::MC_MODE:
-			break;
-
-		case vtol_mode::FW_MODE:
-			resetTransitionStates();
-			_vtol_mode = vtol_mode::TRANSITION_BACK;
-			break;
-
-		case vtol_mode::TRANSITION_FRONT_P1:
-			// failsafe into multicopter mode
-			_vtol_mode = vtol_mode::MC_MODE;
-			break;
-
-		case vtol_mode::TRANSITION_BACK:
-			const float pitch = Eulerf(Quatf(_v_att->q)).theta();
-
-			// check if we have reached pitch angle to switch to MC mode
-			if (pitch >= PITCH_THRESHOLD_AUTO_TRANSITION_TO_MC || _time_since_trans_start > _param_vt_b_trans_dur.get()) {
-				_vtol_mode = vtol_mode::MC_MODE;
-			}
-
-			break;
-		}
-
-	} else {  // user switchig to FW mode
-
-		switch (_vtol_mode) {
-		case vtol_mode::MC_MODE:
-			// initialise a front transition
-			_vtol_mode = vtol_mode::TRANSITION_FRONT_P1;
-			resetTransitionStates();
-			break;
-
-		case vtol_mode::FW_MODE:
-			break;
-
-		case vtol_mode::TRANSITION_FRONT_P1: {
-
-				if (isFrontTransitionCompleted()) {
-					_vtol_mode = vtol_mode::FW_MODE;
-					_trans_finished_ts = hrt_absolute_time();
-				}
-
-				break;
-			}
-
-		case vtol_mode::TRANSITION_BACK:
-			// failsafe into fixed wing mode
-			_vtol_mode = vtol_mode::FW_MODE;
-			_trans_finished_ts = hrt_absolute_time();
-			break;
+		if (fabsf(euler.theta()) > fabsf(math::radians(static_cast<float>(_param_vt_fw_qc_p.get())))) {
+			return true;
 		}
 	}
 
-	// map tailsitter specific control phases to simple control modes
-	switch (_vtol_mode) {
-	case vtol_mode::MC_MODE:
-		_common_vtol_mode = mode::ROTARY_WING;
-		_flag_was_in_trans_mode = false;
-		break;
+	return false;
+}
 
-	case vtol_mode::FW_MODE:
-		_common_vtol_mode = mode::FIXED_WING;
-		_flag_was_in_trans_mode = false;
-		break;
+bool Tailsitter::isRollExceeded()
+{
+	if (_common_vtol_mode != mode::FIXED_WING) {
+		return false;
+	}
 
-	case vtol_mode::TRANSITION_FRONT_P1:
-		_common_vtol_mode = mode::TRANSITION_TO_FW;
-		break;
+	// fixed-wing maximum roll angle
+	if (_param_vt_fw_qc_r.get() > 0) {
+		const Eulerf euler = getFixedWingAttitudeEuler();
 
-	case vtol_mode::TRANSITION_BACK:
-		_common_vtol_mode = mode::TRANSITION_TO_MC;
-		break;
+		if (fabsf(euler.phi()) > fabsf(math::radians(static_cast<float>(_param_vt_fw_qc_r.get())))) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool Tailsitter::isBackTransitionCompleted()
+{
+	const float pitch = Eulerf(Quatf(_v_att->q)).theta();
+
+	// check if we have reached pitch angle to switch to MC mode
+	return pitch >= PITCH_THRESHOLD_AUTO_TRANSITION_TO_MC || _time_since_trans_start > _param_vt_b_trans_dur.get();
+}
+
+void Tailsitter::onQuadchute()
+{
+	if (_common_vtol_mode != mode::ROTARY_WING) {
+		// for the short period after the switch where there is no thrust published yet from the MC controller,
+		// keep publishing the last FW thrust (see fill_actuator_outputs)
+		_transition_start_timestamp = hrt_absolute_time();
 	}
 }
 
@@ -166,7 +129,7 @@ void Tailsitter::update_transition_state()
 	if (!_flag_was_in_trans_mode) {
 		_flag_was_in_trans_mode = true;
 
-		if (_vtol_mode == vtol_mode::TRANSITION_BACK) {
+		if (_common_vtol_mode == mode::TRANSITION_TO_MC) {
 			// calculate rotation axis for transition.
 			_q_trans_start = Quatf(_v_att->q);
 			Vector3f z = -_q_trans_start.dcm_z();
@@ -190,7 +153,7 @@ void Tailsitter::update_transition_state()
 			// multirotor frame
 			_q_trans_start = _q_trans_start * Quatf(Eulerf(0, -M_PI_2_F, 0));
 
-		} else if (_vtol_mode == vtol_mode::TRANSITION_FRONT_P1) {
+		} else if (_common_vtol_mode == mode::TRANSITION_TO_FW) {
 			// initial attitude setpoint for the transition should be with wings level
 			const Eulerf setpoint_euler(Quatf(_mc_virtual_att_sp->q_d));
 			_q_trans_start = Eulerf(0.f, setpoint_euler.theta(), setpoint_euler.psi());
@@ -209,7 +172,7 @@ void Tailsitter::update_transition_state()
 					       _q_trans_sp(2) * _q_trans_sp(2) + _q_trans_sp(3) * _q_trans_sp(3), -1.f, 1.f);
 	const float tilt = acosf(cos_tilt);
 
-	if (_vtol_mode == vtol_mode::TRANSITION_FRONT_P1) {
+	if (_common_vtol_mode == mode::TRANSITION_TO_FW) {
 
 		// calculate pitching rate - and constrain to at least 0.1s transition time
 		const float trans_pitch_rate = M_PI_2_F / math::max(_param_vt_f_trans_dur.get(), 0.1f);
@@ -219,7 +182,7 @@ void Tailsitter::update_transition_state()
 						       _time_since_trans_start * trans_pitch_rate)) * _q_trans_start;
 		}
 
-	} else if (_vtol_mode == vtol_mode::TRANSITION_BACK) {
+	} else if (_common_vtol_mode == mode::TRANSITION_TO_MC) {
 
 		// calculate pitching rate - and constrain to at least 0.1s transition time
 		const float trans_pitch_rate = M_PI_2_F / math::max(_param_vt_b_trans_dur.get(), 0.1f);
@@ -232,7 +195,7 @@ void Tailsitter::update_transition_state()
 
 	_v_att_sp->thrust_body[2] = _mc_virtual_att_sp->thrust_body[2];
 
-	if (_vtol_mode == vtol_mode::TRANSITION_BACK) {
+	if (_common_vtol_mode == mode::TRANSITION_TO_MC) {
 		const float progress = math::constrain(_time_since_trans_start / B_TRANS_THRUST_BLENDING_DURATION, 0.f, 1.f);
 		blendThrottleBeginningBackTransition(progress);
 	}
@@ -285,7 +248,7 @@ void Tailsitter::fill_actuator_outputs()
 	_thrust_setpoint_1->xyz[2] = 0.f;
 
 	// Motors
-	if (_vtol_mode == vtol_mode::FW_MODE) {
+	if (_common_vtol_mode == mode::FIXED_WING) {
 
 		_thrust_setpoint_0->xyz[2] = -_vehicle_thrust_setpoint_virtual_fw->xyz[0];
 
@@ -316,7 +279,7 @@ void Tailsitter::fill_actuator_outputs()
 
 		// for the short period after starting the backtransition where there is no thrust published yet from the MC controller,
 		// keep publishing the last FW thrust to keep the motors running
-		if (_vtol_mode != vtol_mode::TRANSITION_FRONT_P1 && hrt_elapsed_time(&_transition_start_timestamp) < 50_ms) {
+		if (_common_vtol_mode != mode::TRANSITION_TO_FW && hrt_elapsed_time(&_transition_start_timestamp) < 50_ms) {
 			_thrust_setpoint_0->xyz[2] = -_last_thr_in_fw_mode;
 		}
 
@@ -326,7 +289,7 @@ void Tailsitter::fill_actuator_outputs()
 	}
 
 	// Control surfaces
-	if (!_param_vt_elev_mc_lock.get() || _vtol_mode != vtol_mode::MC_MODE) {
+	if (!_param_vt_elev_mc_lock.get() || _common_vtol_mode != mode::ROTARY_WING) {
 		_torque_setpoint_1->xyz[0] = _vehicle_torque_setpoint_virtual_fw->xyz[0];
 		_torque_setpoint_1->xyz[1] = _vehicle_torque_setpoint_virtual_fw->xyz[1];
 		_torque_setpoint_1->xyz[2] = _vehicle_torque_setpoint_virtual_fw->xyz[2];
@@ -334,7 +297,7 @@ void Tailsitter::fill_actuator_outputs()
 }
 
 
-bool Tailsitter::isFrontTransitionCompletedBase()
+bool Tailsitter::isFrontTransitionCompleted()
 {
 	const bool airspeed_triggers_transition = PX4_ISFINITE(_attc->get_calibrated_airspeed());
 
@@ -350,7 +313,7 @@ bool Tailsitter::isFrontTransitionCompletedBase()
 		}
 	}
 
-	return transition_to_fw;
+	return transition_to_fw || can_transition_on_ground();
 }
 
 void Tailsitter::blendThrottleAfterFrontTransition(float scale)

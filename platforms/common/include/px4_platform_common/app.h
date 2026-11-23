@@ -40,6 +40,8 @@
 
 #pragma once
 
+#include <px4_platform_common/atomic.h>
+
 namespace px4
 {
 
@@ -48,17 +50,17 @@ class AppState
 public:
 	~AppState() {}
 
-	AppState() : _exitRequested(false), _isRunning(false) {}
+	AppState() {}
 
-	bool exitRequested() { return _exitRequested; }
-	void requestExit() { _exitRequested = true; }
+	bool exitRequested() { return _exitRequested.load(); }
+	void requestExit() { _exitRequested.store(true); }
 
-	bool isRunning() { return _isRunning; }
-	void setRunning(bool running) { _isRunning = running; }
+	bool isRunning() { return _isRunning.load(); }
+	void setRunning(bool running) { _isRunning.store(running); }
 
 protected:
-	bool _exitRequested;
-	bool _isRunning;
+	px4::atomic_bool _exitRequested{false};
+	px4::atomic_bool _isRunning{false};
 private:
 	AppState(const AppState &);
 	const AppState &operator=(const AppState &);

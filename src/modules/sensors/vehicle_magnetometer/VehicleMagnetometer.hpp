@@ -77,9 +77,16 @@ public:
 
 	void PrintStatus();
 
-private:
+protected:
 	void Run() override;
 
+	// read access for the functional test, unused by the module itself
+	int8_t selectedSensorIndex() const { return _selected_sensor_sub_index; }
+	uint8_t sensorPriority(int index) const { return _priority[index]; }
+	unsigned voterFailoverCount() { return _voter.failover_count(); }
+	bool callbackRegistered(int index) const { return _sensor_sub[index].registered(); }
+
+private:
 	void CheckFailover(const hrt_abstime &time_now_us);
 	bool ParametersUpdate(bool force = false);
 	void UpdateStatus();
@@ -176,7 +183,7 @@ private:
 	bool _armed{false};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::CAL_MAG_COMP_TYP>) _param_mag_comp_typ,
+		(ParamInt<px4::params::CAL_MAG_COMP_TYP>) _param_cal_mag_comp_typ,
 		(ParamBool<px4::params::SENS_MAG_MODE>) _param_sens_mag_mode,
 		(ParamFloat<px4::params::SENS_MAG_RATE>) _param_sens_mag_rate,
 		(ParamBool<px4::params::SENS_MAG_AUTOCAL>) _param_sens_mag_autocal,

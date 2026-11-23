@@ -156,6 +156,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: ark_can-flow_canbootloader
+    ark_can-flow-lr_default:
+      short: ark_can-flow-lr_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_can-flow-lr_default
+    ark_can-flow-lr_canbootloader:
+      short: ark_can-flow-lr_canbootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_can-flow-lr_canbootloader
     ark_can-flow-mr_default:
       short: ark_can-flow-mr_default
       buildType: MinSizeRel
@@ -346,6 +356,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: cuav_x25-super_default
+    cuav_x25-mega_default:
+      short: cuav_x25-mega
+      buildType: MinSizeRel
+      settings:
+        CONFIG: cuav_x25-mega_default
     cubepilot_cubeorange_test:
       short: cubepilot_cubeorange
       buildType: MinSizeRel

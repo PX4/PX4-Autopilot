@@ -53,7 +53,7 @@ bool SubscriptionCallback::registerCallback()
 
 		} else {
 			// force topic creation by subscribing with old API
-			int fd = orb_subscribe_multi(_subscription.get_topic(), _subscription.get_instance());
+			orb_sub_t fd = orb_subscribe_multi(_subscription.get_topic(), _subscription.get_instance());
 
 			// try to register callback again
 			if (_subscription.subscribe()) {

@@ -36,6 +36,7 @@
 #include <px4_platform_common/px4_config.h>
 
 #include <canard.h>
+#include <unistd.h>
 
 #include "CanardInterface.hpp"
 
@@ -48,7 +49,7 @@ public:
 	/// Creates a SocketCAN socket for corresponding iface can_iface_name
 	/// Also sets up the message structures required for socketcanTransmit & socketcanReceive
 	/// can_fd determines to use CAN FD frame when is 1, and classical CAN frame when is 0
-	/// The return value is 0 on succes and -1 on error
+	/// The return value is 0 on success and -1 on error
 	int init();
 
 	/// Send a CanardTxQueueItem to the CanardSocketInstance socket
@@ -60,6 +61,18 @@ public:
 	/// This function is blocking
 	/// The return value is number of bytes received, negative value on error.
 	int16_t receive(CanardRxFrame *rxf);
+
+	/// Close the CAN device
+	int close() override
+	{
+		if (_fd < 0) {
+			return 0;
+		}
+
+		const int ret = ::close(_fd);
+		_fd = -1;
+		return ret;
+	}
 
 private:
 	int _fd{-1};

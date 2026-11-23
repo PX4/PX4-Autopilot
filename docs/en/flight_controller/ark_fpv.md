@@ -23,8 +23,8 @@ See the documentation [Ark Electronics GitBook](https://arkelectron.gitbook.io/a
 
 ## Sensors
 
-- [Invensense IIM-42653 Industrial IMU](https://invensense.tdk.com/products/smartindustrial/iim-42653/)
-- [Bosch BMP390 Barometer](https://www.bosch-sensortec.com/products/environmental-sensors/pressure-sensors/bmp390/)
+- [Invensense IIM-42653 Industrial IMU](https://www.invensense.tdk.com/en-us/products/6-axis/iim-42653)
+- [Bosch BMP390 Barometer](https://www.bosch-sensortec.com/en/products/environmental-sensors/pressure-sensors/bmp390/)
 - [ST IIS2MDC Magnetometer](https://www.st.com/en/mems-and-sensors/iis2mdc.html)
 
 ## Microprocessor
@@ -82,6 +82,15 @@ See the documentation [Ark Electronics GitBook](https://arkelectron.gitbook.io/a
 - Heater: 1W for warming sensors in extreme cold
 - LED Indicators
 - MicroSD Slot
+
+## Analog OSD
+
+An analog OSD such as the ARK OSD connects to the SPI port or to the TELEM port, and is off until configured:
+
+- **SPI port:** set [OSD_ATXXXX_CFG](../advanced_config/parameter_reference.md#OSD_ATXXXX_CFG) to 1 for NTSC or 2 for PAL.
+- **TELEM port (MSP DisplayPort):** set [MSP_OSD_CONFIG](../advanced_config/parameter_reference.md#MSP_OSD_CONFIG) to `TELEM 1`, and move MAVLink off TELEM 1 if [MAV_0_CONFIG](../advanced_config/parameter_reference.md#MAV_0_CONFIG) uses it.
+
+Keep the VTX port for the video transmitter.
 
 ## Pinout
 

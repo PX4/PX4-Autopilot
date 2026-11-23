@@ -62,6 +62,7 @@
 enum class crsf_frame_type_t : uint8_t {
 	gps = 0x02,
 	battery_sensor = 0x08,
+	baro_altitude = 0x09,
 	link_statistics = 0x14,
 	rc_channels_packed = 0x16,
 	attitude = 0x1E,
@@ -79,6 +80,7 @@ enum class crsf_frame_type_t : uint8_t {
 enum class crsf_payload_size_t : uint8_t {
 	gps = 15,
 	battery_sensor = 8,
+	baro_altitude = 4, ///< altitude (uint16) + vertical speed (int16)
 	link_statistics = 10,
 	rc_channels = 22, ///< 11 bits per channel * 16 channels = 22 bytes.
 	attitude = 6,
@@ -442,6 +444,17 @@ bool crsf_send_telemetry_gps(int uart_fd, int32_t latitude, int32_t longitude, u
 	write_uint16_t(buf, offset, gps_heading);
 	write_uint16_t(buf, offset, altitude);
 	write_uint8_t(buf, offset, num_satellites);
+	write_frame_crc(buf, offset, sizeof(buf));
+	return write(uart_fd, buf, offset) == offset;
+}
+
+bool crsf_send_telemetry_baro_altitude(int uart_fd, uint16_t altitude, int16_t vertical_speed)
+{
+	uint8_t buf[(uint8_t)crsf_payload_size_t::baro_altitude + 4];
+	int offset = 0;
+	write_frame_header(buf, offset, crsf_frame_type_t::baro_altitude, (uint8_t)crsf_payload_size_t::baro_altitude);
+	write_uint16_t(buf, offset, altitude);
+	write_uint16_t(buf, offset, (uint16_t)vertical_speed);
 	write_frame_crc(buf, offset, sizeof(buf));
 	return write(uart_fd, buf, offset) == offset;
 }

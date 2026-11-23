@@ -6,13 +6,10 @@
 
 PX4 包含了一个通用的挂载设备/云台的控制驱动，它含有多种输入输出方式。
 
-- 输入方式定义控制云台挂在的协议，该协议由 PX4 管理。
-  该输入方式可能是一个遥控器，一个可以发送 MAVLink 的地面站，或者两者 — 两种可以自动切换。
-- 输出方式定义了 PX4 如何与连接的云台通信。
-  推荐的协议是 MAVLink v2, 但您也可以直接连接到飞控的 PWM 输出端口。
+- 输入方式定义控制云台挂在的协议，该协议由 PX4 管理。该输入方式可能是一个遥控器，一个可以发送 MAVLink 的地面站，或者两者 — 两种可以自动切换。
+- 输出方式定义了 PX4 如何与连接的云台通信。推荐的协议是 MAVLink v2, 但您也可以直接连接到飞控的 PWM 输出端口。
 
-PX4 接收输入信号，并且将其路由/翻译后发送到输出。
-任何输入方式都可以被选择来驱动任何输出。
+PX4 接收输入信号，并且将其路由/翻译后发送到输出。任何输入方式都可以被选择来驱动任何输出。
 
 输入和输出都使用参数进行配置。
 The input is set using the parameter [MNT_MODE_IN](../advanced_config/parameter_reference.md#MNT_MODE_IN).
@@ -23,12 +20,22 @@ You should set `MNT_MODE_IN` to one of: `RC (1)`, `MAVlink gimbal protocol v2 (4
 If you select `Auto (0)`, the gimbal will automatically select either RC or MAVLink input based on the latest input.
 请注意，从 MAVLink 到 RC 的自动切换需要一个大幅度地杆量操作！
 
+To hold a fixed attitude that the pilot cannot control (e.g. for RF/Satellite receiver stabilization), set `MNT_MODE_IN` to `Fixed attitude (5)`.
+See [Fixed Attitude Gimbal](#fixed-attitude-gimbal) below.
+
 The output is set using the [MNT_MODE_OUT](../advanced_config/parameter_reference.md#MNT_MODE_OUT) parameter.
 By default the output is set to a PXM port (`AUX (0)`).
 If the [MAVLink Gimbal Protocol v2](https://mavlink.io/en/services/gimbal_v2.html) is supported by your gimbal, you should instead select `MAVLink gimbal protocol v2 (2)`.
+If the gimbal has its own gimbal manager, select `Forward to external gimbal manager (3)` instead (see [External Gimbal Manager](#external-gimbal-manager)).
+A second gimbal can be driven in parallel using [MNT_MODE_OUT2](../advanced_config/parameter_reference.md#MNT_MODE_OUT2) (see [Multiple Gimbal Support](#multiple-gimbal-support)).
 
 The full list of parameters for setting up the mount driver can be found in [Parameter Reference > Mount](../advanced_config/parameter_reference.md#mount).
 下面介绍了一些通用的云台相关设置。
+
+:::tip
+To debug a gimbal setup, use `gimbal status` in the MAVLink console to see the active inputs and outputs, and `gimbal test` to move the gimbal without any input.
+See [Driver Testing](#driver-testing).
+:::
 
 ## MAVLink 云台 (MNT_MODE_OUT=MAVLINK)
 
@@ -48,16 +55,27 @@ For example, if the `TELEM2` port on the flight controller is unused you can con
 - [MAV_1_FORWARD](../advanced_config/parameter_reference.md#MAV_1_FORWARD) to **Enabled** (Note strictly necessary as forwarding is enabled when `MAV_1_MODE` is set to Gimbal).
 - [SER_TEL2_BAUD](../advanced_config/parameter_reference.md#SER_TEL2_BAUD) to manufacturer recommended baud rate.
 
+### External Gimbal Manager
+
+Some gimbals implement the gimbal _manager_ protocol themselves, rather than only the gimbal device protocol.
+A ground station controls such a gimbal directly, PX4 does not need to manage it.
+
+Set [MNT_MODE_OUT](../advanced_config/parameter_reference.md#MNT_MODE_OUT) to `Forward to external gimbal manager (3)` so that PX4 forwards onboard inputs (RC, ROI) to it as well.
+PX4 then acts as a client of that manager: it acquires control while there is onboard input and releases it afterwards, and the manager arbitrates between PX4 and the ground station.
+
+Connect the gimbal to a MAVLink instance in `Gimbal` (or `Onboard`) mode with forwarding enabled, as described [above](#mavlink-gimbal-mnt-mode-out-mavlink).
+Forwarding is required so that the ground station and the gimbal manager can see each other, and PX4 discovers the manager from the `GIMBAL_MANAGER_STATUS` it streams.
+
 ### 多云台支持
 
-PX4 可以自动为已连接的 PWM 云台或第一个在任何接口上检测到相同的系统 id 的 MAVLink 云台设备创建一个云台管理器。
-它不会自动为它检测到的其他MAVLink云台设备创建云台管理器。
+PX4 creates one gimbal manager, for the gimbal driven by `MNT_MODE_OUT`.
 
-You can support additional MAVLink gimbals provided that they:
+A second gimbal can be driven in parallel with the same inputs by setting [MNT_MODE_OUT2](../advanced_config/parameter_reference.md#MNT_MODE_OUT2) to a different output mode than `MNT_MODE_OUT`, e.g. a MAVLink gimbal (`2`) and a gimbal with an [external gimbal manager](#external-gimbal-manager) (`3`).
+
+Additional MAVLink gimbals that are not driven by PX4 are supported provided that they:
 
 - Implement the gimbal _manager_ protocol.
-- 在 MAVLink 网络上对地面站和 PX4 可见。
-  这可能需要在PX4、GCS和云台之间配置流量转接。
+- 在 MAVLink 网络上对地面站和 PX4 可见。这可能需要在PX4、GCS和云台之间配置流量转接。
 - Have a unique component id, and this component id must be in the range 7 - 255.
 
 ## 飞控 PWM 输出上的云台 (MNT_MODE_OUT=AUX)
@@ -76,6 +94,20 @@ The output pins that are used to control the gimbal are set in the [Acuator Conf
 
 The PWM values to use for the disarmed, maximum, center and minimum values can be determined in the same way as other servo, using the [Actuator Test sliders](../config/actuators.md#actuator-testing) to confirm that each slider moves the appropriate axis, and changing the values so that the gimbal is in the appropriate position at the disarmed, low, center and high position in the slider.
 这些数值也可以在云台文档中提供。
+
+## Fixed Attitude Gimbal
+
+A fixed-attitude gimbal holds a constant world-frame attitude and cannot be controlled by the pilot.
+This is useful for stabilizing a payload that must keep pointing in a fixed direction regardless of vehicle motion, such as an RF or satellite receiver antenna.
+
+To enable it, set [MNT_MODE_IN](../advanced_config/parameter_reference.md#MNT_MODE_IN) to `Fixed attitude (5)` and reboot.
+In this mode no RC or MAVLink input is created, so the attitude cannot be commanded from a transmitter or ground station.
+
+The gimbal holds roll and yaw level (roll at 0, yaw at north), and pitch at the angle set in [MNT_FIXED_PITCH](../advanced_config/parameter_reference.md#MNT_FIXED_PITCH) (in degrees, world frame).
+
+Because the setpoint is in the world frame, stabilization against vehicle motion must be enabled with [MNT_DO_STAB](../advanced_config/parameter_reference.md#MNT_DO_STAB):
+
+- Set `MNT_DO_STAB` to `Stabilize all axis (1)` for the typical servo (AUX) gimbal.
 
 ## Gimbal Control in Missions
 

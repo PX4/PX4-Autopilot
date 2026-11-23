@@ -38,6 +38,7 @@
 
 #include <containers/IntrusiveQueue.hpp>
 #include <containers/IntrusiveSortedList.hpp>
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
 #include <lib/mathlib/mathlib.h>
@@ -63,12 +64,7 @@ public:
 	// WorkItems sorted by name
 	bool operator<=(const WorkItem &rhs) const { return (strcmp(ItemName(), rhs.ItemName()) <= 0); }
 
-	inline void ScheduleNow()
-	{
-		if (_wq != nullptr) {
-			_wq->Add(this);
-		}
-	}
+	void ScheduleNow();
 
 	virtual void print_run_status();
 

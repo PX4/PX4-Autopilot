@@ -40,15 +40,17 @@
 // Libraries
 #include <matrix/matrix/math.hpp>
 #include <lib/pure_pursuit/PurePursuit.hpp>
+#include <lib/rover_control/RoverControllerWorkItem.hpp>
 #include <lib/geo/geo.h>
 #include <math.h>
 
 // uORB includes
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/rover_speed_setpoint.h>
-#include <uORB/topics/rover_attitude_setpoint.h>
-#include <uORB/topics/rover_position_setpoint.h>
+#include <uORB/topics/surface_vehicle_speed_setpoint.h>
+#include <uORB/topics/surface_vehicle_attitude_setpoint.h>
+#include <uORB/topics/surface_vehicle_position_setpoint.h>
+#include <uORB/topics/surface_vehicle_course_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/pure_pursuit_status.h>
@@ -58,7 +60,7 @@ using namespace matrix;
 /**
  * @brief Class for mecanum position control.
  */
-class MecanumPosControl : public ModuleParams
+class MecanumPosControl : public ModuleParams, public RoverControllerWorkItem
 {
 public:
 	/**
@@ -69,7 +71,7 @@ public:
 	~MecanumPosControl() = default;
 
 	/**
-	 * @brief Generate and publish roverSpeedSetpoint and roverAttitudeSetpoint from roverPositionSetpoint.
+	 * @brief Generate and publish surfaceVehicleSpeedSetpoint and surfaceVehicleAttitudeSetpoint from surfaceVehiclePositionSetpoint or surfaceVehicleCourseSetpoint.
 	 */
 	void updatePosControl();
 
@@ -82,7 +84,7 @@ public:
 	/**
 	 * @brief Reset position controller.
 	 */
-	void reset() {_start_ned = Vector2f{NAN, NAN}; _target_waypoint_ned = Vector2f{NAN, NAN}; _arrival_speed = 0.f; _cruising_speed = _param_ro_speed_limit.get(); _stopped = false;};
+	void reset() {_start_ned = Vector2f{NAN, NAN}; _target_waypoint_ned = Vector2f{NAN, NAN}; _course = NAN; _arrival_speed = 0.f; _cruising_speed = _param_ro_speed_lim.get(); _stopped = false;};
 
 protected:
 
@@ -93,6 +95,8 @@ protected:
 	void updateParams() override;
 
 private:
+	void runController() override { updatePosControl(); }
+
 	/**
 	 * @brief Update uORB subscriptions used in position controller.
 	 */
@@ -101,18 +105,20 @@ private:
 	// uORB subscriptions
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
-	uORB::Subscription _rover_position_setpoint_sub{ORB_ID(rover_position_setpoint)};
+	uORB::Subscription _surface_vehicle_position_setpoint_sub{ORB_ID(surface_vehicle_position_setpoint)};
+	uORB::Subscription _surface_vehicle_course_setpoint_sub{ORB_ID(surface_vehicle_course_setpoint)};
 
 	// uORB publications
-	uORB::Publication<rover_speed_setpoint_s>    _rover_speed_setpoint_pub{ORB_ID(rover_speed_setpoint)};
+	uORB::Publication<surface_vehicle_speed_setpoint_s>    _surface_vehicle_speed_setpoint_pub{ORB_ID(surface_vehicle_speed_setpoint)};
 	uORB::Publication<pure_pursuit_status_s>     _pure_pursuit_status_pub{ORB_ID(pure_pursuit_status)};
-	uORB::Publication<rover_attitude_setpoint_s> _rover_attitude_setpoint_pub{ORB_ID(rover_attitude_setpoint)};
+	uORB::Publication<surface_vehicle_attitude_setpoint_s> _surface_vehicle_attitude_setpoint_pub{ORB_ID(surface_vehicle_attitude_setpoint)};
 
 	// Variables
 	Quatf _vehicle_attitude_quaternion{};
 	Vector2f _curr_pos_ned{};
 	Vector2f _start_ned{};
 	Vector2f _target_waypoint_ned{};
+	float _course{NAN};
 	float _arrival_speed{0.f};
 	float _vehicle_speed{0.f};
 	float _cruising_speed{NAN};
@@ -126,15 +132,15 @@ private:
 		(ParamFloat<px4::params::RO_SPEED_P>) 	    _param_ro_speed_p,
 		(ParamFloat<px4::params::RO_SPEED_I>)       _param_ro_speed_i,
 		(ParamFloat<px4::params::RO_YAW_STICK_DZ>)  _param_ro_yaw_stick_dz,
-		(ParamFloat<px4::params::RO_ACCEL_LIM>)     _param_ro_accel_limit,
-		(ParamFloat<px4::params::RO_DECEL_LIM>)     _param_ro_decel_limit,
-		(ParamFloat<px4::params::RO_JERK_LIM>)      _param_ro_jerk_limit,
-		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
+		(ParamFloat<px4::params::RO_ACCEL_LIM>)     _param_ro_accel_lim,
+		(ParamFloat<px4::params::RO_DECEL_LIM>)     _param_ro_decel_lim,
+		(ParamFloat<px4::params::RO_JERK_LIM>)      _param_ro_jerk_lim,
+		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_lim,
 		(ParamFloat<px4::params::RO_SPEED_TH>)      _param_ro_speed_th,
 		(ParamFloat<px4::params::PP_LOOKAHD_GAIN>)  _param_pp_lookahd_gain,
 		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max,
 		(ParamFloat<px4::params::PP_LOOKAHD_MIN>)   _param_pp_lookahd_min,
-		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_limit,
+		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_lim,
 		(ParamFloat<px4::params::RO_YAW_P>)  	    _param_ro_yaw_p,
 		(ParamFloat<px4::params::NAV_ACC_RAD>)      _param_nav_acc_rad
 	)

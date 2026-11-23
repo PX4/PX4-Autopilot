@@ -273,13 +273,28 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	return taskid;
 }
 
+int px4_task_join(px4_task_t id)
+{
+	if (id >= 0 && id < PX4_MAX_TASKS) {
+		pthread_mutex_lock(&task_mutex);
+		pthread_t pid = taskmap[id].pid;
+		pthread_mutex_unlock(&task_mutex);
+
+		if (pid != 0) {
+			return pthread_join(pid, nullptr);
+		}
+	}
+
+	return -EINVAL;
+}
+
 int px4_task_delete(px4_task_t id)
 {
 	int rv = 0;
 	pthread_t pid;
 	PX4_DEBUG("Called px4_task_delete");
 
-	if (id < PX4_MAX_TASKS && taskmap[id].isused) {
+	if (id >= 0 && id < PX4_MAX_TASKS && taskmap[id].isused) {
 		pid = taskmap[id].pid;
 
 	} else {
@@ -290,7 +305,6 @@ int px4_task_delete(px4_task_t id)
 
 	// If current thread then exit, otherwise cancel
 	if (pthread_self() == pid) {
-		pthread_join(pid, nullptr);
 		taskmap[id].isused = false;
 		pthread_mutex_unlock(&task_mutex);
 		pthread_exit(nullptr);

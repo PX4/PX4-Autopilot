@@ -19,3 +19,5 @@ px4_add_module(
 
 target_compile_features(modules__mc_raptor PRIVATE cxx_std_17)
 target_compile_options(modules__mc_raptor PRIVATE -Wno-unused-result)
+# clang reports the pointer stored in front of rl_tools' aligned allocations with -Wcast-align
+target_compile_options(modules__mc_raptor PRIVATE -Wno-cast-align)

@@ -12,9 +12,9 @@ This is done through the MAVLink protocol, specifically the [SET_POSITION_TARGET
 
 Є дві речі, які ви маєте налаштувати на стороні прошивки перед початком розробки.
 
-### Enable RC Override
+### Enable Stick Override
 
-In _QGroundControl_ you can set the [COM_RC_OVERRIDE](../advanced_config/parameter_reference.md#COM_RC_OVERRIDE) parameter to automatically switch from offboard mode (or any mode) to Position mode if the RC sticks are moved.
+In _QGroundControl_ the [MAN_OVERRIDE_SPD](../advanced_config/parameter_reference.md#MAN_OVERRIDE_SPD) parameter controls automatically switching from offboard (or autonomous) mode to Position mode when the remote sticks are moved. This is enabled by default; set it to -1 to disable.
 This is the best way to ensure that an operator can easily take control of the vehicle and switch to the safest flight mode.
 
 ### Зв'язування RC перемикача з активацією режиму offboard.
@@ -23,7 +23,7 @@ In _QGroundControl_ you can set the [RC_MAP_OFFB_SW](../advanced_config/paramete
 This can be used to switch between offboard mode and the mode set by the mode switch ([RC_MAP_MODE_SW](../advanced_config/parameter_reference.md#RC_MAP_MODE_SW)).
 You can also switch into offboard mode using a GCS/MAVLink so this is not "mandatory".
 
-Note also that this mechanism is not as "safe" as using [RC Override](#enable-rc-override) to switch out of offboard mode, because the mode you switch to is unpredictable.
+Note also that this mechanism is not as "safe" as using [stick Override](#enable-stick-override) to switch out of offboard mode, because the mode you switch to is unpredictable.
 
 ### Увімкніть інтерфейс комп'ютера-компаньйона
 

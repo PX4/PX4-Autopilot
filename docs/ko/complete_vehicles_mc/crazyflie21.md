@@ -1,6 +1,6 @@
 # Crazyflie 2.1
 
-<LinkedBadge type="warning" text="Experimental" url="../flight_controller/autopilot_experimental.html"/>
+[<Badge type="warning" text="Experimental"/>](../flight_controller/autopilot_experimental.md)
 
 :::warning
 PX4 does not manufacture this (or any) autopilot.
@@ -40,10 +40,11 @@ The vehicle can be purchased here: [Crazyflie 2.1](https://store.bitcraze.io/pro
 
 Useful peripheral hardware includes:
 
-- [Crazyradio PA 2.4 GHz USB dongle](https://store.bitcraze.io/products/crazyradio-pa): Wireless communication between _QGroundControl_ and Crazyflie 2.0
+- [Crazyradio 2.0](https://www.bitcraze.io/products/crazyradio-2-0/) 2.4 GHz USB dongle: Wireless communication between _QGroundControl_ and Crazyflie 2.0.
+  This behaves like the [old hardware](https://www.bitcraze.io/products/old-products/crazyradio-pa/) (anecdotally) when running its default "Crazyradio PA emulation" firmware.
 - [Breakout deck](https://store.bitcraze.io/collections/decks/products/breakout-deck): Breakout expansion board for connecting new peripherals.
 - [Flow deck v2](https://store.bitcraze.io/products/flow-deck-v2): Optical flow sensor and a distance sensor for altitude and position control.
-- [Z-ranger deck v2](https://store.bitcraze.io/collections/decks/products/z-ranger-deck-v2): Distance sensor for altitude control (same sensor as the Flow deck).
+- [Z-ranger deck v2](https://www.bitcraze.io/products/old-products/z-ranger-deck-v2/) (Discontinued): Distance sensor for altitude control (same sensor as the Flow deck).
 - [Multi-ranger deck](https://store.bitcraze.io/collections/decks/products/multi-ranger-deck) Multi-direction object detection
 - [Buzzer deck](https://store.bitcraze.io/collections/decks/products/buzzer-deck) Audio feedback on system events, like low battery or charging completed.
 - [Breakout deck](https://store.bitcraze.io/collections/decks/products/breakout-deck): Expansion board that gives you the ability to test new hardware easily without soldering.
@@ -122,7 +123,6 @@ After setting up the PX4 development environment, follow these steps to install 
 ## Flashing Original Bitcraze Firmware
 
 1. Download the latest [Crazyflie 2.1 bootloader](https://github.com/bitcraze/crazyflie2-stm-bootloader/releases)
-
 2. Put the Crazyflie 2.1 into DFU mode by following these steps:
    - Ensure it is initially unpowered.
    - Ensure battery is disconnected.
@@ -130,7 +130,6 @@ After setting up the PX4 development environment, follow these steps to install 
    - Plug into computer's USB port.
    - After a second, the blue LED should start blinking and after 5 seconds should start blinking faster.
    - Release button.
-
 3. Flash bootloader using _dfu-util_ and unplug Crazyflie 2.1 when done:
 
    ```sh
@@ -139,7 +138,7 @@ After setting up the PX4 development environment, follow these steps to install 
 
    When powering on the Crazyflie 2.1 the yellow LED should blink.
 
-4. Install the latest Bitcraze Crazyflie 2.1 Firmware using [this](https://www.bitcraze.io/documentation/tutorials/getting-started-with-crazyflie-2-x/#update-fw) tutorial.
+. Install the latest Bitcraze Crazyflie 2.1 Firmware using [this](https://www.bitcraze.io/documentation/tutorials/getting-started-with-crazyflie-2-x/#update-fw) tutorial.
 
 ## Wireless Setup Instructions
 
@@ -151,15 +150,26 @@ The onboard nRF module allows connecting to the board via Bluetooth or through t
 Connecting via **MAVLink**:
 
 - Use a Crazyradio PA alongside a compatible GCS.
-- Download the _crazyflie-lib-python_ source code:
+
+- Download the _crazyflie-lib-python_ source code, and check out the last commit that included `cfbridge.py` (see warning below):
 
   ```sh
   git clone https://github.com/bitcraze/crazyflie-lib-python.git
+  git -C crazyflie-lib-python checkout 829ae10715b5bf2373a7a643434e474ab406fc62
   ```
 
-:::info
-We will use [cfbridge.py](https://github.com/bitcraze/crazyflie-lib-python/blob/master/examples/cfbridge.py) to setup a wireless MAVlink communication link between Crazyflie 2.1 (flashed with PX4) and QGroundControl. _Cfbridge_ enables QGroundControl to communicate with the crazyradio PA.
-The [C based cfbridge](https://github.com/dennisss/cfbridge) is currently experiencing data loss issues, which is why we have chosen to use **cfbridge.py**.
+  ::: info
+  We will use [cfbridge.py](https://github.com/bitcraze/crazyflie-lib-python/blob/829ae10715b5bf2373a7a643434e474ab406fc62/examples/cfbridge.py) to setup a wireless MAVlink communication link between Crazyflie 2.1 (flashed with PX4) and QGroundControl.
+  _Cfbridge_ enables QGroundControl to communicate with the crazyradio PA.
+  The [C based cfbridge](https://github.com/dennisss/cfbridge) is currently experiencing data loss issues, which is why we have chosen to use **cfbridge.py**.
+
+:::
+
+  ::: warning
+  `cfbridge.py` was removed from the `crazyflie-lib-python` repository upstream (April 2026) and was not migrated to Bitcraze's `crazyflie-demos` repository.
+  The commands above check out the last commit that included the file.
+  This part of the workflow is no longer maintained by Bitcraze!
+
 :::
 
 - Make sure you have set the udev permissions to use the USB Radio. To do this, follow the steps listed [here](https://www.bitcraze.io/documentation/repository/crazyflie-lib-python/master/installation/usb_permissions/) and **restart** your computer.

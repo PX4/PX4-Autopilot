@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "FixedwingAttitudeControl.hpp"
+#include <lib/airspeed/airspeed.h>
 #include <lib/geo/geo.h>
 
 
@@ -124,10 +125,15 @@ FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
 void
 FixedwingAttitudeControl::vehicle_attitude_setpoint_poll()
 {
-	if (_att_sp_sub.update(&_att_sp)) {
-		_rates_sp.thrust_body[0] = _att_sp.thrust_body[0];
-		_rates_sp.thrust_body[1] = _att_sp.thrust_body[1];
-		_rates_sp.thrust_body[2] = _att_sp.thrust_body[2];
+	vehicle_attitude_setpoint_s att_sp{};
+
+	if (_att_sp_sub.update(&att_sp)) {
+		const Quatf q_d(att_sp.q_d);
+		q_d.copyTo(_att_sp.q_d);
+
+		_rates_sp.thrust_body[0] = att_sp.thrust_body[0];
+		_rates_sp.thrust_body[1] = att_sp.thrust_body[1];
+		_rates_sp.thrust_body[2] = att_sp.thrust_body[2];
 	}
 }
 
@@ -143,7 +149,7 @@ FixedwingAttitudeControl::vehicle_land_detected_poll()
 	}
 }
 
-float FixedwingAttitudeControl::get_airspeed_constrained()
+float FixedwingAttitudeControl::get_true_airspeed_constrained()
 {
 	_airspeed_validated_sub.update();
 	const bool airspeed_valid = PX4_ISFINITE(_airspeed_validated_sub.get().calibrated_airspeed_m_s)
@@ -166,7 +172,15 @@ float FixedwingAttitudeControl::get_airspeed_constrained()
 		}
 	}
 
-	return math::constrain(airspeed, _param_fw_airspd_stall.get(), _param_fw_airspd_max.get());
+	vehicle_air_data_s air_data;
+
+	if (_vehicle_air_data_sub.update(&air_data) && PX4_ISFINITE(air_data.rho) && (air_data.rho > FLT_EPSILON)) {
+		_air_density = air_data.rho;
+	}
+
+	// limits are calibrated airspeeds, so convert after constraining
+	return calc_true_from_calibrated_airspeed(
+		       math::constrain(airspeed, _param_fw_airspd_stall.get(), _param_fw_airspd_max.get()), _air_density);
 }
 
 void FixedwingAttitudeControl::Run()
@@ -206,8 +220,6 @@ void FixedwingAttitudeControl::Run()
 		if (_att_sub.copy(&att)) {
 			dt = math::constrain((att.timestamp_sample - _last_run) * 1e-6f, DT_MIN, DT_MAX);
 			_last_run = att.timestamp_sample;
-
-			_R = matrix::Quatf(att.q);
 		}
 
 		if (dt < DT_MIN || dt > DT_MAX) {
@@ -216,45 +228,11 @@ void FixedwingAttitudeControl::Run()
 			_last_run = time_now_us;
 		}
 
-		if (_vehicle_status.is_vtol_tailsitter) {
-			/* vehicle is a tailsitter, we need to modify the estimated attitude for fw mode
-			 *
-			 * Since the VTOL airframe is initialized as a multicopter we need to
-			 * modify the estimated attitude for the fixed wing operation.
-			 * Since the neutral position of the vehicle in fixed wing mode is -90 degrees rotated around
-			 * the pitch axis compared to the neutral position of the vehicle in multicopter mode
-			 * we need to swap the roll and the yaw axis (1st and 3rd column) in the rotation matrix.
-			 * Additionally, in order to get the correct sign of the pitch, we need to multiply
-			 * the new x axis of the rotation matrix with -1
-			 *
-			 * original:			modified:
-			 *
-			 * Rxx  Ryx  Rzx		-Rzx  Ryx  Rxx
-			 * Rxy	Ryy  Rzy		-Rzy  Ryy  Rxy
-			 * Rxz	Ryz  Rzz		-Rzz  Ryz  Rxz
-			 * */
-			matrix::Dcmf R_adapted = _R;		//modified rotation matrix
+		// Tailsitter: rotate measurement from MC to FW frame (controller is in FW frame, interface in MC).
+		// The attitude is world-from-body, so it composes on the right with the body rotation FW -> MC.
+		const Quatf q_current = _vehicle_status.is_vtol_tailsitter ? Quatf(att.q) * _q_mc_to_fw.inversed() : Quatf(att.q);
 
-			/* move z to x */
-			R_adapted(0, 0) = _R(0, 2);
-			R_adapted(1, 0) = _R(1, 2);
-			R_adapted(2, 0) = _R(2, 2);
-
-			/* move x to z */
-			R_adapted(0, 2) = _R(0, 0);
-			R_adapted(1, 2) = _R(1, 0);
-			R_adapted(2, 2) = _R(2, 0);
-
-			/* change direction of pitch (convert to right handed system) */
-			R_adapted(0, 0) = -R_adapted(0, 0);
-			R_adapted(1, 0) = -R_adapted(1, 0);
-			R_adapted(2, 0) = -R_adapted(2, 0);
-
-			/* fill in new attitude data */
-			_R = R_adapted;
-		}
-
-		const matrix::Eulerf euler_angles(_R);
+		const matrix::Eulerf euler_angles(q_current);
 
 		vehicle_manual_poll(euler_angles.psi());
 
@@ -298,14 +276,13 @@ void FixedwingAttitudeControl::Run()
 				const Quatf q_sp(_att_sp.q_d);
 
 				if (q_sp.isAllFinite()) {
-					const Quatf q_current(att.q);
 					const Vector3f att_err = computeAttitudeError(q_current, q_sp);
 
 					Vector3f body_rates_setpoint;
 					body_rates_setpoint = _proportional_gain.emult(att_err);
 
 					// Turn coordination
-					const float V = math::max(get_airspeed_constrained(), 0.1f);
+					const float V = math::max(get_true_airspeed_constrained(), 0.1f);
 					const float q1 = 2.f * (q_current(0) * q_current(1) + q_current(2) * q_current(3)); // equivalent to 2.f * sin(roll) * cos(pitch)
 					const float yawrate_ff = CONSTANTS_ONE_G * q1 / V;
 					const float pitchrate_ff = q1 * yawrate_ff / (1.f - 2.f * q_current(1) * q_current(1) - 2.f * q_current(2) * q_current(2));
@@ -342,13 +319,13 @@ void FixedwingAttitudeControl::Run()
 
 					/* add yaw rate setpoint from sticks in all attitude-controlled modes */
 					if (_vcontrol_mode.flag_control_manual_enabled) {
-						body_rates_setpoint(2) += math::constrain(_manual_control_setpoint.yaw * radians(_param_man_yr_max.get()),
+						body_rates_setpoint(2) += math::constrain(_manual_control_setpoint.yaw * radians(_param_fw_man_yr_max.get()),
 									  -radians(_param_fw_y_rmax.get()), radians(_param_fw_y_rmax.get()));
 					}
 
-					// Tailsitter: transform from FW to hover frame (all interfaces are in hover (body) frame)
+					// Tailsitter: rotate setpoint back from FW to MC frame (controller is in FW frame, interface in MC).
 					if (_vehicle_status.is_vtol_tailsitter) {
-						body_rates_setpoint = Vector3f(body_rates_setpoint(2), body_rates_setpoint(1), -body_rates_setpoint(0));
+						body_rates_setpoint = _q_mc_to_fw.rotateVectorInverse(body_rates_setpoint);
 					}
 
 					/* Publish the rate setpoint for analysis once available */
@@ -391,8 +368,12 @@ void FixedwingAttitudeControl::Run()
 
 			}
 
-			// set now yaw setpoint once we're entering the first time
-			if (!PX4_ISFINITE(_steering_wheel_yaw_setpoint)) {
+			// track the heading commanded by the mode manager (e.g. the runway bearing towards the
+			// takeoff waypoint); if none is provided, hold the heading captured when steering engaged
+			if (PX4_ISFINITE(runway_control.wheel_steering_yaw_setpoint)) {
+				_steering_wheel_yaw_setpoint = runway_control.wheel_steering_yaw_setpoint;
+
+			} else if (!PX4_ISFINITE(_steering_wheel_yaw_setpoint)) {
 				_steering_wheel_yaw_setpoint = euler_angles.psi();
 			}
 

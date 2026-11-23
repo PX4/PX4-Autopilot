@@ -11,8 +11,7 @@ This topic is the recommended entry point when performing first-time configurati
 ## 加载固件
 
 The first step is to [load PX4 firmware](../config/firmware.md) onto your [flight controller](../flight_controller/index.md).
-这一步最容易通过使用 QGroundControl 完成，它会自动选择适合您特定控制器硬件的固件。
-默认情况下，QGC 会安装最新的稳定版本的 PX4，但如果需要，您可以选择测试版或自定义版本。
+这一步最容易通过使用 QGroundControl 完成，它会自动选择适合您特定控制器硬件的固件。默认情况下，QGC 会安装最新的稳定版本的 PX4，但如果需要，您可以选择测试版或自定义版本。
 
 相关章节：
 
@@ -141,6 +140,11 @@ Tuning is the final step, carried out only after most other setup and configurat
   - [MC Jerk-limited Type Trajectory](../config_mc/mc_jerk_limited_type_trajectory.md)
 
 - [Multicopter Racer Setup](../config_mc/racer_setup.md)
+
+- [PID-Wise](https://www.altitude-rd.com/pid-wise) — a commercial web app for interactive multicopter tuning from a flight log.
+  Bugs and questions should be addressed to the maintainer: [Altitude R&D](https://www.altitude-rd.com/home) (not the PX4 forums).
+
+![Genius Tools](../../assets/config/mc/genius_tools.webp)
 
 <!--
 - Explain what you have to tune on PX4, what you can tune, and what each topic covers

@@ -48,6 +48,7 @@
 #include <lib/npfg/AirspeedDirectionController.hpp>
 #include <lib/tecs/TECS.hpp>
 #include <lib/mathlib/mathlib.h>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
@@ -62,10 +63,12 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/fixed_wing_lateral_setpoint.h>
 #include <uORB/topics/fixed_wing_lateral_status.h>
 #include <uORB/topics/fixed_wing_longitudinal_setpoint.h>
+#include <uORB/topics/fuel_tank_status.h>
 #include <uORB/topics/normalized_unsigned_setpoint.h>
 #include <uORB/topics/flight_phase_estimation.h>
 #include <uORB/topics/lateral_control_configuration.h>
@@ -114,6 +117,7 @@ private:
 
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
 	uORB::Subscription _flaps_setpoint_sub{ORB_ID(flaps_setpoint)};
+	uORB::SubscriptionMultiArray<fuel_tank_status_s> _fuel_tank_status_subs{ORB_ID::fuel_tank_status};
 	uORB::Subscription _wind_sub{ORB_ID(wind)};
 	uORB::SubscriptionData<vehicle_control_mode_s> _control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::SubscriptionData<vehicle_air_data_s> _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
@@ -147,25 +151,25 @@ private:
 		(ParamFloat<px4::params::FW_P_LIM_MIN>) _param_fw_p_lim_min,
 		(ParamFloat<px4::params::FW_PN_R_SLEW_MAX>) _param_fw_pn_r_slew_max,
 		(ParamFloat<px4::params::FW_T_HRATE_FF>) _param_fw_t_hrate_ff,
-		(ParamFloat<px4::params::FW_T_ALT_TC>) _param_fw_t_h_error_tc,
-		(ParamFloat<px4::params::FW_T_F_ALT_ERR>) _param_fw_t_fast_alt_err,
+		(ParamFloat<px4::params::FW_T_ALT_TC>) _param_fw_t_alt_tc,
+		(ParamFloat<px4::params::FW_T_F_ALT_ERR>) _param_fw_t_f_alt_err,
 		(ParamFloat<px4::params::FW_T_THR_INTEG>) _param_fw_t_thr_integ,
-		(ParamFloat<px4::params::FW_T_I_GAIN_PIT>) _param_fw_t_I_gain_pit,
+		(ParamFloat<px4::params::FW_T_I_GAIN_PIT>) _param_fw_t_i_gain_pit,
 		(ParamFloat<px4::params::FW_T_PTCH_DAMP>) _param_fw_t_ptch_damp,
 		(ParamFloat<px4::params::FW_T_RLL2THR>) _param_fw_t_rll2thr,
 		(ParamFloat<px4::params::FW_T_SINK_MAX>) _param_fw_t_sink_max,
-		(ParamFloat<px4::params::FW_T_TAS_TC>) _param_fw_t_tas_error_tc,
+		(ParamFloat<px4::params::FW_T_TAS_TC>) _param_fw_t_tas_tc,
 		(ParamFloat<px4::params::FW_T_THR_DAMPING>) _param_fw_t_thr_damping,
 		(ParamFloat<px4::params::FW_T_VERT_ACC>) _param_fw_t_vert_acc,
-		(ParamFloat<px4::params::FW_T_STE_R_TC>) _param_ste_rate_time_const,
-		(ParamFloat<px4::params::FW_T_SEB_R_FF>) _param_seb_rate_ff,
-		(ParamFloat<px4::params::FW_T_SPDWEIGHT>) _param_t_spdweight,
-		(ParamFloat<px4::params::FW_T_CLMB_R_SP>) _param_climbrate_target,
-		(ParamFloat<px4::params::FW_T_SINK_R_SP>) _param_sinkrate_target,
+		(ParamFloat<px4::params::FW_T_STE_R_TC>) _param_fw_t_ste_r_tc,
+		(ParamFloat<px4::params::FW_T_SEB_R_FF>) _param_fw_t_seb_r_ff,
+		(ParamFloat<px4::params::FW_T_SPDWEIGHT>) _param_fw_t_spdweight,
+		(ParamFloat<px4::params::FW_T_CLMB_R_SP>) _param_fw_t_clmb_r_sp,
+		(ParamFloat<px4::params::FW_T_SINK_R_SP>) _param_fw_t_sink_r_sp,
 		(ParamFloat<px4::params::FW_THR_MAX>) _param_fw_thr_max,
 		(ParamFloat<px4::params::FW_THR_MIN>) _param_fw_thr_min,
 		(ParamFloat<px4::params::FW_THR_SLEW_MAX>) _param_fw_thr_slew_max,
-		(ParamFloat<px4::params::FW_LND_THRTC_SC>) _param_fw_thrtc_sc,
+		(ParamFloat<px4::params::FW_LND_THRTC_SC>) _param_fw_lnd_thrtc_sc,
 		(ParamFloat<px4::params::FW_T_THR_LOW_HGT>) _param_fw_t_thr_low_hgt,
 		(ParamFloat<px4::params::FW_WIND_ARSP_SC>) _param_fw_wind_arsp_sc,
 		(ParamFloat<px4::params::FW_GND_SPD_MIN>) _param_fw_gnd_spd_min,
@@ -180,7 +184,6 @@ private:
 	// Smooths changes in the altitude tracking error time constant value
 	SlewRate<float> _tecs_alt_time_const_slew_rate;
 	struct longitudinal_control_state {
-		float pitch_rad{0.f};
 		float altitude_msl{0.f};
 		float airspeed_eas{0.f};
 		float eas2tas{1.f};
@@ -202,7 +205,11 @@ private:
 	bool _landed{false};
 	float _can_run_factor{0.f};
 	float _load_factor_from_bank_angle{1.f};
-	SlewRate<float> _airspeed_slew_rate_controller;
+	SlewRate<float> _airspeed_slew_rate_controller{NAN}; ///< NAN while TECS is not running -- see adapt_airspeed_setpoint
+
+	AlphaFilter<float> _fuel_fraction_filter;
+	hrt_abstime _time_last_fuel_fraction_update{0};
+	bool _ignored_fuel_tank_reported{false}; ///< true if the warning about an ignored fuel tank id was already sent
 
 	perf_counter_t _loop_perf; // loop performance counter
 
@@ -234,6 +241,8 @@ private:
 	float mapLateralAccelerationToRollAngle(float lateral_acceleration_sp) const;
 
 	void updateWind(hrt_abstime now);
+
+	void updateFuelState();
 
 	void updateTECSAltitudeTimeConstant(const bool is_low_height, const float dt);
 

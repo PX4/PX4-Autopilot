@@ -45,25 +45,45 @@ public:
 			return NAN;
 		}
 
-		_difference_filter.setParameters(dt_s, .1f);
+		_difference_filter.setParameters(dt_s, .05f);
 
 		// Leave _diff at 0.0f if we don't have a _last_value yet.
 		if (PX4_ISFINITE(_last_value)) {
 			const float new_diff = (value - _last_value) / dt_s;
 			_difference_filter.update(new_diff);
+
+			// Count consecutive same-sign raw-velocity samples (rejects random noise).
+			const int8_t s = (new_diff > 0.f) ? 1 : (new_diff < 0.f) ? -1 : 0;
+
+			if (s != 0) {
+				if (s == _last_sign && _consecutive_same_sign < UINT8_MAX) {
+					_consecutive_same_sign++;
+
+				} else {
+					_consecutive_same_sign = 1;
+				}
+
+				_last_sign = s;
+			}
 		}
 
 		_last_value = value;
 		return _difference_filter.getState();
 	}
 
+	uint8_t consecutiveSameSign() const { return _consecutive_same_sign; }
+
 	void reset()
 	{
 		_difference_filter.reset(0.f);
 		_last_value = NAN;
+		_last_sign = 0;
+		_consecutive_same_sign = 0;
 	}
 
 private:
 	AlphaFilter<float> _difference_filter;
 	float _last_value{NAN};
+	int8_t _last_sign{0};
+	uint8_t _consecutive_same_sign{0};
 };

@@ -85,6 +85,9 @@ FixedwingRateControl::parameters_update()
 	_rate_control.setIntegratorLimit(
 		Vector3f(_param_fw_rr_imax.get(), _param_fw_pr_imax.get(), _param_fw_yr_imax.get()));
 
+	_gain_compression.setEnabled(_param_fw_gc_en.get());
+	_gain_compression.setCompressionGainMin(_param_fw_gc_gain_min.get());
+
 	if (_handle_param_vt_fw_difthr_en != PARAM_INVALID) {
 		param_get(_handle_param_vt_fw_difthr_en, &_param_vt_fw_difthr_en);
 	}
@@ -119,20 +122,20 @@ FixedwingRateControl::vehicle_manual_poll()
 				_rates_sp.timestamp = hrt_absolute_time();
 				_rates_sp.pitch = -_manual_control_setpoint.pitch * radians(_param_fw_acro_y_max.get());
 				_rates_sp.thrust_body[0] = (_manual_control_setpoint.throttle + 1.f) * .5f;
+				_rates_sp.thrust_body[1] = 0.f;
+				_rates_sp.thrust_body[2] = 0.f;
 				_rates_sp.reset_integral = false;
 
 				_rate_sp_pub.publish(_rates_sp);
 
 			} else {
 				// Manual/direct control, filled in FW-frame. Note that setpoints will get transformed to body frame prior publishing.
-				const float airspeed_scaling_sq = _airspeed_scaling * _airspeed_scaling;
-
 				_vehicle_torque_setpoint.xyz[0] = math::constrain(_manual_control_setpoint.roll * _param_fw_man_r_sc.get() +
-								  _param_trim_roll.get() * airspeed_scaling_sq, -1.f, 1.f);
+								  _param_trim_roll.get(), -1.f, 1.f);
 				_vehicle_torque_setpoint.xyz[1] = math::constrain(-_manual_control_setpoint.pitch * _param_fw_man_p_sc.get() +
-								  _param_trim_pitch.get() * airspeed_scaling_sq, -1.f, 1.f);
+								  _param_trim_pitch.get(), -1.f, 1.f);
 				_vehicle_torque_setpoint.xyz[2] = math::constrain(_manual_control_setpoint.yaw * _param_fw_man_y_sc.get() +
-								  _param_trim_yaw.get() * airspeed_scaling_sq, -1.f, 1.f);
+								  _param_trim_yaw.get(), -1.f, 1.f);
 
 				_vehicle_thrust_setpoint.xyz[0] = math::constrain((_manual_control_setpoint.throttle + 1.f) * .5f, 0.f, 1.f);
 			}
@@ -186,6 +189,7 @@ float FixedwingRateControl::get_airspeed_and_update_scaling(float dt)
 	 * For scaling our actuators using anything less than the stall
 	 * speed doesn't make any sense - its the strongest reasonable deflection we
 	 * want to do in flight and it's the baseline a human pilot would choose.
+	 * When landed the scale is limited to >=1 to avoid servo oscillation.
 	 *
 	 * Forcing the scaling to this value allows reasonable handheld tests.
 	 */
@@ -195,6 +199,10 @@ float FixedwingRateControl::get_airspeed_and_update_scaling(float dt)
 		const float min_airspeed = math::max(_param_fw_airspd_stall.get(), 0.1f);
 		const float airspeed_constrained = math::max(airspeed, min_airspeed);
 		_airspeed_scaling = _param_fw_airspd_trim.get() / airspeed_constrained;
+
+		if (_landed) {
+			_airspeed_scaling = math::min(_airspeed_scaling, 1.f);
+		}
 
 	} else {
 		_airspeed_scaling = 1.0f;
@@ -379,7 +387,16 @@ void FixedwingRateControl::Run()
 				}
 
 				const Vector3f gain_ff(_param_fw_rr_ff.get(), _param_fw_pr_ff.get(), _param_fw_yr_ff.get());
-				const Vector3f scaled_gain_ff = gain_ff / _airspeed_scaling;
+
+				// Positive feedforward compensates aerodynamic damping and is scaled linearly with airspeed.
+				// Negative feedforward instead weights down the setpoint acting on the P gain (turning the
+				// controller into a 2-DOF controller).
+				Vector3f scaled_gain_ff;
+
+				for (int i = 0; i < 3; i++) {
+					scaled_gain_ff(i) = (gain_ff(i) >= 0.f) ? gain_ff(i) / _airspeed_scaling : gain_ff(i);
+				}
+
 				_rate_control.setFeedForwardGain(scaled_gain_ff);
 
 				// Run attitude RATE controllers which need the desired attitudes from above, add trim.
@@ -404,22 +421,31 @@ void FixedwingRateControl::Run()
 					trim.copyTo(_vehicle_torque_setpoint.xyz);
 				}
 
-				/* throttle passed through if it is finite */
-				_vehicle_thrust_setpoint.xyz[0] = PX4_ISFINITE(_rates_sp.thrust_body[0]) ? _rates_sp.thrust_body[0] : 0.0f;
+				float thrust_setpoint = _rates_sp.thrust_body[0];
 
-				/* scale effort by battery status */
-				if (_param_fw_bat_scale_en.get() && _vehicle_thrust_setpoint.xyz[0] > 0.1f) {
+				// Zero thrust is passed through and maps to the motor's minimum output (PWM_MIN etc.).
+				// Motor is stopped by setting the output to NAN (per definition) if the setpoint is invalid.
+				if (PX4_ISFINITE(thrust_setpoint)) {
+					/* scale effort by battery status */
+					if (_param_fw_bat_scale_en.get()) {
 
-					if (_battery_status_sub.updated()) {
-						battery_status_s battery_status{};
+						if (_battery_status_sub.updated()) {
+							battery_status_s battery_status{};
 
-						if (_battery_status_sub.copy(&battery_status) && battery_status.connected && battery_status.scale > 0.f) {
-							_battery_scale = battery_status.scale;
+							if (_battery_status_sub.copy(&battery_status) && battery_status.connected && battery_status.scale > 0.f) {
+								_battery_scale = battery_status.scale;
+							}
 						}
+
+						thrust_setpoint *= _battery_scale;
 					}
 
-					_vehicle_thrust_setpoint.xyz[0] *= _battery_scale;
+				} else {
+					thrust_setpoint = NAN;
 				}
+
+				_vehicle_thrust_setpoint.xyz[0] = thrust_setpoint;
+
 			}
 
 			// publish rate controller status
@@ -498,6 +524,10 @@ void FixedwingRateControl::Run()
 				flaps_control = PX4_ISFINITE(_manual_control_setpoint.flaps) ? math::max(_manual_control_setpoint.flaps, 0.f) : 0.f;
 				break;
 
+			case 7:
+				flaps_control = PX4_ISFINITE(_manual_control_setpoint.aux6) ? math::max(_manual_control_setpoint.aux6, 0.f) : 0.f;
+				break;
+
 
 			}
 
@@ -531,6 +561,14 @@ void FixedwingRateControl::Run()
 
 			case 5:
 				spoilers_control = PX4_ISFINITE(_manual_control_setpoint.aux4) ? math::max(_manual_control_setpoint.aux4, 0.f) : 0.f;
+				break;
+
+			case 6:
+				spoilers_control = PX4_ISFINITE(_manual_control_setpoint.aux5) ? math::max(_manual_control_setpoint.aux5, 0.f) : 0.f;
+				break;
+
+			case 7:
+				spoilers_control = PX4_ISFINITE(_manual_control_setpoint.aux6) ? math::max(_manual_control_setpoint.aux6, 0.f) : 0.f;
 				break;
 			}
 

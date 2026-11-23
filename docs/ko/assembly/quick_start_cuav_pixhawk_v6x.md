@@ -39,7 +39,7 @@ If the controller cannot be mounted in the recommended/default orientation (e.g.
 
 ## GPS + 나침반 + 부저 + 안전 스위치 + LED
 
-The Pixhawk<sup>&reg;</sup> V6X can be purchased with a [NEO3 GPS](https://store.cuav.net/shop/neo-3/) (10-pin connector) and should be connected to the **GPS1** port.
+The Pixhawk<sup>&reg;</sup> V6X can be purchased with a [NEO3 GPS](https://store.cuav.net/shop/neo-3-pro/) (10-pin connector) and should be connected to the **GPS1** port.
 These GNSS modules feature an integrated compass, safety switch, buzzer and LEDs.
 
 If you need to use assisted GPS, connect to the **GPS2** port.
@@ -49,7 +49,7 @@ The GPS/compass should be [mounted on the frame](../assembly/mount_gps_compass.m
 ![GPS](../../assets/flight_controller/cuav_pixhawk_v6x/quickstart_03.jpg)
 
 :::info
-Pixhawk V6X<sup>&reg;</sup> is not compatible with NEO V2 GPS built-in buzzer: you should use [NEO3/NEO 3Pro](https://store.cuav.net/shop/neo-3/) instead.
+Pixhawk V6X<sup>&reg;</sup> is not compatible with NEO V2 GPS built-in buzzer: you should use [NEO3/NEO 3Pro](https://store.cuav.net/shop/neo-3-pro/) instead.
 The GPS module's integrated safety switch is enabled _by default_ (when enabled, PX4 will not let you arm the vehicle).
 비활성화하려면 안전 스위치를 1초간 길게 누르십시오.
 안전 스위치를 다시 눌러 안전 장치를 활성화하고 기체 시동을 끌 수 있습니다.
@@ -86,7 +86,7 @@ A lower voltage of 5V is still acceptable but discouraged.
 The vehicle-based radio should be connected to the **TELEM1**/**TELEM2**/**TELEM3** port as shown below (if connected to **TELEM1**, no further configuration is required).
 다른 텔레메트리는 일반적으로 지상국 컴퓨터나 모바일 장치에 USB를 통하여 연결됩니다.
 
-You can also purchase telemetry radios from the [CUAV store](https://store.cuav.net/uav-telemetry-module/).
+You can also purchase telemetry radios from the [CUAV store](https://store.cuav.net/category/telemetry/).
 
 ![Telemetry radios](../../assets/flight_controller/cuav_pixhawk_v6x/quickstart_06.jpg)
 

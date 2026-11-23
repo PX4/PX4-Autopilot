@@ -80,6 +80,7 @@ private:
 			mavlink_hil_state_quaternion_t msg{};
 
 			// vehicle_attitude -> hil_state_quaternion
+			msg.time_usec = att.timestamp;
 			msg.attitude_quaternion[0] = att.q[0];
 			msg.attitude_quaternion[1] = att.q[1];
 			msg.attitude_quaternion[2] = att.q[2];

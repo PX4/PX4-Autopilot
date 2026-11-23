@@ -258,6 +258,7 @@ public:
 
 	/**
 	 * Unadvertise a topic.
+	 * This hides the topic instance from all subscribers, including data from other publishers of a single-instance topic.
 	 *
 	 * @param handle  handle returned by orb_advertise or orb_advertise_multi.
 	 * @return 0 on success
@@ -307,7 +308,7 @@ public:
 	 * @return    PX4_ERROR on error, otherwise returns a handle
 	 *      that can be used to read and update the topic.
 	 */
-	int  orb_subscribe(const struct orb_metadata *meta);
+	orb_sub_t orb_subscribe(const struct orb_metadata *meta);
 
 	/**
 	 * Subscribe to a multi-instance of a topic.
@@ -345,7 +346,7 @@ public:
 	 *      ORB_DEFINE_OPTIONAL with no corresponding ORB_DECLARE)
 	 *      this function will return -1 and set errno to ENOENT.
 	 */
-	int  orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance);
+	orb_sub_t orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance);
 
 	/**
 	 * Unsubscribe from a topic.
@@ -353,7 +354,7 @@ public:
 	 * @param handle  A handle returned from orb_subscribe.
 	 * @return    OK on success, PX4_ERROR otherwise with errno set accordingly.
 	 */
-	int  orb_unsubscribe(int handle);
+	int orb_unsubscribe(orb_sub_t handle);
 
 	/**
 	 * Fetch data from a topic.
@@ -371,7 +372,7 @@ public:
 	 *      using the data.
 	 * @return    OK on success, PX4_ERROR otherwise with errno set accordingly.
 	 */
-	int  orb_copy(const struct orb_metadata *meta, int handle, void *buffer);
+	int orb_copy(const struct orb_metadata *meta, orb_sub_t handle, void *buffer);
 
 	/**
 	 * Check whether a topic has been published to since the last orb_copy.
@@ -389,7 +390,7 @@ public:
 	 * @return    OK if the check was successful, PX4_ERROR otherwise with
 	 *      errno set accordingly.
 	 */
-	int  orb_check(int handle, bool *updated);
+	int orb_check(orb_sub_t handle, bool *updated);
 
 	/**
 	 * Check if a topic has already been created and published (advertised)
@@ -418,7 +419,7 @@ public:
 	 * @param interval  An interval period in milliseconds.
 	 * @return    OK on success, PX4_ERROR otherwise with ERRNO set accordingly.
 	 */
-	int  orb_set_interval(int handle, unsigned interval);
+	int orb_set_interval(orb_sub_t handle, unsigned interval);
 
 
 	/**
@@ -430,9 +431,15 @@ public:
 	 * @param interval  The returned interval period in milliseconds.
 	 * @return    OK on success, PX4_ERROR otherwise with ERRNO set accordingly.
 	 */
-	int	orb_get_interval(int handle, unsigned *interval);
+	int	orb_get_interval(orb_sub_t handle, unsigned *interval);
 
 	static bool orb_device_node_exists(ORB_ID orb_id, uint8_t instance);
+
+	/**
+	 * Changes every time a device node is added, so a failed orb_add_internal_subscriber() cannot
+	 * succeed before it changes. 0 if unknown, e.g. in user space of a protected build.
+	 */
+	static unsigned orb_node_generation();
 
 	static void *orb_add_internal_subscriber(ORB_ID orb_id, uint8_t instance, unsigned *initial_generation);
 
@@ -460,6 +467,27 @@ public:
 	static unsigned updates_available(const void *node_handle, unsigned last_generation);
 
 	static bool is_advertised(const void *node_handle);
+#endif
+
+#if defined(CONFIG_BUILD_FLAT) || !defined(__PX4_NUTTX)
+	/* Publish through a node handle whose data is known to match its topic (the typed wrappers). */
+	static int orb_publish_node(orb_advert_t handle, const void *data)
+	{
+#ifdef ORB_USE_PUBLISHER_RULES
+
+		if (handle == _Instance) {
+			return PX4_OK; //pretend success
+		}
+
+#endif /* ORB_USE_PUBLISHER_RULES */
+
+		if ((handle == nullptr) || (data == nullptr)) {
+			errno = EFAULT;
+			return PX4_ERROR;
+		}
+
+		return static_cast<DeviceNode *>(handle)->publish_data(data);
+	}
 #endif
 
 #ifdef CONFIG_ORB_COMMUNICATOR

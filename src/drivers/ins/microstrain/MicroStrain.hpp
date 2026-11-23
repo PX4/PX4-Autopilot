@@ -55,9 +55,11 @@
 #include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/sensor_baro.h>
 
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_gnss.h>
+#include <uORB/topics/vehicle_gnss_heading.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -167,9 +169,9 @@ private:
 
 	void initializeRefPos();
 
-	void updateGeoidHeight(float geoid_height, float t);
+	void updateGeoidHeight(float geoid_height, hrt_abstime t);
 
-	void sendGPSAiding();
+	void sendGnssAiding();
 
 	void sendMagAiding();
 
@@ -211,8 +213,8 @@ private:
 	float opt_flow_uncert = 0.0;
 
 	AlphaFilter<float> _geoid_height_lpf;
-	uint64_t _last_geoid_height_update_us{0};
-	static constexpr float kGeoidHeightLpfTimeConstant = 10.f;
+	hrt_abstime _last_geoid_height_update_us{0};
+	static constexpr hrt_abstime kGeoidHeightLpfTimeConstant = 10_s;
 
 	MapProjection _pos_ref{};
 	double _ref_alt = 0;
@@ -245,36 +247,36 @@ private:
 		(ParamInt<px4::params::MS_IMU_RATE_HZ>) _param_ms_imu_rate_hz,
 		(ParamInt<px4::params::MS_MAG_RATE_HZ>) _param_ms_mag_rate_hz,
 		(ParamInt<px4::params::MS_BARO_RATE_HZ>) _param_ms_baro_rate_hz,
-		(ParamInt<px4::params::MS_FILT_RATE_HZ>) _param_ms_filter_rate_hz,
+		(ParamInt<px4::params::MS_FILT_RATE_HZ>) _param_ms_filt_rate_hz,
 		(ParamInt<px4::params::MS_GNSS_RATE_HZ>) _param_ms_gnss_rate_hz,
 		(ParamInt<px4::params::MS_ALIGNMENT>) _param_ms_alignment,
-		(ParamInt<px4::params::MS_GNSS_AID_SRC>) _param_ms_gnss_aid_src_ctrl,
+		(ParamInt<px4::params::MS_GNSS_AID_SRC>) _param_ms_gnss_aid_src,
 		(ParamInt<px4::params::MS_INT_MAG_EN>) _param_ms_int_mag_en,
 		(ParamInt<px4::params::MS_EXT_MAG_EN>) _param_ms_ext_mag_en,
-		(ParamInt<px4::params::MS_INT_HEAD_EN>) _param_ms_int_heading_en,
-		(ParamInt<px4::params::MS_EXT_HEAD_EN>) _param_ms_ext_heading_en,
-		(ParamInt<px4::params::MS_OPT_FLOW_EN>) _param_ms_ext_opt_flow_en,
+		(ParamInt<px4::params::MS_INT_HEAD_EN>) _param_ms_int_head_en,
+		(ParamInt<px4::params::MS_EXT_HEAD_EN>) _param_ms_ext_head_en,
+		(ParamInt<px4::params::MS_OPT_FLOW_EN>) _param_ms_opt_flow_en,
 		(ParamInt<px4::params::MS_SVT_EN>) _param_ms_svt_en,
-		(ParamInt<px4::params::MS_ACCEL_RANGE>) _param_ms_accel_range_setting,
-		(ParamInt<px4::params::MS_GYRO_RANGE>) _param_ms_gyro_range_setting,
-		(ParamFloat<px4::params::MS_GNSS_OFF1_X>) _param_ms_gnss_offset1_x,
-		(ParamFloat<px4::params::MS_GNSS_OFF1_Y>) _param_ms_gnss_offset1_y,
-		(ParamFloat<px4::params::MS_GNSS_OFF1_Z>) _param_ms_gnss_offset1_z,
-		(ParamFloat<px4::params::MS_GNSS_OFF2_X>) _param_ms_gnss_offset2_x,
-		(ParamFloat<px4::params::MS_GNSS_OFF2_Y>) _param_ms_gnss_offset2_y,
-		(ParamFloat<px4::params::MS_GNSS_OFF2_Z>) _param_ms_gnss_offset2_z,
+		(ParamInt<px4::params::MS_ACCEL_RANGE>) _param_ms_accel_range,
+		(ParamInt<px4::params::MS_GYRO_RANGE>) _param_ms_gyro_range,
+		(ParamFloat<px4::params::MS_GNSS_OFF1_X>) _param_ms_gnss_off1_x,
+		(ParamFloat<px4::params::MS_GNSS_OFF1_Y>) _param_ms_gnss_off1_y,
+		(ParamFloat<px4::params::MS_GNSS_OFF1_Z>) _param_ms_gnss_off1_z,
+		(ParamFloat<px4::params::MS_GNSS_OFF2_X>) _param_ms_gnss_off2_x,
+		(ParamFloat<px4::params::MS_GNSS_OFF2_Y>) _param_ms_gnss_off2_y,
+		(ParamFloat<px4::params::MS_GNSS_OFF2_Z>) _param_ms_gnss_off2_z,
 		(ParamFloat<px4::params::MS_SENSOR_ROLL>) _param_ms_sensor_roll,
-		(ParamFloat<px4::params::MS_SENSOR_PTCH>) _param_ms_sensor_pitch,
+		(ParamFloat<px4::params::MS_SENSOR_PTCH>) _param_ms_sensor_ptch,
 		(ParamFloat<px4::params::MS_SENSOR_YAW>) _param_ms_sensor_yaw,
 		(ParamFloat<px4::params::MS_EMAG_ROLL>) _param_ms_emag_roll,
-		(ParamFloat<px4::params::MS_EMAG_PTCH>) _param_ms_emag_pitch,
+		(ParamFloat<px4::params::MS_EMAG_PTCH>) _param_ms_emag_ptch,
 		(ParamFloat<px4::params::MS_EMAG_YAW>) _param_ms_emag_yaw,
-		(ParamFloat<px4::params::MS_OFLW_OFF_X>) _param_ms_oflow_offset_x,
-		(ParamFloat<px4::params::MS_OFLW_OFF_Y>) _param_ms_oflow_offset_y,
-		(ParamFloat<px4::params::MS_OFLW_OFF_Z>) _param_ms_oflow_offset_z,
+		(ParamFloat<px4::params::MS_OFLW_OFF_X>) _param_ms_oflw_off_x,
+		(ParamFloat<px4::params::MS_OFLW_OFF_Y>) _param_ms_oflw_off_y,
+		(ParamFloat<px4::params::MS_OFLW_OFF_Z>) _param_ms_oflw_off_z,
 		(ParamFloat<px4::params::MS_EHEAD_YAW>) _param_ms_ehead_yaw,
 		(ParamFloat<px4::params::MS_EMAG_UNCERT>) _param_ms_emag_uncert,
-		(ParamFloat<px4::params::MS_OFLW_UNCERT>) _param_ms_oflow_uncert
+		(ParamFloat<px4::params::MS_OFLW_UNCERT>) _param_ms_oflw_uncert
 	)
 
 	// Sensor types needed for message creation / updating / publishing
@@ -285,7 +287,7 @@ private:
 
 	// Must publish to prevent sensor stale failure (sensors module)
 	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
-	uORB::PublicationMulti<sensor_gps_s> _sensor_gps_pub[2] {ORB_ID(sensor_gps), ORB_ID(sensor_gps)};
+	uORB::PublicationMulti<sensor_gnss_s> _sensor_gnss_pub[2] {ORB_ID(sensor_gnss), ORB_ID(sensor_gnss)};
 	uORB::Publication<sensor_selection_s> _sensor_selection_pub{ORB_ID(sensor_selection)};
 
 	uORB::Publication<vehicle_global_position_s> _vehicle_global_position_pub;
@@ -299,7 +301,8 @@ private:
 
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s}; // subscription limited to 1 Hz updates
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
+	uORB::Subscription _vehicle_gnss_heading_sub{ORB_ID(vehicle_gnss_heading)};
 	uORB::Subscription _vehicle_magnetometer_sub{ORB_ID(vehicle_magnetometer)};
 	uORB::Subscription _vehicle_optical_flow_vel_sub{ORB_ID(vehicle_optical_flow_vel)};
 };

@@ -15,6 +15,7 @@
 #include <lib/rc/sumd.h>
 #include <lib/rc/crsf.h>
 #include <lib/rc/ghst.hpp>
+#include <lib/rc/common_rc.h>
 
 #if defined(CONFIG_ARCH_BOARD_PX4_SITL)
 #define TEST_DATA_PATH "./test_data/"
@@ -38,8 +39,11 @@ private:
 	bool dsmTest22msDSMX16Ch();
 	bool dsmTestOrangeDsmx();
 	bool sbus2Test();
+	bool st24MalformedLengthTest();
 	bool st24Test();
 	bool sumdTest();
+	bool crossProtocolSharedUnionOobTest();
+	bool sumdSharedBufferTest();
 };
 
 bool RCTest::run_tests()
@@ -51,8 +55,11 @@ bool RCTest::run_tests()
 	ut_run_test(dsmTest22msDSMX16Ch);
 	ut_run_test(dsmTestOrangeDsmx);
 	ut_run_test(sbus2Test);
+	ut_run_test(st24MalformedLengthTest);
 	ut_run_test(st24Test);
 	ut_run_test(sumdTest);
+	ut_run_test(crossProtocolSharedUnionOobTest);
+	ut_run_test(sumdSharedBufferTest);
 
 	return (_tests_failed == 0);
 }
@@ -396,6 +403,38 @@ bool RCTest::sbus2Test()
 	return true;
 }
 
+bool RCTest::st24MalformedLengthTest()
+{
+	uint8_t rssi{};
+	uint8_t lost_count{};
+	uint16_t channel_count{};
+	uint16_t channels[24] {};
+	const uint8_t invalid_lengths[] {0, 1};
+
+	for (const uint8_t invalid_length : invalid_lengths) {
+		const uint8_t prefix[] {ST24_STX1, ST24_STX2, invalid_length, 0};
+
+		for (const uint8_t byte : prefix) {
+			(void)st24_decode(byte, &rssi, &lost_count, &channel_count, channels, 24);
+		}
+
+		for (unsigned i = 0; i <= ST24_DATA_LEN_MAX; ++i) {
+			(void)st24_decode(0xaa, &rssi, &lost_count, &channel_count, channels, 24);
+		}
+	}
+
+	uint8_t minimal_packet[] {ST24_STX1, ST24_STX2, 2, 0xff, 0};
+	minimal_packet[4] = st24_common_crc8(&minimal_packet[2], 2);
+	int result = 1;
+
+	for (const uint8_t byte : minimal_packet) {
+		result = st24_decode(byte, &rssi, &lost_count, &channel_count, channels, 24);
+	}
+
+	ut_test(result == 2);
+	return true;
+}
+
 bool RCTest::st24Test()
 {
 	const char *filepath = TEST_DATA_PATH "st24_data.txt";
@@ -517,6 +556,101 @@ bool RCTest::sumdTest()
 
 	ut_test(ret == EOF);
 
+	return true;
+}
+
+bool RCTest::crossProtocolSharedUnionOobTest()
+{
+	uint8_t rssi{}, lost{};
+	uint16_t channel_count{};
+	uint16_t channels[18] {}; // input_rc_s::RC_INPUT_MAX_CHANNELS
+
+	PX4_INFO("rc_decode_buf address=%p size=%zu", (void *)&rc_decode_buf, sizeof(rc_decode_buf));
+
+	st24_decode(ST24_STX1, &rssi, &lost, &channel_count, channels, 18);
+	st24_decode(ST24_STX2, &rssi, &lost, &channel_count, channels, 18);
+	st24_decode(66, &rssi, &lost, &channel_count, channels, 18); // length=66
+	st24_decode(0x00, &rssi, &lost, &channel_count, channels, 18); // type
+
+	for (int i = 0; i < 60; i++) {
+		st24_decode(0xAA, &rssi, &lost, &channel_count, channels, 18);
+	}
+
+	uint16_t dsm_values[18]; uint16_t dsm_num_values = 0; bool dsm_11bit = false;
+	unsigned dsm_frame_drops = 0; int8_t dsm_rssi = 0;
+	const uint8_t dsm_bytes[8] = {0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00};
+	dsm_parse(hrt_absolute_time(), dsm_bytes, sizeof(dsm_bytes), dsm_values, &dsm_num_values,
+		  &dsm_11bit, &dsm_frame_drops, &dsm_rssi, 18);
+
+	PX4_INFO("resuming ST24 after cross-protocol union clobber (expect OOB write under ASan/UBSan)");
+
+	for (int i = 0; i < 20; i++) {
+		st24_decode(0xBB, &rssi, &lost, &channel_count, channels, 18);
+	}
+
+	PX4_INFO("crossProtocolSharedUnionOobTest: completed without crashing "
+		 "(no sanitizer active, or already reset upstream)");
+
+	return true;
+}
+
+bool RCTest::sumdSharedBufferTest()
+{
+	// The decoders share rc_decode_buf, and px4io feeds the same bytes to ST24 and SUMD.
+	// An ST24 frame start overwrites the SUMD length field while a SUMD frame is in
+	// progress. SUMD has to stop at the channel count it received itself.
+	uint8_t rssi{};
+	uint8_t rx_count{};
+	uint8_t lost_count{};
+	uint16_t channel_count{};
+	uint16_t channels[24] {};
+	bool failsafe{};
+
+	sumd_reset();
+	st24_reset();
+
+	// SUMD frame with 2 channels, first data byte received.
+	const uint8_t sumd_start[] {SUMD_HEADER_ID, SUMD_ID_SUMD, 2, 0x11};
+
+	for (const uint8_t byte : sumd_start) {
+		(void)sumd_decode(byte, &rssi, &rx_count, &channel_count, channels, 24, &failsafe);
+	}
+
+	// ST24 frame start, which stores a length of 66 in the shared buffer.
+	const uint8_t st24_start[] {ST24_STX1, ST24_STX2, 66};
+
+	for (const uint8_t byte : st24_start) {
+		(void)st24_decode(byte, &rssi, &lost_count, &channel_count, channels, 24);
+	}
+
+	st24_reset();
+
+	// Enough bytes to finish the 2 channel frame, far fewer than a 66 channel one. If
+	// SUMD followed the overwritten length it would swallow the frame below.
+	for (unsigned i = 0; i < 20; ++i) {
+		(void)sumd_decode(0, &rssi, &rx_count, &channel_count, channels, 24, &failsafe);
+	}
+
+	// A valid 4 channel frame must decode afterwards.
+	uint8_t frame[] {SUMD_HEADER_ID, SUMD_ID_SUMD, 4, 0x2e, 0xe0, 0x2e, 0xe0, 0x2e, 0xe0, 0x2e, 0xe0, 0, 0};
+	uint16_t crc = 0;
+
+	for (unsigned i = 0; i < sizeof(frame) - 2; ++i) {
+		crc = sumd_crc16(crc, frame[i]);
+	}
+
+	frame[sizeof(frame) - 2] = crc >> 8;
+	frame[sizeof(frame) - 1] = crc & 0xff;
+
+	int result = 1;
+
+	for (const uint8_t byte : frame) {
+		result = sumd_decode(byte, &rssi, &rx_count, &channel_count, channels, 24, &failsafe);
+	}
+
+	ut_test(result == 0);
+	ut_test(channel_count == 4);
+	ut_test(channels[0] == 1500);
 	return true;
 }
 

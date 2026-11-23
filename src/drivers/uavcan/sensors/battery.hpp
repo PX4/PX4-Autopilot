@@ -47,6 +47,8 @@
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/module_params.h>
 
+#include <lib/failure_injection/FailureInjection.hpp>
+
 using namespace time_literals;
 
 class UavcanBatteryBridge : public UavcanSensorBridgeBase, public ModuleParams
@@ -74,6 +76,9 @@ private:
 	void battery_aux_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::equipment::power::BatteryInfoAux> &msg);
 	void cbat_sub_cb(const uavcan::ReceivedDataStructure<cuav::equipment::power::CBAT> &msg);
 	void filterData(const uavcan::ReceivedDataStructure<uavcan::equipment::power::BatteryInfo> &msg, uint8_t instance);
+
+	// Applies any active battery failure injection to _battery_status[instance] before publishing.
+	void publishBattery(int node_id, uint8_t instance);
 
 	typedef uavcan::MethodBinder < UavcanBatteryBridge *,
 		void (UavcanBatteryBridge::*)
@@ -103,6 +108,8 @@ private:
 	float _discharged_mah_loop = 0.f;
 	uint8_t _warning;
 	hrt_abstime _last_timestamp;
+
+	failure_injection::Config _failure_config;
 
 	// Separate battery info publication because UavcanSensorBridgeBase only supports publishing one topic
 	uORB::PublicationMulti<battery_info_s> _battery_info_pub[battery_status_s::MAX_INSTANCES] {ORB_ID(battery_info), ORB_ID(battery_info), ORB_ID(battery_info)};

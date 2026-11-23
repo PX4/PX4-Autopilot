@@ -51,7 +51,7 @@ ESC가 초기화되고 모터가 올바른 방향으로 회전하여야 합니�
 ## ESC Commands {#commands}
 
 Commands can be sent to the ESC via the [MAVLink shell](../debug/mavlink_shell.md).
-See [here](../modules/modules_driver.md#dshot) for a full reference of the supported commands.
+See the [`dshot` module](../modules/modules_driver.md#dshot) for a full reference of the supported commands.
 
 ## ESC Telemetry
 
@@ -130,17 +130,49 @@ When both serial telemetry and BDShot/EDT are enabled, the driver merges data fr
 
 ## AM32 ESC Settings (EEPROM)
 
-PX4 can read and write AM32 ESC firmware settings (EEPROM) via a ground station, enabling remote ESC configuration without connecting directly to each ESC.
+PX4 logs the AM32 ESC firmware settings (EEPROM), and a ground station can read and write them without connecting to each ESC.
 
 ### Requirements
 
 - ESCs running [AM32 firmware](https://github.com/am32-firmware/AM32) with serial telemetry connected ([DSHOT_TEL_CFG](../advanced_config/parameter_reference.md#DSHOT_TEL_CFG))
 - `DSHOT_ESC_TYPE` set to `1` (AM32)
-- Ground station with ESC EEPROM support (QGroundControl feature in development)
-- MAVLink development dialect enabled on the flight controller
+- For ground station access only:
+  - Ground station with ESC EEPROM support (QGroundControl feature in development)
+  - MAVLink development dialect enabled on the flight controller
 
 ### How It Works
 
-PX4 automatically reads the full EEPROM from each ESC on boot.
+PX4 reads the full EEPROM from each ESC while disarmed: at boot, when the ESC reconnects, after its settings are saved, and when a ground station requests it.
 The ground station can then display individual settings and allow the user to modify them.
 Changes are written back to the ESC one byte at a time using the DShot programming protocol.
+
+### Logged Settings
+
+The last settings read from each ESC are logged in the `esc_eeprom_read` topic when they are read, and again every 10 seconds.
+Decode them with `Tools/esc_eeprom_decode.py` and the AM32 EEPROM layout schema, [`schema/eeprom.json`](https://github.com/ARK-Electronics/ARK32/blob/main/schema/eeprom.json) in the ARK32 firmware:
+
+```sh
+pip install pyulog
+curl -O https://raw.githubusercontent.com/ARK-Electronics/ARK32/main/schema/eeprom.json
+Tools/esc_eeprom_decode.py <log.ulg> --schema eeprom.json --esc 1
+```
+
+Omit `--esc` to decode every ESC.
+
+## ESC Serial Passthrough
+
+<Badge type="tip" text="main (PX4 v2.0)" />
+
+On STM32F7/H7 boards, PX4 can pass UART traffic through an ESC signal pin using a software bit-bang UART.
+This lets ESC configuration and firmware tools on a ground station or companion computer talk to the ESC over MAVLink, without disconnecting it from the flight controller.
+
+To use it, run the [bridge application](../uart/serial_passthrough.md#bridge-application) (`Tools/mavlink_serial_bridge.py`) on the computer connected to the vehicle, and point the tool at the virtual serial port it creates.
+Only one ESC channel can be used at a time, at up to 19200 baud.
+
+:::warning
+ESC passthrough disables DShot and PWM outputs, so the motors can't be driven while it's in use.
+The bridge's `--setup` option sets `PASSTHRU_EN` to `1` and reboots the flight controller, which then boots with DShot and PWM outputs off.
+PX4 resets `PASSTHRU_EN` to `0` during that boot, so normal outputs return on the next reboot.
+:::
+
+See [Serial Passthrough (MAVLink SERIAL_CONTROL)](../uart/serial_passthrough.md) for build configuration, supported channels, and limitations.

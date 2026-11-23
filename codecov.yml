@@ -1,0 +1,56 @@
+# Codecov configuration, see https://docs.codecov.com/docs/codecov-yaml
+#
+# Two uploads feed coverage:
+#   unittests  .github/workflows/checks.yml     make tests_coverage, every PR and push to main
+#   sitl-vtol  .github/workflows/sitl_tests.yml  standard_vtol MAVSDK flight, push to main only
+# PRs upload unittests only; sitl-vtol is carried forward from main.
+
+codecov:
+  branch: main
+
+coverage:
+  status:
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true
+
+comment: false
+
+flag_management:
+  default_rules:
+    carryforward: false
+  individual_flags:
+    - name: unittests
+    - name: sitl-vtol
+      carryforward: true
+
+ignore:
+  - "build/**"
+  - "test/**"
+  - "**/test/**"
+  - "**/tests/**"
+  - "**/*Test.cpp"
+  - "**/*_test.cpp"
+  - "**/*_tests.cpp"
+  - "**/test_*.cpp"
+  # Submodules and vendored code
+  - "platforms/nuttx/NuttX/**"
+  - "src/modules/mavlink/mavlink/**"
+  - "src/drivers/gps/devices/**"
+  - "src/drivers/cyphal/libcanard/**"
+  - "src/drivers/uavcan/libdronecan/**"
+  - "src/lib/crypto/monocypher/**"
+  - "src/lib/crypto/libtomcrypt/**"
+  - "src/lib/crypto/libtommath/**"
+  - "src/lib/events/libevents/**"
+  - "src/lib/cdrstream/cyclonedds/**"
+  - "src/lib/cdrstream/rosidl/**"
+  - "src/lib/heatshrink/heatshrink/**"
+  - "src/lib/rl_tools/rl_tools/**"
+  - "src/lib/tensorflow_lite_micro/tflite_micro/**"
+  - "src/modules/uxrce_dds_client/Micro-XRCE-DDS-Client*/**"
+  - "src/modules/zenoh/zenoh-pico/**"
+  - "Tools/**"

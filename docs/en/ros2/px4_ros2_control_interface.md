@@ -1,6 +1,6 @@
 # PX4 ROS 2 Control Interface
 
-<Badge type="tip" text="PX4 v1.15" /> <Badge type="warning" text="Experimental" />
+<Badge type="tip" text="PX4 v1.15" />
 
 :::warning Experimental
 At the time of writing, parts of the PX4 ROS 2 Control Interface are experimental, and hence subject to change:
@@ -17,7 +17,7 @@ The [PX4 ROS 2 Interface Library](../ros2/px4_ros2_interface_lib.md) is a C++ li
 
 Developers use the library to create and dynamically register modes written using ROS 2.
 These modes are dynamically registered with PX4, and appear to be part of PX4 to a ground station or other external system.
-They can even replace the default modes in PX4 with enhanced ROS 2 versions, falling back to the original version if the ROS2 mode fails.
+They can even replace the default modes in PX4 with enhanced ROS 2 versions, falling back to the original version if the ROS 2 mode fails.
 
 The library also provides classes for sending different types of setpoints, ranging from high-level navigation tasks all the way down to direct actuator controls.
 These classes abstract the internal setpoints used by PX4, and that can therefore be used to provide a consistent ROS 2 interface for future PX4 and ROS releases.
@@ -35,7 +35,7 @@ You are welcome to add and contribute missing classes.
 
 This diagram provides a conceptual overview of how the control interface modes and mode executors interact with PX4.
 
-![ROS2 modes overview diagram](../../assets/middleware/ros2/px4_ros2_interface_lib/ros2_modes_overview.svg)
+![ROS 2 modes overview diagram](../../assets/middleware/ros2/px4_ros2_interface_lib/ros2_modes_overview.svg)
 
 <!-- Source: https://docs.google.com/drawings/d/1WByCfgcytnaow7r41VhYJL8OGrw1RjFO51GoPMQBCNA/edit -->
 
@@ -59,7 +59,7 @@ A mode defined using the interface library has the following properties:
 #### Mode Executor
 
 A mode executor is an optional component for scheduling modes.
-For example, the mode executor for a custom payload delivery or survey mode might first trigger a take-off, then switch to the custom mode, and when that completes trigger an RTL.
+For example, the mode executor for a custom payload delivery or survey mode might first trigger a take-off, then switch to the custom mode, and when that completes trigger a Return.
 
 Specifically, it has the following properties:
 
@@ -349,7 +349,7 @@ The following sections provide a list of supported setpoint types:
 - [MulticopterGotoSetpointType](#go-to-setpoint-multicoptergotosetpointtype): <Badge type="warning" text="MC only" /> Smooth position and (optionally) heading control
 - [FwLateralLongitudinalSetpointType](#fw-lateral-longitudinal-setpoint): <Badge type="warning" text="FW only" /> <Badge type="tip" text="PX4 v1.17" /> Direct control of lateral and longitudinal fixed wing dynamics
 - [DirectActuatorsSetpointType](#direct-actuator-control-setpoint-directactuatorssetpointtype): Direct control of motors and flight surface servo setpoints
-- [Rover Setpoints](#rover-setpoints): <Badge type="tip" text="PX4 v1.17" /> Direct access to rover control setpoints (Position, Speed, Attitude, Rate, Throttle and Steering).
+- [Rover Setpoints](#rover-setpoints): <Badge type="tip" text="PX4 v1.17" /> Direct access to rover control setpoints (position, speed, attitude, rate, thrust and steering).
 
 :::tip
 The other setpoint types are currently experimental, and can be found in: [px4_ros2/control/setpoint_types/experimental](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/px4_ros2_cpp/include/px4_ros2/control/setpoint_types/experimental).
@@ -568,27 +568,32 @@ The rover modules use a hierarchical structure to propagate setpoints:
 The "highest" setpoint that is provided will be used within the PX4 rover modules to generate the setpoints that are below it (Overriding them!).
 With this hierarchy there are clear rules for providing a valid control input:
 
-- Provide a position setpoint, **or**
-- One of the setpoints on the "left" (speed **or** throttle) **and** one of the setpoints on the "right" (attitude, rate **or** steering). All combinations of "left" and "right" setpoints are valid.
+- Provide a position setpoint, or
+- One of the setpoints on the "left" (speed or thrust) and one of the setpoints on the "right" (attitude, rate or steering). All combinations of "left" and "right" setpoints are valid.
 
 For ease of use we expose these valid combinations as new SetpointTypes.
 :::
 
-The RoverSetpointTypes exposed through the control interface are combinations of these setpoints that lead to a valid control input:
+The SetpointTypes exposed through the control interface are combinations of these setpoints that lead to a valid control input:
 
-| SetpointType                                                                                                                        | Position | Speed     | Throttle  | Attitude  | Rate      | Steering  | Control Flags                                          |
-| ----------------------------------------------------------------------------------------------------------------------------------- | -------- | --------- | --------- | --------- | --------- | --------- | ------------------------------------------------------ |
-| [RoverPosition](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverPositionSetpointType.html#details)         | &check;  | (&check;) | (&check;) | (&check;) | (&check;) | (&check;) | Position, Velocity, Attitude, Rate, Control Allocation |
-| [RoverSpeedAttitude](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverSpeedAttitudeSetpointType.html)       |          | &check;   | (&check;) | &check;   | (&check;) | (&check;) | Velocity, Attitude, Rate, Control Allocation           |
-| [RoverSpeedRate](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverSpeedRateSetpointType.html)               |          | &check;   | (&check;) |           | &check;   | (&check;) | Velocity, Rate, Control Allocation                     |
-| [RoverSpeedSteering](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverSpeedSteeringSetpointType.html)       |          | &check;   | (&check;) |           |           | &check;   | Velocity, Control Allocation                           |
-| [RoverThrottleAttitude](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverThrottleAttitudeSetpointType.html) |          |           | &check;   | &check;   | (&check;) | (&check;) | Attitude, Rate, Control Allocation                     |
-| [RoverThrottleRate](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverThrottleRateSetpointType.html)         |          |           | &check;   |           | &check;   | (&check;) | Rate, Control Allocation                               |
-| [RoverThrottleSteering](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1RoverThrottleSteeringSetpointType.html) |          |           | &check;   |           |           | &check;   | Control Allocation                                     |
+| SetpointType                                                                                                                                      | Position | Speed     | Thrust    | Attitude  | Rate      | Steering  | Control Flags                                          |
+| ------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | --------- | --------- | --------- | --------- | --------- | ------------------------------------------------------ |
+| [SurfaceVehiclePosition](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1SurfaceVehiclePositionSetpointType.html#details)     | &check;  | (&check;) | (&check;) | (&check;) | (&check;) | (&check;) | Position, Velocity, Attitude, Rate, Control Allocation |
+| [SurfaceVehicleSpeedAttitude](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1SurfaceVehicleSpeedAttitudeSetpointType.html)   |          | &check;   | (&check;) | &check;   | (&check;) | (&check;) | Velocity, Attitude, Rate, Control Allocation           |
+| [SurfaceVehicleSpeedRate](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1SurfaceVehicleSpeedRateSetpointType.html)           |          | &check;   | (&check;) |           | &check;   | (&check;) | Velocity, Rate, Control Allocation                     |
+| [SurfaceVehicleSpeedSteering](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1SurfaceVehicleSpeedSteeringSetpointType.html)   |          | &check;   | (&check;) |           |           | &check;   | Velocity, Control Allocation                           |
+| [SurfaceVehicleThrustAttitude](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1SurfaceVehicleThrustAttitudeSetpointType.html) |          |           | &check;   | &check;   | (&check;) | (&check;) | Attitude, Rate, Control Allocation                     |
+| [SurfaceVehicleThrustRate](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1SurfaceVehicleThrustRateSetpointType.html)         |          |           | &check;   |           | &check;   | (&check;) | Rate, Control Allocation                               |
+| [SurfaceVehicleThrustSteering](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1SurfaceVehicleThrustSteeringSetpointType.html) |          |           | &check;   |           |           | &check;   | Control Allocation                                     |
 
 &check; are the setpoints we publish, and (&check;) are generated internally by the PX4 rover modules according to the hierarchy above.
 
-An example for a rover specific drive mode using the `RoverSpeedAttitudeSetpointType` is provided [here](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/examples/cpp/modes/rover_velocity).
+::: info
+In PX4 v1.17 and v1.18 these setpoint types are named `Rover*SetpointType` (for example `RoverSpeedRateSetpointType`).
+The `SurfaceVehicle*SetpointType` names are only available in later PX4 versions, together with a matching version of the PX4 ROS 2 Interface Library.
+:::
+
+An example of a rover-specific drive mode using the `SurfaceVehicleSpeedRateSetpointType` is provided [here](https://github.com/Auterion/px4-ros2-interface-lib/tree/main/examples/cpp/modes/rover_velocity).
 
 ### Controlling a VTOL
 
@@ -733,8 +738,8 @@ This makes it independent of startup ordering in case of multiple external modes
 
 ### Replacing an Internal Mode
 
-An external mode can replace an existing internal mode, such as [Return](../flight_modes/return.md) mode (RTL).
-By doing so, whenever RTL gets selected (through the user or a failsafe situation), the external mode is used instead of the internal one.
+An external mode can replace an existing internal mode, such as [Return](../flight_modes/return.md) mode.
+By doing so, whenever it gets selected (through the user or a failsafe situation), the external mode is used instead of the internal one.
 The internal one is only used as a fallback when the external one becomes unresponsive or crashes.
 
 The replacement mode can be set in the settings of the `ModeBase` constructor:

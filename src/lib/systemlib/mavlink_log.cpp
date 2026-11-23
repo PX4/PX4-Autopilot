@@ -48,7 +48,7 @@
 #include <uORB/topics/mavlink_log.h>
 #include "mavlink_log.h"
 
-__EXPORT void mavlink_vasprintf(int severity, orb_advert_t *mavlink_log_pub, const char *fmt, ...)
+static void mavlink_log_publish(int severity, orb_advert_t *mavlink_log_pub, const char *fmt, va_list args)
 {
 	// TODO: add compile check for maxlen
 
@@ -64,10 +64,7 @@ __EXPORT void mavlink_vasprintf(int severity, orb_advert_t *mavlink_log_pub, con
 	log_msg.severity = severity;
 	log_msg.timestamp = hrt_absolute_time();
 
-	va_list ap;
-	va_start(ap, fmt);
-	vsnprintf((char *)log_msg.text, sizeof(log_msg.text), fmt, ap);
-	va_end(ap);
+	vsnprintf((char *)log_msg.text, sizeof(log_msg.text), fmt, args);
 
 	if (*mavlink_log_pub != nullptr) {
 		orb_publish(ORB_ID(mavlink_log), *mavlink_log_pub, &log_msg);
@@ -76,3 +73,26 @@ __EXPORT void mavlink_vasprintf(int severity, orb_advert_t *mavlink_log_pub, con
 		*mavlink_log_pub = orb_advertise(ORB_ID(mavlink_log), &log_msg);
 	}
 }
+
+__EXPORT void mavlink_vasprintf(int severity, orb_advert_t *mavlink_log_pub, const char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	mavlink_log_publish(severity, mavlink_log_pub, fmt, args);
+	va_end(args);
+}
+
+#if defined(MAVLINK_LOG_AND_PRINT)
+__EXPORT void mavlink_log_and_print(int severity, int log_level, const char *module_name,
+				    orb_advert_t *mavlink_log_pub, const char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	mavlink_log_publish(severity, mavlink_log_pub, fmt, args);
+	va_end(args);
+
+	va_start(args, fmt);
+	px4_log_modulename_va(log_level, module_name, fmt, args);
+	va_end(args);
+}
+#endif

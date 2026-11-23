@@ -69,7 +69,7 @@ Bootloader target: `ark_can-rtk-gps_canbootloader`
 
 ## Flight Controller Setup
 
-### Enabling DroneCAN
+### 启用 DroneCAN
 
 In order to use the ARK X20 RTK GPS, connect it to the Pixhawk CAN bus and enable the DroneCAN driver by setting parameter [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) to `2` for dynamic node allocation (or `3` if using [DroneCAN ESCs](../dronecan/escs.md)).
 
@@ -86,9 +86,8 @@ GPS data should arrive at 10Hz.
 You need to set necessary [DroneCAN](index.md) parameters and define offsets if the sensor is not centred within the vehicle:
 
 - Enable GPS yaw fusion by setting bit 3 of [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) to true.
-- Enable GPS blending to ensure the heading is always published by setting [SENS_GPS_MASK](../advanced_config/parameter_reference.md#SENS_GPS_MASK) to 7 (all three bits checked).
 - Enable [UAVCAN_SUB_GPS](../advanced_config/parameter_reference.md#UAVCAN_SUB_GPS), [UAVCAN_SUB_MAG](../advanced_config/parameter_reference.md#UAVCAN_SUB_MAG), and [UAVCAN_SUB_BARO](../advanced_config/parameter_reference.md#UAVCAN_SUB_BARO).
-- The parameters [SENS_GPS0_OFFX](../advanced_config/parameter_reference.md#SENS_GPS0_OFFX), [SENS_GPS0_OFFY](../advanced_config/parameter_reference.md#SENS_GPS0_OFFY) and [SENS_GPS0_OFFZ](../advanced_config/parameter_reference.md#SENS_GPS0_OFFZ) can be set to account for the offset of the ARK X20 RTK GPS from the vehicles centre of gravity.
+- The parameters [SENS_GNSS0_OFFX](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFX), [SENS_GNSS0_OFFY](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFY) and [SENS_GNSS0_OFFZ](../advanced_config/parameter_reference.md#SENS_GNSS0_OFFZ) can be set to account for the offset of the ARK X20 RTK GPS from the vehicles centre of gravity.
 
 ### ARK X20 RTK GPS Configuration
 
@@ -96,21 +95,23 @@ You may need to [configure the following parameters](../dronecan/index.md#qgc-ca
 
 | Parameter                                                                                                                                          | 描述                                                                                                                                                                                                                          |
 | -------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <a id="CANNODE_NODE_ID"></a>[CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID) | CAN node ID (0 for dynamic allocation). If set to 0 (default), dynamic node allocation is used. Set to 1-127 to use a static node ID. |
+| <a id="CANNODE_NODE_ID"></a>[CANNODE_NODE_ID](../advanced_config/parameter_reference.md#CANNODE_NODE_ID) | CAN node ID (0 for dynamic allocation). If set to 0 (default), dynamic node allocation is used. Set to 1-125 to use a static node ID. |
 | <a id="CANNODE_TERM"></a>[CANNODE_TERM](../advanced_config/parameter_reference.md#CANNODE_TERM)                               | CAN built-in bus termination. Set to `1` if this is the last node on the CAN bus.                                                                                                           |
+| <a id="GPS_UBX_BAUD1"></a>[GPS_UBX_BAUD1](../advanced_config/parameter_reference.md#GPS_UBX_BAUD1)       | UART1 baudrate after the link is auto-detected. Board default is `921600`.                                                                                                                  |
+| <a id="GPS_UBX_BAUD2"></a>[GPS_UBX_BAUD2](../advanced_config/parameter_reference.md#GPS_UBX_BAUD2)       | UART2 baudrate (default `230400`).                                                                                                                                                       |
 
 ### Setting Up Rover and Fixed Base
 
 Position of the rover is established using RTCM messages from the RTK base module (the base module is connected to QGC, which sends the RTCM information to PX4 via MAVLink).
 
-PX4 DroneCAN parameters:
+PX4 DroneCAN 参数：
 
-- [UAVCAN_PUB_RTCM](../advanced_config/parameter_reference.md#UAVCAN_PUB_RTCM):
-  - Makes PX4 publish RTCM messages ([RTCMStream](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#rtcmstream)) to the bus (which it gets from the RTK base module via QGC).
+- [UAVCAN_PUB_RTCM](../advanced_config/parameter_reference.md#UAVCAN_PUB_RTCM)：
+  - 使 PX4 向总线发布 RTCM 消息（[RTCMStream](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#rtcmstream)）（这些消息由 PX4 通过 QGC 从 RTK 基站模块获取）。
 
 Rover module parameters (also [set using QGC](../dronecan/index.md#qgc-cannode-parameter-configuration)):
 
-- [CANNODE_SUB_RTCM](../advanced_config/parameter_reference.md#CANNODE_SUB_RTCM) tells the rover that it should subscribe to [RTCMStream](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#rtcmstream) RTCM messages on the bus (from the moving base).
+- [CANNODE_SUB_RTCM](../advanced_config/parameter_reference.md#CANNODE_SUB_RTCM) 指示流动站订阅总线上的 [RTCMStream](https://dronecan.github.io/Specification/7._List_of_standard_data_types/#rtcmstream) RTCM 消息（来自移动基站）。
 
 :::info
 Use [UAVCAN_PUB_MBD](../advanced_config/parameter_reference.md#UAVCAN_PUB_MBD) and [CANNODE_SUB_MBD](../advanced_config/parameter_reference.md#CANNODE_SUB_MBD) instead if you want to implement moving base (see below) at the same time.

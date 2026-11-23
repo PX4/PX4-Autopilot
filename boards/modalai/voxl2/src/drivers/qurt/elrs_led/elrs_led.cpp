@@ -109,7 +109,7 @@ void elrs_led_task()
 	PX4_INFO("Starting task for elrs_led");
 
 	int ret = 0;
-	int manual_control_input_fd  = orb_subscribe(ORB_ID(manual_control_input));
+	orb_sub_t manual_control_input_fd  = orb_subscribe(ORB_ID(manual_control_input));
 	uint8_t pwmPacket[11] = {0xEC, 0x09, 0x32, 0x70, 0x77, 0x6D, 0x07, 0x75, 0x00, 0x00, 0x00};
 
 	px4_pollfd_struct_t fds[1] = { { .fd = manual_control_input_fd,  .events = POLLIN }	};

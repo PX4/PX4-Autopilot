@@ -5,6 +5,7 @@ import json
 import os
 import psutil  # type: ignore
 import signal
+import socket
 import subprocess
 import sys
 import time
@@ -62,6 +63,86 @@ class MicroXrceAgent:
         self.start_process()
 
 
+class ZenohRouter:
+    """rmw_zenoh router: PX4's zenoh client and the rmw_zenoh_cpp test nodes meet here."""
+
+    PORT = 7447
+
+    def __init__(self, verbose: bool):
+        self._verbose = verbose
+        self._binary_name = 'rmw_zenohd'
+        self._proc = None
+
+    def is_running(self) -> bool:
+        return is_running(self._binary_name)
+
+    def start_process(self):
+        if self._verbose:
+            print('Starting zenoh router')
+        assert self._proc is None
+
+        # Run the router binary directly: killing a 'ros2 run' wrapper would orphan it.
+        prefix = subprocess.run(['ros2', 'pkg', 'prefix', 'rmw_zenoh_cpp'],
+                                capture_output=True, text=True)
+        if prefix.returncode != 0:
+            raise RuntimeError('rmw_zenoh_cpp not found. Install ros-$ROS_DISTRO-rmw-zenoh-cpp '
+                               'or run the router manually before running this script')
+        binary = os.path.join(prefix.stdout.strip(), 'lib', 'rmw_zenoh_cpp', self._binary_name)
+        self._proc = subprocess.Popen([binary])
+        self._wait_until_listening()
+
+    def _wait_until_listening(self, timeout_s: float = 10.0):
+        """PX4 opens its zenoh session once at startup, so the router must accept connections first."""
+        assert self._proc is not None
+        deadline = time.monotonic() + timeout_s
+        while time.monotonic() < deadline:
+            if self._proc.poll() is not None:
+                raise RuntimeError(f'Zenoh router exited with code {self._proc.returncode}')
+            try:
+                with socket.create_connection(('127.0.0.1', self.PORT), timeout=0.2):
+                    return
+            except OSError:
+                time.sleep(0.1)
+        raise RuntimeError(f'Zenoh router did not listen on port {self.PORT} within {timeout_s}s')
+
+    def stop_process_if_started(self):
+        if self._proc is None:
+            return
+
+        if self._verbose:
+            print('Stopping zenoh router')
+        self._proc.kill()
+        self._proc.wait()
+        self._proc = None
+
+    def restart(self):
+        """Force a fresh router so liveliness tokens of the previous PX4 instance do not leak.
+
+        On POSIX every PX4 instance announces the same node GUID, so a stale token would
+        make the next test discover the FMU before the new instance is up.
+        """
+        self.stop_process_if_started()
+        self.start_process()
+
+
+MIDDLEWARES = ('uxrce_dds', 'zenoh')
+
+
+def create_middleware_bridge(middleware: str, verbose: bool):
+    """The process PX4 and the ROS 2 nodes connect through: XRCE Agent or zenoh router."""
+    if middleware == 'zenoh':
+        return ZenohRouter(verbose)
+    return MicroXrceAgent(verbose)
+
+
+def middleware_environment(middleware: str) -> Dict[str, str]:
+    """Environment inherited by PX4 (see the posix rcS) and by the ROS 2 test binary."""
+    env = {'PX4_ROS2_MIDDLEWARE': middleware}
+    if middleware == 'zenoh':
+        env['RMW_IMPLEMENTATION'] = 'rmw_zenoh_cpp'
+    return env
+
+
 class TesterInterfaceRos(test_runner.TesterInterface):
 
     def __init__(self, ros_package_build_dir: str):
@@ -114,7 +195,7 @@ class TesterInterfaceRos(test_runner.TesterInterface):
         return "tmp_ros_tests"
 
 
-def main() -> NoReturn:
+def create_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     parser.add_argument("--list-cases", action='store_true',
                         help="List available test cases")
@@ -139,15 +220,26 @@ def main() -> NoReturn:
                         help="Force colorized output")
     parser.add_argument("--verbose", default=False, action='store_true',
                         help="enable more verbose output")
-    parser.add_argument("--config-file", help="JSON config file to use",
-                        default="test/ros_tests/config.json")
+    parser.add_argument("--config-file",
+                        help="JSON config file to use "
+                             "(default: test/ros_tests/config-sih.json)",
+                        default="test/ros_tests/config-sih.json")
     parser.add_argument("--build-dir", type=str,
-                        default='build/px4_sitl_default/',
-                        help="relative path where the built files are stored")
+                        default='build/px4_sitl_sih/',
+                        help="relative path where the built files are stored "
+                             "(default: build/px4_sitl_sih/)")
     parser.add_argument("--px4-ros2-interface-lib-build-dir", type=str,
                         default=None,
                         help="path which contains the integration_tests binary. "
                              "If not provided, it is determined via 'ros2 pkg'")
+    parser.add_argument("--middleware", choices=MIDDLEWARES, default='uxrce_dds',
+                        help="ROS 2 middleware between PX4 and the tests "
+                             "(default: uxrce_dds)")
+    return parser
+
+
+def main() -> NoReturn:
+    parser = create_argument_parser()
     args = parser.parse_args()
 
     if args.force_color:
@@ -174,6 +266,9 @@ def main() -> NoReturn:
               .format(config["mode"]))
         sys.exit(1)
 
+    if config.get("simulator") == "sih" and args.gui:
+        parser.error("--gui is not supported by the SIH backend")
+
     if not is_everything_ready(config, args.build_dir):
         sys.exit(1)
 
@@ -197,23 +292,32 @@ def main() -> NoReturn:
         args.build_dir,
         tester_interface
     )
+    empty_filters = [test['test_filter'] for test in tester.tests
+                     if test['selected'] and not test['cases']]
+    if empty_filters:
+        parser.error("Configured test filters matched no cases: " + ", ".join(empty_filters))
+    if tester.num_cases() == 0:
+        parser.error("No test cases selected; check --config-file, --model and --case")
     signal.signal(signal.SIGINT, tester.sigint_handler)
 
-    # Automatically start & stop the XRCE Agent if not running already
-    micro_xrce_agent = MicroXrceAgent(args.verbose)
-    agent_managed_here = not micro_xrce_agent.is_running()
-    if agent_managed_here:
-        micro_xrce_agent.start_process()
+    # PX4 and the test binary inherit the environment through process_helper.Runner
+    os.environ.update(middleware_environment(args.middleware))
 
-        def restart_agent(_model: str, _case: str) -> None:
-            micro_xrce_agent.restart()
+    # Automatically start & stop the XRCE Agent or zenoh router if not running already
+    bridge = create_middleware_bridge(args.middleware, args.verbose)
+    bridge_managed_here = not bridge.is_running()
+    if bridge_managed_here:
+        bridge.start_process()
 
-        tester.pre_test_hook = restart_agent
+        def restart_bridge(_model: str, _case: str) -> None:
+            bridge.restart()
+
+        tester.pre_test_hook = restart_bridge
 
     try:
         result = tester.run()
     finally:
-        micro_xrce_agent.stop_process_if_started()
+        bridge.stop_process_if_started()
 
     sys.exit(0 if result else 1)
 
@@ -234,11 +338,16 @@ def is_everything_ready(config: Dict[str, str], build_dir: str) -> bool:
                   "run `killall px4` and try again")
             result = False
         if not os.path.isfile(os.path.join(build_dir, 'bin/px4')):
-            print("PX4 SITL is not built\n"
-                  "run `DONT_RUN=1 make px4_sitl gazebo` or "
-                  "`DONT_RUN=1 make px4_sitl_default gazebo`")
+            if config.get('simulator') == 'sih':
+                print("PX4 SIH SITL is not built\n"
+                      "run `make px4_sitl_sih` and use "
+                      "`--build-dir build/px4_sitl_sih`")
+            else:
+                print("PX4 SITL is not built\n"
+                      "run `DONT_RUN=1 make px4_sitl gazebo` or "
+                      "`DONT_RUN=1 make px4_sitl_default gazebo`")
             result = False
-        if config['simulator'] == 'gazebo':
+        if config.get('simulator') == 'gazebo':
             if is_running('gzserver'):
                 print("gzserver process already running\n"
                       "run `killall gzserver` and try again")

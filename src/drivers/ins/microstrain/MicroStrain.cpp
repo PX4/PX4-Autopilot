@@ -58,7 +58,7 @@ MicroStrain::MicroStrain(const char *uart_port) :
 
 	// The scheduling rate (in microseconds) is set higher than the highest data rate param (in Hz)
 	const int max_param_rate = math::max(math::max(_param_ms_imu_rate_hz.get(), _param_ms_mag_rate_hz.get(),
-					     _param_ms_baro_rate_hz.get()), _param_ms_filter_rate_hz.get());
+					     _param_ms_baro_rate_hz.get()), _param_ms_filt_rate_hz.get());
 
 	// We always want the schedule rate faster than the highest sensor data rate
 	_ms_schedule_rate_us = (1e6) / (2 * max_param_rate);
@@ -75,52 +75,53 @@ MicroStrain::MicroStrain(const char *uart_port) :
 	_px4_mag.set_device_id(_dev_id);
 
 	_sensor_baro.device_id = _dev_id;
+	_sensor_baro.is_external = true;
 	_sensor_baro.pressure = 0;
 	_sensor_baro.temperature = 0;
 	_sensor_baro.error_count = 0;
 
-	gnss_antenna_offset1[0] = _param_ms_gnss_offset1_x.get();
-	gnss_antenna_offset1[1] = _param_ms_gnss_offset1_y.get();
-	gnss_antenna_offset1[2] = _param_ms_gnss_offset1_z.get();
-	PX4_DEBUG("GNSS antenna offset 1: %f/%f/%f", (double)_param_ms_gnss_offset1_x.get(),
-		  (double)_param_ms_gnss_offset1_y.get(),
-		  (double)_param_ms_gnss_offset1_z.get());
+	gnss_antenna_offset1[0] = _param_ms_gnss_off1_x.get();
+	gnss_antenna_offset1[1] = _param_ms_gnss_off1_y.get();
+	gnss_antenna_offset1[2] = _param_ms_gnss_off1_z.get();
+	PX4_DEBUG("GNSS antenna offset 1: %f/%f/%f", (double)_param_ms_gnss_off1_x.get(),
+		  (double)_param_ms_gnss_off1_y.get(),
+		  (double)_param_ms_gnss_off1_z.get());
 
-	gnss_antenna_offset2[0] = _param_ms_gnss_offset2_x.get();
-	gnss_antenna_offset2[1] = _param_ms_gnss_offset2_y.get();
-	gnss_antenna_offset2[2] = _param_ms_gnss_offset2_z.get();
-	PX4_DEBUG("GNSS antenna offset 2: %f/%f/%f", (double)_param_ms_gnss_offset2_x.get(),
-		  (double)_param_ms_gnss_offset2_y.get(),
-		  (double)_param_ms_gnss_offset2_z.get());
+	gnss_antenna_offset2[0] = _param_ms_gnss_off2_x.get();
+	gnss_antenna_offset2[1] = _param_ms_gnss_off2_y.get();
+	gnss_antenna_offset2[2] = _param_ms_gnss_off2_z.get();
+	PX4_DEBUG("GNSS antenna offset 2: %f/%f/%f", (double)_param_ms_gnss_off2_x.get(),
+		  (double)_param_ms_gnss_off2_y.get(),
+		  (double)_param_ms_gnss_off2_z.get());
 
-	optical_flow_offset[0] = _param_ms_oflow_offset_x.get();
-	optical_flow_offset[1] = _param_ms_oflow_offset_y.get();
-	optical_flow_offset[2] = _param_ms_oflow_offset_z.get();
-	PX4_DEBUG("Optical flow offset: %f/%f/%f", (double)_param_ms_oflow_offset_x.get(),
-		  (double)_param_ms_oflow_offset_y.get(),
-		  (double)_param_ms_oflow_offset_z.get());
+	optical_flow_offset[0] = _param_ms_oflw_off_x.get();
+	optical_flow_offset[1] = _param_ms_oflw_off_y.get();
+	optical_flow_offset[2] = _param_ms_oflw_off_z.get();
+	PX4_DEBUG("Optical flow offset: %f/%f/%f", (double)_param_ms_oflw_off_x.get(),
+		  (double)_param_ms_oflw_off_y.get(),
+		  (double)_param_ms_oflw_off_z.get());
 
 	rotation_sens.euler[0] = _param_ms_sensor_roll.get();
-	rotation_sens.euler[1] = _param_ms_sensor_pitch.get();
+	rotation_sens.euler[1] = _param_ms_sensor_ptch.get();
 	rotation_sens.euler[2] = _param_ms_sensor_yaw.get();
 	PX4_DEBUG("Device Roll/Pitch/Yaw: %f/%f/%f", (double)_param_ms_sensor_roll.get(),
-		  (double)_param_ms_sensor_pitch.get(),
+		  (double)_param_ms_sensor_ptch.get(),
 		  (double)_param_ms_sensor_yaw.get());
 
 	rotation_ext_mag.euler[0] = _param_ms_emag_roll.get();
-	rotation_ext_mag.euler[1] = _param_ms_emag_pitch.get();
+	rotation_ext_mag.euler[1] = _param_ms_emag_ptch.get();
 	rotation_ext_mag.euler[2] = _param_ms_emag_yaw.get();
 	PX4_DEBUG("External magnetometer Roll/Pitch/Yaw: %f/%f/%f", (double)_param_ms_emag_roll.get(),
-		  (double)_param_ms_emag_pitch.get(),
+		  (double)_param_ms_emag_ptch.get(),
 		  (double)_param_ms_emag_yaw.get());
 
 	rotation_ext_heading.euler[2] = _param_ms_ehead_yaw.get();
 	PX4_DEBUG("External heading yaw: %f", (double)_param_ms_ehead_yaw.get());
 
 	ext_mag_uncert = _param_ms_emag_uncert.get();
-	opt_flow_uncert = _param_ms_oflow_uncert.get();
+	opt_flow_uncert = _param_ms_oflw_uncert.get();
 	PX4_DEBUG("External Mag Uncertainty: %f", (double)_param_ms_emag_uncert.get());
-	PX4_DEBUG("Optical Flow Uncertainty: %f", (double)_param_ms_oflow_uncert.get());
+	PX4_DEBUG("Optical Flow Uncertainty: %f", (double)_param_ms_oflw_uncert.get());
 
 	_sensor_baro_pub.advertise();
 	_sensor_selection_pub.advertise();
@@ -201,7 +202,7 @@ mip_cmd_result MicroStrain::forceIdle()
 			break;
 
 		} else {
-			usleep(1_s);
+			px4_usleep(1_s);
 		}
 	}
 
@@ -348,9 +349,9 @@ mip_cmd_result MicroStrain::configureImuRange()
 	mip_cmd_result res = MIP_ACK_OK;
 
 	// Checks if the accel range is to be configured
-	if (_param_ms_accel_range_setting.get() != -1) {
+	if (_param_ms_accel_range.get() != -1) {
 		if (supportsDescriptor(MIP_3DM_CMD_DESC_SET, MIP_CMD_DESC_3DM_SENSOR_RANGE)) {
-			res = mip_3dm_write_sensor_range(&_device, MIP_SENSOR_RANGE_TYPE_ACCEL, _param_ms_accel_range_setting.get());
+			res = mip_3dm_write_sensor_range(&_device, MIP_SENSOR_RANGE_TYPE_ACCEL, _param_ms_accel_range.get());
 
 		} else {
 			PX4_ERR("Accel sensor range write command is not supported");
@@ -363,9 +364,9 @@ mip_cmd_result MicroStrain::configureImuRange()
 	}
 
 	// Checks if the gyro range is to be configured
-	if (_param_ms_gyro_range_setting.get() != -1) {
+	if (_param_ms_gyro_range.get() != -1) {
 		if (supportsDescriptor(MIP_3DM_CMD_DESC_SET, MIP_CMD_DESC_3DM_SENSOR_RANGE)) {
-			res = mip_3dm_write_sensor_range(&_device, MIP_SENSOR_RANGE_TYPE_GYRO, _param_ms_gyro_range_setting.get());
+			res = mip_3dm_write_sensor_range(&_device, MIP_SENSOR_RANGE_TYPE_GYRO, _param_ms_gyro_range.get());
 
 		} else {
 			PX4_ERR("Gyro sensor range write command is not supported");
@@ -543,7 +544,7 @@ mip_cmd_result MicroStrain::configureImuMessageFormat()
 	}
 
 	if (supportsDescriptor(MIP_SENSOR_DATA_DESC_SET, MIP_DATA_DESC_SHARED_GPS_TIME)
-	    && _param_ms_filter_rate_hz.get() > 0) {
+	    && _param_ms_filt_rate_hz.get() > 0) {
 		const int max_param_rate = math::max(_param_ms_imu_rate_hz.get(), _param_ms_mag_rate_hz.get(),
 						     _param_ms_baro_rate_hz.get());
 		uint16_t gps_time_decimation = base_rate / max_param_rate;
@@ -579,73 +580,73 @@ mip_cmd_result MicroStrain::configureFilterMessageFormat()
 	// Configure the Message Format depending on if the device supports the descriptor
 	uint16_t filter_decimation = 250;
 
-	if (_param_ms_filter_rate_hz.get() != 0) {
-		filter_decimation = base_rate / (uint16_t)_param_ms_filter_rate_hz.get();
+	if (_param_ms_filt_rate_hz.get() != 0) {
+		filter_decimation = base_rate / (uint16_t)_param_ms_filt_rate_hz.get();
 		PX4_DEBUG("Filter decimation: %i", filter_decimation);
 	}
 
 	if (supportsDescriptor(MIP_FILTER_DATA_DESC_SET, MIP_DATA_DESC_FILTER_POS_LLH)
-	    && _param_ms_filter_rate_hz.get() > 0) {
+	    && _param_ms_filt_rate_hz.get() > 0) {
 		filter_descriptors[num_filter_descriptors++] = mip_descriptor_rate { MIP_DATA_DESC_FILTER_POS_LLH, filter_decimation};
 		PX4_DEBUG("Filter: LLH pos enabled");
 	}
 
 	if (supportsDescriptor(MIP_FILTER_DATA_DESC_SET, MIP_DATA_DESC_FILTER_ATT_QUATERNION)
-	    && _param_ms_filter_rate_hz.get() > 0) {
+	    && _param_ms_filt_rate_hz.get() > 0) {
 		filter_descriptors[num_filter_descriptors++] = mip_descriptor_rate { MIP_DATA_DESC_FILTER_ATT_QUATERNION, filter_decimation};
 		PX4_DEBUG("Filter: Attitude quaternion enabled");
 	}
 
 	if (supportsDescriptor(MIP_FILTER_DATA_DESC_SET, MIP_DATA_DESC_FILTER_VEL_NED)
-	    && _param_ms_filter_rate_hz.get() > 0) {
+	    && _param_ms_filt_rate_hz.get() > 0) {
 		filter_descriptors[num_filter_descriptors++] = mip_descriptor_rate { MIP_DATA_DESC_FILTER_VEL_NED, filter_decimation};
 		PX4_DEBUG("Filter: Velocity NED enabled");
 	}
 
 	if (supportsDescriptor(MIP_FILTER_DATA_DESC_SET, MIP_DATA_DESC_FILTER_LINEAR_ACCELERATION)
-	    && _param_ms_filter_rate_hz.get() > 0) {
+	    && _param_ms_filt_rate_hz.get() > 0) {
 		filter_descriptors[num_filter_descriptors++] = mip_descriptor_rate { MIP_DATA_DESC_FILTER_LINEAR_ACCELERATION, filter_decimation};
 		PX4_DEBUG("Filter: Linear accel FRD enabled");
 	}
 
 	if (supportsDescriptor(MIP_FILTER_DATA_DESC_SET, MIP_DATA_DESC_FILTER_POS_UNCERTAINTY)
-	    && _param_ms_filter_rate_hz.get() > 0) {
+	    && _param_ms_filt_rate_hz.get() > 0) {
 		filter_descriptors[num_filter_descriptors++] = mip_descriptor_rate { MIP_DATA_DESC_FILTER_POS_UNCERTAINTY, filter_decimation};
 		PX4_DEBUG("Filter: Position uncertainty enabled");
 	}
 
 	if (supportsDescriptor(MIP_FILTER_DATA_DESC_SET, MIP_DATA_DESC_FILTER_VEL_UNCERTAINTY)
-	    && _param_ms_filter_rate_hz.get() > 0) {
+	    && _param_ms_filt_rate_hz.get() > 0) {
 		filter_descriptors[num_filter_descriptors++] = mip_descriptor_rate { MIP_DATA_DESC_FILTER_VEL_UNCERTAINTY, filter_decimation};
 		PX4_DEBUG("Filter: Velocity uncertainty enabled");
 	}
 
 	if (supportsDescriptor(MIP_FILTER_DATA_DESC_SET, MIP_DATA_DESC_FILTER_ATT_UNCERTAINTY_EULER)
-	    && _param_ms_filter_rate_hz.get() > 0) {
+	    && _param_ms_filt_rate_hz.get() > 0) {
 		filter_descriptors[num_filter_descriptors++] = mip_descriptor_rate { MIP_DATA_DESC_FILTER_ATT_UNCERTAINTY_EULER, filter_decimation};
 		PX4_DEBUG("Filter: Attitude euler uncertainty enabled");
 	}
 
 	if (supportsDescriptor(MIP_FILTER_DATA_DESC_SET, MIP_DATA_DESC_FILTER_COMPENSATED_ANGULAR_RATE)
-	    && _param_ms_filter_rate_hz.get() > 0) {
+	    && _param_ms_filt_rate_hz.get() > 0) {
 		filter_descriptors[num_filter_descriptors++] = mip_descriptor_rate { MIP_DATA_DESC_FILTER_COMPENSATED_ANGULAR_RATE, filter_decimation};
 		PX4_DEBUG("Filter: Compensated angular rate enabled");
 	}
 
 	if (supportsDescriptor(MIP_FILTER_DATA_DESC_SET, MIP_DATA_DESC_FILTER_FILTER_STATUS)
-	    && _param_ms_filter_rate_hz.get() > 0) {
+	    && _param_ms_filt_rate_hz.get() > 0) {
 		filter_descriptors[num_filter_descriptors++] = mip_descriptor_rate { MIP_DATA_DESC_FILTER_FILTER_STATUS, filter_decimation};
 		PX4_DEBUG("Filter: Status enabled");
 	}
 
 	if (supportsDescriptor(MIP_FILTER_DATA_DESC_SET, MIP_DATA_DESC_FILTER_GNSS_DUAL_ANTENNA_STATUS)
-	    && _param_ms_filter_rate_hz.get() > 0) {
+	    && _param_ms_filt_rate_hz.get() > 0) {
 		filter_descriptors[num_filter_descriptors++] = mip_descriptor_rate { MIP_DATA_DESC_FILTER_GNSS_DUAL_ANTENNA_STATUS, filter_decimation};
 		PX4_DEBUG("Filter: GNSS Dual antenna status enabled");
 	}
 
 	if (supportsDescriptor(MIP_FILTER_DATA_DESC_SET, MIP_DATA_DESC_SHARED_GPS_TIME)
-	    && _param_ms_filter_rate_hz.get() > 0) {
+	    && _param_ms_filt_rate_hz.get() > 0) {
 		filter_descriptors[num_filter_descriptors++] = mip_descriptor_rate { MIP_DATA_DESC_SHARED_GPS_TIME, filter_decimation};
 		PX4_DEBUG("Filter: GPS Time enabled");
 	}
@@ -659,7 +660,7 @@ mip_cmd_result MicroStrain::configureFilterMessageFormat()
 
 mip_cmd_result MicroStrain::configureGnssMessageFormat(uint8_t descriptor_set)
 {
-	if (_param_ms_gnss_aid_src_ctrl.get() == MIP_FILTER_GNSS_SOURCE_COMMAND_SOURCE_EXT) {
+	if (_param_ms_gnss_aid_src.get() == MIP_FILTER_GNSS_SOURCE_COMMAND_SOURCE_EXT) {
 		PX4_DEBUG("External GNSS aiding source detected, skipping GNSS message format config");
 		return MIP_ACK_OK;
 	}
@@ -831,7 +832,7 @@ mip_cmd_result MicroStrain::configureGnssAiding()
 
 		// Sets up the GNSS aiding source
 		if (supportsDescriptor(MIP_FILTER_CMD_DESC_SET, MIP_CMD_DESC_FILTER_GNSS_SOURCE_CONTROL)) {
-			res = mip_filter_write_gnss_source(&_device, (uint8_t)_param_ms_gnss_aid_src_ctrl.get());
+			res = mip_filter_write_gnss_source(&_device, (uint8_t)_param_ms_gnss_aid_src.get());
 
 			if (!mip_cmd_result_is_ack(res)) {
 				PX4_ERR("Could not write the gnss aiding source");
@@ -839,7 +840,7 @@ mip_cmd_result MicroStrain::configureGnssAiding()
 			}
 
 			// Checks if the gnss aiding source is external
-			if (_param_ms_gnss_aid_src_ctrl.get() == MIP_FILTER_GNSS_SOURCE_COMMAND_SOURCE_EXT) {
+			if (_param_ms_gnss_aid_src.get() == MIP_FILTER_GNSS_SOURCE_COMMAND_SOURCE_EXT) {
 				_ext_pos_vel_aiding = true;
 
 				// Sets up the aiding frame for the external source
@@ -879,7 +880,7 @@ mip_cmd_result MicroStrain::configureGnssAiding()
 
 		// Selectively enables dual antenna heading as an aiding measurement
 		res = enableAidingSource(MIP_FILTER_AIDING_MEASUREMENT_ENABLE_COMMAND_AIDING_SOURCE_GNSS_HEADING,
-					 _param_ms_int_heading_en.get(),
+					 _param_ms_int_head_en.get(),
 					 0, 0, nullptr, mip_aiding_frame_config_command_rotation{},
 					 0, _int_aiding, "dual antenna heading");
 
@@ -937,7 +938,7 @@ mip_cmd_result MicroStrain::configureAidingSources()
 
 	// Selectively turn on body frame velocity as an aiding source
 	res = enableAidingSource(MIP_FILTER_AIDING_MEASUREMENT_ENABLE_COMMAND_AIDING_SOURCE_VEHICLE_FRAME_VEL,
-				 _param_ms_ext_opt_flow_en.get(),
+				 _param_ms_opt_flow_en.get(),
 				 3, MIP_AIDING_FRAME_CONFIG_COMMAND_FORMAT_EULER,
 				 optical_flow_offset, rotation_oflow,
 				 MIP_CMD_DESC_AIDING_VEL_ODOM,
@@ -950,7 +951,7 @@ mip_cmd_result MicroStrain::configureAidingSources()
 
 	// Selectively turn on external heading as an aiding source
 	res = enableAidingSource(MIP_FILTER_AIDING_MEASUREMENT_ENABLE_COMMAND_AIDING_SOURCE_EXTERNAL_HEADING,
-				 _param_ms_ext_heading_en.get(),
+				 _param_ms_ext_head_en.get(),
 				 4, MIP_AIDING_FRAME_CONFIG_COMMAND_FORMAT_EULER,
 				 ext_heading_offset, rotation_ext_heading,
 				 MIP_CMD_DESC_AIDING_HEADING_TRUE,
@@ -1655,115 +1656,111 @@ void MicroStrain::gnssCallback(void *user, const mip_packet *packet, mip::Timest
 	// Publish only if the corresponding data was extracted from the packet
 	if (gnss_valid) {
 
-		sensor_gps_s gps{0};
-		gps.timestamp_sample = t;
+		sensor_gnss_s gnss{0};
+		gnss.timestamp_sample = t;
 
-		gps.device_id = ref->_dev_id;
+		gnss.device_id = ref->_dev_id;
 
-		gps.latitude_deg = pos_llh.sample.latitude;
-		gps.longitude_deg = pos_llh.sample.longitude;
-		gps.altitude_msl_m = pos_llh.sample.msl_height;
-		gps.altitude_ellipsoid_m = pos_llh.sample.ellipsoid_height;
+		gnss.latitude = pos_llh.sample.latitude;
+		gnss.longitude = pos_llh.sample.longitude;
+		gnss.altitude_msl = pos_llh.sample.msl_height;
+		gnss.altitude_ellipsoid = pos_llh.sample.ellipsoid_height;
 
 		const float _geoid_height = pos_llh.sample.ellipsoid_height - pos_llh.sample.msl_height;
 
-		gps.s_variance_m_s = vel_ned.sample.speed_accuracy;
-		gps.c_variance_rad = 0;
+		gnss.speed_accuracy = vel_ned.sample.speed_accuracy;
+		gnss.course_accuracy = 0;
 
 		switch (fix_info.sample.fix_type) {
 		case 0:
-			gps.fix_type = sensor_gps_s::FIX_TYPE_3D;
+			gnss.fix_type = sensor_gnss_s::FIX_TYPE_3D;
 			break;
 
 		case 1:
-			gps.fix_type = sensor_gps_s::FIX_TYPE_2D;
+			gnss.fix_type = sensor_gnss_s::FIX_TYPE_2D;
 			break;
 
 		case 5:
-			gps.fix_type = sensor_gps_s::FIX_TYPE_RTK_FLOAT;
+			gnss.fix_type = sensor_gnss_s::FIX_TYPE_RTK_FLOAT;
 			break;
 
 		case 6:
-			gps.fix_type = sensor_gps_s::FIX_TYPE_RTK_FIXED;
+			gnss.fix_type = sensor_gnss_s::FIX_TYPE_RTK_FIXED;
 			break;
 
 		case 7:
-			gps.fix_type = sensor_gps_s::FIX_TYPE_RTCM_CODE_DIFFERENTIAL;
+			gnss.fix_type = sensor_gnss_s::FIX_TYPE_RTCM_CODE_DIFFERENTIAL;
 			break;
 
 		default:
-			gps.fix_type = sensor_gps_s::FIX_TYPE_NONE;
+			gnss.fix_type = sensor_gnss_s::FIX_TYPE_NONE;
 		}
 
-		gps.eph = pos_llh.sample.horizontal_accuracy;
-		gps.epv = pos_llh.sample.vertical_accuracy;
+		gnss.eph = pos_llh.sample.horizontal_accuracy;
+		gnss.epv = pos_llh.sample.vertical_accuracy;
 
-		gps.hdop = dop.sample.hdop;
-		gps.vdop = dop.sample.vdop;
+		gnss.hdop = dop.sample.hdop;
+		gnss.vdop = dop.sample.vdop;
 
-		gps.noise_per_ms = 0;
-		gps.automatic_gain_control = 0;
+		gnss.noise = 0;
+		gnss.automatic_gain_control = 0;
 
-		gps.jamming_state = 0;
-		gps.jamming_indicator = 0;
+		gnss.jamming_state = 0;
+		gnss.jamming_indicator = 0;
 
-		gps.spoofing_state = 0;
+		gnss.spoofing_state = 0;
 
-		gps.vel_m_s = vel_ned.sample.speed;
-		gps.vel_n_m_s = vel_ned.sample.v[0];
-		gps.vel_e_m_s = vel_ned.sample.v[1];
-		gps.vel_d_m_s = vel_ned.sample.v[2];
-		gps.cog_rad = 0;
-		gps.vel_ned_valid = (vel_ned.sample.valid_flags >> 1) & 1;
+		gnss.ground_speed = vel_ned.sample.speed;
+		gnss.vel_north = vel_ned.sample.v[0];
+		gnss.vel_east = vel_ned.sample.v[1];
+		gnss.vel_down = vel_ned.sample.v[2];
+		gnss.course = 0;
+		gnss.vel_ned_valid = (vel_ned.sample.valid_flags >> 1) & 1;
 
-		gps.timestamp_time_relative = 0; //
-		gps.time_utc_usec = ((gps_time.sample.week_number * 604800) + gps_time.sample.tow + 315964800 -
-				     gps_leap_sec.sample.leap_seconds) * 1000000;
+		gnss.timestamp_time_relative = 0; //
+		gnss.time_utc_usec = ((gps_time.sample.week_number * 604800) + gps_time.sample.tow + 315964800 -
+				      gps_leap_sec.sample.leap_seconds) * 1000000;
 
-		gps.satellites_used = fix_info.sample.num_sv;
+		gnss.satellites_used = fix_info.sample.num_sv;
 
-		gps.heading = ref->dual_ant_stat.heading;
-		gps.heading_offset = 0;
-		gps.heading_accuracy = 0;
+		gnss.rtcm_injection_rate = 0;
+		gnss.selected_rtcm_instance = 0;
+		gnss.corrections_crc_failed = 0;
 
-		gps.rtcm_injection_rate = 0;
-		gps.selected_rtcm_instance = 0;
-		gps.rtcm_crc_failed = 0;
+		gnss.corrections_msg_used = 0;
 
-		gps.rtcm_msg_used = 0;
+		gnss.timestamp = hrt_absolute_time();
 
-		gps.timestamp = hrt_absolute_time();
+		if (instance == 0) {ref->updateGeoidHeight(_geoid_height, gnss.timestamp);}
 
-		if (instance == 0) {ref->updateGeoidHeight(_geoid_height, gps.timestamp);}
-
-		ref->_sensor_gps_pub[instance].publish(gps);
+		ref->_sensor_gnss_pub[instance].publish(gnss);
 	}
 }
 
 void MicroStrain::initializeRefPos()
 {
-	sensor_gps_s gps{0};
+	vehicle_gnss_s gnss{0};
 
-	_vehicle_gps_position_sub.update(&gps);
+	_vehicle_gnss_sub.update(&gnss);
 
 	// Fix isn't 3D or RTK or RTCM
-	if ((gps.fix_type < 3) || (gps.fix_type > 6)) {
+	if ((gnss.receiver.fix_type < 3) || (gnss.receiver.fix_type > 6)) {
 		return;
 	}
 
 	// If the timestamp has not been set, then don't send any data into the filter
-	if (gps.time_utc_usec == 0) {
+	if (gnss.receiver.time_utc_usec == 0) {
 		return;
 	}
 
 	const hrt_abstime t = hrt_absolute_time();
-	_pos_ref.initReference(gps.latitude_deg, gps.longitude_deg, t);
-	_ref_alt = gps.altitude_msl_m;
+	_pos_ref.initReference(gnss.receiver.latitude, gnss.receiver.longitude, t);
+	_ref_alt = gnss.receiver.altitude_msl;
 
 	PX4_DEBUG("Reference position initialized");
 }
 
-void MicroStrain::updateGeoidHeight(float geoid_height, float t)
+void MicroStrain::updateGeoidHeight(float geoid_height, hrt_abstime t)
 {
 	// Updates the low pass filter for geoid height
 	if (_last_geoid_height_update_us == 0) {
@@ -1771,29 +1768,28 @@ void MicroStrain::updateGeoidHeight(float geoid_height, float t)
 		_last_geoid_height_update_us = t;
 
 	} else if (t > _last_geoid_height_update_us) {
-		const float dt = 1e-6f * (t - _last_geoid_height_update_us);
-		_geoid_height_lpf.setParameters(dt, kGeoidHeightLpfTimeConstant);
+		_geoid_height_lpf.setParameters(t - _last_geoid_height_update_us, kGeoidHeightLpfTimeConstant);
 		_geoid_height_lpf.update(geoid_height);
 		_last_geoid_height_update_us = t;
 	}
 }
 
-void MicroStrain::sendGPSAiding()
+void MicroStrain::sendGnssAiding()
 {
-	sensor_gps_s gps{0};
+	vehicle_gnss_s gnss{0};
 
 	// No new data
-	if (!_vehicle_gps_position_sub.update(&gps)) {
+	if (!_vehicle_gnss_sub.update(&gnss)) {
 		return;
 	}
 
 	// Fix isn't 3D or RTK or RTCM
-	if ((gps.fix_type < 3) || (gps.fix_type > 6)) {
+	if ((gnss.receiver.fix_type < 3) || (gnss.receiver.fix_type > 6)) {
 		return;
 	}
 
 	// If the timestamp has not been set, then don't send any data into the filter
-	if (gps.time_utc_usec == 0) {
+	if (gnss.receiver.time_utc_usec == 0) {
 		return;
 	}
 
@@ -1804,27 +1800,29 @@ void MicroStrain::sendGPSAiding()
 
 	// Sends GNSS position and velocity aiding data if they are both supported
 	if (_ext_pos_vel_aiding) {
-		float llh_uncertainty[3] = {gps.eph, gps.eph, gps.epv};
-		mip_aiding_llh_pos(&_device, &t, 1, gps.latitude_deg,
-				   gps.longitude_deg,
-				   gps.altitude_ellipsoid_m, llh_uncertainty, MIP_AIDING_LLH_POS_COMMAND_VALID_FLAGS_ALL);
+		float llh_uncertainty[3] = {gnss.receiver.eph, gnss.receiver.eph, gnss.receiver.epv};
+		mip_aiding_llh_pos(&_device, &t, 1, gnss.receiver.latitude,
+				   gnss.receiver.longitude,
+				   gnss.receiver.altitude_ellipsoid, llh_uncertainty, MIP_AIDING_LLH_POS_COMMAND_VALID_FLAGS_ALL);
 
 		// Calculate the geoid height and update the low pass filter
-		const float _geoid_height = gps.altitude_ellipsoid_m - gps.altitude_msl_m;
-		updateGeoidHeight(_geoid_height, gps.timestamp);
+		const float _geoid_height = gnss.receiver.altitude_ellipsoid - gnss.receiver.altitude_msl;
+		updateGeoidHeight(_geoid_height, gnss.timestamp);
 
-		if (gps.vel_ned_valid) {
-			float ned_v[3] = {gps.vel_n_m_s, gps.vel_e_m_s, gps.vel_d_m_s};
-			float ned_velocity_uncertainty[3] = {sqrtf(gps.s_variance_m_s), sqrtf(gps.s_variance_m_s), sqrtf(gps.s_variance_m_s)};
+		if (gnss.receiver.vel_ned_valid) {
+			float ned_v[3] = {gnss.receiver.vel_north, gnss.receiver.vel_east, gnss.receiver.vel_down};
+			float ned_velocity_uncertainty[3] = {sqrtf(gnss.receiver.speed_accuracy), sqrtf(gnss.receiver.speed_accuracy), sqrtf(gnss.receiver.speed_accuracy)};
 			mip_aiding_ned_vel(&_device, &t, 1, ned_v, ned_velocity_uncertainty,
 					   MIP_AIDING_NED_VEL_COMMAND_VALID_FLAGS_ALL);
 		}
 	}
 
-	// Sends external heading aiding data if they are both supported
-	if (_ext_heading_aiding && PX4_ISFINITE(gps.heading)) {
-		float heading = gps.heading + gps.heading_offset;
-		mip_aiding_true_heading(&_device, &t, 4, heading, gps.heading_accuracy, 0xff);
+	vehicle_gnss_heading_s gnss_heading;
+
+	if (_ext_heading_aiding && _vehicle_gnss_heading_sub.update(&gnss_heading)) {
+		// MS_EHEAD_YAW describes the antenna baseline to the INS, so it takes the measured baseline heading
+		const float heading = matrix::wrap_pi(gnss_heading.heading + gnss_heading.heading_offset);
+		mip_aiding_true_heading(&_device, &t, 4, heading, gnss_heading.heading_accuracy, 0xff);
 	}
 }
 
@@ -1869,7 +1867,7 @@ void MicroStrain::sendOpticalFlowAiding()
 void MicroStrain::sendAidingMeasurements()
 {
 	if (_ext_pos_vel_aiding || _ext_heading_aiding) {
-		sendGPSAiding();
+		sendGnssAiding();
 	}
 
 	if (_ext_mag_aiding) {
@@ -1924,7 +1922,7 @@ void MicroStrain::Run()
 	mip_interface_update(&_device, false);
 
 	//Initializes reference position if there is gps data
-	if (_vehicle_gps_position_sub.updated() && !_pos_ref.isInitialized()) {initializeRefPos();}
+	if (_vehicle_gnss_sub.updated() && !_pos_ref.isInitialized()) {initializeRefPos();}
 
 	sendAidingMeasurements();
 
@@ -2006,8 +2004,8 @@ int MicroStrain::print_usage(const char *reason)
 MicroStrain by HBK Inertial Sensor Driver.
 Currently supports the following sensors:
 
--[CV7-AR](https://www.hbkworld.com/en/products/transducers/inertial-sensors/vertical-reference-units--vru-/3dm-cv7-ar)
--[CV7-AHRS](https://www.hbkworld.com/en/products/transducers/inertial-sensors/attitude-and-heading-reference-systems--ahrs-/3dm-cv7-ahrs)
+-[CV7-AR](https://www.hbkworld.com/en/products/transducers/inertial-sensors/vertical-reference/3dm-cv7-ar)
+-[CV7-AHRS](https://www.hbkworld.com/en/products/transducers/inertial-sensors/attitude-and-heading/3dm-cv7-ahrs)
 -[CV7-INS](https://www.hbkworld.com/en/products/transducers/inertial-sensors/navigation/3dm-cv7-ins)
 -[CV7-GNSS/INS](https://www.hbkworld.com/en/products/transducers/inertial-sensors/navigation/3dm-cv7-gnss-ins)
 

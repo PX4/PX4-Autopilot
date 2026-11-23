@@ -1,0 +1,19 @@
+#!/bin/sh
+#
+# board specific defaults
+#------------------------------------------------------------------------------
+
+param set-default BAT1_V_DIV 64.400000000
+
+# CRSF receivers on the RC port work without further configuration
+param set-default RC_CRSF_PRT_CFG 300
+
+# uXRCE-DDS: the RPMsg link /dev/ttyros to Linux is registered as TELEM 2.
+# Set UXRCE_DDS_CFG to TELEM 2 and rc.serial starts the client on it; the
+# agent runs on the Linux side (MicroXRCEAgent serial --dev /dev/ttyros).
+
+if param greater -s UAVCAN_ENABLE 0
+then
+	ifup can0
+	ifup can1
+fi

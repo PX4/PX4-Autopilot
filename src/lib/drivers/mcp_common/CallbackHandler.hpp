@@ -43,9 +43,12 @@ public:
 	uint16_t input{0};
 
 	CallbackHandler(orb_id_t id) : uORB::SubscriptionCallback(id) {}
-	virtual ~CallbackHandler() {}
+	virtual ~CallbackHandler()
+	{
+		unregisterCallback();
+	}
 
-	void call() override
+	void call(unsigned generation) override
 	{
 		px4::msg::GpioIn new_input;
 

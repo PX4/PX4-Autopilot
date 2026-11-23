@@ -21,9 +21,9 @@ Vehicle Command uORB message. Used for commanding a mission / action / etc. Foll
 | <a id="fld_param6"></a>param6                                          | `float64` |                                                                  |            | Parameter 6, as defined by MAVLink uint16 VEHICLE_CMD enum.                                                                                                                     |
 | <a id="fld_param7"></a>param7                                          | `float32` |                                                                  |            | Parameter 7, as defined by MAVLink uint16 VEHICLE_CMD enum.                                                                                                                     |
 | <a id="fld_command"></a>command                                        | `uint32`  |                                                                  |            | Command ID.                                                                                                                                                                                          |
-| <a id="fld_target_system"></a>target_system       | `uint8`   |                                                                  |            | System which should execute the command.                                                                                                                                                             |
+| <a id="fld_target_system"></a>target_system       | `uint32`  |                                                                  |            | System which should execute the command.                                                                                                                                                             |
 | <a id="fld_target_component"></a>target_component | `uint8`   |                                                                  |            | Component which should execute the command, 0 for all components.                                                                                                                                    |
-| <a id="fld_source_system"></a>source_system       | `uint8`   |                                                                  |            | System sending the command.                                                                                                                                                                          |
+| <a id="fld_source_system"></a>source_system       | `uint32`  |                                                                  |            | System sending the command.                                                                                                                                                                          |
 | <a id="fld_source_component"></a>source_component | `uint16`  |                                                                  |            | Component / mode executor sending the command.                                                                                                                                                       |
 | <a id="fld_confirmation"></a>confirmation                              | `uint8`   |                                                                  |            | 0: First transmission of this command. 1-255: Confirmation transmissions (e.g. for kill command). |
 | <a id="fld_from_external"></a>from_external       | `bool`    |                                                                  |            |                                                                                                                                                                                                                      |
@@ -79,7 +79,7 @@ Navigate to MISSION.
 | Param | 单位 (Units) | Range/Enum | 描述                                                                                                                                                                                                                                                                        |
 | ----- | ----------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1     | s                             |            | (decimal) Hold time. (ignored by fixed wing, time to stay at MISSION for rotary wing)                                                                                                                               |
-| 2     | 米                             |            | Acceptance radius (if the sphere with this radius is hit, the MISSION counts as reached)                                                                                                                                                               |
+| 2     | m                             |            | Acceptance radius (if the sphere with this radius is hit, the MISSION counts as reached)                                                                                                                                                               |
 | 3     |                               |            | 0 to pass through the WP, if > 0 radius [m] to pass by WP. Positive value for clockwise orbit, negative value for counter-clockwise orbit. Allows trajectory control. |
 | 4     |                               |            | Desired yaw angle at MISSION (rotary wing)                                                                                                                                                                                                             |
 | 5     |                               |            | Latitude                                                                                                                                                                                                                                                                  |
@@ -94,7 +94,7 @@ Loiter around this MISSION an unlimited amount of time.
 | ----- | ----------------------------- | ---------- | ------------------------------------------------------------------------------------------- |
 | 1     |                               |            | Unused                                                                                      |
 | 2     |                               |            | Unused                                                                                      |
-| 3     | 米                             |            | Radius around MISSION. If positive loiter clockwise, else counter-clockwise |
+| 3     | m                             |            | Radius around MISSION. If positive loiter clockwise, else counter-clockwise |
 | 4     |                               |            | Desired yaw angle.                                                          |
 | 5     |                               |            | Latitude                                                                                    |
 | 6     |                               |            | Longitude                                                                                   |
@@ -160,15 +160,15 @@ Land at location.
 
 Takeoff from ground / hand.
 
-| Param | 单位 (Units) | Range/Enum                                                                    | 描述                                                                                                                        |
-| ----- | ----------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| 1     |                               |                                                                               | Unused (FW pitch from FW_TKO_PITCH_MIN) |
-| 2     |                               |                                                                               | Unused                                                                                                                    |
-| 3     |                               |                                                                               | Unused                                                                                                                    |
-| 4     | deg                           | [0 : 360] | Yaw angle in NED if yaw source available, ignored otherwise                                                               |
-| 5     |                               |                                                                               | Latitude (WGS-84)                                                                                      |
-| 6     |                               |                                                                               | Longitude (WGS-84)                                                                                     |
-| 7     | 米                             |                                                                               | Altitude AMSL                                                                                                             |
+| Param | 单位 (Units) | Range/Enum                                                                    | 描述                                                                                                                                                                                                                                                                                          |
+| ----- | ----------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     |                               |                                                                               | Unused (FW pitch from FW_TKO_PITCH_MIN)                                                                                                                                                                   |
+| 2     |                               |                                                                               | Unused                                                                                                                                                                                                                                                                                      |
+| 3     |                               |                                                                               | Unused                                                                                                                                                                                                                                                                                      |
+| 4     | deg                           | [0 : 360] | Multicopter: yaw angle in NED if yaw source available, ignored otherwise. Fixed-wing: course over ground to continue on in Guided Course mode after the climbout (only if no latitude/longitude is set), NaN = Hold mode |
+| 5     |                               |                                                                               | Latitude (WGS-84)                                                                                                                                                                                                                                                        |
+| 6     |                               |                                                                               | Longitude (WGS-84)                                                                                                                                                                                                                                                       |
+| 7     | m                             |                                                                               | Altitude AMSL                                                                                                                                                                                                                                                                               |
 
 ### VEHICLE_CMD_NAV_PRECLAND (23)
 
@@ -190,7 +190,7 @@ Start orbiting on the circumference of a circle defined by the parameters.
 
 | Param | 单位 (Units) | Range/Enum                                                                            | 描述            |
 | ----- | ----------------------------- | ------------------------------------------------------------------------------------- | ------------- |
-| 1     | 米                             |                                                                                       | Radius        |
+| 1     | m                             |                                                                                       | Radius        |
 | 2     | 米/秒                           |                                                                                       | Velocity      |
 | 3     |                               | [ORBIT_YAW_BEHAVIOUR](#ORBIT_YAW_BEHAVIOUR) | Yaw behaviour |
 | 4     |                               |                                                                                       | Unused        |
@@ -204,8 +204,8 @@ Start flying on the outline of a figure eight defined by the parameters.
 
 | Param | 单位 (Units) | Range/Enum | 描述           |
 | ----- | ----------------------------- | ---------- | ------------ |
-| 1     | 米                             |            | Major radius |
-| 2     | 米                             |            | Minor radius |
+| 1     | m                             |            | Major radius |
+| 2     | m                             |            | Minor radius |
 | 3     | 米/秒                           |            | Velocity     |
 | 4     |                               |            | 安装方向         |
 | 5     |                               |            | Latitude/X   |
@@ -275,9 +275,9 @@ Set limits for external control.
 | Param | 单位 (Units) | Range/Enum | 描述                                                                                                                                                                                                                                                                    |
 | ----- | ----------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1     | s                             |            | Timeout - maximum time that external controller will be allowed to control vehicle. 0 means no timeout                                                                                                                                                |
-| 2     | 米                             |            | Absolute altitude min AMSL - if vehicle moves below this alt, the command will be aborted and the mission will continue. 0 means no lower altitude limit                                                                                              |
-| 3     | 米                             |            | Absolute altitude max - if vehicle moves above this alt, the command will be aborted and the mission will continue. 0 means no upper altitude limit                                                                                                   |
-| 4     | 米                             |            | Horizontal move limit (AMSL) - if vehicle moves more than this distance from it's location at the moment the command was executed, the command will be aborted and the mission will continue. 0 means no horizontal altitude limit |
+| 2     | m                             |            | Absolute altitude min AMSL - if vehicle moves below this alt, the command will be aborted and the mission will continue. 0 means no lower altitude limit                                                                                              |
+| 3     | m                             |            | Absolute altitude max - if vehicle moves above this alt, the command will be aborted and the mission will continue. 0 means no upper altitude limit                                                                                                   |
+| 4     | m                             |            | Horizontal move limit (AMSL) - if vehicle moves more than this distance from it's location at the moment the command was executed, the command will be aborted and the mission will continue. 0 means no horizontal altitude limit |
 | 5     |                               |            | Unused                                                                                                                                                                                                                                                                |
 | 6     |                               |            | Unused                                                                                                                                                                                                                                                                |
 | 7     |                               |            | Unused                                                                                                                                                                                                                                                                |
@@ -582,7 +582,7 @@ Mission command to safely abort an autonomous landing.
 
 | Param | 单位 (Units) | Range/Enum | 描述       |
 | ----- | ----------------------------- | ---------- | -------- |
-| 1     | 米                             |            | Altitude |
+| 1     | m                             |            | Altitude |
 | 2     |                               |            | Unused   |
 | 3     |                               |            | Unused   |
 | 4     |                               |            | Unused   |
@@ -598,7 +598,7 @@ Reposition to specific WGS84 GPS position.
 | ----- | ----------------------------- | ---------- | ------------------------ |
 | 1     | 米/秒                           |            | Ground speed             |
 | 2     |                               |            | Bitmask                  |
-| 3     | 米                             |            | Loiter radius for planes |
+| 3     | m                             |            | Loiter radius for planes |
 | 4     | deg                           |            | Yaw                      |
 | 5     |                               |            | Latitude                 |
 | 6     |                               |            | Longitude                |
@@ -736,7 +736,7 @@ Mission command to set TRIG_DIST for this flight.
 
 | Param | 单位 (Units) | Range/Enum | 描述                       |
 | ----- | ----------------------------- | ---------- | ------------------------ |
-| 1     | 米                             |            | Camera trigger distance  |
+| 1     | m                             |            | Camera trigger distance  |
 | 2     | ms                            |            | Shutter integration time |
 | 3     |                               |            | Unused                   |
 | 4     |                               |            | Unused                   |
@@ -834,7 +834,7 @@ Mission command to set TRIG_INTERVAL for this flight.
 
 | Param | 单位 (Units) | Range/Enum | 描述                                               |
 | ----- | ----------------------------- | ---------- | ------------------------------------------------ |
-| 1     | 米                             |            | Camera trigger distance                          |
+| 1     | m                             |            | Camera trigger distance                          |
 | 2     |                               |            | Shutter integration time (ms) |
 | 3     |                               |            | Unused                                           |
 | 4     |                               |            | Unused                                           |
@@ -877,12 +877,26 @@ Set limits for external control.
 | Param | 单位 (Units) | Range/Enum | 描述                                                                                                                                                                                                                                                                    |
 | ----- | ----------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1     | s                             |            | Timeout - maximum time that external controller will be allowed to control vehicle. 0 means no timeout                                                                                                                                                |
-| 2     | 米                             |            | Absolute altitude min(AMSL) - if vehicle moves below this alt, the command will be aborted and the mission will continue. 0 means no lower altitude limit                                                                          |
-| 3     | 米                             |            | Absolute altitude max - if vehicle moves above this alt, the command will be aborted and the mission will continue. 0 means no upper altitude limit                                                                                                   |
-| 4     | 米                             |            | Horizontal move limit (AMSL) - if vehicle moves more than this distance from it's location at the moment the command was executed, the command will be aborted and the mission will continue. 0 means no horizontal altitude limit |
+| 2     | m                             |            | Absolute altitude min(AMSL) - if vehicle moves below this alt, the command will be aborted and the mission will continue. 0 means no lower altitude limit                                                                          |
+| 3     | m                             |            | Absolute altitude max - if vehicle moves above this alt, the command will be aborted and the mission will continue. 0 means no upper altitude limit                                                                                                   |
+| 4     | m                             |            | Horizontal move limit (AMSL) - if vehicle moves more than this distance from it's location at the moment the command was executed, the command will be aborted and the mission will continue. 0 means no horizontal altitude limit |
 | 5     |                               |            | Unused                                                                                                                                                                                                                                                                |
 | 6     |                               |            | Unused                                                                                                                                                                                                                                                                |
 | 7     |                               |            | Unused                                                                                                                                                                                                                                                                |
+
+### VEHICLE_CMD_DO_SET_MISSION_CURRENT (224)
+
+Set the mission item with sequence number seq as current item and emit MISSION_CURRENT (whether or not the mission mode is active). ACKs FAILED if seq is out of range or there is no current mission item.
+
+| Param | 单位 (Units) | Range/Enum | 描述                                                                                                                                               |
+| ----- | ----------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1     |                               |            | Mission sequence value to set, -1 for the current mission item (use to reset jump counters without changing the current item) |
+| 2     |                               |            | Reset repeat/jump counters and clear mission complete flag (1=true,0=false; default:0)                        |
+| 3     |                               |            | Unused                                                                                                                                           |
+| 4     |                               |            | Unused                                                                                                                                           |
+| 5     |                               |            | Unused                                                                                                                                           |
+| 6     |                               |            | Unused                                                                                                                                           |
+| 7     |                               |            | Unused                                                                                                                                           |
 
 ### VEHICLE_CMD_DO_LAST (240)
 
@@ -974,7 +988,7 @@ Mission command to set a Camera Auto Mount Pivoting Oblique Survey for this flig
 
 | Param | 单位 (Units) | Range/Enum | 描述                              |
 | ----- | ----------------------------- | ---------- | ------------------------------- |
-| 1     | 米                             |            | Camera trigger distance         |
+| 1     | m                             |            | Camera trigger distance         |
 | 2     | ms                            |            | Shutter integration time        |
 | 3     |                               |            | Camera minimum trigger interval |
 | 4     |                               |            | Number of positions             |
@@ -1364,15 +1378,15 @@ Command VTOL transition.
 
 Command safety on/off.
 
-| Param | 单位 (Units) | Range/Enum | 描述                                                                               |
-| ----- | ----------------------------- | ---------- | -------------------------------------------------------------------------------- |
-| 1     |                               |            | 1 to activate safety, 0 to deactivate safety and allow control surface movements |
-| 2     |                               |            | Unused                                                                           |
-| 3     |                               |            | Unused                                                                           |
-| 4     |                               |            | Unused                                                                           |
-| 5     |                               |            | Unused                                                                           |
-| 6     |                               |            | Unused                                                                           |
-| 7     |                               |            | Unused                                                                           |
+| Param | 单位 (Units) | Range/Enum | 描述                                                                                                                                                                                                       |
+| ----- | ----------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     |                               |            | SAFETY_SAFE (0) to activate safety, SAFETY_DANGEROUS (1) to deactivate safety and allow non-throttling actuator movement |
+| 2     |                               |            | Unused                                                                                                                                                                                                   |
+| 3     |                               |            | Unused                                                                                                                                                                                                   |
+| 4     |                               |            | Unused                                                                                                                                                                                                   |
+| 5     |                               |            | Unused                                                                                                                                                                                                   |
+| 6     |                               |            | Unused                                                                                                                                                                                                   |
+| 7     |                               |            | Unused                                                                                                                                                                                                   |
 
 ### VEHICLE_CMD_ARM_AUTHORIZATION_REQUEST (3001)
 
@@ -1512,7 +1526,7 @@ Sets the GPS coordinates of the vehicle local origin (0,0,0) position.
 | 4     |                               |            | Unused                                                              |
 | 5     |                               |            | Latitude (WGS-84)                                |
 | 6     |                               |            | Longitude (WGS-84)                               |
-| 7     | 米                             |            | Altitude (AMSL from GNSS, positive above ground) |
+| 7     | m                             |            | Altitude (AMSL from GNSS, positive above ground) |
 
 ### VEHICLE_CMD_SET_NAV_STATE (100001)
 
@@ -1527,6 +1541,20 @@ Change mode by specifying nav_state directly.
 | 5     |                               |            | Unused                         |
 | 6     |                               |            | Unused                         |
 | 7     |                               |            | Unused                         |
+
+### VEHICLE_CMD_DO_SET_GLOBAL_ORIGIN (611)
+
+Sets GNSS coordinates of the vehicle local origin (0,0,0) position. Send as COMMAND_INT with MAV_FRAME_GLOBAL_INT.
+
+| Param | 单位 (Units) | Range/Enum | 描述                                    |
+| ----- | ----------------------------- | ---------- | ------------------------------------- |
+| 1     |                               |            | Unused                                |
+| 2     |                               |            | Unused                                |
+| 3     |                               |            | Unused                                |
+| 4     |                               |            | Unused                                |
+| 5     |                               |            | Latitude (WGS-84)  |
+| 6     |                               |            | Longitude (WGS-84) |
+| 7     | m                             |            | Altitude (AMSL)    |
 
 ### VEHICLE_CMD_GUIDED_CHANGE_HEADING (43002)
 
@@ -1594,70 +1622,78 @@ Change heading/course. param1: heading type (0=course-over-ground, 1=heading). p
 
 ## Constants
 
-| 参数名                                                                                                                                                                         | 类型       | 值    | 描述                                                                                                                                                                 |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                                                                                          | `uint32` | 0    |                                                                                                                                                                    |
-| <a id="#PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION"></a> PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION    | `uint16` | 3    | Param value for VEHICLE_CMD_PREFLIGHT_CALIBRATION to start temperature calibration. |
-| <a id="#FUSION_SOURCE_GPS"></a> FUSION_SOURCE_GPS                                                                                 | `uint8`  | 0    | GNSS (EKF2_GPS{i}\_CTRL, use instance param)                                                         |
-| <a id="#FUSION_SOURCE_OF"></a> FUSION_SOURCE_OF                                                                                   | `uint8`  | 1    | Optical Flow (EKF2_OF_CTRL)                                                                           |
-| <a id="#FUSION_SOURCE_EV"></a> FUSION_SOURCE_EV                                                                                   | `uint8`  | 2    | External Vision (EKF2_EV_CTRL)                                                                        |
-| <a id="#FUSION_SOURCE_AGP"></a> FUSION_SOURCE_AGP                                                                                 | `uint8`  | 3    | Auxiliary Global Position (EKF2_AGP{i}\_CTRL, use instance param)                                    |
-| <a id="#FUSION_SOURCE_BARO"></a> FUSION_SOURCE_BARO                                                                               | `uint8`  | 4    | Barometer (EKF2_BARO_CTRL)                                                                            |
-| <a id="#FUSION_SOURCE_RNG"></a> FUSION_SOURCE_RNG                                                                                 | `uint8`  | 5    | Range Finder (EKF2_RNG_CTRL)                                                                          |
-| <a id="#FUSION_SOURCE_MAG"></a> FUSION_SOURCE_MAG                                                                                 | `uint8`  | 6    | Magnetometer (EKF2_MAG_TYPE)                                                                          |
-| <a id="#FUSION_SOURCE_ASPD"></a> FUSION_SOURCE_ASPD                                                                               | `uint8`  | 7    | Airspeed (EKF2_ARSP_THR)                                                                              |
-| <a id="#FUSION_SOURCE_RNGBCN"></a> FUSION_SOURCE_RNGBCN                                                                           | `uint8`  | 8    | Ranging Beacon                                                                                                                                                     |
-| <a id="#VEHICLE_MOUNT_MODE_RETRACT"></a> VEHICLE_MOUNT_MODE_RETRACT                                          | `uint8`  | 0    | Load and keep safe position (Roll,Pitch,Yaw) from permanent memory and stop stabilization.                                      |
-| <a id="#VEHICLE_MOUNT_MODE_NEUTRAL"></a> VEHICLE_MOUNT_MODE_NEUTRAL                                          | `uint8`  | 1    | Load and keep neutral position (Roll,Pitch,Yaw) from permanent memory.                                                          |
-| <a id="#VEHICLE_MOUNT_MODE_MAVLINK_TARGETING"></a> VEHICLE_MOUNT_MODE_MAVLINK_TARGETING | `uint8`  | 2    | Load neutral position and start MAVLink Roll,Pitch,Yaw control with stabilization.                                                                 |
-| <a id="#VEHICLE_MOUNT_MODE_RC_TARGETING"></a> VEHICLE_MOUNT_MODE_RC_TARGETING           | `uint8`  | 3    | Load neutral position and start RC Roll,Pitch,Yaw control with stabilization.                                                                      |
-| <a id="#VEHICLE_MOUNT_MODE_GPS_POINT"></a> VEHICLE_MOUNT_MODE_GPS_POINT                 | `uint8`  | 4    | Load neutral position and start to point to Lat,Lon,Alt.                                                                                           |
-| <a id="#VEHICLE_MOUNT_MODE_ENUM_END"></a> VEHICLE_MOUNT_MODE_ENUM_END                   | `uint8`  | 5    |                                                                                                                                                                    |
-| <a id="#ACTUATOR_CONFIGURATION_NONE"></a> ACTUATOR_CONFIGURATION_NONE                                                             | `uint8`  | 0    | Do nothing.                                                                                                                                        |
-| <a id="#ACTUATOR_CONFIGURATION_BEEP"></a> ACTUATOR_CONFIGURATION_BEEP                                                             | `uint8`  | 1    | Command the actuator to beep now.                                                                                                                  |
-| <a id="#ACTUATOR_CONFIGURATION_3D_MODE_ON"></a> ACTUATOR_CONFIGURATION_3D_MODE_ON       | `uint8`  | 2    | Permanently set the actuator (ESC) to 3D mode (reversible thrust).                                           |
-| <a id="#ACTUATOR_CONFIGURATION_3D_MODE_OFF"></a> ACTUATOR_CONFIGURATION_3D_MODE_OFF     | `uint8`  | 3    | Permanently set the actuator (ESC) to non 3D mode (non-reversible thrust).                                   |
-| <a id="#ACTUATOR_CONFIGURATION_SPIN_DIRECTION1"></a> ACTUATOR_CONFIGURATION_SPIN_DIRECTION1                  | `uint8`  | 4    | Permanently set the actuator (ESC) to spin direction 1 (which can be clockwise or counter-clockwise).        |
-| <a id="#ACTUATOR_CONFIGURATION_SPIN_DIRECTION2"></a> ACTUATOR_CONFIGURATION_SPIN_DIRECTION2                  | `uint8`  | 5    | Permanently set the actuator (ESC) to spin direction 2 (opposite of direction 1).                            |
-| <a id="#PARACHUTE_ACTION_DISABLE"></a> PARACHUTE_ACTION_DISABLE                                                                   | `uint8`  | 0    |                                                                                                                                                                    |
-| <a id="#PARACHUTE_ACTION_ENABLE"></a> PARACHUTE_ACTION_ENABLE                                                                     | `uint8`  | 1    |                                                                                                                                                                    |
-| <a id="#PARACHUTE_ACTION_RELEASE"></a> PARACHUTE_ACTION_RELEASE                                                                   | `uint8`  | 2    |                                                                                                                                                                    |
-| <a id="#FAILURE_UNIT_SENSOR_GYRO"></a> FAILURE_UNIT_SENSOR_GYRO                                              | `uint8`  | 0    |                                                                                                                                                                    |
-| <a id="#FAILURE_UNIT_SENSOR_ACCEL"></a> FAILURE_UNIT_SENSOR_ACCEL                                            | `uint8`  | 1    |                                                                                                                                                                    |
-| <a id="#FAILURE_UNIT_SENSOR_MAG"></a> FAILURE_UNIT_SENSOR_MAG                                                | `uint8`  | 2    |                                                                                                                                                                    |
-| <a id="#FAILURE_UNIT_SENSOR_BARO"></a> FAILURE_UNIT_SENSOR_BARO                                              | `uint8`  | 3    |                                                                                                                                                                    |
-| <a id="#FAILURE_UNIT_SENSOR_GPS"></a> FAILURE_UNIT_SENSOR_GPS                                                | `uint8`  | 4    |                                                                                                                                                                    |
-| <a id="#FAILURE_UNIT_SENSOR_OPTICAL_FLOW"></a> FAILURE_UNIT_SENSOR_OPTICAL_FLOW         | `uint8`  | 5    |                                                                                                                                                                    |
-| <a id="#FAILURE_UNIT_SENSOR_VIO"></a> FAILURE_UNIT_SENSOR_VIO                                                | `uint8`  | 6    |                                                                                                                                                                    |
-| <a id="#FAILURE_UNIT_SENSOR_DISTANCE_SENSOR"></a> FAILURE_UNIT_SENSOR_DISTANCE_SENSOR   | `uint8`  | 7    |                                                                                                                                                                    |
-| <a id="#FAILURE_UNIT_SENSOR_AIRSPEED"></a> FAILURE_UNIT_SENSOR_AIRSPEED                                      | `uint8`  | 8    |                                                                                                                                                                    |
-| <a id="#FAILURE_UNIT_SYSTEM_BATTERY"></a> FAILURE_UNIT_SYSTEM_BATTERY                                        | `uint8`  | 100  |                                                                                                                                                                    |
-| <a id="#FAILURE_UNIT_SYSTEM_MOTOR"></a> FAILURE_UNIT_SYSTEM_MOTOR                                            | `uint8`  | 101  |                                                                                                                                                                    |
-| <a id="#FAILURE_UNIT_SYSTEM_SERVO"></a> FAILURE_UNIT_SYSTEM_SERVO                                            | `uint8`  | 102  |                                                                                                                                                                    |
-| <a id="#FAILURE_UNIT_SYSTEM_AVOIDANCE"></a> FAILURE_UNIT_SYSTEM_AVOIDANCE                                    | `uint8`  | 103  |                                                                                                                                                                    |
-| <a id="#FAILURE_UNIT_SYSTEM_RC_SIGNAL"></a> FAILURE_UNIT_SYSTEM_RC_SIGNAL               | `uint8`  | 104  |                                                                                                                                                                    |
-| <a id="#FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL"></a> FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL     | `uint8`  | 105  |                                                                                                                                                                    |
-| <a id="#FAILURE_TYPE_OK"></a> FAILURE_TYPE_OK                                                                                     | `uint8`  | 0    |                                                                                                                                                                    |
-| <a id="#FAILURE_TYPE_OFF"></a> FAILURE_TYPE_OFF                                                                                   | `uint8`  | 1    |                                                                                                                                                                    |
-| <a id="#FAILURE_TYPE_STUCK"></a> FAILURE_TYPE_STUCK                                                                               | `uint8`  | 2    |                                                                                                                                                                    |
-| <a id="#FAILURE_TYPE_GARBAGE"></a> FAILURE_TYPE_GARBAGE                                                                           | `uint8`  | 3    |                                                                                                                                                                    |
-| <a id="#FAILURE_TYPE_WRONG"></a> FAILURE_TYPE_WRONG                                                                               | `uint8`  | 4    |                                                                                                                                                                    |
-| <a id="#FAILURE_TYPE_SLOW"></a> FAILURE_TYPE_SLOW                                                                                 | `uint8`  | 5    |                                                                                                                                                                    |
-| <a id="#FAILURE_TYPE_DELAYED"></a> FAILURE_TYPE_DELAYED                                                                           | `uint8`  | 6    |                                                                                                                                                                    |
-| <a id="#FAILURE_TYPE_INTERMITTENT"></a> FAILURE_TYPE_INTERMITTENT                                                                 | `uint8`  | 7    |                                                                                                                                                                    |
-| <a id="#RC_TYPE_SPEKTRUM"></a> RC_TYPE_SPEKTRUM                                                                                   | `uint8`  | 0    |                                                                                                                                                                    |
-| <a id="#RC_TYPE_CRSF"></a> RC_TYPE_CRSF                                                                                           | `uint8`  | 1    |                                                                                                                                                                    |
-| <a id="#RC_SUB_TYPE_SPEKTRUM_DSM2"></a> RC_SUB_TYPE_SPEKTRUM_DSM2                       | `uint8`  | 0    |                                                                                                                                                                    |
-| <a id="#RC_SUB_TYPE_SPEKTRUM_DSMX"></a> RC_SUB_TYPE_SPEKTRUM_DSMX                       | `uint8`  | 1    |                                                                                                                                                                    |
-| <a id="#RC_SUB_TYPE_SPEKTRUM_DSMX8"></a> RC_SUB_TYPE_SPEKTRUM_DSMX8                     | `uint8`  | 2    |                                                                                                                                                                    |
-| <a id="#ARMING_ACTION_DISARM"></a> ARMING_ACTION_DISARM                                                                           | `int8`   | 0    |                                                                                                                                                                    |
-| <a id="#ARMING_ACTION_ARM"></a> ARMING_ACTION_ARM                                                                                 | `int8`   | 1    |                                                                                                                                                                    |
-| <a id="#GRIPPER_ACTION_RELEASE"></a> GRIPPER_ACTION_RELEASE                                                                       | `uint8`  | 0    |                                                                                                                                                                    |
-| <a id="#GRIPPER_ACTION_GRAB"></a> GRIPPER_ACTION_GRAB                                                                             | `uint8`  | 1    |                                                                                                                                                                    |
-| <a id="#SAFETY_OFF"></a> SAFETY_OFF                                                                                                                    | `uint8`  | 0    |                                                                                                                                                                    |
-| <a id="#SAFETY_ON"></a> SAFETY_ON                                                                                                                      | `uint8`  | 1    |                                                                                                                                                                    |
-| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH                                                                                   | `uint8`  | 8    |                                                                                                                                                                    |
-| <a id="#COMPONENT_MODE_EXECUTOR_START"></a> COMPONENT_MODE_EXECUTOR_START                                    | `uint16` | 1000 |                                                                                                                                                                    |
+| 参数名                                                                                                                                                                           | 类型       | 值    | 描述                                                                                                                                                                 |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| <a id="#MESSAGE_VERSION"></a> MESSAGE_VERSION                                                                                                            | `uint32` | 1    |                                                                                                                                                                    |
+| <a id="#PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION"></a> PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION      | `uint16` | 3    | Param value for VEHICLE_CMD_PREFLIGHT_CALIBRATION to start temperature calibration. |
+| <a id="#FUSION_SOURCE_GPS"></a> FUSION_SOURCE_GPS                                                                                   | `uint8`  | 0    | GNSS (EKF2_GPS{i}\_CTRL, use instance param)                                                         |
+| <a id="#FUSION_SOURCE_OF"></a> FUSION_SOURCE_OF                                                                                     | `uint8`  | 1    | Optical Flow (EKF2_OF_CTRL)                                                                           |
+| <a id="#FUSION_SOURCE_EV"></a> FUSION_SOURCE_EV                                                                                     | `uint8`  | 2    | External Vision (EKF2_EV_CTRL)                                                                        |
+| <a id="#FUSION_SOURCE_AGP"></a> FUSION_SOURCE_AGP                                                                                   | `uint8`  | 3    | Auxiliary Global Position (EKF2_AGP{i}\_CTRL, use instance param)                                    |
+| <a id="#FUSION_SOURCE_BARO"></a> FUSION_SOURCE_BARO                                                                                 | `uint8`  | 4    | Barometer (EKF2_BARO_CTRL)                                                                            |
+| <a id="#FUSION_SOURCE_RNG"></a> FUSION_SOURCE_RNG                                                                                   | `uint8`  | 5    | Range Finder (EKF2_RNG_CTRL)                                                                          |
+| <a id="#FUSION_SOURCE_MAG"></a> FUSION_SOURCE_MAG                                                                                   | `uint8`  | 6    | Magnetometer (EKF2_MAG_TYPE)                                                                          |
+| <a id="#FUSION_SOURCE_ASPD"></a> FUSION_SOURCE_ASPD                                                                                 | `uint8`  | 7    | Airspeed (EKF2_ARSP_THR)                                                                              |
+| <a id="#FUSION_SOURCE_RNGBCN"></a> FUSION_SOURCE_RNGBCN                                                                             | `uint8`  | 8    | Ranging Beacon                                                                                                                                                     |
+| <a id="#VEHICLE_MOUNT_MODE_RETRACT"></a> VEHICLE_MOUNT_MODE_RETRACT                                            | `uint8`  | 0    | Load and keep safe position (Roll,Pitch,Yaw) from permanent memory and stop stabilization.                                      |
+| <a id="#VEHICLE_MOUNT_MODE_NEUTRAL"></a> VEHICLE_MOUNT_MODE_NEUTRAL                                            | `uint8`  | 1    | Load and keep neutral position (Roll,Pitch,Yaw) from permanent memory.                                                          |
+| <a id="#VEHICLE_MOUNT_MODE_MAVLINK_TARGETING"></a> VEHICLE_MOUNT_MODE_MAVLINK_TARGETING   | `uint8`  | 2    | Load neutral position and start MAVLink Roll,Pitch,Yaw control with stabilization.                                                                 |
+| <a id="#VEHICLE_MOUNT_MODE_RC_TARGETING"></a> VEHICLE_MOUNT_MODE_RC_TARGETING             | `uint8`  | 3    | Load neutral position and start RC Roll,Pitch,Yaw control with stabilization.                                                                      |
+| <a id="#VEHICLE_MOUNT_MODE_GPS_POINT"></a> VEHICLE_MOUNT_MODE_GPS_POINT                   | `uint8`  | 4    | Load neutral position and start to point to Lat,Lon,Alt.                                                                                           |
+| <a id="#VEHICLE_MOUNT_MODE_ENUM_END"></a> VEHICLE_MOUNT_MODE_ENUM_END                     | `uint8`  | 5    |                                                                                                                                                                    |
+| <a id="#ACTUATOR_CONFIGURATION_NONE"></a> ACTUATOR_CONFIGURATION_NONE                                                               | `uint8`  | 0    | Do nothing.                                                                                                                                        |
+| <a id="#ACTUATOR_CONFIGURATION_BEEP"></a> ACTUATOR_CONFIGURATION_BEEP                                                               | `uint8`  | 1    | Command the actuator to beep now.                                                                                                                  |
+| <a id="#ACTUATOR_CONFIGURATION_3D_MODE_ON"></a> ACTUATOR_CONFIGURATION_3D_MODE_ON         | `uint8`  | 2    | Permanently set the actuator (ESC) to 3D mode (reversible thrust).                                           |
+| <a id="#ACTUATOR_CONFIGURATION_3D_MODE_OFF"></a> ACTUATOR_CONFIGURATION_3D_MODE_OFF       | `uint8`  | 3    | Permanently set the actuator (ESC) to non 3D mode (non-reversible thrust).                                   |
+| <a id="#ACTUATOR_CONFIGURATION_SPIN_DIRECTION1"></a> ACTUATOR_CONFIGURATION_SPIN_DIRECTION1                    | `uint8`  | 4    | Permanently set the actuator (ESC) to spin direction 1 (which can be clockwise or counter-clockwise).        |
+| <a id="#ACTUATOR_CONFIGURATION_SPIN_DIRECTION2"></a> ACTUATOR_CONFIGURATION_SPIN_DIRECTION2                    | `uint8`  | 5    | Permanently set the actuator (ESC) to spin direction 2 (opposite of direction 1).                            |
+| <a id="#PARACHUTE_ACTION_DISABLE"></a> PARACHUTE_ACTION_DISABLE                                                                     | `uint8`  | 0    |                                                                                                                                                                    |
+| <a id="#PARACHUTE_ACTION_ENABLE"></a> PARACHUTE_ACTION_ENABLE                                                                       | `uint8`  | 1    |                                                                                                                                                                    |
+| <a id="#PARACHUTE_ACTION_RELEASE"></a> PARACHUTE_ACTION_RELEASE                                                                     | `uint8`  | 2    |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SENSOR_GYRO"></a> FAILURE_UNIT_SENSOR_GYRO                                                | `uint8`  | 0    |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SENSOR_ACCEL"></a> FAILURE_UNIT_SENSOR_ACCEL                                              | `uint8`  | 1    |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SENSOR_MAG"></a> FAILURE_UNIT_SENSOR_MAG                                                  | `uint8`  | 2    |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SENSOR_BARO"></a> FAILURE_UNIT_SENSOR_BARO                                                | `uint8`  | 3    |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SENSOR_GPS"></a> FAILURE_UNIT_SENSOR_GPS                                                  | `uint8`  | 4    |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SENSOR_OPTICAL_FLOW"></a> FAILURE_UNIT_SENSOR_OPTICAL_FLOW           | `uint8`  | 5    |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SENSOR_VIO"></a> FAILURE_UNIT_SENSOR_VIO                                                  | `uint8`  | 6    |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SENSOR_DISTANCE_SENSOR"></a> FAILURE_UNIT_SENSOR_DISTANCE_SENSOR     | `uint8`  | 7    |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SENSOR_AIRSPEED"></a> FAILURE_UNIT_SENSOR_AIRSPEED                                        | `uint8`  | 8    |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SYSTEM_BATTERY"></a> FAILURE_UNIT_SYSTEM_BATTERY                                          | `uint8`  | 100  |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SYSTEM_MOTOR"></a> FAILURE_UNIT_SYSTEM_MOTOR                                              | `uint8`  | 101  |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SYSTEM_SERVO"></a> FAILURE_UNIT_SYSTEM_SERVO                                              | `uint8`  | 102  |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SYSTEM_AVOIDANCE"></a> FAILURE_UNIT_SYSTEM_AVOIDANCE                                      | `uint8`  | 103  |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SYSTEM_RC_SIGNAL"></a> FAILURE_UNIT_SYSTEM_RC_SIGNAL                 | `uint8`  | 104  |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL"></a> FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL       | `uint8`  | 105  |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SYSTEM_ESC"></a> FAILURE_UNIT_SYSTEM_ESC                                                  | `uint8`  | 106  |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE"></a> FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE | `uint8`  | 107  |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_DATALINK_LTE"></a> FAILURE_UNIT_DATALINK_LTE                                              | `uint8`  | 150  |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_DATALINK_WIFI"></a> FAILURE_UNIT_DATALINK_WIFI                                            | `uint8`  | 151  |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_DATALINK_TELEM_RADIO"></a> FAILURE_UNIT_DATALINK_TELEM_RADIO         | `uint8`  | 152  |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_BUS_CAN"></a> FAILURE_UNIT_BUS_CAN                                                        | `uint8`  | 200  |                                                                                                                                                                    |
+| <a id="#FAILURE_UNIT_BUS_I2C"></a> FAILURE_UNIT_BUS_I2C                                                        | `uint8`  | 201  |                                                                                                                                                                    |
+| <a id="#FAILURE_TYPE_OK"></a> FAILURE_TYPE_OK                                                                                       | `uint8`  | 0    |                                                                                                                                                                    |
+| <a id="#FAILURE_TYPE_OFF"></a> FAILURE_TYPE_OFF                                                                                     | `uint8`  | 1    |                                                                                                                                                                    |
+| <a id="#FAILURE_TYPE_STUCK"></a> FAILURE_TYPE_STUCK                                                                                 | `uint8`  | 2    |                                                                                                                                                                    |
+| <a id="#FAILURE_TYPE_GARBAGE"></a> FAILURE_TYPE_GARBAGE                                                                             | `uint8`  | 3    |                                                                                                                                                                    |
+| <a id="#FAILURE_TYPE_WRONG"></a> FAILURE_TYPE_WRONG                                                                                 | `uint8`  | 4    |                                                                                                                                                                    |
+| <a id="#FAILURE_TYPE_SLOW"></a> FAILURE_TYPE_SLOW                                                                                   | `uint8`  | 5    |                                                                                                                                                                    |
+| <a id="#FAILURE_TYPE_DELAYED"></a> FAILURE_TYPE_DELAYED                                                                             | `uint8`  | 6    |                                                                                                                                                                    |
+| <a id="#FAILURE_TYPE_INTERMITTENT"></a> FAILURE_TYPE_INTERMITTENT                                                                   | `uint8`  | 7    |                                                                                                                                                                    |
+| <a id="#FAILURE_TYPE_DRIFT"></a> FAILURE_TYPE_DRIFT                                                                                 | `uint8`  | 8    |                                                                                                                                                                    |
+| <a id="#RC_TYPE_SPEKTRUM"></a> RC_TYPE_SPEKTRUM                                                                                     | `uint8`  | 0    |                                                                                                                                                                    |
+| <a id="#RC_TYPE_CRSF"></a> RC_TYPE_CRSF                                                                                             | `uint8`  | 1    |                                                                                                                                                                    |
+| <a id="#RC_SUB_TYPE_SPEKTRUM_DSM2"></a> RC_SUB_TYPE_SPEKTRUM_DSM2                         | `uint8`  | 0    |                                                                                                                                                                    |
+| <a id="#RC_SUB_TYPE_SPEKTRUM_DSMX"></a> RC_SUB_TYPE_SPEKTRUM_DSMX                         | `uint8`  | 1    |                                                                                                                                                                    |
+| <a id="#RC_SUB_TYPE_SPEKTRUM_DSMX8"></a> RC_SUB_TYPE_SPEKTRUM_DSMX8                       | `uint8`  | 2    |                                                                                                                                                                    |
+| <a id="#ARMING_ACTION_DISARM"></a> ARMING_ACTION_DISARM                                                                             | `int8`   | 0    |                                                                                                                                                                    |
+| <a id="#ARMING_ACTION_ARM"></a> ARMING_ACTION_ARM                                                                                   | `int8`   | 1    |                                                                                                                                                                    |
+| <a id="#GRIPPER_ACTION_RELEASE"></a> GRIPPER_ACTION_RELEASE                                                                         | `uint8`  | 0    |                                                                                                                                                                    |
+| <a id="#GRIPPER_ACTION_GRAB"></a> GRIPPER_ACTION_GRAB                                                                               | `uint8`  | 1    |                                                                                                                                                                    |
+| <a id="#SAFETY_SAFE"></a> SAFETY_SAFE                                                                                                                    | `uint8`  | 0    | Activate safety (MAVLink SAFETY_SWITCH_STATE_SAFE)                               |
+| <a id="#SAFETY_DANGEROUS"></a> SAFETY_DANGEROUS                                                                                                          | `uint8`  | 1    | Deactivate safety (MAVLink SAFETY_SWITCH_STATE_DANGEROUS)                        |
+| <a id="#ORB_QUEUE_LENGTH"></a> ORB_QUEUE_LENGTH                                                                                     | `uint8`  | 8    |                                                                                                                                                                    |
+| <a id="#COMPONENT_MODE_EXECUTOR_START"></a> COMPONENT_MODE_EXECUTOR_START                                      | `uint16` | 1000 |                                                                                                                                                                    |
 
 ## Source Message
 
@@ -1670,7 +1706,7 @@ Click here to see original file
 # Vehicle Command uORB message. Used for commanding a mission / action / etc.
 # Follows the MAVLink COMMAND_INT / COMMAND_LONG definition
 
-uint32 MESSAGE_VERSION = 0
+uint32 MESSAGE_VERSION = 1
 
 uint64 timestamp # [us] Time since system start.
 
@@ -1683,7 +1719,7 @@ uint16 VEHICLE_CMD_NAV_LOITER_TURNS = 18 # Loiter around this MISSION for X turn
 uint16 VEHICLE_CMD_NAV_LOITER_TIME = 19 # Loiter around this MISSION for time. |[s] Seconds (decimal)|Unused|Radius around MISSION [m]. If positive loiter clockwise, else counter-clockwise|Desired yaw angle.|Latitude|Longitude|Altitude|
 uint16 VEHICLE_CMD_NAV_RETURN_TO_LAUNCH = 20 # Return to launch location. |Unused|Unused|Unused|Unused|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_NAV_LAND = 21 # Land at location. |Unused|Unused|Unused|Desired yaw angle.|Latitude|Longitude|Altitude|
-uint16 VEHICLE_CMD_NAV_TAKEOFF = 22 # Takeoff from ground / hand. |Unused (FW pitch from FW_TKO_PITCH_MIN)|Unused|Unused|[deg] [@range 0,360] Yaw angle in NED if yaw source available, ignored otherwise|Latitude (WGS-84)|Longitude (WGS-84)|[m] Altitude AMSL|
+uint16 VEHICLE_CMD_NAV_TAKEOFF = 22 # Takeoff from ground / hand. |Unused (FW pitch from FW_TKO_PITCH_MIN)|Unused|Unused|[deg] [@range 0,360] Multicopter: yaw angle in NED if yaw source available, ignored otherwise. Fixed-wing: course over ground to continue on in Guided Course mode after the climbout (only if no latitude/longitude is set), NaN = Hold mode|Latitude (WGS-84)|Longitude (WGS-84)|[m] Altitude AMSL|
 uint16 VEHICLE_CMD_NAV_PRECLAND = 23 # Attempt a precision landing.
 uint16 VEHICLE_CMD_DO_ORBIT = 34 # Start orbiting on the circumference of a circle defined by the parameters. |[m] Radius|[m/s] Velocity|[@enum ORBIT_YAW_BEHAVIOUR] Yaw behaviour|Unused|Latitude/X|Longitude/Y|Altitude/Z|
 uint16 VEHICLE_CMD_DO_FIGUREEIGHT = 35 # Start flying on the outline of a figure eight defined by the parameters. |[m] Major radius|[m] Minor radius|[m/s] Velocity|Orientation|Latitude/X|Longitude/Y|Altitude/Z|
@@ -1735,6 +1771,7 @@ uint16 VEHICLE_CMD_DO_SET_CAM_TRIGG_INTERVAL=214 # Mission command to set TRIG_I
 uint16 VEHICLE_CMD_DO_MOUNT_CONTROL_QUAT=220 # Mission command to control a camera or antenna mount, using a quaternion as reference. |q1 - quaternion param #1, w (1 in null-rotation)|q2 - quaternion param #2, x (0 in null-rotation)|q3 - quaternion param #3, y (0 in null-rotation)|q4 - quaternion param #4, z (0 in null-rotation)|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_DO_GUIDED_MASTER=221 # Set id of master controller. |System ID|Component ID|Unused|Unused|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_DO_GUIDED_LIMITS=222 # Set limits for external control. |[s] Timeout - maximum time that external controller will be allowed to control vehicle. 0 means no timeout|[m] Absolute altitude min(AMSL) - if vehicle moves below this alt, the command will be aborted and the mission will continue. 0 means no lower altitude limit|[m] Absolute altitude max - if vehicle moves above this alt, the command will be aborted and the mission will continue. 0 means no upper altitude limit|[m] Horizontal move limit (AMSL) - if vehicle moves more than this distance from it's location at the moment the command was executed, the command will be aborted and the mission will continue. 0 means no horizontal altitude limit|Unused|Unused|Unused|
+uint16 VEHICLE_CMD_DO_SET_MISSION_CURRENT = 224 # Set the mission item with sequence number seq as current item and emit MISSION_CURRENT (whether or not the mission mode is active). ACKs FAILED if seq is out of range or there is no current mission item. |Mission sequence value to set, -1 for the current mission item (use to reset jump counters without changing the current item)|Reset repeat/jump counters and clear mission complete flag (1=true,0=false; default:0)|Unused|Unused|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_DO_LAST = 240 # NOP - This command is only used to mark the upper limit of the DO commands in the enumeration. |Unused|Unused|Unused|Unused|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_PREFLIGHT_CALIBRATION = 241 # Trigger calibration. This command will be only accepted if in pre-flight mode. See MAVLink spec MAV_CMD_PREFLIGHT_CALIBRATION.
 uint16 PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION = 3# Param value for VEHICLE_CMD_PREFLIGHT_CALIBRATION to start temperature calibration.
@@ -1771,7 +1808,7 @@ uint16 VEHICLE_CMD_LOGGING_START = 2510 # Start streaming ULog data.
 uint16 VEHICLE_CMD_LOGGING_STOP = 2511 # Stop streaming ULog data.
 uint16 VEHICLE_CMD_CONTROL_HIGH_LATENCY = 2600 # Control starting/stopping transmitting data over the high latency link.
 uint16 VEHICLE_CMD_DO_VTOL_TRANSITION = 3000 # Command VTOL transition.
-uint16 VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE = 5300 # Command safety on/off. |1 to activate safety, 0 to deactivate safety and allow control surface movements|Unused|Unused|Unused|Unused|Unused|Unused|
+uint16 VEHICLE_CMD_DO_SET_SAFETY_SWITCH_STATE = 5300 # Command safety on/off. |SAFETY_SAFE (0) to activate safety, SAFETY_DANGEROUS (1) to deactivate safety and allow non-throttling actuator movement|Unused|Unused|Unused|Unused|Unused|Unused|
 uint16 VEHICLE_CMD_ARM_AUTHORIZATION_REQUEST = 3001 # Request arm authorization.
 uint16 VEHICLE_CMD_PAYLOAD_PREPARE_DEPLOY = 30001 # Prepare a payload deployment in the flight plan.
 uint16 VEHICLE_CMD_PAYLOAD_CONTROL_DEPLOY = 30002 # Control a pre-programmed payload deployment.
@@ -1797,6 +1834,7 @@ uint32 VEHICLE_CMD_PX4_INTERNAL_START = 65537 # Start of PX4 internal only vehic
 uint32 VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN = 100000 # Sets the GPS coordinates of the vehicle local origin (0,0,0) position. |Unused|Unused|Unused|Unused|Latitude (WGS-84)|Longitude (WGS-84)|[m] Altitude (AMSL from GNSS, positive above ground)|
 uint32 VEHICLE_CMD_SET_NAV_STATE = 100001 # Change mode by specifying nav_state directly. |nav_state|Unused|Unused|Unused|Unused|Unused|Unused|
 
+uint16 VEHICLE_CMD_DO_SET_GLOBAL_ORIGIN = 611 # Sets GNSS coordinates of the vehicle local origin (0,0,0) position. Send as COMMAND_INT with MAV_FRAME_GLOBAL_INT. |Unused|Unused|Unused|Unused|Latitude (WGS-84)|Longitude (WGS-84)|[m] Altitude (AMSL)|
 uint16 VEHICLE_CMD_GUIDED_CHANGE_HEADING = 43002 # Change heading/course. param1: heading type (0=course-over-ground, 1=heading). param2: target [deg]. param3: max rate [deg/s]. |Heading type (HEADING_TYPE enum)|[deg] Target bearing [0..360]|[deg/s] Max rate of change|Unused|Unused|Unused|Unused|
 
 uint8 VEHICLE_MOUNT_MODE_RETRACT = 0 # Load and keep safe position (Roll,Pitch,Yaw) from permanent memory and stop stabilization.
@@ -1839,6 +1877,13 @@ uint8 FAILURE_UNIT_SYSTEM_SERVO = 102
 uint8 FAILURE_UNIT_SYSTEM_AVOIDANCE = 103
 uint8 FAILURE_UNIT_SYSTEM_RC_SIGNAL = 104
 uint8 FAILURE_UNIT_SYSTEM_MAVLINK_SIGNAL = 105
+uint8 FAILURE_UNIT_SYSTEM_ESC = 106
+uint8 FAILURE_UNIT_SYSTEM_TRAFFIC_AVOIDANCE = 107
+uint8 FAILURE_UNIT_DATALINK_LTE = 150
+uint8 FAILURE_UNIT_DATALINK_WIFI = 151
+uint8 FAILURE_UNIT_DATALINK_TELEM_RADIO = 152
+uint8 FAILURE_UNIT_BUS_CAN = 200
+uint8 FAILURE_UNIT_BUS_I2C = 201
 
 uint8 FAILURE_TYPE_OK = 0
 uint8 FAILURE_TYPE_OFF = 1
@@ -1848,6 +1893,7 @@ uint8 FAILURE_TYPE_WRONG = 4
 uint8 FAILURE_TYPE_SLOW = 5
 uint8 FAILURE_TYPE_DELAYED = 6
 uint8 FAILURE_TYPE_INTERMITTENT = 7
+uint8 FAILURE_TYPE_DRIFT = 8
 
 # Used as param1 in DO_CHANGE_SPEED command.
 uint8 SPEED_TYPE_AIRSPEED = 0
@@ -1878,9 +1924,9 @@ int8 ARMING_ACTION_ARM = 1
 uint8 GRIPPER_ACTION_RELEASE = 0
 uint8 GRIPPER_ACTION_GRAB = 1
 
-# Used as param1 in DO_SET_SAFETY_SWITCH_STATE command.
-uint8 SAFETY_OFF = 0
-uint8 SAFETY_ON = 1
+# Used as param1 in DO_SET_SAFETY_SWITCH_STATE command (matches MAVLink SAFETY_SWITCH_STATE enum).
+uint8 SAFETY_SAFE = 0 # Activate safety (MAVLink SAFETY_SWITCH_STATE_SAFE)
+uint8 SAFETY_DANGEROUS = 1 # Deactivate safety (MAVLink SAFETY_SWITCH_STATE_DANGEROUS)
 
 # param1 in VEHICLE_CMD_ACTUATOR_GROUP_TEST (matches MAVLink ACTUATOR_TEST_GROUP enum)
 uint8 ACTUATOR_TEST_GROUP_ROLL_TORQUE = 0
@@ -1901,9 +1947,9 @@ float64 param5 # Parameter 5, as defined by MAVLink uint16 VEHICLE_CMD enum.
 float64 param6 # Parameter 6, as defined by MAVLink uint16 VEHICLE_CMD enum.
 float32 param7 # Parameter 7, as defined by MAVLink uint16 VEHICLE_CMD enum.
 uint32 command # Command ID.
-uint8 target_system # System which should execute the command.
+uint32 target_system # System which should execute the command.
 uint8 target_component # Component which should execute the command, 0 for all components.
-uint8 source_system # System sending the command.
+uint32 source_system # System sending the command.
 uint16 source_component # Component / mode executor sending the command.
 uint8 confirmation # 0: First transmission of this command. 1-255: Confirmation transmissions (e.g. for kill command).
 bool from_external

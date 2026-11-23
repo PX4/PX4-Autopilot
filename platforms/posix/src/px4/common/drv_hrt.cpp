@@ -81,7 +81,14 @@ const uint16_t latency_bucket_count = LATENCY_BUCKET_COUNT;
 const uint16_t latency_buckets[LATENCY_BUCKET_COUNT] = { 1, 2, 5, 10, 20, 50, 100, 1000 };
 __EXPORT uint32_t latency_counters[LATENCY_BUCKET_COUNT + 1];
 
-static px4_sem_t 	_hrt_lock;
+// Recursive mutex so hrt_call_invoke() can hold it across callbacks that may
+// re-enter hrt_call_* on the same thread (e.g. a callout that reschedules
+// itself). On NuttX this is implicit: the equivalent code there uses
+// enter_critical_section(), which is a nestable IRQ-disable counter. On POSIX
+// we need PTHREAD_MUTEX_RECURSIVE to get matching semantics — without it we'd
+// have to unlock around callbacks, which leaks the queue to other threads and
+// causes list corruption under load.
+static pthread_mutex_t	_hrt_lock;
 static struct work_s	_hrt_work;
 
 static void hrt_latency_update();
@@ -91,13 +98,12 @@ static void hrt_call_invoke();
 
 static void hrt_lock()
 {
-	// loop as the wait may be interrupted by a signal
-	do {} while (px4_sem_wait(&_hrt_lock) != 0);
+	pthread_mutex_lock(&_hrt_lock);
 }
 
 static void hrt_unlock()
 {
-	px4_sem_post(&_hrt_lock);
+	pthread_mutex_unlock(&_hrt_lock);
 }
 
 /*
@@ -134,7 +140,10 @@ void hrt_store_absolute_time(volatile hrt_abstime *t)
  */
 bool	hrt_called(struct hrt_call *entry)
 {
-	return (entry->deadline == 0);
+	hrt_lock();
+	bool result = (entry->deadline == 0);
+	hrt_unlock();
+	return result;
 }
 
 /*
@@ -162,13 +171,13 @@ static void hrt_latency_update()
 	/* bounded buckets */
 	for (index = 0; index < LATENCY_BUCKET_COUNT; index++) {
 		if (latency <= latency_buckets[index]) {
-			latency_counters[index]++;
+			__atomic_fetch_add(&latency_counters[index], 1, __ATOMIC_RELAXED);
 			return;
 		}
 	}
 
 	/* catch-all at the end */
-	latency_counters[index]++;
+	__atomic_fetch_add(&latency_counters[index], 1, __ATOMIC_RELAXED);
 }
 
 /*
@@ -198,11 +207,15 @@ void	hrt_init()
 {
 	sq_init(&callout_queue);
 
-	int sem_ret = px4_sem_init(&_hrt_lock, 0, 1);
+	pthread_mutexattr_t attr;
+	pthread_mutexattr_init(&attr);
+	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
 
-	if (sem_ret) {
-		PX4_ERR("SEM INIT FAIL: %s", strerror(errno));
+	if (pthread_mutex_init(&_hrt_lock, &attr) != 0) {
+		PX4_ERR("hrt mutex init failed: %s", strerror(errno));
 	}
+
+	pthread_mutexattr_destroy(&attr);
 
 	memset(&_hrt_work, 0, sizeof(_hrt_work));
 }
@@ -241,6 +254,13 @@ hrt_call_enter(struct hrt_call *entry)
 static void
 hrt_tim_isr(void *p)
 {
+	// Take the HRT lock for the whole "tick": latency_actual / latency_baseline
+	// are also written from hrt_call_reschedule() under this lock from other
+	// threads (any caller of hrt_call_every / hrt_call_after etc.), so reading
+	// them in hrt_latency_update() outside the lock is a data race. The mutex
+	// is recursive, so the nested acquire inside hrt_call_invoke() is fine.
+	hrt_lock();
+
 	/* grab the timer for latency tracking purposes */
 	latency_actual = hrt_absolute_time();
 
@@ -249,8 +269,6 @@ hrt_tim_isr(void *p)
 
 	/* run any callouts that have met their deadline */
 	hrt_call_invoke();
-
-	hrt_lock();
 
 	/* and schedule the next interrupt */
 	hrt_call_reschedule();
@@ -416,14 +434,19 @@ hrt_call_invoke()
 		call->deadline = 0;
 
 		/* invoke the callout (if there is one) */
-		if (call->callout) {
-			// Unlock so we don't deadlock in callback
-			hrt_unlock();
+		hrt_callout callout = call->callout;
+		void *arg = call->arg;
 
-			//PX4_INFO("call %p: %p(%p)", call, call->callout, call->arg);
-			call->callout(call->arg);
-
-			hrt_lock();
+		if (callout) {
+			// We hold _hrt_lock across the callout. Previously we unlocked
+			// here to let callbacks re-enter hrt_call_*, but that exposes the
+			// callout queue to other threads while the current entry is mid-
+			// invocation (removed from the queue but about to be re-inserted
+			// by the periodic path below). Under load that caused list
+			// corruption — entries orphaned with stale flink, queue torn.
+			// _hrt_lock is now a recursive mutex, so same-thread re-entry
+			// from the callback is safe.
+			callout(arg);
 		}
 
 		/* if the callout has a non-zero period, it has to be re-entered */

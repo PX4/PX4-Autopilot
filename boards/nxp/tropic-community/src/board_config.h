@@ -200,7 +200,7 @@
 #define SAFETY_SW_IOMUX   (IOMUX_CMOS_INPUT  | IOMUX_PULL_UP_22K | IOMUX_DRIVE_HIZ)
 
 #define GPIO_SAFETY_SWITCH_IN              /* GPIO_B0_12 GPIO2_IO12 */ (GPIO_PORT2 | GPIO_PIN12 | GPIO_INPUT | SAFETY_SW_IOMUX)
-/* Enable the FMU to use the switch it if there is no px4io fixme:This should be BOARD_SAFTY_BUTTON() */
+/* Enable the FMU to use the switch if there is no px4io */
 #define GPIO_BTN_SAFETY GPIO_SAFETY_SWITCH_IN /* Enable the FMU to control it if there is no px4io */
 
 #define SDIO_SLOTNO                    0  /* Only one slot */

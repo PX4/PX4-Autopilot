@@ -23,8 +23,7 @@ PX4 提供了许多（逐渐变得更有效）可用于估计容量的方法：
 3. [Voltage-based Estimation with Current Integration](#current_integration): Fuses the load-compensated voltage-based estimate for the available capacity with a current-based estimate of the charge that has been consumed.
    这样的容量估计相当于智能电池的容量估计。
 
-后面的方法建立在前面的方法之上。
-您使用的方法将取决于机体的电源模块是否可以测量电流。
+后面的方法建立在前面的方法之上。您使用的方法将取决于机体的电源模块是否可以测量电流。
 
 :::info
 The instructions below refer to battery 1 calibration parameters: `BAT1_*`.
@@ -43,8 +42,7 @@ In addition to PX4 configuration discussed here, you should ensure that the ESC'
 
 ## Basic Battery Settings (default) {#basic_settings}
 
-基本电池设置将PX4配置为使用默认方法进行容量估算。
-此方法将测得的原始电池电压与“空”和“满”电芯的电池电压范围进行比较（按芯数量缩放）。
+基本电池设置将PX4配置为使用默认方法进行容量估算。此方法将测得的原始电池电压与“空”和“满”电芯的电池电压范围进行比较（按芯数量缩放）。
 
 :::info
 This approach results in relatively coarse estimations due to fluctuations in the estimated charge as the measured voltage changes under load.

@@ -303,5 +303,10 @@ __EXPORT int bson_encoder_append_string(bson_encoder_t encoder, const char *name
 __EXPORT int bson_encoder_append_binary(bson_encoder_t encoder, const char *name, bson_binary_subtype_t subtype,
 					size_t size, const void *data);
 
+/**
+ * Append a BSON null (type 0x0A). Name only; no value payload.
+ */
+__EXPORT int bson_encoder_append_null(bson_encoder_t encoder, const char *name);
+
 
 #endif

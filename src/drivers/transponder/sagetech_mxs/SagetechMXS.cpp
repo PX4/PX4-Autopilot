@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022-2026 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -110,18 +110,17 @@ int SagetechMXS::task_spawn(int argc, char *argv[])
 
 bool SagetechMXS::init()
 {
-	ScheduleOnInterval(UPDATE_INTERVAL_US);	// 50Hz
 	mxs_state.initialized = false;
 	mxs_state.init_failed = false;
 
 	if (vehicle_list == nullptr) {
-		if (_adsb_list_max.get() > MAX_VEHICLES_LIMIT) {	// Safety Check
-			_adsb_list_max.set(MAX_VEHICLES_LIMIT);
-			_adsb_list_max.commit();
+		if (_param_adsb_list_max.get() > MAX_VEHICLES_LIMIT) {	// Safety Check
+			_param_adsb_list_max.set(MAX_VEHICLES_LIMIT);
+			_param_adsb_list_max.commit();
 			list_size_allocated = MAX_VEHICLES_LIMIT;
 		}
 
-		vehicle_list = new transponder_report_s[_adsb_list_max.get()];
+		vehicle_list = new transponder_report_s[_param_adsb_list_max.get()];
 
 		if (vehicle_list == nullptr) {
 			mxs_state.init_failed = true;
@@ -129,8 +128,13 @@ bool SagetechMXS::init()
 			return false;
 		}
 
-		list_size_allocated = _adsb_list_max.get();
+		list_size_allocated = _param_adsb_list_max.get();
 	}
+
+	// Schedule only once init succeeded: on failure the instance is deleted in
+	// the shell, which must not happen after Run() opened the serial port on the
+	// work queue (file descriptors are per task group on NuttX).
+	ScheduleOnInterval(UPDATE_INTERVAL_US);	// 50Hz
 
 	return true;
 }
@@ -158,8 +162,8 @@ int SagetechMXS::custom_command(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "ident")) {
-		get_instance<SagetechMXS>(desc)->_adsb_ident.set(1);
-		return get_instance<SagetechMXS>(desc)->_adsb_ident.commit();
+		get_instance<SagetechMXS>(desc)->_param_adsb_ident.set(1);
+		return get_instance<SagetechMXS>(desc)->_param_adsb_ident.commit();
 	}
 
 	if (!strcmp(verb, "opmode")) {
@@ -170,20 +174,20 @@ int SagetechMXS::custom_command(int argc, char *argv[])
 			return PX4_ERROR;
 
 		} else if (!strcmp(opmode, "off") || !strcmp(opmode, "0")) {
-			get_instance<SagetechMXS>(desc)->_mxs_op_mode.set(0);
-			return get_instance<SagetechMXS>(desc)->_mxs_op_mode.commit();
+			get_instance<SagetechMXS>(desc)->_param_mxs_op_mode.set(0);
+			return get_instance<SagetechMXS>(desc)->_param_mxs_op_mode.commit();
 
 		} else if (!strcmp(opmode, "on") || !strcmp(opmode, "1")) {
-			get_instance<SagetechMXS>(desc)->_mxs_op_mode.set(1);
-			return get_instance<SagetechMXS>(desc)->_mxs_op_mode.commit();
+			get_instance<SagetechMXS>(desc)->_param_mxs_op_mode.set(1);
+			return get_instance<SagetechMXS>(desc)->_param_mxs_op_mode.commit();
 
 		} else if (!strcmp(opmode, "stby") || !strcmp(opmode, "2")) {
-			get_instance<SagetechMXS>(desc)->_mxs_op_mode.set(2);
-			return get_instance<SagetechMXS>(desc)->_mxs_op_mode.commit();
+			get_instance<SagetechMXS>(desc)->_param_mxs_op_mode.set(2);
+			return get_instance<SagetechMXS>(desc)->_param_mxs_op_mode.commit();
 
 		} else if (!strcmp(opmode, "alt") || !strcmp(opmode, "3")) {
-			get_instance<SagetechMXS>(desc)->_mxs_op_mode.set(3);
-			return get_instance<SagetechMXS>(desc)->_mxs_op_mode.commit();
+			get_instance<SagetechMXS>(desc)->_param_mxs_op_mode.set(3);
+			return get_instance<SagetechMXS>(desc)->_param_mxs_op_mode.commit();
 
 		} else {
 			print_usage("Invalid Op Mode");
@@ -207,8 +211,8 @@ int SagetechMXS::custom_command(int argc, char *argv[])
 			return PX4_ERROR;
 
 		} else {
-			get_instance<SagetechMXS>(desc)->_adsb_squawk.set(sqk);
-			return get_instance<SagetechMXS>(desc)->_adsb_squawk.commit();
+			get_instance<SagetechMXS>(desc)->_param_adsb_squawk.set(sqk);
+			return get_instance<SagetechMXS>(desc)->_param_adsb_squawk.commit();
 		}
 	}
 
@@ -299,13 +303,17 @@ void SagetechMXS::Run()
 			mxs_state.init_failed = true;
 		}
 
-		if (!_mxs_ext_cfg.get()) {
+		if (!_param_mxs_ext_cfg.get()) {
 			// Auto configuration
 			auto_config_operating();
-			auto_config_installation();
-			auto_config_flightid();
-			_mxs_op_mode.set(sg_op_mode_t::modeStby);
-			_mxs_op_mode.commit();
+
+			if (_param_adsb_icao_id.get() >= 0) {
+				auto_config_installation();
+				auto_config_flightid();
+				_param_mxs_op_mode.set(sg_op_mode_t::modeStby);
+				_param_mxs_op_mode.commit();
+			}
+
 			send_targetreq_msg();
 			mxs_state.initialized = true;
 		}
@@ -348,8 +356,8 @@ void SagetechMXS::Run()
 		}
 
 		// Check GPS for updates at 5Hz
-		if (_sensor_gps_sub.updated()) {
-			_sensor_gps_sub.copy(&_gps);
+		if (_sensor_gnss_sub.updated()) {
+			_sensor_gnss_sub.copy(&_gnss);
 		}
 
 		// If Vehicle is in air send GPS messages at 5Hz
@@ -366,7 +374,7 @@ void SagetechMXS::Run()
 	if (!(_loop_count % ONE_HZ_MOD)) {		// 1Hz Timer (Operating Message/GPS Ground)
 		// PX4_INFO("1 Hz callback");
 
-		if (!mxs_state.initialized && _mxs_ext_cfg.get()) {
+		if (!mxs_state.initialized && _param_mxs_ext_cfg.get()) {
 			// External Configuration
 			send_data_req(dataInstall);
 		}
@@ -385,7 +393,7 @@ void SagetechMXS::Run()
 			_parameter_update_sub.copy(&param_update);
 			ModuleParams::updateParams();
 
-			if (mxs_state.treq.transmitPort != (sg_transmitport_t)_mxs_targ_port.get()) {
+			if (mxs_state.treq.transmitPort != (sg_transmitport_t)_param_mxs_targ_port.get()) {
 				send_targetreq_msg();
 			}
 		}
@@ -455,7 +463,7 @@ void SagetechMXS::determine_furthest_aircraft()
 			continue;
 		}
 
-		const float distance = get_distance_to_next_waypoint(_gps.latitude_deg, _gps.longitude_deg,
+		const float distance = get_distance_to_next_waypoint(_gnss.latitude, _gnss.longitude,
 				       vehicle_list[index].lat,
 				       vehicle_list[index].lon);
 
@@ -492,8 +500,8 @@ void SagetechMXS::handle_vehicle(const transponder_report_s &vehicle)
 	// needs to handle updating the vehicle list, keeping track of which vehicles to drop
 	// and which to keep, allocating new vehicles, and publishing to the transponder_report topic
 	uint16_t index = list_size_allocated + 1; // Make invalid to start with.
-	const bool my_loc_is_zero = (fabs(_gps.latitude_deg) < DBL_EPSILON) && (fabs(_gps.longitude_deg) < DBL_EPSILON);
-	const float my_loc_distance_to_vehicle = get_distance_to_next_waypoint(_gps.latitude_deg, _gps.longitude_deg,
+	const bool my_loc_is_zero = (fabs(_gnss.latitude) < DBL_EPSILON) && (fabs(_gnss.longitude) < DBL_EPSILON);
+	const float my_loc_distance_to_vehicle = get_distance_to_next_waypoint(_gnss.latitude, _gnss.longitude,
 			vehicle.lat, vehicle.lon);
 	const bool is_tracked_in_list = find_index(vehicle, &index);
 	// const bool is_special = is_special_vehicle(vehicle.icao_address);
@@ -584,7 +592,6 @@ void SagetechMXS::handle_svr(sg_svr_t svr)
 
 	t.timestamp = hrt_absolute_time();
 	t.flags &= ~transponder_report_s::PX4_ADSB_FLAGS_VALID_SQUAWK;
-	t.flags |= transponder_report_s::PX4_ADSB_FLAGS_RETRANSLATE;
 
 	//Set data from svr message
 	if (svr.validity.position) {
@@ -645,7 +652,6 @@ void SagetechMXS::handle_msr(sg_msr_t msr)
 	}
 
 	t.timestamp = hrt_absolute_time();
-	t.flags |= transponder_report_s::PX4_ADSB_FLAGS_RETRANSLATE;
 
 	if (strlen(msr.callsign)) {
 		snprintf(t.callsign, sizeof(t.callsign), "%-8s", msr.callsign);
@@ -695,16 +701,22 @@ void SagetechMXS::send_data_req(const sg_datatype_t dataReqType)
 
 void SagetechMXS::send_install_msg()
 {
+	const int32_t adsb_icao = _param_adsb_icao_id.get();
+
+	if (adsb_icao < 0) {
+		return;
+	}
+
 	// MXS must be in OFF mode to change ICAO or Registration
 	if (mxs_state.op.opMode != modeOff) {
 		// gcs().send_text(MAV_SEVERITY_WARNING, "ADSB Sagetech MXS: unable to send installation data while not in OFF mode.");
 		return;
 	}
 
-	mxs_state.inst.icao = _adsb_icao.get();
-	mxs_state.inst.emitter = convert_emitter_type_to_sg(_adsb_emit_type.get());
-	mxs_state.inst.size = (sg_size_t)_adsb_len_width.get();
-	mxs_state.inst.maxSpeed = (sg_airspeed_t)_adsb_max_speed.get();
+	mxs_state.inst.icao = static_cast<uint32_t>(adsb_icao);
+	mxs_state.inst.emitter = convert_emitter_type_to_sg(_param_adsb_emit_type.get());
+	mxs_state.inst.size = (sg_size_t)_param_adsb_len_width.get();
+	mxs_state.inst.maxSpeed = (sg_airspeed_t)_param_adsb_max_speed.get();
 	mxs_state.inst.antenna = sg_antenna_t::antBottom;
 
 	last.msg.type = SG_MSG_TYPE_HOST_INSTALL;
@@ -723,11 +735,13 @@ void SagetechMXS::send_flight_id_msg()
 
 void SagetechMXS::send_operating_msg()
 {
+	// In auto-conf mode ADSB_ICAO_ID=-1 disables ADS-B Out. Keep the transponder
+	// off so a retained installation from an earlier setup cannot transmit.
+	const bool adsb_out_disabled = !_param_mxs_ext_cfg.get() && _param_adsb_icao_id.get() < 0;
+	mxs_state.op.opMode = adsb_out_disabled ? sg_op_mode_t::modeOff : (sg_op_mode_t)_param_mxs_op_mode.get();
 
-	mxs_state.op.opMode = (sg_op_mode_t)_mxs_op_mode.get();
-
-	if (check_valid_squawk(_adsb_squawk.get())) {
-		mxs_state.op.squawk = convert_base_to_decimal(BASE_OCTAL, _adsb_squawk.get());
+	if (check_valid_squawk(_param_adsb_squawk.get())) {
+		mxs_state.op.squawk = convert_base_to_decimal(BASE_OCTAL, _param_adsb_squawk.get());
 
 	} else {
 		mxs_state.op.squawk = convert_base_to_decimal(BASE_OCTAL, INVALID_SQUAWK);
@@ -745,19 +759,19 @@ void SagetechMXS::send_operating_msg()
 	mxs_state.op.altRes25 =
 		!mxs_state.inst.altRes100;                                // Host Altitude Resolution from install
 
-	mxs_state.op.altitude = static_cast<int32_t>(_gps.altitude_msl_m *
+	mxs_state.op.altitude = static_cast<int32_t>(_gnss.altitude_msl *
 				SAGETECH_SCALE_M_TO_FT);   // Height above sealevel in feet
 
-	mxs_state.op.identOn = _adsb_ident.get();
+	mxs_state.op.identOn = _param_adsb_ident.get();
 
 	if (mxs_state.op.identOn) {
-		_adsb_ident.set(0);
-		_adsb_ident.commit();
+		_param_adsb_ident.set(0);
+		_param_adsb_ident.commit();
 	}
 
-	if (_gps.vel_ned_valid) {
+	if (_gnss.vel_ned_valid) {
 		mxs_state.op.climbValid = true;
-		mxs_state.op.climbRate = _gps.vel_d_m_s * SAGETECH_SCALE_M_PER_SEC_TO_FT_PER_MIN;
+		mxs_state.op.climbRate = _gnss.vel_down * SAGETECH_SCALE_M_PER_SEC_TO_FT_PER_MIN;
 		mxs_state.op.airspdValid = true;
 		mxs_state.op.headingValid = true;
 
@@ -769,8 +783,8 @@ void SagetechMXS::send_operating_msg()
 		mxs_state.op.headingValid = false;
 	}
 
-	const uint16_t speed_knots = _gps.vel_m_s * SAGETECH_SCALE_M_PER_SEC_TO_KNOTS;
-	double heading = (double) math::degrees(matrix::wrap_2pi(_gps.cog_rad));
+	const uint16_t speed_knots = _gnss.ground_speed * SAGETECH_SCALE_M_PER_SEC_TO_KNOTS;
+	double heading = (double) math::degrees(matrix::wrap_2pi(_gnss.course));
 	mxs_state.op.airspd = speed_knots;
 	mxs_state.op.heading = heading;
 
@@ -786,29 +800,29 @@ void SagetechMXS::send_gps_msg()
 	sg_gps_t gps {};
 
 	gps.hpl = SAGETECH_HPL_UNKNOWN;                                                     // HPL over 37,040m means unknown
-	gps.hfom = _gps.eph >= 0 ? _gps.eph : 0;
-	gps.vfom = _gps.epv >= 0 ? _gps.epv : 0;
+	gps.hfom = _gnss.eph >= 0 ? _gnss.eph : 0;
+	gps.vfom = _gnss.epv >= 0 ? _gnss.epv : 0;
 	gps.nacv = sg_nacv_t::nacvUnknown;
 
-	if (_gps.s_variance_m_s >= (float)10.0 || _gps.s_variance_m_s < 0) {
+	if (_gnss.speed_accuracy >= (float)10.0 || _gnss.speed_accuracy < 0) {
 		gps.nacv = sg_nacv_t::nacvUnknown;
 
-	} else if (_gps.s_variance_m_s >= (float)3.0) {
+	} else if (_gnss.speed_accuracy >= (float)3.0) {
 		gps.nacv = sg_nacv_t::nacv10dot0;
 
-	} else if (_gps.s_variance_m_s >= (float)1.0) {
+	} else if (_gnss.speed_accuracy >= (float)1.0) {
 		gps.nacv = sg_nacv_t::nacv3dot0;
 
-	} else if (_gps.s_variance_m_s >= (float)0.3) {
+	} else if (_gnss.speed_accuracy >= (float)0.3) {
 		gps.nacv = sg_nacv_t::nacv1dot0;
 
-	} else { //if (_gps.s_variance_m_s >= 0.0)
+	} else { //if (_gnss.speed_accuracy >= 0.0)
 		gps.nacv = sg_nacv_t::nacv0dot3;
 	}
 
 	// Get Vehicle Longitude and Latitude and Convert to string
-	const int32_t longitude = static_cast<int32_t>(_gps.longitude_deg * 1e7);
-	const int32_t latitude =  static_cast<int32_t>(_gps.latitude_deg * 1e7);
+	const int32_t longitude = static_cast<int32_t>(_gnss.longitude * 1e7);
+	const int32_t latitude =  static_cast<int32_t>(_gnss.latitude * 1e7);
 	const double lon_deg = longitude * 1.0E-7 * (longitude < 0 ? -1 : 1);
 	const double lon_minutes = (lon_deg - int(lon_deg)) * 60;
 	snprintf((char *)&gps.longitude, 12, "%03u%02u.%05u", (unsigned)lon_deg, (unsigned)lon_minutes,
@@ -819,25 +833,25 @@ void SagetechMXS::send_gps_msg()
 	snprintf((char *)&gps.latitude, 11, "%02u%02u.%05u", (unsigned)lat_deg, (unsigned)lat_minutes,
 		 unsigned((lat_minutes - (int)lat_minutes) * 1.0E5));
 
-	const float speed_knots = _gps.vel_m_s * SAGETECH_SCALE_M_PER_SEC_TO_KNOTS;
+	const float speed_knots = _gnss.ground_speed * SAGETECH_SCALE_M_PER_SEC_TO_KNOTS;
 	snprintf((char *)&gps.grdSpeed, 7, "%03u.%02u", (unsigned)speed_knots,
 		 unsigned((speed_knots - (int)speed_knots) * (float)1.0E2));
 
-	const float heading = matrix::wrap_2pi(_gps.cog_rad) * (180.0f / M_PI_F);
+	const float heading = matrix::wrap_2pi(_gnss.course) * (180.0f / M_PI_F);
 
 	snprintf((char *)&gps.grdTrack, 9, "%03u.%04u", unsigned(heading), unsigned((heading - (int)heading) * (float)1.0E4));
 
 	gps.latNorth = latitude >= 0;
 	gps.lngEast = longitude >= 0;
 
-	gps.gpsValid = !(_gps.fix_type < 2);  // If the status is not OK, gpsValid is false.
+	gps.gpsValid = !(_gnss.fix_type < 2);  // If the status is not OK, gpsValid is false.
 
-	const time_t time_sec = _gps.time_utc_usec * 1E-6;
+	const time_t time_sec = _gnss.time_utc_usec * 1E-6;
 	struct tm *tm = gmtime(&time_sec);
 	snprintf((char *)&gps.timeOfFix, 11, "%02u%02u%06.3f", tm->tm_hour, tm->tm_min,
-		 tm->tm_sec + (_gps.time_utc_usec % 1000000) * 1.0e-6);
+		 tm->tm_sec + (_gnss.time_utc_usec % 1000000) * 1.0e-6);
 
-	gps.height = (float)_gps.altitude_ellipsoid_m;
+	gps.height = (float)_gnss.altitude_ellipsoid;
 
 	// checkGPSInputs(&gps);
 	last.msg.type = SG_MSG_TYPE_HOST_GPS;
@@ -851,9 +865,9 @@ void SagetechMXS::send_gps_msg()
 void SagetechMXS::send_targetreq_msg()
 {
 	mxs_state.treq.reqType = sg_reporttype_t::reportAuto;
-	mxs_state.treq.transmitPort = (sg_transmitport_t)_mxs_targ_port.get();
+	mxs_state.treq.transmitPort = (sg_transmitport_t)_param_mxs_targ_port.get();
 	mxs_state.treq.maxTargets = list_size_allocated;
-	mxs_state.treq.icao = _adsb_icao_specl.get();
+	mxs_state.treq.icao = _param_adsb_icao_specl.get();
 	mxs_state.treq.stateVector = true;
 	mxs_state.treq.modeStatus = true;
 	mxs_state.treq.targetState = false;
@@ -1076,7 +1090,7 @@ int SagetechMXS::open_serial_port()
 	uart_config.c_cflag &= ~CRTSCTS;
 
 	// Set Baud Rate
-	unsigned baud = convert_to_px4_baud(_ser_mxs_baud.get());
+	unsigned baud = convert_to_px4_baud(_param_ser_mxs_baud.get());
 
 	if ((cfsetispeed(&uart_config, baud) < 0) || (cfsetospeed(&uart_config, baud) < 0)) {
 		PX4_ERR("ERR SET BAUD %s: %d\n", _port, termios_state);
@@ -1248,14 +1262,14 @@ int SagetechMXS::handle_fid(const char *fid)
 
 int SagetechMXS::store_inst_resp()
 {
-	_mxs_op_mode.set(mxs_state.ack.opMode);
-	_mxs_op_mode.commit();
-	_adsb_icao.set(mxs_state.inst.icao);
-	_adsb_icao.commit();
-	_adsb_len_width.set(mxs_state.inst.size);
-	_adsb_len_width.commit();
-	_adsb_emit_type.set(convert_sg_to_emitter_type(mxs_state.inst.emitter));
-	_adsb_emit_type.commit();
+	_param_mxs_op_mode.set(mxs_state.ack.opMode);
+	_param_mxs_op_mode.commit();
+	_param_adsb_icao_id.set(mxs_state.inst.icao);
+	_param_adsb_icao_id.commit();
+	_param_adsb_len_width.set(mxs_state.inst.size);
+	_param_adsb_len_width.commit();
+	_param_adsb_emit_type.set(convert_sg_to_emitter_type(mxs_state.inst.emitter));
+	_param_adsb_emit_type.commit();
 	return PX4_OK;
 }
 
@@ -1263,11 +1277,11 @@ int SagetechMXS::store_inst_resp()
 void SagetechMXS::auto_config_operating()
 {
 	mxs_state.op.opMode = sg_op_mode_t::modeOff;
-	_mxs_op_mode.set(sg_op_mode_t::modeOff);
-	_mxs_op_mode.commit();
+	_param_mxs_op_mode.set(sg_op_mode_t::modeOff);
+	_param_mxs_op_mode.commit();
 
-	if (check_valid_squawk(_adsb_squawk.get())) {
-		mxs_state.op.squawk = convert_base_to_decimal(BASE_OCTAL, _adsb_squawk.get());
+	if (check_valid_squawk(_param_adsb_squawk.get())) {
+		mxs_state.op.squawk = convert_base_to_decimal(BASE_OCTAL, _param_adsb_squawk.get());
 
 	} else {
 		mxs_state.op.squawk = convert_base_to_decimal(BASE_OCTAL, INVALID_SQUAWK);
@@ -1278,21 +1292,21 @@ void SagetechMXS::auto_config_operating()
 	mxs_state.op.enableXBit = false;                                                  // Enable the x-bit
 	mxs_state.op.milEmergency = false;                                                // Broadcast a military emergency
 	mxs_state.op.emergcType = (sg_emergc_t)
-				  _adsb_emergc.get();                                // Enumerated civilian emergency type
+				  _param_adsb_emergc.get();                                // Enumerated civilian emergency type
 
 	mxs_state.op.altUseIntrnl =
 		true;                                                 // True = Report altitude from internal pressure sensor (will ignore other bits in the field)
 	mxs_state.op.altHostAvlbl = false;
 	mxs_state.op.altRes25 = true;                                // Host Altitude Resolution from install
 
-	mxs_state.op.altitude = static_cast<int32_t>(_gps.altitude_msl_m *
+	mxs_state.op.altitude = static_cast<int32_t>(_gnss.altitude_msl *
 				SAGETECH_SCALE_M_TO_FT);     // Height above sealevel in feet
 
 	mxs_state.op.identOn = false;
 
-	if (_gps.vel_ned_valid) {
+	if (_gnss.vel_ned_valid) {
 		mxs_state.op.climbValid = true;
-		mxs_state.op.climbRate = _gps.vel_d_m_s * SAGETECH_SCALE_M_PER_SEC_TO_FT_PER_MIN;
+		mxs_state.op.climbRate = _gnss.vel_down * SAGETECH_SCALE_M_PER_SEC_TO_FT_PER_MIN;
 		mxs_state.op.airspdValid = true;
 		mxs_state.op.headingValid = true;
 
@@ -1304,8 +1318,8 @@ void SagetechMXS::auto_config_operating()
 		mxs_state.op.headingValid = false;
 	}
 
-	const uint16_t speed_knots = _gps.vel_m_s * SAGETECH_SCALE_M_PER_SEC_TO_KNOTS;
-	double heading = (double) math::degrees(matrix::wrap_2pi(_gps.cog_rad));
+	const uint16_t speed_knots = _gnss.ground_speed * SAGETECH_SCALE_M_PER_SEC_TO_KNOTS;
+	double heading = (double) math::degrees(matrix::wrap_2pi(_gnss.course));
 	mxs_state.op.airspd = speed_knots;
 	mxs_state.op.heading = heading;
 
@@ -1317,12 +1331,13 @@ void SagetechMXS::auto_config_operating()
 
 void SagetechMXS::auto_config_installation()
 {
-	if (mxs_state.ack.opMode != modeOff) {
-		PX4_ERR("MXS not put in OFF Mode before installation.");
+	const int32_t adsb_icao = _param_adsb_icao_id.get();
+
+	if (adsb_icao < 0) {
 		return;
 	}
 
-	mxs_state.inst.icao = (uint32_t) _adsb_icao.get();
+	mxs_state.inst.icao = static_cast<uint32_t>(adsb_icao);
 	snprintf(mxs_state.inst.reg, 8, "%-7s", "PX4TEST");
 
 	mxs_state.inst.com0 = sg_baud_t::baud230400;
@@ -1334,9 +1349,9 @@ void SagetechMXS::auto_config_installation()
 
 	mxs_state.inst.sil = sg_sil_t::silUnknown;
 	mxs_state.inst.sda = sg_sda_t::sdaUnknown;
-	mxs_state.inst.emitter = convert_emitter_type_to_sg(_adsb_emit_type.get());
-	mxs_state.inst.size = (sg_size_t)_adsb_len_width.get();
-	mxs_state.inst.maxSpeed = (sg_airspeed_t) _adsb_max_speed.get();
+	mxs_state.inst.emitter = convert_emitter_type_to_sg(_param_adsb_emit_type.get());
+	mxs_state.inst.size = (sg_size_t)_param_adsb_len_width.get();
+	mxs_state.inst.maxSpeed = (sg_airspeed_t) _param_adsb_max_speed.get();
 	mxs_state.inst.altOffset = 0;         // Alt encoder offset is legacy field that should always be 0.
 	mxs_state.inst.antenna = sg_antenna_t::antBottom;
 

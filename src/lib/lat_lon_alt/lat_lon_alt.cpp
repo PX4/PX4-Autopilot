@@ -41,7 +41,7 @@ LatLonAlt LatLonAlt::fromEcef(const Vector3d &p_ecef)
 {
 	// Convert position using Borkowski closed-form exact solution
 	// P. D. Groves, "Principles of GNSS, inertial, and multisensor integrated navigation systems, 2nd edition (appendix C)
-	const double k1 = sqrt(1 - Wgs84::eccentricity2) * std::abs(p_ecef(2));
+	const double k1 = sqrt(1 - Wgs84::eccentricity2) * fabs(p_ecef(2));
 	const double k2 = Wgs84::eccentricity2 * Wgs84::equatorial_radius;
 	const double beta = sqrt(p_ecef(0) * p_ecef(0) + p_ecef(1) * p_ecef(1));
 	const double E = (k1 - k2) / beta;
@@ -50,7 +50,7 @@ LatLonAlt LatLonAlt::fromEcef(const Vector3d &p_ecef)
 	const double P = 4.0 / 3.0 * (E * F + 1);
 	const double Q = 2 * (E * E - F * F);
 	const double D = P * P * P + Q * Q;
-	const double V = pow(sqrt(D) - Q, 1.0 / 3.0) - pow(sqrt(D) + Q, 1.0 / 3.0);
+	const double V = cbrt(sqrt(D) - Q) - cbrt(sqrt(D) + Q);
 	const double G = 0.5 * (sqrt(E * E + V) + E);
 	const double T = sqrt(G * G + (F - V * G) / (2 * G - E)) - G;
 
@@ -107,24 +107,28 @@ void LatLonAlt::computeRadiiOfCurvature(const double latitude, double &meridian_
 {
 	const double tmp = 1.0 - pow(Wgs84::eccentricity * sin(latitude), 2);
 	const double sqrt_tmp = std::sqrt(tmp);
-	meridian_radius_of_curvature = Wgs84::meridian_radius_of_curvature_numerator / (tmp * tmp * sqrt_tmp);
+	meridian_radius_of_curvature = Wgs84::meridian_radius_of_curvature_numerator / (tmp * sqrt_tmp);
 	transverse_radius_of_curvature = Wgs84::equatorial_radius / sqrt_tmp;
 }
 
-matrix::Dcmf LatLonAlt::computeRotEcefToNed() const
+template<typename Type>
+matrix::Dcm<Type> LatLonAlt::computeRotEcefToNed() const
 {
 	const double cos_lat = cos(_latitude_rad);
 	const double sin_lat = sin(_latitude_rad);
 	const double cos_lon = cos(_longitude_rad);
 	const double sin_lon = sin(_longitude_rad);
 
-	const float val[] = {(float)(-sin_lat * cos_lon), (float)(-sin_lat * sin_lon), (float)cos_lat,
-			     (float) - sin_lon, (float)cos_lon, 0.f,
-			     (float)(-cos_lat * cos_lon), (float)(-cos_lat * sin_lon), (float) - sin_lat
-			    };
+	const Type val[] = {static_cast<Type>(-sin_lat * cos_lon), static_cast<Type>(-sin_lat * sin_lon), static_cast<Type>(cos_lat),
+			    static_cast<Type>(-sin_lon), static_cast<Type>(cos_lon), Type(0),
+			    static_cast<Type>(-cos_lat * cos_lon), static_cast<Type>(-cos_lat * sin_lon), static_cast<Type>(-sin_lat)
+			   };
 
-	return matrix::Dcmf(val);
+	return matrix::Dcm<Type>(val);
 }
+
+template matrix::Dcm<float> LatLonAlt::computeRotEcefToNed<float>() const;
+template matrix::Dcm<double> LatLonAlt::computeRotEcefToNed<double>() const;
 
 LatLonAlt LatLonAlt::operator+(const matrix::Vector3f &delta_pos) const
 {

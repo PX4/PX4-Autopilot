@@ -58,7 +58,7 @@ static const char *sync_thread_name = "param_primary_sync";
 static orb_advert_t param_set_value_req_h = nullptr;
 static orb_advert_t param_reset_req_h     = nullptr;
 
-static int param_set_rsp_fd = PX4_ERROR;
+static orb_sub_t param_set_rsp_fd = ORB_SUB_INVALID;
 
 static int primary_sync_thread(int argc, char *argv[])
 {
@@ -71,8 +71,8 @@ static int primary_sync_thread(int argc, char *argv[])
 
 	orb_advert_t _set_value_rsp_h = nullptr;
 
-	int _set_used_req_fd  = orb_subscribe(ORB_ID(parameter_set_used_request));
-	int _set_value_req_fd = orb_subscribe(ORB_ID(parameter_primary_set_value_request));
+	orb_sub_t _set_used_req_fd  = orb_subscribe(ORB_ID(parameter_set_used_request));
+	orb_sub_t _set_value_req_fd = orb_subscribe(ORB_ID(parameter_primary_set_value_request));
 
 	struct parameter_set_used_request_s   _set_used_request;
 	struct parameter_set_value_request_s  _set_value_request;
@@ -200,14 +200,14 @@ void param_primary_set_value(param_t param, const void *val)
 		break;
 	}
 
-	if (param_set_rsp_fd == PX4_ERROR) {
+	if (!orb_sub_valid(param_set_rsp_fd)) {
 		if (debug) {
 			PX4_INFO("Subscribing to parameter_client_set_value_response");
 		}
 
 		param_set_rsp_fd = orb_subscribe(ORB_ID(parameter_remote_set_value_response));
 
-		if (param_set_rsp_fd == PX4_ERROR) {
+		if (!orb_sub_valid(param_set_rsp_fd)) {
 			PX4_ERR("Subscription to parameter_remote_set_value_response failed");
 
 		} else {

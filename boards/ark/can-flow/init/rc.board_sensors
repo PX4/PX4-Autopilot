@@ -4,7 +4,7 @@
 #------------------------------------------------------------------------------
 
 param set-default IMU_GYRO_RATEMAX 1000
-param set-default SENS_FLOW_RATE 150
+param set-default SENS_FLOW0_RATE 150
 param set-default SENS_IMU_CLPNOTI 0
 
 # Internal SPI
@@ -13,9 +13,9 @@ then
 	paa3905 -s start -Y 180
 fi
 
-if ! icm42688p -R 0 -s start
+if ! icm42688p -R 0 -B 258 -s start
 then
-	if ! iim42652 -R 0 -s start
+	if ! iim42652 -R 0 -B 258 -s start
 	then
 		bmi088 -A -s -R 4 start
 		bmi088 -G -s -R 4 start

@@ -210,7 +210,7 @@ define cmake-build
 		|| (rm -rf $(BUILD_DIR)); \
 	fi
 	@# run the build for the specified target
-	@cmake --build $(BUILD_DIR) -- $(PX4_MAKE_ARGS) $(ARGS)
+	+@cmake --build $(BUILD_DIR) -- $(PX4_MAKE_ARGS) $(ARGS)
 endef
 
 # check if the options we want to build with in CMAKE_ARGS match the ones which are already configured in the cache inside BUILD_DIR
@@ -335,34 +335,44 @@ uorb_graphs:
 	@$(MAKE) --no-print-directory px4_fmu-v6x_default uorb_graph
 	@$(MAKE) --no-print-directory px4_sitl_default uorb_graph
 
-px4io_update:
+# The px4io firmware is committed once per IO board and embedded into the ROMFS of every
+# board with CONFIG_BOARD_IO set. The build is reproducible, but only with the same
+# toolchain, so regenerate it in the px4-dev image used by the check_px4io CI job
+# (.github/workflows/checks.yml):
+#   PX4_DOCKER_REPO=<that image> ./Tools/docker_run.sh 'make px4io_update'
+.PHONY: px4io_build px4io_update check_px4io
+
+px4io_build:
 	@$(MAKE) --no-print-directory px4_io-v2_default
 	@$(MAKE) --no-print-directory cubepilot_io-v2_default
-	# px4_io-v2_default
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/ark/fmu-v6x/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/holybro/durandal-v1/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/holybro/pix32v5/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/mro/x21/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/mro/x21-777/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/fmu-v2/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/fmu-v3/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/fmu-v4pro/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/fmu-v5/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/fmu-v5x/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/fmu-v6x/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/fmu-v6c/extras/px4_io-v2_default.bin
-	# cubepilot_io-v2_default
-	cp build/cubepilot_io-v2_default/cubepilot_io-v2_default.bin boards/cubepilot/cubeorange/extras/cubepilot_io-v2_default.bin
-	cp build/cubepilot_io-v2_default/cubepilot_io-v2_default.bin boards/cubepilot/cubeorangeplus/extras/cubepilot_io-v2_default.bin
-	cp build/cubepilot_io-v2_default/cubepilot_io-v2_default.bin boards/cubepilot/cubeyellow/extras/cubepilot_io-v2_default.bin
-	git status
+
+px4io_update: px4io_build
+	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/io-v2/extras/
+	cp build/cubepilot_io-v2_default/cubepilot_io-v2_default.bin boards/cubepilot/io-v2/extras/
+
+# compares without touching the committed binaries
+check_px4io: px4io_build
+	@cmp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/io-v2/extras/px4_io-v2_default.bin \
+		&& cmp build/cubepilot_io-v2_default/cubepilot_io-v2_default.bin boards/cubepilot/io-v2/extras/cubepilot_io-v2_default.bin \
+		|| { echo "px4io firmware is out of date, regenerate it with 'make px4io_update' (see Makefile)"; exit 1; }
 
 bootloaders_update: \
 	3dr_ctrl-n1_bootloader \
 	3dr_ctrl-zero-h7-oem-revg_bootloader \
+	ark_can-flow_canbootloader \
+	ark_can-flow-lr_canbootloader \
+	ark_can-flow-mr_canbootloader \
+	ark_can-gps_canbootloader \
+	ark_can-rtk-gps_canbootloader \
+	ark_cannode_canbootloader \
+	ark_dist_canbootloader \
+	ark_f9p-gps_canbootloader \
 	ark_fmu-v6x_bootloader \
 	ark_fpv_bootloader \
+	ark_mag_canbootloader \
 	ark_pi6x_bootloader \
+	ark_septentrio-gps_canbootloader \
+	ark_x20-gps_canbootloader \
 	auterion_fmu-v6s_bootloader \
 	auterion_fmu-v6x_bootloader \
 	cuav_nora_bootloader \
@@ -371,6 +381,7 @@ bootloaders_update: \
 	cuav_fmu-v6x_bootloader \
 	cuav_x25-evo_bootloader \
 	cuav_x25-super_bootloader \
+	cuav_x25-mega_bootloader \
 	cubepilot_cubeorange_bootloader \
 	cubepilot_cubeorangeplus_bootloader \
 	hkust_nxt-dual_bootloader \
@@ -428,10 +439,12 @@ px4_metadata: parameters_metadata airframe_metadata module_documentation extract
 check_format:
 	$(call colorecho,'Checking formatting with astyle')
 	@"$(SRC_DIR)"/Tools/astyle/check_code_style_all.sh
+	@"$(SRC_DIR)"/Tools/astyle/check_param_names.py
 	@cd "$(SRC_DIR)" && git diff --check
 
 format:
 	$(call colorecho,'Formatting with astyle')
+	@"$(SRC_DIR)"/Tools/astyle/check_param_names.py --fix
 	@"$(SRC_DIR)"/Tools/astyle/check_code_style_all.sh --fix
 
 format_changed:
@@ -444,7 +457,7 @@ check_newlines:
 
 # Testing
 # --------------------------------------------------------------------
-.PHONY: tests tests_vtest_moving tests_coverage tests_mission tests_mission_coverage tests_offboard
+.PHONY: tests tests_daa_crosstrack tests_vtest_moving tests_neural tests_nocache tests_coverage tests_mission tests_mission_coverage tests_offboard
 .PHONY: rostest python_coverage
 
 tests:
@@ -454,6 +467,16 @@ tests:
 	$(eval UBSAN_OPTIONS += color=always)
 	$(call cmake-build,px4_sitl_test)
 
+# The default px4_sitl_test board builds the F3442 DAA standard.
+# This target builds the crosstrack DAA standard (CONFIG_NAVIGATOR_ADSB_F3442=n).
+tests_daa_crosstrack:
+	$(eval override CMAKE_ARGS += -DTESTFILTER=$(if $(TESTFILTER),$(TESTFILTER),'detect_and_avoid|DaaCrosstrack|AdsbConflict|DaaActionPolicy|DaaEncodedId'))
+	$(eval override CMAKE_ARGS += -DCMAKE_TESTING=ON)
+	$(eval ARGS += test_results)
+	$(eval ASAN_OPTIONS += color=always:check_initialization_order=1:detect_stack_use_after_return=1)
+	$(eval UBSAN_OPTIONS += color=always)
+	$(call cmake-build,px4_sitl_test-daa-crosstrack)
+
 tests_vtest_moving:
 	$(eval override CMAKE_ARGS += -DTESTFILTER=$(if $(TESTFILTER),$(TESTFILTER),VTE))
 	$(eval override CMAKE_ARGS += -DCMAKE_TESTING=ON)
@@ -461,6 +484,25 @@ tests_vtest_moving:
 	$(eval ASAN_OPTIONS += color=always:check_initialization_order=1:detect_stack_use_after_return=1)
 	$(eval UBSAN_OPTIONS += color=always)
 	$(call cmake-build,px4_sitl_vtest-moving)
+
+# This target builds the neural configuration, the only one that enables mc_nn_control.
+tests_neural:
+	$(eval override CMAKE_ARGS += -DTESTFILTER="$(if $(TESTFILTER),$(TESTFILTER),RescaleAction|NnControl)")
+	$(eval override CMAKE_ARGS += -DCMAKE_TESTING=ON)
+	$(eval ARGS += test_results)
+	$(eval ASAN_OPTIONS += color=always:check_initialization_order=1:detect_stack_use_after_return=1)
+	$(eval UBSAN_OPTIONS += color=always)
+	$(call cmake-build,px4_sitl_neural)
+
+# The default px4_sitl_test board builds the navigator mission cache, which NuttX boards leave out by default.
+# This target builds without it (CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE=0).
+tests_nocache:
+	$(eval override CMAKE_ARGS += -DTESTFILTER="$(if $(TESTFILTER),$(TESTFILTER),test_RTL|test_mission_base)")
+	$(eval override CMAKE_ARGS += -DCMAKE_TESTING=ON)
+	$(eval ARGS += test_results)
+	$(eval ASAN_OPTIONS += color=always:check_initialization_order=1:detect_stack_use_after_return=1)
+	$(eval UBSAN_OPTIONS += color=always)
+	$(call cmake-build,px4_sitl_test-nocache)
 
 # work around lcov bug #316; remove once lcov is fixed (see https://github.com/linux-test-project/lcov/issues/316)
 LCOBUG = --ignore-errors mismatch,negative
@@ -480,16 +522,12 @@ rostest: px4_sitl_default
 	@$(MAKE) --no-print-directory px4_sitl_default sitl_gazebo-classic
 
 tests_integration: px4_sitl_default
-	@$(MAKE) --no-print-directory px4_sitl_default sitl_gazebo-classic
-	@$(MAKE) --no-print-directory px4_sitl_default mavsdk_tests
-	@"$(SRC_DIR)"/test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 test/mavsdk_tests/configs/sitl.json
+	@"$(SRC_DIR)"/test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 test/mavsdk_tests/configs/sih-sitl.json
 
 tests_integration_coverage:
 	@$(MAKE) clean
 	@$(MAKE) --no-print-directory px4_sitl_default PX4_CMAKE_BUILD_TYPE=Coverage
-	@$(MAKE) --no-print-directory px4_sitl_default sitl_gazebo-classic
-	@$(MAKE) --no-print-directory px4_sitl_default mavsdk_tests
-	@"$(SRC_DIR)"/test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 test/mavsdk_tests/configs/sitl.json
+	@"$(SRC_DIR)"/test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 test/mavsdk_tests/configs/sih-sitl.json
 	@mkdir -p coverage
 	@lcov --directory build/px4_sitl_default --base-directory build/px4_sitl_default --gcov-tool gcov --capture -o coverage/lcov.info
 
@@ -525,7 +563,7 @@ python_coverage:
 
 # static analyzers (scan-build, clang-tidy, cppcheck)
 # --------------------------------------------------------------------
-.PHONY: scan-build px4_sitl_default-clang px4_sitl_default-clang-test clang-ci clang-tidy clang-tidy-fix
+.PHONY: scan-build px4_sitl_default-clang px4_sitl_default-clang-test clang-tidy clang-tidy-fix
 .PHONY: cppcheck shellcheck_all validate_module_configs
 
 scan-build:
@@ -551,17 +589,6 @@ px4_sitl_default-clang:
 px4_sitl_default-clang-test:
 	@mkdir -p "$(SRC_DIR)"/build/px4_sitl_default-clang-test
 	@cd "$(SRC_DIR)"/build/px4_sitl_default-clang-test && cmake "$(SRC_DIR)" $(CMAKE_ARGS) -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=px4_sitl_default -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_TESTING=ON
-
-# CI-oriented target that prepares both clang build directories used by
-# the Static Analysis workflow:
-#   - px4_sitl_default-clang:       full build, BUILD_TESTING=OFF.
-#       Used by `make clang-tidy` (push-to-main) and run-clang-tidy-pr.py.
-#   - px4_sitl_default-clang-test:  configure-only, BUILD_TESTING=ON.
-#       Used by clang-tidy-diff-18.py so test files are in the
-#       compilation database with resolved gtest/fuzztest includes.
-# Running one target ensures both dirs exist before any clang-tidy
-# variant runs, and keeps the workflow free of raw cmake invocations.
-clang-ci: px4_sitl_default-clang px4_sitl_default-clang-test
 
 # Paths to exclude from clang-tidy (auto-generated from .gitmodules + manual additions):
 # - All submodules (external code we consume, not edit)
@@ -616,6 +643,9 @@ validate_module_configs:
 clean:
 	@[ ! -d "$(SRC_DIR)/build" ] || find "$(SRC_DIR)/build" -mindepth 1 -maxdepth 1 -type d -exec sh -c "echo {}; cmake --build {} -- clean || rm -rf {}" \; # use generated build system to clean, wipe build directory if it fails
 	@git submodule foreach git clean -dX --force # some submodules generate build artifacts in source
+	@# Remove orphaned autogenerated Kconfig left by app dirs deleted in a NuttX apps upgrade
+	@# (untracked, so they survive 'git clean -dX' and break 'make olddefconfig').
+	@cmake -P "$(SRC_DIR)/platforms/nuttx/NuttX/tools/prune_stale_apps_kconfig.cmake"
 
 submodulesclean:
 	@git submodule foreach --quiet --recursive git clean -ff -x -d
@@ -657,6 +687,7 @@ help:
 list_config_targets:
 	@for targ in $(patsubst %_default,%[_default],$(ALL_CONFIG_TARGETS)); do echo $$targ; done
 
+.PHONY: check_nuttx check_linux check_px4 check_nxp
 check_nuttx : $(call make_list,nuttx) \
 	sizes
 

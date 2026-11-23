@@ -45,7 +45,7 @@
 #include <stm32_gpio.h>
 
 /* LEDs */
-#define GPIO_nLED_BL /* PD10 */ (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN10)
+#define GPIO_nLED_BL /* PD10 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN10)
 #define BOARD_LED              0
 
 
@@ -103,9 +103,6 @@
 
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
-
-/* This board has 6 DMA channels available for bidirectional dshot */
-#define BOARD_DMA_NUM_DSHOT_CHANNELS 6
 
 /* This board provides the board_on_reset interface */
 #define BOARD_HAS_ON_RESET 1

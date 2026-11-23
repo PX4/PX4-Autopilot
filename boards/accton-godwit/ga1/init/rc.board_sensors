@@ -65,17 +65,37 @@ then
 	fi
 fi
 
+# Internal SPI IMUs: each socket carries one of ICM-42688P, ICM-45686,
+# ICM-56686 or LSM6DSV, so start the first one that probes.
+# SPI2 (heated socket) goes first so it is the heater's sensor_accel instance 0.
+
+# SPI2 socket (ICM-56686 data ready is on INT2)
+if ! icm42688p -R 6 -s -b 2 -q start
+then
+	if ! icm45686 -R 6 -s -b 2 -q start
+	then
+		if ! icm56686 -2 -R 6 -s -b 2 -q start
+		then
+			lsm6dsv -R 6 -s -b 2 start
+		fi
+	fi
+fi
+
+# SPI1 socket
+if ! icm42688p -R 14 -s -b 1 -q start
+then
+	if ! icm45686 -R 14 -s -b 1 -q start
+	then
+		if ! icm56686 -R 14 -s -b 1 -q start
+		then
+			lsm6dsv -R 14 -s -b 1 start
+		fi
+	fi
+fi
+
 # Internal SPI BMI088
 bmi088 -A -R 4 -s start
 bmi088 -G -R 4 -s start
-
-# Internal SPI bus ICM42688p
-icm42688p -R 6 -s -b 2 start
-icm42688p -R 14 -s -b 1 start
-
-# Internal SPI bus ICM45686
-icm45686 -R 6 -s -b 2 start
-icm45686 -R 14 -s -b 1 start
 
 # Internal magnetometer on I2c
 rm3100 -I -b 4 start
@@ -83,16 +103,13 @@ rm3100 -I -b 4 start
 # External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
 ist8310 -X -b 1 -R 10 start
 
-# Possible internal Baro
-if param compare SENS_INT_BARO_EN 1
-then
-	icp201xx -I -a 0x64 start
-	dps310 -I start
-fi
+# Internal baro
+icp201xx -I -a 0x64 start
+dps310 -I start
 
-#external baro
-icp201xx -X start
-dps310 -X start
+# Onboard baro on I2C2 (shared with the PM2 connector)
+icp201xx -I -b 2 start
+dps310 -I -b 2 start
 
 unset INA_CONFIGURED
 unset HAVE_PM2

@@ -5,7 +5,7 @@ PX4 не розробляє цей (або будь-який інший) авт�
 Contact the [manufacturer](https://www.cuav.net) for hardware support or compliance issues.
 :::
 
-The [Nora](https://doc.cuav.net/controller/x7/en/nora-plus.html)<sup>&reg;</sup> flight controller is a high-performance autopilot.
+The [Nora](https://doc.cuav.net/en/controller/nora-plus/nora-plus.html)<sup>&reg;</sup> flight controller is a high-performance autopilot.
 Це ідеальний вибір для промислових дронів і великомасштабних важких дронів.
 В основному постачається комерційним виробникам.
 
@@ -31,7 +31,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 - Високопродуктивний процесор
 
 :::tip
-The manufacturer [CUAV Docs](https://doc.cuav.net/controller/x7/en/nora-plus.html) are the canonical reference for Nora.
+The manufacturer [CUAV Docs](https://doc.cuav.net/en/controller/nora-plus/nora-plus.html) are the canonical reference for Nora.
 Вони повинні використовуватися за перевагою, оскільки вони містять найбільш повну та актуальну інформацію.
 :::
 
@@ -83,7 +83,7 @@ When it runs PX4 firmware, only 8 PWM outputs work.
 
 ## З'єднання (Проводка)
 
-[CUAV nora Wiring Quickstart](https://doc.cuav.net/controller/x7/en/quick-start/quick-start-nora.html)
+[CUAV nora Wiring Quickstart](https://doc.cuav.net/en/controller/nora-plus/quick-start-nora.html)
 
 ## Розмір та роз'єми
 
@@ -164,13 +164,8 @@ The SWD Vref pin (1) uses 5V as Vref but the CPU is run at 3.3V!
 For direct connection to _Segger Jlink_ we recommended you use the 3.3 Volts from pin 4 of the connector marked `DSM`/`SBUS`/`RSSI` to provide `Vtref` to the JTAG (i.e. providing 3.3V and _NOT_ 5V).
 :::
 
-## Підтримувані платформи / Конструкції
-
-Будь-який мультикоптер / літак / наземна платформа / човен, який може керуватися звичайними RC сервоприводами або сервоприводами Futaba S-Bus.
-The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
-
 ## Подальша інформація
 
-- [Quick start](https://doc.cuav.net/controller/x7/en/quick-start/quick-start-nora.html)
+- [Quick start](https://doc.cuav.net/en/controller/nora-plus/quick-start-nora.html)
 - [CUAV docs](https://doc.cuav.net/)
 - [nora schematic](https://github.com/cuav/hardware/tree/master/X7_Autopilot)

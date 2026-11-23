@@ -1,0 +1,17 @@
+{
+  "_comment": "Models the review may use. To upgrade, change bedrock_profile and label here; see README.md, Updating models.",
+  "models": {
+    "opus": {
+      "bedrock_profile": "global.anthropic.claude-opus-5-5",
+      "label": "Claude Opus 5.5"
+    },
+    "sonnet": {
+      "bedrock_profile": "global.anthropic.claude-sonnet-5-5",
+      "label": "Claude Sonnet 5.5"
+    }
+  },
+  "defaults": {
+    "reviewer": {"model": "opus", "effort": "xhigh"},
+    "validator": {"model": "opus", "effort": "high"}
+  }
+}

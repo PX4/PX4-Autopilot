@@ -34,9 +34,15 @@
 px4_add_library(rover_control
 	RoverControl.cpp
 	RoverControl.hpp
+	RoverControllerWorkItem.cpp
+	RoverControllerWorkItem.hpp
 )
-set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/rovercontrol_params.yaml)
+# The library is only linked by the rover modules, so its parameters are only needed with them
+if(CONFIG_MODULES_ROVER_ACKERMANN OR CONFIG_MODULES_ROVER_DIFFERENTIAL OR CONFIG_MODULES_ROVER_MECANUM OR BUILD_TESTING)
+	set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/rovercontrol_params.yaml)
+endif()
 
 target_link_libraries(rover_control PUBLIC PID)
 target_link_libraries(rover_control PUBLIC geo)
 px4_add_unit_gtest(SRC RoverControlTest.cpp LINKLIBS rover_control)
+px4_add_functional_gtest(SRC RoverControllerWorkItemTest.cpp LINKLIBS rover_control)

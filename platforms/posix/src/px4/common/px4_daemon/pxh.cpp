@@ -56,6 +56,7 @@ namespace px4_daemon
 {
 
 apps_map_type Pxh::_apps = {};
+pthread_once_t Pxh::_apps_once = PTHREAD_ONCE_INIT;
 Pxh *Pxh::_instance = nullptr;
 
 Pxh::Pxh()
@@ -72,15 +73,18 @@ Pxh::~Pxh()
 	}
 }
 
+void Pxh::_init_apps()
+{
+	init_app_map(_apps);
+}
+
 int Pxh::process_line(const std::string &line, bool silently_fail)
 {
 	if (line.empty()) {
 		return 0;
 	}
 
-	if (_apps.empty()) {
-		init_app_map(_apps);
-	}
+	pthread_once(&_apps_once, Pxh::_init_apps);
 
 	std::stringstream line_stream(line);
 	std::string word;
@@ -458,6 +462,8 @@ void Pxh::_move_cursor(int position)
 
 void Pxh::_tab_completion(std::string &mystr)
 {
+	pthread_once(&_apps_once, Pxh::_init_apps);
+
 	// parse line and get command
 	std::stringstream line(mystr);
 	std::string cmd;

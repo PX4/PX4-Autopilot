@@ -45,6 +45,7 @@
 #include <vector>
 #include <string>
 #include <termios.h>
+#include <pthread.h>
 
 #include <platforms/posix/apps.h>
 #include "history.h"
@@ -90,6 +91,7 @@ private:
 
 	void _setup_term();
 	static void _restore_term();
+	static void _init_apps();
 
 	bool _should_exit{false};
 	bool _local_terminal{false};
@@ -97,6 +99,7 @@ private:
 	struct termios _orig_term {};
 
 	static apps_map_type _apps;
+	static pthread_once_t _apps_once;
 	static Pxh *_instance;
 };
 

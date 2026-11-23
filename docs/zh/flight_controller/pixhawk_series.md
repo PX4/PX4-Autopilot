@@ -80,7 +80,7 @@ At very high level, the main differences are:
   More RAM.
   More CAN buses.
   Much more configurable.
-  ([Pixhawk 4](../flight_controller/pixhawk4.md),[CUAV v5](../flight_controller/cuav_v5.md),[CUAV V5+](../flight_controller/cuav_v5_plus.md),[CUAV V5 nano](../flight_controller/cuav_v5_nano.md))
+  ([Pixhawk 4 (Discontinued)](../flight_controller/pixhawk4.md),[CUAV v5 (Discontinued)](../flight_controller/cuav_v5.md), [CUAV V5+ (Discontinued)](../flight_controller/cuav_v5_plus.md),[CUAV V5 nano (Discontinued)](../flight_controller/cuav_v5_nano.md))
 - **FMUv5X:** New processor (F7).
   Much faster, Modular design.
   More reliable.

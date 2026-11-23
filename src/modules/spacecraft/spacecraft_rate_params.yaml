@@ -158,7 +158,7 @@ parameters:
       type: float
       default: 0.865
       min: 0.0
-      decimal: 2
+      decimal: 3
       increment: 0.01
     SC_YR_INT_LIM:
       description:

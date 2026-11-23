@@ -49,6 +49,23 @@ if(APPLE AND NOT DEFINED Qt5_DIR)
 	endif()
 endif()
 
+# Homebrew's opencv formula is now OpenCV 5, which PX4-OpticalFlow does not
+# build against: OpenCV 5 removed <opencv2/core/types_c.h> and moved
+# cv::undistortPoints when calib3d was split. The compatible opencv@4 is
+# keg-only, so without a prefix hint find_package resolves to 5.x instead.
+# Only runs when the user has not already set OpenCV_DIR.
+if(APPLE AND NOT DEFINED OpenCV_DIR)
+	execute_process(
+		COMMAND brew --prefix opencv@4
+		OUTPUT_VARIABLE _brew_opencv4_prefix
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+		ERROR_QUIET
+	)
+	if(_brew_opencv4_prefix AND EXISTS "${_brew_opencv4_prefix}/lib/cmake/opencv4")
+		list(APPEND CMAKE_PREFIX_PATH "${_brew_opencv4_prefix}")
+	endif()
+endif()
+
 #=============================================================================
 #
 #	Defined functions in this file

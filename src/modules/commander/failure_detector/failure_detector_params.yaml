@@ -2,56 +2,31 @@ module_name: failure_detector
 parameters:
 - group: Failure Detector
   definitions:
-    FD_FAIL_R:
+    FD_TILT_ERROR:
       description:
-        short: FailureDetector Max Roll
+        short: FailureDetector Max Tilt Error
         long: |-
-          Maximum roll angle before FailureDetector triggers the attitude_failure flag.
+          Maximum angle between the vehicle tilt and the attitude setpoint tilt before FailureDetector triggers the attitude_failure flag.
+          Without a recent attitude setpoint, e.g. on rovers, the tilt from level is checked instead.
           The flag triggers flight termination (if @CBRK_FLIGHTTERM = 0),
           which sets outputs to their failsafe values.
           On takeoff the flag triggers lockdown (irrespective of @CBRK_FLIGHTTERM),
           which disarms motors but does not set outputs to failsafe values.
+          The check is paused for the first 5 s after a VTOL quad-chute or aborted front transition.
 
-          Setting this parameter to 0 disables the check
-      type: int32
+          Set to -1 to disable.
+      type: float
       default: 60
-      min: 0
+      min: -1
       max: 180
       unit: deg
-    FD_FAIL_P:
+      decimal: 0
+    FD_TILT_ERROR_T:
       description:
-        short: FailureDetector Max Pitch
-        long: |-
-          Maximum pitch angle before FailureDetector triggers the attitude_failure flag.
-          The flag triggers flight termination (if @CBRK_FLIGHTTERM = 0),
-          which sets outputs to their failsafe values.
-          On takeoff the flag triggers lockdown (irrespective of @CBRK_FLIGHTTERM),
-          which disarms motors but does not set outputs to failsafe values.
-
-          Setting this parameter to 0 disables the check
-      type: int32
-      default: 60
-      min: 0
-      max: 180
-      unit: deg
-    FD_FAIL_R_TTRI:
-      description:
-        short: Roll failure trigger time
-        long: Seconds (decimal) that roll has to exceed FD_FAIL_R before being considered
-          as a failure.
+        short: Tilt failure trigger time
+        long: Seconds (decimal) that the tilt error has to exceed FD_TILT_ERROR before being considered as a failure.
       type: float
-      default: 0.3
-      unit: s
-      min: 0.02
-      max: 5
-      decimal: 2
-    FD_FAIL_P_TTRI:
-      description:
-        short: Pitch failure trigger time
-        long: Seconds (decimal) that pitch has to exceed FD_FAIL_P before being considered
-          as a failure.
-      type: float
-      default: 0.3
+      default: 1.0
       unit: s
       min: 0.02
       max: 5
@@ -95,7 +70,7 @@ parameters:
       description:
         short: Altitude loss threshold for termination and parachute deployment
         long: |-
-          Maximum altitude loss below the setpoint allowed before the vehicle terminates and deploys the parachute. Set to 0 to disable.
+          Maximum altitude loss allowed before the vehicle terminates and deploys the parachute. Set to 0 to disable.
       type: float
       default: 0.0
       min: 0.0

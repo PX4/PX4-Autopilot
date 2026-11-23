@@ -20,8 +20,7 @@ For a detailed description of the TECS algorithm and the control diagram, see [C
 
 A well-tuned attitude controller is required before tuning TECS: [PID Tuning Guide](../config_fw/pid_tuning_guide_fixedwing.md).
 
-调整 TECS 主要是正确地设置机身限制。
-这些限制可以通过如下所述的一系列飞行操作确定的参数来指定。
+调整 TECS 主要是正确地设置机身限制。这些限制可以通过如下所述的一系列飞行操作确定的参数来指定。
 Most of the maneuvers required the plane to be flown by a pilot in [Stabilized flight mode](../flight_modes_fw/stabilized.md).
 
 :::tip
@@ -51,6 +50,9 @@ the maximum allowed airspeed.
 - [FW_THR_MIN](../advanced_config/parameter_reference.md#FW_THR_MIN) - set to the minimum throttle the plane should fly at.
 - [FW_AIRSPD_MAX](../advanced_config/parameter_reference.md#FW_AIRSPD_MAX) - set to the maximum airspeed you achieved during level flight at `FW_THR_MAX`.
 
+TECS accelerates above trim airspeed with throttle only, rather than by descending (see [Speed and Altitude Weighting](../flight_stack/controller_diagrams.md#speed-and-altitude-weighting)).
+If `FW_AIRSPD_MAX` is set higher than the vehicle can reach in level flight at `FW_THR_MAX`, it will hold altitude and fly slower than commanded.
+
 #### 3rd: Pitch & Climb Rate Limits
 
 :::warning
@@ -73,13 +75,11 @@ Fly in stabilized mode, reduce throttle to `FW_THR_MIN` and adjust the pitch ang
 
 Specify the target climb and sink rate for autonomous missions by adjusting [FW_T_CLMB_R_SP](../advanced_config/parameter_reference.md#FW_T_CLMB_R_SP) and [FW_T_SINK_R_SP](../advanced_config/parameter_reference.md#FW_T_SINK_R_SP).
 这些参数指定了飞行器改变高度时的爬升率和下降率。
-Furthermore, these two values define the height rate limits commanded by the user in [Altitude mode](../flight_modes_fw/altitude.md) and [Position mode](../flight_modes_fw/position.md).
+Furthermore, these two values define the height rate limits commanded by the user in [Altitude mode](../flight_modes_fw/altitude.md) and [Cruise mode](../flight_modes_fw/cruise.md).
 
 ### 固定翼轨迹控制调整（位置）
 
 All path control parameters are described in [FW NPFG Control (Parameter Reference)](../advanced_config/parameter_reference.md#fw-npfg-control).
 
 - [NPFG_PERIOD](../advanced_config/parameter_reference.md#NPFG_PERIOD) - This is the previously called L1 distance and defines the tracking point ahead of the aircraft it's following.
-  大多数飞机适用于10-20米的数值范围。
-  调整期间缓慢缩短，直到响应迅速没有振荡。
-  飞机动态特性缓慢的该数值应该增加。
+  大多数飞机适用于10-20米的数值范围。调整期间缓慢缩短，直到响应迅速没有振荡。飞机动态特性缓慢的该数值应该增加。

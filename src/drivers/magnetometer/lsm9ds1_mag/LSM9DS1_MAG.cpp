@@ -43,7 +43,7 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 LSM9DS1_MAG::LSM9DS1_MAG(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
-	_px4_mag(get_device_id(), config.rotation)
+	_px4_mag(get_device_id(), config.rotation, config.external)
 {
 }
 
@@ -233,6 +233,7 @@ bool LSM9DS1_MAG::Configure()
 
 	// Magnetic FS = ±16 gauss 0.58 mgauss/LSB
 	_px4_mag.set_scale(0.58f / 1000.0f);
+	_px4_mag.set_range(16.f);
 
 	return success;
 }

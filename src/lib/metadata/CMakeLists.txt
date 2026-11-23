@@ -37,17 +37,26 @@ if(CONFIG_BOARD_IO)
 	set(board_with_io_arg --board-with-io)
 endif()
 set(generated_actuators_metadata_file ${PX4_BINARY_DIR}/actuators.json)
+# boards without a timer_config.cpp (SITL and other posix boards) have no PWM output groups
+set(board_timer_config_dep)
+if(EXISTS ${PX4_BOARD_DIR}/src/timer_config.cpp)
+	set(board_timer_config_dep ${PX4_BOARD_DIR}/src/timer_config.cpp)
+endif()
+
 add_custom_command(OUTPUT ${generated_actuators_metadata_file}
 	${generated_actuators_metadata_file}.xz
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/module_config/generate_actuators_metadata.py
 		${board_with_io_arg}
 		--timer-config ${PX4_BOARD_DIR}/src/timer_config.cpp
+		--board-config ${BOARD_CONFIG}
 		--config-files ${module_config_files} #--verbose
 		--compress
 		--board ${PX4_BOARD}
 		--output-file ${generated_actuators_metadata_file}
+	# Metadata stays at version 1 so QGC will load parameters. Schema floors rose for optional fields.
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/validate_json.py
-		--schema-file ${PX4_SOURCE_DIR}/src/modules/mavlink/mavlink/component_information/actuators.schema.json
+		--schema-file ${PX4_SOURCE_DIR}/src/modules/mavlink/mavlink/component_metadata/actuators.schema.json
+		--version-minimum 1
 		${generated_actuators_metadata_file}
 		--skip-if-no-schema # mavlink submodule might not exist for current target if built in CI
 		#--verbose
@@ -55,6 +64,10 @@ add_custom_command(OUTPUT ${generated_actuators_metadata_file}
 		${module_config_files}
 		${PX4_SOURCE_DIR}/Tools/module_config/generate_actuators_metadata.py
 		${PX4_SOURCE_DIR}/src/lib/mixer_module/output_functions.yaml
+		${PX4_SOURCE_DIR}/Tools/validate_json.py
+		${PX4_SOURCE_DIR}/Tools/module_config/output_groups_from_timer_config.py
+		${board_timer_config_dep}
+		${PX4_BINARY_DIR}/px4_boardconfig.h
 	COMMENT "Generating actuators.json"
 )
 add_custom_target(actuators_json DEPENDS ${generated_actuators_metadata_file})

@@ -48,6 +48,9 @@ EstimatorInterface::~EstimatorInterface()
 {
 #if defined(CONFIG_EKF2_GNSS)
 	delete _gps_buffer;
+# if defined(CONFIG_EKF2_GNSS_YAW)
+	delete _gnss_yaw_buffer;
+# endif // CONFIG_EKF2_GNSS_YAW
 #endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	delete _mag_buffer;
@@ -61,9 +64,6 @@ EstimatorInterface::~EstimatorInterface()
 #if defined(CONFIG_EKF2_AIRSPEED)
 	delete _airspeed_buffer;
 #endif // CONFIG_EKF2_AIRSPEED
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	delete _flow_buffer;
-#endif // CONFIG_EKF2_OPTICAL_FLOW
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	delete _ext_vision_buffer;
 #endif // CONFIG_EKF2_EXTERNAL_VISION
@@ -76,6 +76,8 @@ EstimatorInterface::~EstimatorInterface()
 #if defined(CONFIG_EKF2_RANGING_BEACON)
 	delete _ranging_beacon_buffer;
 #endif // CONFIG_EKF2_RANGING_BEACON
+
+	delete _system_flag_buffer;
 }
 
 // Accumulate imu data and store to buffer at desired rate
@@ -192,19 +194,47 @@ void EstimatorInterface::setGpsData(const gnssSample &gnss_sample)
 		_gps_buffer->push(gnss_sample_new);
 		_time_last_gps_buffer_push = _time_latest_us;
 
-#if defined(CONFIG_EKF2_GNSS_YAW)
-
-		if (PX4_ISFINITE(gnss_sample.yaw)) {
-			_time_last_gnss_yaw_buffer_push = _time_latest_us;
-		}
-
-#endif // CONFIG_EKF2_GNSS_YAW
-
 	} else {
 		ECL_WARN("GPS data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _gps_buffer->get_newest().time_us,
 			 _min_obs_interval_us);
 	}
 }
+
+#if defined(CONFIG_EKF2_GNSS_YAW)
+void EstimatorInterface::setGnssYawData(const gnssYawSample &gnss_yaw_sample)
+{
+	if (!_initialised || !PX4_ISFINITE(gnss_yaw_sample.yaw)) {
+		return;
+	}
+
+	if (_gnss_yaw_buffer == nullptr) {
+		_gnss_yaw_buffer = new TimestampedRingBuffer<gnssYawSample>(_obs_buffer_length);
+
+		if (_gnss_yaw_buffer == nullptr || !_gnss_yaw_buffer->valid()) {
+			delete _gnss_yaw_buffer;
+			_gnss_yaw_buffer = nullptr;
+			printBufferAllocationFailed("GNSS yaw");
+			return;
+		}
+	}
+
+	const int64_t time_us = gnss_yaw_sample.time_us - static_cast<int64_t>(_dt_ekf_avg * 5e5f);
+
+	if (time_us >= static_cast<int64_t>(_gnss_yaw_buffer->get_newest().time_us + _min_obs_interval_us)) {
+
+		gnssYawSample sample_new(gnss_yaw_sample);
+		sample_new.time_us = time_us;
+
+		_gnss_yaw_buffer->push(sample_new);
+		_time_last_gnss_yaw_buffer_push = _time_latest_us;
+
+	} else {
+		ECL_WARN("GNSS yaw data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us,
+			 _gnss_yaw_buffer->get_newest().time_us, _min_obs_interval_us);
+	}
+}
+#endif // CONFIG_EKF2_GNSS_YAW
+
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_BAROMETER)
@@ -291,6 +321,12 @@ void EstimatorInterface::setRangeData(const sensor::rangeSample &range_sample)
 		return;
 	}
 
+	_time_last_range_sensor_data = _time_latest_us;
+	pushRangeData(range_sample);
+}
+
+void EstimatorInterface::pushRangeData(const sensor::rangeSample &range_sample)
+{
 	// Allocate the required buffer size if not previously done
 	if (_range_buffer == nullptr) {
 		_range_buffer = new TimestampedRingBuffer<sensor::rangeSample>(_obs_buffer_length);
@@ -324,40 +360,13 @@ void EstimatorInterface::setRangeData(const sensor::rangeSample &range_sample)
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-void EstimatorInterface::setOpticalFlowData(const flowSample &flow)
+void EstimatorInterface::setOpticalFlowData(const flowSample &flow, uint8_t instance)
 {
 	if (!_initialised) {
 		return;
 	}
 
-	// Allocate the required buffer size if not previously done
-	if (_flow_buffer == nullptr) {
-		_flow_buffer = new TimestampedRingBuffer<flowSample>(_imu_buffer_length);
-
-		if (_flow_buffer == nullptr || !_flow_buffer->valid()) {
-			delete _flow_buffer;
-			_flow_buffer = nullptr;
-			printBufferAllocationFailed("flow");
-			return;
-		}
-	}
-
-	const int64_t time_us = flow.time_us
-				- static_cast<int64_t>(_params.ekf2_of_delay * 1000)
-				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
-
-	// limit data rate to prevent data being lost
-	if (time_us >= static_cast<int64_t>(_flow_buffer->get_newest().time_us + _min_obs_interval_us)) {
-
-		flowSample optflow_sample_new{flow};
-		optflow_sample_new.time_us = time_us;
-
-		_flow_buffer->push(optflow_sample_new);
-
-	} else {
-		ECL_WARN("optical flow data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _flow_buffer->get_newest().time_us,
-			 _min_obs_interval_us);
-	}
+	_flow_aiding.setData(flow, instance, _imu_buffer_length, _min_obs_interval_us, _dt_ekf_avg);
 }
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
@@ -610,9 +619,8 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	return true;
 }
 
-Vector3f EstimatorInterface::getPosition() const
+Vector3f EstimatorInterface::globalToLocalPosition(const LatLonAlt &lla) const
 {
-	LatLonAlt lla = _output_predictor.getLatLonAlt();
 	float x;
 	float y;
 
@@ -738,10 +746,19 @@ int EstimatorInterface::getNumberOfActiveVerticalVelocityAidingSources() const
 
 bool EstimatorInterface::isNorthEastAidingActive() const
 {
+	bool ev_pos_ned = false;
+	bool ev_vel_ned = false;
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+	ev_pos_ned = _ev_sample_prev.pos_frame == PositionFrame::LOCAL_FRAME_NED;
+	ev_vel_ned = _ev_sample_prev.vel_frame == VelocityFrame::LOCAL_FRAME_NED;
+#endif // CONFIG_EKF2_EXTERNAL_VISION
+
 	return _control_status.flags.gnss_pos
 	       || _control_status.flags.gnss_vel
 	       || _control_status.flags.aux_gpos
-	       || (_control_status.flags.ev_pos && _control_status.flags.yaw_align);
+	       || (_control_status.flags.ev_pos && ev_pos_ned)
+	       || (_control_status.flags.ev_vel && ev_vel_ned);
 }
 
 void EstimatorInterface::printBufferAllocationFailed(const char *buffer_name)

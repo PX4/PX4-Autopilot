@@ -127,6 +127,7 @@ endif()
 
 if(CONFIG_MODULES_AIRSHIP_ATT_CONTROL)
 	px4_add_romfs_files(
+		2500_generic_airship
 		2507_cloudship
 	)
 endif()
@@ -181,5 +182,6 @@ if(CONFIG_MODULES_SPACECRAFT)
 	px4_add_romfs_files(
 		# [70000, 70999] Spacecraft
 		70000_atmos
+		70001_atmos_dual
 	)
 endif()

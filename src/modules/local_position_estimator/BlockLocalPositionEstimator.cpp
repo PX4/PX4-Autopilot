@@ -175,7 +175,8 @@ void BlockLocalPositionEstimator::Run()
 		vehicle_command_s vehicle_command;
 
 		if (_vehicle_command_sub.update(&vehicle_command)) {
-			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN) {
+			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN
+			    || vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_SET_GLOBAL_ORIGIN) {
 				const double latitude = vehicle_command.param5;
 				const double longitude = vehicle_command.param6;
 				const float altitude = vehicle_command.param7;
@@ -272,7 +273,7 @@ void BlockLocalPositionEstimator::Run()
 	}
 
 	_flowUpdated = (_param_lpe_fusion.get() & FUSE_FLOW) && _sub_flow.update();
-	_gpsUpdated = (_param_lpe_fusion.get() & FUSE_GPS) && _sub_gps.update();
+	_gpsUpdated = (_param_lpe_fusion.get() & FUSE_GPS) && _sub_gnss.update();
 	_visionUpdated = (_param_lpe_fusion.get() & FUSE_VIS_POS) && _sub_visual_odom.update();
 	_mocapUpdated = _sub_mocap_odom.update();
 	_lidarUpdated = (_sub_lidar != nullptr) && _sub_lidar->update();

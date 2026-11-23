@@ -16,7 +16,7 @@ This quick start guide shows how to power the [Pixhawk 4](../flight_controller/p
 ![Pixhawk 4 Wiring Overview](../../assets/flight_controller/pixhawk4/pixhawk4_wiring_overview.png)
 
 :::tip
-More information about available ports can be found here: [Pixhawk 4 > Connections](../flight_controller/pixhawk4.md#connectors).
+More information about available ports can be found here: [Pixhawk 4 > Pinouts](../flight_controller/pixhawk4.md#pinouts).
 :::
 
 ## Монтаж та орієнтація контролера
@@ -189,6 +189,6 @@ Motors/servos are connected to the **I/O PWM OUT** (**MAIN**) and **FMU PWM OUT*
 ## Подальша інформація
 
 - [Pixhawk 4](../flight_controller/pixhawk4.md) (Overview page)
-- [Pixhawk 4 Technical Data Sheet](https://github.com/PX4/PX4-Autopilot/blob/main/docs/assets/flight_controller/pixhawk4/pixhawk4_technical_data_sheet.pdf)
+- [Pixhawk 4 Technical Data Sheet](https://cdn.shopify.com/s/files/1/0604/5905/7341/files/Pixhawk4-DataSheet.pdf) (Holybro)
 - [Pixhawk 4 Pinouts](https://cdn.shopify.com/s/files/1/0604/5905/7341/files/Pixhawk4-Pinouts.pdf) (Holybro)
 - [Pixhawk 4 Quick Start Guide (Holybro)](https://cdn.shopify.com/s/files/1/0604/5905/7341/files/Pixhawk4-quickstartguide.pdf)

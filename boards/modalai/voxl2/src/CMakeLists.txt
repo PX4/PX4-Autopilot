@@ -41,6 +41,16 @@ set(SRCS
 )
 
 if("${PX4_PLATFORM}" STREQUAL "qurt")
+	# Validate target runtime imports against the ModalAI SSC system image.
+	set_property(GLOBAL PROPERTY PX4_QURT_DYNAMIC_IMPORT_PROVIDER_SYMBOL_FILES
+		${PX4_BOARD_DIR}/slpi_system_image_exports.txt
+	)
+
+	# PX4-owned APIs must always be resolved within libpx4.so.
+	set_property(GLOBAL PROPERTY PX4_QURT_FORBIDDEN_DYNAMIC_IMPORT_PREFIXES
+		px4_
+	)
+
 	list(APPEND SRCS
 		i2c_qurt.cpp
 		spi_qurt.cpp

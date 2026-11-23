@@ -81,6 +81,7 @@ void MagBiasEstimator::Run()
 	if (should_exit()) {
 		ScheduleClear();
 		exit_and_cleanup(desc);
+		return;
 	}
 
 	if (_vehicle_status_sub.updated()) {
@@ -167,7 +168,7 @@ void MagBiasEstimator::Run()
 				updated = true;
 
 				// apply existing mag calibration
-				_calibration[mag_index].set_device_id(sensor_mag.device_id);
+				_calibration[mag_index].set_device_id(sensor_mag.device_id, sensor_mag.is_external);
 
 				const Vector3f mag_calibrated = _calibration[mag_index].Correct(Vector3f{sensor_mag.x, sensor_mag.y, sensor_mag.z});
 

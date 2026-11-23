@@ -45,9 +45,11 @@
 /*
  * Includes here should only cover the needs of the framework definitions.
  */
+#include <px4_platform_common/i2c.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/posix.h>
+#include <px4_platform_common/spi.h>
 
 #include <drivers/drv_sensor.h>
 
@@ -59,6 +61,15 @@
  */
 namespace device
 {
+
+/**
+ * Fallback sensor classification from a device id when no start-line classification exists.
+ *
+ * I2C/SPI: Internal bus → internal, External or Shared bus → external (Shared cannot be
+ * inferred; onboard chips on a Shared bus must call set_external(false) via -I/-s).
+ * UAVCAN, serial, MAVLink → external. Simulation → internal.
+ */
+inline bool device_is_external(uint32_t device_id);
 
 /**
  * Fundamental base class for all physical drivers (I2C, SPI).
@@ -254,10 +265,20 @@ public:
 		return num_written;
 	}
 
-	virtual bool external() const { return false; }
+	/**
+	 * Is the sensor external to the flight controller board?
+	 *
+	 * I2C/SPI drivers set this from -I/-s vs -X/-S. Otherwise falls back to device_is_external().
+	 */
+	bool external() const { return _external_declared ? _external : device_is_external(_device_id.devid); }
+
+	void set_external(bool external) { _external = external; _external_declared = true; }
 
 protected:
 	union DeviceId	_device_id {};            	/**< device identifier information */
+
+	bool		_external{false};
+	bool		_external_declared{false};
 
 	const char	*_name{nullptr};		/**< driver name */
 	bool		_debug_enabled{false};		/**< if true, debug messages are printed */
@@ -274,6 +295,43 @@ protected:
 	}
 
 };
+
+/*
+ * Inline so that no caller has to link the kernel-only drivers__device library: in a
+ * protected build that would pull the kernel into the userspace image.
+ */
+inline bool device_is_external(uint32_t device_id)
+{
+	Device::DeviceId id{};
+	id.devid = device_id;
+
+	switch (id.devid_s.bus_type) {
+	case Device::DeviceBusType_I2C:
+#if defined(CONFIG_I2C)
+		return px4_i2c_bus_topology(id.devid_s.bus) != BusTopology::Internal;
+#else
+		return true;
+#endif // CONFIG_I2C
+
+	case Device::DeviceBusType_SPI:
+#if defined(CONFIG_SPI)
+		return px4_spi_bus_topology(id.devid_s.bus) != BusTopology::Internal;
+#else
+		return true;
+#endif // CONFIG_SPI
+
+	case Device::DeviceBusType_SIMULATION:
+		return false;
+
+	case Device::DeviceBusType_UAVCAN:
+	case Device::DeviceBusType_SERIAL:
+	case Device::DeviceBusType_MAVLINK:
+	case Device::DeviceBusType_UNKNOWN:
+		return true;
+	}
+
+	return true;
+}
 
 } // namespace device
 

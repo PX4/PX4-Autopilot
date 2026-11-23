@@ -180,6 +180,7 @@ parameters:
     EKF2_VEL_LIM:
       description:
         short: Velocity limit
+        long: Each axis of the velocity state is constrained to this magnitude. GNSS and external vision velocity samples beyond it are not fused.
       type: float
       default: 100
       max: 299792458

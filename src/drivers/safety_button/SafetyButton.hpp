@@ -39,6 +39,7 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <button/ButtonPublisher.hpp>
+#include <uORB/topics/vehicle_status.h>
 
 class SafetyButton : public ModuleBase, public px4::ScheduledWorkItem
 {
@@ -77,5 +78,7 @@ private:
 	int				_pairing_button_counter{0};
 
 	uORB::Subscription	_armed_sub{ORB_ID(actuator_armed)};
+	uORB::Subscription	_vehicle_status_sub{ORB_ID(vehicle_status)};
+	bool			_safety_off{false};
 
 };

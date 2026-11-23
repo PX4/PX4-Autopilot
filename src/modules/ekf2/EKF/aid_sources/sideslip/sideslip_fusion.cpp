@@ -128,7 +128,7 @@ bool Ekf::fuseSideslip(estimator_aid_source1d_s &sideslip)
 	const float epsilon = 1e-3f;
 
 	const VectorState H = sym::ComputeSideslipH(_state.vector(), epsilon);
-	VectorState K = P * H / sideslip.innovation_variance;
+	VectorState K = computeKalmanGain(H, sideslip.innovation_variance);
 
 	if (update_wind_only) {
 		const Vector2f K_wind = K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0);

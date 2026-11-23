@@ -13,7 +13,7 @@ This development environment is [community supported and maintained](../advanced
 Хоч використання віртуальної машини - це простий спосіб налаштувати та протестувати середовище для збірки прошивки, користувачі повинні взяти до уваги:
 
 1. Збірка прошивки буде повільніша, ніж нативна збірка на Linux.
-2. У симуляції JMAVSim частота кадрів набагато повільніша, ніж на рідному Linux.
+2. Simulation frame rates will be much slower than on native Linux.
    В деяких випадках засіб може розбитися через проблеми, пов'язані з недостатніми ресурсами віртуальної машини.
 3. Gazebo та ROS встановлюються, але повільні настільки що ними неможливо користуватись.
 
@@ -41,7 +41,7 @@ Allocate as many CPU cores and memory resources to the VM as possible.
 5. Enable 3D acceleration in the VM's settings: **VM > Settings > Hardware > Display > Accelerate 3D graphics**
 
    ::: info
-   This option is required to properly run 3D simulation environments like jMAVSim and Gazebo Classic.
+   This option is required to properly run 3D simulation environments like Gazebo and Gazebo Classic.
    Рекомендуємо зробити це перед встановленням Linux у віртуальному середовищі.
 
 :::

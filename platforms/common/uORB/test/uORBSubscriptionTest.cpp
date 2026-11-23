@@ -39,6 +39,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/uORB.h>
 #include <uORB/topics/orb_test.h>
+#include <uORB/topics/orb_test_medium.h>
 
 namespace uORB
 {
@@ -109,6 +110,25 @@ TEST_F(uORBSubscriptionTest, updateWhenNotSubscribedThenSubscribed)
 	testable.updated();
 
 	ASSERT_NE(testable.getNodeValue(), nullptr) << "Node value after 'updated' have to be initialized";
+}
+
+TEST_F(uORBSubscriptionTest, subscribeAfterFailedLookupsOnceTopicIsAdvertised)
+{
+	// orb_test_medium has no device node yet: repeated lookups fail
+	uORB::Subscription sub{ORB_ID(orb_test_medium)};
+	ASSERT_FALSE(sub.advertised());
+	ASSERT_FALSE(sub.updated());
+	ASSERT_FALSE(sub.valid());
+	EXPECT_EQ(sub.get_last_generation(), 0u) << "Generation of an unsubscribed subscription must stay 0";
+
+	orb_test_medium_s message{};
+	orb_advert_t pub = orb_advertise(ORB_ID(orb_test_medium), &message);
+	ASSERT_NE(pub, nullptr);
+
+	EXPECT_TRUE(sub.advertised()) << "Adding the device node must make the next lookup succeed";
+	EXPECT_TRUE(sub.valid());
+
+	orb_unadvertise(pub);
 }
 }
 }

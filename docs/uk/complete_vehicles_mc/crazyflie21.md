@@ -1,6 +1,6 @@
 # Crazyflie 2.1
 
-<LinkedBadge type="warning" text="Experimental" url="../flight_controller/autopilot_experimental.html"/>
+[<Badge type="warning" text="Experimental"/>](../flight_controller/autopilot_experimental.md)
 
 :::warning
 PX4 не розробляє цей (або будь-який інший) автопілот.
@@ -40,10 +40,11 @@ An overview of the Crazyflie 2.1 can be [found here](https://www.bitcraze.io/pro
 
 Корисне периферійне обладнання включає в себе:
 
-- [Crazyradio PA 2.4 GHz USB dongle](https://store.bitcraze.io/products/crazyradio-pa): Wireless communication between _QGroundControl_ and Crazyflie 2.0
+- [Crazyradio 2.0](https://www.bitcraze.io/products/crazyradio-2-0/) 2.4 GHz USB dongle: Wireless communication between _QGroundControl_ and Crazyflie 2.0.
+  This behaves like the [old hardware](https://www.bitcraze.io/products/old-products/crazyradio-pa/) (anecdotally) when running its default "Crazyradio PA emulation" firmware.
 - [Breakout deck](https://store.bitcraze.io/collections/decks/products/breakout-deck): плата розширення для підключення нових периферійних пристроїв.
 - [Flow deck v2](https://store.bitcraze.io/products/flow-deck-v2): Optical flow sensor and a distance sensor for altitude and position control.
-- [Z-ranger deck v2](https://store.bitcraze.io/collections/decks/products/z-ranger-deck-v2): Датчик відстані для керування висотою (той самий датчик, що й Flow deck).
+- [Z-ranger deck v2](https://www.bitcraze.io/products/old-products/z-ranger-deck-v2/) (Discontinued): Distance sensor for altitude control (same sensor as the Flow deck).
 - [Мульти-датчикова плата](https://store.bitcraze.io/collections/decks/products/multi-ranger-deck) Виявлення об'єктів у багатьох напрямках
 - [Бортовий динамік](https://store.bitcraze.io/collections/decks/products/buzzer-deck) Аудіоповідомлення про події в системі, такі як низький рівень заряду або завершення зарядки.
 - [Breakout deck](https://store.bitcraze.io/collections/decks/products/breakout-deck): плата розширення, яка дозволяє вам легко тестувати нове апаратне забезпечення без паяння.
@@ -122,7 +123,6 @@ An overview of the Crazyflie 2.1 can be [found here](https://www.bitcraze.io/pro
 ## Встановлення оригінальної прошивки Bitcraze
 
 1. Завантажте останній [завантажувач Crazyflie 2.1](https://github.com/bitcraze/crazyflie2-stm-bootloader/releases)
-
 2. Поставте Crazyflie 2.1 у режим DFU, виконавши ці кроки:
    - Спочатку переконайтеся, що він знеструмлений.
    - Переконайтеся, що акумулятор від'єднаний.
@@ -130,7 +130,6 @@ An overview of the Crazyflie 2.1 can be [found here](https://www.bitcraze.io/pro
    - Підключіть до USB-порту комп'ютера.
    - Через секунду синій світлодіод повинен почати блимати, а через 5 секунд повинен почати блимати швидше.
    - Відпустіть кнопку.
-
 3. Виконайте прошивку завантажувальника за допомогою _dfu-util_ та від'єднайте Crazyflie 2.1, коли це зроблено:
 
    ```sh
@@ -139,7 +138,7 @@ An overview of the Crazyflie 2.1 can be [found here](https://www.bitcraze.io/pro
 
    Коли увімкнено Crazyflie 2.1, жовтий світлодіод повинен мигати.
 
-4. Встановіть останнє програмне забезпечення для польоту Bitcraze Crazyflie 2.1, використовуючи [цей](https://www.bitcraze.io/documentation/tutorials/getting-started-with-crazyflie-2-x/#update-fw) посібник.
+. Встановіть останнє програмне забезпечення для польоту Bitcraze Crazyflie 2.1, використовуючи [цей](https://www.bitcraze.io/documentation/tutorials/getting-started-with-crazyflie-2-x/#update-fw) посібник.
 
 ## Інструкції з налаштування бездротового з'єднання
 
@@ -151,15 +150,26 @@ An overview of the Crazyflie 2.1 can be [found here](https://www.bitcraze.io/pro
 Підключення через **MAVLink**:
 
 - Використовуйте Crazyradio PA разом із сумісним GCS.
-- Завантажте вихідний код _crazyflie-lib-python_:
+
+- Download the _crazyflie-lib-python_ source code, and check out the last commit that included `cfbridge.py` (see warning below):
 
   ```sh
   git clone https://github.com/bitcraze/crazyflie-lib-python.git
+  git -C crazyflie-lib-python checkout 829ae10715b5bf2373a7a643434e474ab406fc62
   ```
 
-:::info
-Ми будемо використовувати [cfbridge.py](https://github.com/bitcraze/crazyflie-lib-python/blob/master/examples/cfbridge.py) для налаштування бездротового зв'язку MAVlink між Crazyflie 2.1 (прошитий PX4) та QGroundControl. _Cfbridge_ дозволяє QGroundControl комунікувати з crazyradio PA.
-Цей [базований на C cfbridge](https://github.com/dennisss/cfbridge) наразі має проблеми з втратою даних, тому ми вирішили використовувати **cfbridge.py**.
+  ::: info
+  We will use [cfbridge.py](https://github.com/bitcraze/crazyflie-lib-python/blob/829ae10715b5bf2373a7a643434e474ab406fc62/examples/cfbridge.py) to setup a wireless MAVlink communication link between Crazyflie 2.1 (flashed with PX4) and QGroundControl.
+  _Cfbridge_ дозволяє QGroundControl комунікувати з crazyradio PA.
+  Цей [базований на C cfbridge](https://github.com/dennisss/cfbridge) наразі має проблеми з втратою даних, тому ми вирішили використовувати **cfbridge.py**.
+
+:::
+
+  ::: warning
+  `cfbridge.py` was removed from the `crazyflie-lib-python` repository upstream (April 2026) and was not migrated to Bitcraze's `crazyflie-demos` repository.
+  The commands above check out the last commit that included the file.
+  This part of the workflow is no longer maintained by Bitcraze!
+
 :::
 
 - Переконайтеся, що ви налаштували дозволи udev для використання USB радіо. Для цього виконайте наступні кроки [тут](https://www.bitcraze.io/documentation/repository/crazyflie-lib-python/master/installation/usb_permissions/) та **перезапустіть** ваш комп'ютер.

@@ -43,9 +43,11 @@ px4_add_module(
 		output.cpp
 		output_mavlink.cpp
 		output_rc.cpp
+		output_gimbal_manager.cpp
 		gimbal.cpp
 	MODULE_CONFIG
 		gimbal_params.yaml
 	DEPENDS
 		geo
+		output_functions_header
 	)

@@ -62,16 +62,16 @@ void FakeMagnetometer::Run()
 		return;
 	}
 
-	if (_vehicle_gps_position_sub.updated()) {
-		sensor_gps_s gps;
+	if (_vehicle_gnss_sub.updated()) {
+		vehicle_gnss_s gnss;
 
-		if (_vehicle_gps_position_sub.copy(&gps)) {
-			if (gps.eph < 1000) {
+		if (_vehicle_gnss_sub.copy(&gnss)) {
+			if (gnss.receiver.eph < 1000) {
 
 				// magnetic field data returned by the geo library using the current GPS position
-				const float declination_rad = math::radians(get_mag_declination_degrees(gps.latitude_deg, gps.longitude_deg));
-				const float inclination_rad = math::radians(get_mag_inclination_degrees(gps.latitude_deg, gps.longitude_deg));
-				const float field_strength_gauss = get_mag_strength_gauss(gps.latitude_deg, gps.longitude_deg);
+				const float declination_rad = math::radians(get_mag_declination_degrees(gnss.receiver.latitude, gnss.receiver.longitude));
+				const float inclination_rad = math::radians(get_mag_inclination_degrees(gnss.receiver.latitude, gnss.receiver.longitude));
+				const float field_strength_gauss = get_mag_strength_gauss(gnss.receiver.latitude, gnss.receiver.longitude);
 
 				_mag_earth_pred = Dcmf(Eulerf(0, -inclination_rad, declination_rad)) * Vector3f(field_strength_gauss, 0, 0);
 
@@ -129,7 +129,7 @@ int FakeMagnetometer::print_usage(const char *reason)
 		R"DESCR_STR(
 ### Description
 Publish the earth magnetic field as a fake magnetometer (sensor_mag).
-Requires vehicle_attitude and vehicle_gps_position.
+Requires vehicle_attitude and vehicle_gnss.
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("fake_magnetometer", "driver");

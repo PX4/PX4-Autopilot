@@ -51,6 +51,7 @@ class Manager;
 #include <stdlib.h>
 
 #include <containers/IntrusiveSortedList.hpp>
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/atomic_bitset.h>
 
 using px4::AtomicBitset;
@@ -91,6 +92,13 @@ public:
 		return node;
 
 	}
+
+	/**
+	 * Changes every time a DeviceNode is added. Nodes are never removed, so a node lookup that
+	 * failed cannot succeed before this value changes. Starts at 1 and cannot wrap around, as at most
+	 * ORB_TOPICS_COUNT * ORB_MULTI_MAX_INSTANCES nodes exist.
+	 */
+	unsigned nodeGeneration() const { return _node_generation.load(); }
 
 	bool deviceNodeExists(ORB_ID id, const uint8_t instance)
 	{
@@ -141,6 +149,7 @@ private:
 
 	IntrusiveSortedList<uORB::DeviceNode *> _node_list;
 	AtomicBitset<ORB_TOPICS_COUNT> _node_exists[ORB_MULTI_MAX_INSTANCES];
+	px4::atomic<unsigned> _node_generation{1};
 
 	px4_sem_t	_lock; /**< lock to protect access to all class members (also for derived classes) */
 

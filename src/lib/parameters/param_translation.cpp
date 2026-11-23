@@ -40,6 +40,7 @@
 #include <drivers/drv_sensor.h>
 #include <lib/parameters/param.h>
 #include <lib/mathlib/mathlib.h>
+#include <uORB/topics/vtx.h>
 
 param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 {
@@ -178,34 +179,65 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 		}
 	}
 
-	// 2026-03-11: translate EKF2_GPS_POS_X/Y/Z -> SENS_GPS0_OFFX/OFFY/OFFZ
+	// 2026-03-11: translate EKF2_GPS_POS_X/Y/Z -> SENS_GNSS0_OFFX/OFFY/OFFZ
 	{
 		if (strcmp("EKF2_GPS_POS_X", node->name) == 0) {
-			strcpy(node->name, "SENS_GPS0_OFFX");
-			PX4_INFO("migrating %s -> %s", "EKF2_GPS_POS_X", "SENS_GPS0_OFFX");
+			strcpy(node->name, "SENS_GNSS0_OFFX");
+			PX4_INFO("migrating %s -> %s", "EKF2_GPS_POS_X", "SENS_GNSS0_OFFX");
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 
 		if (strcmp("EKF2_GPS_POS_Y", node->name) == 0) {
-			strcpy(node->name, "SENS_GPS0_OFFY");
-			PX4_INFO("migrating %s -> %s", "EKF2_GPS_POS_Y", "SENS_GPS0_OFFY");
+			strcpy(node->name, "SENS_GNSS0_OFFY");
+			PX4_INFO("migrating %s -> %s", "EKF2_GPS_POS_Y", "SENS_GNSS0_OFFY");
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 
 		if (strcmp("EKF2_GPS_POS_Z", node->name) == 0) {
-			strcpy(node->name, "SENS_GPS0_OFFZ");
-			PX4_INFO("migrating %s -> %s", "EKF2_GPS_POS_Z", "SENS_GPS0_OFFZ");
+			strcpy(node->name, "SENS_GNSS0_OFFZ");
+			PX4_INFO("migrating %s -> %s", "EKF2_GPS_POS_Z", "SENS_GNSS0_OFFZ");
 			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
 
-	// 2026-03-11: translate EKF2_GPS_DELAY to SENS_GPS0_DELAY and SENS_GPS1_DELAY
+	// 2026-03-11: translate EKF2_GPS_DELAY to SENS_GNSS0_DELAY and SENS_GNSS1_DELAY
 	{
 		if (strcmp("EKF2_GPS_DELAY", node->name) == 0) {
 			int32_t delay_ms = static_cast<int32_t>(node->d);
-			param_set(param_find("SENS_GPS0_DELAY"), &delay_ms);
-			param_set(param_find("SENS_GPS1_DELAY"), &delay_ms);
-			PX4_INFO("migrating %s -> %s, %s", "EKF2_GPS_DELAY", "SENS_GPS0_DELAY", "SENS_GPS1_DELAY");
+			param_set(param_find("SENS_GNSS0_DELAY"), &delay_ms);
+			param_set(param_find("SENS_GNSS1_DELAY"), &delay_ms);
+			PX4_INFO("migrating %s -> %s, %s", "EKF2_GPS_DELAY", "SENS_GNSS0_DELAY", "SENS_GNSS1_DELAY");
+		}
+	}
+
+	// 2026-08-19: translate the single-sensor optical flow params to sensor slot 0
+	{
+		static constexpr const char *renames[][2] = {
+			{"EKF2_OF_CTRL", "EKF2_OF0_CTRL"},
+			{"EKF2_OF_GYR_SRC", "EKF2_OF0_GYR_SRC"},
+			{"EKF2_OF_N_MIN", "EKF2_OF0_N_MIN"},
+			{"EKF2_OF_N_MAX", "EKF2_OF0_N_MAX"},
+			{"EKF2_OF_QMIN", "EKF2_OF0_QMIN"},
+			{"EKF2_OF_QMIN_GND", "EKF2_OF0_QMINGND"},
+			{"EKF2_OF_GATE", "EKF2_OF0_GATE"},
+			{"EKF2_OF_DELAY", "SENS_FLOW0_DELAY"},
+			{"EKF2_OF_POS_X", "SENS_FLOW0_POS_X"},
+			{"EKF2_OF_POS_Y", "SENS_FLOW0_POS_Y"},
+			{"EKF2_OF_POS_Z", "SENS_FLOW0_POS_Z"},
+			{"SENS_FLOW_MINHGT", "SENS_FLOW0_HMIN"},
+			{"SENS_FLOW_MAXHGT", "SENS_FLOW0_HMAX"},
+			{"SENS_FLOW_MAXR", "SENS_FLOW0_MAXR"},
+			{"SENS_FLOW_ROT", "SENS_FLOW0_ROT"},
+			{"SENS_FLOW_RATE", "SENS_FLOW0_RATE"},
+			{"SENS_FLOW_SCALE", "SENS_FLOW0_SCALE"},
+		};
+
+		for (const auto &rename : renames) {
+			if (strcmp(rename[0], node->name) == 0) {
+				strcpy(node->name, rename[1]);
+				PX4_INFO("migrating %s -> %s", rename[0], rename[1]);
+				return param_modify_on_import_ret::PARAM_MODIFIED;
+			}
 		}
 	}
 
@@ -226,10 +258,9 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 	// 2026-03-19: translate EKF2_ENGINE_WRM to EKF2_POS_LOCK
 	{
 		if (strcmp("EKF2_ENGINE_WRM", node->name) == 0) {
-			int32_t delay_ms = static_cast<int32_t>(node->d);
-			param_set(param_find("EKF2_POS_LOCK"), &delay_ms);
+			strcpy(node->name, "EKF2_POS_LOCK");
 			PX4_INFO("migrating %s -> %s", "EKF2_ENGINE_WRM", "EKF2_POS_LOCK");
-			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
 
@@ -241,6 +272,258 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			node->type = bson_type_t::BSON_INT32;
 			PX4_INFO("migrating %s from float to int32", node->name);
 			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
+	// 2026-06-12: merge COM_RC_OVERRIDE + COM_RC_STICK_OV into MAN_OVERRIDE_SPD
+	{
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("COM_RC_OVERRIDE", node->name) == 0) && (node->i32 == 0)) {
+			node->d = -1.0;
+			node->type = bson_type_t::BSON_DOUBLE;
+			strcpy(node->name, "MAN_OVERRIDE_SPD");
+			PX4_INFO("migrating %s -> %s (disabled)", "COM_RC_OVERRIDE", "MAN_OVERRIDE_SPD");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
+	// 2026-06-22: translate HEATER*_IMU_ID to HEATER*_SENS_ID
+	//	HEATER_MAX_INSTANCES == 3 (in heater.h)
+	{
+		if ((node->type == bson_type_t::BSON_INT32) && (strncmp("HEATER", node->name, 6) == 0)
+		    && strstr(node->name, "_IMU_ID") != nullptr) {
+			char old_name[BSON_MAXNAME];
+			strncpy(old_name, node->name, sizeof(old_name));
+			char new_name[16];
+			snprintf(new_name, sizeof(new_name), "HEATER%c_SENS_ID", node->name[6]);
+			strcpy(node->name, new_name);
+			PX4_INFO("migrating %s -> %s", old_name, new_name);
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
+	// 2026-10-20: the single heater's SENS_* parameters became those of heater instance 1
+	{
+		static constexpr const char *kRenames[][2] {
+			{"SENS_IMU_TEMP", "HEATER1_TEMP"},
+			{"SENS_IMU_TEMP_FF", "HEATER1_TEMP_FF"},
+			{"SENS_IMU_TEMP_I", "HEATER1_TEMP_I"},
+			{"SENS_IMU_TEMP_P", "HEATER1_TEMP_P"},
+		};
+
+		for (const auto &rename : kRenames) {
+			if (strcmp(rename[0], node->name) == 0) {
+				strcpy(node->name, rename[1]);
+				PX4_INFO("migrating %s -> %s", rename[0], rename[1]);
+				return param_modify_on_import_ret::PARAM_MODIFIED;
+			}
+		}
+
+		// SENS_TEMP_ID 0 kept the heater from starting, while HEATER1_SENS_ID 0 selects a sensor and -1 disables it
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("SENS_TEMP_ID", node->name) == 0)) {
+			if (node->i32 == 0) {
+				node->i32 = -1;
+			}
+
+			strcpy(node->name, "HEATER1_SENS_ID");
+			PX4_INFO("migrating %s -> %s", "SENS_TEMP_ID", "HEATER1_SENS_ID");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
+	// 2026-06-29: MPC_LAND_RC_HELP replaced by the MPC_AUTO_NUDGING bitmask (landing nudging = bit 1).
+	// The old in-Hold yaw nudge is not migrated; it now lives in bit 0 (yaw nudging in all auto modes).
+	{
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("MPC_LAND_RC_HELP", node->name) == 0)) {
+			if (node->i32 != 0) {
+				int32_t nudging = 0;
+				param_get(param_find("MPC_AUTO_NUDGING"), &nudging);
+				nudging |= (1 << 1);
+				param_set(param_find("MPC_AUTO_NUDGING"), &nudging);
+			}
+
+			PX4_INFO("migrating MPC_LAND_RC_HELP -> MPC_AUTO_NUDGING bit 1 (value=%" PRId32 ")", node->i32);
+			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+		}
+	}
+
+	// 2026-07-13: translate COM_ARM_TRAFF (arming check only) to COM_TRAFF_AVOID (arming check + failsafe action)
+	{
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("COM_ARM_TRAFF", node->name) == 0)) {
+			// old: 0 Disabled, 1 Warning only (arming allowed), 2 Enforce all modes, 3 Enforce mission only
+			// new: 0 Disabled, 1 Warning (arming allowed), 2 Error (arming blocked)
+			// Old value 3 (mission-only enforcement) is intentionally mapped to 2 (all modes): mode-scoped
+			// arming enforcement is no longer supported, so we err on the restrictive side.
+			// COM_ARM_TRAFF never triggered an in-flight failsafe action, so the new failsafe
+			// action defaults to Warning either way; only the arming behavior is preserved.
+			if (node->i32 == 1) {
+				node->i32 = 1;
+
+			} else if (node->i32 >= 2) {
+				node->i32 = 2;
+			}
+
+			strcpy(node->name, "COM_TRAFF_AVOID");
+			PX4_INFO("migrating %s -> %s", "COM_ARM_TRAFF", "COM_TRAFF_AVOID");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
+	// 2026-08-05: the protocol selection moved out of VTX_DEVICE into VTX_PROTOCOL. VTX_DEVICE keeps
+	// the old layout that holds the device in its high byte, so only the protocol has to be derived:
+	// the Peak THOR speaks SmartAudio. The Rush MAX SOLO entry was removed and falls back to a generic
+	// device on Tramp, the only protocol it speaks. A value that is not listed stays untouched and acts
+	// as a generic device on SmartAudio, which is what both parameters default to, so the old value 0
+	// needs nothing.
+	{
+		static constexpr int32_t PROTOCOL_SMART_AUDIO = 0; // VTX_PROTOCOL value, not in msg/Vtx.msg
+
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("VTX_DEVICE", node->name) == 0)) {
+			int32_t device = -1;
+			int32_t protocol = PROTOCOL_SMART_AUDIO;
+
+			switch (node->i32) {
+			case 100: // generic device, Tramp
+				device = vtx_s::DEVICE_UNKNOWN << 8;
+				protocol = vtx_s::PROTOCOL_TRAMP;
+				break;
+
+			case 5120: // Peak THOR (T35, T67, T78, T89), SmartAudio only
+				device = vtx_s::DEVICE_PEAK_THOR << 8;
+				protocol = PROTOCOL_SMART_AUDIO;
+				break;
+
+			case 10240: // Rush MAX SOLO -> generic device, Tramp
+				device = vtx_s::DEVICE_UNKNOWN << 8;
+				protocol = vtx_s::PROTOCOL_TRAMP;
+				break;
+			}
+
+			if (device >= 0) {
+				node->i32 = device;
+				param_set(param_find("VTX_PROTOCOL"), &protocol);
+				PX4_INFO("migrating VTX_DEVICE -> VTX_DEVICE %" PRId32 " + VTX_PROTOCOL %" PRId32,
+					 device, protocol);
+				return param_modify_on_import_ret::PARAM_MODIFIED;
+			}
+		}
+	}
+
+	// 2026-08-18: UAVCAN_ECU_MAXF replaced by per-tank (idx 1 based)
+	{
+		if ((node->type == bson_type_t::BSON_DOUBLE) && (strcmp("UAVCAN_ECU_MAXF", node->name) == 0)) {
+			strcpy(node->name, "UAVCAN_ECU_MAXF1");
+			PX4_INFO("copying %s -> %s", "UAVCAN_ECU_MAXF", "UAVCAN_ECU_MAXF1");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
+	// 2026-09-28: translate SENS_GPS* to SENS_GNSS*
+	{
+		static constexpr const char *kRenames[][2] {
+			{"SENS_GPS_PRIME", "SENS_GNSS_PRIME"},
+			{"SENS_GPS0_ID", "SENS_GNSS0_ID"},
+			{"SENS_GPS0_OFFX", "SENS_GNSS0_OFFX"},
+			{"SENS_GPS0_OFFY", "SENS_GNSS0_OFFY"},
+			{"SENS_GPS0_OFFZ", "SENS_GNSS0_OFFZ"},
+			{"SENS_GPS0_DELAY", "SENS_GNSS0_DELAY"},
+			{"SENS_GPS1_ID", "SENS_GNSS1_ID"},
+			{"SENS_GPS1_OFFX", "SENS_GNSS1_OFFX"},
+			{"SENS_GPS1_OFFY", "SENS_GNSS1_OFFY"},
+			{"SENS_GPS1_OFFZ", "SENS_GNSS1_OFFZ"},
+			{"SENS_GPS1_DELAY", "SENS_GNSS1_DELAY"},
+		};
+
+		for (const auto &rename : kRenames) {
+			if (strcmp(rename[0], node->name) == 0) {
+				strcpy(node->name, rename[1]);
+				PX4_INFO("migrating %s -> %s", rename[0], rename[1]);
+				return param_modify_on_import_ret::PARAM_MODIFIED;
+			}
+		}
+	}
+
+	// 2026-09-29: the GNSS checks move from EKF2 to the sensors module
+	{
+		static constexpr const char *kRenames[][2] {
+			{"EKF2_GPS_CHECK", "GNSS_CHECK"},
+			{"EKF2_REQ_EPH", "GNSS_REQ_EPH"},
+			{"EKF2_REQ_EPV", "GNSS_REQ_EPV"},
+			{"EKF2_REQ_NSATS", "GNSS_REQ_NSATS"},
+			{"EKF2_REQ_PDOP", "GNSS_REQ_PDOP"},
+			{"EKF2_REQ_HDRIFT", "GNSS_REQ_HDRIFT"},
+			{"EKF2_REQ_VDRIFT", "GNSS_REQ_VDRIFT"},
+			{"EKF2_REQ_FIX", "GNSS_REQ_FIX"},
+			{"EKF2_REQ_SACC", "GNSS_REQ_SACC"},
+			{"EKF2_REQ_GPS_H", "GNSS_REQ_TIME"},
+		};
+
+		for (const auto &rename : kRenames) {
+			if (strcmp(rename[0], node->name) == 0) {
+				strcpy(node->name, rename[1]);
+				PX4_INFO("migrating %s -> %s", rename[0], rename[1]);
+				return param_modify_on_import_ret::PARAM_MODIFIED;
+			}
+		}
+	}
+
+	// 2026-10-06: translate CBRK_IO_SAFETY -> COM_SAFETY_MODE. Any value but the breaker key had safety enabled, with
+	// both the switch and the MAVLink command able to turn it off.
+	{
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("CBRK_IO_SAFETY", node->name) == 0)) {
+			node->i32 = (node->i32 == 22027) ? 0 : 1;
+			strcpy(node->name, "COM_SAFETY_MODE");
+			PX4_INFO("migrating %s -> %s", "CBRK_IO_SAFETY", "COM_SAFETY_MODE");
+			return param_modify_on_import_ret::PARAM_MODIFIED;
+		}
+	}
+
+	// 2026-10-20: the auxiliary global position parameters became per-source EKF2_AGP<n>_* parameters, so the single
+	// source configured before goes to the first slot. That slot is only used once EKF2_AGP0_ID is set to the source's id.
+	// v1.17 messages had none, but a v1.17 source now arrives with id 1 either way: the message translation node assigns
+	// it, and it is GlobalPositionMeasurementInterface's default.
+	{
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("EKF2_AGP_CTRL", node->name) == 0) && (node->i32 != 0)) {
+			const int32_t agp_id = 1;
+			param_set(param_find("EKF2_AGP0_ID"), &agp_id);
+			PX4_INFO("setting EKF2_AGP0_ID to %" PRId32, agp_id);
+		}
+
+		static constexpr const char *kRenames[][2] {
+			{"EKF2_AGP_CTRL", "EKF2_AGP0_CTRL"},
+			{"EKF2_AGP_MODE", "EKF2_AGP0_MODE"},
+			{"EKF2_AGP_DELAY", "EKF2_AGP0_DELAY"},
+			{"EKF2_AGP_NOISE", "EKF2_AGP0_NOISE"},
+			{"EKF2_AGP_GATE", "EKF2_AGP0_GATE"},
+		};
+
+		for (const auto &rename : kRenames) {
+			if (strcmp(rename[0], node->name) == 0) {
+				strcpy(node->name, rename[1]);
+				PX4_INFO("migrating %s -> %s", rename[0], rename[1]);
+				return param_modify_on_import_ret::PARAM_MODIFIED;
+			}
+		}
+	}
+
+	// 2026-11-17: the failure detector checks the tilt error from the attitude setpoint instead of absolute roll and pitch.
+	// The old limits and trigger times mean something else now and are not taken over, only a check disabled for both
+	// roll and pitch stays disabled. The other old parameter may still follow in the import, so both are tracked.
+	{
+		static bool roll_disabled = false, pitch_disabled = false; // FD_FAIL_R and FD_FAIL_P default to 60°
+
+		const bool is_roll = (node->type == bson_type_t::BSON_INT32) && (strcmp("FD_FAIL_R", node->name) == 0);
+		const bool is_pitch = (node->type == bson_type_t::BSON_INT32) && (strcmp("FD_FAIL_P", node->name) == 0);
+
+		if (is_roll || is_pitch) {
+			(is_roll ? roll_disabled : pitch_disabled) = (node->i32 == 0);
+
+			if (roll_disabled && pitch_disabled) {
+				float max_tilt_error_deg = -1.f;
+				param_set(param_find("FD_TILT_ERROR"), &max_tilt_error_deg);
+				PX4_INFO("migrating FD_FAIL_R and FD_FAIL_P -> FD_TILT_ERROR (disabled)");
+			}
+
+			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
 		}
 	}
 

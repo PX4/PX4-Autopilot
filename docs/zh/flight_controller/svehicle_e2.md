@@ -169,8 +169,3 @@ For information about using this port see:
 ![SVehicle-E2 left Photo](../../assets/flight_controller/svehicle_e2/left.png)
 
 ![SVehicle-E2 right Photo](../../assets/flight_controller/svehicle_e2/right.png)
-
-## 支持的平台/机身
-
-Any multirotor/airplane/rover or boat that can be controlled using normal RC servos or Futaba S-Bus servos.
-The complete set of supported configurations can be found in the [Airframe Reference](../airframes/airframe_reference.md).

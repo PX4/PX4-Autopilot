@@ -35,6 +35,10 @@ On the autopilot, `GPS_RTCM_DATA` packets are reassembled according to the MAVLi
 As soon as the autopilot receives `GPS_RTCM_DATA` MAVLink messages, it reassembles fragmented packets when needed and then forwards the RTCM data to the attached GPS module over existing data channels (a dedicated channel for correction data is not required).
 
 :::info
+Firmware built with `CONFIG_GPS_SPARTN` (default off; enabled on selected targets such as ARK GNSS nodes and SITL) also frames [SPARTN](https://www.spartnformat.org/) corrections on that same inject path — for example u-blox PointPerfect streams carried in `GPS_RTCM_DATA` / `rtcm_corrections`. PX4 does not provision SPARTN decryption keys; those must already be configured on the receiver.
+:::
+
+:::info
 Інструмент конфігурації модуля RTK U-Center від u-blox не потрібний/не використовується!
 :::
 
@@ -51,7 +55,7 @@ If you are sending RTCM corrections to PX4 yourself, follow the MAVLink [`GPS_RT
 - If the RTCM payload exceeds 180 bytes, split it across up to 4 packets using the Fragment ID and Sequence ID (encoded in `GPS_RTCM_DATA.flags`).
   Every packet except the last one must be filled to its maximum 180-byte capacity; only the final packet may be partially filled.
 - PX4 reassembles fragmented packets according to the MAVLink rules and supports out-of-order delivery for one in-progress fragmented message at a time.
-- A fragmented message is considered complete when either 4 fragments with the same Sequence ID have been received, or when you receive a partial fragment and you have already recieved all the fully-packed fragments that precede it (by Fragment ID) in the current sequence.
+- A fragmented message is considered complete when either 4 fragments with the same Sequence ID have been received, or when you receive a partial fragment and you have already received all the fully-packed fragments that precede it (by Fragment ID) in the current sequence.
 - If the RTCM payload length is an exact multiple of 180 bytes and uses fewer than 4 fragments, the sender must still send a final zero-length fragment to mark completion. A 720-byte payload (all 4 fragments full) is complete after the last fragment is received.
 - As a compatibility fallback for older QGroundControl builds that omit that final zero-length fragment, PX4 also flushes a buffered RTCM message to the GNSS when a `GPS_RTCM_DATA` message with a different Sequence ID arrives, but only if the buffered fragments are a gap-free run of full 180-byte fragments starting at fragment 0.
 
@@ -60,6 +64,14 @@ Current limitations:
 - PX4 keeps only one in-progress fragmented `GPS_RTCM_DATA` message at a time. A packet with a different `sequence_id` starts a new buffer.
 - Stale partial state is dropped after 1 second if the rest of the fragments do not arrive.
 - The legacy exact-multiple compatibility fallback only works if another `sequence_id` arrives before that 1 second timeout. Otherwise the buffered partial message is dropped.
+
+### Corrections from ROS 2
+
+ROS 2 applications can send corrections over [uXRCE-DDS](../middleware/uxrce_dds.md) by publishing [`px4_msgs/msg/RtcmData`](../msg_docs/RtcmData.md) on `/fmu/in/rtcm_corrections`:
+
+- Split the correction byte stream into consecutive messages of up to 300 bytes (`data`, `len`). Message boundaries need not match RTCM frame boundaries.
+- Give each source its own constant `device_id`. Each value is routed to its own `rtcm_corrections` instance, so two sources sharing an ID interleave their streams.
+- A `timestamp` of 0 is replaced with the time of receipt.
 
 ### RTCM повідомлення
 

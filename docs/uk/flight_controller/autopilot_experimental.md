@@ -12,6 +12,7 @@ For more information about PX4 project autopilot board support levels see: [px4.
 
 This category is for experimental autopilots (and autopilot "platforms") that are _not supported_ by either the PX4 project team or by a manufacturer.
 
+- [AIFoundry Erbium](../flight_controller/aifoundry_erbium.md)
 - [BeagleBone Blue](../flight_controller/beaglebone_blue.md)
 - [Raspberry Pi 2/3 Navio2](../flight_controller/raspberry_pi_navio2.md)
 - [Raspberry Pi 2/3/4 PilotPi Shield](../flight_controller/raspberry_pi_pilotpi.md)

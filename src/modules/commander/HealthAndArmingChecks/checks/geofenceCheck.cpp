@@ -45,7 +45,7 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 					    geofence_result.geofence_max_alt_triggered ||
 					    geofence_result.geofence_custom_fence_triggered;
 
-	reporter.failsafeFlags().geofence_breached = any_geofence_triggered;
+	reporter.failsafeFlags().geofence_breached = geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE && any_geofence_triggered;
 
 	if (geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE && any_geofence_triggered) {
 
@@ -61,7 +61,7 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 						    events::Log::Error, "Geofence violation: exceeding maximum distance to Home");
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Geofence: exceeding maximum distance to Home");
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Geofence: exceeding maximum distance to Home\t");
 			}
 		}
 
@@ -77,7 +77,7 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 						    events::Log::Error, "Geofence violation: exceeding maximum altitude above Home");
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Geofence: exceeding maximum altitude above Home");
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Geofence: exceeding maximum altitude above Home\t");
 			}
 		}
 
@@ -93,7 +93,7 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 						    events::Log::Error, "Geofence violation: approaching or outside geofence");
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Geofence: approaching or outside geofence");
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Geofence: approaching or outside geofence\t");
 			}
 		}
 	}
@@ -107,10 +107,10 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 		 * </profile>
 		 */
 		reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_gf_no_home"),
-					    events::Log::Error, "Geofence RTL requires valid home");
+					    events::Log::Error, "Geofence Return action requires valid home");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Geofence RTL requires valid home");
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Geofence Return action requires valid home");
 		}
 	}
 }

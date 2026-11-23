@@ -243,6 +243,7 @@ int ASP5033::collect()
 
 
 		differential_pressure.temperature = _temperature ;
+		differential_pressure.pitot_temperature = NAN;
 		differential_pressure.error_count = perf_event_count(_comms_errors);
 		differential_pressure.timestamp = timestamp_sample;
 		_differential_pressure_pub.publish(differential_pressure);

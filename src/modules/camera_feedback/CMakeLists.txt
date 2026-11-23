@@ -38,4 +38,6 @@ px4_add_module(
 		CameraFeedback.hpp
 	DEPENDS
 		px4_work_queue
+	MODULE_CONFIG
+		camera_feedback_params.yaml
 	)

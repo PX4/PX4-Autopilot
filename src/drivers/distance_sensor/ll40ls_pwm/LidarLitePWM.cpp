@@ -46,6 +46,7 @@
 
 #ifdef LIDAR_LITE_PWM_SUPPORTED
 
+#include <lib/parameters/param.h>
 #include <px4_arch/io_timer.h>
 
 LidarLitePWM::LidarLitePWM(const uint8_t rotation) :
@@ -54,6 +55,13 @@ LidarLitePWM::LidarLitePWM(const uint8_t rotation) :
 {
 	_px4_rangefinder.set_min_distance(LL40LS_MIN_DISTANCE);
 	_px4_rangefinder.set_max_distance(LL40LS_MAX_DISTANCE);
+
+	float max_distance = 0.f;
+
+	if (param_get(param_find("SENS_LL40LS_MAX"), &max_distance) == PX4_OK && max_distance > 0.f) {
+		_px4_rangefinder.set_max_distance(max_distance);
+	}
+
 	_px4_rangefinder.set_fov(0.008); // Divergence 8 mRadian
 	px4_arch_configgpio(io_timer_channel_get_gpio_output(GPIO_VDD_RANGEFINDER_EN_CHAN));
 

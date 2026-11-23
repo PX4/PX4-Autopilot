@@ -64,6 +64,8 @@ __BEGIN_DECLS
 #define GPIO_LED_G     (PIN_EMIOS1_CH10_1)
 #define GPIO_LED_B     (PIN_EMIOS1_CH5_3)
 
+#define BOARD_MAX_LEDS 8
+
 /* Buttons.  The MR-CANHUBK3 supports two buttons:
  *
  *   SW1  PTD15  (EIRQ31)
@@ -78,10 +80,6 @@ __BEGIN_DECLS
  */
 #define PX4_I2C_BUS_ONBOARD_HZ      400000
 #define PX4_I2C_BUS_EXPANSION_HZ      400000
-
-#define PX4_I2C_BUS_MTD	1
-
-#define BOARD_NUMBER_I2C_BUSES  2
 
 /* Timer I/O PWM and capture */
 

@@ -1,0 +1,377 @@
+/****************************************************************************
+ *
+ *   Copyright (c) 2026 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/**
+ * @file FailureInjection.hpp
+ *
+ * Shared helper for applying failure injection where a message is produced.
+ *
+ * The failure_injection manager publishes the deduplicated failure_injection
+ * topic. Each producer caches it in a Config (update() per loop), looks up the
+ * Mode for its (unit, instance), and applies it: process<MsgT>() covers the
+ * generic Off (suppress) / Stuck (replay last sample) for single-message
+ * producers, the message-less process() the payload-less Off-only units;
+ * value-mutating and multi-instance cases are driver-specific.
+ */
+
+#pragma once
+
+#include <cstdint>
+
+#include <drivers/drv_hrt.h>
+#include <lib/mathlib/mathlib.h>
+#include <matrix/math.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/differential_pressure.h>
+#include <uORB/topics/esc_status.h>
+#include <uORB/topics/failure_injection.h>
+
+struct battery_status_s;
+struct sensor_gnss_s;
+
+namespace failure_injection
+{
+
+enum class Mode : uint8_t {
+	Ok           = failure_injection_s::FAILURE_TYPE_OK,
+	Off          = failure_injection_s::FAILURE_TYPE_OFF,
+	Stuck        = failure_injection_s::FAILURE_TYPE_STUCK,
+	Garbage      = failure_injection_s::FAILURE_TYPE_GARBAGE,
+	Wrong        = failure_injection_s::FAILURE_TYPE_WRONG,
+	Slow         = failure_injection_s::FAILURE_TYPE_SLOW,
+	Delayed      = failure_injection_s::FAILURE_TYPE_DELAYED,
+	Intermittent = failure_injection_s::FAILURE_TYPE_INTERMITTENT,
+	Drift        = failure_injection_s::FAILURE_TYPE_DRIFT,
+};
+
+/** Masks of motors failed by injection, bit i = motor instance i+1. */
+struct MotorFailureMasks {
+	uint16_t stop_mask{0};    ///< motor wrong: outputs stopped without informing the allocator
+	uint16_t failure_mask{0}; ///< motor off: reported as failed motors, removed from the allocation
+};
+
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+
+class Config
+{
+public:
+	/**
+	 * Poll the failure_injection subscription and, when a new failure_injection
+	 * message arrives, refresh the cached failure config that mode() / any_active()
+	 * read. Call once per loop iteration.
+	 * @return true if an updated failure config was applied, false if unchanged.
+	 */
+	bool update();
+
+	/** Cache a failure_injection message directly (used by tests). */
+	void set(const failure_injection_s &cfg);
+
+	/**
+	 * Active failure mode for a (unit, instance), or Mode::Ok if none.
+	 * @param unit     one of failure_injection_s::FAILURE_UNIT_*
+	 * @param instance 1-based instance, or 0 to match any instance of the unit
+	 */
+	Mode mode(uint8_t unit, uint8_t instance) const;
+
+	/** True if any failure is currently active (free no-failure early-out). */
+	bool any_active() const { return _count > 0; }
+
+private:
+	uORB::Subscription _sub{ORB_ID(failure_injection)};
+
+	uint8_t  _count{0};
+	uint8_t  _unit[failure_injection_s::MAX_FAILURES] {};
+	uint16_t _instance_mask[failure_injection_s::MAX_FAILURES] {};
+	Mode     _failure_type[failure_injection_s::MAX_FAILURES] {};
+};
+
+/**
+ * Per-(consumer, instance) state for stateful failures. Holds the last good
+ * sample so Stuck can replay it.
+ */
+template<typename MsgT>
+struct Stuck {
+	bool valid{false};
+	MsgT value{};
+};
+
+template<typename...>
+using void_t = void;
+
+template<typename T, typename = void>
+struct has_timestamp_sample {
+	static constexpr bool value = false;
+};
+template<typename T>
+struct has_timestamp_sample<T, void_t<decltype(T::timestamp_sample)>> {
+	static constexpr bool value = true;
+};
+
+/**
+ * Generic whole-message processor for the Ok / Off / Stuck mechanics, for consumers
+ * that publish a single message and want the message-agnostic behaviour.
+ *
+ * @return false if the message must be suppressed (Off); true otherwise. For
+ *         Stuck the message is overwritten with the last good sample.
+ */
+template<typename MsgT>
+bool process(Mode mode, MsgT &msg, Stuck<MsgT> &stuck)
+{
+	switch (mode) {
+	case Mode::Off:
+		return false;
+
+	case Mode::Stuck:
+		if (stuck.valid) {
+			const uint64_t timestamp = msg.timestamp;
+
+			if constexpr(has_timestamp_sample<MsgT>::value) {
+				const uint64_t timestamp_sample = msg.timestamp_sample;
+				msg = stuck.value;
+				msg.timestamp_sample = timestamp_sample;
+
+			} else {
+				msg = stuck.value;
+			}
+
+			msg.timestamp = timestamp;
+		}
+
+		return true;
+
+	default:
+		stuck.value = msg;
+		stuck.valid = true;
+		return true;
+	}
+}
+
+/**
+ * Convenience overload to fix the fact that the uORB instance is 0-based but the failure_injection instance is 1-based.
+ */
+template<typename MsgT>
+bool process(const Config &config, uint8_t unit, uint8_t uorb_instance, MsgT &msg, Stuck<MsgT> &stuck)
+{
+	return process(config.mode(unit, uorb_instance + 1), msg, stuck);
+}
+
+/**
+ * Message-less variant for producers with no payload to replay (e.g. a heartbeat)
+ *
+ * @return false if the signal must be treated as failed/suppressed (Off), true otherwise.
+ */
+inline bool process(Mode mode)
+{
+	return mode != Mode::Off;
+}
+
+/** Convenience overload, same 0-based to 1-based instance mapping as the generic process(). */
+inline bool process(const Config &config, uint8_t unit, uint8_t uorb_instance)
+{
+	return process(config.mode(unit, uorb_instance + 1));
+}
+
+/**
+ * Battery counterpart to process(): on FAILURE_UNIT_SYSTEM_BATTERY for the given 1-based
+ * instance, Off suppresses the publication (the pack reads disconnected) and Wrong reports the
+ * warning level selected by SYS_FAIL_BAT_LVL with the remaining charge just below the matching
+ * threshold, so that stage of the low-battery failsafe triggers.
+ *
+ * @return false if the battery_status publication must be suppressed (Off), true otherwise.
+ */
+bool process_battery(const Config &config, uint8_t instance, battery_status_s &battery_status);
+
+/**
+ * GNSS counterpart to process(): on FAILURE_UNIT_SENSOR_GPS for the receiver publishing on the
+ * given 0-based uORB instance, Off and Stuck behave as in the generic process() and Wrong reports
+ * the fix type selected by SYS_FAIL_GPS_WRG and the jamming state selected by SYS_FAIL_GPS_JAM
+ * while leaving the position untouched.
+ *
+ * @param uorb_instance 0-based uORB instance of the publisher (not the 1-based failure instance).
+ * @return false if the sensor_gnss publication must be suppressed (Off), true otherwise.
+ */
+bool process_gnss(const Config &config, uint8_t uorb_instance, sensor_gnss_s &sensor_gnss,
+		  Stuck<sensor_gnss_s> &stuck);
+
+/** Per-consumer airspeed failure state: the last good sample for Stuck and the blockage start for Wrong. */
+struct AirspeedState {
+	Stuck<differential_pressure_s> stuck;
+	uint64_t blocked_timestamp{0};
+};
+
+/**
+ * Airspeed counterpart to process(): on FAILURE_UNIT_SENSOR_AIRSPEED for the sensor publishing on
+ * the given 0-based uORB instance, Off and Stuck behave as in the generic process() and Wrong
+ * simulates a pitot blockage, ramping the differential pressure down linearly from the onset of
+ * the failure (taken from differential_pressure.timestamp) to a fixed fraction of the true value.
+ *
+ * @param uorb_instance 0-based uORB instance of the publisher (not the 1-based failure instance).
+ * @return false if the differential_pressure publication must be suppressed (Off), true otherwise.
+ */
+bool process_airspeed(const Config &config, uint8_t uorb_instance, differential_pressure_s &differential_pressure,
+		      AirspeedState &state);
+
+/**
+ * ESC counterpart to process(): apply the active FAILURE_UNIT_SYSTEM_ESC failures to a copy of
+ * status (matched per ESC by actuator_function). Off zeroes the ESC's telemetry (keeping only
+ * actuator_function) and reports it offline and unarmed; Wrong keeps it online but reports
+ * consistently wrong values. Takes status by const reference and returns the mutated copy so callers
+ * can't accidentally apply it in place to a persistent status, which would compound Wrong across
+ * calls. Call after Config::update().
+ */
+esc_status_s process_esc(const Config &config, const esc_status_s &status);
+
+/**
+ * Motor counterpart to process(): derive the masks of motors failed by
+ * FAILURE_UNIT_SYSTEM_MOTOR from the injected failure type. Off is the detected failure
+ * (failure_mask: reported as failed motors and removed from the allocation), Wrong the
+ * undetected one (stop_mask: outputs stopped without informing the allocator).
+ * Call after Config::update().
+ */
+MotorFailureMasks process_motor(const Config &config);
+
+/**
+ * Per-axis offset (in the sample's SI units) for the IMU failure mode: Wrong adds a constant bias
+ * (SYS_FAIL_{G,A}_BIAS), Garbage uniform noise within +-SYS_FAIL_{G,A}_NOISE and Drift a bias growing
+ * by SYS_FAIL_{G,A}_DRIFT per second since drift_start, which is latched on onset and reset otherwise.
+ * Zero for any other mode. Used by process_imu().
+ */
+matrix::Vector3f imu_offset(Mode mode, uint8_t unit, hrt_abstime now, hrt_abstime &drift_start);
+
+template<typename T, typename = void>
+struct is_imu_fifo {
+	static constexpr bool value = false;
+};
+template<typename T>
+struct is_imu_fifo<T, void_t<decltype(T::scale)>> {
+	static constexpr bool value = true;
+};
+
+/**
+ * Add the IMU offset to a sensor_{gyro,accel} sample (SI units) or to the raw int16 samples of a
+ * sensor_{gyro,accel}_fifo message (offset converted with the message scale).
+ */
+template<typename MsgT>
+void add_imu_offset(MsgT &msg, const matrix::Vector3f &offset)
+{
+	if constexpr(is_imu_fifo<MsgT>::value) {
+		if (!offset.longerThan(0.f)) {
+			return;
+		}
+
+		const matrix::Vector3f raw = offset / msg.scale;
+
+		for (int n = 0; n < msg.samples; n++) {
+			msg.x[n] = (int16_t)math::constrain(roundf(msg.x[n] + raw(0)), (float)INT16_MIN, (float)INT16_MAX);
+			msg.y[n] = (int16_t)math::constrain(roundf(msg.y[n] + raw(1)), (float)INT16_MIN, (float)INT16_MAX);
+			msg.z[n] = (int16_t)math::constrain(roundf(msg.z[n] + raw(2)), (float)INT16_MIN, (float)INT16_MAX);
+		}
+
+	} else {
+		msg.x += offset(0);
+		msg.y += offset(1);
+		msg.z += offset(2);
+	}
+}
+
+/**
+ * IMU counterpart to process(): on FAILURE_UNIT_SENSOR_GYRO / _ACCEL for the given 0-based uORB
+ * instance, Off and Stuck behave as in the generic process() and Wrong / Garbage / Drift corrupt
+ * the sample on all three axes (see imu_offset()). Works on sensor_{gyro,accel} and on
+ * sensor_{gyro,accel}_fifo (raw samples). Call after Config::update().
+ *
+ * @param uorb_instance 0-based uORB instance of the publisher (not the 1-based failure instance).
+ * @return false if the publication must be suppressed (Off), true otherwise.
+ */
+template<typename MsgT>
+bool process_imu(const Config &config, uint8_t unit, uint8_t uorb_instance, MsgT &msg, Stuck<MsgT> &stuck,
+		 hrt_abstime &drift_start)
+{
+	const Mode mode = config.mode(unit, uorb_instance + 1);
+	// computed before process() so Off also resets drift_start
+	const matrix::Vector3f offset = imu_offset(mode, unit, msg.timestamp, drift_start);
+
+	// Off and Stuck are message-agnostic; run them first so the Stuck cache keeps the
+	// uncorrupted sample and a later Stuck replays a healthy one.
+	if (!process(mode, msg, stuck)) {
+		return false;
+	}
+
+	add_imu_offset(msg, offset);
+	return true;
+}
+
+#else // !CONFIG_MODULES_FAILURE_INJECTION_MANAGER
+
+class Config
+{
+public:
+	bool update() { return false; }
+	void set(const failure_injection_s &) {}
+	Mode mode(uint8_t, uint8_t) const { return Mode::Ok; }
+	bool any_active() const { return false; }
+};
+
+template<typename MsgT>
+struct Stuck {
+};
+
+struct AirspeedState {
+};
+
+template<typename MsgT>
+bool process(Mode, MsgT &, Stuck<MsgT> &) { return true; }
+
+template<typename MsgT>
+bool process(const Config &, uint8_t, uint8_t, MsgT &, Stuck<MsgT> &) { return true; }
+
+inline bool process(Mode) { return true; }
+
+inline bool process(const Config &, uint8_t, uint8_t) { return true; }
+
+inline bool process_battery(const Config &, uint8_t, battery_status_s &) { return true; }
+
+inline bool process_gnss(const Config &, uint8_t, sensor_gnss_s &, Stuck<sensor_gnss_s> &) { return true; }
+
+inline bool process_airspeed(const Config &, uint8_t, differential_pressure_s &, AirspeedState &) { return true; }
+
+inline esc_status_s process_esc(const Config &, const esc_status_s &status) { return status; }
+
+inline MotorFailureMasks process_motor(const Config &) { return {}; }
+
+template<typename MsgT>
+bool process_imu(const Config &, uint8_t, uint8_t, MsgT &, Stuck<MsgT> &, hrt_abstime &) { return true; }
+
+#endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER
+
+} // namespace failure_injection

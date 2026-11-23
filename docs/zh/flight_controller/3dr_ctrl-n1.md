@@ -4,7 +4,7 @@
 
 :::warning
 PX4 does not manufacture this (or any) autopilot.
-Contact [3DR](https://3dr.com/) for hardware support or compliance issues.
+Contact [3DR](https://www.3dr.com/) for hardware support or compliance issues.
 :::
 
 The _3DR Control N1_ is a compact, high-performance, low-profile and lightweight flight controller designed and assembled in USA.
@@ -116,14 +116,14 @@ Select and assign your preferred protocol in QGroundControl during initial setup
 The Control N1 is designed to be used with a carrier board.
 The following carrier boards are available from 3DR:
 
-| Board                                                                                               | 描述                                            |
-| --------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| [CB1 Cuby](https://docs.3dr.com/autopilots/carrier-boards/r0026-cb1-cuby)                           | Compact square form factor                    |
-| [CB2 Longy](https://docs.3dr.com/autopilots/carrier-boards/r0027-cb2-longy)                         | Thin form factor for space-constrained builds |
-| [CB3 FPV](https://docs.3dr.com/autopilots/carrier-boards/r0033-cb3-fpv)                             | Optimized for FPV platforms                   |
-| [CB4 Wing](https://docs.3dr.com/autopilots/carrier-boards/r0036-cb4-wing)                           | Fixed-wing and VTOL applications              |
-| [CN1 Prototyping Board](https://docs.3dr.com/autopilots/carrier-boards/r0037-cn1-prototyping-board) | Full signal access for development            |
-| [CN1 to CZ OEM Adapter](https://docs.3dr.com/autopilots/carrier-boards/r0034-cn1-to-czoem-adapter)  | Adapter for Control Zero OEM carrier boards   |
+| Board                                                                                                | 描述                                            |
+| ---------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| [CB1 Cuby](https://docs.3dr.com/autopilots/carrier-boards/r0026-cb1-cuby/)                           | Compact square form factor                    |
+| [CB2 Longy](https://docs.3dr.com/autopilots/carrier-boards/r0027-cb2-longy/)                         | Thin form factor for space-constrained builds |
+| [CB3 FPV](https://docs.3dr.com/autopilots/carrier-boards/r0033-cb3-fpv/)                             | Optimized for FPV platforms                   |
+| [CB4 Wing](https://docs.3dr.com/autopilots/carrier-boards/r0036-cb4-wing/)                           | Fixed-wing and VTOL applications              |
+| [CN1 Prototyping Board](https://docs.3dr.com/autopilots/carrier-boards/r0037-cn1-prototyping-board/) | Full signal access for development            |
+| [CN1 to CZ OEM Adapter](https://docs.3dr.com/autopilots/carrier-boards/r0034-cn1-to-czoem-adapter/)  | Adapter for Control Zero OEM carrier boards   |
 
 The image below shows the pinout of the CB2 Longy as a reference for connector layout and signal assignment.
 
@@ -134,10 +134,10 @@ The image below shows the pinout of the CB2 Longy as a reference for connector l
 The [SWD debug port](../debug/swd_debug.md) signals (SWCLK, SWDIO) and BOOT0 are routed through connector **J200** on the Control N1 module.
 The physical debug interface (connector type, pinout, and location) depends on the carrier board.
 
-Depending on the carrier board, the debug connector may be a TC2030-compatible pad-of-nails (requires a [Tag-Connect TC2030](https://www.tag-connect.com/product/tc2030-ctx-nl-6-pin-no-legs-cable-for-use-with-cortex-processors) cable) or a 14-pin ARM Cortex JTAG/SWD header (Samtec FTSH-107, 2×7, 1.27 mm pitch).
+Depending on the carrier board, the debug connector may be a TC2030-compatible pad-of-nails (requires a [Tag-Connect TC2030](https://www.tag-connect.com/product/tc2030-ctx-nl-6-pin-no-legs-cable-with-10-pin-micro-connector-for-cortex-processors) cable) or a 14-pin ARM Cortex JTAG/SWD header (Samtec FTSH-107, 2×7, 1.27 mm pitch).
 Note that some carrier boards may not expose a debug interface.
 Refer to your carrier board's documentation for the exact connector location and pinout.
 
 ## 更多信息
 
-- [3DR Control N1 documentation](https://docs.3dr.com/autopilots/control-n1)
+- [3DR Control N1 documentation](https://docs.3dr.com/autopilots/control-n1/)

@@ -41,6 +41,7 @@
 
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/atomic.h>
 #include <perf/perf_counter.h>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/parameter_update.h>
@@ -73,7 +74,7 @@ public:
 	/**
 	 * @see ModuleBase::print_usage
 	 */
-	int print_status();
+	int print_status() override;
 
 	/**
 	 * @see ModuleBase::task_spawn
@@ -88,11 +89,11 @@ public:
 
 private:
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::ZENOH_DOMAIN_ID>) _zenoh_domain_id,
-		(ParamInt<px4::params::ZENOH_PUB_CC>) _zenoh_pub_cc,
-		(ParamInt<px4::params::ZENOH_PUB_REL>) _zenoh_pub_rel,
-		(ParamInt<px4::params::ZENOH_PUB_EXPR>) _zenoh_pub_expr,
-		(ParamInt<px4::params::ZENOH_PUB_PRIO>) _zenoh_pub_prio
+		(ParamInt<px4::params::ZENOH_DOMAIN_ID>) _param_zenoh_domain_id,
+		(ParamInt<px4::params::ZENOH_PUB_CC>) _param_zenoh_pub_cc,
+		(ParamInt<px4::params::ZENOH_PUB_REL>) _param_zenoh_pub_rel,
+		(ParamInt<px4::params::ZENOH_PUB_EXPR>) _param_zenoh_pub_expr,
+		(ParamInt<px4::params::ZENOH_PUB_PRIO>) _param_zenoh_pub_prio
 	)
 
 	int generate_rmw_zenoh_node_liveliness_keyexpr(const z_id_t *id, char *keyexpr);
@@ -103,6 +104,12 @@ private:
 	int setupTopics(px4_pollfd_struct_t *pfds);
 	void cleanupSession();
 
+	// Wait up to 5 s for NuttX interface flags; return false on a stop request.
+	bool waitForLink(const char *locator);
+
+	// Sleep for timeout_ms, waking up early on a stop request; return false on a stop request.
+	bool sleepUnlessStopped(uint32_t timeout_ms);
+
 	Zenoh_Config _config;
 
 	int _pub_count;
@@ -111,7 +118,9 @@ private:
 	Zenoh_Subscriber **_zenoh_subscribers = nullptr;
 
 	z_owned_session_t _s;
-	bool connected = false;
+	z_owned_liveliness_token_t _node_token;
+	// written by the module task, read by print_status() from the shell task
+	px4::atomic_bool _connected{false};
 
 	px4_guid_t _px4_guid{};
 

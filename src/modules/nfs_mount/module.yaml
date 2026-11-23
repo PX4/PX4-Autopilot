@@ -1,0 +1,25 @@
+module_name: NFS Mount
+
+parameters:
+    - group: NFS
+      definitions:
+        NFS_EN:
+            description:
+                short: Enable NFS mount
+                long: |
+                  When enabled, mounts the NFS export at the configured mount point.
+                  Retries every 2 s until the server is reachable or the system is armed.
+            type: boolean
+            reboot_required: true
+            default: false
+            requires_ethernet: true
+        NFS_IP:
+            description:
+                short: NFS server IP address
+                long: |
+                  IP address of the NFS server in int32 format.
+                  Same encoding as UXRCE_DDS_AG_IP: 10.41.10.1 maps to 170461697.
+            type: int32
+            reboot_required: true
+            default: 170461697
+            requires_ethernet: true

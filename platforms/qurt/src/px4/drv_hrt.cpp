@@ -58,7 +58,15 @@ const uint16_t latency_bucket_count = LATENCY_BUCKET_COUNT;
 const uint16_t latency_buckets[LATENCY_BUCKET_COUNT] = { 1, 2, 5, 10, 20, 50, 100, 1000 };
 __EXPORT uint32_t latency_counters[LATENCY_BUCKET_COUNT + 1];
 
-static px4_sem_t 	_hrt_lock;
+// Recursive mutex so hrt_call_invoke() can hold it across callbacks that may
+// re-enter hrt_call_* on the same thread (e.g. a callout that reschedules
+// itself). On NuttX this is implicit: the equivalent code there uses
+// enter_critical_section(), which is a nestable IRQ-disable counter. Here we
+// need PTHREAD_MUTEX_RECURSIVE to get matching semantics — without it we'd
+// have to unlock around callbacks, which leaks the queue to other threads and
+// causes list corruption under load. QURT already relies on recursive
+// pthread mutexes elsewhere (atomic_transaction.cpp, mavlink_main.cpp).
+static pthread_mutex_t	_hrt_lock;
 static struct work_s	_hrt_work;
 
 static int32_t dsp_offset = 0;
@@ -75,12 +83,12 @@ hrt_abstime hrt_absolute_time_offset()
 
 static void hrt_lock()
 {
-	px4_sem_wait(&_hrt_lock);
+	pthread_mutex_lock(&_hrt_lock);
 }
 
 static void hrt_unlock()
 {
-	px4_sem_post(&_hrt_lock);
+	pthread_mutex_unlock(&_hrt_lock);
 }
 
 int px4_clock_settime(clockid_t clk_id, const struct timespec *tp)
@@ -170,11 +178,15 @@ void	hrt_init()
 {
 	sq_init(&callout_queue);
 
-	int sem_ret = px4_sem_init(&_hrt_lock, 0, 1);
+	pthread_mutexattr_t attr;
+	pthread_mutexattr_init(&attr);
+	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
 
-	if (sem_ret) {
-		PX4_ERR("SEM INIT FAIL: %s", strerror(errno));
+	if (pthread_mutex_init(&_hrt_lock, &attr) != 0) {
+		PX4_ERR("hrt mutex init failed: %s", strerror(errno));
 	}
+
+	pthread_mutexattr_destroy(&attr);
 
 	memset(&_hrt_work, 0, sizeof(_hrt_work));
 }
@@ -304,9 +316,17 @@ hrt_call_invoke()
 		call->deadline = 0;
 
 		if (call->callout) {
-			hrt_unlock();
+			// We hold _hrt_lock across the callout. Previously we unlocked
+			// here to let callbacks re-enter hrt_call_*, but that exposes the
+			// callout queue to other threads while the current entry is mid-
+			// invocation (removed from the queue but about to be re-inserted
+			// by the periodic path below). Another thread could then re-arm
+			// and re-insert the same entry, after which the unconditional
+			// hrt_call_enter() below links it twice and tears the queue
+			// (deadline == 0 acts as an "unqueued" sentinel, bypassing the
+			// guard in hrt_call_internal()). _hrt_lock is now a recursive
+			// mutex, so same-thread re-entry from the callback is safe.
 			call->callout(call->arg);
-			hrt_lock();
 		}
 
 		if (call->period != 0) {

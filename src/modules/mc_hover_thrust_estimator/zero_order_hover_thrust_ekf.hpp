@@ -78,13 +78,13 @@ public:
 	void predict(float _dt);
 	void fuseAccZ(float acc_z, float thrust);
 
-	void setHoverThrust(float hover_thrust) { _hover_thr = math::constrain(hover_thrust, 0.1f, 0.9f); }
+	void setHoverThrust(float hover_thrust) { _hover_thr = math::constrain(hover_thrust, _hover_thr_min, _hover_thr_max); }
 	void setProcessNoiseStdDev(float process_noise) { _process_var = process_noise * process_noise; }
 	void setMeasurementNoiseScale(float scale) { _acc_var_scale = scale * scale; }
 	void setHoverThrustStdDev(float hover_thrust_noise) { _state_var = hover_thrust_noise * hover_thrust_noise; }
 	void setAccelInnovGate(float gate_size) { _gate_size = gate_size; }
-	void setMinHoverThrust(float hover_thrust_min) { _hover_thr_min = hover_thrust_min; }
-	void setMaxHoverThrust(float hover_thrust_max) { _hover_thr_max = hover_thrust_max; }
+	void setMinHoverThrust(float hover_thrust_min) { _hover_thr_min = math::constrain(hover_thrust_min, 0.1f, 0.8f); }
+	void setMaxHoverThrust(float hover_thrust_max) { _hover_thr_max = math::constrain(hover_thrust_max, 0.2f, 0.9f); }
 
 	float getHoverThrustEstimate() const { return _hover_thr; }
 	float getHoverThrustEstimateVar() const { return _state_var; }

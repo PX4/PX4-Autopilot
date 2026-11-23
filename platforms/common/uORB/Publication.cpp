@@ -40,9 +40,20 @@
  */
 
 #include "Publication.hpp"
+#include "PublicationMulti.hpp"
 
 namespace uORB
 {
+
+PublicationMultiBase::~PublicationMultiBase()
+{
+	if (_handle != nullptr) {
+		// free the instance for the next advertiser, but keep queued publications advertised
+		if (Manager::orb_get_queue_size(_handle) == 1) {
+			unadvertise();
+		}
+	}
+}
 
 bool PublicationBase::advertise()
 {
@@ -59,7 +70,44 @@ bool PublicationBase::publish(const void *data)
 		advertise();
 	}
 
+#if defined(CONFIG_BUILD_FLAT) || !defined(__PX4_NUTTX)
+	return (Manager::orb_publish_node(_handle, data) == PX4_OK);
+#else
 	return (Manager::orb_publish(get_topic(), _handle, data) == PX4_OK);
+#endif
+}
+
+bool PublicationMultiBase::advertise()
+{
+	if (!advertised()) {
+		int instance = 0;
+		_handle = orb_advertise_multi(get_topic(), nullptr, &instance);
+	}
+
+	return advertised();
+}
+
+bool PublicationMultiBase::publish(const void *data)
+{
+	if (!advertised()) {
+		advertise();
+	}
+
+#if defined(CONFIG_BUILD_FLAT) || !defined(__PX4_NUTTX)
+	return (Manager::orb_publish_node(_handle, data) == PX4_OK);
+#else
+	return (Manager::orb_publish(get_topic(), _handle, data) == PX4_OK);
+#endif
+}
+
+int PublicationMultiBase::get_instance()
+{
+	// advertise if not already advertised
+	if (advertise()) {
+		return Manager::orb_get_instance(_handle);
+	}
+
+	return -1;
 }
 
 } // namespace uORB

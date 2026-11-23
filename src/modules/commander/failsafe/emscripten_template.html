@@ -180,6 +180,11 @@
                             <td></td>
                         </tr>
                         <tr>
+                            <td><label for="fw_mission_takeoff">FW Mission Takeoff:</label></td>
+                            <td><input type="checkbox" id="fw_mission_takeoff" name="fw_mission_takeoff"></td>
+                            <td><div class='tooltip'>?<span class='tooltiptext'>Fixed-wing vehicle is flying the takeoff item of a mission (only applies with Fixed wing type and Mission intended mode)</span></div></td>
+                        </tr>
+                        <tr>
                             <td><label for="intended_nav_state">Intended Mode:&nbsp;</label></td>
                             <td><select id="intended_nav_state">
                                 <option value="0">Manual</option>
@@ -327,10 +332,11 @@
           var armed = document.querySelector('input[id="armed"]').checked;
           var vtol_in_transition_mode = document.querySelector('input[id="vtol_in_transition_mode"]').checked;
           var mission_finished = document.querySelector('input[id="mission_finished"]').checked;
+          var fw_mission_takeoff = document.querySelector('input[id="fw_mission_takeoff"]').checked;
           var intended_nav_state = document.querySelector('select[id="intended_nav_state"]').value;
           var vehicle_type = document.querySelector('select[id="vehicle_type"]').value;
           var defer_failsafes = document.querySelector('input[id="defer_failsafes"]').checked;
-          var updated_user_intended_mode = Module.failsafe_update(armed, vtol_in_transition_mode, mission_finished, user_override_requested, parseInt(intended_nav_state),
+          var updated_user_intended_mode = Module.failsafe_update(armed, vtol_in_transition_mode, mission_finished, fw_mission_takeoff, user_override_requested, parseInt(intended_nav_state),
               parseInt(vehicle_type), state, defer_failsafes);
           user_override_requested = false;
           var action = Module.selected_action();

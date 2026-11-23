@@ -34,8 +34,6 @@
 px4_add_module(
 	MODULE fw_autotune_attitude_control
 	MAIN fw_autotune_attitude_control
-	COMPILE_FLAGS
-		${MAX_CUSTOM_OPT_LEVEL}
 	SRCS
 		fw_autotune_attitude_control.cpp
 		fw_autotune_attitude_control.hpp

@@ -68,14 +68,14 @@ FlightModeManager::~FlightModeManager()
 
 bool FlightModeManager::init()
 {
+	_vehicle_local_position_sub.set_interval_us(20_ms);
+	_time_stamp_last_loop = hrt_absolute_time();
+
 	if (!_vehicle_local_position_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
 
-	// limit to every other vehicle_local_position update (50 Hz)
-	_vehicle_local_position_sub.set_interval_us(20_ms);
-	_time_stamp_last_loop = hrt_absolute_time();
 	return true;
 }
 
@@ -426,19 +426,6 @@ FlightTaskError FlightModeManager::switchTask(int new_task_index)
 
 	switchTask(FlightTaskIndex::None);
 	return FlightTaskError::InvalidTask;
-}
-
-const char *FlightModeManager::errorToString(const FlightTaskError error)
-{
-	switch (error) {
-	case FlightTaskError::NoError: return "No Error";
-
-	case FlightTaskError::InvalidTask: return "Invalid Task";
-
-	case FlightTaskError::ActivationFailed: return "Activation Failed";
-	}
-
-	return "This error is not mapped to a string or is unknown.";
 }
 
 int FlightModeManager::task_spawn(int argc, char *argv[])

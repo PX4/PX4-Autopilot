@@ -37,7 +37,10 @@
 
 #include <uavcan/equipment/ahrs/RawIMU.hpp>
 
+#include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/sensor_accel.h>
+#include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/vehicle_imu.h>
 
 namespace uavcannode
@@ -76,23 +79,47 @@ public:
 
 			uavcan::equipment::ahrs::RawIMU raw_imu{};
 
-			raw_imu.timestamp.usec = getNode().getUtcTime().toUSec() - (hrt_absolute_time() -
-						 vehicle_imu.timestamp_sample);
+			// timestamp is the acquisition time of the latest sample, which is also the
+			// end of the integration window: VehicleIMU stamps vehicle_imu with the
+			// sensor sample that closed the window.
+			raw_imu.timestamp.usec = bus_timestamp_usec(getNode(), vehicle_imu.timestamp_sample);
 
-			raw_imu.integration_interval = vehicle_imu.delta_angle_dt;
-			// raw_imu.integration_interval = vehicle_imu.delta_velocity_dt;
+			// integration_interval is in seconds; delta_angle_dt is in microseconds
+			raw_imu.integration_interval = vehicle_imu.delta_angle_dt * 1e-6f;
 
-			raw_imu.rate_gyro_latest[0] = (vehicle_imu.delta_angle[0] / vehicle_imu.delta_angle_dt) * 1000000;
-			raw_imu.rate_gyro_latest[1] = (vehicle_imu.delta_angle[1] / vehicle_imu.delta_angle_dt) * 1000000;
-			raw_imu.rate_gyro_latest[2] = (vehicle_imu.delta_angle[2] / vehicle_imu.delta_angle_dt) * 1000000;
+			// *_latest is the latest point sample, not the window mean: the mean lags
+			// the timestamp by half the interval, and consumers that want the mean
+			// have the integral. The sensor topics are the driver's uncalibrated
+			// output, as a point sample from any other IMU driver would be.
+			sensor_gyro_s gyro;
+
+			if (latest_sample(_sensor_gyro_sub, vehicle_imu.gyro_device_id, gyro)) {
+				raw_imu.rate_gyro_latest[0] = gyro.x;
+				raw_imu.rate_gyro_latest[1] = gyro.y;
+				raw_imu.rate_gyro_latest[2] = gyro.z;
+
+			} else {
+				raw_imu.rate_gyro_latest[0] = (vehicle_imu.delta_angle[0] / vehicle_imu.delta_angle_dt) * 1000000;
+				raw_imu.rate_gyro_latest[1] = (vehicle_imu.delta_angle[1] / vehicle_imu.delta_angle_dt) * 1000000;
+				raw_imu.rate_gyro_latest[2] = (vehicle_imu.delta_angle[2] / vehicle_imu.delta_angle_dt) * 1000000;
+			}
 
 			raw_imu.rate_gyro_integral[0] = vehicle_imu.delta_angle[0];
 			raw_imu.rate_gyro_integral[1] = vehicle_imu.delta_angle[1];
 			raw_imu.rate_gyro_integral[2] = vehicle_imu.delta_angle[2];
 
-			raw_imu.accelerometer_latest[0] = (vehicle_imu.delta_velocity[0] / vehicle_imu.delta_velocity_dt) * 1000000;
-			raw_imu.accelerometer_latest[1] = (vehicle_imu.delta_velocity[1] / vehicle_imu.delta_velocity_dt) * 1000000;
-			raw_imu.accelerometer_latest[2] = (vehicle_imu.delta_velocity[2] / vehicle_imu.delta_velocity_dt) * 1000000;
+			sensor_accel_s accel;
+
+			if (latest_sample(_sensor_accel_sub, vehicle_imu.accel_device_id, accel)) {
+				raw_imu.accelerometer_latest[0] = accel.x;
+				raw_imu.accelerometer_latest[1] = accel.y;
+				raw_imu.accelerometer_latest[2] = accel.z;
+
+			} else {
+				raw_imu.accelerometer_latest[0] = (vehicle_imu.delta_velocity[0] / vehicle_imu.delta_velocity_dt) * 1000000;
+				raw_imu.accelerometer_latest[1] = (vehicle_imu.delta_velocity[1] / vehicle_imu.delta_velocity_dt) * 1000000;
+				raw_imu.accelerometer_latest[2] = (vehicle_imu.delta_velocity[2] / vehicle_imu.delta_velocity_dt) * 1000000;
+			}
 
 			raw_imu.accelerometer_integral[0] = vehicle_imu.delta_velocity[0];
 			raw_imu.accelerometer_integral[1] = vehicle_imu.delta_velocity[1];
@@ -104,5 +131,30 @@ public:
 			uORB::SubscriptionCallbackWorkItem::registerCallback();
 		}
 	}
+
+private:
+	// Copy the newest sample of the sensor instance feeding vehicle_imu, re-selecting
+	// the instance if the one subscribed does not carry the expected device id.
+	template<typename SampleT>
+	static bool latest_sample(uORB::Subscription &sub, uint32_t device_id, SampleT &sample)
+	{
+		if (sub.copy(&sample) && sample.device_id == device_id) {
+			return true;
+		}
+
+		for (uint8_t instance = 0; instance < ORB_MULTI_MAX_INSTANCES; instance++) {
+			uORB::Subscription candidate{sub.orb_id(), instance};
+
+			if (candidate.copy(&sample) && sample.device_id == device_id) {
+				sub.ChangeInstance(instance);
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	uORB::Subscription _sensor_gyro_sub{ORB_ID(sensor_gyro)};
+	uORB::Subscription _sensor_accel_sub{ORB_ID(sensor_accel)};
 };
 } // namespace uavcannode

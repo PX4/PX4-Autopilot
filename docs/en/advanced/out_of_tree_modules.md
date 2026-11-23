@@ -69,6 +69,7 @@ The uORB topic headers are generated in `<build_dir>/uORB/topics/`, and the mess
 generated in `<build_dir>/msg/topics_sources/`.
 
 The new uORB messages can be used like any other uORB message as described [here](../middleware/uorb.md#adding-a-new-topic).
+To bridge them to ROS 2, see [uXRCE-DDS: Out-of-Tree Messages](../middleware/uxrce_dds.md#out-of-tree-messages).
 
 :::warning
 The out-of-tree uORB message definitions cannot have the same name as any of the normal uORB messages.

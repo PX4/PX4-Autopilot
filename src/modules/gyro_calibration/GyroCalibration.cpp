@@ -157,7 +157,7 @@ void GyroCalibration::Run()
 
 			} else {
 				// setting device id, reset all
-				_gyro_calibration[gyro].set_device_id(sensor_gyro.device_id);
+				_gyro_calibration[gyro].set_device_id(sensor_gyro.device_id, sensor_gyro.is_external);
 				Reset();
 				return;
 			}

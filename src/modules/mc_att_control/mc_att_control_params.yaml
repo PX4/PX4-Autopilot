@@ -95,6 +95,43 @@ parameters:
       max: 1800.0
       decimal: 1
       increment: 5
+    MC_REF_W_N:
+      description:
+        short: Attitude reference-model natural frequency
+        long: |-
+          Bandwidth of the reference model that smooths the attitude setpoint
+          and generates the rate feed-forward. Higher = less lag, more peak
+          rate demand.
+      type: float
+      default: 50.0
+      unit: rad/s
+      min: 1.0
+      max: 200.0
+      decimal: 0
+      increment: 1
+    MC_REF_FF:
+      description:
+        short: Attitude reference-model feed-forward gain
+        long: |-
+          Scale on the reference-model rate feed-forward. 0 disables it.
+      type: float
+      default: 0.0
+      min: 0.0
+      max: 1.0
+      decimal: 2
+      increment: 0.01
+    MC_REF_FF_MAX:
+      description:
+        short: Feed-forward angular-rate cap; 0 = disabled
+        long: |-
+          Per-axis cap on the rate feed-forward.
+      type: float
+      default: 100.0
+      unit: deg/s
+      min: 0.0
+      max: 1800.0
+      decimal: 0
+      increment: 5
 - group: Multicopter Position Control
   definitions:
     MC_MAN_TILT_TAU:

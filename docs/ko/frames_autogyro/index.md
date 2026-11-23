@@ -1,6 +1,6 @@
 # Autogyro Frames
 
-<LinkedBadge type="warning" text="Experimental" url="../airframes/#experimental-vehicles"/>
+[<Badge type="warning" text="Experimental"/>](../airframes/index.md#experimental-vehicles)
 
 :::warning
 Support for autogyro frames is [experimental](../airframes/index.md#experimental-vehicles).
@@ -34,5 +34,5 @@ The set of supported configurations can be seen in [Airframes Reference > Autogy
 
 This section lists vehicles that are sold fully assembled and ready to fly (RTF), with PX4 installed.
 
-- [ThunderFly TF-G2](https://docs.thunderfly.cz/instruments/TF-G2) - Unmanned Autogyro Development Kit
-- [ThunderFly TF-G250](https://docs.thunderfly.cz/instruments/TF-G250) - Atmospheric Sounding Aerological Autogyro
+- [ThunderFly TF-G2](https://docs.thunderfly.cz/instruments/TF-G2/) - Unmanned Autogyro Development Kit
+- [ThunderFly TF-G250](https://docs.thunderfly.cz/instruments/TF-G250/) - Atmospheric Sounding Aerological Autogyro

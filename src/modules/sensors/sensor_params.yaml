@@ -4,10 +4,15 @@ parameters:
   definitions:
     SENS_DPRES_OFF:
       description:
-        short: Differential pressure sensor offset
-        long: The offset (zero-reading) in Pascal
+        short: Differential pressure sensor offset of the first airspeed sensor
+        long: |-
+          The offset (zero-reading) of the sensor holding calibration slot 0.
+
+          Kept as a mirror of CAL_DPRES0_OFF so that ground stations can still detect whether
+          airspeed has been calibrated. The firmware applies CAL_DPRESx_OFF, not this value.
       category: System
       type: float
+      unit: Pa
       default: 0.0
       volatile: true
     SENS_DPRES_REV:
@@ -25,11 +30,12 @@ parameters:
         long: |-
           Pick the appropriate scaling from the datasheet.
           this number defines the (linear) conversion from voltage
-          to Pascal (pa). For the MPXV7002DP this is 1000.
+          to pressure. For the MPXV7002DP this is 1000.
 
           NOTE: If the sensor always registers zero, try switching
           the static and dynamic tubes.
       type: float
+      unit: Pa/V
       default: 0
 - group: Sensors
   definitions:
@@ -186,14 +192,5 @@ parameters:
       values:
         0: Disabled
         1: Publish primary IMU selection
-      default: 1
-      reboot_required: true
-    SENS_INT_BARO_EN:
-      description:
-        short: Enable internal barometers
-        long: For systems with an external barometer, this should be set to false
-          to make sure that the external is used.
-      category: System
-      type: boolean
       default: 1
       reboot_required: true

@@ -70,7 +70,7 @@ void IIS2MDC::print_usage()
 	PRINT_MODULE_USAGE_SUBCATEGORY("magnetometer");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
-	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x30);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x1E);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -99,18 +99,5 @@ extern "C" int iis2mdc_main(int argc, char *argv[])
 
 	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_MAG_DEVTYPE_IIS2MDC);
 
-	if (!strcmp(verb, "start")) {
-		return ThisDriver::module_start(cli, iterator);
-	}
-
-	if (!strcmp(verb, "stop")) {
-		return ThisDriver::module_stop(iterator);
-	}
-
-	if (!strcmp(verb, "status")) {
-		return ThisDriver::module_status(iterator);
-	}
-
-	ThisDriver::print_usage();
-	return -1;
+	return ThisDriver::module_main(verb, cli, iterator);
 }

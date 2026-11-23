@@ -98,7 +98,7 @@ It has a high-precision IMU and positioning module, and can reduce the number of
 
 ## Налаштування
 
-[CUAV Docs](https://doc.cuav.net/gps/c-rtk2/en/quick-start-c-rtk2.html)
+[CUAV Docs](https://doc.cuav.net/en/gnss/c-rtk-series/c-rtk2/quick-start-c-rtk2.html)
 
 ## Схема розташування виводів
 
@@ -110,4 +110,4 @@ It has a high-precision IMU and positioning module, and can reduce the number of
 
 ## Докладніше
 
-[CUAV Docs](https://doc.cuav.net/gps/c-rtk-series/en/c-rtk-9ps/)
+[CUAV Docs](https://doc.cuav.net/en/gnss/c-rtk-series/c-rtk-9ps/)

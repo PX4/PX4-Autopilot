@@ -42,6 +42,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <cmath>
+#include <cstddef>
 #include "st24.h"
 #include "common_rc.h"
 
@@ -69,6 +70,8 @@ static uint8_t _rxlen;
 
 static ReceiverFcPacket &_rxpacket = rc_decode_buf._strxpacket;
 
+static constexpr uint8_t ST24_CRC_SPAN_MAX = sizeof(ReceiverFcPacket) - offsetof(ReceiverFcPacket, length);
+
 uint8_t st24_common_crc8(uint8_t *ptr, uint8_t len)
 {
 	uint8_t i, crc ;
@@ -95,6 +98,12 @@ uint8_t st24_common_crc8(uint8_t *ptr, uint8_t len)
 	return (crc);
 }
 
+
+void st24_reset()
+{
+	_decode_state = ST24_DECODE_STATE_UNSYNCED;
+	_rxlen = 0;
+}
 
 int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *lost_count, uint16_t *channel_count, uint16_t *channels,
 		uint16_t max_chan_count)
@@ -125,7 +134,8 @@ int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *lost_count, uint16_t *chan
 	case ST24_DECODE_STATE_GOT_STX2:
 
 		/* ensure no data overflow failure or hack is possible */
-		if ((unsigned)byte <= sizeof(_rxpacket.length) + sizeof(_rxpacket.type) + sizeof(_rxpacket.st24_data)) {
+		if ((unsigned)byte >= sizeof(_rxpacket.type) + sizeof(_rxpacket.crc8)
+		    && (unsigned)byte <= sizeof(_rxpacket.type) + sizeof(_rxpacket.st24_data) + sizeof(_rxpacket.crc8)) {
 			_rxpacket.length = byte;
 			_rxlen = 0;
 			_decode_state = ST24_DECODE_STATE_GOT_LEN;
@@ -139,10 +149,16 @@ int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *lost_count, uint16_t *chan
 	case ST24_DECODE_STATE_GOT_LEN:
 		_rxpacket.type = byte;
 		_rxlen++;
-		_decode_state = ST24_DECODE_STATE_GOT_TYPE;
+		_decode_state = (_rxlen == (_rxpacket.length - 1)) ? ST24_DECODE_STATE_GOT_DATA : ST24_DECODE_STATE_GOT_TYPE;
 		break;
 
 	case ST24_DECODE_STATE_GOT_TYPE:
+
+		if (_rxlen == 0 || (unsigned)(_rxlen - 1) >= sizeof(_rxpacket.st24_data)) {
+			_decode_state = ST24_DECODE_STATE_UNSYNCED;
+			break;
+		}
+
 		_rxpacket.st24_data[_rxlen - 1] = byte;
 		_rxlen++;
 
@@ -156,7 +172,8 @@ int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *lost_count, uint16_t *chan
 		_rxpacket.crc8 = byte;
 		_rxlen++;
 
-		if (st24_common_crc8((uint8_t *) & (_rxpacket.length), _rxlen) == _rxpacket.crc8) {
+		if (_rxlen <= ST24_CRC_SPAN_MAX
+		    && st24_common_crc8((uint8_t *) & (_rxpacket.length), _rxlen) == _rxpacket.crc8) {
 
 			ret = 0;
 

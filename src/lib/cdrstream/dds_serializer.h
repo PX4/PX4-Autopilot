@@ -40,4 +40,9 @@
 extern const struct dds_cdrstream_allocator dds_allocator;
 extern const uint8_t ros2_header[4];
 
+// Max bytes the XCDR1 wire size can exceed the in-memory uORB struct (o_size):
+// CDR pads in declaration order while the struct is packed sorted-by-size.
+// Sizes outbound buffers and bounds inbound payloads before stack allocation.
+#define CDR_SAFETY_MARGIN 24
+
 #endif //DDS_CDRSTREAM_SERDER_H

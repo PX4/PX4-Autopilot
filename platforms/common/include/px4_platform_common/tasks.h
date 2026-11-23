@@ -152,6 +152,10 @@ typedef struct {
 #define SCHED_PRIORITY_PARAMS			(SCHED_PRIORITY_DEFAULT - 15)
 //      SCHED_PRIORITY_IDLE
 
+// Vectornav should run at a high priority, but not max where it can clobber other modules
+// after repeated calls to a failed init()
+#define SCHED_PRIORITY_VECTORNAV_DRIVER		(PX4_WQ_HP_BASE - 20)
+
 typedef int (*px4_main_t)(int argc, char *argv[]);
 
 __BEGIN_DECLS
@@ -166,6 +170,9 @@ __EXPORT px4_task_t px4_task_spawn_cmd(const char *name,
 
 /** Deletes a task - does not do resource cleanup **/
 __EXPORT int px4_task_delete(px4_task_t pid);
+
+/** Wait for a task to exit. Returns 0 on success. Only supported on POSIX. **/
+__EXPORT int px4_task_join(px4_task_t pid);
 
 /** Send a signal to a task **/
 __EXPORT int px4_task_kill(px4_task_t pid, int sig);

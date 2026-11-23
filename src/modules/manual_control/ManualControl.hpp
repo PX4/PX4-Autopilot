@@ -86,8 +86,11 @@ private:
 
 	void Run() override;
 	void updateParams() override;
-	void processStickArming(const manual_control_setpoint_s &input);
 	void processSwitches(hrt_abstime &now);
+	void processStickArming(const manual_control_setpoint_s &input);
+
+	// Return true if kill switch gesture is detected, false otherwise
+	bool processStickKillGesture(const manual_control_setpoint_s &input);
 
 	void evaluateModeSlot(uint8_t mode_slot);
 	void sendActionRequest(int8_t action, int8_t source, int8_t mode = 0);
@@ -132,6 +135,8 @@ private:
 	MovingDiff _yaw_diff{};
 	MovingDiff _throttle_diff{};
 
+	static constexpr uint8_t MIN_SIGN_CONSECUTIVE = 3;
+
 	perf_counter_t	_loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t	_loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
 
@@ -140,23 +145,23 @@ private:
 	bool _video_recording{false};
 
 	bool _armed{false};
-	uint8_t _system_id{1};
+	uint32_t _system_id{1};
 	bool _rotary_wing{false};
 	bool _vtol{false};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::COM_RC_IN_MODE>) _param_com_rc_in_mode,
 		(ParamFloat<px4::params::COM_RC_LOSS_T>) _param_com_rc_loss_t,
-		(ParamFloat<px4::params::COM_RC_STICK_OV>) _param_com_rc_stick_ov,
+		(ParamFloat<px4::params::MAN_OVERRIDE_SPD>) _param_man_override_spd,
 		(ParamBool<px4::params::MAN_ARM_GESTURE>) _param_man_arm_gesture,
 		(ParamFloat<px4::params::MAN_KILL_GEST_T>) _param_man_kill_gest_t,
 		(ParamBool<px4::params::COM_ARM_SWISBTN>) _param_com_arm_swisbtn,
 		(ParamInt<px4::params::RC_MAP_PAY_SW>) _param_rc_map_pay_sw,
-		(ParamInt<px4::params::COM_FLTMODE1>) _param_fltmode_1,
-		(ParamInt<px4::params::COM_FLTMODE2>) _param_fltmode_2,
-		(ParamInt<px4::params::COM_FLTMODE3>) _param_fltmode_3,
-		(ParamInt<px4::params::COM_FLTMODE4>) _param_fltmode_4,
-		(ParamInt<px4::params::COM_FLTMODE5>) _param_fltmode_5,
-		(ParamInt<px4::params::COM_FLTMODE6>) _param_fltmode_6
+		(ParamInt<px4::params::COM_FLTMODE1>) _param_com_fltmode1,
+		(ParamInt<px4::params::COM_FLTMODE2>) _param_com_fltmode2,
+		(ParamInt<px4::params::COM_FLTMODE3>) _param_com_fltmode3,
+		(ParamInt<px4::params::COM_FLTMODE4>) _param_com_fltmode4,
+		(ParamInt<px4::params::COM_FLTMODE5>) _param_com_fltmode5,
+		(ParamInt<px4::params::COM_FLTMODE6>) _param_com_fltmode6
 	)
 };

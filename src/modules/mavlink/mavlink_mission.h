@@ -100,6 +100,8 @@ public:
 	void check_active_mission(void);
 
 private:
+	friend class MavlinkMissionManagerTest;
+
 	enum MAVLINK_WPM_STATES _state {MAVLINK_WPM_STATE_IDLE};	///< Current state
 	enum MAV_MISSION_TYPE _mission_type {MAV_MISSION_TYPE_MISSION};	///< mission type of current transmission (only one at a time possible)
 	enum MISSION_STATE _mission_state {MISSION_STATE_UNKNOWN}; ///< Current mission state machine state
@@ -113,8 +115,6 @@ private:
 	uint64_t		_time_last_sent{0};
 
 	uint8_t			_reached_sent_count{0};			///< last time when the vehicle reached a waypoint
-
-	bool			_int_mode{true};			///< Use accurate int32 instead of float
 
 	unsigned		_filesystem_errcount{0};		///< File system error count
 
@@ -131,7 +131,14 @@ private:
 	static uint32_t		_crc32[3];				///< Checksum of items in (active) mission for each MAV_MISSION_TYPE
 	static int32_t		_current_seq;				///< Current item sequence in active mission
 
+	// Serializes access to the shared static state above. Multiple Mavlink
+	// instances' receiver threads concurrently detect mission changes and
+	// write these statics; without this lock they race on writes.
+	// Non-recursive: callers that already hold it use the _locked() helpers.
+	static pthread_mutex_t	_shared_state_mutex;
+
 	int32_t			_last_reached{-1};			///< Last reached waypoint in active mission (-1 means nothing reached)
+	bool			_last_finished{false};			///< Last mission finished state
 
 	dm_item_t		_transfer_dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_1};	///< Dataman storage ID for current transmission
 
@@ -141,7 +148,7 @@ private:
 
 	int32_t			_transfer_current_seq{-1};		///< Current item ID for current transmission (-1 means not initialized)
 
-	uint8_t			_transfer_partner_sysid{0};		///< Partner system ID for current transmission
+	uint32_t		_transfer_partner_sysid{0};		///< Partner system ID for current transmission
 	uint8_t			_transfer_partner_compid{0};		///< Partner component ID for current transmission
 	int32_t 		_transfer_land_start_marker{-1}; 	///< index of land start mission item in current transmission (if unavailable, index of land mission item, -1 otherwise)
 	int32_t 		_transfer_land_marker{-1}; 		///< index of land mission item in current transmission (-1 if unavailable)
@@ -151,6 +158,7 @@ private:
 	uORB::SubscriptionData<mission_result_s>	_mission_result_sub{ORB_ID(mission_result)};
 	uORB::SubscriptionData<mission_s> 	_mission_sub{ORB_ID(mission)};
 	uORB::Subscription	_vehicle_status_sub{ORB_ID(vehicle_status)};	///< vehicle status subscription
+	uint8_t			_vehicle_type_bitmask{0}; ///< cached from vehicle_status; vehicle type requires reboot to change
 
 	uORB::Publication<mission_s>	_offboard_mission_pub{ORB_ID(mission)};
 
@@ -188,6 +196,10 @@ private:
 	void update_active_mission(dm_item_t mission_dataman_id, uint16_t count, int32_t seq, uint32_t crc32,
 				   bool write_to_dataman = true);
 
+	// Updates the shared active-mission statics and returns the mission_s to publish.
+	// The caller must hold _shared_state_mutex; does not lock, write to dataman, or publish.
+	mission_s update_active_mission_locked(dm_item_t mission_dataman_id, uint16_t count, int32_t seq, uint32_t crc32);
+
 	/** store the geofence count to dataman */
 	int update_geofence_count(dm_item_t fence_dataman_id, unsigned count, uint32_t crc32);
 
@@ -203,7 +215,7 @@ private:
 	/**
 	 *  @brief Sends an waypoint ack message
 	 */
-	void send_mission_ack(uint8_t sysid, uint8_t compid, uint8_t type, uint32_t opaque_id = 0U);
+	void send_mission_ack(uint32_t sysid, uint8_t compid, uint8_t type, uint32_t opaque_id = 0U);
 
 	/**
 	 *  @brief Broadcasts the new target waypoint and directs the MAV to fly there
@@ -216,12 +228,12 @@ private:
 	 */
 	void send_mission_current(uint16_t seq);
 
-	void send_mission_count(uint8_t sysid, uint8_t compid, uint16_t count, MAV_MISSION_TYPE mission_type,
+	void send_mission_count(uint32_t sysid, uint8_t compid, uint16_t count, MAV_MISSION_TYPE mission_type,
 				uint32_t opaque_id);
 
-	void send_mission_item(uint8_t sysid, uint8_t compid, uint16_t seq);
+	void send_mission_item(uint32_t sysid, uint8_t compid, uint16_t seq);
 
-	void send_mission_request(uint8_t sysid, uint8_t compid, uint16_t seq);
+	void send_mission_request(uint32_t sysid, uint8_t compid, uint16_t seq);
 
 	/**
 	 *  @brief emits a message that a waypoint reached
@@ -239,35 +251,31 @@ private:
 	void handle_mission_request_list(const mavlink_message_t *msg);
 
 	void handle_mission_request(const mavlink_message_t *msg);
-	void handle_mission_request_int(const mavlink_message_t *msg);
-	void handle_mission_request_both(const mavlink_message_t *msg);
 
 	void handle_mission_count(const mavlink_message_t *msg);
 
+	void handle_mission_item_float(const mavlink_message_t *msg);
 	void handle_mission_item(const mavlink_message_t *msg);
-	void handle_mission_item_int(const mavlink_message_t *msg);
-	void handle_mission_item_both(const mavlink_message_t *msg);
 
 	void handle_mission_clear_all(const mavlink_message_t *msg);
 
 	/**
-	 * Parse mavlink MISSION_ITEM message to get mission_item_s.
+	 * Parse mavlink MISSION_ITEM_INT message to get mission_item_s.
 	 *
-	 * @param mavlink_mission_item pointer to mavlink_mission_item_t or mavlink_mission_item_int_t
-	 *			       depending on _int_mode
+	 * @param mavlink_mission_item pointer to the received item
 	 * @param mission_item	       pointer to mission_item to construct
 	 */
-	int parse_mavlink_mission_item(const mavlink_mission_item_t *mavlink_mission_item, struct mission_item_s *mission_item);
+	int parse_mavlink_mission_item(const mavlink_mission_item_int_t *mavlink_mission_item,
+				       struct mission_item_s *mission_item);
 
 	/**
-	 * Format mission_item_s as mavlink MISSION_ITEM(_INT) message.
+	 * Format mission_item_s as mavlink MISSION_ITEM_INT message.
 	 *
 	 * @param mission_item:		pointer to the existing mission item
-	 * @param mavlink_mission_item: pointer to mavlink_mission_item_t or mavlink_mission_item_int_t
-	 *				depending on _int_mode.
+	 * @param mavlink_mission_item: pointer to the item to fill
 	 */
 	int format_mavlink_mission_item(const struct mission_item_s *mission_item,
-					mavlink_mission_item_t *mavlink_mission_item);
+					mavlink_mission_item_int_t *mavlink_mission_item);
 
 	/**
 	 * set _state to idle (and do necessary cleanup)
@@ -287,7 +295,7 @@ private:
 	 * params[1] and params[4], you need to call with 'start_idx = 2' and 'end_idx = 5'!
 	 */
 	void copy_params_from_mavlink_to_mission_item(struct mission_item_s *mission_item,
-			const mavlink_mission_item_t *mavlink_mission_item, int8_t start_idx = 1, int8_t end_idx = 7);
+			const mavlink_mission_item_int_t *mavlink_mission_item, int8_t start_idx = 1, int8_t end_idx = 7);
 
 	/**
 	 * Update crc calculation including new mission item
@@ -295,5 +303,5 @@ private:
 	 * @param[in] prev_crc32 crc32 checksum of all previous mission item
 	 * @return updated crc32 checksum of mission items
 	 */
-	static uint32_t crc32_for_mission_item(const mavlink_mission_item_t &mission_item, uint32_t prev_crc32);
+	static uint32_t crc32_for_mission_item(const mavlink_mission_item_int_t &mission_item, uint32_t prev_crc32);
 };

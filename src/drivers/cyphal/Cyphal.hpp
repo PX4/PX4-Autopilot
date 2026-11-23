@@ -49,7 +49,7 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 
 #include <canard.h>
 
@@ -160,9 +160,9 @@ private:
 	CanardTransferID _uavcan_node_heartbeat_transfer_id{0};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::CYPHAL_ENABLE>) _param_uavcan_v1_enable,
-		(ParamInt<px4::params::CYPHAL_ID>) _param_uavcan_v1_id,
-		(ParamInt<px4::params::CYPHAL_BAUD>) _param_uavcan_v1_baud
+		(ParamInt<px4::params::CYPHAL_ENABLE>) _param_cyphal_enable,
+		(ParamInt<px4::params::CYPHAL_ID>) _param_cyphal_id,
+		(ParamInt<px4::params::CYPHAL_BAUD>) _param_cyphal_baud
 	)
 
 	UavcanParamManager _param_manager;

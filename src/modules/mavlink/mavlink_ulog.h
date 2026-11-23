@@ -77,7 +77,7 @@ public:
 	 * @param target_component ID for mavlink message
 	 * @return instance, or nullptr
 	 */
-	static MavlinkULog *try_start(int datarate, float max_rate_factor, uint8_t target_system, uint8_t target_component);
+	static MavlinkULog *try_start(int datarate, float max_rate_factor, uint32_t target_system, uint8_t target_component);
 
 	/**
 	 * stop the stream. It also deletes the singleton object, so make sure cleanup
@@ -103,7 +103,7 @@ public:
 
 private:
 
-	MavlinkULog(int datarate, float max_rate_factor, uint8_t target_system, uint8_t target_component);
+	MavlinkULog(int datarate, float max_rate_factor, uint32_t target_system, uint8_t target_component);
 
 	~MavlinkULog();
 
@@ -131,7 +131,7 @@ private:
 	volatile bool _ack_received = false; ///< set to true if a matching ack received
 	hrt_abstime _last_sent_time = 0; ///< last time we sent a message that requires an ack
 	bool _waiting_for_initial_ack = false;
-	const uint8_t _target_system;
+	const uint32_t _target_system;
 	const uint8_t _target_component;
 
 	const float _max_rate_factor; ///< maximum rate percentage at which we're allowed to push data

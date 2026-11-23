@@ -1,5 +1,10 @@
 # Modules Reference: Ins (Driver)
 
+::: info
+**This page is [auto-generated](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/px4moduledoc/markdownout.py) from the source code** using the build command: `make module_documentation`.
+Do not edit it directly; fix the module documentation in the [PX4-Autopilot](https://github.com/PX4/PX4-Autopilot) source instead.
+:::
+
 ## MicroStrain
 
 Source: [drivers/ins/microstrain](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/ins/microstrain)
@@ -9,7 +14,7 @@ Source: [drivers/ins/microstrain](https://github.com/PX4/PX4-Autopilot/tree/main
 MicroStrain by HBK Inertial Sensor Driver.
 Currently supports the following sensors:
 
--[CV7-AR](https://www.hbkworld.com/en/products/transducers/inertial-sensors/vertical-reference-units--vru-/3dm-cv7-ar) -[CV7-AHRS](https://www.hbkworld.com/en/products/transducers/inertial-sensors/attitude-and-heading-reference-systems--ahrs-/3dm-cv7-ahrs) -[CV7-INS](https://www.hbkworld.com/en/products/transducers/inertial-sensors/navigation/3dm-cv7-ins) -[CV7-GNSS/INS](https://www.hbkworld.com/en/products/transducers/inertial-sensors/navigation/3dm-cv7-gnss-ins)
+-[CV7-AR](https://www.hbkworld.com/en/products/transducers/inertial-sensors/vertical-reference/3dm-cv7-ar) -[CV7-AHRS](https://www.hbkworld.com/en/products/transducers/inertial-sensors/attitude-and-heading/3dm-cv7-ahrs) -[CV7-INS](https://www.hbkworld.com/en/products/transducers/inertial-sensors/navigation/3dm-cv7-ins) -[CV7-GNSS/INS](https://www.hbkworld.com/en/products/transducers/inertial-sensors/navigation/3dm-cv7-gnss-ins)
 
 This driver is not included in the firmware by default.
 Include the module in firmware by setting the
@@ -121,8 +126,6 @@ ilabs <command> [arguments...]
    status        Driver status
 
    stop          Stop driver
-
-   status        Print driver status
 ```
 
 ## sbgecom
@@ -187,6 +190,4 @@ vectornav <command> [arguments...]
    status        Driver status
 
    stop          Stop driver
-
-   status        Print driver status
 ```

@@ -42,6 +42,7 @@
 #include <uORB/topics/orb_test_medium.h>
 #include <uORB/topics/orb_test_large.h>
 
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/time.h>
@@ -87,11 +88,11 @@ private:
 	static int pub_test_multi2_entry(int argc, char *argv[]);
 	int pub_test_multi2_main();
 
-	volatile bool _thread_should_exit;
+	px4::atomic_bool _thread_should_exit{false};
 
-	bool pubsubtest_passed{false};
+	px4::atomic_bool pubsubtest_passed{false};
 	bool pubsubtest_print{false};
-	int pubsubtest_res = OK;
+	px4::atomic<int> pubsubtest_res{OK};
 
 	orb_advert_t _pfd[4] {}; ///< used for test_multi and test_multi_reversed
 
@@ -113,7 +114,7 @@ private:
 	static int pub_test_queue_entry(int argc, char *argv[]);
 	int pub_test_queue_main();
 	int test_queue_poll_notify();
-	volatile int _num_messages_sent = 0;
+	px4::atomic<int> _num_messages_sent{0};
 
 	int test_fail(const char *fmt, ...);
 	int test_note(const char *fmt, ...);

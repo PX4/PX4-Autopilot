@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 482" width="720" height="482" font-family="Helvetica, Arial, sans-serif">
+  <rect width="720" height="482" fill="#ffffff"/>
+
+  <!-- ================= Panel 1: centered and aligned ================= -->
+  <text x="20" y="28" font-size="14" font-weight="bold" fill="#212529">1 — Centered and aligned: the ground roll follows the runway</text>
+
+  <rect x="60" y="48" width="600" height="120" rx="6" fill="#f1f0ec" stroke="#ced4da"/>
+  <text x="72" y="68" font-size="11" fill="#868e96">Runway</text>
+
+  <line x1="80" y1="118" x2="645" y2="118" stroke="#adb5bd" stroke-width="2" stroke-dasharray="14 10"/>
+  <text x="95" y="142" font-size="11" fill="#868e96">Runway centerline</text>
+
+  <circle cx="600" cy="118" r="7" fill="#ffffff" stroke="#4c6ef5" stroke-width="2"/>
+  <line x1="600" y1="127" x2="600" y2="174" stroke="#4c6ef5" stroke-width="1" stroke-dasharray="3 3"/>
+  <text x="563" y="190" font-size="11" fill="#4c6ef5">Takeoff waypoint</text>
+
+  <!-- vehicle at the start of the takeoff, aligned with the runway -->
+  <path d="M 118 118 L 100 107 L 106 118 L 100 129 Z" fill="#fff4e6" stroke="#d9480f" stroke-width="2"/>
+  <text x="86" y="100" font-size="11" fill="#868e96">Start</text>
+
+  <!-- commanded ground roll direction -->
+  <line x1="128" y1="118" x2="575" y2="118" stroke="#d9480f" stroke-width="2.5"/>
+  <path d="M 575 112 L 589 118 L 575 124 Z" fill="#d9480f"/>
+  <text x="170" y="96" font-size="12" fill="#d9480f">Yaw setpoint = bearing to the takeoff waypoint</text>
+
+  <!-- ================= Panel 2: offset from the centerline ================= -->
+  <text x="20" y="238" font-size="14" font-weight="bold" fill="#212529">2 — Offset from the centerline: the ground roll cuts across the runway</text>
+
+  <rect x="60" y="258" width="600" height="162" rx="6" fill="#f1f0ec" stroke="#ced4da"/>
+  <text x="72" y="278" font-size="11" fill="#868e96">Runway</text>
+
+  <line x1="80" y1="310" x2="645" y2="310" stroke="#adb5bd" stroke-width="2" stroke-dasharray="14 10"/>
+  <text x="95" y="334" font-size="11" fill="#868e96">Runway centerline</text>
+
+  <circle cx="600" cy="310" r="7" fill="#ffffff" stroke="#4c6ef5" stroke-width="2"/>
+  <line x1="600" y1="319" x2="600" y2="428" stroke="#4c6ef5" stroke-width="1" stroke-dasharray="3 3"/>
+  <text x="563" y="444" font-size="11" fill="#4c6ef5">Takeoff waypoint</text>
+
+  <!-- vehicle at the start of the takeoff, offset from the centerline -->
+  <path d="M 145 372 L 124 363 L 131 373 L 126 385 Z" fill="#fff4e6" stroke="#d9480f" stroke-width="2"/>
+  <text x="72" y="394" font-size="11" fill="#868e96">Start, off the</text>
+  <text x="72" y="406" font-size="11" fill="#868e96">centerline</text>
+
+  <!-- direction parallel to the runway, for reference -->
+  <line x1="155" y1="376" x2="298" y2="376" stroke="#868e96" stroke-width="1.5" stroke-dasharray="6 5"/>
+  <path d="M 298 372.5 L 308 376 L 298 379.5 Z" fill="#868e96"/>
+  <text x="196" y="393" font-size="11" fill="#868e96">runway direction</text>
+
+  <!-- commanded ground roll direction -->
+  <line x1="155" y1="371" x2="573" y2="314.6" stroke="#d9480f" stroke-width="2.5"/>
+  <path d="M 572.9 320.8 L 586 313 L 571.3 309 Z" fill="#d9480f"/>
+  <text x="170" y="296" font-size="12" fill="#d9480f">Ground roll: straight line towards the takeoff waypoint</text>
+</svg>

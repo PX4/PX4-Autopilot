@@ -2,8 +2,7 @@
 
 This page describes how to setup and configure a multicopter racer for optimal performance (in particular for [Acro mode](../flight_modes_mc/acro.md)).
 
-请注意穿越机是经过特殊设计的动力强劲的快速飞行器。
-你应该是有一定经验的使用者，或者让有经验的使用者帮助你。
+请注意穿越机是经过特殊设计的动力强劲的快速飞行器。你应该是有一定经验的使用者，或者让有经验的使用者帮助你。
 
 :::tip
 Many things described here can also be applied to improve the flight performance of other types of multicopters.
@@ -28,13 +27,10 @@ If the board has an internal magnetometer, it should not be used (small racers a
 
 但是增加GPS也有一些好处，尤其是对于初学者。
 
-- 你可以让飞机进入定位状态，飞行器将会待在一个地方。
-  当你失去方向或者需要刹车时候，这会是有用的。
-  它通常也可以被用来安全降落。
+- 你可以让飞机进入定位状态，飞行器将会待在一个地方。当你失去方向或者需要刹车时候，这会是有用的。它通常也可以被用来安全降落。
 - [Return mode](../flight_modes_mc/return.md) can be used, either on a switch or as RC loss/low battery failsafe.
 - 当发生事故时，你将有飞机最后的位置，方便寻找飞机。
-- 飞行记录将包含飞行路线追踪，这意味着你可以进行航行回顾（3D 模式）。
-  这可以帮助你改善特技飞行技巧。
+- 飞行记录将包含飞行路线追踪，这意味着你可以进行航行回顾（3D 模式）。这可以帮助你改善特技飞行技巧。
 
 :::info
 During aggressive acrobatic maneuvers the GPS can lose its position fix for a short time.
@@ -44,22 +40,20 @@ If you switch into [position mode](../flight_modes_mc/position.md) during that t
 ## 硬件安装
 
 以下各段叙述了在构建穿越机时的几个重要问题。
-If you need complete build instructions, you can follow the [QAV-R 5" KISS ESC Racer](../frames_multicopter/qav_r_5_kiss_esc_racer.md) build log.
+If you need complete build instructions, you can follow the [QAV-R 5" KISS ESC Racer](https://docs.px4.io/v1.17/en/frames_multicopter/qav_r_5_kiss_esc_racer) build log.
 
 ### 振动设置
 
 有各种安装方法来减少振动。
-For example, the flight controller can be mounted with vibration dampening foam, or using [O-rings](../frames_multicopter/qav_r_5_kiss_esc_racer.md#mounting).
+For example, the flight controller can be mounted with vibration dampening foam, or using [O-rings](https://docs.px4.io/v1.17/en/frames_multicopter/qav_r_5_kiss_esc_racer#mounting).
 
-While there is no single best method, you will typically have fewer problems with vibrations if you use high-quality components (frame, motors, props) as for example used in the [QAV-R 5" KISS ESC Racer](../frames_multicopter/qav_r_5_kiss_esc_racer.md).
+While there is no single best method, you will typically have fewer problems with vibrations if you use high-quality components (frame, motors, props) as for example used in the [QAV-R 5" KISS ESC Racer](https://docs.px4.io/v1.17/en/frames_multicopter/qav_r_5_kiss_esc_racer).
 
 Make sure to use **balanced props**.
 
 ### 重心
 
-确保重心尽可能靠近推力中心。
-左右平衡通常不是问题，但前后平衡可能是一个问题。
-您可以移动电池直到重心配置正确后再机架上标记它，这样您就可以始终正确放置电池。
+确保重心尽可能靠近推力中心。左右平衡通常不是问题，但前后平衡可能是一个问题。您可以移动电池直到重心配置正确后再机架上标记它，这样您就可以始终正确放置电池。
 
 :::info
 The integral term can account for an imbalanced setup, and a custom mixer can do that even better.
@@ -146,6 +140,7 @@ Now do a second round of PID tuning, this time as tight as possible, and also tu
 
 :::tip
 You can use the approach described in [Basic MC PID tuning](../config_mc/pid_tuning_guide_multicopter_basic.md) to tune the frame, but you will need to use the [Advanced Multicopter PID Tuning Guide (Advanced/Detailed)](../config_mc/pid_tuning_guide_multicopter.md#thrust-curve) to understand how to tune the thrust curve.
+:::
 
 ### 飞行模式
 

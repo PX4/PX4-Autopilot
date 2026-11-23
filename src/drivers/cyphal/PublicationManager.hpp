@@ -78,7 +78,7 @@
 #include "CanardInterface.hpp"
 
 #include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss.h>
 #include <uavcan/node/port/List_0_1.h>
 
 #include "Actuators/EscClient.hpp"
@@ -166,9 +166,9 @@ private:
 		{
 			[](CanardHandle & handle, UavcanParamManager & pmgr) -> UavcanPublisher *
 			{
-				return new uORB_over_UAVCAN_Publisher<sensor_gps_s>(handle, pmgr, ORB_ID(sensor_gps));
+				return new uORB_over_UAVCAN_Publisher<sensor_gnss_s>(handle, pmgr, ORB_ID(sensor_gnss));
 			},
-			"uorb.sensor_gps",
+			"uorb.sensor_gnss",
 			0
 		},
 #endif

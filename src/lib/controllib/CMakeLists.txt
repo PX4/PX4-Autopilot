@@ -43,6 +43,7 @@ px4_add_library(controllib
 	BlockLowPass.cpp
 	BlockLowPass2.cpp
 )
+target_link_libraries(controllib PRIVATE mathlib)
 
 if(PX4_TESTING)
 	add_subdirectory(controllib_test)

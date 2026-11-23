@@ -14,8 +14,8 @@ A number of other components have been updated in the parts list too.
 
 - TBS Caipirinha Wing (no longer available - try [TBS Caipirinha 2](https://www.team-blacksheep.com/products/prod:tbs_caipi2_pnp))
 - Left and right 3D-printed motor mount (<a href="https://github.com/PX4/PX4-Autopilot/raw/main/docs/assets/airframes/vtol/caipiroshka/motor_mounts.zip" target="_blank">design files</a>)
-- CW 8045 propeller ([Eflight store](https://www.banggood.com/GEMFAN-Carbon-Nylon-8045-CWCCW-Propeller-For-Quadcopters-1-Pair-p-950874.html))
-- CCW 8045 propeller ([Eflight store](https://www.banggood.com/GEMFAN-Carbon-Nylon-8045-CWCCW-Propeller-For-Quadcopters-1-Pair-p-950874.html))
+- CW 8045 propeller ([Eflight store](https://www.banggood.com/GEMFAN-Carbon-Nylon-8045-8x4_5-8-Inch-Propeller-for-Quacopters-p-950874.html?akmClientCountry=America&))
+- CCW 8045 propeller ([Eflight store](https://www.banggood.com/GEMFAN-Carbon-Nylon-8045-8x4_5-8-Inch-Propeller-for-Quacopters-p-950874.html?akmClientCountry=America&))
 - 2 x 1800kv 120-180W电机
   - [ePower 2208](https://www.galaxus.ch/en/s5/product/epower-22081400-fuer-2-3-lipo-imax-rc-motors-8355913)
   - [Armattan 2208 1800kV Multirotor Motor](https://www.amazon.com/Armattan-2208-1800kV-Multirotor-Motor/dp/B00UWLW0C8)

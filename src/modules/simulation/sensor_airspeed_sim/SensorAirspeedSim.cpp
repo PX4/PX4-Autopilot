@@ -58,37 +58,6 @@ bool SensorAirspeedSim::init()
 	return true;
 }
 
-float SensorAirspeedSim::generate_wgn()
-{
-	// generate white Gaussian noise sample with std=1
-
-	// algorithm 1:
-	// float temp=((float)(rand()+1))/(((float)RAND_MAX+1.0f));
-	// return sqrtf(-2.0f*logf(temp))*cosf(2.0f*M_PI_F*rand()/RAND_MAX);
-	// algorithm 2: from BlockRandGauss.hpp
-	static float V1, V2, S;
-	static bool phase = true;
-	float X;
-
-	if (phase) {
-		do {
-			float U1 = (float)rand() / (float)RAND_MAX;
-			float U2 = (float)rand() / (float)RAND_MAX;
-			V1 = 2.0f * U1 - 1.0f;
-			V2 = 2.0f * U2 - 1.0f;
-			S = V1 * V1 + V2 * V2;
-		} while (S >= 1.0f || fabsf(S) < 1e-8f);
-
-		X = V1 * float(sqrtf(-2.0f * float(logf(S)) / S));
-
-	} else {
-		X = V2 * float(sqrtf(-2.0f * float(logf(S)) / S));
-	}
-
-	phase = !phase;
-	return X;
-}
-
 void SensorAirspeedSim::Run()
 {
 	if (should_exit()) {
@@ -111,121 +80,51 @@ void SensorAirspeedSim::Run()
 	if (_vehicle_local_position_sub.updated() && _vehicle_global_position_sub.updated()
 	    && _vehicle_attitude_sub.updated()) {
 
-		check_failure_injection();
+		_failure_config.update();
 
-		if (!_airspeed_disconnected) {
+		vehicle_local_position_s lpos{};
+		_vehicle_local_position_sub.copy(&lpos);
 
-			vehicle_local_position_s lpos{};
-			_vehicle_local_position_sub.copy(&lpos);
+		vehicle_global_position_s gpos{};
+		_vehicle_global_position_sub.copy(&gpos);
 
-			vehicle_global_position_s gpos{};
-			_vehicle_global_position_sub.copy(&gpos);
+		vehicle_attitude_s attitude{};
+		_vehicle_attitude_sub.copy(&attitude);
 
-			vehicle_attitude_s attitude{};
-			_vehicle_attitude_sub.copy(&attitude);
+		Vector3f local_velocity = Vector3f{lpos.vx, lpos.vy, lpos.vz};
+		Vector3f body_velocity = Dcmf{Quatf{attitude.q}} .transpose() * local_velocity;
 
-			Vector3f local_velocity = Vector3f{lpos.vx, lpos.vy, lpos.vz};
-			Vector3f body_velocity = Dcmf{Quatf{attitude.q}} .transpose() * local_velocity;
+		// device id
+		device::Device::DeviceId device_id;
+		device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+		device_id.devid_s.bus = 0;
+		device_id.devid_s.address = 0;
+		device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_SIM;
 
-			// device id
-			device::Device::DeviceId device_id;
-			device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
-			device_id.devid_s.bus = 0;
-			device_id.devid_s.address = 0;
-			device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_SIM;
+		const float alt_amsl = gpos.alt;
+		const float temperature_local = TEMPERATURE_MSL - LAPSE_RATE * alt_amsl;
+		const float density_ratio = powf(TEMPERATURE_MSL / temperature_local, 4.256f);
+		const float air_density = AIR_DENSITY_MSL / density_ratio;
 
-			const float alt_amsl = gpos.alt;
-			const float temperature_local = TEMPERATURE_MSL - LAPSE_RATE * alt_amsl;
-			const float density_ratio = powf(TEMPERATURE_MSL / temperature_local, 4.256f);
-			const float air_density = AIR_DENSITY_MSL / density_ratio;
+		// calculate differential pressure + noise in hPa
+		const float diff_pressure_noise = (float)math::generate_wgn() * 0.01f;
+		float diff_pressure = sign(body_velocity(0)) * 0.005f * air_density  * body_velocity(0) * body_velocity(
+					      0) + diff_pressure_noise;
 
-			if (!_airspeed_stuck) {
-				// calculate differential pressure + noise in hPa
-				const float diff_pressure_noise = (float)generate_wgn() * 0.01f;
-				float diff_pressure = sign(body_velocity(0)) * 0.005f * air_density  * body_velocity(0) * body_velocity(
-							      0) + diff_pressure_noise;
+		differential_pressure_s differential_pressure{};
+		// report.timestamp_sample = time;
+		differential_pressure.device_id = 1377548; // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
+		differential_pressure.differential_pressure_pa = diff_pressure * 100.0f; // hPa to Pa
+		differential_pressure.temperature = temperature_local + ABSOLUTE_ZERO_C; // K to C
+		differential_pressure.pitot_temperature = NAN;
+		differential_pressure.timestamp = hrt_absolute_time();
 
-				// simulate pitot blockage: ramp down differential pressure over time
-				const float blockage_fraction = 0.7f; // max blockage (fully ramped)
-				const float airspeed_blockage_rampup_time = 30_s;
-
-				float airspeed_blockage_scale = 1.f;
-
-				if (_airspeed_blocked_timestamp > 0) {
-					airspeed_blockage_scale = math::constrain(1.f - (hrt_absolute_time() - _airspeed_blocked_timestamp) /
-								  airspeed_blockage_rampup_time, 1.f - blockage_fraction, 1.f);
-				}
-
-				_last_differential_pressure_pa = diff_pressure * 100.0f * airspeed_blockage_scale; // hPa to Pa
-			}
-
-			differential_pressure_s differential_pressure{};
-			// report.timestamp_sample = time;
-			differential_pressure.device_id = 1377548; // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
-			differential_pressure.differential_pressure_pa = _last_differential_pressure_pa;
-			differential_pressure.temperature = temperature_local + ABSOLUTE_ZERO_C; // K to C
-			differential_pressure.timestamp = hrt_absolute_time();
+		if (failure_injection::process_airspeed(_failure_config, 0, differential_pressure, _airspeed_failure)) {
 			_differential_pressure_pub.publish(differential_pressure);
 		}
 	}
 
 	perf_end(_loop_perf);
-}
-
-void SensorAirspeedSim::check_failure_injection()
-{
-	vehicle_command_s vehicle_command;
-
-	while (_vehicle_command_sub.update(&vehicle_command)) {
-		if (vehicle_command.command != vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE) {
-			continue;
-		}
-
-		bool handled = false;
-		bool supported = false;
-
-		const int failure_unit = static_cast<int>(std::lround(vehicle_command.param1));
-		const int failure_type = static_cast<int>(std::lround(vehicle_command.param2));
-
-		if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_AIRSPEED) {
-
-			handled = true;
-
-			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
-				PX4_WARN("CMD_INJECT_FAILURE, airspeed off");
-				supported = true;
-				_airspeed_disconnected = true;
-
-			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_STUCK) {
-				PX4_WARN("CMD_INJECT_FAILURE, airspeed stuck");
-				supported = true;
-				_airspeed_stuck = true;
-
-			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_WRONG) {
-				PX4_WARN("CMD_INJECT_FAILURE, airspeed wrong (simulate pitot blockage)");
-				supported = true;
-				_airspeed_blocked_timestamp = hrt_absolute_time();
-
-			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
-				PX4_INFO("CMD_INJECT_FAILURE, airspeed ok");
-				supported = true;
-				_airspeed_disconnected = false;
-				_airspeed_stuck = false;
-				_airspeed_blocked_timestamp = 0;
-			}
-		}
-
-		if (handled) {
-			vehicle_command_ack_s ack{};
-			ack.command = vehicle_command.command;
-			ack.from_external = false;
-			ack.result = supported ?
-				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED :
-				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
-			ack.timestamp = hrt_absolute_time();
-			_command_ack_pub.publish(ack);
-		}
-	}
 }
 
 int SensorAirspeedSim::task_spawn(int argc, char *argv[])

@@ -1,0 +1,138 @@
+module_name: detect_and_avoid_f3442
+parameters:
+- group: Detect and Avoid F3442 Standard
+  definitions:
+    DAA_DFLT_VEL:
+      description:
+        short: Default vertical speed of other aircraft
+        long: Used when DAA_EN_DFLT_VEL is enabled. Specific to the F3442 DAA standard.
+      type: float
+      default: 10.0
+      unit: m/s
+      min: 0
+    DAA_EN_DFLT_VEL:
+      description:
+        short: Ignore reported vertical speed of other aircraft
+        long: Use DAA_DFLT_VEL instead of reported traffic vertical speed. Specific to the F3442 DAA standard.
+      type: boolean
+      default: 1
+    DAA_LVL_LOW_ACT:
+      description:
+        short: Low conflict action
+        long: |-
+          Action requested when the low conflict level is reached.
+          Runtime changes apply on later conflict level transitions.
+          Specific to the F3442 DAA standard.
+      type: enum
+      values:
+        0: Disabled
+        1: Warn only
+        2: Return mode
+        3: Land mode
+        4: Position Hold mode
+        5: Terminate
+      default: 1
+      min: 0
+      max: 5
+    DAA_LVL_MED_ACT:
+      description:
+        short: Medium conflict action
+        long: |-
+          Action requested when the medium conflict level is reached.
+          Runtime changes apply on later conflict level transitions.
+          Specific to the F3442 DAA standard.
+      type: enum
+      values:
+        0: Disabled
+        1: Warn only
+        2: Return mode
+        3: Land mode
+        4: Position Hold mode
+        5: Terminate
+      default: 1
+      min: 0
+      max: 5
+    DAA_LVL_HIGH_ACT:
+      description:
+        short: High conflict action
+        long: |-
+          Action requested when the high conflict level is reached.
+          Runtime changes apply on later conflict level transitions.
+          Specific to the F3442 DAA standard.
+      type: enum
+      values:
+        0: Disabled
+        1: Warn only
+        2: Return mode
+        3: Land mode
+        4: Position Hold mode
+        5: Terminate
+      default: 1
+      min: 0
+      max: 5
+    DAA_LVL_CRIT_ACT:
+      description:
+        short: Critical conflict action
+        long: |-
+          Action requested when the critical conflict level is reached.
+          Runtime changes apply on later conflict level transitions.
+          Specific to the F3442 DAA standard.
+      type: enum
+      values:
+        0: Disabled
+        1: Warn only
+        2: Return mode
+        3: Land mode
+        4: Position Hold mode
+        5: Terminate
+      default: 1
+      min: 0
+      max: 5
+    DAA_LVL_CRIT_RAD:
+      description:
+        short: Critical conflict zone cylinder radius (NMAC)
+        long: Per-aircraft half-zone. Specific to the F3442 DAA standard.
+      type: float
+      default: 77.0
+      unit: m
+      min: 10
+    DAA_LVL_CRIT_HGT:
+      description:
+        short: Critical conflict zone cylinder height (NMAC)
+        long: Per-aircraft half-zone. Specific to the F3442 DAA standard.
+      type: float
+      default: 16.0
+      unit: m
+      min: 10
+    DAA_LVL_HIGH_RAD:
+      description:
+        short: High conflict zone cylinder radius (WC)
+        long: Per-aircraft half-zone. Specific to the F3442 DAA standard.
+      type: float
+      default: 305.0
+      unit: m
+      min: 10
+    DAA_LVL_HIGH_HGT:
+      description:
+        short: High conflict zone cylinder height (WC)
+        long: Per-aircraft half-zone. Specific to the F3442 DAA standard.
+      type: float
+      default: 39.0
+      unit: m
+      min: 10
+    DAA_LVL_MED_TIME:
+      description:
+        short: Medium conflict latency time
+        long: Expands NMAC bounds by aircraft speed times this value. Specific to the F3442 DAA standard.
+      type: int32
+      default: 33
+      unit: s
+      min: 0
+    DAA_LVL_LOW_TIME:
+      description:
+        short: Low conflict latency time
+        long: Expands well-clear bounds by aircraft speed times this value. Specific to the F3442 DAA standard.
+      type: int32
+      default: 33
+      unit: s
+      min: 0

@@ -42,6 +42,7 @@ px4_add_module(
 	MAIN dshot
 	COMPILE_FLAGS
 		-DPARAM_PREFIX="${PARAM_PREFIX}"
+		-fno-use-cxa-atexit
 		# -DDEBUG_BUILD
 	SRCS
 		DShot.cpp

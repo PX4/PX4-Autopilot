@@ -403,6 +403,23 @@ void MCP230XX::print_status()
 	perf_print_counter(_register_check);
 }
 
+void MCP230XX::custom_method(const BusCLIArguments &cli)
+{
+	switch (cli.custom1) {
+	case 0: {
+			// write: only pins configured as outputs are affected
+			const uint16_t outputs = (uint16_t)~_iodir;
+			const uint16_t state = (uint16_t)cli.custom2;
+
+			if (write(state & outputs, (uint16_t)~state & outputs) != PX4_OK) {
+				PX4_ERR("write failed");
+			}
+
+			break;
+		}
+	}
+}
+
 void MCP230XX::print_usage()
 {
 	PRINT_MODULE_USAGE_NAME("mcp230xx", "driver");
@@ -414,6 +431,7 @@ void MCP230XX::print_usage()
 	PRINT_MODULE_USAGE_PARAM_INT('P', 0, 0, 65535, "Pullups", true);
 	PRINT_MODULE_USAGE_PARAM_INT('U', 0, 0, 1000, "Update Interval [ms]", true);
 	PRINT_MODULE_USAGE_PARAM_INT('M', 0, 0, 255, "First minor number", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("write", "Set the output pins to the state given with -O");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 

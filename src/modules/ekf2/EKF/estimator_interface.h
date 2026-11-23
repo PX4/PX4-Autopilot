@@ -71,9 +71,9 @@
 # include "aid_sources/range_finder/sensor_range_finder.hpp"
 #endif // CONFIG_EKF2_RANGE_FINDER
 
-#if defined(CONFIG_EKF2_GNSS)
-# include "aid_sources/gnss/gnss_checks.hpp"
-#endif // CONFIG_EKF2_GNSS
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+# include "aid_sources/optical_flow/optical_flow_source.hpp"
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #include <lib/atmosphere/atmosphere.h>
 #include <lib/lat_lon_alt/lat_lon_alt.hpp>
@@ -93,9 +93,10 @@ public:
 
 	const gnssSample &get_gps_sample_delayed() const { return _gps_sample_delayed; }
 
-	float gps_horizontal_position_drift_rate_m_s() const { return _gnss_checks.horizontal_position_drift_rate_m_s(); }
-	float gps_vertical_position_drift_rate_m_s() const { return _gnss_checks.vertical_position_drift_rate_m_s(); }
-	float gps_filtered_horizontal_velocity_m_s() const { return _gnss_checks.filtered_horizontal_velocity_m_s(); }
+# if defined(CONFIG_EKF2_GNSS_YAW)
+	void setGnssYawData(const gnssYawSample &gnss_yaw_sample);
+# endif // CONFIG_EKF2_GNSS_YAW
+
 
 #endif // CONFIG_EKF2_GNSS
 
@@ -126,15 +127,10 @@ public:
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	// if optical flow sensor gyro delta angles are not available, set gyro_rate vector fields to NaN and the EKF will use its internal gyro data instead
-	void setOpticalFlowData(const flowSample &flow);
+	void setOpticalFlowData(const flowSample &flow, uint8_t instance = 0);
 
-	// set sensor limitations reported by the optical flow sensor
-	void set_optical_flow_limits(float max_flow_rate, float min_distance, float max_distance)
-	{
-		_flow_max_rate = max_flow_rate;
-		_flow_min_distance = min_distance;
-		_flow_max_distance = max_distance;
-	}
+	OpticalFlowSource &flowSource(uint8_t instance) { return _flow_aiding.source(instance); }
+	const OpticalFlowSource &flowSource(uint8_t instance) const { return _flow_aiding.source(instance); }
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
@@ -177,6 +173,8 @@ public:
 
 		_control_status.flags.in_air = in_air;
 	}
+
+	void set_armed_status(bool armed) { _control_status.flags.armed = armed; }
 
 	void set_vehicle_at_rest(bool at_rest)
 	{
@@ -262,7 +260,8 @@ public:
 	Vector3f getVelocityDerivative() const { return _output_predictor.getVelocityDerivative(); }
 	void resetVelocityDerivativeAccumulation() { return _output_predictor.resetVelocityDerivativeAccumulation(); }
 	float getVerticalPositionDerivative() const { return _output_predictor.getVerticalPositionDerivative(); }
-	Vector3f getPosition() const;
+	Vector3f getPosition() const { return globalToLocalPosition(getLatLonAlt()); }
+	Vector3f globalToLocalPosition(const LatLonAlt &lla) const;
 	LatLonAlt getLatLonAlt() const { return _output_predictor.getLatLonAlt(); }
 	const Vector3f &getOutputTrackingError() const { return _output_predictor.getOutputTrackingError(); }
 
@@ -332,6 +331,7 @@ public:
 protected:
 
 	EstimatorInterface() = default;
+
 	virtual ~EstimatorInterface();
 
 	virtual bool init(uint64_t timestamp) = 0;
@@ -372,22 +372,18 @@ protected:
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
+	void pushRangeData(const sensor::rangeSample &range_sample);
+
 	TimestampedRingBuffer<sensor::rangeSample> *_range_buffer {nullptr};
 	uint64_t _time_last_range_buffer_push{0};
+	uint64_t _time_last_range_sensor_data{0};	///< last sample from a range finder, the optical flow fallback excluded
 
 	sensor::SensorRangeFinder _range_sensor{};
 	RangeFinderConsistencyCheck _rng_consistency_check;
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	TimestampedRingBuffer<flowSample> 	*_flow_buffer {nullptr};
-
-	flowSample _flow_sample_delayed{};
-
-	// Sensor limitations
-	float _flow_max_rate{1.0f}; ///< maximum angular flow rate that the optical flow sensor can measure (rad/s)
-	float _flow_min_distance{0.0f};	///< minimum distance that the optical flow sensor can operate at (m)
-	float _flow_max_distance{10.f};	///< maximum distance that the optical flow sensor can operate at (m)
+	OpticalFlowAiding _flow_aiding {};
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	float _air_density{atmosphere::kAirDensitySeaLevelStandardAtmos};		// air density (kg/m**3)
@@ -405,22 +401,10 @@ protected:
 
 	gnssSample _gps_sample_delayed{};
 
-	uint32_t _min_gps_health_time_us{10000000}; ///< GPS is marked as healthy only after this amount of time
-	GnssChecks _gnss_checks{_params.ekf2_gps_check,
-			   _params.ekf2_req_nsats,
-			   _params.ekf2_req_pdop,
-			   _params.ekf2_req_eph,
-			   _params.ekf2_req_epv,
-			   _params.ekf2_req_sacc,
-			   _params.ekf2_req_hdrift,
-			   _params.ekf2_req_vdrift,
-			   _params.ekf2_req_fix,
-			   _params.ekf2_vel_lim,
-			   _min_gps_health_time_us,
-			   _control_status};
+	uint32_t _gnss_yaw_reset_wait_us{10000000};
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
-	// innovation consistency check monitoring ratios
+	TimestampedRingBuffer<gnssYawSample> *_gnss_yaw_buffer {nullptr};
 	uint64_t _time_last_gnss_yaw_buffer_push{0};
 # endif // CONFIG_EKF2_GNSS_YAW
 #endif // CONFIG_EKF2_GNSS

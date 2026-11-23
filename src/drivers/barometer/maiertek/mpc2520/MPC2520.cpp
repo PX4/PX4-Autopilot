@@ -45,7 +45,7 @@ static constexpr int32_t combine(uint8_t h, uint8_t m, uint8_t l)
 MPC2520::MPC2520(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
-	_px4_baro{get_device_id()}
+	_px4_baro{get_device_id(), config.external}
 {
 	//_debug_enabled = true;
 }

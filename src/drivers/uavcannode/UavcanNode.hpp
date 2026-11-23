@@ -50,6 +50,11 @@
 #include "allocator.hpp"
 #include "UavcanNodeParamManager.hpp"
 
+#if defined(CONFIG_UAVCANNODE_COMMAND_SHELL)
+#include "UavcanNodeShell.hpp"
+#include <uavcan/protocol/AccessCommandShell.hpp>
+#endif // CONFIG_UAVCANNODE_COMMAND_SHELL
+
 #include <uavcan/helpers/heap_based_pool_allocator.hpp>
 #include <uavcan/protocol/global_time_sync_slave.hpp>
 #include <uavcan/protocol/file/BeginFirmwareUpdate.hpp>
@@ -150,6 +155,13 @@ private:
 	void fill_node_info();
 	int init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events);
 
+#if defined(CONFIG_SYSTEMCMDS_BL_UPDATE)
+	void update_bootloader();
+
+	param_t _param_sys_bl_update{param_find("SYS_BL_UPDATE")};
+	hrt_abstime _bootloader_update_time{0};
+#endif // CONFIG_SYSTEMCMDS_BL_UPDATE
+
 	px4::atomic_bool	_task_should_exit{false};	///< flag to indicate to tear down the CAN driver
 
 	enum {Booted, Interfaced, Allocation, Allocated,  Done}		_init_state{Booted};		///< State of the boot.
@@ -171,6 +183,29 @@ private:
 	uavcan::ServiceServer<BeginFirmwareUpdate, BeginFirmwareUpdateCallBack> _fw_update_listner;
 	void cb_beginfirmware_update(const uavcan::ReceivedDataStructure<UavcanNode::BeginFirmwareUpdate::Request> &req,
 				     uavcan::ServiceResponseDataStructure<UavcanNode::BeginFirmwareUpdate::Response> &rsp);
+
+#if defined(CONFIG_UAVCANNODE_COMMAND_SHELL)
+	typedef uavcan::protocol::AccessCommandShell AccessCommandShell;
+
+	typedef uavcan::MethodBinder<UavcanNode *,
+		void (UavcanNode::*)(const uavcan::ReceivedDataStructure<UavcanNode::AccessCommandShell::Request> &,
+				     uavcan::ServiceResponseDataStructure<UavcanNode::AccessCommandShell::Response> &)>
+		AccessCommandShellCallback;
+
+	uavcan::ServiceServer<AccessCommandShell, AccessCommandShellCallback> _command_shell_server;
+	void cb_access_command_shell(const uavcan::ReceivedDataStructure<UavcanNode::AccessCommandShell::Request> &req,
+				     uavcan::ServiceResponseDataStructure<UavcanNode::AccessCommandShell::Response> &rsp);
+
+	bool shell_recv(const uavcan::ReceivedDataStructure<UavcanNode::AccessCommandShell::Request> &req);
+	void shell_send(uavcan::ServiceResponseDataStructure<UavcanNode::AccessCommandShell::Response> &rsp);
+
+	uavcannode::UavcanNodeShell *_shell{nullptr};
+	uavcan::NodeID _shell_owner;
+
+	void close_shell();
+
+
+#endif // CONFIG_UAVCANNODE_COMMAND_SHELL
 
 	IntrusiveSortedList<UavcanPublisherBase *> _publisher_list;
 	IntrusiveSortedList<UavcanSubscriberBase *> _subscriber_list;

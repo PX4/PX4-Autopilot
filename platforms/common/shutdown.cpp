@@ -62,6 +62,14 @@
 
 #include <sys/boardctl.h>
 
+// Clang provides __has_feature; GCC does not. Define a fallback so the
+// AddressSanitizer check below is portable: GCC's preprocessor otherwise
+// chokes on __has_feature(...) even when guarded by defined(__has_feature),
+// because both operands of && are tokenized before the && is evaluated.
+#ifndef __has_feature
+#define __has_feature(x) 0
+#endif
+
 using namespace time_literals;
 
 static pthread_mutex_t shutdown_mutex =
@@ -283,7 +291,11 @@ static void shutdown_worker(void *arg)
 #elif defined(__PX4_POSIX)
 			// simply exit on posix if real shutdown (poweroff) not available
 			PX4_INFO_RAW("Exiting NOW.");
+#if defined(__SANITIZE_ADDRESS__) || __has_feature(address_sanitizer)
+			exit(0); // Use exit() instead of _exit() so ASAN can report errors
+#else
 			system_exit(0);
+#endif
 #else
 			PX4_PANIC("board shutdown not available");
 #endif

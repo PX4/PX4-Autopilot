@@ -134,33 +134,42 @@ parameters:
     FW_RR_FF:
       description:
         short: Roll rate feed forward
-        long: Direct feed forward from rate setpoint to control surface output.
+        long: |
+          Direct feed forward from rate setpoint to torque setpoint.
+          Positive values compensate aerodynamic damping (scaled linearly with airspeed).
+          Negative values reduce setpoint tracking aggressiveness while preserving disturbance rejection (2-DOF controller, scaled quadratically with airspeed)
       type: float
       default: 0.5
       unit: '%/rad/s'
-      min: 0.0
+      min: -10.0
       max: 10.0
       decimal: 2
       increment: 0.05
     FW_PR_FF:
       description:
         short: Pitch rate feed forward
-        long: Direct feed forward from rate setpoint to control surface output
+        long: |
+          Direct feed forward from rate setpoint to torque setpoint.
+          Positive values compensate aerodynamic damping (scaled linearly with airspeed).
+          Negative values reduce setpoint tracking aggressiveness while preserving disturbance rejection (2-DOF controller, scaled quadratically with airspeed)
       type: float
       default: 0.5
       unit: '%/rad/s'
-      min: 0.0
+      min: -10.0
       max: 10.0
       decimal: 2
       increment: 0.05
     FW_YR_FF:
       description:
         short: Yaw rate feed forward
-        long: Direct feed forward from rate setpoint to control surface output
+        long: |
+          Direct feed forward from rate setpoint to torque setpoint.
+          Positive values compensate aerodynamic damping (scaled linearly with airspeed).
+          Negative values reduce setpoint tracking aggressiveness while preserving disturbance rejection (2-DOF controller, scaled quadratically with airspeed)
       type: float
       default: 0.3
       unit: '%/rad/s'
-      min: 0.0
+      min: -10.0
       max: 10.0
       decimal: 2
       increment: 0.05
@@ -315,7 +324,7 @@ parameters:
       type: float
       default: 0.0
       min: 0.0
-      decimal: 1
+      decimal: 2
       increment: 0.01
     FW_SPOILERS_MAN:
       description:
@@ -330,6 +339,7 @@ parameters:
         4: Aux3
         5: Aux4
         6: Aux5
+        7: Aux6
       default: 0
     FW_FLAPS_MAN:
       description:
@@ -344,6 +354,7 @@ parameters:
         4: Aux4
         5: Aux5
         6: Flaps channel
+        7: Aux6
       default: 0
     FW_ACRO_YAW_EN:
       description:

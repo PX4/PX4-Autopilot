@@ -54,6 +54,7 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 
 		if (_system_flag_buffer->pop_first_older_than(imu_delayed.time_us, &system_flags_delayed)) {
 
+			set_armed_status(system_flags_delayed.armed);
 			set_vehicle_at_rest(system_flags_delayed.at_rest);
 			set_in_air_status(system_flags_delayed.in_air);
 
@@ -109,7 +110,7 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	controlOpticalFlowFusion(imu_delayed);
+	_flow_aiding.update(*this, imu_delayed);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_GNSS)
@@ -173,5 +174,7 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 
 	const bool yaw_aiding = _control_status.flags.mag_hdg || _control_status.flags.mag_3D
 				|| _control_status.flags.ev_yaw || _control_status.flags.gnss_yaw;
-	_control_status.flags.heading_observable = isNorthEastAidingActive() || yaw_aiding;
+	// North/East aiding only constrains the heading when the vehicle accelerates horizontally, never at rest
+	const bool ne_aiding_heading = isNorthEastAidingActive() && !_control_status.flags.vehicle_at_rest;
+	_control_status.flags.heading_observable = ne_aiding_heading || yaw_aiding;
 }

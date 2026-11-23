@@ -41,7 +41,7 @@ namespace Bosch::BMI088::Accelerometer
 {
 BMI088_Accelerometer::BMI088_Accelerometer(const I2CSPIDriverConfig &config) :
 	BMI088(config),
-	_px4_accel(get_device_id(), config.rotation)
+	_px4_accel(get_device_id(), config.rotation, config.external)
 {
 	if (config.drdy_gpio != 0) {
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME"_accel: DRDY missed");
@@ -643,7 +643,7 @@ bool BMI088_Accelerometer::SelfTest()
 	usleep(100000);
 	PX4_WARN("Sensor ErrReg: 0x%02x", CheckSensorErrReg());
 	Configure();
-	usleep(1000000);
+	px4_usleep(1000000);
 	PX4_WARN("Sensor ErrReg: 0x%02x", CheckSensorErrReg());
 	const uint8_t ACC_CHIP_ID = RegisterRead(Register::ACC_CHIP_ID);
 	PX4_WARN("ACC_CHIP_ID: 0x%02x", ACC_CHIP_ID);
@@ -655,7 +655,7 @@ bool BMI088_Accelerometer::SelfTest()
 		PX4_WARN("ACC_PWR_CONF(0): 0x%02x", RegisterRead(Register::ACC_PWR_CONF));
 	}
 
-	usleep(2000000);
+	px4_usleep(2000000);
 	PX4_WARN("Sensor ErrReg: 0x%02x", CheckSensorErrReg());
 
 	if (RegisterWrite(Register::ACC_RANGE, 0x03) == PX4_OK) {
@@ -800,7 +800,7 @@ float *BMI088_Accelerometer::ReadAccelDataFIFO()
 	buffer[0] = 0x10 | 0x40;
 	RegisterWrite(Register::FIFO_CONFIG_1, buffer[0]);
 	PX4_WARN("FIFO_CONFIG_1(0x%02x): 0x%02x", buffer[0], RegisterRead(Register::FIFO_CONFIG_1));
-	usleep(1000000);
+	px4_usleep(1000000);
 
 	int fifo_fill_level = 0;
 

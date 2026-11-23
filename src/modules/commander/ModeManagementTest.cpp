@@ -99,3 +99,25 @@ TEST(ModeManagementTest, Hashes)
 
 	EXPECT_FALSE(modes.hasFreeExternalModes());
 }
+
+TEST(ModeManagementTest, VtolFixedwingSetpointRegistration)
+{
+	using mode_util::SetpointType;
+	using mode_util::SetpointTypeResult;
+
+	// A plain (non-VTOL) rotary wing cannot register the fixed-wing setpoint type.
+	EXPECT_EQ(mode_util::isSetpointTypeValid(SetpointType::FixedwingLateralLongitudinal,
+			vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, false),
+		  SetpointTypeResult::Unsupported);
+
+	// A VTOL currently in multicopter form must still be able to register it, so it
+	// can command its own first transition to fixed-wing from an external mode.
+	EXPECT_EQ(mode_util::isSetpointTypeValid(SetpointType::FixedwingLateralLongitudinal,
+			vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true),
+		  SetpointTypeResult::Success);
+
+	// Already fixed-wing: valid regardless of is_vtol.
+	EXPECT_EQ(mode_util::isSetpointTypeValid(SetpointType::FixedwingLateralLongitudinal,
+			vehicle_status_s::VEHICLE_TYPE_FIXED_WING, false),
+		  SetpointTypeResult::Success);
+}

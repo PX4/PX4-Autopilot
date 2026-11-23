@@ -56,7 +56,9 @@
 #include <uORB/topics/sensors_status.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/estimator_status_flags.h>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_gnss.h>
+#include <uORB/topics/vehicle_status.h>
 
 using namespace time_literals;
 
@@ -74,14 +76,20 @@ public:
 
 	void PrintStatus();
 
+protected:
+	void Run() override;
+
+	// read access for the functional test, unused by the module itself
+	int8_t selectedSensorIndex() const { return _selected_sensor_sub_index; }
+	uint8_t sensorPriority(int index) const { return _priority[index]; }
+	bool callbackRegistered(int index) const { return _sensor_sub[index].registered(); }
+
 private:
 	enum TemperatureSource {
 		DEFAULT_TEMP = 0,
 		EXTERNAL_BARO = 1,
 		AIRSPEED = 2,
 	};
-
-	void Run() override;
 
 	float AirTemperatureUpdate(const float temperature_baro, TemperatureSource &source, const hrt_abstime time_now_us);
 	void CheckFailover(const hrt_abstime &time_now_us);
@@ -109,7 +117,9 @@ private:
 		{this, ORB_ID(sensor_baro), 3},
 	};
 
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _vehicle_gnss_sub{ORB_ID(vehicle_gnss)};
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	calibration::Barometer _calibration[MAX_SENSOR_COUNT];
 
@@ -137,6 +147,8 @@ private:
 	int8_t _selected_sensor_sub_index{-1};
 
 	bool _last_status_baro_fault{false};
+	bool _armed{false};
+	bool _external_altitude_set{false};
 
 	bool _relative_calibration_done{false};
 	bool _baro_gnss_calibration_done{false};
@@ -148,7 +160,7 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SENS_BARO_QNH>) _param_sens_baro_qnh,
 		(ParamFloat<px4::params::SENS_BARO_RATE>) _param_sens_baro_rate,
-		(ParamBool<px4::params::SENS_BAR_AUTOCAL>) _param_sens_baro_autocal
+		(ParamBool<px4::params::SENS_BAR_AUTOCAL>) _param_sens_bar_autocal
 	)
 };
 }; // namespace sensors

@@ -76,9 +76,8 @@ uORB::DeviceNode::open(cdev::file_t *filp)
 	/* is this a publisher? */
 	if (filp->f_oflags == PX4_F_WRONLY) {
 
-		lock();
+		// _advertised is atomic, so no lock is needed around this single store
 		mark_as_advertised();
-		unlock();
 
 		/* now complete the open */
 		return CDev::open(filp);
@@ -155,16 +154,21 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 		if (!up_interrupt_context()) {
 #endif /* __PX4_NUTTX */
 
+			// Allocate the buffer under the node lock. It cannot be allocated from
+			// ATOMIC_ENTER (an interrupts-off critical section on NuttX), so the lock
+			// is what serializes the lazy allocation against concurrent readers.
 			lock();
 
 			/* re-check size */
 			if (nullptr == _data) {
 				const size_t data_size = _meta->o_size * _meta->o_queue;
-				_data = (uint8_t *) px4_cache_aligned_alloc(data_size);
+				uint8_t *data = (uint8_t *) px4_cache_aligned_alloc(data_size);
 
-				if (_data) {
-					memset(_data, 0, data_size);
+				if (data) {
+					memset(data, 0, data_size);
 				}
+
+				_data = data;
 			}
 
 			unlock();
@@ -190,20 +194,26 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 	/* wrap-around happens after ~49 days, assuming a publisher rate of 1 kHz */
 	unsigned generation = _generation.fetch_add(1);
 
-	memcpy(_data + (_meta->o_size * (generation % _meta->o_queue)), buffer, _meta->o_size);
+	// depth-one topics always use slot 0: skip the division
+	const size_t offset = (_meta->o_queue > 1) ? (_meta->o_size * (generation % _meta->o_queue)) : 0;
+	memcpy(_data + offset, buffer, _meta->o_size);
 
 	// callbacks
 	for (auto item : _callbacks) {
-		item->call();
+		item->call(generation + 1);
 	}
 
 	/* Mark at least one data has been published */
 	_data_valid = true;
 
+	// Snapshot under the lock: poll() setup registers and self-checks under it too.
+	const bool notify_pollers = has_poll_waiters();
+
 	ATOMIC_LEAVE;
 
-	/* notify any poll waiters */
-	poll_notify(POLLIN);
+	if (notify_pollers) {
+		poll_notify(POLLIN);
+	}
 
 	return _meta->o_size;
 }
@@ -232,7 +242,7 @@ uORB::DeviceNode::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 		return PX4_OK;
 
 	case ORBIOCISADVERTISED:
-		*(unsigned long *)arg = _advertised;
+		*(unsigned long *)arg = _advertised.load();
 
 		return PX4_OK;
 
@@ -246,7 +256,6 @@ ssize_t
 uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const void *data)
 {
 	uORB::DeviceNode *devnode = (uORB::DeviceNode *)handle;
-	int ret;
 
 	/* check if the device handle is initialized and data is valid */
 	if ((devnode == nullptr) || (meta == nullptr) || (data == nullptr)) {
@@ -260,15 +269,20 @@ uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const v
 		return PX4_ERROR;
 	}
 
+	return devnode->publish_data(data);
+}
+
+int uORB::DeviceNode::publish_data(const void *data)
+{
 	/* call the devnode write method with no file pointer */
-	ret = devnode->write(nullptr, (const char *)data, meta->o_size);
+	const ssize_t ret = write(nullptr, (const char *)data, _meta->o_size);
 
 	if (ret < 0) {
 		errno = -ret;
 		return PX4_ERROR;
 	}
 
-	if (ret != (int)meta->o_size) {
+	if (ret != (ssize_t)_meta->o_size) {
 		errno = EIO;
 		return PX4_ERROR;
 	}
@@ -280,8 +294,8 @@ uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const v
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
 	if (ch != nullptr) {
-		if (ch->send_message(meta->o_name, meta->o_size, (uint8_t *)data) != 0) {
-			PX4_ERR("Error Sending [%s] topic data over comm_channel", meta->o_name);
+		if (ch->send_message(_meta->o_name, _meta->o_size, (uint8_t *)data) != 0) {
+			PX4_ERR("Error Sending [%s] topic data over comm_channel", _meta->o_name);
 			return PX4_ERROR;
 		}
 	}
@@ -300,17 +314,11 @@ int uORB::DeviceNode::unadvertise(orb_advert_t handle)
 	uORB::DeviceNode *devnode = (uORB::DeviceNode *)handle;
 
 	/*
-	 * We are cheating a bit here. First, with the current implementation, we can only
-	 * have multiple publishers for instance 0. In this case the caller will have
-	 * instance=nullptr and _published has no effect at all. Thus no unadvertise is
-	 * necessary.
-	 * In case of multiple instances, we have at most 1 publisher per instance and
-	 * we can signal an instance as 'free' by setting _published to false.
-	 * We never really free the DeviceNode, for this we would need reference counting
-	 * of subscribers and publishers. But we also do not have a leak since future
-	 * publishers reuse the same DeviceNode object.
+	 * Frees a multi-instance node for the next advertiser and hides it from all subscribers.
+	 * Publishers of a single-instance topic share this flag, so unadvertising hides all of them.
+	 * The DeviceNode is never freed; later publishers reuse it.
 	 */
-	devnode->_advertised = false;
+	devnode->_advertised.store(false);
 
 	return PX4_OK;
 }
@@ -347,7 +355,7 @@ uORB::DeviceNode::poll_notify_one(px4_pollfd_struct_t *fds, px4_pollevent_t even
 bool
 uORB::DeviceNode::print_statistics(int max_topic_length)
 {
-	if (!_advertised) {
+	if (!_advertised.load()) {
 		return false;
 	}
 
@@ -406,17 +414,42 @@ void uORB::DeviceNode::remove_internal_subscriber()
 #ifdef CONFIG_ORB_COMMUNICATOR
 int16_t uORB::DeviceNode::process_add_subscription()
 {
-	// if there is already data in the node, send this out to
-	// the remote entity.
-	// send the data to the remote entity.
+	// If there is already data in the node, send this out to the remote entity to
+	// initialize its end.
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
-	if (_data != nullptr && ch != nullptr) { // _data will not be null if there is a publisher.
-		// Only send the most recent data to initialize the remote end.
-		if (_data_valid) {
-			ch->send_message(_meta->o_name, _meta->o_size, _data + (_meta->o_size * ((_generation.load() - 1) % _meta->o_queue)));
-		}
+	if (ch == nullptr) {
+		return PX4_OK;
 	}
+
+	// Snapshot the most recent sample under the node lock, then send it outside the
+	// critical section. Reading _data / _data_valid and the buffer contents while
+	// sending would race with a concurrent write(), which memcpy's into _data and
+	// sets _data_valid under ATOMIC_ENTER. send_message() must also not run under
+	// ATOMIC_ENTER: it can be slow and may call back into DeviceNode. This mirrors the
+	// snapshot-under-lock done in copy().
+	uint8_t *buffer = (uint8_t *)px4_cache_aligned_alloc(_meta->o_size);
+
+	if (buffer == nullptr) {
+		return PX4_ERROR;
+	}
+
+	bool have_data = false;
+
+	ATOMIC_ENTER;
+
+	if (_data != nullptr && _data_valid) { // _data will not be null if there is a publisher.
+		memcpy(buffer, _data + (_meta->o_size * ((_generation.load() - 1) % _meta->o_queue)), _meta->o_size);
+		have_data = true;
+	}
+
+	ATOMIC_LEAVE;
+
+	if (have_data) {
+		ch->send_message(_meta->o_name, _meta->o_size, buffer);
+	}
+
+	free(buffer);
 
 	return PX4_OK;
 }

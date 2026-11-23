@@ -92,6 +92,7 @@ enum class QuadchuteReason {
 	TransitionAltitudeLoss,
 	MaximumPitchExceeded,
 	MaximumRollExceeded,
+	PusherFailure,
 };
 
 class VtolAttitudeControl;
@@ -112,9 +113,10 @@ public:
 	bool init();
 
 	/**
-	 * Update vtol state.
+	 * Update vtol state. Runs the mode state machine common to all VTOL types,
+	 * type-specific behaviour is injected through the virtual hooks below.
 	 */
-	virtual void update_vtol_state() = 0;
+	void update_vtol_state();
 
 	/**
 	 * Update transition state.
@@ -182,14 +184,14 @@ public:
 	 *
 	 * @return     true if exeeded
 	 */
-	bool isPitchExceeded();
+	virtual bool isPitchExceeded();
 
 	/**
 	 *  @brief Indicates if the absolute value of the vehicle roll angle exceeds the threshold defined by VT_FW_QC_R
 	 *
 	 * @return     true if exeeded
 	 */
-	bool isRollExceeded();
+	virtual bool isRollExceeded();
 
 	/**
 	 *  @brief Indicates if the front transition duration has exceeded the timeout definded by VT_TRANS_TIMEOUT
@@ -219,21 +221,22 @@ public:
 	float pusher_assist();
 
 	virtual void blendThrottleAfterFrontTransition(float scale) {};
+	virtual void blendPitchAfterFrontTransition(float scale) {};
 
 	mode get_mode() {return _common_vtol_mode;}
 
 	/**
-	 * @return Minimum front transition time scaled for air density (if available) [s]
+	 * @return Minimum front transition time scaled for air density (if available) and vehicle weight [s]
 	*/
 	float getMinimumFrontTransitionTime() const;
 
 	/**
-	 * @return Front transition timeout scaled for air density (if available) [s]
+	 * @return Front transition timeout scaled for air density (if available) and vehicle weight [s]
 	*/
 	float getFrontTransitionTimeout() const;
 
 	/**
-	* @return Minimum open-loop front transition time scaled for air density (if available) [s]
+	* @return Minimum open-loop front transition time scaled for air density (if available) and vehicle weight [s]
 	*/
 	float getOpenLoopFrontTransitionTime() const;
 
@@ -248,6 +251,12 @@ public:
 	 * @return The calibrated transition airspeed [m/s]
 	 */
 	float getTransitionAirspeed() const;
+
+	/**
+	 *
+	 * @return The target front transition throttle scaled for vehicle weight
+	 */
+	float getFrontTransitionThrottle() const;
 
 	virtual void parameters_update() = 0;
 
@@ -275,7 +284,6 @@ protected:
 	struct vehicle_attitude_setpoint_s *_mc_virtual_att_sp;	// virtual mc attitude setpoint
 	struct vehicle_attitude_setpoint_s *_fw_virtual_att_sp;	// virtual fw attitude setpoint
 	struct vehicle_control_mode_s		*_v_control_mode;	//vehicle control mode
-	struct vtol_vehicle_status_s 		*_vtol_vehicle_status;
 	struct vehicle_torque_setpoint_s 		*_vehicle_torque_setpoint_virtual_mc;
 	struct vehicle_torque_setpoint_s 		*_vehicle_torque_setpoint_virtual_fw;
 	struct vehicle_thrust_setpoint_s 		*_vehicle_thrust_setpoint_virtual_mc;
@@ -315,8 +323,61 @@ protected:
 
 	bool _quadchute_command_treated{false};
 
-	bool isFrontTransitionCompleted();
-	virtual bool isFrontTransitionCompletedBase();
+	/**
+	 * @return true if the front transition is complete and the vehicle can switch to fixed-wing mode
+	 */
+	virtual bool isFrontTransitionCompleted() { return isFrontTransitionSpeedOrTimeReached() || can_transition_on_ground(); }
+
+	/**
+	 * @return true if the transition airspeed is reached after the minimum front transition time, or, without
+	 * airspeed, the open-loop front transition time has elapsed
+	 */
+	bool isFrontTransitionSpeedOrTimeReached() const;
+
+	/**
+	 * @return true if the back transition is complete and the vehicle can switch to hover mode
+	 */
+	virtual bool isBackTransitionCompleted() = 0;
+
+	/**
+	 * @return true if the vehicle is below the back transition exit speed (MPC_XY_CRUISE) or the back transition
+	 * has lasted longer than VT_B_TRANS_DUR
+	 */
+	bool isBackTransitionSpeedOrTimeReached() const;
+
+	/**
+	 * Called when fixed-wing is requested while a back transition is in progress.
+	 *
+	 * @return true to switch to fixed-wing mode immediately, false to restart the front transition
+	 */
+	virtual bool canSwitchToFixedWingDuringBackTransition() { return false; }
+
+	/**
+	 * Called when a front or back transition starts, after the transition timer states have been reset.
+	 */
+	virtual void onTransitionStart() {}
+
+	/**
+	 * Called on the switch from front transition to fixed-wing mode.
+	 */
+	virtual void onFrontTransitionCompleted() {}
+
+	/**
+	 * Called when a front transition is aborted into hover because fixed-wing is no longer requested.
+	 */
+	virtual void onFrontTransitionAborted() {}
+
+	/**
+	 * Called on every update while a quad-chute keeps the vehicle in hover, before the mode is set to hover.
+	 * The mode is not hover yet only on the update that switches.
+	 */
+	virtual void onQuadchute() {}
+
+	/**
+	 * Called at the start of every update, in every mode, before the quad-chute state is read.
+	 * A type requests a quad-chute here for a failure that only it can detect.
+	 */
+	virtual void checkTypeSpecificQuadchute() {}
 
 	float _local_position_z_start_of_transition{0.f}; // altitude at start of transition
 
@@ -329,7 +390,7 @@ protected:
 					(ParamInt<px4::params::VT_FW_QC_P>) _param_vt_fw_qc_p,
 					(ParamInt<px4::params::VT_FW_QC_R>) _param_vt_fw_qc_r,
 					(ParamFloat<px4::params::VT_QC_T_ALT_LOSS>) _param_vt_qc_t_alt_loss,
-					(ParamInt<px4::params::VT_FW_QC_HMAX>) _param_quadchute_max_height,
+					(ParamInt<px4::params::VT_FW_QC_HMAX>) _param_vt_fw_qc_hmax,
 					(ParamFloat<px4::params::VT_F_TR_OL_TM>) _param_vt_f_tr_ol_tm,
 					(ParamFloat<px4::params::VT_TRANS_MIN_TM>) _param_vt_trans_min_tm,
 
@@ -366,9 +427,14 @@ private:
 	void stopBlendingThrottleAfterFrontTransition() { _throttle_blend_start_ts = 0; }
 
 	/**
-	 * @return Transition time scale factor for density.
+	 * @return Transition time scale factor for density and vehicle weight.
 	*/
 	float getFrontTransitionTimeFactor() const;
+
+	/**
+	 * @return Gross weight over base weight ratio, constrained to sane limits.
+	*/
+	float getWeightRatio() const;
 
 };
 

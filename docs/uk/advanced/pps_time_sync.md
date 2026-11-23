@@ -65,7 +65,7 @@ When set to `0` (default), the driver uses the first available GPS instance.
 You can find the device ID by running:
 
 ```sh
-listener sensor_gps
+listener sensor_gnss
 ```
 
 ### Підключення
@@ -142,5 +142,5 @@ See also:
 The PPS signal provides much higher temporal precision than the transmitted time data, which has latency and jitter from serial communication.
 
 :::warning
-If the PPS driver does not send any data for 5 seconds (despite having `PPS_CAP_ENABLE` set to 1), the corresponding `SENS_GPS*_DELAY` parameter will be used instead for estimating the latency.
+If the PPS driver does not send any data for 5 seconds (despite having `PPS_CAP_ENABLE` set to 1), the corresponding `SENS_GNSS*_DELAY` parameter will be used instead for estimating the latency.
 :::

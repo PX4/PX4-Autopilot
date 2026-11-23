@@ -41,12 +41,17 @@
 #include <uORB/SubscriptionInterval.hpp>
 #include <containers/List.hpp>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <drivers/drv_hrt.h>
 
 namespace uORB
 {
 
 // Subscription wrapper class with callbacks on new publications
-class SubscriptionCallback : public SubscriptionInterval, public ListNode<SubscriptionCallback *>
+//
+// Uses SubscriptionIntervalAtomic because call() runs on the publishing thread
+// (synchronously from orb_publish) while the subscriber thread updates the
+// interval / last-update fields.
+class SubscriptionCallback : public SubscriptionIntervalAtomic, public ListNode<SubscriptionCallback *>
 {
 public:
 	/**
@@ -57,10 +62,12 @@ public:
 	 * @param instance The instance for multi sub.
 	 */
 	SubscriptionCallback(const orb_metadata *meta, uint32_t interval_us = 0, uint8_t instance = 0) :
-		SubscriptionInterval(meta, interval_us, instance)
+		SubscriptionIntervalAtomic(meta, interval_us, instance)
 	{
 	}
 
+	// A publisher calls call() until the callback is unregistered, and by the time this runs the subclass
+	// that implements it is gone. Subclasses must unregister in their own destructor.
 	virtual ~SubscriptionCallback()
 	{
 		unregisterCallback();
@@ -101,14 +108,19 @@ public:
 		return ret;
 	}
 
-	virtual void call() = 0;
+	virtual void call(unsigned generation) = 0;
 
 	bool registered() const { return _registered; }
 
 protected:
 
 	bool _registered{false};
-
+	// Node generation at our last ScheduleNow(), used by the count gate. Only ever
+	// touched from call() (which runs under the publishing node's lock, so it is
+	// serialized) - do NOT write it from the subscriber thread (e.g. in
+	// registerCallback()), or it becomes a cross-thread race. It self-initializes:
+	// the first call() sees a large delta and schedules once, then tracks normally.
+	unsigned _last_scheduled_generation{0};
 };
 
 // Subscription with callback that schedules a WorkItem
@@ -128,16 +140,23 @@ public:
 	{
 	}
 
-	virtual ~SubscriptionCallbackWorkItem() = default;
-
-	void call() override
+	virtual ~SubscriptionCallbackWorkItem()
 	{
-		// schedule immediately if updated (queue depth or subscription interval)
-		if ((_required_updates == 0)
-		    || (Manager::updates_available(_subscription.get_node(), _subscription.get_last_generation()) >= _required_updates)) {
-			if (updated()) {
-				_work_item->ScheduleNow();
-			}
+		unregisterCallback();
+	}
+
+	void call(unsigned generation) override
+	{
+		// 'generation' is the publishing node's generation, handed in by the
+		// publisher - so unlike before we never read the subscriber's own cursor
+		// (_last_generation, mutated on the subscriber's thread) from here.
+		// Schedule once enough new samples have accrued since our last schedule
+		// (count gate), respecting the optional interval (interval gate).
+		const uint8_t req = _required_updates.load();
+
+		if (((generation - _last_scheduled_generation) >= req) && interval_elapsed()) {
+			_last_scheduled_generation = generation;
+			_work_item->ScheduleNow();
 		}
 	}
 
@@ -149,13 +168,13 @@ public:
 	void set_required_updates(uint8_t required_updates)
 	{
 		// TODO: constrain to queue depth?
-		_required_updates = required_updates;
+		_required_updates.store(required_updates);
 	}
 
 private:
 	px4::WorkItem *_work_item;
 
-	uint8_t _required_updates{0};
+	px4::atomic<uint8_t> _required_updates{0};
 };
 
 } // namespace uORB

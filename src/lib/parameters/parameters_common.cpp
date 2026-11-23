@@ -157,3 +157,10 @@ param_get_system_default_value(param_t param, void *default_val)
 
 	return ret;
 }
+
+int
+param_get_mark_used(param_t param, void *val)
+{
+	param_set_used(param);
+	return param_get(param, val);
+}

@@ -200,12 +200,20 @@ struct gnssSample {
 	uint8_t     fix_type{};   ///< 0-1: no fix, 2: 2D fix, 3: 3D fix, 4: RTCM code differential, 5: Real-Time
 	uint8_t     nsats{};      ///< number of satellites used
 	float       pdop{};       ///< position dilution of precision
-	float       yaw{};        ///< yaw angle. NaN if not set (used for dual antenna GPS), (rad, [-PI, PI])
-	float       yaw_acc{};    ///< 1-std yaw error (rad)
-	float       yaw_offset{}; ///< Heading/Yaw offset for dual antenna GPS - refer to description for GPS_YAW_OFFSET
 	bool        spoofed{};    ///< true if GNSS data is spoofed
 	bool        jammed{};     ///< true if GNSS data is jammed
 	Vector3f    pos_body{};   ///< position of GPS antenna in body frame (m)
+	bool        usable{};     ///< the sample passes the GNSS checks of the sensors module
+	bool        sacc_passes_strict{}; ///< the speed accuracy passes the strict check (GNSS_REQ_SACC), also in flight, or that check is disabled
+	uint8_t     selection_count{}; ///< increments when the sensors module selects another receiver
+};
+
+struct gnssYawSample {
+	uint64_t    time_us{};    ///< timestamp of the measurement (uSec)
+	float       yaw{};        ///< yaw angle from dual antenna GNSS (rad, [-PI, PI])
+	float       yaw_acc{};    ///< 1-std yaw error (rad); NAN if not provided
+	float       yaw_offset{}; ///< yaw of the antenna baseline in the body frame (rad)
+	bool        usable{};     ///< the sensors module found no spoofing or jamming report of the heading receiver that its checks reject
 };
 
 struct magSample {
@@ -231,6 +239,7 @@ struct flowSample {
 	Vector2f    flow_rate{}; ///< measured angular rate of the image about the X and Y body axes (rad/s), RH rotation is positive
 	Vector3f    gyro_rate{}; ///< measured angular rate of the inertial frame about the body axes obtained from rate gyro measurements (rad/s), RH rotation is positive
 	uint8_t     quality{};   ///< quality indicator between 0 and 255
+	uint32_t    device_id{}; ///< unique device ID for the sensor that does not change between power cycles
 };
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
@@ -276,6 +285,7 @@ struct rangingBeaconSample {
 
 struct systemFlagUpdate {
 	uint64_t time_us{};
+	bool armed{false};
 	bool at_rest{false};
 	bool in_air{true};
 	bool is_fixed_wing{false};
@@ -286,10 +296,11 @@ struct systemFlagUpdate {
 
 // Runtime fusion control. Populated by EKF2 module, read by EKF core.
 static constexpr uint8_t MAX_AGP_INSTANCES = 4;
+static constexpr uint8_t MAX_OF_INSTANCES = 2;
 
 struct FusionSensor {
 	bool enabled{false};   // runtime toggleable via MAVLink
-	bool available{false}; // CTRL-param != disabled-value (functions as factory-setting)
+	bool available{false}; // CTRL-param != disabled-value (functions as factory-setting); AGP: bit 0 of its CTRL param
 	bool intended() const { return enabled && available; }
 };
 
@@ -372,17 +383,6 @@ struct parameters {
 	float ekf2_gps_p_gate{5.0f};            ///< GPS horizontal position innovation consistency gate size (STD)
 	float ekf2_gps_v_gate{5.0f};            ///< GPS velocity innovation consistency gate size (STD)
 
-	// these parameters control the strictness of GPS quality checks used to determine if the GPS is
-	// good enough to set a local origin and commence aiding
-	int32_t ekf2_gps_check{1045};             ///< bitmask used to control which GPS quality checks are used
-	float ekf2_req_eph{5.0f};               ///< maximum acceptable horizontal position error (m)
-	float ekf2_req_epv{8.0f};               ///< maximum acceptable vertical position error (m)
-	float ekf2_req_sacc{1.0f};              ///< maximum acceptable speed error (m/s)
-	int32_t ekf2_req_nsats{6};              ///< minimum acceptable satellite count
-	float ekf2_req_pdop{2.0f};              ///< maximum acceptable position dilution of precision
-	float ekf2_req_hdrift{0.3f};            ///< maximum acceptable horizontal drift speed (m/s)
-	float ekf2_req_vdrift{0.5f};            ///< maximum acceptable vertical drift speed (m/s)
-	int32_t ekf2_req_fix{3};                ///< minimum acceptable GPS fix type
 
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	// GNSS heading fusion
@@ -393,6 +393,7 @@ struct parameters {
 	float ekf2_gsf_tas{15.0f};              ///< default airspeed value assumed during fixed wing flight if no airspeed measurement available (m/s)
 	const unsigned EKFGSF_reset_delay{1000000}; ///< Number of uSec of bad innovations on main filter in immediate post-takeoff phase before yaw is reset to EKF-GSF value
 	const float EKFGSF_yaw_err_max{0.262f};     ///< Composite yaw 1-sigma uncertainty threshold used to check for convergence (rad)
+	const unsigned EKFGSF_min_active_time{10'000'000}; ///< Minimum period of continuous EKF-GSF velocity fusion after an in-flight restart
 
 #endif // CONFIG_EKF2_GNSS
 
@@ -483,21 +484,6 @@ struct parameters {
 	// gravity fusion
 	float ekf2_grav_noise{1.0f};            ///< accelerometer measurement gaussian noise (m/s**2)
 #endif // CONFIG_EKF2_GRAVITY_FUSION
-
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	int32_t ekf2_of_ctrl {0};
-	int32_t ekf2_of_gyr_src {static_cast<int32_t>(FlowGyroSource::Auto)};
-	float ekf2_of_delay{5.0f};              ///< optical flow measurement delay relative to the IMU (mSec) - this is to the middle of the optical flow integration interval
-
-	// optical flow fusion
-	float ekf2_of_n_min{0.15f};             ///< observation noise for optical flow LOS rate measurements (rad/sec)
-	float ekf2_of_n_max{0.5f};              ///< observation noise for optical flow LOS rate measurements when flow sensor quality is at the minimum useable (rad/sec)
-	int32_t ekf2_of_qmin{1};                ///< minimum acceptable quality integer from  the flow sensor
-	int32_t ekf2_of_qmin_gnd{0};            ///< minimum acceptable quality integer from  the flow sensor when on ground
-	float ekf2_of_gate{3.0f};               ///< optical flow fusion innovation consistency gate size (STD)
-
-	Vector3f flow_pos_body{};               ///< xyz position of range sensor focal point in body frame (m)
-#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	// XYZ offset of sensors in body axes (m)
 	Vector3f imu_pos_body{};                ///< xyz position of IMU in body frame (m)
@@ -635,6 +621,7 @@ uint64_t gnss_hgt_fault              :
 		uint64_t in_transition 	         : 1; ///< 48 - true if the vehicle is in vtol transition
 		uint64_t heading_observable      : 1; ///< 49 - true when heading is observable
 		uint64_t rngbcn_fusion           : 1; ///< 50 - true when ranging beacon position fusion is active
+		uint64_t armed                   : 1; ///< 51 - true when the vehicle is armed
 
 	} flags;
 	uint64_t value;

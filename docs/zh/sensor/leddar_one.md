@@ -36,4 +36,4 @@ CONFIG_DRIVERS_DISTANCE_SENSOR_LEDDAR_ONE=y
 
 ## 更多信息
 
-- [LeddarOne Spec sheet](https://leddartech.com/app/uploads/dlm_uploads/2021/04/Spec-Sheet_LeddarOne_V10.0_EN-1.pdf)
+- [LeddarOne Spec sheet](https://leddartech.com/download/specsheet-leddarone-single-element-sensor-module/pdf_file.pdf)

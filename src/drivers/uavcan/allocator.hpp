@@ -39,6 +39,7 @@
 
 #include <systemlib/err.h>
 #include <uavcan/uavcan.hpp>
+#include <drivers/uavcan/uavcan_drivers/critical_section.hpp>
 #include <uavcan/helpers/heap_based_pool_allocator.hpp>
 
 // TODO: Entire UAVCAN application should be moved into a namespace later; this is the first step.
@@ -46,8 +47,7 @@ namespace uavcan_node
 {
 
 struct AllocatorSynchronizer {
-	const ::irqstate_t state = ::enter_critical_section();
-	~AllocatorSynchronizer() { ::leave_critical_section(state); }
+	const UavcanCriticalSection lock;
 };
 
 struct Allocator : public uavcan::HeapBasedPoolAllocator<uavcan::MemPoolBlockSize, AllocatorSynchronizer> {

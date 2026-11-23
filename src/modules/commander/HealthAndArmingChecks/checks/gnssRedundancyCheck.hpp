@@ -36,30 +36,34 @@
 #include "../Common.hpp"
 #include <lib/hysteresis/hysteresis.h>
 #include <uORB/SubscriptionMultiArray.hpp>
-#include <uORB/topics/sensor_gps.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/sensor_gnss.h>
+#include <uORB/topics/sensors_status_gnss.h>
 
 class GnssRedundancyChecks : public HealthAndArmingCheckBase
 {
 public:
-	GnssRedundancyChecks();
+	GnssRedundancyChecks() = default;
 	~GnssRedundancyChecks() = default;
 
 	void checkAndReport(const Context &context, Report &reporter) override;
 
 private:
 	static constexpr int GPS_MAX_INSTANCES = 2;
-	uORB::SubscriptionMultiArray<sensor_gps_s, GPS_MAX_INSTANCES> _sensor_gps_sub{ORB_ID::sensor_gps};
+	static_assert(GPS_MAX_INSTANCES <= (int)(sizeof(sensors_status_gnss_s::device_ids) / sizeof(
+				sensors_status_gnss_s::device_ids[0])), "sensors_status_gnss has too few receiver entries");
+	uORB::SubscriptionMultiArray<sensor_gnss_s, GPS_MAX_INSTANCES> _sensor_gnss_sub{ORB_ID::sensor_gnss};
+	uORB::Subscription _sensors_status_gnss_sub{ORB_ID(sensors_status_gnss)};
 
-	uint8_t _peak_fixed_count{0};
+	uint8_t _peak_healthy_count{0};
 	systemlib::Hysteresis _divergence_hysteresis;
-
+	float _divergence_h_m{0.f}; ///< disagreement of the last comparison, for the report
+	float _divergence_v_m{0.f};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamInt<px4::params::SYS_HAS_NUM_GNSS>) _param_sys_has_num_gnss,
 					(ParamInt<px4::params::COM_GNSSLOSS_ACT>) _param_com_gnssloss_act,
-					(ParamFloat<px4::params::SENS_GPS0_OFFX>) _param_sens_gps0_offx,
-					(ParamFloat<px4::params::SENS_GPS0_OFFY>) _param_sens_gps0_offy,
-					(ParamFloat<px4::params::SENS_GPS1_OFFX>) _param_sens_gps1_offx,
-					(ParamFloat<px4::params::SENS_GPS1_OFFY>) _param_sens_gps1_offy
+					(ParamFloat<px4::params::COM_GNSS_H_MAX>) _param_com_gnss_h_max,
+					(ParamFloat<px4::params::COM_GNSS_V_MAX>) _param_com_gnss_v_max
 				       )
 };

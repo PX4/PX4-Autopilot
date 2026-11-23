@@ -1,7 +1,12 @@
 name: Commit Quality
 
+# pull_request_target gives fork PRs a token that can post the comments. That
+# is safe only while this workflow never runs PR code: the checkouts take
+# Tools/ci from the base branch, so never give them a ref from the PR, and pass
+# PR fields (title, body, branch names) to the scripts through env, never
+# inline in a run block.
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, edited, synchronize, reopened]
 
 permissions:
@@ -9,13 +14,14 @@ permissions:
   pull-requests: write
   issues: write
 
+# github.ref is the base branch under pull_request_target, shared by every PR
+# against it, so group by PR number.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 env:
   PR_NUMBER: ${{ github.event.pull_request.number }}
-  IS_FORK: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
 
 jobs:
   pr-title:
@@ -30,16 +36,21 @@ jobs:
 
       - name: Check PR title
         id: check
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: |
-          python3 Tools/ci/check_pr_title.py "${{ github.event.pull_request.title }}" --markdown-file comment.md && rc=0 || rc=$?
+          python3 Tools/ci/check_pr_title.py "$PR_TITLE" --base-ref "$BASE_REF" --markdown-file comment.md && rc=0 || rc=$?
           echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
 
       - name: Post or clear comment
-        if: env.IS_FORK == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           if [ "${{ steps.check.outputs.exit_code }}" != "0" ]; then
+            if [ ! -s comment.md ]; then
+              echo "The PR title check failed without producing a report." > comment.md
+            fi
             python3 Tools/ci/pr_comment.py --marker pr-title --pr "$PR_NUMBER" --result fail < comment.md
           else
             python3 Tools/ci/pr_comment.py --marker pr-title --pr "$PR_NUMBER" --result pass
@@ -48,52 +59,7 @@ jobs:
       - name: Result
         if: steps.check.outputs.exit_code != '0'
         run: |
-          echo "::error::PR title does not follow conventional commits format. See the PR comment for details."
-          exit 1
-
-  commit-messages:
-    name: Commit Messages
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          sparse-checkout: Tools/ci
-          fetch-depth: 1
-
-      - name: Check commit messages
-        id: check
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api \
-            "repos/${{ github.repository }}/pulls/${PR_NUMBER}/commits?per_page=100" \
-            | python3 Tools/ci/check_commit_messages.py --markdown-file comment.md && rc=0 || rc=$?
-          echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
-          # Check for warnings (non-empty markdown on exit 0)
-          if [ "$rc" -eq 0 ] && [ -s comment.md ]; then
-            echo "has_warnings=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_warnings=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Post or clear comment
-        if: env.IS_FORK == 'false'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if [ "${{ steps.check.outputs.exit_code }}" != "0" ]; then
-            python3 Tools/ci/pr_comment.py --marker commit-msgs --pr "$PR_NUMBER" --result fail < comment.md
-          elif [ "${{ steps.check.outputs.has_warnings }}" == "true" ]; then
-            python3 Tools/ci/pr_comment.py --marker commit-msgs --pr "$PR_NUMBER" --result warn < comment.md
-          else
-            python3 Tools/ci/pr_comment.py --marker commit-msgs --pr "$PR_NUMBER" --result pass
-          fi
-
-      - name: Result
-        if: steps.check.outputs.exit_code != '0'
-        run: |
-          echo "::error::Commit message errors found. See the PR comment for details."
+          echo "::error::PR title check failed. See the PR comment for details."
           exit 1
 
   pr-body:
@@ -101,7 +67,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        if: env.IS_FORK == 'false'
         uses: actions/checkout@v6
         with:
           sparse-checkout: Tools/ci
@@ -126,7 +91,6 @@ jobs:
           echo "message=$message" >> "$GITHUB_OUTPUT"
 
       - name: Post or clear comment
-        if: env.IS_FORK == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

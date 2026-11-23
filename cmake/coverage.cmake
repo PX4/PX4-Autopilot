@@ -37,10 +37,10 @@ find_program(GENHTML_PATH genhtml)
 message(STATUS "Building for code coverage")
 
 if (CMAKE_BUILD_TYPE STREQUAL Coverage)
-	# Coverage instrumentation plus atomic updates
+	# No -fprofile-update=atomic: ccache 4.9.1 (Ubuntu 24.04) refuses to cache it,
+	# and racy counters only undercount hits, never drop a covered line.
 	set(COVERAGE_FLAGS
 		--coverage
-		-fprofile-update=atomic
 	)
 
 	# Apply to every compile and link invocation

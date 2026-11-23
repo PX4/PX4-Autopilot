@@ -33,7 +33,7 @@
 /**
  * @file rtl.h
  *
- * Helper class for RTL
+ * Helper class for Return
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
@@ -45,7 +45,6 @@
 
 #include "navigator_mode.h"
 #include "navigation.h"
-#include <dataman_client/DatamanClient.hpp>
 #include "rtl_base.h"
 #include "rtl_direct.h"
 #include "rtl_direct_mission_land.h"
@@ -55,6 +54,8 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
+#include <uORB/topics/battery_status.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/parameter_update.h>
@@ -62,6 +63,7 @@
 #include <uORB/topics/rtl_time_estimate.h>
 
 class Navigator;
+class MissionRouteCache;
 class RTLTestPeer;
 
 class RTL : public NavigatorMode, public ModuleParams
@@ -69,7 +71,7 @@ class RTL : public NavigatorMode, public ModuleParams
 public:
 	RTL(Navigator *navigator);
 
-	~RTL() = default;
+	~RTL() { delete _rtl_mission_type_handle; }
 
 	enum class RtlType {
 		NONE = rtl_status_s::RTL_STATUS_TYPE_NONE,
@@ -80,14 +82,13 @@ public:
 	};
 
 	void on_inactive() override;
+	void on_inactivation() override;
 	void on_activation() override;
 	void on_active() override;
 
 	void initialize() override {};
 
 	void set_return_alt_min(bool min) { _enforce_rtl_alt = min; }
-
-	void updateSafePoints(uint32_t new_safe_point_id) { _initiate_safe_points_updated = true; _safe_points_id = new_safe_point_id; }
 
 	bool isLanding();
 
@@ -97,24 +98,16 @@ private:
 	enum class DestinationType {
 		DESTINATION_TYPE_HOME,
 		DESTINATION_TYPE_MISSION_LAND,
-		DESTINATION_TYPE_SAFE_POINT
+		DESTINATION_TYPE_SAFE_POINT,
+		DESTINATION_TYPE_CURRENT_POSITION
 	};
-
-protected:
-
-	/**
-	 * @brief Load one safe-point mission item from the safe-point dataman cache.
-	 */
-	virtual bool loadSafePointItemWait(int seq, mission_item_s &item, hrt_abstime timeout) const;
-
-private:
 
 	/**
 	 * @brief Check mission landing validity
 	 * @return true if mission has a land start, a land and is valid
 	 */
 	bool hasMissionLandStart() const;
-
+	bool hasValidMission() const;
 
 	/**
 	 * @brief Check whether there are more waypoints between current waypoint
@@ -123,44 +116,68 @@ private:
 	 */
 	bool reverseIsFurther() const;
 
-	/**
-	 * @brief function to call regularly to do background work
-	 */
-	void updateDatamanCache();
+	/** rtl_status.safe_point_index if no rally point was chosen */
+	static constexpr uint8_t RTL_STATUS_NO_SAFE_POINT{UINT8_MAX};
+	static_assert(DM_KEY_SAFE_POINTS_MAX < RTL_STATUS_NO_SAFE_POINT,
+		      "rtl_status.safe_point_index must represent every configured safe-point slot");
 
+	/** Where Return goes and which executor flies there. */
+	struct ReturnSelection {
+		RtlType executor{RtlType::RTL_DIRECT};
+		DestinationType destination_type{DestinationType::DESTINATION_TYPE_HOME};
+		PositionYawSetpoint destination{};
+		uint8_t safe_point_index{RTL_STATUS_NO_SAFE_POINT};
+		bool home_has_land_approach{false}; ///< Home has a VTOL land approach, for the types that look
+		bool rally_point_has_land_approach{false}; ///< A rally point searched for this selection has one
+	};
+
+	/** Selects the destination of the current RTL_TYPE, then applies it. */
 	void setRtlTypeAndDestination();
 
+	/** Starts at Home, then lets the policy of the current RTL_TYPE change the selection. */
+	ReturnSelection selectReturn();
+	/** RTL_TYPE 0, 1 and 3: the closest allowed of Home, the mission landing and the rally points. */
+	void selectClosest(int32_t rtl_type, ReturnSelection &selection);
+	/** RTL_TYPE 2 and 4: follow the mission, or go to Home without a valid mission. */
+	void selectMissionPath(int32_t rtl_type, ReturnSelection &selection) const;
+	/** RTL_TYPE 5: the closest rally point, or the current position. */
+	void selectSafePoint(ReturnSelection &selection) const;
+	/** RTL_TYPE 6: Home if the battery reaches it, else the closest rally point. */
+	void selectHomeIfReachable(ReturnSelection &selection);
+
+	/** Creates and configures the executor, updates the avoidance planner and publishes rtl_status. */
+	void applyReturn(const ReturnSelection &selection);
+
+	PositionYawSetpoint homeDestination() const;
+
+	/** Configures RtlDirect for Home to estimate it; applyReturn() then configures the selected destination. */
+	rtl_time_estimate_s estimateTimeToHome();
+
 	/**
-	 * @brief Publish the remaining time estimate to go to the RTL landing point.
+	 * @brief Publish the remaining time estimate to go to the Return landing point.
 	 *
 	 */
 	void publishRemainingTimeEstimate();
 
 	/**
-	 * @brief Find RTL destination.
+	 * @brief Find the closest rally point within min_dist
 	 *
+	 * @param[in] skip_near_home ignore rally points within 10 m of Home
+	 * @param[out] has_land_approach a rally point looked at has a VTOL land approach
 	 */
-	void findRtlDestination(DestinationType &destination_type, PositionYawSetpoint &destination, uint8_t &safe_point_index);
+	PositionYawSetpoint findClosestSafePoint(float min_dist, bool skip_near_home, uint8_t &safe_point_index,
+			bool &has_land_approach) const;
 
 	/**
-	 * @brief Find RTL destination if only safe points are considered
-	 *
+	 * @brief Smallest remaining time [s] of the connected batteries, NAN if none reports one.
 	 */
-	PositionYawSetpoint findClosestSafePoint(float min_dist, uint8_t &safe_point_index);
+	float worstBatteryTimeRemaining();
 
 	/**
 	 * @brief Set the position of the land start marker in the planned mission as destination.
 	 *
 	 */
 	void setLandPosAsDestination(PositionYawSetpoint &rtl_position, mission_item_s &land_mission_item) const;
-
-	/**
-	 * @brief Parse a rally-point mission item into a PositionYawSetpoint, validating frame, coordinates and finiteness.
-	 *
-	 * @return true if the item is a valid rally point with sane coordinates, false otherwise.
-	 */
-	bool extractValidSafePointPosition(const mission_item_s &safe_point_item, float home_altitude_amsl,
-					   PositionYawSetpoint &position) const;
 
 	/**
 	 * @brief calculate return altitude from return altitude parameter, current altitude and cone angle
@@ -172,10 +189,14 @@ private:
 	float computeReturnAltitude(const PositionYawSetpoint &rtl_position) const;
 
 	/**
-	 * @brief initialize RTL mission type
+	 * @brief initialize Return mission type
 	 *
+	 * @return false if the executor could not be allocated
 	 */
-	void initRtlMissionType(RtlType new_rtl_type, float rtl_alt);
+	bool initRtlMissionType(RtlType new_rtl_type);
+
+	/** Runs the selected executor active, then the other one inactive. */
+	void runExecutors();
 
 	/**
 	 * @brief Update parameters
@@ -184,93 +205,20 @@ private:
 	void parameters_update();
 
 	/**
-	 * @brief Read the landing-approach block associated with the first valid rally point near rtl_position.
-	 *
-	 * A block starts at the associated rally point and contains the consecutive NAV_CMD_LOITER_TO_ALT
-	 * items that follow it. The next rally point starts a new block.
-	 * Invalid rally points are skipped so a later nearby valid rally point can still be considered.
-	 */
-	land_approaches_s getVtolLandApproachesNearLocation(const PositionYawSetpoint &rtl_position,
-			float home_altitude_amsl) const;
-
-	/**
-	 * @brief Return whether a valid associated block near rtl_position has at least one valid approach.
-	 */
-	bool hasVtolLandApproachesNearLocation(const PositionYawSetpoint &rtl_position, float home_altitude_amsl) const;
-
-	/**
-	 * @brief Return whether the block after safe_point_index contains at least one valid approach.
-	 */
-	bool hasVtolLandApproachesAtSafePointIndex(int safe_point_index, float home_altitude_amsl) const;
-
-	/**
-	 * @brief Choose the most wind-aligned approach in a landing-approach block.
-	 *
-	 * Bearings are evaluated from the block's land location.
-	 */
-	loiter_point_s chooseBestLandingApproach(const land_approaches_s &vtol_land_approaches) const;
-
-	/**
 	 * @brief Return the wind-selected VTOL approach for destination, or an invalid loiter if none exists.
 	 */
 	loiter_point_s selectLandingApproach(const PositionYawSetpoint &destination) const;
-
-	/**
-	 * @brief Find the first rally point whose block should be associated with rtl_position.
-	 *
-	 * Invalid rally points are skipped so nearby valid fallbacks can still be associated.
-	 * On success, safe_point_index and safe_point_item are populated with the rally point that starts the block.
-	 */
-	bool findAssociatedSafePointIndex(const PositionYawSetpoint &rtl_position, float home_altitude_amsl,
-					  int &safe_point_index, mission_item_s &safe_point_item) const;
-
-	/**
-	 * @brief Scan one landing-approach block after a rally point.
-	 *
-	 * A block is the consecutive NAV_CMD_LOITER_TO_ALT items after safe_point_index.
-	 * Scanning stops at the next rally point because it starts a different safe-point block.
-	 *
-	 * If result is non-null, all valid approaches are collected into it.
-	 * If result is null, returns true on the first valid approach (early exit).
-	 *
-	 * @return true if at least one valid approach was found.
-	 */
-	bool scanVtolLandApproachBlock(int safe_point_index, float home_altitude_amsl,
-				       land_approaches_s *result) const;
-
-	/**
-	 * @brief Convert one loiter mission item into a landing-approach entry.
-	 */
-	loiter_point_s makeVtolLandApproachPoint(const mission_item_s &mission_item, float home_altitude_amsl) const;
-
-	enum class DatamanState {
-		UpdateRequestWait,
-		Read,
-		ReadWait,
-		Load,
-		Error
-	};
 
 	hrt_abstime _destination_check_time{0};
 
 	RtlBase *_rtl_mission_type_handle{nullptr};
 	RtlType _rtl_type{RtlType::RTL_DIRECT};
-
-	bool _home_has_land_approach;			///< Flag if the home position has a land approach defined
-	bool _one_rally_point_has_land_approach;	///< Flag if a rally point has a land approach defined
-
-	DatamanState _dataman_state{DatamanState::UpdateRequestWait};
-	DatamanState _error_state{DatamanState::UpdateRequestWait};
-	uint32_t _opaque_id{0}; ///< dataman safepoint id: if it does not match, safe points data was updated
-	bool _safe_points_updated{false}; ///< flag indicating if safe points are updated to dataman cache
-	mutable DatamanCache _dataman_cache_safepoint{"rtl_dm_cache_miss_geo", 4};
-	DatamanClient	&_dataman_client_safepoint = _dataman_cache_safepoint.client();
-	bool _initiate_safe_points_updated{true}; ///< flag indicating if safe points update is needed
-	mutable DatamanCache _dataman_cache_landItem{"rtl_dm_cache_miss_land", 2};
-	uint32_t _mission_id = 0u;
-	uint32_t _safe_points_id = 0u;
-
-	mission_stats_entry_s _stats;
+	RtlType _init_failure_reported{RtlType::NONE}; ///< Logged failing executor type, reset by a successful init or activation.
+	uint32_t _mission_land_failure_mission_id{0};
+	uint16_t _mission_land_failure_count{0};
+	int32_t _mission_land_failure_index{-1};
+	uint8_t _mission_land_failure_dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_0};
+	bool _mission_land_failure_reported{false};
 
 	RtlDirect _rtl_direct;
 
@@ -292,6 +240,7 @@ private:
 	uORB::SubscriptionData<mission_s> _mission_sub{ORB_ID(mission)};
 	uORB::SubscriptionData<home_position_s> _home_pos_sub{ORB_ID(home_position)};
 	uORB::SubscriptionData<wind_s>		_wind_sub{ORB_ID(wind)};
+	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{ORB_ID::battery_status};
 
 	uORB::Publication<rtl_time_estimate_s> _rtl_time_estimate_pub{ORB_ID(rtl_time_estimate)};
 	uORB::Publication<rtl_status_s> _rtl_status_pub{ORB_ID(rtl_status)};

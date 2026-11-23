@@ -1,5 +1,10 @@
 # Modules Reference: Camera (Driver)
 
+::: info
+**This page is [auto-generated](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/px4moduledoc/markdownout.py) from the source code** using the build command: `make module_documentation`.
+Do not edit it directly; fix the module documentation in the [PX4-Autopilot](https://github.com/PX4/PX4-Autopilot) source instead.
+:::
+
 ## camera_trigger
 
 Source: [drivers/camera_trigger](https://github.com/PX4/PX4-Autopilot/tree/main/src/drivers/camera_trigger)
@@ -11,7 +16,7 @@ Camera trigger driver.
 This module triggers cameras that are connected to the flight-controller outputs,
 or simple MAVLink cameras that implement the MAVLink trigger protocol.
 
-The driver responds to the following MAVLink trigger commands being found in missions or recieved over MAVLink:
+The driver responds to the following MAVLink trigger commands being found in missions or received over MAVLink:
 
 - `MAV_CMD_DO_TRIGGER_CONTROL`
 - `MAV_CMD_DO_DIGICAM_CONTROL`

@@ -197,8 +197,8 @@
 
 #define BOARD_NUM_SPI_CFG_HW_VERSIONS 2
 //                 Base/FMUM
-#define ARKFPV_0   HW_FMUM_ID(0x0) // ARKFPV,     Sensor Set  Rev 0
-#define ARKFPV_1   HW_FMUM_ID(0x1) // ARKFPV,     Sensor Set  Rev 1
+#define ARKFPV_0   HW_FMUM_ID(0x0) // ARKFPV,     IIM-42653
+#define ARKFPV_1   HW_FMUM_ID(0x1) // ARKFPV,     LSM6DSV32X
 
 #define UAVCAN_NUM_IFACES_RUNTIME  1
 
@@ -224,16 +224,6 @@
 /* PWM
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS   9
-
-#define GPIO_FMU_CH1                    /* PI0  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTI|GPIO_PIN0)
-#define GPIO_FMU_CH2                    /* PH12 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN12)
-#define GPIO_FMU_CH3                    /* PH11 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN11)
-#define GPIO_FMU_CH4                    /* PH10 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN10)
-#define GPIO_FMU_CH5                    /* PI5  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTI|GPIO_PIN5)
-#define GPIO_FMU_CH6                    /* PI6  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTI|GPIO_PIN6)
-#define GPIO_FMU_CH7                    /* PI7  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTI|GPIO_PIN7)
-#define GPIO_FMU_CH8                    /* PI2  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTI|GPIO_PIN2)
-#define GPIO_FMU_CH9                    /* PD12 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTD|GPIO_PIN12)
 
 #define GPIO_SPIX_SYNC                  /* PE9  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTE|GPIO_PIN9)
 
@@ -335,15 +325,6 @@
 		GPIO_VDD_3V3_SD_CARD_EN,          \
 		GPIO_nARMED_INIT,                 \
 		SPI6_nRESET_EXTERNAL1,            \
-		GPIO_FMU_CH1,     	          \
-		GPIO_FMU_CH2,     	          \
-		GPIO_FMU_CH3,     	          \
-		GPIO_FMU_CH4,     	          \
-		GPIO_FMU_CH5,     	          \
-		GPIO_FMU_CH6,     	          \
-		GPIO_FMU_CH7,     	          \
-		GPIO_FMU_CH8,     	          \
-		GPIO_FMU_CH9,     	          \
 		GPIO_SPIX_SYNC                    \
 	}
 

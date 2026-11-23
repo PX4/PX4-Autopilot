@@ -1,1 +1,1 @@
-<Redirect to="../flight_modes_fw/position" />
+<Redirect to="../flight_modes_fw/cruise" />

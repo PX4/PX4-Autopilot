@@ -10,12 +10,12 @@ This quick start guide shows how to power the [X25 EVO](../flight_controller/cua
 :::info
 The following flight controller models are applicable to this quick start guide.
 [CUAV X25 SUPER](../flight_controller/cuav_x25-super.md)
+[CUAV X25 MEGA](../flight_controller/cuav_x25-mega.md)
 :::
 
 ## 接线图概述
 
-下图展示了如何连接最重要的传感器和外围设备（电机和伺服舵机输出除外）。
-我们将在下面各节中介绍它们的细节。
+下图展示了如何连接最重要的传感器和外围设备（电机和伺服舵机输出除外）。我们将在下面各节中介绍它们的细节。
 
 ![wiring](../../assets/flight_controller/cuav_x25-evo/x25_evo_quickstart_01.jpg)
 
@@ -50,7 +50,7 @@ If the controller cannot be mounted in the recommended/default orientation (e.g.
 
 We recommend using a CAN GPS/RTK (such as [Neo 4SE](https://store.cuav.net/shop/cuav-neo-4-se-gps-module/)); simply connect it to the **CAN 1** or **CAN 2** port.
 
-You can also use a standard GPS/RTK module(such as [NEO3 GPS](https://store.cuav.net/shop/neo-3/) (10-pin connector)) by connecting it to the **GPS&SAFETY** port.
+You can also use a standard GPS/RTK module(such as [NEO3 GPS](https://store.cuav.net/shop/neo-3-pro/) (10-pin connector)) by connecting it to the **GPS&SAFETY** port.
 Most commonly used GPS modules today integrate GPS, compass, safety switch, buzzer, and LED status light.
 
 If you need to use assisted GPS, connect to the **GPS2** port.
@@ -104,7 +104,7 @@ It can be directly connected to the **Power C1/C2** port of the X25 EVO and is p
 
 [Telemetry system](../telemetry/index.md) allows you to communicate with the unmanned system via ground station software, enabling you to monitor and control the UAV’s status during flight. Connect the on-board unit of the telemetry system to the **TELEM1** or **TELEM2** port.
 
-You can also purchase telemetry radios from the [CUAV store](https://store.cuav.net/uav-telemetry-module/).
+You can also purchase telemetry radios from the [CUAV store](https://store.cuav.net/category/telemetry/).
 
 ![Telemetry system](../../assets/flight_controller/cuav_x25-evo/x25_evo_quickstart_04.jpg)
 
@@ -151,3 +151,4 @@ QuadPlane-specific configuration is covered here: [QuadPlane VTOL Configuration]
 - [CUAV Docs](https://doc.cuav.net/) (CUAV)
 - [X25 EVO](../flight_controller/cuav_x25-evo.md) (PX4 Doc Overview page)
 - [X25 SUPER](../flight_controller/cuav_x25-super.md) (PX4 Doc Overview page)
+- [[X25 MEGA](../flight_controller/cuav_x25-mega.md)] (PX4 Doc Overview page)

@@ -61,6 +61,7 @@ public:
 
 	void setRangeHeightRef();
 	void enableRangeHeightFusion();
+	void enableConditionalRangeHeightFusion();
 	void disableRangeHeightFusion();
 	bool isIntendingRangeHeightFusion() const;
 
@@ -77,6 +78,7 @@ public:
 
 	void enableGpsFusion();
 	void disableGpsFusion();
+	void setGpsEnabled(bool enabled);
 	bool isIntendingGpsFusion() const;
 	bool isGnssFaultDetected() const;
 	void setGnssDeadReckonMode();
@@ -85,10 +87,10 @@ public:
 	void disableGpsHeadingFusion();
 	bool isIntendingGpsHeadingFusion() const;
 
-	void enableFlowFusion();
-	void disableFlowFusion();
+	void enableFlowFusion(uint8_t slot = 0);
+	void disableFlowFusion(uint8_t slot = 0);
 	bool isIntendingFlowFusion() const;
-	void setFlowOffset(const matrix::Vector3f &offset);
+	void setFlowOffset(const matrix::Vector3f &offset, uint8_t slot = 0);
 
 	void enableExternalVisionPositionFusion();
 	void disableExternalVisionPositionFusion();

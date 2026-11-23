@@ -45,7 +45,7 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_platform_common/sem.hpp>
 
-#include <crc32.h>
+#include <nuttx/crc32.h>
 
 #include <drivers/device/device.h>
 #include <drivers/drv_hrt.h>
@@ -78,7 +78,7 @@
 
 #include <debug.h>
 
-#include <modules/px4iofirmware/protocol.h>
+#include <lib/px4io_protocol/protocol.h>
 
 #include "uploader.h"
 
@@ -336,7 +336,7 @@ private:
 		(ParamInt<px4::params::RC_RSSI_PWM_CHAN>) _param_rc_rssi_pwm_chan,
 		(ParamInt<px4::params::RC_RSSI_PWM_MAX>) _param_rc_rssi_pwm_max,
 		(ParamInt<px4::params::RC_RSSI_PWM_MIN>) _param_rc_rssi_pwm_min,
-		(ParamInt<px4::params::SENS_EN_THERMAL>) _param_sens_en_themal
+		(ParamInt<px4::params::SENS_EN_THERMAL>) _param_sens_en_thermal
 	)
 };
 
@@ -452,23 +452,14 @@ int PX4IO::init()
 		_max_rc_input = input_rc_s::RC_INPUT_MAX_CHANNELS;
 	}
 
-	uint16_t reg = 0;
-
-	/* get IO's last seen FMU state */
-	ret = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, &reg, sizeof(reg));
-
-	if (ret != OK) {
-		return ret;
-	}
-
 	/* dis-arm IO before touching anything */
-	io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_FMU_ARMED | PX4IO_P_SETUP_ARMING_LOCKDOWN,
-		      0);
+	ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_FMU_ARMED | PX4IO_P_SETUP_ARMING_LOCKDOWN,
+			    0);
 
 	if (ret != OK) {
-		mavlink_log_critical(&_mavlink_log_pub, "IO RC config upload fail\t");
-		events::send(events::ID("px4io_io_rc_config_upload_failed"), events::Log::Critical,
-			     "IO RC config upload failed, aborting initialization");
+		mavlink_log_critical(&_mavlink_log_pub, "IO disarm failed\t");
+		events::send(events::ID("px4io_disarm_failed"), events::Log::Critical,
+			     "IO disarm failed, aborting initialization");
 		return ret;
 	}
 
@@ -604,9 +595,9 @@ void PX4IO::Run()
 			/* Tell IO that it can terminate the flight if FMU is not responding or if a failure has been reported by the FailureDetector logic */
 			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ENABLE_FLIGHTTERMINATION, !disable_flighttermination);
 
-			if (_param_sens_en_themal.get() != _thermal_control || _param_update_force) {
+			if (_param_sens_en_thermal.get() != _thermal_control || _param_update_force) {
 
-				_thermal_control = _param_sens_en_themal.get();
+				_thermal_control = _param_sens_en_thermal.get();
 				/* set power management state for thermal */
 				uint16_t tctrl;
 
@@ -1739,7 +1730,15 @@ int PX4IO::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
+
 Output driver communicating with the IO co-processor.
+
+On its RC input, the IO co-processor supports:
+- PPM (CPPM)
+- S.BUS and S.BUS2
+- Spektrum DSM / DSM2 / DSM-X (10-bit and 11-bit)
+- Yuneec ST24
+- Graupner SUMD
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("px4io", "driver");

@@ -157,6 +157,7 @@ void HardfaultStream::Run()
 	if (should_exit()) {
 		ScheduleClear();
 		exit_and_cleanup(desc);
+		return;
 	}
 
 	switch (_state) {

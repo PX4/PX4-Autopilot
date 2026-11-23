@@ -43,8 +43,8 @@ import em
 import yaml
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-y", "--dds-topics-file", dest='yaml_file', type=str,
-                    help="Setup topics file path, by default using 'dds_topics.yaml'")
+parser.add_argument("-y", "--dds-topics-file", dest='yaml_files', type=str, action='append', required=True,
+                    help="Setup topics file path; repeat it to add the topics of more files")
 
 parser.add_argument("-t", "--template_file", dest='template_file', type=str,
                     help="DDS topics template file")
@@ -75,9 +75,13 @@ if not os.path.exists(folder_name):
 
 
 
-# open yaml file to load dictionary of publications and subscriptions
-with open(args.yaml_file, 'r') as file:
-    msg_map = yaml.safe_load(file)
+# open the yaml files and join their lists of publications and subscriptions, in order
+msg_map = {'publications': [], 'subscriptions': [], 'subscriptions_multi': []}
+for yaml_file in args.yaml_files:
+    with open(yaml_file, 'r') as file:
+        topics = yaml.safe_load(file) or {}
+    for key in msg_map:
+        msg_map[key] += topics.get(key) or []
 
 # Get DDS namespace from environment, default to empty string
 namespace = os.getenv('PX4_UXRCE_DDS_NS', '')
@@ -101,6 +105,26 @@ def process_message_type(msg_type):
     msg_type['dds_type'] = msg_type['type'].replace("::msg::", "::msg::dds_::") + "_"
     # topic_simple: eg vehicle_status
     msg_type['topic_simple'] = msg_type['topic'].split('/')[-1]
+
+    # publish_interval_ms: maps the optional rate_limit (Hz) to the orb_set_interval
+    # gate, which is expressed in integer milliseconds. An unlimited rate (0) also
+    # makes the bridge drain the whole uORB queue each poll wakeup instead of
+    # forwarding only the latest sample (see SendTopicsSubs::update).
+    #   absent                  -> None: template uses UXRCE_DEFAULT_POLL_INTERVAL_MS
+    #   0 or 'unlimited'/'off'   -> 0: rate limiting disabled, drain the whole queue
+    #   N > 0                    -> round(1000/N), clamped to a >=1ms floor (anything finer
+    #                               than 1ms cannot be expressed and must use 'unlimited')
+    rate = msg_type.get('rate_limit', None)
+    if rate is None:
+        msg_type['publish_interval_ms'] = None
+    elif (isinstance(rate, str) and rate.strip().lower() in ('unlimited', 'off', 'none')) \
+            or (isinstance(rate, (int, float)) and rate <= 0):
+        msg_type['publish_interval_ms'] = 0
+    elif isinstance(rate, (int, float)):
+        msg_type['publish_interval_ms'] = max(1, round(1000.0 / float(rate)))
+    else:
+        raise ValueError(f"invalid rate_limit {rate!r} for topic {msg_type['topic']}: "
+                         "expected a positive number, 0, or 'unlimited'")
 
     # Optional per-publisher QoS options from YAML 'options:' field.
     # Converts e.g. {cc: block, express: true} -> "cc=block,express=true"
@@ -146,6 +170,13 @@ for sd in subs_multi:
 merged_em_globals['subscriptions_multi'] = subs_multi
 
 merged_em_globals['type_includes'] = sorted(set(all_type_includes))
+
+# a topic declared twice in a list, in one file or in two, would be bridged twice
+for key in ('publications', 'subscriptions', 'subscriptions_multi'):
+    names = [msg_type['topic'] for msg_type in merged_em_globals[key]]
+    repeated = sorted({name for name in names if names.count(name) > 1})
+    if repeated:
+        raise ValueError(f"{key}: {', '.join(repeated)} declared more than once")
 
 
 # run interpreter

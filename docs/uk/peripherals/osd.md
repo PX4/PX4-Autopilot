@@ -27,10 +27,11 @@ PX4 currently sends a subset of MSP messages.
 Reliably-working display items include:
 
 - Craft name and flight mode / arming state
-- Battery voltage, current draw, mAh consumed, average cell voltage
+- Average cell voltage, current draw, mAh consumed
 - GPS latitude, longitude, satellite count, ground speed
-- Home distance and direction
+- Home distance
 - Altitude (from GNSS / baro)
+- Roll / pitch angle
 - RSSI
 - Crosshairs toggle
 
@@ -63,7 +64,8 @@ Then rebuild and flash.
 3. Reboot.
 4. Tune the display via the [`OSD_*` parameters](../advanced_config/parameter_reference.md#osd):
    - [`OSD_SYMBOLS`](../advanced_config/parameter_reference.md#OSD_SYMBOLS) — bitmask selecting which items appear.
-   - [`OSD_CH_HEIGHT`](../advanced_config/parameter_reference.md#OSD_CH_HEIGHT) — vertical position of the crosshairs.
+   - [`OSD_CH_POS_VER`](../advanced_config/parameter_reference.md#OSD_CH_POS_VER) — vertical position of the crosshairs.
+   - [`OSD_CH_POS_HOR`](../advanced_config/parameter_reference.md#OSD_CH_POS_HOR) — horizontal position of the crosshairs.
    - [`OSD_LOG_LEVEL`](../advanced_config/parameter_reference.md#OSD_LOG_LEVEL) — minimum severity for on-screen warnings.
    - [`OSD_SCROLL_RATE`](../advanced_config/parameter_reference.md#OSD_SCROLL_RATE) / [`OSD_DWELL_TIME`](../advanced_config/parameter_reference.md#OSD_DWELL_TIME) — scrolling of long messages.
    - [`OSD_RC_STICK`](../advanced_config/parameter_reference.md#OSD_RC_STICK) — forward RC sticks to the VTX when disarmed, so you can navigate the VTX menu.

@@ -1,0 +1,179 @@
+# Serial Passthrough (MAVLink SERIAL_CONTROL)
+
+<Badge type="tip" text="PX4 v1.18" />
+
+Serial Passthrough allows a MAVLink client to read from and write to selected flight controller serial interfaces using the [SERIAL_CONTROL](https://mavlink.io/en/messages/common.html#SERIAL_CONTROL) message.
+Typical use cases include: providing a direct serial channel for ESC configuration tools, and debugging serial peripherals over a telemetry link.
+
+Two cases are supported:
+
+- Control of normal ports, such as telemetry or GPS ports.
+  This works automatically as long as the [`serialpassthrough` driver](../modules/modules_driver.md#serialpassthrough) is present in firmware.
+- Control of ESC signal pins on STM32F7/H7 boards via a bit-bang UART implemented in software.
+  This requires additional configuration.
+
+When serial control is enabled/supported, passthrough is automatic.
+If `SERIAL_CONTROL` traffic is sent to a supported target, PX4 starts handling that target and returns reply data over MAVLink.
+You can also start and stop passthrough manually from the PX4 shell.
+
+## Device IDs
+
+The `SERIAL_CONTROL.device` field selects the target UART that is to be controlled.
+The following device IDs are allowed (note that this is a subset of the IDs specified in [SERIAL_CONTROL_DEV](https://mavlink.io/en/messages/common.html#SERIAL_CONTROL_DEV)):
+
+| Device ID | Target                              |
+| --------- | ----------------------------------- |
+| `0`       | `TELEM1`                            |
+| `1`       | `TELEM2`                            |
+| `2`       | `GPS1`                              |
+| `3`       | `GPS2`                              |
+| `4`       | `TELEM3`                            |
+| `5`       | `TELEM4`                            |
+| `20`      | ESC channel 0 ([bitbang](#bitbang)) |
+| `21`      | ESC channel 1 (bitbang)             |
+| `22`      | ESC channel 2 (bitbang)             |
+| `23`      | ESC channel 3 (bitbang)             |
+| `24`      | ESC channel 4 (bitbang)             |
+| `25`      | ESC channel 5 (bitbang)             |
+| `26`      | ESC channel 6 (bitbang)             |
+| `27`      | ESC channel 7 (bitbang)             |
+
+The UART device path for each port (e.g. `/dev/ttyS1`) is taken from the board's corresponding Kconfig symbols, such as `CONFIG_BOARD_SERIAL_TEL1`, `CONFIG_BOARD_SERIAL_GPS1`, and so on.
+If the used device ID is not configured on the board, the driver logs a warning and rejects the message.
+
+## UART Control
+
+Normal UARTs such as those for telemetry and GPS are targeted using device IDs 0 to 5.
+
+This feature requires only that the [`serialpassthrough` driver](../modules/modules_driver.md#serialpassthrough) is present in firmware (the KConfig key `CONFIG_DRIVERS_SERIALPASSTHROUGH=y` must be set).
+Note that the `PASSTHRU_EN` parameter need not be set.
+
+## ESC Channel Mode (Bitbang UART) {#bitbang}
+
+Device IDs 20–27 route through a software bit-bang UART on the ESC signal pin rather than a hardware UART.
+This is useful for communicating with ESCs that expose a UART telemetry or configuration port on their signal wire (such as BLHeli_32 passthrough, AM32, or ESC configuration tools).
+
+Bitbang UART is implemented using a hardware timer and direct GPIO toggling.
+Due to interrupt latency, reliable operation is only guaranteed up to **19200 baud**.
+
+Because only one hardware timer is used, only one ESC channel can be active at a time.
+When a request arrives for a different ESC channel, the driver stops the current instance and waits up to 100 ms for it to exit before starting the new one.
+
+Bitbang UART support requires that both `CONFIG_DRIVERS_SERIALPASSTHROUGH=y` and `CONFIG_SERIALPASSTHROUGH_BITBANG=y` are set before building (the timer is selected with `CONFIG_UART_BITBANG_TIMER`, and defaults to `TIM13`).
+The `PASSTHRU_EN` parameter must be set to `1` and the device rebooted in order to enable this mode.
+
+## Bridge Application
+
+[`Tools/mavlink_serial_bridge.py`](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/mavlink_serial_bridge.py) is a reference bridge application (Linux/macOS only): it connects to the vehicle over MAVLink, exposes a virtual serial port (a Unix PTY) to a serial tool on the host, such as an ESC configurator, and translates traffic bidirectionally.
+
+The script supports all [device IDs](#device-ids), selected with its `--port` option:
+
+| `--port`      | Device ID | Target           |
+| ------------- | --------- | ---------------- |
+| `telem1`      | `0`       | `TELEM1`         |
+| `telem2`      | `1`       | `TELEM2`         |
+| `gps1`        | `2`       | `GPS1`           |
+| `gps2`        | `3`       | `GPS2`           |
+| `telem3`      | `4`       | `TELEM3`         |
+| `telem4`      | `5`       | `TELEM4`         |
+| `esc0`–`esc7` | `20`–`27` | ESC channels 0–7 |
+
+Install its only dependency and run it, for example to bridge ESC channel 0:
+
+```sh
+pip3 install --user pymavlink
+./Tools/mavlink_serial_bridge.py --connection /dev/ttyUSB0 --port esc0 --setup
+```
+
+`--connection` takes a [pymavlink connection string](https://mavlink.io/en/mavgen_python/#connection_string) for the link to the vehicle, such as a telemetry radio (`/dev/ttyUSB0`, with `--baud` if it isn't 57600) or a network link (`tcp:<ip>:<port>`, or `udpin:0.0.0.0:14550`).
+A `udp:127.0.0.1:<port>` string only receives MAVLink traffic sent to this machine, for example by a local MAVLink router.
+
+`--setup` sets `PASSTHRU_EN=1` and reboots the flight controller, so DShot/PWM outputs are not started until the next reboot (see [PX4 Configuration (ESC targets)](#px4-configuration-esc-targets)).
+Use it only with `esc*` ports, and again after each reboot, since PX4 resets the parameter at boot.
+For `telem*` and `gps*` ports, leave out `--setup`: they don't need `PASSTHRU_EN`.
+
+The script prints the PTY path it created (e.g. `/dev/pts/5`).
+Once it prints `Bridge running`, point any tool that expects a serial connection (ESC configurator, GPS/RTK utility, and so on) at that path.
+Run it with `-h` for the full list of options.
+
+For `esc*` ports the UART baud rate is fixed at 19200 (the bitbang limit) and `--port-baud` is ignored.
+
+Developers can create their own bridge application in another language if needed, following the protocol described below.
+Data written to the PTY would be sent as `SERIAL_CONTROL` messages with `SERIAL_CONTROL_FLAG_RESPOND | SERIAL_CONTROL_FLAG_EXCLUSIVE` set, and incoming `SERIAL_CONTROL` reply messages (with `FLAG_REPLY` set) would be written back to the PTY.
+
+To initialise the passthrough, the bridge should send one `SERIAL_CONTROL` message with the target device ID, the desired UART baud rate in the `baudrate` field, and `count=0` (no payload), then wait approximately 2 seconds for PX4 to spawn the passthrough task before sending real traffic.
+For ESC bitbang mode (device IDs 20–27), the bridge must first set `PASSTHRU_EN=1` via `PARAM_SET`, confirm the `PARAM_VALUE` acknowledgement, send `MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN`, and wait for the FMU heartbeat to return before sending the init message — this ensures the DShot/PWM drivers are not running when the bitbang driver takes over the ESC signal pins.
+
+### Switching Devices at Runtime
+
+The bridge reads commands from its standard input, so that a host tool that launches it as a subprocess can change the target device without restarting the bridge.
+This is mainly intended for tools that work through several ESCs in sequence, such as flashing or configuring each ESC channel in turn.
+
+To switch, write a line in the following form to the bridge's stdin (or type it and press Enter when running it interactively):
+
+```text
+SWITCH <device_id>
+```
+
+`<device_id>` is the numeric [device ID](#device-ids) (for example `SWITCH 21` for ESC channel 1), not the `--port` name.
+Lines that are not valid `SWITCH` commands are ignored.
+
+When a valid command is received, the bridge:
+
+1. Prints `Switching to device <device_id>`.
+2. Sends a `SERIAL_CONTROL` init message (`count=0`) for the new device, using the same UART baud rate the bridge was started with.
+3. Forwards all further PTY traffic to the new device, and discards replies that still arrive from the previous device.
+
+The PTY path does not change, so the host tool can keep its serial port open across the switch.
+
+Note the following when using `SWITCH`:
+
+- The bridge does not wait after sending the init message.
+  Allow some time for PX4 to stop the previous instance and start the new one (up to 100 ms for ESC channels) before sending data.
+- The baud rate is not changed, so switching between ESC channels (19200 baud) works as expected, but switching between ESC and `telem*`/`gps*` targets keeps the original baud rate.
+- `--setup` is only applied at startup.
+  `PASSTHRU_EN` must already be enabled before you switch to an ESC channel.
+
+## Configuration
+
+### Firmware Configuration (Build-Time)
+
+The driver is enabled via [Kconfig](../hardware/porting_guide_config.md).
+You will need to set the following key in your board:
+
+```text
+CONFIG_DRIVERS_SERIALPASSTHROUGH=y # Include the driver
+```
+
+If you want to use ESC channel targets you must also set the following keys:
+
+```text
+CONFIG_SERIALPASSTHROUGH_BITBANG=y # ESC channel support (NuttX & STM32 only)
+CONFIG_UART_BITBANG_TIMER=13       # Timer instance (default TIM13)
+```
+
+Then rebuild the firmware.
+
+### PX4 Configuration (ESC targets)
+
+For ESC channel targets (only) you must also set [PASSTHRU_EN](../advanced_config/parameter_reference.md#PASSTHRU_EN) to `1` and reboot the vehicle.
+
+This disables motor control after the reboot (the motor output drivers `dshot` and `pwm_out` are not started).
+This is required when you intend to use the ESC bitbang passthrough mode, because the bitbang driver and the DShot/PWM driver cannot share the same ESC signal pins.
+
+::: tip
+The parameter auto-resets to `0` on the following reboot, so DShot/PWM output is automatically restored after power cycling.
+:::
+
+## Limitations
+
+- **Single sender:** only one MAVLink sender is supported at a time.
+  A single sender can communicate with multiple ports simultaneously, but replies are always routed back to the MAVLink channel that sent the most recent `SERIAL_CONTROL` message.
+  This means that concurrent senders could interfere with each other's replies.
+- **ESC bitbang baud rate:** maximum reliable baud rate is 19200.
+  Higher rates may work but are not guaranteed.
+- **ESC channel exclusivity:** only one ESC bitbang channel can be active at a time.
+- **Platform:** bitbang UART is only available on NuttX with STM32F7/H7.
+  Requesting ESC bitbang on an unsupported platform logs an error.
+- **Buffer size:** each instance has a 1 kB receive and 1 kB transmit buffer.
+  Frames larger than 1 kB will be truncated with a warning logged.

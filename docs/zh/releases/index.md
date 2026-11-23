@@ -14,7 +14,7 @@ const { site } = useData();
 
 这是一份 PX4 发行说明列表，其中包含每次发布所做更改的清单，详细说明了新增功能、漏洞修复、弃用内容以及更新情况。
 
-- [main](../releases/main.md) (changes planned for v1.19 or later)
+- [main](../releases/main.md) (changes planned for v2.0 or later)
 - [v1.18](../releases/1.18.md) (changes in v1.18, since v1.17)
 - [v1.17](../releases/1.17.md)
 - [v1.16](../releases/1.16.md)

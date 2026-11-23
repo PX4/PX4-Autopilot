@@ -39,7 +39,9 @@
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/log.h>
+#include <px4_platform_common/posix.h>
 #include <px4_platform_common/tasks.h>
+#include <px4_platform_common/time.h>
 
 #include <nuttx/board.h>
 #include <nuttx/kthread.h>
@@ -70,9 +72,9 @@ int px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_
 
 #if !defined(__KERNEL__)
 	/* create the task */
-	int pid = task_create(name, priority, stack_size, entry, argv);
+	int pid = task_create(name, priority, PX4_STACK_ADJUSTED(stack_size), entry, argv);
 #else
-	int pid = kthread_create(name, priority, stack_size, entry, argv);
+	int pid = kthread_create(name, priority, PX4_STACK_ADJUSTED(stack_size), entry, argv);
 #endif
 
 	if (pid > 0) {
@@ -89,6 +91,21 @@ int px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_
 int px4_task_delete(int pid)
 {
 	return task_delete(pid);
+}
+
+int px4_task_join(int pid)
+{
+	// LIMITATION: NuttX tasks are task_create() children, not pthreads, so there is
+	// no portable join here. This waits by repeatedly checking whether the task is
+	// still alive. It returns no exit status, and can wait on the wrong task if the
+	// PID gets reused. It is only safe because the only on-target caller is
+	// WorkQueueManager shutdown, and NuttX shutdown is a full reboot, so this
+	// effectively never runs on hardware.
+	while (kill(pid, 0) == 0) {
+		px4_usleep(10000);
+	}
+
+	return 0;
 }
 
 const char *px4_get_taskname(void)

@@ -14,7 +14,7 @@ const { site } = useData();
 
 A list of PX4 release notes, they contain a list of the changes that went into each release, explaining the included features, bug fixes, deprecations and updates in detail.
 
-- [main](../releases/main.md) (changes planned for v1.19 or later)
+- [main](../releases/main.md) (changes planned for v2.0 or later)
 - [v1.18](../releases/1.18.md) (changes in v1.18, since v1.17)
 - [v1.17](../releases/1.17.md)
 - [v1.16](../releases/1.16.md)

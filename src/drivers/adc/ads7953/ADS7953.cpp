@@ -32,7 +32,7 @@ int ADS7953::init()
 	}
 
 	_adc_report.device_id = this->get_device_id();
-	_adc_report.v_ref = _adc_ads7953_refv.get();
+	_adc_report.v_ref = _param_adc_ads7953_refv.get();
 	_adc_report.resolution = 4096;
 
 	for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {

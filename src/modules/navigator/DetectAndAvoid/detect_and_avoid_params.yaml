@@ -1,0 +1,27 @@
+module_name: detect_and_avoid
+parameters:
+- group: Detect and Avoid
+  definitions:
+    DAA_EN:
+      description:
+        short: Enable DAA
+      type: boolean
+      default: 1
+    DAA_NOTIF_STATE:
+      description:
+        short: DAA status notification period
+        long: Time between notifications for the most urgent conflict. Set to 0 to disable the periodic status notification.
+      type: int32
+      default: 20
+      unit: s
+      min: 0
+      max: 600
+    DAA_TRAFF_TOUT:
+      description:
+        short: DAA stale conflict timeout
+        long: Conflict age before removal.
+      type: int32
+      default: 20
+      unit: s
+      min: 1
+      max: 120

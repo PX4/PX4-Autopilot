@@ -44,6 +44,7 @@ void IIM42652::print_usage()
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
 	PRINT_MODULE_USAGE_PARAM_INT('C', 0, 0, 35000, "Input clock frequency (Hz)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('B', 0, 0, 394, "Anti-alias filter bandwidth: 126, 258 or 394 Hz (0: chip default 585 Hz)", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -54,8 +55,12 @@ extern "C" int iim42652_main(int argc, char *argv[])
 	BusCLIArguments cli{false, true};
 	cli.default_spi_frequency = SPI_SPEED;
 
-	while ((ch = cli.getOpt(argc, argv, "C:R:")) != EOF) {
+	while ((ch = cli.getOpt(argc, argv, "B:C:R:")) != EOF) {
 		switch (ch) {
+		case 'B':
+			cli.custom2 = atoi(cli.optArg());
+			break;
+
 		case 'C':
 			cli.custom1 = atoi(cli.optArg());
 			break;
@@ -75,18 +80,5 @@ extern "C" int iim42652_main(int argc, char *argv[])
 
 	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_IMU_DEVTYPE_IIM42652);
 
-	if (!strcmp(verb, "start")) {
-		return ThisDriver::module_start(cli, iterator);
-	}
-
-	if (!strcmp(verb, "stop")) {
-		return ThisDriver::module_stop(iterator);
-	}
-
-	if (!strcmp(verb, "status")) {
-		return ThisDriver::module_status(iterator);
-	}
-
-	ThisDriver::print_usage();
-	return -1;
+	return ThisDriver::module_main(verb, cli, iterator);
 }

@@ -109,6 +109,7 @@ public:
 			bat_status.current_a = source_ts.value.power.current.ampere;
 
 			bat_status.connected = true; // Based on some threshold or an error??
+			bat_status.source = battery_status_s::SOURCE_EXTERNAL;
 
 			// Estimate discharged mah from Joule
 			if (PX4_ISFINITE(_nominal_voltage)) {

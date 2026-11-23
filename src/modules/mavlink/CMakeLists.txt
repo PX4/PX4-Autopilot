@@ -108,6 +108,7 @@ px4_add_module(
 		mavlink_command_sender.cpp
 		mavlink_events.cpp
 		mavlink_ftp.cpp
+		mavlink_ftp_param.cpp
 		mavlink_log_handler.cpp
 		mavlink_main.cpp
 		mavlink_messages.cpp
@@ -128,7 +129,6 @@ px4_add_module(
 		module.yaml
 		mavlink_params.yaml
 	DEPENDS
-		adsb
 		airspeed
 		component_general_json # for checksums.h
 		dataman_client
@@ -147,11 +147,31 @@ px4_add_module(
 	UNITY_BUILD
 	)
 
+if(CONFIG_BOARD_HAS_RID_EEPROM)
+	target_link_libraries(modules__mavlink PRIVATE open_drone_id)
+endif()
+
 if(CONFIG_DRIVERS_SERIALPASSTHROUGH)
 	target_link_libraries(modules__mavlink PRIVATE drivers__serialpassthrough)
 endif()
 
+target_link_libraries(modules__mavlink PRIVATE failure_injection)
+
 px4_add_unit_gtest(SRC MavlinkStatustextHandlerTest.cpp
+	INCLUDES
+		${MAVLINK_LIBRARY_DIR}
+		${MAVLINK_LIBRARY_DIR}/${CONFIG_MAVLINK_DIALECT}
+		${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT_UAVIONIX}
+	COMPILE_FLAGS
+		-Wno-address-of-packed-member # TODO: fix in c_library_v2
+		-Wno-cast-align # TODO: fix
+	LINKLIBS
+		modules__mavlink
+	)
+
+px4_add_unit_gtest(SRC MavlinkFtpParamTest.cpp EXTRA_SRCS mavlink_ftp_param.cpp)
+
+px4_add_functional_gtest(SRC MavlinkMissionManagerTest.cpp
 	INCLUDES
 		${MAVLINK_LIBRARY_DIR}
 		${MAVLINK_LIBRARY_DIR}/${CONFIG_MAVLINK_DIALECT}

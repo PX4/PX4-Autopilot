@@ -206,8 +206,6 @@
 #define HW_INFO_INIT_PREFIX    "ARKV6S"
 
 #define BOARD_NUM_SPI_CFG_HW_VERSIONS 1
-//                 Base/FMUM
-#define ARKV6S_0   HW_FMUM_ID(0x0) // ARKV6S,     Sensor Set  Rev 0
 
 #define UAVCAN_NUM_IFACES_RUNTIME  1
 
@@ -303,11 +301,6 @@
 #define HRT_PPM_CHANNEL         /* T8C1 */  1  /* use capture/compare channel 1 */
 #define GPIO_PPM_IN             /* PI5 T8C1 */ GPIO_TIM8_CH1IN_2
 
-/* Input Capture Channels. */
-#define INPUT_CAP1_TIMER                  1
-#define INPUT_CAP1_CHANNEL     /* T1C2 */ 2
-#define GPIO_INPUT_CAP1        /*  PE11 */ GPIO_TIM1_CH2IN
-
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2 */
 #define PWMIN_TIMER                       4
 #define PWMIN_TIMER_CHANNEL    /* T4C2 */ 2
@@ -321,11 +314,11 @@
 #define GPIO_nSAFETY_SWITCH_LED_OUT_INIT   /* PD10 */ (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTD|GPIO_PIN10)
 #define GPIO_nSAFETY_SWITCH_LED_OUT        /* PD10 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN10)
 
-/* Enable the FMU to control it if there is no px4io fixme:This should be BOARD_SAFETY_LED(__ontrue) */
+/* Enable the FMU to control it if there is no px4io */
 #define GPIO_LED_SAFETY GPIO_nSAFETY_SWITCH_LED_OUT
 
 #define GPIO_SAFETY_SWITCH_IN              /* PF5 */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTF|GPIO_PIN5)
-/* Enable the FMU to use the switch it if there is no px4io fixme:This should be BOARD_SAFTY_BUTTON() */
+/* Enable the FMU to use the switch if there is no px4io */
 #define GPIO_BTN_SAFETY GPIO_SAFETY_SWITCH_IN /* Enable the FMU to control it if there is no px4io */
 
 /* Power switch controls ******************************************************/
@@ -400,9 +393,6 @@
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
 
-/* This board has 4 DMA channels available for bidirectional dshot */
-#define BOARD_DMA_NUM_DSHOT_CHANNELS 4
-
 /* This board provides the board_on_reset interface */
 
 #define BOARD_HAS_ON_RESET 1
@@ -450,9 +440,6 @@
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
-
-#define PX4_I2C_BUS_MTD      4,5
-
 
 #define BOARD_NUM_IO_TIMERS  4
 #define BOARD_SPIX_SYNC_FREQ 32000
