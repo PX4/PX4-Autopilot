@@ -811,7 +811,7 @@ transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason, bool f
 		// disarm (flight time, learned sensor biases) so only the log file is closed on the SD card.
 		param_control_autosave(false);
 		_kill_param_save_paused_until = _last_disarmed_timestamp + KILL_PARAM_SAVE_PAUSE;
-		mavlink_log_info(&_mavlink_log_pub, "Kill: parameter saving paused	");
+		mavlink_log_info(&_mavlink_log_pub, "Kill: parameter saving paused\t");
 	}
 
 	_status_changed = true;
