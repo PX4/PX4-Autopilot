@@ -126,8 +126,12 @@ static constexpr float DT = 0.02f;  // Simulation time step [s]
 // and altitude) which in theory should be 0. Does not need to equal DT, but if
 // the only source of error is euler discretisation, then the error should scale
 // linearly with DT (first order method).
-static constexpr float MAX_NUMERICAL_ERR_PER_DT = 1.0f;
+static constexpr float MAX_NUMERICAL_ERR_PER_DT = 0.5f;
 static constexpr float MAX_NUMERICAL_ERR = MAX_NUMERICAL_ERR_PER_DT * DT;
+
+// Without airspeed feedback the airspeed is open loop, and its discretisation
+// error is not corrected.
+static constexpr float MAX_NUMERICAL_ERR_OPENLOOP = 2.f * MAX_NUMERICAL_ERR;
 
 // Tolerance for settled tracking errors which do not go to zero with smaller DT
 // (but which do go to zero as time progresses). Choose settling time so the
@@ -617,11 +621,11 @@ TEST_F(TECSControlClosedLoopTest, AirspeedlessAltitudeStepHalfFeedforward)
 		for (int i = 0; i < 30; i++) {
 			run(1.f);
 			const float expected_error = step * expf(-(_t - t_step) * _params.altitude_error_gain);
-			EXPECT_NEAR(_alt_sp - _state.h, expected_error, MAX_NUMERICAL_ERR) << "at t=" << _t << " s";
+			EXPECT_NEAR(_alt_sp - _state.h, expected_error, MAX_NUMERICAL_ERR_OPENLOOP) << "at t=" << _t << " s";
 		}
 	}
 
 	// The throttle feedforward funds the climb exactly, so the open loop airspeed does not move
-	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_NUMERICAL_ERR) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
-	EXPECT_LT(_sim_stats.max_pitch_integ_norm, MAX_NUMERICAL_ERR);
+	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_NUMERICAL_ERR_OPENLOOP) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
+	EXPECT_LT(_sim_stats.max_pitch_integ_norm, MAX_NUMERICAL_ERR_OPENLOOP);
 }
