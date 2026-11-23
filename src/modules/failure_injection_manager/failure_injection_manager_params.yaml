@@ -100,6 +100,156 @@ parameters:
         min: 0
         max: 65535
         reboot_required: true
+      SYS_FAIL_RC_INSL:
+        description:
+          short: Instances failed by the RC switch in the low position
+          long: |-
+            Bitmask of instances of SYS_FAIL_RC_UNIT failed while the SYS_FAIL_RC_SRC
+            input is low (below -0.5), for a 3-position switch. SYS_FAIL_RC_INST is
+            used in the high position, and the middle position injects nothing.
+            0 = the low position injects nothing.
+        type: bitmask
+        bit:
+          0: Instance 1
+          1: Instance 2
+          2: Instance 3
+          3: Instance 4
+          4: Instance 5
+          5: Instance 6
+          6: Instance 7
+          7: Instance 8
+          8: Instance 9
+          9: Instance 10
+          10: Instance 11
+          11: Instance 12
+          12: Instance 13
+          13: Instance 14
+          14: Instance 15
+          15: Instance 16
+        default: 0
+        min: 0
+        max: 65535
+        reboot_required: true
+      SYS_FAIL_RC2_SRC:
+        description:
+          short: RC aux input of the second failure switch
+          long: |-
+            Second switch that injects SYS_FAIL_RC_MODE on SYS_FAIL_RC_UNIT:
+            SYS_FAIL_RC2_HI in the high position, SYS_FAIL_RC2_LO in the low position,
+            nothing in the middle. Mapped via RC_MAP_AUXn and gated by SYS_FAILURE_EN.
+        type: enum
+        min: 0
+        max: 6
+        default: 0
+        reboot_required: true
+        values:
+          0: Disabled
+          1: AUX1
+          2: AUX2
+          3: AUX3
+          4: AUX4
+          5: AUX5
+          6: AUX6
+      SYS_FAIL_RC2_HI:
+        description:
+          short: Instances failed by the second switch in the high position
+          long: |-
+            Bitmask of instances of SYS_FAIL_RC_UNIT (bit 0 = instance 1).
+            0 = the high position injects nothing.
+        type: bitmask
+        bit:
+          0: Instance 1
+          1: Instance 2
+          2: Instance 3
+          3: Instance 4
+          4: Instance 5
+          5: Instance 6
+          6: Instance 7
+          7: Instance 8
+        default: 0
+        min: 0
+        max: 65535
+        reboot_required: true
+      SYS_FAIL_RC2_LO:
+        description:
+          short: Instances failed by the second switch in the low position
+          long: |-
+            Bitmask of instances of SYS_FAIL_RC_UNIT (bit 0 = instance 1).
+            0 = the low position injects nothing.
+        type: bitmask
+        bit:
+          0: Instance 1
+          1: Instance 2
+          2: Instance 3
+          3: Instance 4
+          4: Instance 5
+          5: Instance 6
+          6: Instance 7
+          7: Instance 8
+        default: 0
+        min: 0
+        max: 65535
+        reboot_required: true
+      SYS_FAIL_RC3_SRC:
+        description:
+          short: RC aux input of the third failure switch
+          long: |-
+            Third switch that injects SYS_FAIL_RC_MODE on SYS_FAIL_RC_UNIT:
+            SYS_FAIL_RC3_HI in the high position, SYS_FAIL_RC3_LO in the low position,
+            nothing in the middle. Mapped via RC_MAP_AUXn and gated by SYS_FAILURE_EN.
+        type: enum
+        min: 0
+        max: 6
+        default: 0
+        reboot_required: true
+        values:
+          0: Disabled
+          1: AUX1
+          2: AUX2
+          3: AUX3
+          4: AUX4
+          5: AUX5
+          6: AUX6
+      SYS_FAIL_RC3_HI:
+        description:
+          short: Instances failed by the third switch in the high position
+          long: |-
+            Bitmask of instances of SYS_FAIL_RC_UNIT (bit 0 = instance 1).
+            0 = the high position injects nothing.
+        type: bitmask
+        bit:
+          0: Instance 1
+          1: Instance 2
+          2: Instance 3
+          3: Instance 4
+          4: Instance 5
+          5: Instance 6
+          6: Instance 7
+          7: Instance 8
+        default: 0
+        min: 0
+        max: 65535
+        reboot_required: true
+      SYS_FAIL_RC3_LO:
+        description:
+          short: Instances failed by the third switch in the low position
+          long: |-
+            Bitmask of instances of SYS_FAIL_RC_UNIT (bit 0 = instance 1).
+            0 = the low position injects nothing.
+        type: bitmask
+        bit:
+          0: Instance 1
+          1: Instance 2
+          2: Instance 3
+          3: Instance 4
+          4: Instance 5
+          5: Instance 6
+          6: Instance 7
+          7: Instance 8
+        default: 0
+        min: 0
+        max: 65535
+        reboot_required: true
       SYS_FAIL_GPS_WRG:
         description:
           short: GPS Wrong-failure fix type
