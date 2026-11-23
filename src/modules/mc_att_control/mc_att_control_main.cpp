@@ -46,6 +46,7 @@
 #include "mc_att_control.hpp"
 
 #include <drivers/drv_hrt.h>
+#include <lib/geo/geo.h>
 #include <mathlib/math/Limits.hpp>
 #include <mathlib/math/Functions.hpp>
 #include <Sticks.hpp>
@@ -141,6 +142,55 @@ MulticopterAttitudeControl::throttle_curve(float throttle_stick_input)
 	return math::min(thrust, _manual_throttle_maximum.getState());
 }
 
+float
+MulticopterAttitudeControl::limit_thrust_at_ceiling(float thrust, const Quatf &q, float dt)
+{
+	// With MPC_HAGL_MAX set, the stick thrust is capped by a climb-rate limiter: at most MPC_Z_VEL_MAX_UP,
+	// tapering to zero at the ceiling, so in Stabilized the pilot can neither shoot up nor climb through it.
+	const float ceiling = _param_mpc_hagl_max.get();
+
+	if (!_vehicle_control_mode.flag_armed) {
+		_ceiling_integral = 0.f;
+		_ceiling_hover = NAN;
+	}
+
+	// Distance sensor height with sudden jumps (reflections while tilted) filtered out, or without a
+	// distance sensor (EKF2_RNG_CTRL 0) the estimated height above the arming point
+	const float height = (_param_ekf2_rng_ctrl.get() == 0) ? _armed_height.get() : _robust_height.get();
+
+	if (ceiling < FLT_EPSILON || !PX4_ISFINITE(height) || !PX4_ISFINITE(_vz)) {
+		return thrust;
+	}
+
+	// Allowed climb rate minus the measured one (vz is positive down)
+	const float climb_rate_max = math::min(_param_mpc_z_vel_max_up.get(), _param_mpc_z_p.get() * (ceiling - height));
+	const float climb_rate_error = climb_rate_max + _vz;
+	// When the hover thrust changes (e.g. the estimator becomes valid), rescale the integral so the
+	// thrust it already compensates stays the same, otherwise the correction would be applied twice
+	const float hover = _hover_thrust_slew_rate.getState();
+
+	if (PX4_ISFINITE(_ceiling_hover) && (_ceiling_hover > .01f) && (hover > .01f)) {
+		_ceiling_integral = math::constrain(CONSTANTS_ONE_G * (_ceiling_hover * (1.f + _ceiling_integral / CONSTANTS_ONE_G)
+						    / hover - 1.f), -.5f * CONSTANTS_ONE_G, .5f * CONSTANTS_ONE_G);
+	}
+
+	_ceiling_hover = hover;
+
+	const float acceleration = _param_mpc_z_vel_p_acc.get() * climb_rate_error + _ceiling_integral;
+	// Only the vertical component of the thrust lifts: scale the cap with the tilt (body z vs vertical)
+	const float cos_tilt = math::max(1.f - 2.f * (q(1) * q(1) + q(2) * q(2)), .5f);
+	const float thrust_cap = hover * (1.f + acceleration / CONSTANTS_ONE_G) / cos_tilt;
+
+	if (thrust <= thrust_cap) {
+		return thrust;
+	}
+
+	// While limiting, the integral corrects a wrong hover thrust so the vehicle settles at the ceiling
+	_ceiling_integral = math::constrain(_ceiling_integral + _param_mpc_z_vel_i_acc.get() * climb_rate_error * dt,
+					    -.5f * CONSTANTS_ONE_G, .5f * CONSTANTS_ONE_G);
+	return math::max(thrust_cap, _manual_throttle_minimum.getState());
+}
+
 void
 MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt)
 {
@@ -206,7 +256,7 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt)
 
 	q_sp.copyTo(attitude_setpoint.q_d);
 
-	attitude_setpoint.thrust_body[2] = -throttle_curve(_manual_control_setpoint.throttle);
+	attitude_setpoint.thrust_body[2] = -limit_thrust_at_ceiling(throttle_curve(_manual_control_setpoint.throttle), q, dt);
 
 	attitude_setpoint.timestamp = hrt_absolute_time();
 	_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);
@@ -297,6 +347,12 @@ MulticopterAttitudeControl::Run()
 
 			if (_vehicle_local_position_sub.copy(&vehicle_local_position)) {
 				_unaided_heading = vehicle_local_position.unaided_heading;
+				_vz = vehicle_local_position.v_z_valid ? vehicle_local_position.vz : NAN;
+				_robust_height.update(vehicle_local_position.dist_bottom_valid ? vehicle_local_position.dist_bottom : NAN,
+						      _vz, vehicle_local_position.timestamp_sample);
+				_armed_height.update(vehicle_local_position.z, vehicle_local_position.z_valid,
+						     vehicle_local_position.z_reset_counter, vehicle_local_position.delta_z,
+						     _vehicle_control_mode.flag_armed);
 			}
 		}
 

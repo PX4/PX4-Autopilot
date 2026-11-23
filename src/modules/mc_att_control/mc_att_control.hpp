@@ -56,6 +56,7 @@
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
+#include <lib/robust_height/RobustHeight.hpp>
 #include <lib/slew_rate/SlewRate.hpp>
 #include <lib/stick_yaw/StickYaw.hpp>
 
@@ -92,6 +93,11 @@ private:
 	void parameters_updated();
 
 	float throttle_curve(float throttle_stick_input);
+
+	/**
+	 * Cap the Stabilized collective thrust below the MPC_HAGL_MAX ceiling (distance sensor height)
+	 */
+	float limit_thrust_at_ceiling(float thrust, const matrix::Quatf &q, float dt);
 
 	/**
 	 * Generate & publish an attitude setpoint from stick inputs
@@ -131,6 +137,12 @@ private:
 	float _yaw_setpoint_stabilized{0.f};
 	float _unaided_heading{NAN}; // initialized NAN to not distract heading lock when local position never published
 	float _man_tilt_max{0.f};			/**< maximum tilt allowed for manual flight [rad] */
+
+	RobustHeight _robust_height;			/**< distance sensor height without sudden jumps */
+	ArmedHeight _armed_height;			/**< height above the arming point, without a distance sensor */
+	float _vz{NAN};					/**< vertical velocity (down positive), NAN if invalid [m/s] */
+	float _ceiling_integral{0.f};			/**< climb-rate limiter integral [m/s^2] */
+	float _ceiling_hover{NAN};			/**< hover thrust the ceiling integral refers to */
 
 	SlewRate<float> _manual_throttle_minimum{0.f}; ///< 0 when landed and ramped to MPC_MANTHR_MIN in air
 	SlewRate<float> _manual_throttle_maximum{0.f}; ///< 0 when disarmed ramped to 1 when spooled up
@@ -173,6 +185,12 @@ private:
 		(ParamFloat<px4::params::MPC_THR_MAX>) _param_mpc_thr_max,
 		(ParamFloat<px4::params::MPC_THR_HOVER>) _param_mpc_thr_hover,
 		(ParamInt<px4::params::MPC_THR_CURVE>) _param_mpc_thr_curve,
+		(ParamFloat<px4::params::MPC_HAGL_MAX>) _param_mpc_hagl_max,
+		(ParamFloat<px4::params::MPC_Z_P>) _param_mpc_z_p,
+		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _param_mpc_z_vel_max_up,
+		(ParamFloat<px4::params::MPC_Z_VEL_P_ACC>) _param_mpc_z_vel_p_acc,
+		(ParamFloat<px4::params::MPC_Z_VEL_I_ACC>) _param_mpc_z_vel_i_acc,
+		(ParamInt<px4::params::EKF2_RNG_CTRL>) _param_ekf2_rng_ctrl,
 
 		(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time
 	)
