@@ -192,14 +192,16 @@ struct Data {
 	uint8_t z_msb;
 };
 
+static constexpr size_t COMBINED_FRAME_SIZE = HEADER_SIZE + 2 * sizeof(Data);
+
 
 enum class Header : uint8_t {
+	empty_frame                 = 0b10000000,
 	sensor_accel_frame          = 0b10000100,
 	sensor_gyro_frame           = 0b10001000,
 	skip_frame                  = 0b01000000,
 	sensor_time_frame           = 0b01000100,
 	FIFO_input_config_frame     = 0b01001000,
-	sample_drop_frame           = 0b01010000,
 };
 
 } // namespace FIFO

@@ -377,14 +377,14 @@ void BMI270::RunImpl()
 
 			PX4_DEBUG("reading from FIFO");
 
-			hrt_abstime timestamp_sample = now;
+			const hrt_abstime drdy_timestamp_sample = _data_ready_interrupt_enabled ? _drdy_timestamp_sample.fetch_and(0) : 0;
+			const hrt_abstime fifo_now = hrt_absolute_time();
+			hrt_abstime timestamp_sample = fifo_now;
 
 			if (_data_ready_interrupt_enabled) {
 				PX4_DEBUG("data ready interrupt enabled");
-				// scheduled from interrupt if _drdy_timestamp_sample was set as expected
-				const hrt_abstime drdy_timestamp_sample = _drdy_timestamp_sample.fetch_and(0);
 
-				if ((now - drdy_timestamp_sample) < _fifo_empty_interval_us) {
+				if ((drdy_timestamp_sample != 0) && ((fifo_now - drdy_timestamp_sample) < _fifo_empty_interval_us)) {
 					timestamp_sample = drdy_timestamp_sample;
 
 				} else {
@@ -401,38 +401,19 @@ void BMI270::RunImpl()
 			const uint16_t fifo_count = FIFOReadCount();
 
 			// more bytes than what the buffer takes so an overflow
-			if (fifo_count >= FIFO::SIZE) {
+			if (fifo_count >= FIFO::SIZE || fifo_count > sizeof(FIFOReadBuffer::f)) {
 				FIFOReset();
 				perf_count(_fifo_overflow_perf);
 
 			} else if (fifo_count == 0) {
 				perf_count(_fifo_empty_perf);
 
-			} else {
+			} else if (FIFORead(timestamp_sample, fifo_now, fifo_count)) {
+				success = true;
 
-				uint8_t samples = fifo_count / sizeof(FIFO::Data);
-
-				// tolerate minor jitter, leave sample to next iteration if behind by only 1
-				if (samples == _fifo_gyro_samples + 1) {
-					timestamp_sample -= static_cast<int>(FIFO_SAMPLE_DT);
-					samples--;
+				if (_failure_count > 0) {
+					_failure_count--;
 				}
-
-				if (samples > FIFO_MAX_SAMPLES) {
-					// not technically an overflow, but more samples than we expected or can publish
-					FIFOReset();
-					perf_count(_fifo_overflow_perf);
-
-				} else if (samples >= _fifo_gyro_samples) {
-					if (FIFORead(timestamp_sample, fifo_count)) {
-						success = true;
-
-						if (_failure_count > 0) {
-							_failure_count--;
-						}
-					}
-				}
-
 			}
 
 			if (!success) {
@@ -531,7 +512,7 @@ void BMI270::ConfigureFIFOWatermark(uint8_t samples)
 	// FIFO_WTM: 13 bit FIFO watermark level value
 	// unit of the fifo watermark is one byte
 	// each combined accel+gyro frame is 1 header byte + 6 gyro bytes + 6 accel bytes
-	const uint16_t fifo_watermark_threshold = samples * (2 * sizeof(FIFO::Data) + FIFO::HEADER_SIZE);
+	const uint16_t fifo_watermark_threshold = samples * FIFO::COMBINED_FRAME_SIZE;
 
 	for (auto &r : _register_cfg) {
 		if (r.reg == Register::FIFO_WTM_0) {
@@ -541,7 +522,7 @@ void BMI270::ConfigureFIFOWatermark(uint8_t samples)
 
 		} else if (r.reg == Register::FIFO_WTM_1) {
 			// fifo_water_mark[12:8]
-			r.set_bits = (fifo_watermark_threshold & 0x0700) >> 8;
+			r.set_bits = (fifo_watermark_threshold & 0x1F00) >> 8;
 			r.clear_bits = ~r.set_bits;
 		}
 	}
@@ -730,8 +711,11 @@ void BMI270::ProcessAccel(sensor_accel_fifo_s *accel, FIFO::Data *frame)
 }
 
 
-bool BMI270::FIFORead(const hrt_abstime &timestamp_sample, uint16_t fifo_bytes)
+bool BMI270::FIFORead(const hrt_abstime &timestamp_sample, const hrt_abstime &now, uint16_t fifo_bytes)
 {
+	if (fifo_bytes == 0) {
+		return false;
+	}
 
 	uint8_t err = RegisterRead(Register::ERR_REG);
 
@@ -741,6 +725,12 @@ bool BMI270::FIFORead(const hrt_abstime &timestamp_sample, uint16_t fifo_bytes)
 	}
 
 	FIFOReadBuffer buffer{};
+
+	if (fifo_bytes > sizeof(buffer.f)) {
+		FIFOReset();
+		perf_count(_fifo_overflow_perf);
+		return false;
+	}
 
 	// Reads from the FIFO_DATA register as much data as is available,
 	// plus 2 bytes for the sent command and dummy byte.
@@ -758,95 +748,162 @@ bool BMI270::FIFORead(const hrt_abstime &timestamp_sample, uint16_t fifo_bytes)
 	gyro_buffer.timestamp_sample = timestamp_sample;
 	gyro_buffer.dt = FIFO_SAMPLE_DT;
 
-	uint8_t *data_buffer = (uint8_t *)&buffer.f[0];
+	uint8_t *data_buffer = buffer.f;
 	unsigned fifo_buffer_index = 0; // start of buffer
+	bool parse_error = false;
+	bool sample_overflow = false;
 
 	while (fifo_buffer_index < fifo_bytes) {
-		// look for header signature (first 6 bits) followed by two bits indicating the status of INT1 and INT2
-		switch (data_buffer[fifo_buffer_index]) {
-		case ((uint8_t)FIFO::Header::sensor_accel_frame | (uint8_t)FIFO::Header::sensor_gyro_frame): {
-				// Move past header and padding for Aux
-				fifo_buffer_index += 1;
-				BMI270::ProcessGyro(&gyro_buffer, (FIFO::Data *)&data_buffer[fifo_buffer_index]);
-				// Move forward to next record
-				fifo_buffer_index += 6;
-				BMI270::ProcessAccel(&accel_buffer, (FIFO::Data *)&data_buffer[fifo_buffer_index]);
-				// Move forward to next record
-				fifo_buffer_index += 6;
-			}
+		const uint8_t header = data_buffer[fifo_buffer_index];
+
+		if (header == static_cast<uint8_t>(FIFO::Header::empty_frame)) {
 			break;
 
-		case (uint8_t)FIFO::Header::sensor_gyro_frame: {
-				// Move past header.
-				fifo_buffer_index += 1;
-				BMI270::ProcessGyro(&gyro_buffer, (FIFO::Data *)&data_buffer[fifo_buffer_index]);
-				// Move forward to next record
-				fifo_buffer_index += 6;
-			}
-			break;
-
-		case (uint8_t)FIFO::Header::sensor_accel_frame: {
-				// Move past header.
-				fifo_buffer_index += 1;
-				BMI270::ProcessAccel(&accel_buffer, (FIFO::Data *)&data_buffer[fifo_buffer_index]);
-				// Move forward to next record
-				fifo_buffer_index += 6;
-			}
-			break;
-
-		case (uint8_t)FIFO::Header::skip_frame:
+		} else if (header == static_cast<uint8_t>(FIFO::Header::skip_frame)) {
 			// Skip Frame
 			// Frame length: 2 bytes (1 byte header + 1 byte payload)
+			if (fifo_buffer_index + 2 > fifo_bytes) {
+				parse_error = true;
+				break;
+			}
+
 			PX4_DEBUG("Skip Frame");
 			fifo_buffer_index += 2;
-			break;
 
-		case (uint8_t)FIFO::Header::sensor_time_frame:
+		} else if (header == static_cast<uint8_t>(FIFO::Header::sensor_time_frame)) {
 			// Sensortime Frame
 			// Frame length: 4 bytes (1 byte header + 3 bytes payload)
+			if (fifo_buffer_index + 4 > fifo_bytes) {
+				parse_error = true;
+				break;
+			}
+
 			PX4_DEBUG("Sensortime Frame");
 			fifo_buffer_index += 4;
-			break;
 
-		case (uint8_t)FIFO::Header::FIFO_input_config_frame:
+		} else if (header == static_cast<uint8_t>(FIFO::Header::FIFO_input_config_frame)) {
 			// FIFO input config Frame
-			// Frame length: 2 bytes (1 byte header + 1 byte payload)
+			// Frame length: 5 bytes (1 byte header + 4 bytes payload)
+			if (fifo_buffer_index + 5 > fifo_bytes) {
+				parse_error = true;
+				break;
+			}
+
 			PX4_DEBUG("FIFO input config Frame");
-			fifo_buffer_index += 2;
-			break;
+			fifo_buffer_index += 5;
 
-		case (uint8_t)FIFO::Header::sample_drop_frame:
-			// Sample drop Frame
-			// Frame length: 2 bytes (1 byte header + 1 byte payload)
-			PX4_DEBUG("Sample drop Frame");
-			fifo_buffer_index += 2;
-			break;
+		} else {
+			// look for header signature (first 6 bits) followed by two fh_ext INT1/INT2 tag bits
+			switch (header & 0xfc) {
+			case ((uint8_t)FIFO::Header::sensor_accel_frame | (uint8_t)FIFO::Header::sensor_gyro_frame): {
+					if (fifo_buffer_index + FIFO::COMBINED_FRAME_SIZE > fifo_bytes) {
+						parse_error = true;
+						break;
+					}
 
-		default:
-			fifo_buffer_index++;
-			break;
+					if (gyro_buffer.samples >= FIFO_MAX_SAMPLES
+					    || accel_buffer.samples >= FIFO_MAX_SAMPLES) {
+						sample_overflow = true;
+						break;
+					}
+
+					// Move past header and padding for Aux
+					fifo_buffer_index += 1;
+					BMI270::ProcessGyro(&gyro_buffer, (FIFO::Data *)&data_buffer[fifo_buffer_index]);
+					// Move forward to next record
+					fifo_buffer_index += 6;
+					BMI270::ProcessAccel(&accel_buffer, (FIFO::Data *)&data_buffer[fifo_buffer_index]);
+					// Move forward to next record
+					fifo_buffer_index += 6;
+				}
+				break;
+
+			case (uint8_t)FIFO::Header::sensor_gyro_frame: {
+					if (fifo_buffer_index + 7 > fifo_bytes) {
+						parse_error = true;
+						break;
+					}
+
+					if (gyro_buffer.samples >= FIFO_MAX_SAMPLES) {
+						sample_overflow = true;
+						break;
+					}
+
+					// Move past header.
+					fifo_buffer_index += 1;
+					BMI270::ProcessGyro(&gyro_buffer, (FIFO::Data *)&data_buffer[fifo_buffer_index]);
+					// Move forward to next record
+					fifo_buffer_index += 6;
+				}
+				break;
+
+			case (uint8_t)FIFO::Header::sensor_accel_frame: {
+					if (fifo_buffer_index + 7 > fifo_bytes) {
+						parse_error = true;
+						break;
+					}
+
+					if (accel_buffer.samples >= FIFO_MAX_SAMPLES) {
+						sample_overflow = true;
+						break;
+					}
+
+					// Move past header.
+					fifo_buffer_index += 1;
+					BMI270::ProcessAccel(&accel_buffer, (FIFO::Data *)&data_buffer[fifo_buffer_index]);
+					// Move forward to next record
+					fifo_buffer_index += 6;
+				}
+				break;
+
+			default:
+				PX4_DEBUG("unexpected FIFO header: 0x%02x", header);
+				parse_error = true;
+				break;
+			}
+
+			if (parse_error || sample_overflow) {
+				break;
+			}
 		}
 	}
 
-	_px4_accel.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
-				   perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
+	if (sample_overflow) {
+		FIFOReset();
+		perf_count(_fifo_overflow_perf);
 
+	} else if (parse_error) {
+		FIFOReset();
+		perf_count(_bad_transfer_perf);
+	}
 
-	if ((accel_buffer.samples == 0) && (gyro_buffer.samples == 0)) {
+	const uint64_t error_count = perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
+				     perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf);
+	_px4_accel.set_error_count(error_count);
+	_px4_gyro.set_error_count(error_count);
 
+	if (parse_error || sample_overflow || ((accel_buffer.samples == 0) && (gyro_buffer.samples == 0))) {
 		return false;
-
-	} else {
-		if (accel_buffer.samples > 0) {
-			_px4_accel.updateFIFO(accel_buffer);
-		}
-
-		if (gyro_buffer.samples > 0) {
-			_px4_gyro.updateFIFO(gyro_buffer);
-		}
-
-		return true;
 	}
+
+	const int32_t paired_samples = math::min(accel_buffer.samples, gyro_buffer.samples);
+
+	if ((timestamp_sample < now) && (paired_samples > _fifo_gyro_samples)) {
+		const hrt_abstime extra_dt = static_cast<hrt_abstime>(paired_samples - _fifo_gyro_samples) * (1'000'000 / RATE);
+		const hrt_abstime adjusted_timestamp = math::min(now, timestamp_sample + extra_dt);
+		accel_buffer.timestamp_sample = adjusted_timestamp;
+		gyro_buffer.timestamp_sample = adjusted_timestamp;
+	}
+
+	if (accel_buffer.samples > 0) {
+		_px4_accel.updateFIFO(accel_buffer);
+	}
+
+	if (gyro_buffer.samples > 0) {
+		_px4_gyro.updateFIFO(gyro_buffer);
+	}
+
+	return true;
 
 }
 
