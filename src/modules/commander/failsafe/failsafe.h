@@ -175,7 +175,7 @@ private:
 
 	static ActionOptions fromNavDllOrRclActParam(int param_value);
 
-	static ActionOptions fromGfActParam(int param_value, bool force);
+	static ActionOptions fromGfActParam(int param_value);
 	static ActionOptions fromActuatorFailureActParam(int param_value);
 	static ActionOptions fromBatteryWarningActParam(int param_value, uint8_t battery_warning);
 	static ActionOptions fromQuadchuteActParam(int param_value);
