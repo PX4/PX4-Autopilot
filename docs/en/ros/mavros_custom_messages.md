@@ -134,6 +134,7 @@ Follow _Source Installation_ instructions from [mavlink/mavros](https://github.c
 
    ```cpp
    ...
+   #include <uORB/Publication.hpp>
    #include <uORB/topics/key_command.h>
    ...
    class MavlinkReceiver
@@ -142,7 +143,7 @@ Follow _Source Installation_ instructions from [mavlink/mavros](https://github.c
    private:
        void handle_message_key_command(mavlink_message_t *msg);
    ...
-       orb_advert_t _key_command_pub{nullptr};
+       uORB::Publication<key_command_s> _key_command_pub{ORB_ID(key_command)};
    }
    ```
 
@@ -166,17 +167,10 @@ Follow _Source Installation_ instructions from [mavlink/mavros](https://github.c
        mavlink_key_command_t man;
        mavlink_msg_key_command_decode(msg, &man);
 
-   struct key_command_s key = {};
-
-       key.timestamp = hrt_absolute_time();
+       key_command_s key{};
        key.cmd = man.command;
-
-       if (_key_command_pub == nullptr) {
-           _key_command_pub = orb_advertise(ORB_ID(key_command), &key);
-
-       } else {
-           orb_publish(ORB_ID(key_command), _key_command_pub, &key);
-       }
+       key.timestamp = hrt_absolute_time();
+       _key_command_pub.publish(key);
    }
    ```
 
@@ -191,73 +185,102 @@ Follow _Source Installation_ instructions from [mavlink/mavros](https://github.c
    px4_add_module(
        MODULE modules__key_receiver
        MAIN key_receiver
-       STACK_MAIN 2500
-       STACK_MAX 4000
        SRCS
            key_receiver.cpp
        DEPENDS
-
+           px4_work_queue
        )
    ```
 
    -key_receiver.cpp
 
-   ```
-   #include <px4_platform_common/px4_config.h>
-   #include <px4_platform_common/tasks.h>
-   #include <px4_platform_common/posix.h>
-   #include <unistd.h>
-   #include <stdio.h>
-   #include <poll.h>
-   #include <string.h>
-   #include <math.h>
-
-   #include <uORB/uORB.h>
+   ```cpp
+   #include <px4_platform_common/log.h>
+   #include <px4_platform_common/module.h>
+   #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+   #include <uORB/SubscriptionCallback.hpp>
    #include <uORB/topics/key_command.h>
 
-   extern "C" __EXPORT int key_receiver_main(int argc, char **argv);
-
-   int key_receiver_main(int argc, char **argv)
+   class KeyReceiver : public ModuleBase, public px4::WorkItem
    {
-       int key_sub_fd = orb_subscribe(ORB_ID(key_command));
-       orb_set_interval(key_sub_fd, 200); // limit the update rate to 200ms
+   public:
+       static Descriptor desc;
 
-       px4_pollfd_struct_t fds[] = {
-           { .fd = key_sub_fd,   .events = POLLIN },
-       };
+       KeyReceiver() : WorkItem(MODULE_NAME, px4::wq_configurations::lp_default) {}
 
-       int error_counter = 0;
+       static int task_spawn(int argc, char *argv[]);
+       static int custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
+       static int print_usage(const char *reason = nullptr);
 
-      for (int i = 0; i < 10; i++)
+       void request_stop() override
        {
-           int poll_ret = px4_poll(fds, 1, 1000);
-
-           if (poll_ret == 0)
-           {
-               PX4_ERR("Got no data within a second");
-           }
-
-           else if (poll_ret < 0)
-           {
-               if (error_counter < 10 || error_counter % 50 == 0)
-               {
-                   PX4_ERR("ERROR return value from poll(): %d", poll_ret);
-               }
-
-               error_counter++;
-           }
-
-           else
-           {
-               if (fds[0].revents & POLLIN)
-               {
-                   struct key_command_s input;
-                   orb_copy(ORB_ID(key_command), key_sub_fd, &input);
-                   PX4_INFO("Received Char : %c", input.cmd);
-                }
-           }
+           ModuleBase::request_stop();
+           ScheduleNow(); // Run() is not scheduled while no key is pressed, so schedule it to exit
        }
+
+   private:
+       void Run() override;
+
+       // Schedules Run() whenever key_command is published
+       uORB::SubscriptionCallbackWorkItem _key_command_sub{this, ORB_ID(key_command)};
+   };
+
+   ModuleBase::Descriptor KeyReceiver::desc{task_spawn, custom_command, print_usage};
+
+   void KeyReceiver::Run()
+   {
+       if (should_exit()) {
+           _key_command_sub.unregisterCallback();
+           exit_and_cleanup(desc);
+           return;
+       }
+
+       key_command_s key;
+
+       if (_key_command_sub.update(&key)) {
+           PX4_INFO("Received Char : %c", key.cmd);
+       }
+   }
+
+   int KeyReceiver::task_spawn(int argc, char *argv[])
+   {
+       KeyReceiver *instance = new KeyReceiver();
+
+       if (instance == nullptr) {
+           PX4_ERR("alloc failed");
+           return PX4_ERROR;
+       }
+
+       desc.object.store(instance);
+       desc.task_id = task_id_is_work_queue;
+
+       if (!instance->_key_command_sub.registerCallback()) {
+           PX4_ERR("callback registration failed");
+           delete instance;
+           desc.object.store(nullptr);
+           desc.task_id = -1;
+           return PX4_ERROR;
+       }
+
+       return PX4_OK;
+   }
+
+   int KeyReceiver::print_usage(const char *reason)
+   {
+       if (reason) {
+           PX4_WARN("%s\n", reason);
+       }
+
+       PRINT_MODULE_USAGE_NAME("key_receiver", "template");
+       PRINT_MODULE_USAGE_COMMAND("start");
+       PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
        return 0;
+   }
+
+   extern "C" __EXPORT int key_receiver_main(int argc, char *argv[])
+   {
+       return ModuleBase::main(KeyReceiver::desc, argc, argv);
    }
    ```
 
@@ -272,6 +295,7 @@ Follow _Source Installation_ instructions from [mavlink/mavros](https://github.c
 
    ```
 
+   Start it with `key_receiver start`.
    For a more detailed explanation see the topic [Writing your first application](../modules/hello_sky.md).
 
 1. Lastly, add your module in the **default.px4board** file correspondent to your board in **PX4-Autopilot/boards/**.

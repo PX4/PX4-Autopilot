@@ -19,31 +19,30 @@ Here is a table that summarizes the mapping between MAVLink debug messages and u
 
 This tutorial shows how to send the MAVLink message `NAMED_VALUE_FLOAT` using the associated uORB topic `debug_key_value`.
 
-All required to set up a debug publication is this code snippet.
-First add the header file:
+Publishing a debug value works like publishing any other topic (see [First Application Tutorial](../modules/hello_sky.md#publishing-data)).
+First add the headers:
 
-```C
-#include <uORB/uORB.h>
-#include <uORB/topics/debug_key_value.h>
+```cpp
 #include <string.h>
+#include <drivers/drv_hrt.h>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/debug_key_value.h>
 ```
 
-Then advertise the debug value topic (one advertisement for different published names is sufficient).
-Put this in front of your main loop:
+Then add the publication as a member of your module class (one publication is sufficient for different published names):
 
-```C
-/* advertise debug value */
-struct debug_key_value_s dbg;
-strncpy(dbg.key, "velx", sizeof(dbg.key));
-dbg.value = 0.0f;
-orb_advert_t pub_dbg = orb_advertise(ORB_ID(debug_key_value), &dbg);
+```cpp
+uORB::Publication<debug_key_value_s> _debug_key_value_pub{ORB_ID(debug_key_value)};
 ```
 
-And sending in the main loop is even simpler:
+And publish the value wherever it is computed, for example in `Run()`:
 
-```C
-dbg.value = position[0];
-orb_publish(ORB_ID(debug_key_value), pub_dbg, &dbg);
+```cpp
+debug_key_value_s debug_key_value{};
+strncpy(debug_key_value.key, "velx", sizeof(debug_key_value.key));
+debug_key_value.value = position[0];
+debug_key_value.timestamp = hrt_absolute_time();
+_debug_key_value_pub.publish(debug_key_value);
 ```
 
 :::warning
@@ -59,47 +58,33 @@ The result in QGroundControl then looks like this on the real-time plot:
 
 The following code snippets show how to receive the `velx` debug variable that was sent in the previous tutorial.
 
-First, subscribe to the topic `debug_key_value`:
+First, add a subscription to the topic `debug_key_value` as a member of your module class.
+A `uORB::SubscriptionCallbackWorkItem` schedules the module every time a new value arrives (see [First Application Tutorial](../modules/hello_sky.md#subscribing-to-sensor-data)):
 
-```C
-#include <poll.h>
+```cpp
+#include <string.h>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/debug_key_value.h>
-
-int debug_sub_fd = orb_subscribe(ORB_ID(debug_key_value));
-[...]
+..
+uORB::SubscriptionCallbackWorkItem _debug_key_value_sub{this, ORB_ID(debug_key_value)};
 ```
 
-Then poll on the topic:
+Register the callback once when the module starts, for example in `task_spawn()`:
 
-```C
-[...]
-/* one could wait for multiple topics with this technique, just using one here */
-px4_pollfd_struct_t fds[] = {
-    { .fd = debug_sub_fd,   .events = POLLIN },
-};
-
-while (true) {
-    /* wait for debug_key_value for 1000 ms (1 second) */
-    int poll_ret = px4_poll(fds, 1, 1000);
-
-    [...]
+```cpp
+_debug_key_value_sub.registerCallback();
 ```
 
-When a new message is available on the `debug_key_value` topic, do not forget to filter it based on its key attribute in order to discard the messages with key different than `velx`:
+When a new message is available on the `debug_key_value` topic, `update()` copies it in `Run()`.
+Do not forget to filter it based on its key attribute in order to discard the messages with key different than `velx`:
 
-```C
-    [...]
-    if (fds[0].revents & POLLIN) {
-        /* obtained data for the first file descriptor */
-        struct debug_key_value_s dbg;
+```cpp
+debug_key_value_s debug_key_value;
 
-        /* copy data into local buffer */
-        orb_copy(ORB_ID(debug_key_value), debug_sub_fd, &dbg);
-
-        /* filter message based on its key attribute */
-        if (strcmp(_sub_debug_vect.get().key, "velx") == 0) {
-            PX4_INFO("velx:\t%8.4f", dbg.value);
-        }
-    }
+if (_debug_key_value_sub.update(&debug_key_value)) {
+	// filter message based on its key attribute
+	if (strncmp(debug_key_value.key, "velx", sizeof(debug_key_value.key)) == 0) {
+		PX4_INFO("velx: %8.4f", (double)debug_key_value.value);
+	}
 }
 ```

@@ -40,6 +40,46 @@ For example, for a message named `VelocityLimits` you would include `velocity_li
 
 In code you refer to the topic using its id, which in this example would be: `ORB_ID(velocity_limits)`.
 
+### Using Topics in C++
+
+Modules publish a topic with `uORB::Publication` and read it with `uORB::Subscription`, usually as class members:
+
+```cpp
+#include <drivers/drv_hrt.h>
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/velocity_limits.h>
+..
+	uORB::Publication<velocity_limits_s> _velocity_limits_pub{ORB_ID(velocity_limits)};
+	uORB::Subscription _velocity_limits_sub{ORB_ID(velocity_limits)};
+..
+	// Publish: the topic is advertised automatically on the first publication
+	velocity_limits_s velocity_limits{};
+	velocity_limits.horizontal_velocity = 5.f;
+	velocity_limits.timestamp = hrt_absolute_time();
+	_velocity_limits_pub.publish(velocity_limits);
+..
+	// Subscribe: update() copies the data only if there is a new sample
+	velocity_limits_s limits;
+
+	if (_velocity_limits_sub.update(&limits)) {
+		// use limits
+	}
+```
+
+Other subscription classes in [platforms/common/uORB](https://github.com/PX4/PX4-Autopilot/tree/main/platforms/common/uORB) add to this:
+
+- `uORB::SubscriptionCallbackWorkItem` schedules a work queue module every time the topic is published.
+  This is how a module reacts to new data without polling, as shown in the [First Application Tutorial](../modules/hello_sky.md).
+- `uORB::SubscriptionInterval` limits how often `update()` returns new data.
+- `uORB::SubscriptionMultiArray` subscribes to all instances of a [multi-instance](#multi-instance) topic.
+- `uORB::SubscriptionBlocking` waits for an update, for the few modules that run in a task of their own.
+
+::: info
+The C API in [uORB.h](https://github.com/PX4/PX4-Autopilot/blob/main/platforms/common/uORB/uORB.h) (`orb_subscribe()`, `orb_copy()`, `orb_advertise()` and `px4_poll()`) is used by infrastructure that waits for many topics in a thread of its own, for example the logger and the uXRCE-DDS client.
+New modules should use the C++ classes above.
+:::
+
 ## Message Definitions
 
 The message definition should start with a descriptive _comment_ that outlines its purpose (a comment starts with the `#` symbol and goes to the end of the line).
@@ -182,15 +222,16 @@ This is useful, for example, if the system has several sensors of the same type.
 This differs from [Multi-Topic Messages](#multi-topic-messages), where we create different topics that happen to have the same structure.
 :::
 
-A publisher can call `orb_advertise_multi` to create a new topic instance and get its instance index.
-A subscriber will then have to choose to which instance to subscribe to using `orb_subscribe_multi` (`orb_subscribe` subscribes to the first instance).
+Each `uORB::PublicationMulti` creates a new instance of its topic when it first publishes, and `get_instance()` returns its instance index.
+A subscriber chooses the instance with the second constructor argument, for example `uORB::Subscription _sensor_accel_sub{ORB_ID(sensor_accel), 1}` (the default is instance 0).
+`uORB::SubscriptionMultiArray` subscribes to all instances at once.
 
-Make sure not to mix `orb_advertise_multi` and `orb_advertise` for the same topic!
+Make sure not to mix `uORB::PublicationMulti` and `uORB::Publication` for the same topic!
 
 Destroying a `uORB::PublicationMulti` frees its instance for the next publisher.
 Destroying a `uORB::Publication` leaves the topic advertised with its last sample, because other publishers may share it.
 
-The full API is documented in [platforms/common/uORB/uORBManager.hpp](https://github.com/PX4/PX4-Autopilot/blob/main/platforms/common/uORB/uORBManager.hpp).
+The classes are documented in their headers in [platforms/common/uORB](https://github.com/PX4/PX4-Autopilot/tree/main/platforms/common/uORB).
 
 ## Listing Topics and Listening in
 
