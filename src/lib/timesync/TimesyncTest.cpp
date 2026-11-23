@@ -123,7 +123,7 @@ Result runScenario(const Scenario &scenario)
 
 void expectRecovery(const Result &result)
 {
-	EXPECT_LE(result.last_error_above_10ms_s, 180.0);
+	EXPECT_LE(result.last_error_above_10ms_s, 30.0);
 	EXPECT_LE(result.last_error_above_1ms_s, 300.0);
 }
 
