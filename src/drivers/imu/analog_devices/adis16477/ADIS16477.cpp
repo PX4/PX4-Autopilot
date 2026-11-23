@@ -341,13 +341,13 @@ ADIS16477::measure()
 	//  DATA_CNTR, Bits[15:8] + DATA_CNTR, Bits[7:0]
 	uint8_t *checksum_helper = (uint8_t *)&adis_report.diag_stat;
 
-	uint8_t checksum = 0;
+	uint16_t checksum = 0;
 
 	for (int i = 0; i < 18; i++) {
 		checksum += checksum_helper[i];
 	}
 
-	if (adis_report.checksum != checksum) {
+	if (checksum == 0 || adis_report.checksum != checksum) {
 		PX4_DEBUG("adis_report.checksum: %X vs calculated: %X", adis_report.checksum, checksum);
 
 		perf_count(_bad_transfers);
@@ -363,6 +363,10 @@ ADIS16477::measure()
 
 		return -EIO;
 	}
+
+	const uint64_t error_count = perf_event_count(_bad_transfers);
+	_px4_accel.set_error_count(error_count);
+	_px4_gyro.set_error_count(error_count);
 
 	// temperature 1 LSB = 0.1°C
 	const float temperature = adis_report.temp * 0.1f;

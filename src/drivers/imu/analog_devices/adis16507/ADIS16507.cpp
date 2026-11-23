@@ -81,6 +81,7 @@ void ADIS16507::Reset()
 	_state = STATE::RESET;
 	DataReadyInterruptDisable();
 	ScheduleClear();
+	ScheduleNow();
 }
 
 void ADIS16507::exit_and_cleanup()
@@ -130,8 +131,8 @@ bool ADIS16507::Configure()
 		RegisterWrite(r.reg, r.val);
 	}
 
-	// Wait for changes to apply
-	px4_usleep(SPI_STALL_PERIOD);
+	// Wait for MSC_CTRL changes to apply (datasheet 200 us update time)
+	px4_udelay(200);
 
 	// Check that all are configured
 	for (const auto &r : defaults) {
@@ -189,6 +190,7 @@ void ADIS16507::RunImpl()
 		GPIO_ADIS16507_RESET(0);
 #endif
 		_failure_count = 0;
+		_last_data_cntr = 65535;
 		_state = STATE::WAIT_FOR_RESET;
 		ScheduleDelayed(350_ms); // 255 ms Reset Recovery Time
 		break;
@@ -315,6 +317,48 @@ void ADIS16507::RunImpl()
 				return;
 			}
 
+			uint16_t checksum = 0;
+			uint8_t *checksum_helper = (uint8_t *)&buffer.diag_stat;
+
+			for (int i = 0; i < 18; i++) {
+				checksum += checksum_helper[i];
+			}
+
+			if (checksum == 0 || buffer.checksum != checksum) {
+				perf_count(_bad_checksum_perf);
+				_failure_count++;
+
+				if (_failure_count > 10) {
+					PX4_DEBUG("Consecutive failures!");
+					Reset();
+				}
+
+				// Don't publish or latch data_cntr if checksum fails
+				return;
+			}
+
+			// Check all Status/Error Flag Indicators (DIAG_STAT)
+			if (buffer.diag_stat != 0) {
+				perf_count(_bad_status_perf);
+				PX4_DEBUG("Error: DIAG_STAT: 0x%02x", buffer.diag_stat);
+				PrintErrorFlags(buffer.diag_stat);
+
+				if (buffer.diag_stat & Register::DIAG_STAT_BIT::Data_path_overrun) {
+					// Datasheet Table 11: initiate a reset on data path overrun
+					Reset();
+
+				} else {
+					_failure_count++;
+
+					if (_failure_count > 10) {
+						PX4_DEBUG("Consecutive failures!");
+						Reset();
+					}
+				}
+
+				return;
+			}
+
 			if (buffer.data_cntr == _last_data_cntr) {
 				// Don't publish if data counter is not incrementing
 				perf_count(_bad_data_cntr_perf);
@@ -331,26 +375,12 @@ void ADIS16507::RunImpl()
 
 			_last_data_cntr = buffer.data_cntr;
 
-			uint16_t checksum = 0;
-			uint8_t *checksum_helper = (uint8_t *)&buffer.diag_stat;
-
-			for (int i = 0; i < 18; i++) {
-				checksum += checksum_helper[i];
-			}
-
-			if (buffer.checksum != checksum) {
-				perf_count(_bad_checksum_perf);
-				// Don't publish if checksum fails
-				return;
-			}
-
-			// Check all Status/Error Flag Indicators (DIAG_STAT)
-			if (buffer.diag_stat != 0) {
-				perf_count(_bad_status_perf);
-				PX4_DEBUG("Error: DIAG_STAT: 0x%02x", buffer.diag_stat);
-				PrintErrorFlags(buffer.diag_stat);
-				return;
-			}
+			const uint64_t error_count = perf_event_count(_bad_transfer_perf)
+						     + perf_event_count(_bad_status_perf)
+						     + perf_event_count(_bad_checksum_perf)
+						     + perf_event_count(_bad_data_cntr_perf);
+			_px4_accel.set_error_count(error_count);
+			_px4_gyro.set_error_count(error_count);
 
 			const float temperature = buffer.temp_out * 0.1f; // 1 LSB = 0.1°C
 			_px4_accel.set_temperature(temperature);
@@ -470,6 +500,7 @@ uint16_t ADIS16507::RegisterRead(uint16_t reg)
 	transferhword(cmd, nullptr, 1);
 	px4_udelay(SPI_STALL_PERIOD);
 	transferhword(nullptr, cmd, 1);
+	px4_udelay(SPI_STALL_PERIOD);
 
 	return cmd[0];
 }
@@ -485,6 +516,7 @@ void ADIS16507::RegisterWrite(uint16_t reg, uint16_t val)
 	transferhword(cmd, nullptr, 1);
 	px4_udelay(SPI_STALL_PERIOD);
 	transferhword(cmd + 1, nullptr, 1);
+	px4_udelay(SPI_STALL_PERIOD);
 }
 
 bool ADIS16507::RegisterCheck(uint16_t reg, uint16_t val)

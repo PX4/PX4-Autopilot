@@ -275,56 +275,59 @@ void ADIS16470::RunImpl()
 					checksum += checksum_helper[i];
 				}
 
-				if (buffer.checksum != checksum) {
+				if (checksum == 0 || buffer.checksum != checksum) {
 					//PX4_DEBUG("adis_report.checksum: %X vs calculated: %X", buffer.checksum, checksum);
+					perf_count(_perf_crc_bad);
+
+				} else if (buffer.DIAG_STAT & DIAG_STAT_BIT::Data_path_overrun) {
+					// Datasheet Table 10: initiate a reset on data path overrun
 					perf_count(_bad_transfer_perf);
-				}
+					Reset();
+					return;
 
-				if (buffer.DIAG_STAT != DIAG_STAT_BIT::Data_path_overrun) {
-					// Data path overrun. A 1 indicates that one of the
-					// data paths have experienced an overrun condition.
-					// If this occurs, initiate a reset,
-
-					//Reset();
-					//return;
-				}
-
-				// Check all Status/Error Flag Indicators (DIAG_STAT)
-				if (buffer.DIAG_STAT != 0) {
+				} else if (buffer.DIAG_STAT != 0) {
+					// Check all Status/Error Flag Indicators (DIAG_STAT)
 					perf_count(_bad_transfer_perf);
-				}
 
-				// temperature 1 LSB = 0.1°C
-				const float temperature = buffer.TEMP_OUT * 0.1f;
-				_px4_accel.set_temperature(temperature);
-				_px4_gyro.set_temperature(temperature);
+				} else {
+					const uint64_t error_count = perf_event_count(_bad_register_perf)
+								     + perf_event_count(_bad_transfer_perf)
+								     + perf_event_count(_perf_crc_bad);
+					_px4_accel.set_error_count(error_count);
+					_px4_gyro.set_error_count(error_count);
 
-
-				int16_t accel_x = buffer.X_ACCL_OUT;
-				int16_t accel_y = buffer.Y_ACCL_OUT;
-				int16_t accel_z = buffer.Z_ACCL_OUT;
-
-				// sensor's frame is +x forward, +y left, +z up
-				//  flip y & z to publish right handed with z down (x forward, y right, z down)
-				accel_y = (accel_y == INT16_MIN) ? INT16_MAX : -accel_y;
-				accel_z = (accel_z == INT16_MIN) ? INT16_MAX : -accel_z;
-
-				_px4_accel.update(timestamp_sample, accel_x, accel_y, accel_z);
+					// temperature 1 LSB = 0.1°C
+					const float temperature = buffer.TEMP_OUT * 0.1f;
+					_px4_accel.set_temperature(temperature);
+					_px4_gyro.set_temperature(temperature);
 
 
-				int16_t gyro_x = buffer.X_GYRO_OUT;
-				int16_t gyro_y = buffer.Y_GYRO_OUT;
-				int16_t gyro_z = buffer.Z_GYRO_OUT;
-				// sensor's frame is +x forward, +y left, +z up
-				//  flip y & z to publish right handed with z down (x forward, y right, z down)
-				gyro_y = (gyro_y == INT16_MIN) ? INT16_MAX : -gyro_y;
-				gyro_z = (gyro_z == INT16_MIN) ? INT16_MAX : -gyro_z;
-				_px4_gyro.update(timestamp_sample, gyro_x, gyro_y, gyro_z);
+					int16_t accel_x = buffer.X_ACCL_OUT;
+					int16_t accel_y = buffer.Y_ACCL_OUT;
+					int16_t accel_z = buffer.Z_ACCL_OUT;
 
-				success = true;
+					// sensor's frame is +x forward, +y left, +z up
+					//  flip y & z to publish right handed with z down (x forward, y right, z down)
+					accel_y = (accel_y == INT16_MIN) ? INT16_MAX : -accel_y;
+					accel_z = (accel_z == INT16_MIN) ? INT16_MAX : -accel_z;
 
-				if (_failure_count > 0) {
-					_failure_count--;
+					_px4_accel.update(timestamp_sample, accel_x, accel_y, accel_z);
+
+
+					int16_t gyro_x = buffer.X_GYRO_OUT;
+					int16_t gyro_y = buffer.Y_GYRO_OUT;
+					int16_t gyro_z = buffer.Z_GYRO_OUT;
+					// sensor's frame is +x forward, +y left, +z up
+					//  flip y & z to publish right handed with z down (x forward, y right, z down)
+					gyro_y = (gyro_y == INT16_MIN) ? INT16_MAX : -gyro_y;
+					gyro_z = (gyro_z == INT16_MIN) ? INT16_MAX : -gyro_z;
+					_px4_gyro.update(timestamp_sample, gyro_x, gyro_y, gyro_z);
+
+					success = true;
+
+					if (_failure_count > 0) {
+						_failure_count--;
+					}
 				}
 
 			} else {
@@ -446,6 +449,7 @@ uint16_t ADIS16470::RegisterRead(Register reg)
 	transferhword(cmd, nullptr, 1);
 	px4_udelay(SPI_STALL_PERIOD);
 	transferhword(nullptr, cmd, 1);
+	px4_udelay(SPI_STALL_PERIOD);
 
 	return cmd[0];
 }
@@ -461,6 +465,7 @@ void ADIS16470::RegisterWrite(Register reg, uint16_t value)
 	transferhword(cmd, nullptr, 1);
 	px4_udelay(SPI_STALL_PERIOD);
 	transferhword(cmd + 1, nullptr, 1);
+	px4_udelay(SPI_STALL_PERIOD);
 }
 
 void ADIS16470::RegisterSetAndClearBits(Register reg, uint16_t setbits, uint16_t clearbits)
