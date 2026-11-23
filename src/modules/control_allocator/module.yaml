@@ -80,6 +80,35 @@ parameters:
             min: 0.1
             max: 1.0
             default: 0.4
+        CA_RESTORE_SPIN:
+            description:
+                short: Motor restore spin-up time
+                long: |
+                  When a handled motor failure clears (e.g. the failure injection is switched off), the
+                  stopped motors first run at idle for this time while the allocation still flies without
+                  them, so the ESC can start them before they get any load. Then CA_RESTORE_TIME applies.
+            type: float
+            decimal: 2
+            increment: 0.05
+            unit: s
+            min: 0.0
+            max: 2.0
+            default: 0.3
+        CA_RESTORE_TIME:
+            description:
+                short: Motor restore blend time
+                long: |
+                  After CA_RESTORE_SPIN, the restored motors take over their share of the load gradually
+                  over this time, from the failure allocation to the full one. Torque and thrust stay as
+                  commanded all along, the load just moves between motors smoothly.
+                  With this and CA_RESTORE_SPIN at 0 the full allocation comes back in one step.
+            type: float
+            decimal: 2
+            increment: 0.1
+            unit: s
+            min: 0.0
+            max: 5.0
+            default: 1.0
         CA_R${i}_SLEW:
             description:
                 short: Motor ${i} slew rate limit

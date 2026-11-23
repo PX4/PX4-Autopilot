@@ -315,7 +315,7 @@ ControlAllocator::Run()
 		parameter_update_s param_update;
 		_parameter_update_sub.copy(&param_update);
 
-		if (_handled_motor_failure_bitmask == 0) {
+		if (_handled_motor_failure_bitmask == 0 && _restoring_motor_mask == 0) {
 			// We don't update the geometry after an actuator failure, as it could lead to unexpected results
 			// (e.g. a user could add/remove motors, such that the bitmask isn't correct anymore)
 			updateParams();
@@ -406,6 +406,8 @@ ControlAllocator::Run()
 		_last_run = now;
 
 		check_for_motor_failures();
+
+		update_motor_restore(now);
 
 		update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::NO_EXTERNAL_UPDATE);
 
@@ -565,16 +567,23 @@ ControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessUpdateReaso
 			computeOppositeMotors();
 		}
 
-		// Handle failed actuators
-		if (_handled_motor_failure_bitmask != 0) {
+		// Handle failed actuators, and motors coming back after a failure (see update_motor_restore())
+		if (_handled_motor_failure_bitmask != 0 || _restoring_motor_mask != 0) {
 			actuator_idx = 0;
 			memset(&actuator_idx_matrix, 0, sizeof(actuator_idx_matrix));
 
 			for (int motors_idx = 0; motors_idx < _num_actuators[0] && motors_idx < actuator_motors_s::NUM_CONTROLS; motors_idx++) {
 				int selected_matrix = _control_allocation_selection_indexes[actuator_idx];
+				ActuatorEffectiveness::EffectivenessMatrix &effectiveness = config.effectiveness_matrices[selected_matrix];
 
 				if (_handled_motor_failure_bitmask & (1 << motors_idx)) {
-					config.effectiveness_matrices[selected_matrix].setCol(actuator_idx_matrix[selected_matrix], 0.f);
+					effectiveness.setCol(actuator_idx_matrix[selected_matrix], 0.f);
+
+				} else if (_restoring_motor_mask & (1 << motors_idx)) {
+					// The motor's output is scaled by the same factor in publish_actuator_controls()
+					for (int n = 0; n < NUM_AXES; n++) {
+						effectiveness(n, actuator_idx_matrix[selected_matrix]) *= _restore_scale;
+					}
 				}
 
 				++actuator_idx_matrix[selected_matrix];
@@ -604,6 +613,16 @@ ControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessUpdateReaso
 
 				if (all_entries_small) {
 					matrix.row(n) = 0.f;
+				}
+			}
+
+			// Axes the failure allocation had dropped stay dropped until the motors are fully back:
+			// re-adding them on a barely independent row would demand large differential commands
+			if (i == 0 && _restoring_motor_mask != 0) {
+				for (int n = 0; n < NUM_AXES; n++) {
+					if (_restore_dropped_axes & (1u << n)) {
+						matrix.row(n) = 0.f;
+					}
 				}
 			}
 
@@ -709,8 +728,8 @@ ControlAllocator::publish_control_allocator_status(int matrix_index)
 		}
 	}
 
-	// Handled motor failures
-	control_allocator_status.handled_motor_failure_mask = _handled_motor_failure_bitmask;
+	// Handled motor failures, including motors not yet fully back in the allocation
+	control_allocator_status.handled_motor_failure_mask = _handled_motor_failure_bitmask | _restoring_motor_mask;
 	control_allocator_status.motor_stop_mask = _motor_stop_mask;
 
 	_control_allocator_status_pub[matrix_index].publish(control_allocator_status);
@@ -771,6 +790,13 @@ ControlAllocator::publish_actuator_controls()
 		// Recovery motor was solved with min = -CA_REV_THR_FRAC; re-expand to [-1, 0] (static CA_R_REV uses -1, no rescale).
 		if ((_runtime_reversible_bitmask & (1u << motors_idx)) && PX4_ISFINITE(actuator_sp) && actuator_sp < 0.f) {
 			actuator_sp /= _param_ca_rev_thr_frac.get();
+		}
+
+		// A motor coming back after a failure was allocated on its effectiveness column scaled by _restore_scale.
+		// Scaling its output by the same factor keeps the produced torque and thrust exactly as allocated,
+		// while the motor itself only takes its share of the load gradually.
+		if ((_restoring_motor_mask & (1u << motors_idx)) && PX4_ISFINITE(actuator_sp)) {
+			actuator_sp *= _restore_scale;
 		}
 
 		actuator_motors.control[motors_idx] = PX4_ISFINITE(actuator_sp) ? actuator_sp : NAN;
@@ -852,6 +878,9 @@ ControlAllocator::check_for_motor_failures()
 			const int num_motors_failed = math::countSetBits(failure_detector_status.motor_failure_mask);
 
 			if (_handled_motor_failure_bitmask == 0 && num_motors_failed == 1) {
+				// A new failure ends a restore that may still be in progress
+				_restoring_motor_mask = 0;
+				_runtime_reversible_bitmask = 0;
 				_handled_motor_failure_bitmask = failure_detector_status.motor_failure_mask;
 
 				const int failed = math::countTrailingZeros(_handled_motor_failure_bitmask);
@@ -883,13 +912,15 @@ ControlAllocator::check_for_motor_failures()
 			}
 
 		} else if (_handled_motor_failure_bitmask != 0) {
-			PX4_INFO("Restoring all motors");
+			// The failure cleared (e.g. the failure injection was switched off). A stopped motor needs time to
+			// spin up, so the allocation does not switch back in one step: the motors idle first and then take
+			// their share of the load gradually, see update_motor_restore().
+			_restoring_motor_mask = _handled_motor_failure_bitmask;
+			_restore_dropped_axes = (_num_control_allocation > 0) ? _control_allocation[0]->getDroppedAxes() : 0;
+			_restore_start = hrt_absolute_time();
+			_restore_scale = 0.f;
 			_handled_motor_failure_bitmask = 0;
-			_runtime_reversible_bitmask = 0;
-
-			for (int i = 0; i < _num_control_allocation; ++i) {
-				_control_allocation[i]->setHadActuatorFailure(false);
-			}
+			PX4_INFO("Restoring motors (mask 0x%x)", _restoring_motor_mask);
 
 			update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::MOTOR_ACTIVATION_UPDATE);
 		}
@@ -897,14 +928,53 @@ ControlAllocator::check_for_motor_failures()
 
 	// Mode 2 keeps the opposite rotor reversible only in the air. At touchdown the collective thrust
 	// collapses, the remaining rotors can only add one-sided torque and the vehicle tips over, so the
-	// landing is finished with the opposite rotor stopped as in mode 1.
+	// landing is finished with the opposite rotor stopped as in mode 1. Not during a restore, where the
+	// failed motor is already coming back.
 	vehicle_land_detected_s land_detected;
 
-	if (_runtime_reversible_bitmask != 0 && _vehicle_land_detected_sub.copy(&land_detected)
+	if (_runtime_reversible_bitmask != 0 && _restoring_motor_mask == 0 && _vehicle_land_detected_sub.copy(&land_detected)
 	    && (land_detected.ground_contact || land_detected.maybe_landed || land_detected.landed)) {
 		PX4_WARN("Ground contact: stopping opposite motor (mask 0x%x)", _runtime_reversible_bitmask);
 		_handled_motor_failure_bitmask |= _runtime_reversible_bitmask;
 		_runtime_reversible_bitmask = 0;
+		update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::MOTOR_ACTIVATION_UPDATE);
+	}
+}
+
+void
+ControlAllocator::update_motor_restore(const hrt_abstime now)
+{
+	if (_restoring_motor_mask == 0) {
+		return;
+	}
+
+	const float spin_up_time = fmaxf(_param_ca_restore_spin.get(), 0.f);
+	const float blend_time = fmaxf(_param_ca_restore_time.get(), 0.f);
+	const float elapsed = (now > _restore_start) ? (now - _restore_start) * 1e-6f : 0.f;
+
+	if (elapsed >= spin_up_time + blend_time) {
+		PX4_INFO("All motors restored");
+		_restoring_motor_mask = 0;
+		_runtime_reversible_bitmask = 0;
+		_restore_scale = 1.f;
+
+		for (int i = 0; i < _num_control_allocation; ++i) {
+			_control_allocation[i]->setHadActuatorFailure(false);
+		}
+
+		update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::MOTOR_ACTIVATION_UPDATE);
+		return;
+	}
+
+	// The restored motors idle during the spin-up time (scale 0: outside the allocation, output 0),
+	// then their share goes from 0 to 1 along a smoothstep, so it starts and ends without a kink
+	const float x = (blend_time > FLT_EPSILON) ? math::constrain((elapsed - spin_up_time) / blend_time, 0.f, 1.f) : 0.f;
+	const float scale = x * x * (3.f - 2.f * x);
+
+	// Re-solving the allocation every 10 ms is smooth enough and keeps the CPU load low
+	if (scale > _restore_scale && now - _last_restore_update >= 10_ms) {
+		_restore_scale = scale;
+		_last_restore_update = now;
 		update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::MOTOR_ACTIVATION_UPDATE);
 	}
 }
@@ -1081,6 +1151,10 @@ int ControlAllocator::print_status()
 	if (_handled_motor_failure_bitmask) {
 		PX4_INFO("Failed motors: %i (0x%x)", math::countSetBits(_handled_motor_failure_bitmask),
 			 _handled_motor_failure_bitmask);
+	}
+
+	if (_restoring_motor_mask) {
+		PX4_INFO("Restoring motors: 0x%x, share %.2f", _restoring_motor_mask, (double)_restore_scale);
 	}
 
 	// Print perf
