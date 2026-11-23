@@ -2,11 +2,13 @@
 """Compare flash image and static RAM usage in bare-metal firmware ELFs."""
 
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
 import re
 import subprocess
+import tempfile
 
 # The commit hash compiled into px4_firmware_version_binary() changes its code
 # size, so identical sources on two commits can differ by up to 16 B.
@@ -60,6 +62,14 @@ def memory_usage(elf: Path) -> dict[str, int]:
     return {"flash": image_end - image_start, "ram": ram, "image_start": image_start}
 
 
+def image_digest(elf: Path) -> str:
+    """SHA-256 of the flash image, the bytes objcopy -O binary writes."""
+    with tempfile.TemporaryDirectory() as directory:
+        binary = Path(directory) / "image.bin"
+        subprocess.run(["arm-none-eabi-objcopy", "-O", "binary", str(elf), str(binary)], check=True)
+        return hashlib.sha256(binary.read_bytes()).hexdigest()
+
+
 def ld_number(text: str) -> int:
     scale = {"K": 1 << 10, "M": 1 << 20}.get(text[-1].upper(), 1)
     return int(text[:-1] if scale > 1 else text, 0) * scale
@@ -108,8 +118,9 @@ def format_usage(used: int, capacity: int) -> str:
     return f"{used / capacity:.2%}"
 
 
-def summarize(before: dict[str, int], after: dict[str, int], capacity: dict[str, int]) -> dict:
-    return {
+def summarize(before: dict[str, int], after: dict[str, int], capacity: dict[str, int],
+              image_changed: bool | None = None) -> dict:
+    summary = {
         "flash": format_change(before["flash"], after["flash"]),
         "flash_used": format_usage(after["flash"], capacity["flash"]),
         "ram": format_change(before["ram"], after["ram"]),
@@ -117,6 +128,12 @@ def summarize(before: dict[str, int], after: dict[str, int], capacity: dict[str,
         "changed": any(abs(after[key] - before[key]) >= MIN_REPORTED_DELTA
                        for key in ("flash", "ram")),
     }
+    if image_changed is not None:
+        # A reproducible image is worth a comment whenever its bytes change,
+        # whatever that does to its size.
+        summary["image"] = "🔴 changed" if image_changed else "unchanged"
+        summary["changed"] = summary["changed"] or image_changed
+    return summary
 
 
 def main():
@@ -124,11 +141,17 @@ def main():
     parser.add_argument("--before", type=Path, required=True)
     parser.add_argument("--after", type=Path, required=True)
     parser.add_argument("--linker-script", type=Path, required=True)
+    parser.add_argument("--reproducible-image", action="store_true",
+                        help="the image holds nothing that varies between builds of the same "
+                             "sources, such as a commit hash: also report whether its bytes changed")
     args = parser.parse_args()
     before = memory_usage(args.before)
     after = memory_usage(args.after)
     capacity = memory_capacity(args.linker_script, after["image_start"])
-    print(json.dumps(summarize(before, after, capacity)))
+    image_changed = None
+    if args.reproducible_image:
+        image_changed = image_digest(args.before) != image_digest(args.after)
+    print(json.dumps(summarize(before, after, capacity, image_changed)))
 
 
 if __name__ == "__main__":
