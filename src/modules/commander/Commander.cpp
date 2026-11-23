@@ -1437,6 +1437,17 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 #endif // CONFIG_BOARDCTL_RESET
 
+#if defined(CONFIG_BOARDCTL_RESET) && defined(BOARD_HAS_ISP_BOOTLOADER)
+
+			} else if ((lroundf(cmd.param1) == 42) && (lroundf(cmd.param2) == 24) && (lroundf(cmd.param3) == 71)
+				   && (lroundf(cmd.param4) == 99) && !isArmed() && (px4_reboot_request(REBOOT_TO_ISP, 400_ms) == 0)) {
+				// ArduPilot's magic numbers for its DFU reboot, so one tool can send either stack to the ROM bootloader
+				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
+
+				while (1) { px4_usleep(1); }
+
+#endif // CONFIG_BOARDCTL_RESET && BOARD_HAS_ISP_BOOTLOADER
+
 			} else {
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED);
 			}
