@@ -224,6 +224,9 @@ protected:
 		float t_max_altitude_error{0.f};
 		float max_throttle_integ_norm{0.f};
 		float max_pitch_integ_norm{0.f};
+		float min_airspeed{INFINITY};
+		float max_altitude_loss{0.f}; // below the altitude setpoint
+		float max_climb_rate_undersped{-INFINITY}; // while the underspeed ratio is above zero
 	};
 
 	SimulationStats _sim_stats{};
@@ -245,6 +248,13 @@ protected:
 
 		track_max_norm(_sim_stats.max_throttle_integ_norm,       tecs_debug.throttle_integrator);
 		track_max_norm(_sim_stats.max_pitch_integ_norm,          tecs_debug.pitch_integrator);
+
+		_sim_stats.min_airspeed = math::min(_sim_stats.min_airspeed, state.V);
+		_sim_stats.max_altitude_loss = math::max(_sim_stats.max_altitude_loss, _alt_sp - state.h);
+
+		if (_tecs_control.getUnderspeedRatio() > 0.f) {
+			_sim_stats.max_climb_rate_undersped = math::max(_sim_stats.max_climb_rate_undersped, plantAltitudeRate());
+		}
 	}
 
 	// Climb rate the plant is flying at the current state under the previous pitch command
@@ -691,4 +701,117 @@ TEST_F(TECSControlClosedLoopTest, AirspeedlessAltitudeStepHalfFeedforward)
 	// The throttle feedforward funds the climb exactly, so the open loop airspeed does not move
 	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_NUMERICAL_ERR_OPENLOOP) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
 	EXPECT_LT(_sim_stats.max_pitch_integ_norm, MAX_NUMERICAL_ERR_OPENLOOP);
+}
+
+// --- Throttle shortfall ----------------------------------------------------------
+//
+// The throttle does not deliver the total energy rate it is asked for: it fails, or it is undersped and already at
+// its maximum. What the vehicle must then never do is lose its airspeed.
+
+// At speed weights 1 and 0 the pitch gives up airspeed for altitude until the underspeed protection takes over. The
+// vehicle then glides at the minimum sink rate, clear of the stall airspeed, and never climbs while undersped.
+TEST_F(TECSControlClosedLoopTest, ThrottleFailureSpeedWeightOneGlidesAboveStall)
+{
+	_params.pitch_speed_weight = 1.f;
+	run(10.f);
+	_throttle_failed = true;
+	run(60.f);
+
+	EXPECT_GT(_sim_stats.min_airspeed, _params.tas_stall + 1.f);
+	EXPECT_LT(_sim_stats.max_climb_rate_undersped, 0.f);
+	EXPECT_NEAR(plantAltitudeRate(), -_params.min_sink_rate, TRACKING_ERROR_TOL);
+}
+
+TEST_F(TECSControlClosedLoopTest, ThrottleFailureSpeedWeightZeroGlidesAboveStall)
+{
+	_params.pitch_speed_weight = 0.f;
+	run(10.f);
+	_throttle_failed = true;
+	run(60.f);
+
+	EXPECT_GT(_sim_stats.min_airspeed, _params.tas_stall + 1.f);
+	EXPECT_LT(_sim_stats.max_climb_rate_undersped, 0.f);
+	EXPECT_NEAR(plantAltitudeRate(), -_params.min_sink_rate, TRACKING_ERROR_TOL);
+}
+
+// The same with the throttle at idle instead of failed, as in a landing flare
+TEST_F(TECSControlClosedLoopTest, IdleThrottleGlidesAboveStall)
+{
+	run(10.f);
+	_params.throttle_max = _params.throttle_min;
+	run(60.f);
+
+	EXPECT_GT(_sim_stats.min_airspeed, _params.tas_stall + 1.f);
+	EXPECT_LT(_sim_stats.max_climb_rate_undersped, 0.f);
+}
+
+// --- Underspeed --------------------------------------------------------------------
+
+// Deep in underspeed without propulsion: the vehicle dives for airspeed, never climbs while undersped and loses
+// little airspeed on the way
+TEST_F(TECSControlClosedLoopTest, UnderspeedWithThrottleFailure)
+{
+	_state.V = _params.tas_stall + 0.5f;
+	const float airspeed_start = _state.V;
+	_throttle_failed = true;
+	run(60.f);
+
+	EXPECT_GT(_sim_stats.min_airspeed, airspeed_start - 0.5f);
+	EXPECT_LT(_sim_stats.max_climb_rate_undersped, 0.f);
+}
+
+// Undersped well above the altitude setpoint, where the altitude loop asks for the maximum sink rate, with and
+// without propulsion
+TEST_F(TECSControlClosedLoopTest, UnderspeedAboveAltitudeSetpoint)
+{
+	_state.V = _params.tas_stall + 0.5f;
+	_state.h = ALT_INIT + 40.f;
+	const float airspeed_start = _state.V;
+	run(60.f);
+
+	EXPECT_GT(_sim_stats.min_airspeed, airspeed_start - TRACKING_ERROR_TOL);
+	EXPECT_NEAR(_state.V, _V_sp, 0.1f);
+	EXPECT_NEAR(_state.h, _alt_sp, 0.1f);
+}
+
+TEST_F(TECSControlClosedLoopTest, UnderspeedAboveAltitudeSetpointWithThrottleFailure)
+{
+	_state.V = _params.tas_stall + 0.5f;
+	_state.h = ALT_INIT + 40.f;
+	const float airspeed_start = _state.V;
+	_throttle_failed = true;
+	run(60.f);
+
+	EXPECT_GT(_sim_stats.min_airspeed, airspeed_start - 0.5f);
+	EXPECT_LT(_sim_stats.max_climb_rate_undersped, 0.f);
+}
+
+// --- Leaving fast descend ----------------------------------------------------------
+//
+// Fast descend is switched outside TECSControl, which ramps the ratio down and with it the airspeed setpoint from
+// maximum to trim airspeed. The vehicle levels off with little altitude error.
+
+TEST_F(TECSControlClosedLoopTest, FastDescendExit)
+{
+	run(10.f);
+	_params.fast_descend = 1.f;
+	setAirspeedSetpoint(_params.tas_max);
+	setAltitudeSetpoint(ALT_INIT - 1000.f);
+	initTecs();
+	run(60.f);
+
+	setAltitudeSetpoint(_state.h);
+	resetSimStats();
+	const float ramp_duration = 5.f;
+	const int step_start = _step;
+
+	while (_step < step_start + static_cast<int>(roundf((ramp_duration + 60.f) / DT))) {
+		_params.fast_descend = math::max(1.f - (_step - step_start) * DT / ramp_duration, 0.f);
+		setAirspeedSetpoint(math::lerp(_params.equivalent_airspeed_trim, _params.tas_max, _params.fast_descend));
+		run(DT);
+	}
+
+	EXPECT_LT(_sim_stats.max_altitude_error, 2.5f) << "peak at t=" << _sim_stats.t_max_altitude_error << " s";
+	EXPECT_NEAR(_state.h, _alt_sp, 0.1f);
+	EXPECT_NEAR(_state.V, _V_sp, 0.1f);
 }
