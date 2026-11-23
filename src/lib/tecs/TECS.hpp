@@ -404,7 +404,6 @@ private:
 	struct SpecificEnergyWeighting {
 		float spe_weighting;	///< Specific potential energy weight.
 		float ske_weighting;	///< Specific kinetic energy weight.
-		float ske_weighting_feedback;	///< Specific kinetic energy weight of the pitch feedback.
 	};
 
 private:
@@ -471,11 +470,13 @@ private:
 	 *
 	 * @param control_setpoint is the controlled altitude and airspeed rate setpoints.
 	 * @param input is the current input measurement of the UAS.
+	 * @param limit is the specific total energy rate limits in [m²/s³].
 	 * @param weight is the weighting use of the potential and kinetic energy.
+	 * @param param is the control parameters.
 	 * @return Specific energy rates in [m²/s³].
 	 */
 	SpecificEnergyRates _calcSpecificEnergyRates(const OuterLoopSetpoints &control_setpoint, const Input &input,
-			const SpecificEnergyWeighting &weight) const;
+			const STERateLimit &limit, const SpecificEnergyWeighting &weight, const Param &param) const;
 	/**
 	 * @brief Detect underspeed.
 	 *
@@ -487,14 +488,11 @@ private:
 	/**
 	 * @brief Update specific energy balance weights.
 	 *
-	 * @param setpoint is the control setpoints.
-	 * @param input is the current input measurement of the UAS.
 	 * @param param is the control parameters.
 	 * @param flag is the control flags.
 	 * @return Weights used for the specific energy balance.
 	 */
-	SpecificEnergyWeighting _updateSpeedAltitudeWeights(const Setpoint &setpoint, const Input &input, const Param &param,
-			const Flag &flag) const;
+	SpecificEnergyWeighting _updateSpeedAltitudeWeights(const Param &param, const Flag &flag);
 	/**
 	 * @brief Airspeed control output for the airspeed setpoint capped above trim airspeed.
 	 *
@@ -514,21 +512,18 @@ private:
 	 * @param dt is the update time interval in [s].
 	 * @param input is the current input measurement of the UAS.
 	 * @param specific_energy_rates is the specific energy rate setpoints and estimates in [m²/s³].
-	 * @param weight is the weighting use of the potential and kinetic energy.
 	 * @param param is the control parameters.
 	 */
 	void _calcPitchControl(float dt, const Input &input, const SpecificEnergyRates &specific_energy_rates,
-			       const SpecificEnergyWeighting &weight, const Param &param);
+			       const Param &param);
 
 	/**
-	 * @brief Calculate pitch control specific energy balance rates.
+	 * @brief Specific energy balance rate setpoint and estimate: potential minus kinetic energy rate.
 	 *
-	 * @param weight is the weighting use of the potential and kinetic energy.
 	 * @param specific_energy_rates is the specific energy rate setpoints and estimates in [m²/s³].
 	 * @return specific energy balance rate values in [m²/s³].
 	 */
-	ControlValues _calcPitchControlSebRate(const SpecificEnergyWeighting &weight,
-					       const SpecificEnergyRates &specific_energy_rates) const;
+	static ControlValues _calcPitchControlSebRate(const SpecificEnergyRates &specific_energy_rates);
 
 	/**
 	 * @brief Calculate the pitch control update function.
@@ -570,7 +565,7 @@ private:
 	 * @brief Calculate the pitch control output function.
 	 *
 	 * @param input is the current input measurement of the UAS.
-	 * @param seb_rate is the specific energy balance rate of the feedback in [m²/s³].
+	 * @param seb_rate is the specific energy balance rate in [m²/s³].
 	 * @param specific_energy_rates is the specific energy rate setpoints and estimates in [m²/s³].
 	 * @param param is the control parameters.
 	 * @return absolute pitch setpoint [rad].
