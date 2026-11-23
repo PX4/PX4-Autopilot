@@ -715,8 +715,8 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 
 					const bool can_drive_sideways = (airframe == 13);
 					const bool manual_parking = (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL_PARKING);
-					const bool tank_sticks = manual_parking && (airframe == 6 || airframe == 13);
-					throttle_safe = !RoverControl::sticksCommandMotion(_last_manual_control_setpoint, stick_map, can_drive_sideways, tank_sticks);
+					const bool tank_style_sticks = manual_parking && (airframe == 6 || airframe == 13);
+					throttle_safe = !RoverControl::sticksCommandMotion(_last_manual_control_setpoint, stick_map, can_drive_sideways, tank_style_sticks);
 
 				} else if (_vehicle_control_mode.flag_control_climb_rate_enabled) {
 					// Climb-rate modes (AltCtl, PosCtl, etc.): center = hover, safe at or below center
