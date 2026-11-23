@@ -545,8 +545,12 @@ static bool fifo_accel_equal(const FIFO::DATA &f0, const FIFO::DATA &f1)
 
 bool MPU9250::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 {
+	if (samples == 0 || samples > FIFO_MAX_SAMPLES) {
+		return false;
+	}
+
 	FIFOTransferBuffer buffer{};
-	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 1, FIFO::SIZE);
+	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 1, sizeof(buffer));
 	set_frequency(SPI_SPEED_SENSOR);
 
 	if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, transfer_size) != PX4_OK) {
@@ -554,25 +558,27 @@ bool MPU9250::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 		return false;
 	}
 
-	uint8_t first_sample = 0;
+	const FIFO::DATA *fifo = buffer.f;
+	uint8_t accel_first_sample = 0;
 
 	if (samples >= 4) {
 		if (fifo_accel_equal(buffer.f[0], buffer.f[1]) && fifo_accel_equal(buffer.f[2], buffer.f[3])) {
 			// [A0, A1, A2, A3]
 			//  A0==A1, A2==A3
-			first_sample = 1;
+			accel_first_sample = 1;
 
 		} else if (fifo_accel_equal(buffer.f[1], buffer.f[2])) {
 			// [A0, A1, A2, A3]
 			//  A0, A1==A2, A3
-			first_sample = 0;
+			accel_first_sample = 0;
 
 		} else if (_slave_ak8963_magnetometer && fifo_accel_equal(buffer.f[2], buffer.f[3])) {
 			// if the slave I2C magnetometer is active we tolerate these missing samples, but only if intermittant
 			// [A0, A1, A2, A3]
 			//  A0, A1, A2 == A3
-			first_sample = 2;
+			fifo += 2;
 			samples -= 2; // skip first 2 samples
+			accel_first_sample = 0;
 
 		} else {
 			// no matching accel samples is an error
@@ -586,8 +592,8 @@ bool MPU9250::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 		}
 	}
 
-	ProcessGyro(timestamp_sample, &buffer.f[first_sample], samples);
-	ProcessAccel(timestamp_sample, &buffer.f[first_sample], samples);
+	ProcessGyro(timestamp_sample, fifo, samples);
+	ProcessAccel(timestamp_sample, fifo, samples, accel_first_sample);
 
 	return true;
 }
@@ -615,14 +621,15 @@ void MPU9250::FIFOReset()
 	}
 }
 
-void MPU9250::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
+void MPU9250::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples,
+			   const uint8_t first_sample)
 {
 	sensor_accel_fifo_s accel{};
 	accel.timestamp_sample = timestamp_sample;
 	accel.samples = 0;
 	accel.dt = FIFO_SAMPLE_DT * SAMPLES_PER_TRANSFER;
 
-	for (int i = 0; i < samples; i = i + SAMPLES_PER_TRANSFER) {
+	for (int i = first_sample; i < samples; i = i + SAMPLES_PER_TRANSFER) {
 		int16_t accel_x = combine(fifo[i].ACCEL_XOUT_H, fifo[i].ACCEL_XOUT_L);
 		int16_t accel_y = combine(fifo[i].ACCEL_YOUT_H, fifo[i].ACCEL_YOUT_L);
 		int16_t accel_z = combine(fifo[i].ACCEL_ZOUT_H, fifo[i].ACCEL_ZOUT_L);

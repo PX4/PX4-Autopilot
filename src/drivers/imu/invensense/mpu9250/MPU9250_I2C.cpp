@@ -478,9 +478,13 @@ uint16_t MPU9250_I2C::FIFOReadCount()
 
 bool MPU9250_I2C::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 {
+	if (samples == 0 || samples > FIFO_MAX_SAMPLES) {
+		return false;
+	}
+
 	uint8_t cmd = static_cast<uint8_t>(Register::FIFO_R_W);
 	FIFOTransferBuffer buffer{};
-	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA), FIFO::SIZE);
+	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA), sizeof(buffer));
 	//set_frequency(SPI_SPEED_SENSOR);
 
 	if (transfer(&cmd, 1, (uint8_t *)&buffer, transfer_size) != PX4_OK) {
