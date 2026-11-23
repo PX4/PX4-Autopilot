@@ -92,6 +92,15 @@ MulticopterAttitudeControl::init()
 void
 MulticopterAttitudeControl::parameters_updated()
 {
+	// EKF2_RNG_CTRL only exists where EKF2 is built with range finder support: without it the
+	// ceiling uses the height above the arming point
+	const param_t ekf2_rng_ctrl = param_find("EKF2_RNG_CTRL");
+	_ekf2_rng_ctrl = 0;
+
+	if (ekf2_rng_ctrl != PARAM_INVALID) {
+		param_get(ekf2_rng_ctrl, &_ekf2_rng_ctrl);
+	}
+
 	// Store some of the parameters in a more convenient way & precompute often-used values
 	_attitude_control.setProportionalGain(Vector3f(_param_mc_roll_p.get(), _param_mc_pitch_p.get(), _param_mc_yaw_p.get()),
 					      _param_mc_yaw_weight.get());
@@ -156,7 +165,7 @@ MulticopterAttitudeControl::limit_thrust_at_ceiling(float thrust, const Quatf &q
 
 	// Distance sensor height with sudden jumps (reflections while tilted) filtered out, or without a
 	// distance sensor (EKF2_RNG_CTRL 0) the estimated height above the arming point
-	const float height = (_param_ekf2_rng_ctrl.get() == 0) ? _armed_height.get() : _robust_height.get();
+	const float height = (_ekf2_rng_ctrl == 0) ? _armed_height.get() : _robust_height.get();
 
 	if (ceiling < FLT_EPSILON || !PX4_ISFINITE(height) || !PX4_ISFINITE(_vz)) {
 		return thrust;
