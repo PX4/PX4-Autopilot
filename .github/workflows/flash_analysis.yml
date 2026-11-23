@@ -44,9 +44,6 @@ jobs:
           - target: px4_io-v2
             variant: default
             reporter_args: --reproducible-image
-          - target: cubepilot_io-v2
-            variant: default
-            reporter_args: --reproducible-image
     outputs:
       px4_fmu-v2-bloaty-output: ${{ steps.gen-output.outputs.px4_fmu-v2-bloaty-output }}
       px4_fmu-v2-memory-summary: ${{ steps.gen-output.outputs.px4_fmu-v2-memory-summary }}
@@ -56,8 +53,6 @@ jobs:
       px4_fmu-v6x-memory-summary: ${{ steps.gen-output.outputs.px4_fmu-v6x-memory-summary }}
       px4_io-v2-bloaty-output: ${{ steps.gen-output.outputs.px4_io-v2-bloaty-output }}
       px4_io-v2-memory-summary: ${{ steps.gen-output.outputs.px4_io-v2-memory-summary }}
-      cubepilot_io-v2-bloaty-output: ${{ steps.gen-output.outputs.cubepilot_io-v2-bloaty-output }}
-      cubepilot_io-v2-memory-summary: ${{ steps.gen-output.outputs.cubepilot_io-v2-memory-summary }}
     steps:
       - uses: runs-on/action@v2
       - uses: actions/checkout@v6
@@ -198,7 +193,6 @@ jobs:
       V5X: ${{ needs.analyze_flash.outputs.px4_fmu-v5x-memory-summary }}
       V6X: ${{ needs.analyze_flash.outputs.px4_fmu-v6x-memory-summary }}
       IO: ${{ needs.analyze_flash.outputs.px4_io-v2-memory-summary }}
-      CUBEPILOT_IO: ${{ needs.analyze_flash.outputs.cubepilot_io-v2-memory-summary }}
     if: github.event.pull_request
     steps:
       - name: Find Comment
@@ -222,8 +216,7 @@ jobs:
           fromJSON(env.V2).changed ||
           fromJSON(env.V5X).changed ||
           fromJSON(env.V6X).changed ||
-          fromJSON(env.IO).changed ||
-          fromJSON(env.CUBEPILOT_IO).changed
+          fromJSON(env.IO).changed
         run: |
           mkdir -p pr-comment
           cat > pr-comment/manifest.json <<EOF
@@ -243,9 +236,8 @@ jobs:
           | px4_fmu-v5x (F7) | ${{ fromJSON(env.V5X).flash }} | ${{ fromJSON(env.V5X).flash_used }} | ${{ fromJSON(env.V5X).ram }} | ${{ fromJSON(env.V5X).ram_used }} |
           | px4_fmu-v6x (H7) | ${{ fromJSON(env.V6X).flash }} | ${{ fromJSON(env.V6X).flash_used }} | ${{ fromJSON(env.V6X).ram }} | ${{ fromJSON(env.V6X).ram_used }} |
           | px4_io-v2 (F1) | ${{ fromJSON(env.IO).flash }} | ${{ fromJSON(env.IO).flash_used }} | ${{ fromJSON(env.IO).ram }} | ${{ fromJSON(env.IO).ram_used }} |
-          | cubepilot_io-v2 (F1) | ${{ fromJSON(env.CUBEPILOT_IO).flash }} | ${{ fromJSON(env.CUBEPILOT_IO).flash_used }} | ${{ fromJSON(env.CUBEPILOT_IO).ram }} | ${{ fromJSON(env.CUBEPILOT_IO).ram_used }} |
 
-          px4io firmware image, which every FMU with an IO flashes to it at boot: px4_io-v2 ${{ fromJSON(env.IO).image }}, cubepilot_io-v2 ${{ fromJSON(env.CUBEPILOT_IO).image }}.
+          px4_io-v2 firmware image, which an FMU flashes to its IO at boot: ${{ fromJSON(env.IO).image }}.
 
           <details>
           <summary>px4_fmu-v2 — Bloaty section/symbol breakdown</summary>
@@ -279,14 +271,6 @@ jobs:
           ```
           </details>
 
-          <details>
-          <summary>cubepilot_io-v2 — Bloaty section/symbol breakdown</summary>
-
-          ```
-          ${{ needs.analyze_flash.outputs.cubepilot_io-v2-bloaty-output }}
-          ```
-          </details>
-
           **Updated: _${{ steps.bt.outputs.timestamp }}_**
           PR_COMMENT_BODY_EOF
 
@@ -296,8 +280,7 @@ jobs:
           fromJSON(env.V2).changed ||
           fromJSON(env.V5X).changed ||
           fromJSON(env.V6X).changed ||
-          fromJSON(env.IO).changed ||
-          fromJSON(env.CUBEPILOT_IO).changed
+          fromJSON(env.IO).changed
         uses: actions/upload-artifact@v7
         with:
           name: pr-comment
