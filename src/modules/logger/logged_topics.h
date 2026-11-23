@@ -84,6 +84,7 @@ public:
 		uint16_t interval_ms;
 		uint8_t instance;
 		ORB_ID id{ORB_ID::INVALID};
+		bool use_selected_imu_instance{false}; ///< ignore instance: at log start, use the instance of the selected IMU (set by the FIFO logging profile)
 	};
 	struct RequestedSubscriptionArray {
 		RequestedSubscription sub[MAX_TOPICS_NUM];

@@ -147,6 +147,12 @@ public:
 	 */
 	bool copy(void *dst);
 
+	/**
+	 * Change subscription instance
+	 * @param instance The new multi-subscription instance
+	 */
+	bool		ChangeInstance(uint8_t instance) { return _subscription.ChangeInstance(instance); }
+
 	bool		valid() const { return _subscription.valid(); }
 
 	uint8_t		get_instance() const { return _subscription.get_instance(); }
