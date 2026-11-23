@@ -33,7 +33,7 @@ We'll go through each of these in detail in the following sections.
 | `ADC`             | Two analog inputs (3.3V and 6.6V)                                                                               |
 | `S.Bout+SPI6`     | SBUS output and external SPI bus                                                                                |
 | `M1`–`M8`         | IO PWM outputs, for ESCs and servos                                                                             |
-| `M9`–`M16`        | FMU PWM outputs, for ESCs, servos and camera triggers; `M9`–`M14` also support [DShot](../peripherals/dshot.md) |
+| `M9`–`M16`        | FMU PWM outputs, for ESCs and servos; `M9`–`M14` also support [DShot](../peripherals/dshot.md)                  |
 | `USB`             | Connection to a computer, for example to load firmware                                                          |
 | `DEBUG`           | [SWD](../debug/swd_debug.md) debug port for the FMU and IO processors                                           |
 | microSD card slot | Log storage (a card is pre-inserted at the factory)                                                             |
