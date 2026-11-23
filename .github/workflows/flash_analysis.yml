@@ -53,18 +53,27 @@ jobs:
       - name: Test and preserve memory reporter
         # The baseline checkout may not contain this version of the reporter.
         run: |
-          python3 -m unittest discover -s Tools/ci -p test_firmware_size.py
-          cp Tools/ci/firmware_size.py "$RUNNER_TEMP/firmware_size.py"
+          mkdir -p "$RUNNER_TEMP/memory-tools"
+          python3 -m pip install --target "$RUNNER_TEMP/memory-tools" 'pyelftools>=0.32,<1'
+          PYTHONPATH="$RUNNER_TEMP/memory-tools:Tools/ci" python3 -m unittest \
+            test_firmware_size test_module_object_sizes test_stack_frames \
+            test_memory_report test_memory_report_html
+          cp Tools/ci/firmware_size.py Tools/ci/module_object_sizes.py \
+            Tools/ci/stack_frames.py Tools/ci/memory_report.py \
+            Tools/ci/memory_report_html.py Tools/ci/module_memory_manifest.json \
+            Tools/ci/memory_analysis.cmake \
+            "$RUNNER_TEMP/memory-tools/"
+          mkdir -p "$RUNNER_TEMP/memory-report"
 
       - name: Cache - Restore ccache (current)
         id: cache_current
         uses: actions/cache/restore@v5
         with:
           path: ~/.ccache
-          key: ccache-flash-${{ matrix.target }}-current-${{ github.ref_name }}-${{ github.sha }}
+          key: ccache-memory-v1-${{ matrix.target }}-current-${{ github.ref_name }}-${{ github.sha }}
           restore-keys: |
-            ccache-flash-${{ matrix.target }}-current-${{ github.ref_name }}-
-            ccache-flash-${{ matrix.target }}-current-
+            ccache-memory-v1-${{ matrix.target }}-current-${{ github.ref_name }}-
+            ccache-memory-v1-${{ matrix.target }}-current-
 
       - name: Cache - Configure ccache
         run: |
@@ -78,14 +87,42 @@ jobs:
           ccache -s
           ccache -z
 
+      - name: Verify cached stack-usage sidecars
+        # ccache supports .su byproducts; check the container's actual toolchain.
+        # Use an isolated cache so this probe does not affect firmware statistics.
+        run: |
+          probe="$RUNNER_TEMP/stack-usage-check"
+          mkdir -p "$probe"
+          printf '%s\n' 'int memory_probe(int value) { return value + 1; }' > "$probe/probe.c"
+          export CCACHE_DIR="$probe/cache"
+          ccache arm-none-eabi-gcc -fstack-usage -c "$probe/probe.c" -o "$probe/probe.o"
+          test -s "$probe/probe.su"
+          cp "$probe/probe.su" "$probe/expected.su"
+          rm "$probe/probe.o" "$probe/probe.su"
+          ccache -z
+          ccache arm-none-eabi-gcc -fstack-usage -c "$probe/probe.c" -o "$probe/probe.o"
+          cmp "$probe/expected.su" "$probe/probe.su"
+          ccache --print-stats | awk '$1 == "direct_cache_hit" || $1 == "preprocessed_cache_hit" { hits += $2 } END { exit(hits < 1) }'
+          ccache -s
+
       - name: Build Target
-        run: make ${{ matrix.target }}_flash-analysis
+        run: make ${{ matrix.target }}_flash-analysis "CMAKE_ARGS=-DCMAKE_PROJECT_INCLUDE=$RUNNER_TEMP/memory-tools/memory_analysis.cmake"
 
       - name: Store the ELF and linker script with the change
         run: |
           cp ./build/**/*.elf ./with-change.elf
           board=$(echo "${{ matrix.target }}" | sed 's|_|/|')
           cp "boards/$board/nuttx-config/scripts/script.ld" ./with-change.ld
+
+      - name: Collect memory with the change
+        run: |
+          python3 "$RUNNER_TEMP/memory-tools/memory_report.py" collect \
+            --elf with-change.elf --stack-root "build/${{ matrix.target }}_flash-analysis" \
+            --source-root "$GITHUB_WORKSPACE" \
+            --manifest "$RUNNER_TEMP/memory-tools/module_memory_manifest.json" \
+            --output "$RUNNER_TEMP/memory-report/after.json" \
+            --target "${{ matrix.target }}_flash-analysis" --revision "$(git rev-parse HEAD)" \
+            --toolchain "$(arm-none-eabi-gcc --version | head -n 1)"
 
       - name: Cache - Stats after Current Build
         run: ccache -s
@@ -125,18 +162,46 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           path: ~/.ccache
-          key: ccache-flash-${{ matrix.target }}-baseline-${{ github.sha }}
+          key: ccache-memory-v1-${{ matrix.target }}-baseline-${{ github.sha }}
           restore-keys: |
-            ccache-flash-${{ matrix.target }}-baseline-
+            ccache-memory-v1-${{ matrix.target }}-baseline-
 
       - name: Cache - Reset ccache stats
         run: ccache -z
 
       - name: Build
-        run: make ${{ matrix.target }}_flash-analysis
+        run: make ${{ matrix.target }}_flash-analysis "CMAKE_ARGS=-DCMAKE_PROJECT_INCLUDE=$RUNNER_TEMP/memory-tools/memory_analysis.cmake"
 
       - name: Store the ELF before the change
         run: cp ./build/**/*.elf ./before-change.elf
+
+      - name: Collect memory before the change
+        run: |
+          python3 "$RUNNER_TEMP/memory-tools/memory_report.py" collect \
+            --elf before-change.elf --stack-root "build/${{ matrix.target }}_flash-analysis" \
+            --source-root "$GITHUB_WORKSPACE" \
+            --manifest "$RUNNER_TEMP/memory-tools/module_memory_manifest.json" \
+            --output "$RUNNER_TEMP/memory-report/before.json" \
+            --target "${{ matrix.target }}_flash-analysis" --revision "$(git rev-parse HEAD)" \
+            --toolchain "$(arm-none-eabi-gcc --version | head -n 1)"
+
+      - name: Compare stack frames and module objects
+        run: |
+          python3 "$RUNNER_TEMP/memory-tools/memory_report.py" compare \
+            --before "$RUNNER_TEMP/memory-report/before.json" \
+            --after "$RUNNER_TEMP/memory-report/after.json" \
+            --json-output "$RUNNER_TEMP/memory-report/comparison.json" \
+            --markdown-output "$RUNNER_TEMP/memory-report/report.md" \
+            --summary-output "$RUNNER_TEMP/memory-report/summary.txt" \
+            --html-output "$RUNNER_TEMP/memory-report/report.html"
+          cat "$RUNNER_TEMP/memory-report/report.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload memory reports
+        uses: actions/upload-artifact@v7
+        with:
+          name: memory-analysis-${{ matrix.target }}
+          path: ${{ runner.temp }}/memory-report/
+          if-no-files-found: error
 
       - name: Cache - Stats after Baseline Build
         run: ccache -s
@@ -161,8 +226,18 @@ jobs:
         env:
           BLOATY_OUTPUT: ${{ steps.bloaty-step.outputs.bloaty-output }}
         run: |
-          summary=$(python3 "$RUNNER_TEMP/firmware_size.py" \
+          summary=$(python3 "$RUNNER_TEMP/memory-tools/firmware_size.py" \
             --before before-change.elf --after with-change.elf --linker-script with-change.ld)
+          summary=$(python3 - "$summary" "$RUNNER_TEMP/memory-report/comparison.json" <<'PY'
+          import json
+          import sys
+          summary = json.loads(sys.argv[1])
+          with open(sys.argv[2], encoding="utf-8") as stream:
+              memory = json.load(stream)
+          summary["changed"] = summary["changed"] or memory["changed"]
+          print(json.dumps(summary))
+          PY
+          )
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
           {
             echo "${{ matrix.target }}-memory-summary=$summary"
@@ -181,6 +256,12 @@ jobs:
       V6X: ${{ needs.analyze_flash.outputs.px4_fmu-v6x-memory-summary }}
     if: github.event.pull_request
     steps:
+      - name: Download memory reports
+        uses: actions/download-artifact@v8
+        with:
+          pattern: memory-analysis-*
+          path: memory-reports
+
       - name: Find Comment
         uses: peter-evans/find-comment@v4
         id: fc
@@ -195,7 +276,8 @@ jobs:
           echo "timestamp=$(date +'%Y-%m-%dT%H:%M:%S')" >> "$GITHUB_OUTPUT"
 
       - name: Write pr-comment artifact
-        # Update existing comments even when both deltas return to zero.
+        # Update existing comments even when all deltas return to zero.
+        # The summary's changed flag also includes stack, objects and unavailable data.
         # This can't be moved to the job-level conditions, as GH actions don't allow a job-level if condition to access the env.
         if: |
           steps.fc.outputs.comment-id != '' ||
@@ -220,6 +302,16 @@ jobs:
           | px4_fmu-v2 (F4) | ${{ fromJSON(env.V2).flash }} | ${{ fromJSON(env.V2).flash_used }} | ${{ fromJSON(env.V2).ram }} | ${{ fromJSON(env.V2).ram_used }} |
           | px4_fmu-v5x (F7) | ${{ fromJSON(env.V5X).flash }} | ${{ fromJSON(env.V5X).flash_used }} | ${{ fromJSON(env.V5X).ram }} | ${{ fromJSON(env.V5X).ram_used }} |
           | px4_fmu-v6x (H7) | ${{ fromJSON(env.V6X).flash }} | ${{ fromJSON(env.V6X).flash_used }} | ${{ fromJSON(env.V6X).ram }} | ${{ fromJSON(env.V6X).ram_used }} |
+
+          PR_COMMENT_BODY_EOF
+          for target in px4_fmu-v2 px4_fmu-v5x px4_fmu-v6x; do
+            printf '\n<details>\n<summary>' >> pr-comment/body.md
+            cat "memory-reports/memory-analysis-$target/summary.txt" >> pr-comment/body.md
+            printf '</summary>\n\n' >> pr-comment/body.md
+            cat "memory-reports/memory-analysis-$target/report.md" >> pr-comment/body.md
+            printf '\n</details>\n' >> pr-comment/body.md
+          done
+          cat >> pr-comment/body.md <<'PR_COMMENT_BODY_EOF'
 
           <details>
           <summary>px4_fmu-v2 — Bloaty section/symbol breakdown</summary>
