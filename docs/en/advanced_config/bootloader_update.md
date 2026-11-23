@@ -66,6 +66,9 @@ make px4_fmu-v6x_bootloader
 This will build the bootloader binary as `build/px4_fmu-v6x_bootloader/px4_fmu-v6x_bootloader.elf`, which can be flashed via SWD or DFU.
 If you are building the bootloader you should be familiar with one of these options already.
 
+<Badge type="tip" text="main (PX4 v2.0)" /> On an STM32H7 board that already runs a bootloader from this version, `reboot -i` in the [MAVLink shell](../debug/mavlink_shell.md) reboots into the chip's DFU bootloader.
+Secure-boot bootloaders restart the app instead.
+
 If you need a HEX file instead of an ELF file, use objcopy:
 
 ```sh
