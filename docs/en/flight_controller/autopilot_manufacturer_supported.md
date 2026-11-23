@@ -47,6 +47,7 @@ The boards in this category are:
 - [Holybro Durandal](../flight_controller/durandal.md)
 - [Holybro Pix32 v5](../flight_controller/holybro_pix32_v5.md)
 - [MicoAir H743 Lite](../flight_controller/micoair743-lite.md)
+- [MicoAir743v3](../flight_controller/micoair743_v3.md)
 - [ModalAI VOXL 2](../flight_controller/modalai_voxl_2.md)
 - [mRo Control Zero](../flight_controller/mro_control_zero_f7.md)
 - [NWBlue Pro H757](../flight_controller/nwblue_pro-h757.md)
