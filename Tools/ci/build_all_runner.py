@@ -25,7 +25,7 @@ and warnings are colored. Each target's unprefixed output is also kept in
 .build_slots/logs/, and --print-logs prints those afterwards as one
 collapsed group per target titled with its result. Every target is built even if an earlier
 one fails, and the script exits non-zero if any target failed. Finally, the
-slot build directories are moved into build/ so package_build_artifacts.sh
+slot build directories are moved into build/ so package_build_artifacts.py
 finds every target in one place.
 """
 import argparse

@@ -271,7 +271,7 @@ No manual CI configuration is needed.
 
 ### Artifact Collection
 
-The `Tools/ci/package_build_artifacts.sh` script collects `.deb` files alongside `.px4` and `.elf` artifacts.
+The `Tools/ci/package_build_artifacts.py` script collects `.deb` files alongside `.px4` and `.elf` artifacts.
 On tagged releases, `.deb` files are uploaded to both S3 and GitHub Releases.
 
 ## Version Format
