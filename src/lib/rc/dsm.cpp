@@ -81,8 +81,10 @@ static dsm_channel_t channel_buffer[DSM_MAX_CHANNEL_COUNT];
 static int dsm_fd = -1;						/**< File handle to the DSM UART */
 static hrt_abstime dsm_last_rx_time;            /**< Timestamp when we last received data */
 static hrt_abstime dsm_last_frame_time;		/**< Timestamp for start of last valid dsm frame */
-static dsm_frame_t &dsm_frame = rc_decode_buf.dsm.frame;	/**< DSM_BUFFER_SIZE DSM dsm frame receive buffer */
-static dsm_buf_t &dsm_buf = rc_decode_buf.dsm.buf;	/**< DSM_BUFFER_SIZE DSM dsm frame receive buffer */
+// Not in rc_decode_buf: px4io runs DSM on every byte from its RC port alongside ST24 and
+// SUMD, which keep their frames in rc_decode_buf.
+static dsm_frame_t dsm_frame;	/**< DSM_BUFFER_SIZE DSM dsm frame receive buffer */
+static dsm_buf_t dsm_buf;	/**< UART read buffer */
 
 static unsigned dsm_partial_frame_count;	/**< Count of bytes received for current dsm frame */
 static unsigned dsm_channel_shift = 0;			/**< Channel resolution, 0=unknown, 10=10 bit (1024), 11=11 bit (2048) */
