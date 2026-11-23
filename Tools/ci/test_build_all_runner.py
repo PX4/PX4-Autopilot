@@ -9,8 +9,8 @@ read, so they must contain the actual error and the full memory table.
 
 import unittest
 
-from build_all_runner import (assign_slots, check_plan, failure_excerpt,
-                              flash_usage, memory_report)
+from build_all_runner import (assign_slots, build_dir_names, check_plan,
+                              failure_excerpt, flash_usage, memory_report)
 
 # ninja keeps printing the jobs already running after the failing one
 NINJA_FAILURE = (
@@ -91,6 +91,13 @@ class AssignSlotsTest(unittest.TestCase):
         # make modalai_voxl2_deb builds into build/modalai_voxl2_default
         plan = assign_slots(['modalai_voxl2_default', 'modalai_voxl2_deb'], 2)
         self.assertEqual(plan, [['modalai_voxl2_default', 'modalai_voxl2_deb']])
+
+    def test_deb_collects_the_package_dir_too(self):
+        # a descriptor board's .deb lands in build/<board>_package; leaving it
+        # behind in the slot checkout silently publishes no package
+        self.assertEqual(build_dir_names('modalai_voxl2_deb'),
+                         {'modalai_voxl2_default', 'modalai_voxl2_package'})
+        self.assertEqual(build_dir_names('px4_fmu-v6x_default'), {'px4_fmu-v6x_default'})
 
     def test_metadata_stays_with_sitl_default(self):
         # the metadata rules all build inside build/px4_sitl_default

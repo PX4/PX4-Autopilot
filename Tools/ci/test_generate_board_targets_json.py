@@ -20,6 +20,9 @@ ROOT = Path(__file__).resolve().parents[2]
 GENERATOR = ROOT / 'Tools' / 'ci' / 'generate_board_targets_json.py'
 BOARDS = ROOT / 'boards'
 
+sys.path.insert(0, str(ROOT / 'Tools' / 'packaging'))
+import package_descriptor  # noqa: E402
+
 # Workflow expressions read these keys from every build matrix entry.
 MATRIX_KEYS = {'container', 'runner', 'group', 'targets', 'slots',
                'cache_prefix', 'cache_size'}
@@ -33,11 +36,14 @@ def generate(*args):
 
 
 def companion_targets():
-    """Targets a parent target builds itself (boards/*/*/companion_targets)."""
+    """Targets another target builds: boards/*/*/companion_targets entries
+    and the coprocessor components of package descriptors (built by _deb)."""
     companions = set()
     for path in BOARDS.glob('*/*/companion_targets'):
         companions |= {line.strip() for line in path.read_text().splitlines()
                        if line.strip() and not line.startswith('#')}
+    for descriptor in package_descriptor.descriptors(ROOT):
+        companions |= set(descriptor.coprocessor_targets)
     return companions
 
 
