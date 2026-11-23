@@ -11,20 +11,19 @@ This has two advantages:
 - Many communication streams, such as [MAVLink](../mavlink/index.md) telemetry and video, can share the link within the available [bandwidth](<https://en.wikipedia.org/wiki/Bandwidth_(computing)>).
 - Some radios support [mesh networking](https://en.wikipedia.org/wiki/Mesh_networking), which allows many vehicles and GCSs to connect to each other.
 
-## Supported IP-Based Radios
+## Radios Used with PX4
 
-These IP radios have been tested with PX4:
+PX4 should work with any IP-based radio that carries Ethernet traffic transparently between the vehicle and the ground.
 
-- [Doodle Labs](https://doodlelabs.com/) — tested with PX4 v1.16.0 and _QGroundControl_ v5.0.8.
+These radios are known to have been used with PX4:
+
+- [Doodle Labs](https://doodlelabs.com/) Smart Radios (used with PX4 v1.16.0 and _QGroundControl_ v5.0.8).
+  Setups that connect through a companion computer are covered in [Platform Integration Guide (VOXL and Skynode)](https://kb.doodlelabs.com/platform-integration-guide-voxl-and-skynode) (Doodle Labs) and [Doodle Labs User Guide](https://docs.modalai.com/doodle-labs-user-guide/) (ModalAI).
 - [Microhard](https://www.microhardcorp.com/products.php) IP-based modules, such as the one used in the [AIRLink](../flight_controller/airlink.md) telemetry set.
   Microhard Pico serial radios are covered in [Microhard Serial Telemetry Radios](../telemetry/microhard_serial.md).
 
-IP-based radios from other brands can be added with testing and setup evidence.
-
-::: info
-[UXV Technologies Swappable Radio Modules (SRM)](https://www.uxvtechnologies.com/news/increase-flexibility-and-efficiency-with-our-new-swappable-radio-modules) package radios from several of these vendors in rugged modules with a common connector.
-PX4 setup is the same as for the radio inside the module.
-:::
+PX4 does not yet have setup guides for these radios.
+If you have set up an IP-based radio with PX4, please help by [adding a page](../contribute/docs.md) that describes the configuration you used.
 
 ## PX4 Setup
 
