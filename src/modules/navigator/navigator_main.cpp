@@ -182,6 +182,7 @@ Navigator::Navigator() :
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 	_handle_back_trans_dec_mss = param_find("VT_B_DEC_MSS");
+	_handle_ekf2_rng_ctrl = param_find("EKF2_RNG_CTRL");
 
 	_handle_mpc_jerk_auto = param_find("MPC_JERK_AUTO");
 	_handle_mpc_acc_hor = param_find("MPC_ACC_HOR");
@@ -219,6 +220,10 @@ void Navigator::params_update()
 
 	if (_handle_back_trans_dec_mss != PARAM_INVALID) {
 		param_get(_handle_back_trans_dec_mss, &_param_back_trans_dec_mss);
+	}
+
+	if (_handle_ekf2_rng_ctrl != PARAM_INVALID) {
+		param_get(_handle_ekf2_rng_ctrl, &_param_ekf2_rng_ctrl);
 	}
 
 	if (_handle_mpc_jerk_auto != PARAM_INVALID) {
@@ -1357,7 +1362,7 @@ void Navigator::local_geofence_breach_check()
 					   _local_pos.v_z_valid ? _local_pos.vz : NAN, _local_pos.timestamp_sample);
 		const float armed_height = _local_gf_armed_height.update(_local_pos.z, _local_pos.z_valid,
 					   _local_pos.z_reset_counter, _local_pos.delta_z, armed);
-		const float height = (_param_ekf2_rng_ctrl.get() == 0) ? armed_height : range_height;
+		const float height = (_param_ekf2_rng_ctrl == 0) ? armed_height : range_height;
 
 		// Height unknown in flight counts as a breach rather than letting the vehicle climb unchecked
 		const bool alt_exceeded = PX4_ISFINITE(height) ? (height >= max_ver_dist) : armed;

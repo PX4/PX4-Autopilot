@@ -476,10 +476,12 @@ private:
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE] {};	/**< array of navigation modes */
 
 	param_t _handle_back_trans_dec_mss{PARAM_INVALID};
+	param_t _handle_ekf2_rng_ctrl{PARAM_INVALID};	/**< local fence height source, only where EKF2 has range support */
 	param_t _handle_mpc_jerk_auto{PARAM_INVALID};
 	param_t _handle_mpc_acc_hor{PARAM_INVALID};
 
 	float _param_back_trans_dec_mss{0.f};
+	int32_t _param_ekf2_rng_ctrl{0};		/**< 0 (no distance sensor) where EKF2_RNG_CTRL does not exist */
 	float _param_mpc_jerk_auto{4.f}; 	/**< initialized with the default jerk auto value to prevent division by 0 if the parameter is accidentally set to 0 */
 	float _param_mpc_acc_hor{3.f};		/**< initialized with the default horizontal acc value to prevent division by 0 if the parameter is accidentally set to 0 */
 
@@ -533,9 +535,6 @@ private:
 		(ParamFloat<px4::params::MIS_YAW_TMT>)        _param_mis_yaw_tmt,
 		(ParamFloat<px4::params::MIS_YAW_ERR>)        _param_mis_yaw_err,
 		(ParamInt<px4::params::MIS_LND_ABRT_ALT>)     _param_mis_lnd_abrt_alt,
-		(ParamFloat<px4::params::MIS_COMMAND_TOUT>) _param_mis_command_tout,
-
-		// non-navigator parameters: the local fence height source (0 = no distance sensor)
-		(ParamInt<px4::params::EKF2_RNG_CTRL>)      _param_ekf2_rng_ctrl
+		(ParamFloat<px4::params::MIS_COMMAND_TOUT>) _param_mis_command_tout
 	)
 };
