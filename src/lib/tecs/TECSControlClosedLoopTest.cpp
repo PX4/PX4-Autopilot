@@ -167,19 +167,19 @@ float altitude_rate(float pitch_cmd, AircraftState s, float pitch_offset = 0.f)
 }
 
 // Continuous-time airspeed rate of the plant at the given commands: the energy rate the throttle delivers that
-// the climb does not absorb
+// the climb does not absorb. ste_rate_offset is added to what the throttle delivers, unknown to TECS.
 float airspeed_rate(const TECSControl::Param &p, float throttle, float pitch_cmd, AircraftState s,
-		    float pitch_offset = 0.f, bool throttle_failed = false)
+		    float pitch_offset = 0.f, bool throttle_failed = false, float ste_rate_offset = 0.f)
 {
-	const float ste_rate = ste_rate_modelled(p, throttle_failed ? 0.0f : throttle);
+	const float ste_rate = ste_rate_modelled(p, throttle_failed ? 0.0f : throttle) + ste_rate_offset;
 	const float ske_rate = ste_rate - CONSTANTS_ONE_G * altitude_rate(pitch_cmd, s, pitch_offset);
 	return (s.V > 0.1f) ? ske_rate / s.V : 0.f; // If V < 0.1 we have long stalled...
 }
 
 AircraftState aircraft_step(const TECSControl::Param &p, float dt, float throttle, float pitch_cmd, AircraftState s,
-			    float pitch_offset = 0.f, bool throttle_failed = false)
+			    float pitch_offset = 0.f, bool throttle_failed = false, float ste_rate_offset = 0.f)
 {
-	return {s.V + dt * airspeed_rate(p, throttle, pitch_cmd, s, pitch_offset, throttle_failed),
+	return {s.V + dt * airspeed_rate(p, throttle, pitch_cmd, s, pitch_offset, throttle_failed, ste_rate_offset),
 		s.h + dt * altitude_rate(pitch_cmd, s, pitch_offset)};
 }
 
@@ -206,6 +206,7 @@ protected:
 	// Options to re-introduce some basic model mismatch
 	float _plant_pitch_offset {0.f};  // pitch-to-flight-path offset of the plant, unknown to TECS
 	bool _throttle_failed {false};    // simulate failed throttle (giving min total energy rate)
+	float _plant_ste_rate_offset {0.f}; // total energy rate the plant adds to the throttle's, unknown to TECS [m^2/s^3]
 
 	bool  _tecs_initialised {false};
 	FILE *_output_csv_file {nullptr};
@@ -269,7 +270,8 @@ protected:
 			.altitude      = _state.h,
 			.altitude_rate = plantAltitudeRate(),
 			.tas           = airspeed ? _state.V : _params.equivalent_airspeed_trim,
-			.tas_rate      = airspeed ? airspeed_rate(_params, _throttle, _pitch, _state, _plant_pitch_offset, _throttle_failed) : 0.f,
+			.tas_rate      = airspeed ? airspeed_rate(_params, _throttle, _pitch, _state, _plant_pitch_offset, _throttle_failed,
+					_plant_ste_rate_offset) : 0.f,
 		};
 	}
 
@@ -357,7 +359,8 @@ protected:
 					     (double) dbg.energy_balance_rate_sp, (double) dbg.energy_balance_rate_estimate);
 			}
 
-			_state = aircraft_step(_params, DT, _throttle, _pitch, _state, _plant_pitch_offset, _throttle_failed);
+			_state = aircraft_step(_params, DT, _throttle, _pitch, _state, _plant_pitch_offset, _throttle_failed,
+					       _plant_ste_rate_offset);
 
 			_step++;
 			_t = _step * DT;
@@ -608,7 +611,8 @@ TEST_F(TECSControlClosedLoopTest, AirspeedStepDownDefaultTuning)
 //
 // With the pitch and throttle consistent, the speed weight only sets which error the pitch feedback weights, not the
 // closed loop: an airspeed error decays with FW_T_TAS_TC and an altitude error with FW_T_ALT_TC, without coupling,
-// for any speed weight and any combination of the two time constants.
+// for any speed weight and any combination of the two time constants. Every weight must match the same weight-free
+// first-order responses, so the speed weight has no effect as long as the throttle delivers the total energy rate.
 
 struct WeightAndTimeConstants {
 	float speed_weight;
@@ -661,14 +665,40 @@ protected:
 		EXPECT_LT(_sim_stats.max_airspeed_error, MAX_NUMERICAL_ERR) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
 		EXPECT_NEAR(_state.h, _alt_sp, TRACKING_ERROR_TOL);
 	}
+
+	// Disturb the plant state with the setpoints unchanged, e.g. a gust: each error decays with its own time
+	// constant and the other one is not excited, whatever the speed weight.
+	void checkDisturbance(float altitude_offset, float airspeed_offset)
+	{
+		run(10.f);
+		_state.h += altitude_offset;
+		_state.V += airspeed_offset;
+		resetSimStats();
+
+		const float t_disturbance = _t;
+
+		for (int i = 0; i < 10; i++) {
+			run(2.0f);
+			const float t = _t - t_disturbance;
+			EXPECT_NEAR(_state.h - _alt_sp, altitude_offset * expf(-t * _params.altitude_error_gain), MAX_NUMERICAL_ERR)
+					<< "at t=" << _t << " s";
+			EXPECT_NEAR(_state.V - _V_sp, airspeed_offset * expf(-t * _params.airspeed_error_gain), MAX_NUMERICAL_ERR)
+					<< "at t=" << _t << " s";
+		}
+	}
 };
 
+TEST_P(TECSControlClosedLoopWeightTest, AltitudeDisturbance) { checkDisturbance(2.f, 0.f); }
+TEST_P(TECSControlClosedLoopWeightTest, AirspeedDisturbance) { checkDisturbance(0.f, -1.f); }
+TEST_P(TECSControlClosedLoopWeightTest, CombinedDisturbance) { checkDisturbance(-2.f, 1.f); }
 TEST_P(TECSControlClosedLoopWeightTest, AirspeedStepUp) { checkAirspeedStep(AIRSPEED_STEP); }
 TEST_P(TECSControlClosedLoopWeightTest, AirspeedStepDown) { checkAirspeedStep(-AIRSPEED_STEP); }
 TEST_P(TECSControlClosedLoopWeightTest, AltitudeStepUp) { checkAltitudeStep(1.f); }
 TEST_P(TECSControlClosedLoopWeightTest, AltitudeStepDown) { checkAltitudeStep(-1.f); }
 
 INSTANTIATE_TEST_SUITE_P(SpeedWeightAndTimeConstants, TECSControlClosedLoopWeightTest, ::testing::Values(
+				 WeightAndTimeConstants{0.0f, 5.f, 2.5f},
+				 WeightAndTimeConstants{0.0f, 3.f, 6.f},
 				 WeightAndTimeConstants{1.0f, 5.f, 2.5f},
 				 WeightAndTimeConstants{1.0f, 3.f, 6.f},
 				 WeightAndTimeConstants{1.8f, 5.f, 5.f},
@@ -681,6 +711,57 @@ INSTANTIATE_TEST_SUITE_P(SpeedWeightAndTimeConstants, TECSControlClosedLoopWeigh
 	auto name = [](float value) { return std::to_string(static_cast<int>(value * 10.f + 0.5f)); };
 	return "Weight" + name(param_info.param.speed_weight) + "_AltTc" + name(param_info.param.altitude_time_const)
 	       + "_TasTc" + name(param_info.param.airspeed_time_const);
+});
+
+// --- Throttle shortfall -------------------------------------------------------------
+//
+// If the throttle does not deliver the total energy rate setpoint, the speed weight splits the shortfall
+// d = STE rate setpoint - STE rate between the altitude and airspeed. The pitch integrator settles where the balance
+// rate error 2 (SPE rate setpoint - SPE rate) - w d vanishes, so with constant errors (no climb, no acceleration):
+//     g e_h / tau_h = (w / 2) d        altitude rate setpoint
+//     V e_V / tau_v = (1 - w / 2) d    kinetic energy rate setpoint
+// The two shares add up to the whole shortfall: w = 0 puts it on the airspeed, w = 2 on the altitude.
+//
+// The plant delivers less total energy rate than TECS models, and the throttle integrator, which would otherwise
+// remove the shortfall, is off. The throttle damping then settles with a shortfall left over, like a throttle that
+// cannot deliver.
+
+class TECSControlClosedLoopShortfallTest : public TECSControlClosedLoopTest, public ::testing::WithParamInterface<float>
+{
+};
+
+TEST_P(TECSControlClosedLoopShortfallTest, SpeedWeightSplitsShortfall)
+{
+	_params.pitch_speed_weight = GetParam();
+	_params.integrator_gain_throttle = 0.f;
+	_plant_ste_rate_offset = -0.5f * CONSTANTS_ONE_G; // the throttle delivers 0.5 m/s less climb than modelled
+
+	run(100.f); // let the pitch integrator settle
+
+	const auto &dbg = _tecs_control.getDebugOutput();
+	const float shortfall = dbg.total_energy_rate_sp - dbg.total_energy_rate_estimate;
+	ASSERT_GT(shortfall, 0.1f); // the throttle is short
+
+	// Steady: no climb, no acceleration. The float plant state stops moving once a step falls below its resolution
+	// (at 300 m altitude, about 1 mm/s), so the energy rate and the split below hold to about 1 % of the shortfall.
+	const float tolerance = 0.01f * shortfall;
+	EXPECT_NEAR(dbg.total_energy_rate_estimate, 0.f, tolerance);
+
+	const float w = _params.pitch_speed_weight;
+	const float altitude_error = _alt_sp - _state.h;
+	const float airspeed_error = _V_sp - _state.V;
+	const float altitude_share = CONSTANTS_ONE_G * altitude_error * _params.altitude_error_gain;
+	const float airspeed_share = _state.V * airspeed_error * _params.airspeed_error_gain;
+
+	EXPECT_NEAR(altitude_share, 0.5f * w * shortfall, tolerance);
+	EXPECT_NEAR(airspeed_share, (1.f - 0.5f * w) * shortfall, tolerance);
+	EXPECT_NEAR(altitude_share + airspeed_share, shortfall, tolerance);
+}
+
+INSTANTIATE_TEST_SUITE_P(SpeedWeight, TECSControlClosedLoopShortfallTest, ::testing::Values(0.f, 0.5f, 1.f, 1.5f, 2.f),
+			 [](const ::testing::TestParamInfo<float> &param_info)
+{
+	return "Weight" + std::to_string(static_cast<int>(param_info.param * 10.f + 0.5f));
 });
 
 TEST_F(TECSControlClosedLoopTest, FastDescend)
