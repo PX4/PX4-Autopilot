@@ -143,7 +143,7 @@ file(RELATIVE_PATH PX4_BINARY_DIR_REL ${CMAKE_CURRENT_BINARY_DIR} ${PX4_BINARY_D
 # because even relative linker script paths are different for linux, mac and windows
 CYGPATH(NUTTX_CONFIG_DIR NUTTX_CONFIG_DIR_CYG)
 
-if((DEFINED ENV{SIGNING_TOOL}) AND (NOT NUTTX_DIR MATCHES "external"))
+if((DEFINED ENV{SIGNING_TOOL}) AND (NOT PX4_NUTTX_TREE_DIR))
 	set(PX4_BINARY_OUTPUT ${PX4_BINARY_DIR}/${PX4_CONFIG}_unsigned.bin)
 
 	add_custom_command(OUTPUT ${PX4_BINARY_DIR_REL}/${PX4_CONFIG}.bin
@@ -280,7 +280,7 @@ else()
 
 if(CONFIG_ARCH_CHIP_ESP32)
 
-	set(PX4_STARTUP_DIR ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/arch/xtensa/src)
+	set(PX4_STARTUP_DIR ${NUTTX_DIR}/arch/xtensa/src)
 	set(WIRELESS_LIB ${PX4_STARTUP_DIR}/esp32/esp-wireless-drivers-3rdparty/libs/esp32/)
 
 	set(NUTTX_STARTUP_OBJS
@@ -642,8 +642,8 @@ endif()
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/gdbinit.in ${PX4_BINARY_DIR}/.gdbinit)
 
 # vscode launch.json
-#  skip if built within another cmake project (eg px4_io-v2 with px4_fmu-v5)
-if(NOT NUTTX_DIR MATCHES "external")
+#  skip if built for another target's ROMFS (eg px4_io-v2 with px4_fmu-v5)
+if(NOT PX4_NUTTX_TREE_DIR)
 	if(CONFIG_ARCH_CHIP_MIMXRT1062DVL6A)
 		set(DEBUG_DEVICE "MIMXRT1062XXX6A")
 		set(DEBUG_SVD_FILE "MIMXRT1062.xml")

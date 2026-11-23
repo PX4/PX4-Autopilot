@@ -40,6 +40,10 @@ METADATA = ('parameters.xml', 'parameters.json', 'parameters.json.xz',
             'actuators.json', 'actuators.json.xz')
 EVENTS = 'all_events.json.xz'
 GENERAL_SOURCE = 'px4_sitl_default'
+# build/px4io holds the px4io firmware that targets with an IO build for their
+# own ROMFS (platforms/nuttx/cmake/px4io_firmware_build.cmake). The published
+# IO image comes from the *_io-v*_default targets.
+NOT_TARGETS = ('px4io',)
 
 
 def target_labels(boards=BOARDS):
@@ -142,7 +146,7 @@ def package(build=BUILD, artifacts=ARTIFACTS, labels=None, unpublished=None):
 
     artifacts.mkdir(exist_ok=True)
     for build_dir in sorted(build.iterdir()):
-        if not build_dir.is_dir() or build_dir.name.startswith('.'):
+        if not build_dir.is_dir() or build_dir.name.startswith('.') or build_dir.name in NOT_TARGETS:
             continue
         reason = unpublished_reason(build_dir.name, labels, unpublished)
         if reason:

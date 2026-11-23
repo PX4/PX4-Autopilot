@@ -297,25 +297,50 @@ foreach(board_extra_file ${OPTIONAL_BOARD_EXTRAS})
 			list(REMOVE_ITEM OPTIONAL_BOARD_EXTRAS ${board_extra_file})
 		endif()
 	elseif(${extra_file_base_name} MATCHES "_io-v[0-9]+_default\\.bin$")
-		# px4io firmware is no longer kept per board, see CONFIG_BOARD_IO below
+		# px4io firmware is not kept in the tree, see CONFIG_BOARD_IO below
 		file(RELATIVE_PATH extra_file_relative_source ${PX4_SOURCE_DIR} ${board_extra_file})
-		message(FATAL_ERROR "Delete ${extra_file_relative_source}: the px4io firmware is now taken from "
-			"boards/<vendor>/<io board>/extras/ via CONFIG_BOARD_IO and must not be kept per board.")
+		message(FATAL_ERROR "Delete ${extra_file_relative_source}: the px4io firmware is built from source "
+			"for CONFIG_BOARD_IO and must not be committed.")
 	endif()
 endforeach()
 
 # px4io firmware (optional)
-#  - the binary is kept once per IO board, in boards/<vendor>/<model>/extras/<CONFIG_BOARD_IO>.bin
-#  - regenerate it with "make px4io_update", CI checks it with "make check_px4io"
+#  - built from source for CONFIG_BOARD_IO, once per checkout, in build/px4io/<CONFIG_BOARD_IO>/
+#  - the build runs on every build of this target so that IO source changes reach the ROMFS,
+#    the ROMFS is only regenerated when the IO binary changed
 if(CONFIG_DRIVERS_PX4IO AND CONFIG_BOARD_IO)
 	if(NOT CONFIG_BOARD_IO MATCHES "^([^_]+)_(.+)_([^_]+)$")
 		message(FATAL_ERROR "BOARD_IO '${CONFIG_BOARD_IO}' is not of the form <vendor>_<model>_<label>")
 	endif()
-	set(px4io_firmware_bin ${PX4_SOURCE_DIR}/boards/${CMAKE_MATCH_1}/${CMAKE_MATCH_2}/extras/${CONFIG_BOARD_IO}.bin)
-	if(NOT EXISTS ${px4io_firmware_bin})
-		message(FATAL_ERROR "px4io firmware not found at: ${px4io_firmware_bin} (run make px4io_update)")
-	endif()
-	list(APPEND OPTIONAL_BOARD_EXTRAS ${px4io_firmware_bin})
+	set(px4io_firmware_bin ${PX4_SOURCE_DIR}/build/px4io/${CONFIG_BOARD_IO}/build/${CONFIG_BOARD_IO}.bin)
+	message(STATUS "ROMFS:  Adding px4io firmware ${CONFIG_BOARD_IO} -> /etc/extras/${CONFIG_BOARD_IO}.bin")
+
+	add_custom_target(px4io_firmware
+		COMMAND ${CMAKE_COMMAND}
+			-DPX4_SOURCE_DIR=${PX4_SOURCE_DIR}
+			-DBOARD_IO=${CONFIG_BOARD_IO}
+			-DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}
+			-P ${PX4_SOURCE_DIR}/platforms/nuttx/cmake/px4io_firmware_build.cmake
+		BYPRODUCTS ${px4io_firmware_bin}
+		COMMENT "ROMFS: building px4io firmware ${CONFIG_BOARD_IO}"
+		VERBATIM
+	)
+
+	add_custom_command(
+		OUTPUT
+			${romfs_gen_root_dir}/extras/${CONFIG_BOARD_IO}.bin
+			${CONFIG_BOARD_IO}.bin.stamp
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different ${px4io_firmware_bin} ${romfs_gen_root_dir}/extras/${CONFIG_BOARD_IO}.bin
+		COMMAND ${CMAKE_COMMAND} -E touch ${CONFIG_BOARD_IO}.bin.stamp
+		DEPENDS
+			${px4io_firmware_bin}
+			romfs_copy.stamp
+		COMMENT "ROMFS: copying px4io firmware ${CONFIG_BOARD_IO}"
+	)
+
+	list(APPEND extras_dependencies
+		${CONFIG_BOARD_IO}.bin.stamp
+	)
 endif()
 
 foreach(board_extra_file ${OPTIONAL_BOARD_EXTRAS})
@@ -390,7 +415,7 @@ if("${CONFIG_FS_CROMFS}" STREQUAL "y")
 		OUTPUT ${CMAKE_BINARY_DIR}/gencromfs
 		COMMAND make --no-print-directory --silent -f Makefile.host gencromfs
 		COMMAND ${CMAKE_COMMAND} -E copy_if_different gencromfs ${CMAKE_BINARY_DIR}/gencromfs
-		DEPENDS ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/tools/gencromfs.c
+		DEPENDS ${NUTTX_DIR}/tools/gencromfs.c
 		WORKING_DIRECTORY ${NUTTX_DIR}/tools
 	)
 

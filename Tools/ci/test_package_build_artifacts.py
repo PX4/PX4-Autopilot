@@ -55,6 +55,8 @@ class PackageTest(unittest.TestCase):
         self.add_target('modalai_voxl2-io_default', mavlink=False)
         self.add_target('px4_sitl_default')
         (self.build / 'px4_sitl_default' / 'boardconfig').unlink()
+        # build/px4io is the px4io firmware built for other targets, not a target
+        self.add_target('px4io')
 
         def with_metadata(target):
             return {f'{target}.px4', f'{target}.elf', f'{target}/{target}.sbom.spdx.json',
