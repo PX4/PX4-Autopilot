@@ -7,6 +7,8 @@ mkdir artifacts
 # - Bootloaders (*_bootloader and *_canbootloader): raw .bin for SWD
 #   *_bootloader_* variants (e.g. bootloader_secureboot) are omitted;
 #   those images are baked with in-tree test keys.
+# - px4io firmware (*_io-v*_default): raw .bin, the image "px4io update"
+#   flashes to the IO coprocessor from the FMU.
 for uavcan_bin in build/*/*.uavcan.bin; do
   [ -f "$uavcan_bin" ] || continue
   build_dir=$(basename "$(dirname "$uavcan_bin")")
@@ -19,6 +21,14 @@ for bl_dir in build/*_bootloader build/*_canbootloader; do
   bl_bin="$bl_dir/${build_dir}.bin"
   [ -f "$bl_bin" ] || continue
   cp "$bl_bin" "artifacts/${build_dir}.bin"
+done
+
+for io_dir in build/*_io-v*_default; do
+  [ -d "$io_dir" ] || continue
+  build_dir=$(basename "$io_dir")
+  io_bin="$io_dir/${build_dir}.bin"
+  [ -f "$io_bin" ] || continue
+  cp "$io_bin" "artifacts/${build_dir}.bin"
 done
 
 for px4_file in build/*/*.px4; do
