@@ -16,27 +16,27 @@ We'll go through each of these in detail in the following sections.
 
 ![CyberX-v10 wiring diagram](../../assets/flight_controller/cyberx_v10/cyberx_v10_wiring_diagram.png)
 
-| Port              | Function                                                                                                        |
-| :---------------- | :-------------------------------------------------------------------------------------------------------------- |
-| `PWR1`            | Analog (ADC) power module                                                                                       |
-| `PWR2`            | I2C power module                                                                                                |
-| `GPS1`, `GPS2`    | GPS/[RTK](../gps_compass/rtk_gps.md) modules                                                                    |
-| `SW+BUZ`          | Safety switch, safety LED and buzzer (usually from the GPS module)                                              |
-| `TEL1`, `TEL2`    | Telemetry radios or other MAVLink devices                                                                       |
-| `Uart5`           | General-purpose serial port (EXT2)                                                                              |
-| `Uart8`           | RC input for CRSF and GHST receivers                                                                            |
-| `S.Bin`           | SBUS or PPM receiver (`SBUS_IN`) and RSSI input (`RSSI_IN`)                                                     |
-| `RCin`            | SBUS or PPM receiver (pin on the servo rail)                                                                    |
-| `I2C3`, `I2C4`    | I2C peripherals, such as an MS4525DO airspeed sensor                                                            |
-| `CAN1`, `CAN2`    | [DroneCAN](../dronecan/index.md) peripherals                                                                    |
-| `ETH`             | Ethernet devices, such as companion computers                                                                   |
-| `ADC`             | Two analog inputs (3.3V and 6.6V)                                                                               |
-| `S.Bout+SPI6`     | SBUS output and external SPI bus                                                                                |
-| `M1`–`M8`         | IO PWM outputs, for ESCs and servos                                                                             |
-| `M9`–`M16`        | FMU PWM outputs, for ESCs and servos; `M9`–`M14` also support [DShot](../peripherals/dshot.md)                  |
-| `USB`             | Connection to a computer, for example to load firmware                                                          |
-| `DEBUG`           | [SWD](../debug/swd_debug.md) debug port for the FMU and IO processors                                           |
-| microSD card slot | Log storage (a card is pre-inserted at the factory)                                                             |
+| Port              | Function                                                                                       |
+| :---------------- | :--------------------------------------------------------------------------------------------- |
+| `PWR1`            | Analog (ADC) power module                                                                      |
+| `PWR2`            | I2C power module                                                                               |
+| `GPS1`, `GPS2`    | GPS/[RTK](../gps_compass/rtk_gps.md) modules                                                   |
+| `SW+BUZ`          | Safety switch, safety LED and buzzer (usually from the GPS module)                             |
+| `TEL1`, `TEL2`    | Telemetry radios or other MAVLink devices                                                      |
+| `Uart5`           | General-purpose serial port (EXT2)                                                             |
+| `Uart8`           | RC input for CRSF and GHST receivers                                                           |
+| `S.Bin`           | SBUS or PPM receiver (`SBUS_IN`) and RSSI input (`RSSI_IN`)                                    |
+| `RCin`            | SBUS or PPM receiver (pin on the servo rail)                                                   |
+| `I2C3`, `I2C4`    | I2C peripherals, such as an MS4525DO airspeed sensor                                           |
+| `CAN1`, `CAN2`    | [DroneCAN](../dronecan/index.md) peripherals                                                   |
+| `ETH`             | Ethernet devices, such as companion computers                                                  |
+| `ADC`             | Two analog inputs (3.3V and 6.6V)                                                              |
+| `S.Bout+SPI6`     | SBUS output and external SPI bus                                                               |
+| `M1`–`M8`         | IO PWM outputs, for ESCs and servos                                                            |
+| `M9`–`M16`        | FMU PWM outputs, for ESCs and servos; `M9`–`M14` also support [DShot](../peripherals/dshot.md) |
+| `USB`             | Connection to a computer, for example to load firmware                                         |
+| `DEBUG`           | [SWD](../debug/swd_debug.md) debug port for the FMU and IO processors                          |
+| microSD card slot | Log storage (a card is pre-inserted at the factory)                                            |
 
 ## Vehicle Front
 
