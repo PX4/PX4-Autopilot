@@ -143,6 +143,7 @@ private:
 	float _vz{NAN};					/**< vertical velocity (down positive), NAN if invalid [m/s] */
 	float _ceiling_integral{0.f};			/**< climb-rate limiter integral [m/s^2] */
 	float _ceiling_hover{NAN};			/**< hover thrust the ceiling integral refers to */
+	int32_t _ekf2_rng_ctrl{0};			/**< EKF2_RNG_CTRL, 0 (no distance sensor) where EKF2 has no range support */
 
 	SlewRate<float> _manual_throttle_minimum{0.f}; ///< 0 when landed and ramped to MPC_MANTHR_MIN in air
 	SlewRate<float> _manual_throttle_maximum{0.f}; ///< 0 when disarmed ramped to 1 when spooled up
@@ -190,7 +191,6 @@ private:
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _param_mpc_z_vel_max_up,
 		(ParamFloat<px4::params::MPC_Z_VEL_P_ACC>) _param_mpc_z_vel_p_acc,
 		(ParamFloat<px4::params::MPC_Z_VEL_I_ACC>) _param_mpc_z_vel_i_acc,
-		(ParamInt<px4::params::EKF2_RNG_CTRL>) _param_ekf2_rng_ctrl,
 
 		(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time
 	)
