@@ -32,7 +32,30 @@ parameters:
         type: int32
         min: 0
         max: 10
+        reboot_required: true
         default: 0
+      PCA9685_EXT_CLK:
+        description:
+          short: Use external clock for PCA9685
+          long: |
+            Use the clock on the EXTCLK pin instead of the internal oscillator.
+            Without a clock on that pin there is no PWM output.
+            EXTCLK is sticky: switching back to internal needs a power cycle of the PCA9685 board.
+        type: boolean
+        reboot_required: true
+        default: 0
+      PCA9685_CLK_FREQ:
+        description:
+          short: Clock frequency of PCA9685
+          long: |
+            Frequency of the active clock source of the PCA9685: the internal oscillator
+            or the external clock, depending on PCA9685_EXT_CLK.
+        type: int32
+        unit: Hz
+        min: 1000000
+        max: 50000000
+        reboot_required: true
+        default: 25000000
       PCA9685_I2C_ADDR:
         description:
           short: I2C address of PCA9685

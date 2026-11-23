@@ -5,3 +5,6 @@
 
 # 1K + 4.7K
 param set-default BAT1_V_DIV 5.7
+
+# PCA9685 is clocked from the EXTCLK pin
+param set-default PCA9685_EXT_CLK 1
