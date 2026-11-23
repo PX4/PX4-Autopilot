@@ -343,6 +343,7 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::COM_DISARM_LAND>)  _param_com_disarm_land,
 		(ParamFloat<px4::params::COM_DISARM_PRFLT>) _param_com_disarm_prflt,
+		(ParamFloat<px4::params::COM_KILL_DISARM>) _param_com_kill_disarm,
 		(ParamInt<px4::params::COM_DL_LOSS_T>)      _param_com_dl_loss_t,
 		(ParamInt<px4::params::COM_HLDL_LOSS_T>)    _param_com_hldl_loss_t,
 		(ParamBool<px4::params::COM_HOME_EN>)       _param_com_home_en,

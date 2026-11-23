@@ -853,7 +853,6 @@ Commander::Commander() :
 	_user_mode_intention.change((uint8_t)_param_com_fltmode_boot.get(), ModeChangeSource::User, false, true);
 
 	_failsafe.setOnNotifyUserCallback(&Commander::onFailsafeNotifyUserTrampoline, this);
-	_auto_disarm_killed.set_hysteresis_time_from(false, 5_s);
 }
 
 Commander::~Commander()
@@ -1965,6 +1964,8 @@ void Commander::updateParameters()
 	// update parameters from storage
 	updateParams();
 
+	_auto_disarm_killed.set_hysteresis_time_from(false, math::max(_param_com_kill_disarm.get(), 0.f) * 1_s);
+
 	int32_t value_int32 = 0;
 
 	// MAV_TYPE -> vehicle_status.system_type
@@ -2540,7 +2541,7 @@ void Commander::handleAutoDisarm()
 			}
 		}
 
-		// Auto disarm after 5 seconds if kill switch is engaged
+		// Auto disarm after COM_KILL_DISARM if kill switch is engaged
 		_auto_disarm_killed.set_state_and_update(_actuator_armed.kill, hrt_absolute_time());
 
 		if (_auto_disarm_killed.get_state()) {

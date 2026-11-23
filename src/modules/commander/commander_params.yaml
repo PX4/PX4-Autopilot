@@ -106,6 +106,21 @@ parameters:
       unit: s
       decimal: 1
       increment: 0.1
+    COM_KILL_DISARM:
+      description:
+        short: Time-out for auto disarm while the kill switch is engaged
+        long: |-
+          The vehicle disarms once the kill switch has been engaged for this time.
+          Releasing the kill switch earlier restarts the motors because the vehicle
+          is still armed. 0 disarms immediately, so the motors stay off until the
+          vehicle is armed again.
+      type: float
+      default: 5.0
+      unit: s
+      min: 0
+      max: 10
+      decimal: 1
+      increment: 0.1
     COM_ARM_WO_GPS:
       description:
         short: Arming without GNSS configuration
