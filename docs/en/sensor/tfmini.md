@@ -11,8 +11,8 @@ They connect to the flight controller using a serial port (UART).
 
 | Model                                                                  | Range   | Connection | `SENS_TFMINI_HW` value |
 | ---------------------------------------------------------------------- | ------- | ---------- | ---------------------- |
-| [TFmini-S](https://en.benewake.com/TFminiS/index_proid_325.html)       | 0.1–12m | UART       | `1` (default)          |
 | [TFmini Plus](https://en.benewake.com/TFminiPlus/index_proid_323.html) | 0.1–12m | UART       | `4`                    |
+| [TFmini-S](https://en.benewake.com/TFminiS/index_proid_325.html)       | 0.1–12m | UART       | `5` (default)          |
 
 ::: details Discontinued
 
@@ -24,7 +24,7 @@ The following model is supported by PX4 but is no longer in Benewake's product l
 
 :::
 
-PX4 reports distances from 0.4m to 12m for the TFmini-S and from 0.1m to 12m for the TFmini Plus.
+PX4 reports distances from 0.1m to 12m for the TFmini-S and TFmini Plus, and from 0.4m to 12m for the discontinued TFmini.
 
 The [TFmini-i](https://en.benewake.com/TFminii/index_proid_324.html) is not supported by PX4: it connects via RS-485 or CAN (separate hardware versions) and is powered from 7–30V.
 
@@ -56,7 +56,7 @@ The [TFmini-i](https://en.benewake.com/TFminii/index_proid_324.html) is not supp
 
 Mount the sensor facing down: PX4 assumes a downward-facing sensor, and the orientation cannot be configured.
 
-Readings below the minimum range of the selected model (0.4m for the TFmini-S, 0.1m for the TFmini Plus) are reported as out of range.
+Readings below the minimum range of the selected model (0.1m for the TFmini-S and TFmini Plus, 0.4m for the discontinued TFmini) are reported as out of range.
 
 ### Pinouts {#pinouts}
 
@@ -126,7 +126,7 @@ The driver does not configure the sensor, so the sensor must be at its factory s
 If these have been changed, reset the sensor to its defaults as described in the Benewake user manual.
 
 [SENS_TFMINI_HW](../advanced_config/parameter_reference.md#SENS_TFMINI_HW) selects the model and sets the range limits PX4 reports.
-Set it to `1` (`TFMINI / TFMINI-S`) for the TFmini-S or `4` (`TFMINI Plus`) for the TFmini Plus.
+Set it to `5` (`TFMINI-S`) for the TFmini-S, `4` (`TFMINI Plus`) for the TFmini Plus, or `1` (`TFMINI (discontinued)`) for the discontinued TFmini.
 
 The configuration that is common to all rangefinders, such as the sensor position offsets used by the estimator, is covered in [Rangefinders > Configuration/Setup](../sensor/rangefinders.md#configuration).
 
@@ -144,7 +144,7 @@ You can observe the published measurements with:
 listener distance_sensor
 ```
 
-The sensor type is reported as laser, with minimum and maximum distances of 0.4m and 12m for the TFmini-S, and 0.1m and 12m for the TFmini Plus.
+The sensor type is reported as laser, with minimum and maximum distances of 0.1m and 12m for the TFmini-S and TFmini Plus, and 0.4m and 12m for the discontinued TFmini.
 
 The measurements can also be viewed in the `DISTANCE_SENSOR` message in the _QGroundControl MAVLink Inspector_.
 For more information see [Rangefinders > Testing](../sensor/rangefinders.md#testing).

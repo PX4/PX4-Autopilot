@@ -14,11 +14,12 @@ parameters:
                 long: Models differ in range and FoV.
             type: enum
             values:
-                1: TFMINI / TFMINI-S
+                1: TFMINI (discontinued)
                 2: ISTRA24
                 3: ISTRA24_100m
                 4: TFMINI Plus
+                5: TFMINI-S
             min: 1
-            max: 4
-            default: 1
+            max: 5
+            default: 5
             reboot_required: true

@@ -73,11 +73,11 @@ TFMINI::~TFMINI()
 int
 TFMINI::init()
 {
-	int32_t hw_model = 1;
+	int32_t hw_model = 5;
 	param_get(param_find("SENS_TFMINI_HW"), &hw_model);
 
 	switch (hw_model) {
-	case 1: // TFMINI / TFMINI-S (12m, 100 Hz)
+	case 1: // TFMINI (discontinued) (12m, 100 Hz)
 		// Note:
 		// Sensor specification shows 0.3m as minimum, but in practice
 		// 0.3 is too close to minimum so chattering of invalid sensor decision
@@ -104,6 +104,12 @@ TFMINI::init()
 		_px4_rangefinder.set_min_distance(0.1f);
 		_px4_rangefinder.set_max_distance(12.0f);
 		_px4_rangefinder.set_fov(math::radians(3.6f));
+		break;
+
+	case 5: // TFMINI-S (12m, 100 Hz)
+		_px4_rangefinder.set_min_distance(0.1f);
+		_px4_rangefinder.set_max_distance(12.0f);
+		_px4_rangefinder.set_fov(math::radians(2.0f));
 		break;
 
 	default:
