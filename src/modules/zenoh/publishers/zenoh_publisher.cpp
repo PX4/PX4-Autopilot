@@ -44,12 +44,15 @@
 
 Zenoh_Publisher::Zenoh_Publisher()
 {
+	z_internal_publisher_null(&_pub);
+	z_internal_liveliness_token_null(&_liveliness_token);
 	_attachment.sequence_number = 0;
 	_attachment.rmw_gid_size = RMW_GID_STORAGE_SIZE;
 }
 
 Zenoh_Publisher::~Zenoh_Publisher()
 {
+	z_liveliness_token_drop(z_liveliness_token_move(&_liveliness_token));
 	undeclare_publisher();
 }
 

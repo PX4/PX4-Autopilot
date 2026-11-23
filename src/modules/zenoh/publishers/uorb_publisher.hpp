@@ -61,7 +61,12 @@ public:
 		}
 	};
 
-	~uORB_Zenoh_Publisher() override = default;
+	~uORB_Zenoh_Publisher() override
+	{
+		if (_uorb_sub != ORB_SUB_INVALID) {
+			orb_unsubscribe(_uorb_sub);
+		}
+	}
 
 	// Update the uORB Subscription and broadcast a Zenoh ROS2 message
 	virtual z_result_t update() override
