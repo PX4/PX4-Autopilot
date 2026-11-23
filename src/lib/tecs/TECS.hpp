@@ -398,7 +398,7 @@ private:
 	};
 
 	/**
-	 * @brief Weight factors for specific energy.
+	 * @brief Weight factors with which the pitch trades altitude for airspeed in the energy rate setpoints.
 	 *
 	 */
 	struct SpecificEnergyWeighting {
@@ -537,7 +537,10 @@ private:
 	void _calcPitchControlUpdate(float dt, const Input &input, const ControlValues &seb_rate, const Param &param);
 
 	/**
-	 * @brief Derivative of the specific energy balance rate with respect to the climb angle.
+	 * @brief Conversion of the pitch feedback gains from specific energy balance rate to climb angle.
+	 *
+	 * The feedback gains are defined per g V. A climb angle changes the balance rate by twice that at constant
+	 * throttle (see _sebRateToClimbAngle).
 	 *
 	 * Uses the filtered true airspeed, which is trim airspeed without a valid measurement, floored at the minimum
 	 * airspeed so the conversion stays well conditioned at low or invalid airspeed.
