@@ -408,7 +408,7 @@ void BMI055_Accelerometer::RegisterSetAndClearBits(Register reg, uint8_t setbits
 bool BMI055_Accelerometer::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 {
 	FIFOTransferBuffer buffer{};
-	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 1, FIFO::SIZE);
+	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 1, sizeof(buffer));
 
 	if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, transfer_size) != PX4_OK) {
 		perf_count(_bad_transfer_perf);
