@@ -102,7 +102,8 @@ void FailureInjectionManager::Run()
 
 float FailureInjectionManager::auxValue(const manual_control_setpoint_s &manual_control_setpoint, int32_t aux)
 {
-	if (!manual_control_setpoint.valid) {
+	// Aux inputs only come from RC; other sources (e.g. MAVLink joystick) report them as 0
+	if (!manual_control_setpoint.valid || manual_control_setpoint.data_source != manual_control_setpoint_s::SOURCE_RC) {
 		return NAN;
 	}
 
