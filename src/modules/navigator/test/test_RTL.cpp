@@ -275,6 +275,9 @@ public:
 	// the estimate RTL publishes while the return type is a direct Return
 	rtl_time_estimate_s directEstimateForTest() { return _rtl_direct.calc_rtl_time_estimate(); }
 
+	// RTL publishes its estimate every few seconds, after it selected the destination
+	void publishTimeEstimateForTest() { publishRemainingTimeEstimate(); }
+
 	// the estimate RTL publishes while the return type is mission-based
 	rtl_time_estimate_s missionEstimateForTest() { return _rtl_mission_type_handle->calc_rtl_time_estimate(); }
 };
@@ -3519,4 +3522,132 @@ TEST_F(RTLTest, Type6BeyondBatteryTakesOnlyCloserRallyPoint)
 	}
 
 	orb_unadvertise(battery_pub);
+}
+
+// A multicopter with a rally point 100 m away, closer than Home 300 m away.
+class RTLLowestEstimateTest : public RTLTest
+{
+protected:
+	void SetUp() override
+	{
+		RTLTest::SetUp();
+		publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+		publishGlobalPosition(kBaseLat, kBaseLon, kAlt + 100.f);
+		publishLandDetected(false);
+		publishHomePosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, -300.f, 0.f, kAlt));
+		primeNavigatorState();
+		const PositionYawSetpoint rally_point = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt);
+		loadSafePointsIntoRouteCache({makeSafePointItem(rally_point.lat, rally_point.lon, kAlt, NAV_FRAME_GLOBAL)});
+		_battery.connected = true;
+		_battery_pub = orb_advertise(ORB_ID(battery_status), &_battery);
+
+		// RtlDirect reads the vehicle type, which sets the speeds of its estimate, in its own inactive cycle
+		_rtl.run(false);
+	}
+
+	void TearDown() override
+	{
+		orb_unadvertise(_battery_pub);
+		RTLTest::TearDown();
+	}
+
+	void publishBatteryTimeRemaining(float time_remaining_s)
+	{
+		_battery.timestamp = hrt_absolute_time();
+		_battery.time_remaining_s = time_remaining_s;
+		orb_publish(ORB_ID(battery_status), _battery_pub, &_battery);
+	}
+
+	// the estimate RTL publishes after an evaluation
+	rtl_time_estimate_s publishedEstimate()
+	{
+		_rtl.publishTimeEstimateForTest();
+		EXPECT_TRUE(_estimate_sub.update());
+		EXPECT_TRUE(_estimate_sub.get().valid);
+		return _estimate_sub.get();
+	}
+
+	bool selectsRallyPoint()
+	{
+		EXPECT_TRUE(_rtl_status_sub.update());
+		return _rtl_status_sub.get().safe_point_index != UINT8_MAX;
+	}
+
+	battery_status_s _battery{};
+	orb_advert_t _battery_pub{nullptr};
+	uORB::SubscriptionData<rtl_status_s> _rtl_status_sub{ORB_ID(rtl_status)};
+	uORB::SubscriptionData<rtl_time_estimate_s> _estimate_sub{ORB_ID(rtl_time_estimate)};
+};
+
+// WHY: the distance-aware return failsafe must not trigger at the Home crossing while a rally point is within reach.
+// WHAT: the lowest estimate RTL_TYPE 6 publishes is the same whether the battery reaches Home or not.
+TEST_F(RTLLowestEstimateTest, Type6LowestEstimateDoesNotDependOnTheBattery)
+{
+	// WHEN: the battery reaches Home
+	publishBatteryTimeRemaining(3600.f);
+	_rtl.evaluateReturnTypeForTest(6);
+	ASSERT_FALSE(selectsRallyPoint());
+	const rtl_time_estimate_s to_home = publishedEstimate();
+
+	// WHEN: the battery does not reach Home
+	publishBatteryTimeRemaining(1.f);
+	_rtl.evaluateReturnTypeForTest(6);
+	ASSERT_TRUE(selectsRallyPoint());
+	const rtl_time_estimate_s to_rally_point = publishedEstimate();
+
+	// THEN: the selected estimate drops from Home's to the rally point's, the lowest one stays the rally point's
+	EXPECT_GT(to_home.safe_time_estimate, to_rally_point.safe_time_estimate + 1.f);
+	EXPECT_FLOAT_EQ(to_home.min_safe_time_estimate, to_rally_point.safe_time_estimate);
+	EXPECT_FLOAT_EQ(to_rally_point.min_safe_time_estimate, to_rally_point.safe_time_estimate);
+}
+
+// WHY: only RTL_TYPE 6 chooses between two destinations by the battery.
+// WHAT: without a second destination, the lowest estimate is the one to the selected destination.
+TEST_F(RTLLowestEstimateTest, LowestEstimateIsTheSelectedOneWithoutAnotherDestination)
+{
+	// GIVEN: RTL_TYPE 6 going Home with the rally point as the other destination
+	publishBatteryTimeRemaining(3600.f);
+	_rtl.evaluateReturnTypeForTest(6);
+	const rtl_time_estimate_s with_rally_point = publishedEstimate();
+	ASSERT_LT(with_rally_point.min_safe_time_estimate, with_rally_point.safe_time_estimate);
+
+	// WHEN: RTL_TYPE 0 takes the closest destination, the rally point
+	_rtl.evaluateReturnTypeForTest(0);
+	ASSERT_TRUE(selectsRallyPoint());
+	const rtl_time_estimate_s closest = publishedEstimate();
+
+	// THEN: its estimate is also the lowest one
+	EXPECT_FLOAT_EQ(closest.min_safe_time_estimate, closest.safe_time_estimate);
+	EXPECT_FLOAT_EQ(closest.safe_time_estimate, with_rally_point.min_safe_time_estimate);
+
+	// WHEN: RTL_TYPE 6 has no rally point closer than Home
+	const PositionYawSetpoint far_rally_point = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt);
+	loadSafePointsIntoRouteCache({makeSafePointItem(far_rally_point.lat, far_rally_point.lon, kAlt, NAV_FRAME_GLOBAL)});
+	_rtl.evaluateReturnTypeForTest(6);
+	ASSERT_FALSE(selectsRallyPoint());
+	const rtl_time_estimate_s home_only = publishedEstimate();
+
+	// THEN: Home's estimate is also the lowest one
+	EXPECT_FLOAT_EQ(home_only.min_safe_time_estimate, home_only.safe_time_estimate);
+	EXPECT_FLOAT_EQ(home_only.safe_time_estimate, with_rally_point.safe_time_estimate);
+}
+
+// WHY: an active Return keeps its destination, so the battery has to reach that one.
+// WHAT: once RTL_TYPE 6 flies Home, the lowest estimate is Home's although the rally point is closer.
+TEST_F(RTLLowestEstimateTest, Type6LowestEstimateFollowsTheActiveReturn)
+{
+	// GIVEN: the battery reaches Home, and the rally point's estimate is the lowest one
+	publishBatteryTimeRemaining(3600.f);
+	_rtl.evaluateReturnTypeForTest(6);
+	const rtl_time_estimate_s inactive = publishedEstimate();
+	ASSERT_LT(inactive.min_safe_time_estimate, inactive.safe_time_estimate);
+
+	// WHEN: Return activates
+	_rtl.activateReturnTypeForTest(6);
+	ASSERT_FALSE(selectsRallyPoint());
+	const rtl_time_estimate_s active = publishedEstimate();
+
+	// THEN: the lowest estimate is the one to Home
+	EXPECT_FLOAT_EQ(active.min_safe_time_estimate, active.safe_time_estimate);
+	EXPECT_FLOAT_EQ(active.safe_time_estimate, inactive.safe_time_estimate);
 }

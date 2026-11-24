@@ -206,6 +206,9 @@ The vehicle:
   configured): falls back to returning to the closest safe point — whichever of home or the defined rally
   points is nearest.
 
+The [distance-aware return failsafe](../config/safety.md#distance-aware-return-failsafe) does not engage Return mode when home drops out of battery reach.
+It waits until the rally point that replaces home is no longer within reach either.
+
 ## Geofence Awareness {#geofence_awareness}
 
 <Badge type="tip" text="main (PX4 v1.20)" />

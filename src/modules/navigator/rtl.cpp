@@ -130,6 +130,13 @@ void RTL::publishRemainingTimeEstimate()
 		}
 	}
 
+	// RTL_TYPE 6 while inactive: the lower estimate of Home and its rally point, for the distance-aware return failsafe
+	estimated_time.min_safe_time_estimate = estimated_time.safe_time_estimate;
+
+	if (estimated_time.valid && !isActive() && PX4_ISFINITE(_alternative_safe_time_estimate)) {
+		estimated_time.min_safe_time_estimate = min(estimated_time.safe_time_estimate, _alternative_safe_time_estimate);
+	}
+
 	estimated_time.timestamp = hrt_absolute_time();
 	_rtl_time_estimate_pub.publish(estimated_time);
 }
@@ -278,12 +285,14 @@ void RTL::selectMissionPath(int32_t rtl_type, ReturnSelection &selection) const
 
 void RTL::selectHomeIfReachable(ReturnSelection &selection)
 {
+	const PositionYawSetpoint home = selection.destination;
+
 #if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
 	selection.home_has_land_approach = mission_route::hasVtolLandApproachesNearLocation(
-			_navigator->get_mission_route_cache(), selection.destination, _home_pos_sub.get().alt);
+			_navigator->get_mission_route_cache(), home, _home_pos_sub.get().alt);
 #endif
 
-	const rtl_time_estimate_s time_to_home = estimateTimeToHome();
+	const rtl_time_estimate_s time_to_home = estimateDirectReturn(home);
 
 	const float worst_battery_time_s = worstBatteryTimeRemaining();
 
@@ -291,27 +300,36 @@ void RTL::selectHomeIfReachable(ReturnSelection &selection)
 				       && PX4_ISFINITE(worst_battery_time_s)
 				       && (time_to_home.safe_time_estimate < worst_battery_time_s);
 
+	// A rally point replaces Home only if it is closer
+	const float home_dist = get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon,
+				home.lat, home.lon);
+	uint8_t rally_point_index{RTL_STATUS_NO_SAFE_POINT};
+	bool rally_point_has_land_approach{false};
+	const PositionYawSetpoint rally_point = findClosestSafePoint(home_dist, /*skip_near_home=*/false,
+						rally_point_index, rally_point_has_land_approach);
+	const bool has_rally_point = rally_point_index != RTL_STATUS_NO_SAFE_POINT;
+
 	if (!home_within_reach) {
-		// Home is out of reach or not estimated: a rally point replaces Home only if it is closer
-		const float home_dist = get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon,
-					_home_pos_sub.get().lat, _home_pos_sub.get().lon);
+		// Home is out of reach or not estimated
+		selection.rally_point_has_land_approach = rally_point_has_land_approach;
 
-		PositionYawSetpoint safe_point = findClosestSafePoint(home_dist, /*skip_near_home=*/false,
-						 selection.safe_point_index, selection.rally_point_has_land_approach);
-
-		if (selection.safe_point_index != RTL_STATUS_NO_SAFE_POINT) {
-			selection.destination = safe_point;
+		if (has_rally_point) {
+			selection.destination = rally_point;
 			selection.destination_type = DestinationType::DESTINATION_TYPE_SAFE_POINT;
+			selection.safe_point_index = rally_point_index;
 		}
 
 		// If no rally points are closer (or none are defined), fall back to home (already set as the destination)
 	}
-}
 
-rtl_time_estimate_s RTL::estimateTimeToHome()
-{
-	const PositionYawSetpoint home = homeDestination();
-	return _rtl_direct.estimateReturnTo({home, landingLoiter(home), computeReturnAltitude(home)});
+	if (has_rally_point) {
+		// Estimate the destination not selected, for min_safe_time_estimate
+		const rtl_time_estimate_s alternative = home_within_reach ? estimateDirectReturn(rally_point) : time_to_home;
+
+		if (alternative.valid) {
+			selection.alternative_safe_time_estimate = alternative.safe_time_estimate;
+		}
+	}
 }
 
 loiter_point_s RTL::landingLoiter(const PositionYawSetpoint &destination) const
@@ -329,6 +347,11 @@ loiter_point_s RTL::landingLoiter(const PositionYawSetpoint &destination) const
 	}
 
 	return landing_loiter;
+}
+
+rtl_time_estimate_s RTL::estimateDirectReturn(const PositionYawSetpoint &destination)
+{
+	return _rtl_direct.estimateReturnTo({destination, landingLoiter(destination), computeReturnAltitude(destination)});
 }
 
 void RTL::applyReturn(const ReturnSelection &selection)
@@ -377,6 +400,7 @@ void RTL::applyReturn(const ReturnSelection &selection)
 				   selection.destination_type == DestinationType::DESTINATION_TYPE_CURRENT_POSITION);
 
 	_rtl_type = new_rtl_type;
+	_alternative_safe_time_estimate = selection.alternative_safe_time_estimate;
 
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
