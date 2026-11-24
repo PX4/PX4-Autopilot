@@ -592,7 +592,7 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 				get_vector_to_next_waypoint(pos_before_loiter(0), pos_before_loiter(1),
 							    land_approach.lat, land_approach.lon, &direction(0), &direction(1));
 
-				float move_to_land_dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_approach.lat, land_approach.lon)};
+				float move_to_land_dist{get_distance_to_next_waypoint(pos_before_loiter(0), pos_before_loiter(1), land_approach.lat, land_approach.lon)};
 
 				if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 					move_to_land_dist = max(0.f, move_to_land_dist - land_approach.loiter_radius_m);
