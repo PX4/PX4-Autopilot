@@ -1,21 +1,22 @@
 """AutopilotTester for fixed-wing loiter, reposition, Hold and figure-eight behaviour.
 
 Positions are home-relative local (north, east) coordinates, converted to global setpoints
-internally. The loiter geometry can only be observed indirectly (no MAVLink message exposes the
-internal position setpoint), so the checks are trajectory based: they assert where the vehicle
-actually flies over a time window.
+internally. Checks observe both the commanded loiter center and the actual trajectory.
 """
 
+from contextlib import contextmanager
+import json
 import math
-from typing import Any, List, Optional, Tuple
+from typing import Any, Iterator, List, Optional, Tuple
 
 from mavsdk.plugins.telemetry import FlightMode  # type: ignore
 
-from autopilot_tester import AutopilotTester, log
+from autopilot_tester import MAV_CMD_REQUEST_MESSAGE, AutopilotTester, log
 
 MAV_CMD_DO_ORBIT = 34
 MAV_CMD_DO_FIGURE_EIGHT = 35
 MAV_CMD_DO_REPOSITION = 192
+MAVLINK_MSG_ID_POSITION_TARGET_GLOBAL_INT = 87
 
 # MAV_DO_REPOSITION_FLAGS_CHANGE_MODE: switch into Hold if not already there.
 REPOSITION_FLAG_CHANGE_MODE = 1.0
@@ -43,6 +44,46 @@ class AutopilotTesterLoiter(AutopilotTester):
     def enter_hold_and_wait(self, timeout_s: float = 10) -> None:
         self.hold()
         self.wait_for_flight_mode(FlightMode.HOLD, timeout_s)
+
+    @contextmanager
+    def monitor_hold_position(self) -> Iterator[Tuple[float, float]]:
+        """Require Hold and an unchanged loiter center throughout the block.
+
+        Yield the first Hold target as (latitude, longitude). PX4 publishes the loiter center
+        in POSITION_TARGET_GLOBAL_INT, so moving along a fence edge is detected too.
+        """
+        centers: List[Tuple[int, int]] = []
+        target_count = 0
+
+        def on_target(message: Any, _user_data: Any) -> None:
+            nonlocal target_count
+            fields = json.loads(message.fields_json)
+            center = (int(fields["lat_int"]), int(fields["lon_int"]))
+            if not centers:
+                centers.append(center)
+            target_count += 1
+            self.check_in_callback(center == centers[0],
+                                   "Hold center changed from {} to {}".format(centers[0], center))
+
+        def on_mode(flight_mode: FlightMode, _user_data: Any) -> None:
+            self.check_in_callback(flight_mode == FlightMode.HOLD,
+                                   "Flight mode {}, expected Hold".format(flight_mode))
+
+        mode_handle = self._telemetry.subscribe_flight_mode(on_mode)
+        target_handle = self._mavlink_direct.subscribe_message(
+            "POSITION_TARGET_GLOBAL_INT", on_target)
+        try:
+            on_mode(self._telemetry.flight_mode(), None)
+            self.send_command_long(MAV_CMD_REQUEST_MESSAGE,
+                                   param1=MAVLINK_MSG_ID_POSITION_TARGET_GLOBAL_INT)
+            assert self.poll_condition_with_timeout(lambda: bool(centers), 5), \
+                "No Hold position target received"
+            yield centers[0][0] / 1e7, centers[0][1] / 1e7
+        finally:
+            self._mavlink_direct.unsubscribe_message(target_handle)
+            self._telemetry.unsubscribe_flight_mode(mode_handle)
+        self._assert_no_callback_failures()
+        assert target_count > 1, "No further Hold position targets received"
 
     def _global_int(self, point: Local2) -> Tuple[int, int]:
         latitude_deg, longitude_deg = self.get_coordinate_transformation().global_from_local(

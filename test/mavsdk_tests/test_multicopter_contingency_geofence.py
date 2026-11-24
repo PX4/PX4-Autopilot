@@ -14,16 +14,6 @@ OVERSHOOT_M = 20.0
 POSITION_TOLERANCE_M = 2.0
 
 
-def take_off(tester: AutopilotTesterGeofence) -> None:
-    tester.set_takeoff_altitude(TAKEOFF_ALTITUDE_M)
-    # The navigator reads parameter changes at most once per second.
-    tester.sleep_for(1)
-    tester.arm()
-    tester.takeoff()
-    tester.wait_until_hovering()
-    tester.wait_until_altitude(TAKEOFF_ALTITUDE_M, 30)
-
-
 @pytest.mark.multicopter
 @pytest.mark.parametrize("margin_m", [0.0, 40.0])
 def test_pilot_is_held_at_geofence_or_margin(tester_geofence: AutopilotTesterGeofence,
@@ -37,10 +27,10 @@ def test_pilot_is_held_at_geofence_or_margin(tester_geofence: AutopilotTesterGeo
     tester.store_home()
     tester.upload_inclusion_rectangle(-80.0, 80.0, -80.0, 80.0)
     tester.set_param_float("GF_CONT_H_MARGIN", margin_m)
-    take_off(tester)
+    tester.arm_and_take_off(TAKEOFF_ALTITUDE_M)
 
     tester.start_tracking()
-    tester.fly_in_position_mode_until_hold(forward=0.5, throttle=0.5, timeout_s=60)
+    tester.fly_in_position_mode_until_failsafe(FlightMode.HOLD)
     tester.keep_sticks_centered_for(8)
     tester.wait_for_flight_mode(FlightMode.HOLD, 1)
 

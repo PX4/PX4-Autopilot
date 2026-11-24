@@ -321,6 +321,14 @@ class AutopilotTester:
             lambda: self._telemetry.landed_state() == landed_state, timeout_s), \
             "Landed state {} not reached within {} s".format(landed_state, timeout_s)
 
+    def check_flight_mode_for(self, flight_mode: FlightMode, duration_s: float) -> None:
+        start_us = self._autopilot_time_us()
+        while (self._autopilot_time_us() - start_us) / 1e6 < duration_s:
+            current = self._telemetry.flight_mode()
+            assert current == flight_mode, \
+                "Flight mode {}, expected {}".format(current, flight_mode)
+            self.sleep_for(0.2)
+
     # ------------------------------------------------------------------
     # Parameters and settings
     # ------------------------------------------------------------------
@@ -376,6 +384,16 @@ class AutopilotTester:
 
     def takeoff(self) -> None:
         self._action.takeoff()
+
+    def arm_and_take_off(self, altitude_m: float) -> None:
+        """Take off and wait at altitude_m above Home."""
+        self.set_takeoff_altitude(altitude_m)
+        # The navigator reads parameter changes at most once per second.
+        self.sleep_for(1)
+        self.arm()
+        self.takeoff()
+        self.wait_until_hovering()
+        self.wait_until_altitude(altitude_m, 30)
 
     def land(self) -> None:
         self._action.land()
