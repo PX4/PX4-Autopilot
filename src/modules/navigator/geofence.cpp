@@ -156,14 +156,17 @@ static bool pathTouchesEdge(const Geofence::PathCheck &path, unsigned pieces, co
 	const matrix::Vector2d shifted_end{edge_end(0), edge_end(1) - shift};
 	const double margin = static_cast<double>(path.margin);
 
-	if (pieces == 1) {
-		return pieceTouchesEdge(path.start, path_end, shifted_start, shifted_end, margin);
-	}
-
 	// The whole arc's bow is at most pieces^2 * kMaxPieceBow. Expand the latitude bounds by that
 	// distance and the margin to skip distant edges cheaply. Longitude stays between the unwrapped
 	// endpoints because pathPieces() excludes arcs that could reach a pole; only the margin widens it.
 	const double margin_lat = math::degrees((pieces * pieces * kMaxPieceBow + margin) / CONSTANTS_RADIUS_OF_EARTH);
+
+	// Latitude first: it skips most edges without computing the cosine below.
+	if (math::max(path.start(0), path_end(0)) + margin_lat < math::min(shifted_start(0), shifted_end(0))
+	    || math::min(path.start(0), path_end(0)) - margin_lat > math::max(shifted_start(0), shifted_end(0))) {
+		return false;
+	}
+
 	double margin_lon = 0.0;
 
 	if (margin > 0.0) {
@@ -172,11 +175,14 @@ static bool pathTouchesEdge(const Geofence::PathCheck &path, unsigned pieces, co
 		margin_lon = max_lat < 90.0 ? math::degrees(margin / (CONSTANTS_RADIUS_OF_EARTH * cos(math::radians(max_lat)))) : 360.0;
 	}
 
-	if (math::max(path.start(0), path_end(0)) + margin_lat < math::min(shifted_start(0), shifted_end(0))
-	    || math::min(path.start(0), path_end(0)) - margin_lat > math::max(shifted_start(0), shifted_end(0))
-	    || math::max(path.start(1), path_end(1)) + margin_lon < math::min(shifted_start(1), shifted_end(1))
+	if (math::max(path.start(1), path_end(1)) + margin_lon < math::min(shifted_start(1), shifted_end(1))
 	    || math::min(path.start(1), path_end(1)) - margin_lon > math::max(shifted_start(1), shifted_end(1))) {
 		return false;
+	}
+
+	// After the bounds, so single pieces skip distant edges too, e.g. the contingency geofence point check.
+	if (pieces == 1) {
+		return pieceTouchesEdge(path.start, path_end, shifted_start, shifted_end, margin);
 	}
 
 	// Split along the great circle, approximating the local straight line near the EKF origin.
