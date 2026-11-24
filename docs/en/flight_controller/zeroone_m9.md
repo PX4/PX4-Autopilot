@@ -7,7 +7,7 @@ PX4 does not manufacture this (or any) autopilot.
 Contact [ZeroOne](https://01aero.com/about_us/) for hardware support and compliance questions.
 :::
 
-The ZeroOne M9 is an industrial flight controller based on the FMUv6X architecture.
+The ZeroOne M9 is an industrial flight controller.
 It integrates three IMUs, dual-antenna RTK GNSS, two airspeed sensors, and a 900 MHz telemetry radio.
 The Cable Hub connects to the flight controller through a 74-pin J30J connector and provides labelled ports for power, peripherals, and actuators.
 
@@ -70,23 +70,6 @@ For dimensioned drawings and an example avionics wiring diagram, see the [ZeroOn
 
 ![Manufacturer pinout showing the M9 J30J connector and the power, servo, CAN, serial, Ethernet, and USB connectors on the Cable Hub](../../assets/flight_controller/zeroone_m9/m9_pinout.png)
 
-### Hardware Overview
-
-```text
-Cable Hub power inputs        Destination
-  FC POWER           -------> Main flight controller power input
-  POWER1 or POWER2   -------> 5 V flight controller inputs
-  SERVO POWER        -------> Servo rail on A1–A8 and M1–M8
-
-STM32H753 flight management unit
-  ├─ SPI: three IMUs and RM3100 magnetometer
-  ├─ I2C: barometers and one airspeed sensor
-  ├─ CAN1: RTK GNSS receiver and the second airspeed sensor
-  ├─ UART7: integrated telemetry radio and TELEM1-TTL
-  ├─ FMU actuator outputs: A1–A8 (AUX)
-  └─ USART6: STM32F103 (PX4IO) → M1–M8 (MAIN)
-```
-
 ## Power
 
 | Cable Hub Connector  | Purpose                                                  | Input Voltage       |
@@ -120,6 +103,36 @@ See [DShot Configuration](../peripherals/dshot.md#configuration) for setup instr
 
 Set `PWM_VOLT_SEL` to `0` for 3.3 V (default) or `1` for 5 V in the [QGroundControl parameter editor](../advanced_config/parameters.md#changing), then reboot.
 The `SERVO POWER` input supplies the servo rail independently of this signal-level setting.
+
+## Ethernet {#ethernet}
+
+The Cable Hub's four-pin `ETH` port supports 10 and 100 Mbit/s using the [LAN8742A Ethernet PHY](https://www.microchip.com/en-us/product/lan8742a).
+PX4 powers the PHY at startup.
+The transmit and receive pairs are shown in the [Cable Hub pinout](#pinouts).
+
+By default, `eth0` requests an address using DHCP and falls back to `10.41.10.2/24` if no DHCP server responds.
+For a direct connection using the fallback address, assign the computer a different address on the same subnet, such as `10.41.10.1/24`.
+For a MAVLink ground station connection, select `Ethernet` (`1000`) for `MAV_2_CONFIG` and use UDP port `14550`.
+For other IP addresses or UDP ports, see [PX4 Ethernet Network Setup](../advanced_config/ethernet_setup.md#px4-ethernet-network-setup) and [MAVLink configuration](../advanced_config/ethernet_setup.md#px4-mavlink-serial-port-configuration).
+
+## SD Card {#sd_card}
+
+PX4 writes flight logs to the M9's microSD card in ULog format.
+For guidance on choosing a card, see [SD Cards (Removable Memory)](../getting_started/px4_basic_concepts.md#sd-cards-removable-memory).
+
+### Log Download
+
+The Cable Hub's `USB Drive` port connects to an independent card reader inside the M9, so you can copy logs with the card in place.
+Use the separate `Type-C` port for _QGroundControl_ and firmware updates.
+
+::: warning
+Disconnect all other power sources from the M9 and Cable Hub, including the `Type-C` USB cable, before connecting `USB Drive`.
+:::
+
+1. Connect a computer to `USB Drive` with a USB data cable.
+   The microSD card appears as a removable drive in the computer's file manager.
+2. Open the `log/` directory on the drive and copy the `.ulg` files from the relevant subdirectory.
+3. Eject the drive on the computer, then unplug `USB Drive` before reconnecting power to the M9.
 
 ## Serial Port Mapping
 
@@ -161,20 +174,6 @@ Match each sensor's pressure lines to the fittings marked `Dynamic` and `Static`
 PX4 starts the onboard I2C airspeed driver during boot.
 To receive data from the second airspeed sensor, enable the DroneCAN airspeed subscription [`UAVCAN_SUB_ASPD`](../advanced_config/parameter_reference.md#UAVCAN_SUB_ASPD).
 Calibrate the sensors in _QGroundControl_ using the [Airspeed Calibration](../config/airspeed.md#performing-the-calibration) procedure.
-
-### Ethernet
-
-The Cable Hub's `ETH` connector uses the flight controller's LAN8742A Ethernet PHY.
-For setup, see [PX4 Ethernet Network Setup](../advanced_config/ethernet_setup.md#px4-ethernet-network-setup) and [MAVLink configuration](../advanced_config/ethernet_setup.md#px4-mavlink-serial-port-configuration).
-
-### Log Download
-
-The Cable Hub's `USB Drive` connector exposes the log card as a USB storage device.
-Use the separate `Type-C` connector to connect to the flight controller or load firmware.
-
-::: warning
-Disconnect the other power inputs before connecting the `USB Drive` port.
-:::
 
 ## Building Firmware
 
