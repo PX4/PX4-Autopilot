@@ -37,7 +37,6 @@ Typical applications include:
 Order this module from:
 
 - [GlobalSat BD-100M](https://www.amazon.com/dp/B0HKZZRKZ9) GPS/GNSS (Amazon)
-- [GlobalSat BD-100M](https://www.gpscity.com/us-globalsat-bd-100m-dual-band-gnss-receiver-for-drone-and-autopilot) GPS/GNSS (GPS City)
 
 ## Hardware Setup {#hardware_setup}
 
