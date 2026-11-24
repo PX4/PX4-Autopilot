@@ -205,19 +205,19 @@ protected:
 
 enum class BreachFenceShape { InclusionPolygon, ExclusionPolygon, InclusionCircle, ExclusionCircle };
 
-static std::ostream &operator<<(std::ostream &os, BreachFenceShape shape)
+static const char *shapeName(const ::testing::TestParamInfo<BreachFenceShape> &info)
 {
-	switch (shape) {
-	case BreachFenceShape::InclusionPolygon: return os << "InclusionPolygon";
+	switch (info.param) {
+	case BreachFenceShape::InclusionPolygon: return "InclusionPolygon";
 
-	case BreachFenceShape::ExclusionPolygon: return os << "ExclusionPolygon";
+	case BreachFenceShape::ExclusionPolygon: return "ExclusionPolygon";
 
-	case BreachFenceShape::InclusionCircle: return os << "InclusionCircle";
+	case BreachFenceShape::InclusionCircle: return "InclusionCircle";
 
-	case BreachFenceShape::ExclusionCircle: return os << "ExclusionCircle";
+	case BreachFenceShape::ExclusionCircle: return "ExclusionCircle";
 	}
 
-	return os;
+	return "Unknown";
 }
 
 class GeofenceShapeBreachTest : public ContGeofenceBreachTest,
@@ -270,7 +270,7 @@ TEST_P(GeofenceShapeBreachTest, FlagsFollowThePermittedSideAndMargin)
 INSTANTIATE_TEST_SUITE_P(Shapes, GeofenceShapeBreachTest, ::testing::Values(
 				 BreachFenceShape::InclusionPolygon, BreachFenceShape::ExclusionPolygon,
 				 BreachFenceShape::InclusionCircle, BreachFenceShape::ExclusionCircle),
-			 ::testing::PrintToStringParamName());
+			 shapeName);
 
 TEST_F(ContGeofenceBreachTest, SelectedPositionSourceDeterminesTheBreach)
 {
