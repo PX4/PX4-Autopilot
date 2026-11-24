@@ -171,6 +171,17 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		vim-common \
 		;
 
+	# Since Ubuntu 24.04 the clang sanitizer runtimes (ASan, UBSan) are a
+	# separate package that clang only recommends, so --no-install-recommends
+	# leaves them out and any -fsanitize build fails to link. The fuzz tests
+	# need them. On 22.04 they still ship with clang and the package does
+	# not exist.
+	if [[ "${UBUNTU_RELEASE}" != "22.04" ]]; then
+		sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
+			libclang-rt-dev \
+			;
+	fi
+
 	if [[ "${INSTALL_ARCH}" == "x86_64" ]]; then
 		sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
 			g++-multilib \
