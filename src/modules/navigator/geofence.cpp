@@ -250,6 +250,9 @@ Geofence::Geofence(Navigator *navigator) :
 
 Geofence::~Geofence()
 {
+#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
+	perf_free(_cont_check_perf);
+#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 	_clearFence();
 }
 
@@ -964,6 +967,22 @@ bool Geofence::isCircleInside(double lat, double lon, float radius)
 	bool clear = false;
 	return checkPaths(&path, 1, &clear) && clear;
 }
+
+#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
+bool Geofence::isInsideContGeofence(double lat, double lon)
+{
+	const float margin = getContGeofencePlanMargin();
+
+	if (margin <= FLT_EPSILON) {
+		return true;
+	}
+
+	perf_begin(_cont_check_perf);
+	const bool inside = isCircleInside(lat, lon, margin);
+	perf_end(_cont_check_perf);
+	return inside;
+}
+#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 
 bool Geofence::checkPointAgainstPolygonCircle(const PolygonInfo &polygon, double lat, double lon, float altitude)
 {
