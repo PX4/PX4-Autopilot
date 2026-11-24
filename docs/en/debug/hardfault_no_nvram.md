@@ -29,7 +29,7 @@ The following configuration changes are required to enable crash dumps and strea
 The [KConfig board configuration](../hardware/porting_guide_config.md) must include:
 
 ```txt
-CONFIG_BOARD_CRASHDUMP=y
+CONFIG_BOARD_CRASHDUMP_CUSTOM=y
 CONFIG_MODULES_HARDFAULT_STREAM=y
 ```
 
