@@ -710,5 +710,6 @@ float VtolType::getWeightRatio() const
 
 float VtolType::getBlendAirspeed() const
 {
-	return _param_vt_arsp_blend.get();
+	// scaled like the transition airspeed to keep the blending range at the same fraction of it
+	return sqrtf(getWeightRatio()) * _param_vt_arsp_blend.get();
 }
