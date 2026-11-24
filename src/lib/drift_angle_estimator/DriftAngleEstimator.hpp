@@ -81,3 +81,13 @@ private:
 	bool _valid{false};
 	hrt_abstime _timestamp{0};
 };
+
+/**
+ * Heading setpoint that moves the vehicle over ground along the course setpoint, the inverse of the drift angle estimate:
+ * course = heading + expected direction of travel + drift angle.
+ * @param course_setpoint [rad] [@frame NED] Intended direction of motion over ground
+ * @param drift_angle [rad] Drift angle relative to the expected direction of travel, see DriftAngleEstimator
+ * @param expected_direction [rad] [@frame Body] Expected direction of travel, 0 forwards, pi/2 right, pi backwards
+ * @return [rad] [@range -pi, pi] Heading setpoint
+ */
+float calcHeadingSetpoint(float course_setpoint, float drift_angle, float expected_direction = 0.f);

@@ -34,6 +34,7 @@
 #include "DriftAngleEstimator.hpp"
 
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
 
 void DriftAngleEstimator::update(const vehicle_local_position_s &vehicle_local_position, const float expected_direction)
 {
@@ -64,4 +65,9 @@ void DriftAngleEstimator::update(const vehicle_local_position_s &vehicle_local_p
 	}
 
 	_timestamp = vehicle_local_position.timestamp;
+}
+
+float calcHeadingSetpoint(const float course_setpoint, const float drift_angle, const float expected_direction)
+{
+	return matrix::wrap_pi(course_setpoint - expected_direction - drift_angle);
 }

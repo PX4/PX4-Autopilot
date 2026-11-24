@@ -100,7 +100,7 @@ The speed controller uses the following structure:
 The feed forward mapping is done by interpolating the speed setpoint from [-[RO_MAX_THR_SPEED](../advanced_config/parameter_reference.md#RO_MAX_THR_SPEED), [RO_MAX_THR_SPEED](../advanced_config/parameter_reference.md#RO_MAX_THR_SPEED)] to [-1, 1].
 
 The course controller turns the course setpoint and speed into speed and attitude setpoints.
-For ackermann and differential rovers the heading is aligned with the course setpoint.
+For ackermann and differential rovers the heading is aligned with the course setpoint (opposite to it when driving in reverse).
 Therefore the course setpoint, corrected by the estimated [drift angle](../concept/navigation_terminology.md#drift-angle), is sent as a yaw setpoint to the [yaw controller](attitude_tuning.md#attitude-controller-structure-info-only) and the speed setpoint is always defined in body x direction.
 
 For mecanum vehicles, the course setpoint and heading are decoupled.

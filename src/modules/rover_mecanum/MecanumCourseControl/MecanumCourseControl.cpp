@@ -79,8 +79,8 @@ void MecanumCourseControl::updateCourseControl()
 		// The drift angle is estimated relative to the thrust direction, so it compensates the slip in any direction of travel.
 		surface_vehicle_attitude_setpoint_s surface_vehicle_attitude_setpoint{};
 		surface_vehicle_attitude_setpoint.timestamp = timestamp;
-		surface_vehicle_attitude_setpoint.yaw_setpoint = matrix::wrap_pi(_course_setpoint - _thrust_direction
-				- _drift_angle_estimator.getDriftAngle());
+		surface_vehicle_attitude_setpoint.yaw_setpoint = calcHeadingSetpoint(_course_setpoint,
+				_drift_angle_estimator.getDriftAngle(), _thrust_direction);
 		_surface_vehicle_attitude_setpoint_pub.publish(surface_vehicle_attitude_setpoint);
 
 		// NaN deactivates the speed controller, the thrust then comes from elsewhere

@@ -276,3 +276,57 @@ TEST(DriftAngleEstimator, reset)
 	// THEN: the drift angle is zero
 	EXPECT_FLOAT_EQ(drift_angle_estimator.getDriftAngle(), 0.f);
 }
+
+TEST(calcHeadingSetpoint, forwardsSubtractsDriftAngle)
+{
+	// GIVEN: a course setpoint to the east and a drift angle of 0.1 rad, the course to the right of the heading
+	// WHEN: driving forwards
+	const float heading_setpoint = calcHeadingSetpoint(M_PI_2_F, 0.1f);
+
+	// THEN: the heading setpoint points left of the course setpoint by the drift angle
+	EXPECT_NEAR(heading_setpoint, M_PI_2_F - 0.1f, 1e-6f);
+}
+
+TEST(calcHeadingSetpoint, reversePointsAwayAndSubtractsDriftAngle)
+{
+	// GIVEN: a course setpoint to the north east and a drift angle of 0.1 rad
+	// WHEN: driving in reverse
+	const float heading_setpoint = calcHeadingSetpoint(M_PI_4_F, 0.1f, M_PI_F);
+
+	// THEN: the heading setpoint points to the south west, corrected by the drift angle and wrapped into [-pi, pi]
+	EXPECT_NEAR(heading_setpoint, M_PI_4_F - M_PI_F - 0.1f, 1e-6f);
+}
+
+TEST(calcHeadingSetpoint, wrapsAcrossPi)
+{
+	// GIVEN: a course setpoint to the south and a drift angle to the left
+	// WHEN: driving forwards
+	const float heading_setpoint = calcHeadingSetpoint(M_PI_F, -0.1f);
+
+	// THEN: the heading setpoint is wrapped into [-pi, pi]
+	EXPECT_NEAR(heading_setpoint, -M_PI_F + 0.1f, 1e-6f);
+}
+
+TEST(calcHeadingSetpoint, sidewaysDirectionOfTravel)
+{
+	// GIVEN: a course setpoint to the north east and no drift
+	// WHEN: the vehicle is expected to move to its right
+	const float heading_setpoint = calcHeadingSetpoint(M_PI_4_F, 0.f, M_PI_2_F);
+
+	// THEN: the vehicle heads north west, so its right points along the course setpoint
+	EXPECT_NEAR(heading_setpoint, -M_PI_4_F, 1e-6f);
+}
+
+TEST(calcHeadingSetpoint, invertsDriftAngleEstimate)
+{
+	// GIVEN: a drift angle estimated driving in reverse, heading north and moving south with a drift to the west
+	DriftAngleEstimator drift_angle_estimator;
+	drift_angle_estimator.update(localPosition(-2.f, -0.2f, 0.f, 1_s), M_PI_F);
+	const float course = atan2f(-0.2f, -2.f);
+
+	// WHEN: the heading setpoint is calculated to hold that course in reverse
+	const float heading_setpoint = calcHeadingSetpoint(course, drift_angle_estimator.getDriftAngle(), M_PI_F);
+
+	// THEN: it is the heading the drift angle was estimated at
+	EXPECT_NEAR(heading_setpoint, 0.f, 1e-5f);
+}

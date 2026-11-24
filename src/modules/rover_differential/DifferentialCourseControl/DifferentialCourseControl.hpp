@@ -65,7 +65,7 @@ enum class DrivingState {
  * @brief Class for differential course control.
  *
  * Sits between the position controller and the attitude and speed controllers: turns a course over ground into a heading
- * setpoint (drift compensation forwards, pointing away from the course in reverse) and passes the speed on, reduced
+ * setpoint (drift compensation, pointing away from the course in reverse) and passes the speed on, reduced
  * for large heading errors and zero while turning on the spot. Without a speed setpoint it commands the heading for the thrust
  * commanded elsewhere and deactivates the speed controller (NaN speed setpoint). The last valid course setpoint is controlled until a NaN course is received.
  */
@@ -108,6 +108,12 @@ private:
 	 * @brief Update uORB subscriptions used in course controller.
 	 */
 	void updateSubscriptions();
+
+	/**
+	 * @brief Expected direction of travel in body frame, from the sign of the speed setpoint, or of the thrust without one.
+	 * @return [rad] pi in reverse, 0 otherwise
+	 */
+	float expectedDirection() const;
 
 	// uORB subscriptions
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};

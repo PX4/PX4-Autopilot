@@ -66,21 +66,12 @@ void AckermannCourseControl::updateCourseControl()
 	const hrt_abstime timestamp = hrt_absolute_time();
 	float speed_setpoint = _speed_setpoint;
 
-	// Without a speed setpoint the course is held with whatever thrust is commanded, the thrust sign gives the direction of travel
-	const bool reverse = PX4_ISFINITE(speed_setpoint) ? speed_setpoint < -FLT_EPSILON : _thrust_setpoint_x < -FLT_EPSILON;
-
 	float yaw_setpoint = _vehicle_yaw; // No course: keep the current heading
 
 	if (PX4_ISFINITE(_course_setpoint)) {
-		if (reverse) {
-			// Driving in reverse, the rover points away from its direction of travel.
-			// The drift angle is only estimated driving forwards, so it is not compensated here.
-			yaw_setpoint = matrix::wrap_pi(_course_setpoint + M_PI_F);
-
-		} else {
-			// Driving forwards, the heading setpoint is the course setpoint corrected by the drift angle, like the fixed wing crabs into the wind
-			yaw_setpoint = matrix::wrap_pi(_course_setpoint - _drift_angle_estimator.getDriftAngle());
-		}
+		// The heading setpoint is the course setpoint corrected by the drift angle, like the fixed wing crabs into the wind.
+		// In reverse the rover points away from its direction of travel.
+		yaw_setpoint = calcHeadingSetpoint(_course_setpoint, _drift_angle_estimator.getDriftAngle(), expectedDirection());
 	}
 
 	surface_vehicle_attitude_setpoint_s surface_vehicle_attitude_setpoint{};
@@ -116,12 +107,6 @@ void AckermannCourseControl::updateSubscriptions()
 		_vehicle_yaw = matrix::Eulerf(matrix::Quatf(vehicle_attitude.q)).psi();
 	}
 
-	if (_vehicle_local_position_sub.updated()) {
-		vehicle_local_position_s vehicle_local_position{};
-		_vehicle_local_position_sub.copy(&vehicle_local_position);
-		_drift_angle_estimator.update(vehicle_local_position);
-	}
-
 	if (_surface_vehicle_thrust_setpoint_sub.updated()) {
 		surface_vehicle_thrust_setpoint_s surface_vehicle_thrust_setpoint{};
 		_surface_vehicle_thrust_setpoint_sub.copy(&surface_vehicle_thrust_setpoint);
@@ -134,6 +119,20 @@ void AckermannCourseControl::updateSubscriptions()
 		_course_setpoint = surface_vehicle_course_setpoint.course;
 		_speed_setpoint = surface_vehicle_course_setpoint.speed;
 	}
+
+	// After the setpoints, so the drift angle is estimated for the current direction of travel
+	if (_vehicle_local_position_sub.updated()) {
+		vehicle_local_position_s vehicle_local_position{};
+		_vehicle_local_position_sub.copy(&vehicle_local_position);
+		_drift_angle_estimator.update(vehicle_local_position, expectedDirection());
+	}
+}
+
+float AckermannCourseControl::expectedDirection() const
+{
+	// Without a speed setpoint the course is held with whatever thrust is commanded, the thrust sign gives the direction of travel
+	const bool reverse = PX4_ISFINITE(_speed_setpoint) ? _speed_setpoint < -FLT_EPSILON : _thrust_setpoint_x < -FLT_EPSILON;
+	return reverse ? M_PI_F : 0.f;
 }
 
 bool AckermannCourseControl::runSanityChecks()
