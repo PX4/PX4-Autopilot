@@ -16,6 +16,10 @@ Each CSV becomes one figure with eight panels on a shared time axis:
 altitude, airspeed, pitch, throttle, total energy rate, energy balance rate,
 altitude rate and airspeed rate. The measured rates are finite differences of
 the logged states.
+
+A CSV holding several cases (time restarting at 0) is drawn as a phase portrait of the
+energy errors instead: one trajectory per case in the (SKE error, SPE error)
+plane, errors being setpoint - state.
 Only numpy and matplotlib are required.
 """
 
@@ -34,6 +38,17 @@ C_SP = "#eb6834"      # setpoint / reference
 C_INTEG = "#6250d6"   # integrator contribution
 C_GRID = "#d8d7d2"
 C_TEXT = "#52514e"
+
+G = 9.80665  # [m/s^2]
+
+# Phase portrait trajectory label and colour by the sign of the initial (SKE error, SPE error).
+PHASE_CASES = {
+    (1, 0): ("SKE", "#1f77b4"),
+    (0, 1): ("SPE", "#ff7f0e"),
+    (1, 1): ("STE", "#2ca02c"),
+    (-1, 1): ("SEB", "#d62728"),
+}
+PHASE_CASES.update({(-x, -y): ("−" + label, c) for (x, y), (label, c) in list(PHASE_CASES.items())})
 
 REQUIRED = ["t", "V", "h", "V_sp", "alt_sp", "pitch_cmd", "throttle",
             "pitch_integ", "throttle_integ",
@@ -133,6 +148,47 @@ def plot(d, title):
     return fig
 
 
+def split_cases(d):
+    """Index slices of the cases in a CSV, each starting where the time restarts."""
+    starts = np.concatenate(([0], np.flatnonzero(np.diff(d["t"]) < 0) + 1, [len(d["t"])]))
+    return [slice(a, b) for a, b in zip(starts[:-1], starts[1:])]
+
+
+def plot_phase(d, title):
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.set_title(title)
+    ax.axhline(0, color="k", lw=0.5)
+    ax.axvline(0, color="k", lw=0.5)
+
+    for m in split_cases(d):
+        e_ske = 0.5 * (d["V_sp"][m] ** 2 - d["V"][m] ** 2)
+        e_spe = G * (d["alt_sp"][m] - d["h"][m])
+        key = (int(np.sign(np.round(e_ske[0], 3))), int(np.sign(np.round(e_spe[0], 3))))
+
+        if key not in PHASE_CASES:
+            continue  # zero initial error: nothing to draw
+
+        label, c = PHASE_CASES[key]
+        ax.plot(e_ske, e_spe, color=c, lw=2)
+        ax.plot(e_ske[0], e_spe[0], "o", color=c, ms=9)
+        ax.annotate(label, (e_ske[0], e_spe[0]), xytext=(6, 6), textcoords="offset points",
+                    color=c, fontsize=12, fontweight="bold")
+
+        # Direction arrow halfway along the path
+        s = np.concatenate(([0.0], np.cumsum(np.hypot(np.diff(e_ske), np.diff(e_spe)))))
+        i = min(int(np.searchsorted(s, 0.5 * s[-1])), len(s) - 2)
+        ax.annotate("", xy=(e_ske[i + 1], e_spe[i + 1]), xytext=(e_ske[i], e_spe[i]),
+                    arrowprops=dict(arrowstyle="-|>", color=c, lw=2, mutation_scale=18))
+
+    ax.set_xlim(-1.5, 1.5)
+    ax.set_ylim(-1.5, 1.5)
+    ax.set_aspect("equal")
+    ax.set_xlabel("SKE error [J/kg]")
+    ax.set_ylabel("SPE error [J/kg]")
+    fig.tight_layout()
+    return fig
+
+
 def collect(paths):
     files = []
 
@@ -170,7 +226,8 @@ def main():
         args.out.mkdir(parents=True, exist_ok=True)
 
     for f in files:
-        fig = plot(load(f), f.stem)
+        d = load(f)
+        fig = (plot_phase if len(split_cases(d)) > 1 else plot)(d, f.stem)
 
         if args.out:
             target = args.out / f"{f.stem}.png"
