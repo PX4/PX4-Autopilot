@@ -859,14 +859,15 @@ void Navigator::run()
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_LAND_START) {
 
-				// find NAV_CMD_DO_LAND_START in the mission and
-				// use MAV_CMD_MISSION_START to start the mission from the next item containing a position setpoint
+				// find NAV_CMD_DO_LAND_START in the mission, set it as the current item
+				// and switch to Mission mode (this does not arm the vehicle)
 				uint8_t result{vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED};
 
-				if (_mission.get_land_start_available()) {
+				if (_mission.get_land_start_available()
+				    && _mission.set_current_mission_index(_mission.get_land_start_index())) {
 					vehicle_command_s vehicle_command{};
-					vehicle_command.command = vehicle_command_s::VEHICLE_CMD_MISSION_START;
-					vehicle_command.param1 = _mission.get_land_start_index();
+					vehicle_command.command = vehicle_command_s::VEHICLE_CMD_SET_NAV_STATE;
+					vehicle_command.param1 = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
 					publish_vehicle_command(vehicle_command);
 
 				} else {
@@ -897,15 +898,6 @@ void Navigator::run()
 				}
 
 				publish_vehicle_command_ack(cmd, result);
-
-			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_MISSION_START) {
-				if (_mission_result.valid && PX4_ISFINITE(cmd.param1) && (cmd.param1 >= 0)) {
-					if (!_mission.set_current_mission_index(cmd.param1)) {
-						PX4_WARN("CMD_MISSION_START failed");
-					}
-				}
-
-				// CMD_MISSION_START is acknowledged by commander
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED) {
 				if (cmd.param2 > FLT_EPSILON) {

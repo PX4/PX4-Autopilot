@@ -1280,36 +1280,6 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		}
 		break;
 
-	case vehicle_command_s::VEHICLE_CMD_MISSION_START: {
-
-			cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
-
-			// check if current mission and first item are valid
-			if (!_failsafe_flags.auto_mission_missing) {
-
-				// requested first mission item valid
-				if (PX4_ISFINITE(cmd.param1) && (cmd.param1 >= -1) && (cmd.param1 < _mission_result_sub.get().seq_total)) {
-
-					// Switch to AUTO_MISSION but don't arm: arming is a separate command.
-					// If disarmed, the mission starts once the vehicle is armed.
-					if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION, getSourceFromCommand(cmd))) {
-
-						cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
-
-					} else {
-						printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
-						cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
-					}
-				}
-
-			} else {
-				mavlink_log_critical(&_mavlink_log_pub, "Mission start denied! No valid mission\t");
-				events::send(events::ID("commander_mission_start_denied_no_mission"), {events::Log::Critical, events::LogInternal::Info},
-					     "Mission start denied! No valid mission");
-			}
-		}
-		break;
-
 	case vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY: {
 			// if no high latency telemetry exists send a failed acknowledge
 			if (_high_latency_datalink_timestamp < _boot_timestamp) {
