@@ -150,7 +150,7 @@ private:
 
 	PositionYawSetpoint homeDestination() const;
 
-	/** Configures RtlDirect for Home to estimate it; applyReturn() then configures the selected destination. */
+	/** Time of a direct Return to Home, without configuring RtlDirect. */
 	rtl_time_estimate_s estimateTimeToHome();
 
 	/**

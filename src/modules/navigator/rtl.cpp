@@ -95,7 +95,8 @@ void RTL::on_inactive()
 
 	if ((now - _destination_check_time) > RTL_REPLAN_INTERVAL) {
 		_destination_check_time = now;
-		setRtlTypeAndDestination();
+		const ReturnSelection selection = selectReturn();
+		applyReturn(selection);
 		publishRemainingTimeEstimate();
 	}
 
@@ -315,9 +316,7 @@ rtl_time_estimate_s RTL::estimateTimeToHome()
 	home_loiter.lon = home.lon;
 	home_loiter.height_m = NAN;
 
-	_rtl_direct.setRtlAlt(computeReturnAltitude(home));
-	_rtl_direct.setRtlPosition(home, home_loiter);
-	return _rtl_direct.calc_rtl_time_estimate();
+	return _rtl_direct.estimateReturnTo({home, home_loiter, computeReturnAltitude(home)});
 }
 
 void RTL::applyReturn(const ReturnSelection &selection)
