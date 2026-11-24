@@ -49,6 +49,9 @@ private:
 
 	matrix::Vector3f _zgup_delta_ang{};
 	float _zgup_delta_ang_dt{0.f};
+
+	matrix::Vector3f _zgup_rate_pending{};
+	bool _zgup_rate_pending_valid{false};
 };
 
 #endif // !EKF_ZERO_GYRO_UPDATE_HPP
