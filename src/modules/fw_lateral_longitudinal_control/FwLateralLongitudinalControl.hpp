@@ -159,6 +159,7 @@ private:
 		(ParamFloat<px4::params::FW_T_RLL2THR>) _param_fw_t_rll2thr,
 		(ParamFloat<px4::params::FW_T_SINK_MAX>) _param_fw_t_sink_max,
 		(ParamFloat<px4::params::FW_T_TAS_TC>) _param_fw_t_tas_tc,
+		(ParamFloat<px4::params::FW_T_SPD_THR>) _param_fw_t_spd_thr,
 		(ParamFloat<px4::params::FW_T_THR_DAMPING>) _param_fw_t_thr_damping,
 		(ParamFloat<px4::params::FW_T_VERT_ACC>) _param_fw_t_vert_acc,
 		(ParamFloat<px4::params::FW_T_STE_R_TC>) _param_fw_t_ste_r_tc,

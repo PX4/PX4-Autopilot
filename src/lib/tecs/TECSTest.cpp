@@ -63,6 +63,7 @@ TECSControl::Param makeParam()
 	param.altitude_error_gain = 0.2f;
 	param.altitude_setpoint_gain_ff = 0.f;
 	param.airspeed_error_gain = 0.1f;
+	param.throttle_speed_share = 1.f;
 	param.ste_rate_time_const = 0.1f;
 	param.pitch_speed_weight = 1.f;
 	param.integrator_gain_pitch = 0.4f;

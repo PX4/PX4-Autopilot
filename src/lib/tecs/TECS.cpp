@@ -297,7 +297,12 @@ TECSControl::SpecificEnergyRates TECSControl::_updateOuterLoops(const Setpoint &
 		control_setpoint.altitude_rate_setpoint = _calcAltitudeControlOutput(setpoint, input, param);
 	}
 
-	const SpecificEnergyRates specific_energy_rate{_calcSpecificEnergyRates(control_setpoint, input)};
+	SpecificEnergyRates specific_energy_rate{_calcSpecificEnergyRates(control_setpoint, input)};
+
+	// The pitch trades altitude for the share of the kinetic energy rate setpoint the throttle does not provide. Both
+	// loops see the same potential energy rate setpoint: the pitch flies it, and the throttle's total energy rate
+	// setpoint is lowered by the same amount.
+	specific_energy_rate.spe_rate.setpoint += _calcSpeedShareSpeRate(specific_energy_rate.ske_rate.setpoint, param);
 
 	_detectUnderspeed(input, param, flag);
 
@@ -366,6 +371,24 @@ TECSControl::SpecificEnergyRates TECSControl::_calcSpecificEnergyRates(const Out
 	specific_energy_rates.ske_rate.estimate = input.tas * input.tas_rate;// kinetic energy rate of change
 
 	return specific_energy_rates;
+}
+
+float TECSControl::_calcSpeedShareSpeRate(float ske_rate_setpoint, const Param &param)
+{
+	// With the throttle providing a share alpha of the kinetic energy rate setpoint, the errors e_SKE = V (V_sp - V)
+	// and e_SPE = g (h_sp - h) follow, with the throttle delivering its setpoint:
+	//
+	//   [ e_SKE ]'   [ -1/tau_v              0     ] [ e_SKE ]
+	//   [ e_SPE ]  = [ (1 - alpha)/tau_v  -1/tau_h ] [ e_SPE ]
+	//
+	// e_SKE decays with tau_v, and e_SPE + c e_SKE with c = (1 - alpha) / (1 - tau_v/tau_h) decays with tau_h.
+	//  - alpha = 1: no coupling, each error decays on its own
+	//  - alpha = tau_v/tau_h: c = 1, the total energy error decays with tau_h, and an exchange of altitude for
+	//    airspeed decays with tau_v without changing the throttle
+	const float throttle_speed_share = PX4_ISFINITE(param.throttle_speed_share) ?
+					   constrain(param.throttle_speed_share, 0.f, 1.f) : 1.f;
+
+	return -(1.f - throttle_speed_share) * ske_rate_setpoint;
 }
 
 void TECSControl::_detectUnderspeed(const Input &input, const Param &param, const Flag &flag)

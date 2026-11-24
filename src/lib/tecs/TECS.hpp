@@ -236,6 +236,7 @@ public:
 
 		// Airspeed control param
 		float airspeed_error_gain;				///< Airspeed error inverse time constant [1/s].
+		float throttle_speed_share;				///< Share of the kinetic energy rate setpoint the throttle provides [0, 1].
 
 		// Energy control param
 		float ste_rate_time_const;				///< Filter time constant for specific total energy rate (damping path) [s].
@@ -469,6 +470,15 @@ private:
 	 * @return Specific energy rates in [m²/s³].
 	 */
 	SpecificEnergyRates _calcSpecificEnergyRates(const OuterLoopSetpoints &control_setpoint, const Input &input) const;
+	/**
+	 * @brief Potential energy rate the pitch gives up for airspeed, the share of the kinetic energy rate setpoint the
+	 * throttle does not provide.
+	 *
+	 * @param ske_rate_setpoint is the kinetic energy rate setpoint in [m²/s³].
+	 * @param param is the control parameters.
+	 * @return potential energy rate setpoint correction in [m²/s³].
+	 */
+	static float _calcSpeedShareSpeRate(float ske_rate_setpoint, const Param &param);
 	/**
 	 * @brief Detect underspeed.
 	 *
@@ -721,6 +731,7 @@ public:
 
 	void set_speed_weight(float weight) { _control_param.pitch_speed_weight = weight; }
 	void set_airspeed_error_time_constant(float time_const) { _control_param.airspeed_error_gain = 1.0f / math::max(time_const, 0.1f); }
+	void set_throttle_speed_share(float share) { _control_param.throttle_speed_share = PX4_ISFINITE(share) ? math::constrain(share, 0.f, 1.f) : 1.f; }
 
 	void set_throttle_damp(float throttle_damp) { _control_param.throttle_damping_gain = throttle_damp; }
 	void set_throttle_slewrate(float slewrate) { _control_param.throttle_slewrate = slewrate; }
@@ -844,6 +855,7 @@ private:
 		.altitude_error_gain = 0.2f,
 		.altitude_setpoint_gain_ff = 0.0f,
 		.airspeed_error_gain = 0.1f,
+		.throttle_speed_share = 1.0f,
 		.ste_rate_time_const = 0.1f,
 		.pitch_speed_weight = 1.0f,
 		.integrator_gain_pitch = 0.0f,

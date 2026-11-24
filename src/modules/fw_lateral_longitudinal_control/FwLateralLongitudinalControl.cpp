@@ -122,6 +122,7 @@ FwLateralLongitudinalControl::parameters_update()
 	_tecs.set_fast_descend_altitude_error(_param_fw_t_f_alt_err.get());
 	_tecs.set_altitude_rate_ff(_param_fw_t_hrate_ff.get());
 	_tecs.set_airspeed_error_time_constant(_param_fw_t_tas_tc.get());
+	_tecs.set_throttle_speed_share(_param_fw_t_spd_thr.get());
 	_tecs.set_ste_rate_time_const(_param_fw_t_ste_r_tc.get());
 	_tecs.set_level_flight_pitch(radians(_param_fw_psp_off.get()));
 
