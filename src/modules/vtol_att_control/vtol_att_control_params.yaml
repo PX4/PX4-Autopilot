@@ -23,8 +23,8 @@ parameters:
       default: 1
     VT_F_TRANS_DUR:
       description:
-        short: Duration of a front transition
-        long: Time in seconds used for a transition
+        short: Front transition tilt or pitch-down duration
+        long: 'Tiltrotor: time to tilt the rotors from VT_TILT_MC to VT_TILT_TRANS. Tailsitter: time to pitch down by 90 degrees. Not used by standard VTOL.'
       type: float
       default: 5.0
       unit: s
