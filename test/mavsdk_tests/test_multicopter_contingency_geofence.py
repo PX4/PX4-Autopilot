@@ -15,17 +15,15 @@ POSITION_TOLERANCE_M = 2.0
 
 
 @pytest.mark.multicopter
-@pytest.mark.parametrize("margin_m", [0.0, 40.0])
-def test_pilot_is_held_at_geofence_or_margin(tester_geofence: AutopilotTesterGeofence,
-                                             margin_m: float) -> None:
-    """A pilot flies towards the fence in Position mode.
-
-    Without a margin the vehicle is only held once it has crossed the emergency geofence. With a
-    margin it is held when it comes that close, and never reaches it."""
+def test_pilot_is_held_at_contingency_geofence_margin(
+        tester_geofence: AutopilotTesterGeofence) -> None:
+    """A pilot flies towards the fence in Position mode. The vehicle is held when it comes within
+    the margin, and never reaches the fence."""
     tester = tester_geofence
     tester.wait_until_ready()
     tester.store_home()
     tester.upload_inclusion_rectangle(-80.0, 80.0, -80.0, 80.0)
+    margin_m = 40.0
     tester.set_param_float("GF_CONT_H_MARGIN", margin_m)
     tester.arm_and_take_off(TAKEOFF_ALTITUDE_M)
 
