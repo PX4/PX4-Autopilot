@@ -97,6 +97,12 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   Limits raised or disabled to allow large tilts, for example roll on fixed-wing vehicles, are no longer needed.
   The check is disabled with `FD_TILT_ERROR` set to -1.
   The `fd_roll` and `fd_pitch` fields of [FailureDetectorStatus](../msg_docs/FailureDetectorStatus.md) are replaced by `fd_tilt`.
+- **The pre-takeoff magnetometer bias estimator has been removed.**
+  The `mag_bias_estimator` module, its parameters `MBE_ENABLE` and `MBE_LEARN_GAIN`, the `SENS_MAG_AUTOCAL` parameter and the `magnetometer_bias_estimate` topic no longer exist, and there is no replacement.
+  It only helped with a bad or missing calibration, and degraded the heading after a good one.
+  Calibrate the magnetometer from the ground station instead, including on DroneCAN nodes, which previously could save an initial calibration by themselves.
+  The in-flight magnetometer bias learned by EKF2 is still saved after disarming.
+  ([PX4-Autopilot#29342](https://github.com/PX4/PX4-Autopilot/pull/29342))
 
 ## Other changes
 
