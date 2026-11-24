@@ -20,7 +20,10 @@ def test_pilot_is_held_at_contingency_geofence_margin(
         tester_geofence: AutopilotTesterGeofence) -> None:
     """A pilot flies towards the fence in Position mode. The vehicle is held when it comes within
     the margin, and never reaches the fence. A Go-to back out of the margin is flown, and one into
-    it is refused."""
+    it is refused.
+
+    Without a margin it is only held once it has crossed the fence, see
+    test_multicopter_emergency_geofence.py."""
     tester = tester_geofence
     tester.wait_until_ready()
     tester.store_home()

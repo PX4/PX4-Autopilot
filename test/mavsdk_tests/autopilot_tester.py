@@ -856,6 +856,26 @@ class AutopilotTester:
     def _target_system_id(self) -> int:
         return int(self._system.get_system_id())
 
+    @contextmanager
+    def observe_event(self, *texts: str) -> Iterator[threading.Event]:
+        """Record whether the autopilot reports an event with all texts in its message during the
+        block. MAVSDK appends the failing health and arming checks to failsafe and arming events.
+
+        Events rather than STATUSTEXT: PX4 sends STATUSTEXT only within 2.5 s of a GCS heartbeat,
+        and MAVSDK sends one per second of host time, 10 s of autopilot time at speed factor 10.
+        """
+        received = threading.Event()
+
+        def on_event(event: Any, _user_data: Any) -> None:
+            if all(text in event.message for text in texts):
+                received.set()
+
+        handle = self._events.subscribe_events(on_event)
+        try:
+            yield received
+        finally:
+            self._events.unsubscribe_events(handle)
+
     def send_mavlink_message(self, name: str, fields: Dict[str, Any]) -> None:
         # NaN is not valid JSON; MAVSDK takes null as NaN for float fields.
         def nan_to_null(value: Any) -> Any:

@@ -1367,27 +1367,95 @@ public:
 	hrt_abstime _time{5_s};
 };
 
-TEST_F(GeofenceFailsafeTest, ContGeofenceUsesItsOwnAction)
+TEST_F(GeofenceFailsafeTest, EachGeofenceUsesItsConfiguredAction)
 {
 	const struct {
-		int32_t gf_cont_action;
+		int32_t parameter;
 		Action action;
 	} cases[] = {
 		{kWarning, Action::Warn}, {kHold, Action::Hold}, {kReturn, Action::RTL}, {kLand, Action::Land},
 		{kNone, Action::None},
-		{kTerminate, Action::Warn}, // reserved for the emergency geofence
+		{kTerminate, Action::Terminate},
 		{6, Action::Warn}, // no such action, as for GF_ACTION
 	};
 
-	for (const auto &c : cases) {
-		SCOPED_TRACE(c.gf_cont_action);
+	for (const bool contingency : {false, true}) {
+		SCOPED_TRACE(contingency);
+
+		for (const auto &c : cases) {
+			SCOPED_TRACE(c.parameter);
+			reset();
+			setActions(contingency ? c.parameter : kNone, contingency ? kNone : c.parameter);
+			Failsafe failsafe(nullptr);
+			ASSERT_EQ(update(failsafe), Action::None);
+			_flags.gf_cont_breach = contingency;
+			_flags.gf_emer_breach = !contingency;
+			// Terminate is reserved for the emergency geofence.
+			EXPECT_EQ(update(failsafe), contingency && c.parameter == kTerminate ? Action::Warn : c.action);
+		}
+	}
+}
+
+TEST_F(GeofenceFailsafeTest, TakeoverClearsOnReentryAndANewBreachActsAgain)
+{
+	const struct {
+		int32_t parameter;
+		Action action;
+	} cases[] = {{kHold, Action::Hold}, {kReturn, Action::RTL}, {kLand, Action::Land}};
+
+	for (const bool contingency : {false, true}) {
+		SCOPED_TRACE(contingency);
+
+		for (const auto &c : cases) {
+			SCOPED_TRACE(c.parameter);
+			reset();
+			setActions(contingency ? c.parameter : kNone, contingency ? kNone : c.parameter);
+			Failsafe failsafe(nullptr);
+			ASSERT_EQ(update(failsafe), Action::None);
+			bool &breached = contingency ? _flags.gf_cont_breach : _flags.gf_emer_breach;
+			breached = true;
+			ASSERT_EQ(update(failsafe), c.action);
+
+			// Without a Hold delay, stick movement does not take over.
+			EXPECT_EQ(update(failsafe, false, true), c.action);
+			EXPECT_FALSE(failsafe.userTakeoverActive());
+
+			// Clearing the breach alone must not cancel an established action.
+			breached = false;
+			EXPECT_EQ(update(failsafe), c.action);
+			EXPECT_EQ(update(failsafe), c.action);
+			breached = true;
+			ASSERT_EQ(update(failsafe), c.action);
+
+			// A GoTo requests Hold, even when the failsafe is already holding.
+			_state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+			EXPECT_EQ(update(failsafe, true), Action::Warn);
+			EXPECT_TRUE(failsafe.userTakeoverActive());
+			EXPECT_EQ(update(failsafe), Action::Warn); // still outside
+
+			breached = false;
+			update(failsafe);
+			EXPECT_EQ(update(failsafe), Action::None);
+			EXPECT_FALSE(failsafe.userTakeoverActive());
+			breached = true;
+			EXPECT_EQ(update(failsafe), c.action);
+			EXPECT_FALSE(failsafe.userTakeoverActive());
+		}
+	}
+}
+
+TEST_F(GeofenceFailsafeTest, NeitherGeofenceCanBeDeferred)
+{
+	for (const bool contingency : {false, true}) {
+		SCOPED_TRACE(contingency);
 		reset();
-		setActions(c.gf_cont_action, kTerminate);
+		setActions(kLand, kLand);
 		Failsafe failsafe(nullptr);
 		ASSERT_EQ(update(failsafe), Action::None);
-
-		_flags.gf_cont_breach = true;
-		EXPECT_EQ(update(failsafe), c.action);
+		ASSERT_TRUE(failsafe.deferFailsafes(true, -1));
+		_flags.gf_cont_breach = contingency;
+		_flags.gf_emer_breach = !contingency;
+		EXPECT_EQ(update(failsafe), Action::Land);
 	}
 }
 
@@ -1469,36 +1537,4 @@ TEST_F(GeofenceFailsafeTest, GeofenceBreachEndsContGeofenceTakeover)
 		EXPECT_EQ(update(failsafe), c.action);
 		EXPECT_EQ(failsafe.userTakeoverActive(), c.takeover);
 	}
-}
-
-TEST_F(GeofenceFailsafeTest, ContGeofenceHoldIsLeftByModeSwitch)
-{
-	setActions(kHold, kTerminate);
-	Failsafe failsafe(nullptr);
-	ASSERT_EQ(update(failsafe), Action::None);
-
-	_flags.gf_cont_breach = true;
-	ASSERT_EQ(update(failsafe), Action::Hold);
-
-	// Stick movement -> denied, like for an emergency geofence breach
-	ASSERT_EQ(update(failsafe, false, true), Action::Hold);
-	ASSERT_FALSE(failsafe.userTakeoverActive());
-
-	// Mode switch -> user takeover
-	_state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_POSCTL;
-	ASSERT_EQ(update(failsafe, true), Action::Warn);
-	ASSERT_TRUE(failsafe.userTakeoverActive());
-
-	// Still breached -> nothing triggers again
-	ASSERT_EQ(update(failsafe), Action::Warn);
-
-	// Back inside the contingency geofence, or contingency geofence disabled -> the failsafe clears
-	_flags.gf_cont_breach = false;
-	update(failsafe);
-	ASSERT_EQ(update(failsafe), Action::None);
-	ASSERT_FALSE(failsafe.userTakeoverActive());
-
-	// Breached again -> Hold again
-	_flags.gf_cont_breach = true;
-	EXPECT_EQ(update(failsafe), Action::Hold);
 }
