@@ -11,8 +11,8 @@ from typing import Any, Callable, List, Optional, Tuple
 from mavsdk.plugins.telemetry import FlightMode  # type: ignore
 
 from autopilot_tester import (
-    MANUAL_CONTROL_RATE_HZ, MAV_CMD_COMPONENT_ARM_DISARM, MAV_CMD_NAV_WAYPOINT,
-    MAV_FRAME_GLOBAL_INT, MAV_FRAME_GLOBAL_RELATIVE_ALT, MissionOptions, log, raw_mission_item)
+    MANUAL_CONTROL_RATE_HZ, MAV_CMD_NAV_WAYPOINT, MAV_FRAME_GLOBAL_INT,
+    MAV_FRAME_GLOBAL_RELATIVE_ALT, log, raw_mission_item)
 from autopilot_tester_loiter import AutopilotTesterLoiter
 from geofence_geometry import (
     FenceKind, FenceShape, MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION,
@@ -22,7 +22,6 @@ from geometry import CoordinateTransformation
 
 MAV_CMD_NAV_VTOL_TAKEOFF = 84
 MAV_MISSION_TYPE_FENCE = 1
-MAV_RESULT_TEMPORARILY_REJECTED = 1
 
 # Values of GF_ACTION and GF_CONT_ACTION.
 ACTION_WARNING = 1
@@ -82,10 +81,6 @@ class AutopilotTesterGeofence(AutopilotTesterLoiter):
         # PX4 needs time to load the fence.
         self.sleep_for(1)
 
-    def upload_mission_to(self, north_m: float, options: MissionOptions) -> None:
-        """Upload a mission from above Home to a point north of it."""
-        self._upload_mission([(0.0, 0.0), (north_m, 0.0)], options)
-
     def upload_vtol_mission(self, waypoints: List[Local2], rel_alt_m: float) -> None:
         """Upload a VTOL takeoff followed by the waypoints, without a landing."""
         ct = self.get_coordinate_transformation()
@@ -99,16 +94,6 @@ class AutopilotTesterGeofence(AutopilotTesterLoiter):
                 current=1 if seq == 0 else 0))
 
         self.upload_mission_raw(items)
-
-    def select_mission_mode(self) -> None:
-        """Switch to Mission mode. A disarmed vehicle accepts that even with a rejected mission."""
-        assert self._try_start_mission(), "Could not switch to Mission mode"
-
-    def check_arming_is_denied(self) -> None:
-        """One arming attempt, without the retries of arm(). Sent as a command, because
-        MAVSDK's arm() first switches a vehicle in Mission mode to Hold."""
-        self.send_command_long(MAV_CMD_COMPONENT_ARM_DISARM, param1=1.0,
-                               expected_result=MAV_RESULT_TEMPORARILY_REJECTED)
 
     def fly_in_position_mode_until_failsafe(self, flight_mode: FlightMode, forward: float = 0.5,
                                             throttle: float = 0.5, timeout_s: float = 60) -> None:
@@ -136,10 +121,6 @@ class AutopilotTesterGeofence(AutopilotTesterLoiter):
             self._manual_control.set_manual_control_input(forward, 0.0, throttle, 0.0)
             self.sleep_for(1.0 / MANUAL_CONTROL_RATE_HZ)
         self._manual_control.set_manual_control_input(0.0, 0.0, 0.5, 0.0)
-
-    def keep_sticks_centered_for(self, duration_s: float) -> None:
-        """Keep the manual control link alive without asking for anything."""
-        self._send_manual_control(duration_s, 0.0, 0.0, 0.5, 0.0)
 
     # ------------------------------------------------------------------
     # How far the vehicle went

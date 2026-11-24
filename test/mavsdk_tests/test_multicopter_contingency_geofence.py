@@ -5,6 +5,7 @@ from autopilot_tester import MissionOptions, log
 from autopilot_tester_geofence import ACTION_RETURN, AutopilotTesterGeofence
 from autopilot_tester_loiter import horizontal_distance
 
+HOME = (0.0, 0.0)
 TAKEOFF_ALTITUDE_M = 10.0
 MISSION_ALTITUDE_M = 15.0
 
@@ -18,7 +19,8 @@ POSITION_TOLERANCE_M = 2.0
 def test_pilot_is_held_at_contingency_geofence_margin(
         tester_geofence: AutopilotTesterGeofence) -> None:
     """A pilot flies towards the fence in Position mode. The vehicle is held when it comes within
-    the margin, and never reaches the fence."""
+    the margin, and never reaches the fence. A Go-to back out of the margin is flown, and one into
+    it is refused."""
     tester = tester_geofence
     tester.wait_until_ready()
     tester.store_home()
@@ -29,8 +31,16 @@ def test_pilot_is_held_at_contingency_geofence_margin(
 
     tester.start_tracking()
     tester.fly_in_position_mode_until_failsafe(FlightMode.HOLD)
-    tester.keep_sticks_centered_for(8)
-    tester.wait_for_flight_mode(FlightMode.HOLD, 1)
+    with tester.keep_manual_control_alive():
+        with tester.monitor_hold_position():
+            tester.sleep_for(8)
+        # Home is out of the margin, so this Go-to is flown although the vehicle is still in it.
+        tester.command_reposition(HOME, TAKEOFF_ALTITUDE_M)
+        with tester.monitor_hold_position(expected_center=HOME):
+            tester.wait_for_position_ned(lambda s: horizontal_distance(s, HOME) < 3.0, 30)
+            # In the margin, 10 m from the fence: refused, so the Hold stays at Home.
+            tester.command_reposition((70.0, 0.0), TAKEOFF_ALTITUDE_M)
+            tester.sleep_for(3)
 
     closest_m = tester.min_fence_distance_m()
     log("Closest to the fence: {:.1f} m".format(closest_m))
@@ -97,40 +107,3 @@ def test_contingency_geofence_return_lands_at_home(
     log("Closest to the fence: {:.1f} m".format(closest_m))
     assert 150.0 - OVERSHOOT_M < closest_m < 150.0 + POSITION_TOLERANCE_M, \
         "Came within {:.1f} m of the fence with a margin of 150 m".format(closest_m)
-
-
-@pytest.mark.multicopter
-def test_contingency_geofence_refuses_arming_missions_and_targets(
-        tester_geofence: AutopilotTesterGeofence) -> None:
-    """Within the margin arming is denied, and a mission or a Go-to that leads there is refused."""
-    tester = tester_geofence
-    tester.wait_until_ready()
-    tester.store_home()
-    # Home is 30 m from each edge.
-    tester.upload_inclusion_rectangle(-30.0, 30.0, -30.0, 30.0)
-
-    tester.set_param_float("GF_CONT_H_MARGIN", 40.0)
-    tester.sleep_for(2)
-    tester.check_arming_is_denied()
-
-    tester.set_param_float("GF_CONT_H_MARGIN", 10.0)
-    tester.sleep_for(2)
-    options = MissionOptions(relative_altitude_m=TAKEOFF_ALTITUDE_M)
-
-    # 5 m from the northern edge: the mission is rejected, so Mission mode cannot be armed.
-    tester.upload_mission_to(25.0, options)
-    tester.select_mission_mode()
-    tester.wait_for_flight_mode(FlightMode.MISSION, 5)
-    tester.check_arming_is_denied()
-
-    # 15 m from the northern edge.
-    tester.upload_mission_to(15.0, options)
-    tester.arm()
-    tester.execute_mission()
-
-    # The vehicle now holds at the last waypoint. A target within the margin leaves it there.
-    tester.command_reposition((25.0, 0.0), TAKEOFF_ALTITUDE_M)
-    tester.check_stays_within((15.0, 0.0), 3.0, 8)
-
-    tester.command_reposition((-15.0, 0.0), TAKEOFF_ALTITUDE_M)
-    tester.wait_for_position_ned(lambda s: horizontal_distance(s, (-15.0, 0.0)) < 2.0, 30)

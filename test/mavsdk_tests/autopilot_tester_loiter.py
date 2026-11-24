@@ -46,20 +46,27 @@ class AutopilotTesterLoiter(AutopilotTester):
         self.wait_for_flight_mode(FlightMode.HOLD, timeout_s)
 
     @contextmanager
-    def monitor_hold_position(self) -> Iterator[Tuple[float, float]]:
+    def monitor_hold_position(
+            self, expected_center: Optional[Local2] = None) -> Iterator[Tuple[float, float]]:
         """Require Hold and an unchanged loiter center throughout the block.
 
+        With expected_center, targets elsewhere are skipped until the commanded one arrives.
         Yield the first Hold target as (latitude, longitude). PX4 publishes the loiter center
         in POSITION_TARGET_GLOBAL_INT, so moving along a fence edge is detected too.
         """
         centers: List[Tuple[int, int]] = []
         target_count = 0
+        ct = self.get_coordinate_transformation() if expected_center is not None else None
 
         def on_target(message: Any, _user_data: Any) -> None:
             nonlocal target_count
             fields = json.loads(message.fields_json)
             center = (int(fields["lat_int"]), int(fields["lon_int"]))
             if not centers:
+                if expected_center is not None and ct is not None:
+                    north_m, east_m = ct.local_from_global(center[0] / 1e7, center[1] / 1e7)
+                    if math.hypot(north_m - expected_center[0], east_m - expected_center[1]) > 1.0:
+                        return
                 centers.append(center)
             target_count += 1
             self.check_in_callback(center == centers[0],

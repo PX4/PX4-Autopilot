@@ -25,7 +25,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     parser.addoption("--url", default="udpin://0.0.0.0:14540",
                      help="MAVLink connection URL of the vehicle")
     parser.addoption("--speed-factor", type=float, default=None,
-                     help="simulation speed factor, for information only")
+                     help="simulation speed factor, sets the rate of keep_manual_control_alive()")
 
 
 def connected_tester(request: pytest.FixtureRequest, tester_class: Type[T]) -> Iterator[T]:
