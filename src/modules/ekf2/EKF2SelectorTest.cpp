@@ -187,6 +187,11 @@ public:
 
 			if (fresh && (status.primary_instance == 0) && (status.instances_available == 2)
 			    && status.healthy[0] && status.healthy[1]) {
+				// a request from an earlier pass can still be waiting for the selector's
+				// next run: applied after the test has switched away from instance 0, it
+				// would switch back. Withdraw it; one being applied right now finds
+				// instance 0 already selected
+				_selector->RequestInstance(EKF2Selector::INVALID_INSTANCE);
 				return;
 			}
 

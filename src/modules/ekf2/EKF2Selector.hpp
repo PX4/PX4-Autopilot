@@ -74,11 +74,12 @@ public:
 
 	void PrintStatus();
 
+	// RequestInstance(INVALID_INSTANCE) withdraws a request that has not been applied yet
+	static constexpr uint8_t INVALID_INSTANCE{UINT8_MAX};
+
 	void RequestInstance(uint8_t instance) { _request_instance.store(instance); }
 
 private:
-	static constexpr uint8_t INVALID_INSTANCE{UINT8_MAX};
-
 	// unhealthy time before a sustained-warned instance becomes an acceptable
 	// fallback; a timed out primary bypasses this delay
 	static constexpr hrt_abstime kWarnedFallbackDelay{5_s};
