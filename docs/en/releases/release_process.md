@@ -79,13 +79,13 @@ git checkout -b release/1.18
 git push origin release/1.18
 ```
 
-Pushing the branch runs the [sync_release_to_ros2_interface_lib.yml](https://github.com/PX4/PX4-Autopilot/blob/main/.github/workflows/sync_release_to_ros2_interface_lib.yml) workflow, which creates the matching release branch in the companion repositories:
+The companion repositories get a matching release branch without further steps:
 
-- [PX4/px4_msgs](https://github.com/PX4/px4_msgs)
-- [Auterion/px4-ros2-interface-lib](https://github.com/Auterion/px4-ros2-interface-lib)
+- [PX4/px4_msgs](https://github.com/PX4/px4_msgs): created right away by the `create_px4_msgs_release_branch.yml` workflow in PX4-Autopilot.
+- [Auterion/px4-ros2-interface-lib](https://github.com/Auterion/px4-ros2-interface-lib): created within a day by that repository's [create_release_branch.yml](https://github.com/Auterion/px4-ros2-interface-lib/blob/main/.github/workflows/create_release_branch.yml) workflow, which checks PX4 for new release branches.
 
-Check that both branches exist once the workflow has finished.
-If one is missing, run the workflow again from the Actions tab with the release branch name as input.
+Check that both branches exist.
+Either workflow can also be run by hand from the Actions tab of its repository, with the release branch name as input.
 
 The [ROS integration tests](https://github.com/PX4/PX4-Autopilot/blob/main/.github/workflows/ros_integration_tests.yml) build `px4-ros2-interface-lib` at the commit pinned in [Tools/ros2/ros2.repos](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/ros2/ros2.repos), and the new release branch starts with the pin it inherited from `main`.
 When the PX4 release branch needs a fix from the library, update the pin on the release branch to a commit from the library's matching release branch.
