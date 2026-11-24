@@ -120,6 +120,10 @@ public:
 
 	void setImuBias(Vector3f accel_bias, Vector3f gyro_bias);
 
+	// The at-rest status is cleared as soon as the IMU data moves, ahead of the fusion time
+	// horizon. A test that provides the status with setSystemFlagData() has to disable it.
+	void setMotionClearsAtRest(bool enabled) { _motion_clears_at_rest = enabled; }
+
 	void simulateOrientation(Quatf orientation);
 	void setOrientation(const Quatf &orientation) { _R_body_to_world = Dcmf(orientation); }
 	void setOrientation(const Dcmf &orientation) { _R_body_to_world = orientation; }
@@ -154,6 +158,7 @@ private:
 	std::vector<sensor_info> _replay_data{};
 
 	bool _has_replay_data{false};
+	bool _motion_clears_at_rest{true};
 
 	uint64_t _current_replay_data_index{0};
 	uint64_t _time{0}; // microseconds
