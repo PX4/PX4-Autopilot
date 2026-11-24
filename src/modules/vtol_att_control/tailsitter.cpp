@@ -306,7 +306,7 @@ bool Tailsitter::isFrontTransitionCompleted()
 
 	if (pitch <= PITCH_THRESHOLD_AUTO_TRANSITION_TO_FW) {
 		if (airspeed_triggers_transition) {
-			transition_to_fw = _attc->get_calibrated_airspeed() >= _param_vt_arsp_trans.get() ;
+			transition_to_fw = _attc->get_calibrated_airspeed() >= getTransitionAirspeed();
 
 		} else {
 			transition_to_fw = true;

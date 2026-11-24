@@ -247,13 +247,13 @@ public:
 
 	/**
 	 *
-	 * @return The calibrated blending airspeed [m/s]
+	 * @return The calibrated blending airspeed scaled for vehicle weight [m/s]
 	 */
 	float getBlendAirspeed() const;
 
 	/**
 	 *
-	 * @return The calibrated transition airspeed [m/s]
+	 * @return The calibrated transition airspeed scaled for vehicle weight [m/s]
 	 */
 	float getTransitionAirspeed() const;
 
