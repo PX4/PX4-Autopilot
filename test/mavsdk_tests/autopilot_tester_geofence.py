@@ -11,9 +11,9 @@ from typing import Any, Callable, List, Optional, Tuple
 from mavsdk.plugins.telemetry import FlightMode  # type: ignore
 
 from autopilot_tester import (
-    MANUAL_CONTROL_RATE_HZ, MAV_CMD_NAV_WAYPOINT, MAV_FRAME_GLOBAL_INT,
-    MAV_FRAME_GLOBAL_RELATIVE_ALT, log, raw_mission_item)
-from autopilot_tester_loiter import AutopilotTesterLoiter
+    MANUAL_CONTROL_RATE_HZ, MAV_CMD_COMPONENT_ARM_DISARM, MAV_CMD_NAV_WAYPOINT,
+    MAV_FRAME_GLOBAL_INT, MAV_FRAME_GLOBAL_RELATIVE_ALT, MissionOptions, log, raw_mission_item)
+from autopilot_tester_loiter import AutopilotTesterLoiter, horizontal_distance
 from geofence_geometry import (
     FenceKind, FenceShape, MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION,
     MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION, MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION,
@@ -22,12 +22,17 @@ from geometry import CoordinateTransformation
 
 MAV_CMD_NAV_VTOL_TAKEOFF = 84
 MAV_MISSION_TYPE_FENCE = 1
+MAV_RESULT_TEMPORARILY_REJECTED = 1
 
 # Values of GF_ACTION and GF_CONT_ACTION.
 ACTION_WARNING = 1
 ACTION_HOLD = 2
 ACTION_RETURN = 3
 ACTION_LAND = 5
+
+# How far inside the fence a recovered vehicle must be on the ground truth, beyond any error of the
+# estimate it navigates with.
+RECOVERED_DEPTH_M = 10.0
 
 Local2 = Tuple[float, float]
 
@@ -81,6 +86,10 @@ class AutopilotTesterGeofence(AutopilotTesterLoiter):
         # PX4 needs time to load the fence.
         self.sleep_for(1)
 
+    def upload_mission_to(self, north_m: float, options: MissionOptions) -> None:
+        """Upload a mission from above Home to a point north of it."""
+        self._upload_mission([(0.0, 0.0), (north_m, 0.0)], options)
+
     def upload_vtol_mission(self, waypoints: List[Local2], rel_alt_m: float) -> None:
         """Upload a VTOL takeoff followed by the waypoints, without a landing."""
         ct = self.get_coordinate_transformation()
@@ -94,6 +103,16 @@ class AutopilotTesterGeofence(AutopilotTesterLoiter):
                 current=1 if seq == 0 else 0))
 
         self.upload_mission_raw(items)
+
+    def select_mission_mode(self) -> None:
+        """Switch to Mission mode. A disarmed vehicle accepts that even with a rejected mission."""
+        assert self._try_start_mission(), "Could not switch to Mission mode"
+
+    def check_arming_is_denied(self) -> None:
+        """One arming attempt, without the retries of arm(). Sent as a command, because
+        MAVSDK's arm() first switches a vehicle in Mission mode to Hold."""
+        self.send_command_long(MAV_CMD_COMPONENT_ARM_DISARM, param1=1.0,
+                               expected_result=MAV_RESULT_TEMPORARILY_REJECTED)
 
     def fly_in_position_mode_until_failsafe(self, flight_mode: FlightMode, forward: float = 0.5,
                                             throttle: float = 0.5, timeout_s: float = 60) -> None:
@@ -121,6 +140,17 @@ class AutopilotTesterGeofence(AutopilotTesterLoiter):
             self._manual_control.set_manual_control_input(forward, 0.0, throttle, 0.0)
             self.sleep_for(1.0 / MANUAL_CONTROL_RATE_HZ)
         self._manual_control.set_manual_control_input(0.0, 0.0, 0.5, 0.0)
+
+    def recover_with_reposition(self, target: Local2, relative_altitude_m: float) -> None:
+        """Send a multicopter outside the fence back inside with a Go-to. Hold keeps the Go-to
+        target, also once the vehicle is back inside."""
+        assert self.current_fence_distance_m() < 0.0, "Recovery must start outside the fence"
+        with self.keep_manual_control_alive():
+            self.command_reposition(target, relative_altitude_m)
+            self.wait_for_flight_mode(FlightMode.HOLD, 5)
+            with self.monitor_hold_position(expected_center=target):
+                self.wait_for_position_ned(lambda s: horizontal_distance(s, target) < 3.0, 45)
+        self.check_inside_fence(RECOVERED_DEPTH_M)
 
     # ------------------------------------------------------------------
     # How far the vehicle went
@@ -154,6 +184,29 @@ class AutopilotTesterGeofence(AutopilotTesterLoiter):
         assert self._fence_shapes and self._fence_origin is not None, "No fence uploaded"
         north_m, east_m = self._fence_origin.local_from_global(latitude_deg, longitude_deg)
         return min(shape.clearance_m(north_m, east_m) for shape in self._fence_shapes)
+
+    def current_fence_distance_m(self) -> float:
+        """Signed clearance of the ground truth position from the uploaded fence."""
+        position = self._telemetry.ground_truth()
+        return self.fence_distance_m(position.latitude_deg, position.longitude_deg)
+
+    def wait_until_outside_fence(self, depth_m: float, timeout_s: float) -> None:
+        """Wait until the vehicle is more than depth_m outside the fence."""
+        assert self.poll_condition_with_timeout(
+            lambda: self.current_fence_distance_m() < -depth_m, timeout_s), \
+            "Not {} m outside the fence within {} s".format(depth_m, timeout_s)
+
+    def wait_until_inside_fence(self, depth_m: float, timeout_s: float) -> None:
+        """Wait until the vehicle is more than depth_m inside the fence."""
+        assert self.poll_condition_with_timeout(
+            lambda: self.current_fence_distance_m() > depth_m, timeout_s), \
+            "Not {} m inside the fence within {} s".format(depth_m, timeout_s)
+
+    def check_inside_fence(self, depth_m: float) -> None:
+        """Check that the vehicle is more than depth_m inside the fence now."""
+        distance_m = self.current_fence_distance_m()
+        assert distance_m > depth_m, \
+            "{:.1f} m from the fence, expected more than {} m inside".format(distance_m, depth_m)
 
     def reset_tracking_extremes(self) -> None:
         """Start a new observation window without replacing the ground-truth subscription."""
