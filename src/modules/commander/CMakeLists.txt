@@ -83,6 +83,7 @@ px4_add_module(
 		hysteresis
 		mode_util
 		MulticopterThrowLaunch
+		rover_control
 		sensor_calibration
 		world_magnetic_model
         atmosphere
