@@ -645,6 +645,10 @@ TEST_F(TECSControlClosedLoopTest, EnergyErrorPhasePortrait)
 
 	for (int ske_sign = -1; ske_sign <= 1; ske_sign++) {
 		for (int spe_sign = -1; spe_sign <= 1; spe_sign++) {
+
+			// All zero case, not interesting
+			if (!ske_sign && !spe_sign) { continue; }
+
 			const float ske_error = ske_sign * ENERGY_ERROR;
 			const float spe_error = spe_sign * ENERGY_ERROR;
 

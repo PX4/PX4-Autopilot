@@ -165,9 +165,6 @@ def plot_phase(d, title):
         e_spe = G * (d["alt_sp"][m] - d["h"][m])
         key = (int(np.sign(np.round(e_ske[0], 3))), int(np.sign(np.round(e_spe[0], 3))))
 
-        if key not in PHASE_CASES:
-            continue  # zero initial error: nothing to draw
-
         label, c = PHASE_CASES[key]
         ax.plot(e_ske, e_spe, color=c, lw=2)
         ax.plot(e_ske[0], e_spe[0], "o", color=c, ms=9)
