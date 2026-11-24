@@ -102,13 +102,9 @@
 
 #define BOARD_HAS_PWM  DIRECT_PWM_OUTPUT_CHANNELS
 
-/* Tone alarm output */
-#define TONE_ALARM_TIMER        5 /* Timer 5 */
-#define TONE_ALARM_CHANNEL      4  /* PA3 GPIO_TIM5_CH4 */
-#define GPIO_BUZZER_1           /* PA3 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN3)
-
-#define GPIO_TONE_ALARM_IDLE    GPIO_BUZZER_1
-#define GPIO_TONE_ALARM         GPIO_BUZZER_1
+/* Note: this board has no buzzer/tone alarm.
+ * PA3 is the BMI088 accelerometer DRDY line (see src/spi.cpp), not a tone alarm output.
+ */
 
 /* USB OTG FS
  *
@@ -153,7 +149,6 @@
 		GPIO_CAN2_TX,\
 		GPIO_CAN2_RX, \
 		PX4_ADC_GPIO, \
-		GPIO_TONE_ALARM_IDLE, \
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER

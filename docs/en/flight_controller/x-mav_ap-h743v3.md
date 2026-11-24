@@ -7,7 +7,7 @@ PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](http://www.x-mav.cn/) for hardware support or compliance issues.
 :::
 
-The AP-H743v3 is a flight controller designed and manufactured by [X-MAV](http://www.x-mav.cn/).
+The [AP-H743v3](https://www.x-mav.cn/docs/APH743v3-fei-kong-yong-hu-shou-ce) is a flight controller designed and manufactured by [X-MAV](http://www.x-mav.cn/).
 
 ![AP-H743v3 Front View](../../assets/flight_controller/x-mav_ap-h743v3/ap-h743v3_front_view.png)
 
@@ -40,7 +40,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Electrical Data {#electrical_data}
 
-- **Input voltage:** 2-8S (6-35V)
+- **Input voltage:** 2-8S (6-34V)
 - **BEC outputs:** 12V 2A, 5V 2A
 
 ### Mechanical Data {#mechanical_data}
@@ -51,7 +51,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Where to Buy {#store}
 
-**Purchase link**: [X-MAV Taobao Store](https://shop108812501.taobao.com/) (available in September 2026)
+**Purchase link**: [X-MAV AP-H743v3](https://item.taobao.com/item.htm?id=1084609328711) (X-MAV Taobao store)
 
 ## Pinouts {#pinouts}
 
@@ -81,6 +81,18 @@ The default battery parameters are:
 These defaults are starting values.
 Set `BAT1_A_PER_V` to match your current sensor.
 See [Battery Estimation Tuning](../config/battery.md) for more information.
+:::
+
+## Voltage Ratings {#voltage_ratings}
+
+The `VBAT` input takes 2S to 8S LiPo packs: 6 V minimum, 34 V absolute maximum.
+An 8S pack at full charge is 33.6 V.
+
+The USB port is powered from the host at 5 V: 4.75 V to 5.25 V, with 5.5 V absolute maximum.
+
+::: warning
+The board has no separate regulator input: it is powered from `VBAT` and from USB.
+Do not exceed 34 V on `VBAT`, or 5.5 V on USB.
 :::
 
 ## PWM Outputs {#pwm_outputs}
@@ -114,6 +126,11 @@ For information about choosing and using an SD card see [SD Cards (Removable Mem
 | UART7  | /dev/ttyS6 | ESC telemetry (`RX7` on ESC) |
 | UART8  | /dev/ttyS7 | `TELEM4`                     |
 
+::: info
+`UART7` has no function assigned by default, and its TX pin is not connected.
+To read ESC telemetry on `RX7`, set [DSHOT_TEL_CFG](../advanced_config/parameter_reference.md#DSHOT_TEL_CFG) to the `UART7` port.
+:::
+
 ## Assembly {#assembly}
 
 ### Wiring Diagrams {#wiring_diagram}
@@ -128,6 +145,11 @@ A [Radio Control (RC) system](../getting_started/rc_transmitter_receiver.md) is 
 The `SBUS/CRSF` port is connected to the FMU (UART5).
 You can attach a receiver that uses DSM, S.BUS, CRSF, GHST, or another protocol listed in [Radio Control modules](../modules/modules_driver_radio_control.md).
 PX4 detects the protocol automatically ([RC_INPUT_PROTO](../advanced_config/parameter_reference.md#RC_INPUT_PROTO)).
+
+The `SBUS` pin of the DJI O3 Air Unit connector is the same UART5 RX input as the `SBUS/CRSF` port, so connect only one receiver at a time.
+
+The board has no PPM input.
+DSM receivers can't be bound from PX4 or _QGroundControl_ on this board: bind them from the transmitter or receiver.
 
 ### GPS & Compass {#gps_compass}
 
@@ -172,6 +194,23 @@ The firmware can be installed in any of the normal ways:
 
 - [Load the firmware](../config/firmware.md) using _QGroundControl_.
   You can use either pre-built firmware or your own custom firmware.
+
+::: warning
+The AP-H743v3 shares its USB VID:PID with the other X-MAV boards, so _QGroundControl_ can't tell them apart.
+_QGroundControl_ may therefore identify the board as one of the other X-MAV boards, and offer to install their firmware.
+Do not install the firmware that _QGroundControl_ detects automatically: install the AP-H743v3 firmware as a custom firmware file.
+:::
+
+To install the AP-H743v3 firmware in _QGroundControl_:
+
+1. Disconnect all USB connections to the vehicle, and make sure it is not powered from a battery.
+1. Download the AP-H743v3 firmware file (`x-mav_ap-h743v3_default.px4`) from the [PX4 release page](https://github.com/PX4/PX4-Autopilot/releases).
+1. In _QGroundControl_, select **"Q" icon > Vehicle Setup > Firmware** (sidebar).
+1. Connect the flight controller directly to a USB port on your computer (do not connect through a hub).
+1. Check **Advanced settings**, and select **Custom Firmware file...** from the version dropdown list.
+1. Select the firmware file you downloaded, and continue with the update.
+
+If the board is already running PX4, you can also upload a build of your own with `make x-mav_ap-h743v3_default upload`.
 
 ## Supported Platforms / Airframes {#supported_platforms_airframes}
 
