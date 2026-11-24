@@ -3,127 +3,110 @@
 :::warning
 This simulator is [community supported and maintained](../simulation/community_supported_simulators.md).
 It may or may not work with current versions of PX4.
-
-See [Toolchain Installation](../dev_setup/dev_env.md) for information about the environments and tools supported by the core development team.
+Nexus is in alpha, and its interfaces can change between releases.
 :::
 
-Built on [Newton](https://github.com/newton-physics/newton), [Warp](https://github.com/NVIDIA/warp) and [OpenUSD](https://openusd.org/), [nexus](https://breuerpeter.github.io/nexus/) lets you develop drone subsystems and test them as part of the full flight stack.
-Newton is an open-source physics engine, Warp is the Python framework that compiles its kernels for the GPU or the CPU, and OpenUSD is the scene description format that holds the vehicle and the scene.
+[Nexus](https://breuerpeter.github.io/nexus/) is an open-source quadrotor simulator designed for research, development, and testing.
+It builds on [Newton](https://github.com/newton-physics/newton) and [Warp](https://github.com/NVIDIA/warp) for fast physics on GPU, [OpenUSD](https://openusd.org/) for vehicle and scene descriptions, and [Rerun](https://rerun.io) for logging and visualization.
+Optional integrations are [Isaac Lab](https://github.com/isaac-sim/IsaacLab) for robot learning, [Omniverse RTX](https://developer.nvidia.com/omniverse) for sensor rendering, and [Isaac Sim](https://developer.nvidia.com/isaac/sim) with [Cesium](https://cesium.com/platform/cesium-for-omniverse/) for streaming photorealistic tiles.
+Its extensible design lets you develop and test each part of a drone's flight stack, be it an estimator, a reinforcement learning policy, or an emulated companion computer.
 
-PX4 flies the simulated vehicle as [SITL](../simulation/index.md#sitl-simulation-environment), in lockstep over the [Simulator MAVLink API](../simulation/index.md#simulator-mavlink-api) on TCP port `4560`.
-One command starts both: it fetches and builds PX4, runs it in a Docker container beside the simulation, and stops it on exit.
+PX4 [SITL](../simulation/index.md#sitl-simulation-environment) is a first-class controller in nexus.
+The simulation runs in lockstep with PX4 over the [Simulator MAVLink API](../simulation/index.md#simulator-mavlink-api).
 
-The project is open source (Apache 2.0) and installs from [PyPI](https://pypi.org/project/nexus-uav/).
-You can watch a [recorded PX4 flight](https://breuerpeter.github.io/nexus/examples/px4-sitl/) in the browser.
+## Why nexus?
 
-## Why Use Nexus?
+- **Simple setup.** One command builds and starts PX4 in a container, then runs the simulation. No PX4 toolchain needed.
+- **Speed.** Built in Python for development speed, and designed around GPU kernels for runtime performance. See [Benchmarking](https://breuerpeter.github.io/nexus/reference/benchmarking/).
+- **Visual debugging.** Interactive 3D views show PX4 data alongside ground truth on one timeline for fast insights. See [Observability in Rerun](https://breuerpeter.github.io/nexus/guide/running/#observability-in-rerun).
+- **Built on OpenUSD.** Vehicle and scene files are plain OpenUSD, and they declare everything that runs, PX4 included. To fly your own assets, simply apply the nexus OpenUSD API schemas to them. See [Schemas](https://breuerpeter.github.io/nexus/reference/schemas/).
+- **Easily extensible.** Add your own components, vehicles and scenes from a plain Python package in your own repository. No fork needed. See [Bringing your own component](https://breuerpeter.github.io/nexus/guide/your-own-component/) and [Bringing your own assets](https://breuerpeter.github.io/nexus/guide/your-own-assets/).
 
-- PX4 and the simulation start and stop together, so a flight takes one command and one terminal.
-- The vehicle is one OpenUSD file that declares its sensors, ESCs, motors and propellers, and you can [fly a vehicle of your own](https://breuerpeter.github.io/nexus/guide/your-own-assets/).
-- A run can write one [Rerun](https://rerun.io) recording that holds the simulation's ground truth and, from PX4's ULog, what PX4 estimated.
-  See [Observability in Rerun](https://breuerpeter.github.io/nexus/guide/running/#observability-in-rerun).
-- A script can command PX4 over MAVLink for unattended test flights, with the project's [offboard client](https://breuerpeter.github.io/nexus/reference/api/px4/).
-  The project's own CI flies PX4 this way, and fails on any PX4 warning about the simulation.
-- A vehicle that declares a camera or a lidar renders it with RTX.
-  See [RTX cameras and lidar](https://breuerpeter.github.io/nexus/guide/running/#rtx-cameras-and-lidar).
-- The same vehicle file trains a policy in Isaac Lab, and the design examples take gradients through Newton from it.
-  See the [examples](https://breuerpeter.github.io/nexus/examples/).
+## Supported Vehicles
 
-## Requirements
+### Freefly Systems Astro Max
 
-- Linux
-- A CUDA-capable NVIDIA GPU
-- [Docker](https://docs.docker.com/engine/install/)
-- [uv](https://docs.astral.sh/uv/getting-started/installation/), which fetches Python 3.12 if the machine lacks it
-- [QGroundControl](https://qgroundcontrol.com), to fly by hand
+Astro is an industrial quadrotor for professional applications such as mapping and inspection.
+Learn more on the [Freefly Systems](https://freeflysystems.com/) website.
 
-You do not need a PX4 checkout or the PX4 toolchain: the PX4 build runs in a container.
+:::warning
+Nexus does not claim to accurately mimic the flight dynamics of Astro.
+:::
+
+![A Freefly Systems Astro Max in flight](../../assets/simulation/nexus/freefly_astro_max.jpg)
+
+Nexus manages PX4 SITL if the nexus vehicle declares it.
+You only need to run the PX4 `make` target if you want to run PX4 manually.
+See [PX4 as a peer](https://breuerpeter.github.io/nexus/guide/running/#px4-as-a-peer).
+
+| Vehicle                           | Type        | PX4 target                             |
+| --------------------------------- | ----------- | -------------------------------------- |
+| Freefly Astro Max (`astro_max_*`) | Multicopter | `make px4_sitl_default none_astro_max` |
+
+See the [asset catalog](https://breuerpeter.github.io/nexus/reference/assets/) for all Nexus vehicles and scenes.
 
 ## Installation
 
-Install the package from PyPI into a new environment:
+You need a Linux (x86-64) machine with [Docker](https://docs.docker.com/engine/install/) and [uv](https://docs.astral.sh/uv/getting-started/installation/) installed.
+A CUDA-capable NVIDIA GPU is recommended for significantly better performance.
+It is required for RTX sensors and Isaac Sim.
+
+To install nexus, simply install the package from [PyPI](https://pypi.org/project/nexus-uav/) into a new environment:
 
 ```sh
 uv venv --python 3.12
 uv pip install nexus-uav
 ```
 
-## Running the Simulation
+## Usage
 
-1. Start QGroundControl.
-   It listens on UDP port `14550` and connects when PX4 sends its first heartbeat.
+You can run nexus via the CLI or the Python API.
+The examples below fly the `astro_max_base` vehicle in the `empty` scene.
+
+### CLI
+
+1. Start [QGroundControl](https://qgroundcontrol.com) and enable the virtual joystick under `Application Settings` → `General` → `Virtual Joystick`.
+   QGroundControl listens on UDP port `14550` and connects when PX4 sends its first heartbeat.
 
 2. Start the simulation with a vehicle and a scene:
 
    ```sh
-   uv run nexus run --vehicle astro_max_base --scene empty
+   uv run nexus run --vehicle astro_max_base --scene empty --rtf 1
    ```
 
-   The first run on a machine fetches the PX4 commit that the release pins into `~/.cache/nexus/px4_sitl/`, and builds it there.
+   The flag `--rtf 1` paces the simulation to real time, which flying by hand needs.
+   Without it, the simulation runs as fast as it can.
+   The first run on a machine fetches the PX4 commit that the release pins, and builds it.
    This takes some minutes once.
-   Later runs rebuild only what changed.
 
-3. Wait for QGroundControl to connect, then arm and fly.
-   PX4's console is the file `px4_sitl/console.log` in the run's folder, `~/.cache/nexus/logs/<stamp>-<pid>/`.
-   PX4 writes its `.ulg` flight log to the same folder.
+   ::: tip
+   To fly your own PX4 checkout instead of the one the nexus release pins, set the `NEXUS_PX4_SITL_REF` environment variable to its absolute path. See [PX4 as a peer](https://breuerpeter.github.io/nexus/guide/running/#px4-as-a-peer).
+   :::
 
-4. Stop the simulation with `Ctrl+C`.
-   The run stops the PX4 container too.
+3. Wait for QGroundControl to connect, then arm and fly with the on-screen virtual joysticks.
+   Stop the simulation with `Ctrl+C`, which stops PX4 too.
 
-To watch the flight live, add `--view` to the command and connect the Rerun viewer from a second terminal:
+See [Running a SITL flight](https://breuerpeter.github.io/nexus/guide/running/) for more information.
 
-```sh
-uv run rerun --connect
+### Python API
+
+A script runs the simulation with `nexus_uav.Sim` and commands PX4 over MAVLink with the offboard client:
+
+```python
+import nexus_uav as nx
+from nexus_uav.px4 import OffboardClient
+
+with nx.Sim("astro_max_base", scene="empty") as sim:
+    sim.start()
+    with OffboardClient.connect(sim, 10.0) as op:
+        op.takeoff(2.0)
+        sim.wait_until(op.at_target, sim_timeout=60.0)
 ```
 
-To write the recording to a file, add `--log` in place of `--view`.
+See the [API reference](https://breuerpeter.github.io/nexus/reference/api/) for the current API.
+See the [PX4 SITL example](https://breuerpeter.github.io/nexus/examples/px4-sitl/) for a longer flight, with a log you can explore in an embedded Rerun viewer.
 
-PX4 keeps its parameters and its last mission across runs, as a vehicle keeps them across a reboot.
-Add `--clean` to start from the airframe's defaults.
+## Further Information
 
-## Using Your Own PX4 Checkout
-
-To fly a PX4 tree that you work on, set `NEXUS_PX4_SITL_REF` to the absolute path of the checkout:
-
-```sh
-NEXUS_PX4_SITL_REF=/home/user/PX4-Autopilot uv run nexus run --vehicle astro_max_base --scene empty
-```
-
-The run builds that checkout in place and flies it.
-It fetches nothing.
-
-The checkout must hold the vehicle's airframe, `none_astro_max`.
-A tree without it stops the run with `ERROR [init] Unknown model none_astro_max`.
-
-You can also start PX4 yourself, for example under a debugger.
-A small OpenUSD layer drops PX4 from the run, and the run then waits for PX4 on TCP port `4560`.
-See [PX4 as a peer](https://breuerpeter.github.io/nexus/guide/running/#px4-as-a-peer).
-
-## Ports
-
-PX4 numbers its links from its instance `N`.
-A run takes the lowest instance that is free on the machine, so two runs do not collide.
-
-| Port        | Protocol | Link                                                  |
-| ----------- | -------- | ----------------------------------------------------- |
-| `4560 + N`  | TCP      | Simulator MAVLink API: sensors to PX4, actuators back |
-| `14540 + N` | UDP      | Offboard MAVLink link, for scripts                    |
-| `14550`     | UDP      | QGroundControl                                        |
-| `9876`      | gRPC     | Rerun recording, with `--view`                        |
-
-## Supported Vehicles
-
-| Vehicle                                   | Simulator vehicle | PX4 airframe                               |
-| ----------------------------------------- | ----------------- | ------------------------------------------ |
-| Freefly Systems Astro Max                 | `astro_max_base`  | `none_astro_max` (`SYS_AUTOSTART` `80000`) |
-| Freefly Systems Astro Max with FPV camera | `astro_max_fpv`   | `none_astro_max` (`SYS_AUTOSTART` `80000`) |
-
-The FPV camera needs an NVIDIA GPU with RTX and the extra `nexus-uav[rtx]`.
-
-The shipped scenes are `empty`, `slalom`, `powerline` and `cesium`.
-
-## See Also
-
-- [Quickstart](https://breuerpeter.github.io/nexus/guide/quickstart/) (nexus docs)
-- [Running a SITL flight](https://breuerpeter.github.io/nexus/guide/running/) (nexus docs): the full workflow, the ports and the known problems.
+- [Full documentation](https://breuerpeter.github.io/nexus/): the official nexus docs.
 - [Simulation](../simulation/index.md): general information about simulators in PX4.
