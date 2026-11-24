@@ -43,7 +43,7 @@ See [PX4 as a peer](https://breuerpeter.github.io/nexus/guide/running/#px4-as-a-
 | --------------------------------- | ----------- | -------------------------------------- |
 | Freefly Astro Max (`astro_max_*`) | Multicopter | `make px4_sitl_default none_astro_max` |
 
-See the [asset catalog](https://breuerpeter.github.io/nexus/reference/assets/) for all Nexus vehicles and scenes.
+See the [asset catalog](https://breuerpeter.github.io/nexus/reference/assets/) for all nexus vehicles and scenes.
 
 ## Installation
 
