@@ -7,9 +7,6 @@
 #
 # @maintainer Peter Breuer <peter.breuer.profiles@gmail.com>
 #
-# Decoupled SITL: PX4 runs with no in-process simulator; an external simulator
-# connects over MAVLink (TCP:4560). Generic public parameters (no Freefly tuning).
-#
 
 echo "INFO  [init] Loading Freefly Systems Astro Max SITL airframe (80000)"
 
