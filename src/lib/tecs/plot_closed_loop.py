@@ -174,12 +174,6 @@ def plot_phase(d, title):
         ax.annotate(label, (e_ske[0], e_spe[0]), xytext=(6, 6), textcoords="offset points",
                     color=c, fontsize=12, fontweight="bold")
 
-        # Direction arrow halfway along the path
-        s = np.concatenate(([0.0], np.cumsum(np.hypot(np.diff(e_ske), np.diff(e_spe)))))
-        i = min(int(np.searchsorted(s, 0.5 * s[-1])), len(s) - 2)
-        ax.annotate("", xy=(e_ske[i + 1], e_spe[i + 1]), xytext=(e_ske[i], e_spe[i]),
-                    arrowprops=dict(arrowstyle="-|>", color=c, lw=2, mutation_scale=18))
-
     ax.set_xlim(-1.5, 1.5)
     ax.set_ylim(-1.5, 1.5)
     ax.set_aspect("equal")
