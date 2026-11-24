@@ -217,6 +217,9 @@ bool LogWriterFile::start_log(LogType type, const char *filename)
 		}
 	}
 
+	// The writer thread may already run for the other log type and reads the buffer state under the lock
+	lock();
+
 	if (_buffers[(int)type].start_log(filename)) {
 
 #if PX4_CRYPTO
@@ -228,16 +231,19 @@ bool LogWriterFile::start_log(LogType type, const char *filename)
 			_buffers[(int)type]._should_run = false;
 			_buffers[(int)type].close_file();
 			_buffers[(int)type].reset();
+			unlock();
 			return false;
 		}
 
 #endif
 
+		unlock();
 		PX4_INFO("Opened %s log file: %s", log_type_str(type), filename);
 		notify();
 		return true;
 	}
 
+	unlock();
 	return false;
 }
 
