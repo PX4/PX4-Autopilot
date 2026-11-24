@@ -155,30 +155,13 @@ void Standard::update_transition_state()
 			_last_time_pusher_transition_update = now;
 		}
 
-		_airspeed_trans_blend_margin = getTransitionAirspeed() - getBlendAirspeed();
-
-		float airspeed = _attc->get_calibrated_airspeed();
-
-		if (!PX4_ISFINITE(airspeed)) {
-			// without airspeed feedback assume constant acceleration, reaching the transition airspeed at the open-loop time
-			airspeed = getTransitionAirspeed() * _time_since_trans_start / getOpenLoopFrontTransitionTime();
-		}
-
-		// do blending of mc and fw controls if a blending airspeed has been provided and the minimum transition time has passed
-		if (_airspeed_trans_blend_margin > 0.0f &&
-		    airspeed > 0.0f &&
-		    airspeed >= getBlendAirspeed() &&
-		    _time_since_trans_start > getMinimumFrontTransitionTime()) {
-
-			mc_weight = 1.0f - fabsf(airspeed - getBlendAirspeed()) / _airspeed_trans_blend_margin;
-		}
+		mc_weight = getFrontTransitionMcWeight();
 
 		// ramp up FW_PSP_OFF
 		pitch_body = math::radians(_param_fw_psp_off.get()) * (1.0f - mc_weight);
 		_v_att_sp->thrust_body[0] = _pusher_throttle;
 		const Quatf q_sp(Eulerf(roll_body, pitch_body, yaw_body));
 		q_sp.copyTo(_v_att_sp->q_d);
-		mc_weight = math::constrain(mc_weight, 0.0f, 1.0f);
 
 	} else if (_common_vtol_mode == mode::TRANSITION_TO_MC) {
 

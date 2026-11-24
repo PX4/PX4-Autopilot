@@ -668,6 +668,19 @@ float VtolType::getOpenLoopFrontTransitionTime() const
 {
 	return getFrontTransitionTimeFactor() * _param_vt_f_tr_ol_tm.get();
 }
+
+float VtolType::getFrontTransitionMcWeight() const
+{
+	float airspeed = _attc->get_calibrated_airspeed();
+
+	if (!PX4_ISFINITE(airspeed)) {
+		// without airspeed feedback assume constant acceleration, reaching the transition airspeed at the open-loop time
+		airspeed = getTransitionAirspeed() * _time_since_trans_start / getOpenLoopFrontTransitionTime();
+	}
+
+	return math::interpolate(airspeed, getBlendAirspeed(), getTransitionAirspeed(), 1.f, 0.f);
+}
+
 float VtolType::getTransitionAirspeed() const
 {
 	// Since the stall airspeed increases with vehicle weight, we increase the transition airspeed

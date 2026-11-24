@@ -241,6 +241,11 @@ public:
 	float getOpenLoopFrontTransitionTime() const;
 
 	/**
+	* @return Multicopter weight during a front transition, blended out from the blend to the transition airspeed [0, 1]
+	*/
+	float getFrontTransitionMcWeight() const;
+
+	/**
 	 *
 	 * @return The calibrated blending airspeed [m/s]
 	 */
