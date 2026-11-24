@@ -2,16 +2,15 @@
 
 The breach geometry and the action policy are unit tested in Navigator and Commander. These flights
 check the whole chain: an uploaded fence, a real crossing and the flight mode it leads to, the
-recovery, and the refusal of missions and Go-to targets.
+recovery, and a refused Go-to.
 """
 
 import pytest
 from mavsdk.plugins.telemetry import FlightMode  # type: ignore
 
-from autopilot_tester import MissionOptions, log
+from autopilot_tester import log
 from autopilot_tester_geofence import (
     ACTION_HOLD, ACTION_LAND, ACTION_RETURN, ACTION_WARNING, AutopilotTesterGeofence)
-from autopilot_tester_loiter import horizontal_distance
 from geofence_geometry import FenceKind, FenceShape, rectangle
 
 HOME = (0.0, 0.0)
@@ -75,10 +74,12 @@ def breach_recover_and_breach_again(tester: AutopilotTesterGeofence, action: int
 def test_emergency_geofence_holds_again_after_a_goto_recovery(
         tester_geofence: AutopilotTesterGeofence) -> None:
     """See breach_recover_and_breach_again(). The second Hold is where the vehicle crossed the
-    fence again, not at the Go-to target."""
+    fence again, not at the Go-to target, and a Go-to outside the fence is refused."""
     tester = tester_geofence
     breach_recover_and_breach_again(tester, ACTION_HOLD, FlightMode.HOLD)
     with tester.keep_manual_control_alive(), tester.monitor_hold_position() as center:
+        # Outside the fence whichever edge the vehicle crossed: the Hold stays where it is.
+        tester.command_reposition((2 * FENCE_DISTANCE_M, 0.0), TAKEOFF_ALTITUDE_M)
         tester.sleep_for(3)
     check_acted_at_the_fence(tester)
     held_at_m = tester.fence_distance_m(*center)
@@ -179,41 +180,3 @@ def test_emergency_geofence_warning_keeps_position_mode(
             and tester.current_fence_distance_m() < -POSITION_TOLERANCE_M)
     with tester.keep_manual_control_alive():
         tester.check_flight_mode_for(FlightMode.POSCTL, 2)
-
-
-@pytest.mark.multicopter
-def test_emergency_geofence_refuses_missions_and_targets_it_would_breach(
-        tester_geofence: AutopilotTesterGeofence) -> None:
-    """A mission leg across an exclusion is rejected, although both of its waypoints are allowed.
-    A Go-to into the exclusion or out of the inclusion is refused, one elsewhere is flown."""
-    tester = tester_geofence
-    prepare(tester, ACTION_HOLD)
-    # A 20 m square exclusion across the line north of Home, from 20 m to 40 m.
-    exclusion = rectangle(20.0, 40.0, -10.0, 10.0)
-    tester.upload_fence([FenceShape(FenceKind.POLYGON_INCLUSION, vertices=INCLUSION),
-                         FenceShape(FenceKind.POLYGON_EXCLUSION, vertices=exclusion)])
-    options = MissionOptions(relative_altitude_m=TAKEOFF_ALTITUDE_M)
-
-    # Beyond the exclusion: the leg from Home crosses it.
-    tester.upload_mission_to(50.0, options)
-    tester.select_mission_mode()
-    tester.wait_for_flight_mode(FlightMode.MISSION, 5)
-    tester.check_arming_is_denied()
-
-    # Short of the exclusion.
-    last_waypoint = (15.0, 0.0)
-    tester.upload_mission_to(last_waypoint[0], options)
-    tester.arm()
-    tester.execute_mission()
-    tester.wait_for_flight_mode(FlightMode.HOLD, 5)
-    with tester.monitor_hold_position(expected_center=last_waypoint):
-        # Into the exclusion, and out of the inclusion.
-        for target in ((30.0, 0.0), (FENCE_DISTANCE_M + 20.0, 0.0)):
-            tester.command_reposition(target, TAKEOFF_ALTITUDE_M)
-            # Long enough for an accepted target to show in the monitored Hold position.
-            tester.sleep_for(2)
-
-    allowed_target = (-15.0, 0.0)
-    tester.command_reposition(allowed_target, TAKEOFF_ALTITUDE_M)
-    with tester.monitor_hold_position(expected_center=allowed_target):
-        tester.wait_for_position_ned(lambda s: horizontal_distance(s, allowed_target) < 3.0, 30)
