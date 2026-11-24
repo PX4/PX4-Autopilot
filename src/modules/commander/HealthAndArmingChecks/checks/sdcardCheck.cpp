@@ -73,7 +73,7 @@ void SdCardChecks::checkAndReport(const Context &context, Report &reporter)
 #ifdef __PX4_NUTTX
 	// Check for hardfault files
 
-	if (!_hardfault_checked_once && _param_com_arm_hardfault_check.get()) {
+	if (!_hardfault_checked_once && _param_com_arm_hflt_chk.get()) {
 		_hardfault_checked_once = true;
 
 		DIR *dp = opendir(PX4_STORAGEDIR);
@@ -94,7 +94,7 @@ void SdCardChecks::checkAndReport(const Context &context, Report &reporter)
 		}
 	}
 
-	if (_hardfault_file_present && _param_com_arm_hardfault_check.get()) {
+	if (_hardfault_file_present && _param_com_arm_hflt_chk.get()) {
 		/* EVENT
 		 * @description
 		 * The SD card contains crash dump files, service the vehicle before continuing to fly.
@@ -118,7 +118,7 @@ void SdCardChecks::checkAndReport(const Context &context, Report &reporter)
 #if CONFIG_MODULES_TASK_WATCHDOG
 	// Check for task watchdog dump files
 
-	if (!_watchdog_checked_once && _param_com_arm_hardfault_check.get()) {
+	if (!_watchdog_checked_once && _param_com_arm_hflt_chk.get()) {
 		_watchdog_checked_once = true;
 
 		DIR *wdp = opendir(PX4_STORAGEDIR "/task_watchdog");
@@ -144,7 +144,7 @@ void SdCardChecks::checkAndReport(const Context &context, Report &reporter)
 		}
 	}
 
-	if (_watchdog_file_present && _param_com_arm_hardfault_check.get()) {
+	if (_watchdog_file_present && _param_com_arm_hflt_chk.get()) {
 		/* EVENT
 		 * @description
 		 * The SD card contains task watchdog dump files from a previous task starvation event.

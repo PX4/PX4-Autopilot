@@ -59,9 +59,9 @@ void PayloadDeliverer::configure_gripper()
 	// If gripper instance is invalid, and user enabled the gripper, try initializing it
 	if (!_gripper.is_valid()) {
 		GripperConfig config{};
-		config.type = (GripperConfig::GripperType)_param_gripper_type.get();
+		config.type = (GripperConfig::GripperType)_param_pd_gripper_type.get();
 		config.sensor = GripperConfig::GripperSensorType::NONE; // Feedback sensor isn't supported for now
-		config.timeout_us = hrt_abstime(_param_gripper_timeout_s.get() * 1000000ULL);
+		config.timeout_us = hrt_abstime(_param_pd_gripper_to.get() * 1000000ULL);
 		_gripper.init(config);
 
 		if (!_gripper.is_valid()) {

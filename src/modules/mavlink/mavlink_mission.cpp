@@ -213,8 +213,9 @@ MavlinkMissionManager::update_active_mission(dm_item_t mission_dataman_id, uint1
 {
 	pthread_mutex_lock(&_shared_state_mutex);
 	mission_s mission = update_active_mission_locked(mission_dataman_id, count, seq, crc32);
-	pthread_mutex_unlock(&_shared_state_mutex);
 
+	// Persist before publishing: once published, navigator may reject the mission
+	// and persist the previous one, which a later write here would overwrite.
 	if (write_to_dataman) {
 		bool success = _dataman_client.writeSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission),
 				sizeof(mission_s));
@@ -224,7 +225,10 @@ MavlinkMissionManager::update_active_mission(dm_item_t mission_dataman_id, uint1
 		}
 	}
 
+	// Publish under the lock so check_active_mission() never sees the shared
+	// state ahead of the topic and rolls it back to the previous mission.
 	_offboard_mission_pub.publish(mission);
+	pthread_mutex_unlock(&_shared_state_mutex);
 }
 
 int
@@ -261,9 +265,9 @@ MavlinkMissionManager::update_geofence_count(dm_item_t fence_dataman_id, unsigne
 
 	mission_s mission = update_active_mission_locked(_mission_dataman_id, _count[MAV_MISSION_TYPE_MISSION], _current_seq,
 			    _crc32[MAV_MISSION_TYPE_MISSION]);
+	_offboard_mission_pub.publish(mission);
 	pthread_mutex_unlock(&_shared_state_mutex);
 
-	_offboard_mission_pub.publish(mission);
 	return PX4_OK;
 }
 
@@ -301,9 +305,9 @@ MavlinkMissionManager::update_safepoint_count(dm_item_t safepoint_dataman_id, un
 
 	mission_s mission = update_active_mission_locked(_mission_dataman_id, _count[MAV_MISSION_TYPE_MISSION], _current_seq,
 			    _crc32[MAV_MISSION_TYPE_MISSION]);
+	_offboard_mission_pub.publish(mission);
 	pthread_mutex_unlock(&_shared_state_mutex);
 
-	_offboard_mission_pub.publish(mission);
 	return PX4_OK;
 }
 
@@ -1037,14 +1041,14 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 		_transfer_land_marker = -1;
 
 	} else if (_state == MAVLINK_WPM_STATE_GETLIST) {
-		_time_last_recv = hrt_absolute_time();
-
 		if (msg->sysid != _transfer_partner_sysid || msg->compid != _transfer_partner_compid) {
 			PX4_DEBUG("WPM: Request from another partner while receiveing. Ignore");
 
 			send_mission_ack(msg->sysid, msg->compid, MAV_MISSION_ERROR);
 			return;
 		}
+
+		_time_last_recv = hrt_absolute_time();
 
 		if (_transfer_seq == 0) {
 			/* looks like our MISSION_REQUEST was lost, try again */
@@ -1948,12 +1952,13 @@ void MavlinkMissionManager::check_active_mission()
 		return;
 	}
 
-	_mission_sub.update();
-
 	// Hold _shared_state_mutex around the check-then-update on _crc32[],
 	// _count[], _mission_dataman_id etc. Multiple receiver threads call
 	// this concurrently and would race on these shared statics.
+	// Copy the snapshot under the lock too: writers publish under it, so
+	// the copy can't be older than the shared state it is compared with.
 	pthread_mutex_lock(&_shared_state_mutex);
+	_mission_sub.update();
 
 	if ((_mission_sub.get().geofence_id != _crc32[MAV_MISSION_TYPE_FENCE])
 	    || (_my_fence_dataman_id != (dm_item_t) _mission_sub.get().fence_dataman_id)) {

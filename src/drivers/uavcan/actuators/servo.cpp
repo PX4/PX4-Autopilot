@@ -43,7 +43,7 @@ UavcanServoController::UavcanServoController(uavcan::INode &node) :
 	_uavcan_pub_array_cmd(node)
 {
 	_uavcan_pub_array_cmd.setPriority(UAVCAN_COMMAND_TRANSFER_PRIORITY);
-	_max_rate_hz = (unsigned)_param_sv_rtmax.get();
+	_max_rate_hz = (unsigned)_param_uavcan_sv_rtmax.get();
 }
 
 void UavcanServoController::update_outputs(float outputs[MAX_ACTUATORS], unsigned num_outputs)

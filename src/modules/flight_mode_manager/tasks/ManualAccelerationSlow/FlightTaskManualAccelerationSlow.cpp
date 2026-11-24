@@ -136,7 +136,7 @@ bool FlightTaskManualAccelerationSlow::update()
 		_gimbal.acquireGimbalControlIfNeeded();
 
 		// the exact same _yawspeed_setpoint is setpoint for the gimbal and vehicle feed-forward
-		const float pitchrate_setpoint = getInputFromSanitizedAuxParameterIndex(_param_mc_slow_map_pitch.get()) * yaw_rate;
+		const float pitchrate_setpoint = getInputFromSanitizedAuxParameterIndex(_param_mc_slow_map_ptch.get()) * yaw_rate;
 		_yawspeed_setpoint = _sticks.getYaw() * yaw_rate;
 
 		_gimbal.publishGimbalManagerSetAttitude(Gimbal::FLAGS_ALL_AXES_LOCKED, Quatf(NAN, NAN, NAN, NAN),

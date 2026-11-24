@@ -168,7 +168,7 @@ LeddarOne::init()
 			if (collect() == PX4_OK) {
 				// The file descriptor can only be accessed by the process that opened it,
 				// so closing here allows the port to be opened from scheduled work queue.
-				stop();
+				close_serial_port();
 				return PX4_OK;
 			}
 		}
@@ -178,6 +178,7 @@ LeddarOne::init()
 	}
 
 	PX4_ERR("No readings from LeddarOne");
+	close_serial_port();
 	return PX4_ERROR;
 }
 
@@ -203,7 +204,7 @@ int
 LeddarOne::open_serial_port(const speed_t speed)
 {
 	// File descriptor already initialized?
-	if (_file_descriptor > 0) {
+	if (_file_descriptor >= 0) {
 		// PX4_INFO("serial port already open");
 		return PX4_OK;
 	}
@@ -224,8 +225,7 @@ LeddarOne::open_serial_port(const speed_t speed)
 	// Store the current port configuration. attributes.
 	if (tcgetattr(_file_descriptor, &uart_config)) {
 		PX4_ERR("Unable to get termios from %s.", _serial_port);
-		::close(_file_descriptor);
-		_file_descriptor = -1;
+		close_serial_port();
 		return PX4_ERROR;
 	}
 
@@ -246,7 +246,7 @@ LeddarOne::open_serial_port(const speed_t speed)
 
 	if (termios_state < 0) {
 		PX4_ERR("CFG: %d ISPD", termios_state);
-		::close(_file_descriptor);
+		close_serial_port();
 		return PX4_ERROR;
 	}
 
@@ -255,7 +255,7 @@ LeddarOne::open_serial_port(const speed_t speed)
 
 	if (termios_state < 0) {
 		PX4_ERR("CFG: %d OSPD", termios_state);
-		::close(_file_descriptor);
+		close_serial_port();
 		return PX4_ERROR;
 	}
 
@@ -264,7 +264,7 @@ LeddarOne::open_serial_port(const speed_t speed)
 
 	if (termios_state < 0) {
 		PX4_ERR("baud %d ATTR", termios_state);
-		::close(_file_descriptor);
+		close_serial_port();
 		return PX4_ERROR;
 	}
 
@@ -286,6 +286,13 @@ LeddarOne::print_info()
 void
 LeddarOne::Run()
 {
+	if (_stop_requested.load()) {
+		ScheduleClear();
+		close_serial_port();
+		_stopped.store(true);
+		return;
+	}
+
 	// Ensure the serial port is open.
 	open_serial_port();
 
@@ -295,6 +302,9 @@ LeddarOne::Run()
 void
 LeddarOne::start()
 {
+	_stop_requested.store(false);
+	_stopped.store(false);
+
 	// Schedule the driver at regular intervals.
 	ScheduleOnInterval(LEDDAR_ONE_MEASURE_INTERVAL, LEDDAR_ONE_MEASURE_INTERVAL);
 }
@@ -302,10 +312,24 @@ LeddarOne::start()
 void
 LeddarOne::stop()
 {
-	// Ensure the serial port is closed.
-	::close(_file_descriptor);
-	_file_descriptor = -1;
+	// The serial port is opened in Run() on the work queue. File descriptors are
+	// per task group on NuttX, so it must also be closed there and not from the
+	// shell calling stop. Let Run() close it and wait until it has.
+	_stop_requested.store(true);
+	ScheduleNow();
 
-	// Clear the work queue schedule.
+	for (int i = 0; i < 100 && !_stopped.load(); i++) {
+		px4_usleep(10000);
+	}
+
 	ScheduleClear();
+}
+
+void
+LeddarOne::close_serial_port()
+{
+	if (_file_descriptor >= 0) {
+		::close(_file_descriptor);
+		_file_descriptor = -1;
+	}
 }

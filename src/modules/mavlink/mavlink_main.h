@@ -258,7 +258,7 @@ public:
 	// mavlink_update_parameters().
 	bool			get_use_hil_gps() { return _use_hil_gps_atomic.load(); }
 
-	bool			get_forward_externalsp() { return _param_mav_fwdextsp.get(); }
+	bool			get_forward_externalsp() { return _fwdextsp_atomic.load(); }
 
 	bool			get_flow_control_enabled() { return _flow_control_mode; }
 
@@ -428,7 +428,7 @@ public:
 
 	void			update_radio_status(const radio_status_s &radio_status);
 
-	unsigned		get_system_type() { return _param_mav_type.get(); }
+	unsigned		get_system_type() { return _mav_type_atomic.load(); }
 
 	Protocol 		get_protocol() const { return _protocol; }
 
@@ -506,13 +506,13 @@ public:
 	const events::SendProtocol &get_events_protocol() const { return _events; };
 	bool ftp_enabled() const { return _ftp_on; }
 
-	bool hash_check_enabled() const { return _param_mav_hash_chk_en.get(); }
-	bool forward_heartbeats_enabled() const { return _param_mav_hb_forw_en.get(); }
+	bool hash_check_enabled() const { return _hash_chk_en_atomic.load(); }
+	bool forward_heartbeats_enabled() const { return _hb_forw_en_atomic.load(); }
 
 	bool failure_injection_enabled() const
 	{
 #if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
-		return _param_sys_failure_injection_enabled.get();
+		return _failure_injection_en_atomic.load();
 #else
 		return false;
 #endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER
@@ -605,6 +605,8 @@ public:
 
 
 private:
+	friend class MavlinkMissionManagerTest;
+
 	MavlinkReceiver 	_receiver;
 
 	MavlinkSignControl	_sign_control{};
@@ -706,9 +708,16 @@ private:
 	// Atomic so concurrent reads/writes are race-free without taking lock_send().
 	px4::atomic<uint8_t> _protocol_version{0}; ///< after initialization the only values are 1 and 2
 
-	// Atomic snapshot of MAV_USEHILGPS, written from the main mavlink thread
-	// in mavlink_update_parameters() and read from the receiver thread.
+	// Atomic snapshots of params read from the receiver thread, written from the
+	// main mavlink thread in mavlink_update_parameters().
 	px4::atomic_bool _use_hil_gps_atomic{false};
+	px4::atomic_bool _hb_forw_en_atomic{false};
+	px4::atomic_bool _fwdextsp_atomic{false};
+	px4::atomic_bool _hash_chk_en_atomic{false};
+	px4::atomic<int32_t> _mav_type_atomic{0};
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+	px4::atomic_bool _failure_injection_en_atomic {false};
+#endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER
 
 	px4::atomic<unsigned>	_bytes_tx{0};
 	px4::atomic<unsigned>	_bytes_txerr{0};
@@ -766,16 +775,16 @@ private:
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
 		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id,
 		(ParamInt<px4::params::MAV_PROTO_VER>) _param_mav_proto_ver,
-		(ParamInt<px4::params::MAV_SIK_RADIO_ID>) _param_sik_radio_id,
+		(ParamInt<px4::params::MAV_SIK_RADIO_ID>) _param_mav_sik_radio_id,
 		(ParamInt<px4::params::MAV_TYPE>) _param_mav_type,
 		(ParamBool<px4::params::MAV_USEHILGPS>) _param_mav_usehilgps,
 		(ParamBool<px4::params::MAV_FWDEXTSP>) _param_mav_fwdextsp,
 		(ParamBool<px4::params::MAV_HASH_CHK_EN>) _param_mav_hash_chk_en,
 		(ParamBool<px4::params::MAV_HB_FORW_EN>) _param_mav_hb_forw_en,
-		(ParamInt<px4::params::MAV_RADIO_TOUT>)      _param_mav_radio_timeout,
+		(ParamInt<px4::params::MAV_RADIO_TOUT>)      _param_mav_radio_tout,
 		(ParamInt<px4::params::SYS_HITL>) _param_sys_hitl
 #if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
-		, (ParamBool<px4::params::SYS_FAILURE_EN>) _param_sys_failure_injection_enabled
+		, (ParamBool<px4::params::SYS_FAILURE_EN>) _param_sys_failure_en
 #endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER
 	)
 

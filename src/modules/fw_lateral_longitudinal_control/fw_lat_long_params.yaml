@@ -34,6 +34,7 @@ parameters:
         short: Throttle max slew rate
         long: Maximum slew rate for the commanded throttle
       type: float
+      unit: 1/s
       default: 0.0
       min: 0.0
       max: 1.0
@@ -129,6 +130,7 @@ parameters:
       description:
         short: Altitude error time constant
       type: float
+      unit: s
       default: 5.0
       min: 2.0
       decimal: 2
@@ -140,6 +142,7 @@ parameters:
           Minimum altitude error needed to descend with max airspeed and minimal throttle.
           A negative value disables fast descend.
       type: float
+      unit: m
       default: -1.0
       min: -1.0
       decimal: 0
@@ -156,6 +159,7 @@ parameters:
       description:
         short: True airspeed error time constant
       type: float
+      unit: s
       default: 5.0
       min: 2.0
       decimal: 2
@@ -166,6 +170,7 @@ parameters:
         long: This filter is applied to the specific total energy rate used for throttle
           damping.
       type: float
+      unit: s
       default: 0.4
       min: 0.0
       max: 2

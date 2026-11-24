@@ -717,6 +717,35 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	vcmd.confirmation = false;
 	vcmd.from_external = true;
 
+	// The frame is not passed on to Commander, which takes the DO_SET_HOME altitude as AMSL.
+	// The frame only matters if the location is given (param1 MAV_BOOL_FALSE), not when the
+	// current position is used (MAV_BOOL_TRUE). Other param1 values are denied by Commander.
+	if (cmd_mavlink.command == MAV_CMD_DO_SET_HOME && fabsf(cmd_mavlink.param1) < FLT_EPSILON
+	    && evaluate_target_ok(vcmd.command, vcmd.target_system, vcmd.target_component)) {
+		if (cmd_mavlink.frame == MAV_FRAME_GLOBAL || cmd_mavlink.frame == MAV_FRAME_GLOBAL_INT) {
+			// already AMSL
+
+		} else if (cmd_mavlink.frame == MAV_FRAME_GLOBAL_RELATIVE_ALT
+			   || cmd_mavlink.frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
+			home_position_s home_position{};
+			_home_position_sub.copy(&home_position);
+
+			if (!home_position.valid_alt) {
+				// the altitude is relative to a home that is not set yet
+				acknowledge(msg->sysid, msg->compid, cmd_mavlink.command,
+					    vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
+				return;
+			}
+
+			vcmd.param7 = home_position.alt + cmd_mavlink.z;
+
+		} else {
+			acknowledge(msg->sysid, msg->compid, cmd_mavlink.command,
+				    vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED_MAV_FRAME);
+			return;
+		}
+	}
+
 	handle_message_command_both(msg, vcmd);
 }
 
@@ -2785,10 +2814,10 @@ MavlinkReceiver::publish_hil_battery()
 
 	hil_battery_status.timestamp = hrt_absolute_time();
 
-	hil_battery_status.cell_count = _param_bat_cells_count.get();
+	hil_battery_status.cell_count = _param_bat1_n_cells.get();
 	hil_battery_status.remaining = 0.70f;
-	float cells_v = _param_bat_v_empty.get() * (1.f - hil_battery_status.remaining)
-			+ hil_battery_status.remaining * _param_bat_v_charged.get();
+	float cells_v = _param_bat1_v_empty.get() * (1.f - hil_battery_status.remaining)
+			+ hil_battery_status.remaining * _param_bat1_v_charged.get();
 
 	hil_battery_status.voltage_v = hil_battery_status.cell_count * cells_v;
 	hil_battery_status.current_a = 10.0f;
@@ -4129,7 +4158,7 @@ MavlinkReceiver::run()
 
 					const FrameCheck frame_check = check_frame(framing, msg);
 
-					if (frame_check == FrameCheck::Invalid) {
+					if (frame_check == FrameCheck::BadCrc || frame_check == FrameCheck::Invalid) {
 						reset_parser_after_rejected_frame(buf[i]);
 					}
 
@@ -4174,6 +4203,11 @@ MavlinkReceiver::run()
 
 					} else if (frame_check == FrameCheck::BadSignature) {
 						_bad_signature_counter++;
+
+					} else if (frame_check == FrameCheck::BadCrc && msg.sysid != 0 && msg.compid != 0
+						   && component_was_seen(msg.sysid, msg.compid)) {
+						// Header may be corrupted too: count only known senders (0 is a wildcard)
+						_bad_crc_counter++;
 					}
 
 					if (frame_check == FrameCheck::Ok || frame_check == FrameCheck::ForwardOnly) {
@@ -4193,6 +4227,7 @@ MavlinkReceiver::run()
 					tstatus.rx_message_lost_count = _total_lost_counter;
 					tstatus.rx_unknown_message_count = _unknown_message_counter;
 					tstatus.rx_bad_signature_count = _bad_signature_counter;
+					tstatus.rx_bad_crc_count = _bad_crc_counter;
 					const uint64_t total_messages = _total_received_counter + _total_lost_counter;
 					tstatus.rx_message_lost_rate = (total_messages > 0)
 								       ? static_cast<float>(_total_lost_counter) / static_cast<float>(total_messages) : 0.f;
@@ -4254,6 +4289,9 @@ MavlinkReceiver::run()
 			_tune_publisher->publish_next_tune(t);
 		}
 	}
+
+	// Release files opened by this thread while still in its task group (see close_files())
+	_mavlink_log_handler.close_files();
 }
 
 MavlinkReceiver::FrameCheck MavlinkReceiver::check_frame(uint8_t framing, const mavlink_message_t &message)
@@ -4274,9 +4312,13 @@ MavlinkReceiver::FrameCheck MavlinkReceiver::check_frame(uint8_t framing, const 
 		return FrameCheck::Incomplete;
 	}
 
-	// Messages which are not in our dialect can't have their CRC checked and
-	// are reported as bad CRC by the parser. They can still be forwarded.
-	if ((mavlink_get_msg_entry(message.msgid) != nullptr) || (_status.flags & MAVLINK_STATUS_FLAG_IN_MAVLINK1)) {
+	// Known message: corrupted frame or different message definition on the sender
+	if (mavlink_get_msg_entry(message.msgid) != nullptr) {
+		return FrameCheck::BadCrc;
+	}
+
+	// Unknown MAVLink 1 message
+	if (_status.flags & MAVLINK_STATUS_FLAG_IN_MAVLINK1) {
 		return FrameCheck::Invalid;
 	}
 

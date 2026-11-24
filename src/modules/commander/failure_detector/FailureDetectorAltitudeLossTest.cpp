@@ -43,21 +43,23 @@
 
 using namespace time_literals;
 
-class FailureDetectorAltitudeLossTest : public ::testing::Test
+// The fixture is the detector's parameter parent, like Commander in flight
+class FailureDetectorAltitudeLossTest : public ::testing::Test, public ModuleParams
 {
 public:
+	FailureDetectorAltitudeLossTest() : ModuleParams(nullptr) {}
+
 	void SetUp() override
 	{
 		param_control_autosave(false);
+		setParams(5.f, 0.f);
+	}
 
-		// FD_ALT_LOSS = 5m, FD_ALT_LOSS_T = 0s
-		param_t param = param_handle(px4::params::FD_ALT_LOSS);
-		float threshold = 5.f;
-		param_set(param, &threshold);
-
-		param = param_handle(px4::params::FD_ALT_LOSS_T);
-		float ttri = 0.f;
-		param_set(param, &ttri);
+	void setParams(float threshold, float trigger_time_s)
+	{
+		param_set(param_handle(px4::params::FD_ALT_LOSS), &threshold);
+		param_set(param_handle(px4::params::FD_ALT_LOSS_T), &trigger_time_s);
+		updateParams();
 	}
 
 	// Publish position and setpoint, then run the detector. Returns the alt flag state.
@@ -110,7 +112,7 @@ public:
 	}
 
 private:
-	FailureDetector _fd{nullptr};
+	FailureDetector _fd{this};
 	hrt_abstime _timestamp{1_s};
 
 	uORB::Publication<vehicle_local_position_s> _lpos_pub{ORB_ID(vehicle_local_position)};
@@ -119,9 +121,7 @@ private:
 
 TEST_F(FailureDetectorAltitudeLossTest, NoTriggerWhenDisabled)
 {
-	param_t param = param_handle(px4::params::FD_ALT_LOSS);
-	float threshold = 0.f;
-	param_set(param, &threshold);
+	setParams(0.f, 0.f);
 
 	EXPECT_FALSE(update(-90.f, -100.f));
 }

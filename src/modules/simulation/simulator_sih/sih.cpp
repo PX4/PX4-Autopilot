@@ -105,13 +105,13 @@ void Sih::run()
 	_px4_gyro.set_temperature(T1_C);
 
 	// the vehicle type is needed by parameters_updated() to place the vehicle on the terrain
-	_vehicle = static_cast<VehicleType>(constrain(_sih_vtype.get(),
+	_vehicle = static_cast<VehicleType>(constrain(_param_sih_vehicle_type.get(),
 					    static_cast<int32_t>(VehicleType::First),
 					    static_cast<int32_t>(VehicleType::Last)));
 
 	parameters_updated();
 
-	if (_sih_optical_flow_en.get()) {
+	if (_param_sih_of_en.get()) {
 		// Advertise before the simulated clock starts running: the sensors module brings up its
 		// optical flow pipeline when the topic first appears, and it only looks for it while
 		// updating its parameters. Advertising here makes it visible for the startup scan even
@@ -145,7 +145,7 @@ static uint64_t micros()
 
 void Sih::lockstep_loop()
 {
-	int rate = math::min(_imu_gyro_ratemax.get(), _imu_integration_rate.get());
+	int rate = math::min(_param_imu_gyro_ratemax.get(), _param_imu_integ_rate.get());
 
 	// default to 400Hz (2500 us interval)
 	if (rate <= 0) {
@@ -235,7 +235,7 @@ static void timer_callback(void *sem)
 
 void Sih::realtime_loop()
 {
-	int rate = _imu_gyro_ratemax.get();
+	int rate = _param_imu_gyro_ratemax.get();
 
 	// default to 250 Hz (4000 us interval)
 	if (rate <= 0) {
@@ -333,7 +333,7 @@ void Sih::sensor_step()
 	}
 
 	// distance sensor published at 50 Hz
-	if (_sih_distance_snsr_en.get() && now - _dist_snsr_time >= 20_ms) {
+	if (_param_sih_distsnsr_en.get() && now - _dist_snsr_time >= 20_ms) {
 		_dist_snsr_time = now;
 		send_dist_snsr(now);
 	}
@@ -342,7 +342,7 @@ void Sih::sensor_step()
 	// once the control pipeline is alive. Publishing while the system is still starting up
 	// races with the sensors module bringing up its optical flow pipeline and deadlocks the
 	// simulation, as this thread is the one advancing the lockstep clock.
-	if (_sih_optical_flow_en.get()) {
+	if (_param_sih_of_en.get()) {
 		if (_last_actuator_output_time > 0) {
 			accumulate_optical_flow(dt);
 
@@ -370,54 +370,54 @@ void Sih::sensor_step()
 
 void Sih::parameters_updated()
 {
-	_T_MAX = _sih_t_max.get();
-	_Q_MAX = _sih_q_max.get();
-	_L_ROLL = _sih_l_roll.get();
-	_L_PITCH = _sih_l_pitch.get();
-	_KDV = _sih_kdv.get();
-	_KDW = _sih_kdw.get();
-	_F_T_MAX = _sih_f_thrust_max.get();
-	_F_Q_MAX = _sih_f_torque_max.get();
+	_T_MAX = _param_sih_t_max.get();
+	_Q_MAX = _param_sih_q_max.get();
+	_L_ROLL = _param_sih_l_roll.get();
+	_L_PITCH = _param_sih_l_pitch.get();
+	_KDV = _param_sih_kdv.get();
+	_KDW = _param_sih_kdw.get();
+	_F_T_MAX = _param_sih_f_t_max.get();
+	_F_Q_MAX = _param_sih_f_q_max.get();
 
 	// update the thruster models
 	for (size_t i = 0; i < NUM_DYN_THRUSTER; i++) {
-		if (_sih_f_ct0.get() > 0.0f && _sih_f_cp0.get() > 0.0f) {
-			_thruster[i] = Thruster(_sih_forward_diameter_inch.get(), _sih_forward_rpm_max.get(),
-						_sih_f_ct0.get(), _sih_f_ct1.get(), _sih_f_ct2.get(),
-						_sih_f_cp0.get(), _sih_f_cp1.get(), _sih_f_cp2.get());
+		if (_param_sih_f_ct0.get() > 0.0f && _param_sih_f_cp0.get() > 0.0f) {
+			_thruster[i] = Thruster(_param_sih_f_dia_inch.get(), _param_sih_f_rpm_max.get(),
+						_param_sih_f_ct0.get(), _param_sih_f_ct1.get(), _param_sih_f_ct2.get(),
+						_param_sih_f_cp0.get(), _param_sih_f_cp1.get(), _param_sih_f_cp2.get());
 
 		} else {
 			_thruster[i] = Thruster(_F_T_MAX, _F_Q_MAX);
 		}
 	}
 
-	if (_sih_f_ct0.get() > 0.0f && _sih_f_cp0.get() > 0.0f) {
+	if (_param_sih_f_ct0.get() > 0.0f && _param_sih_f_cp0.get() > 0.0f) {
 		_F_T_MAX = _thruster[0].get_T_max();
 		_F_Q_MAX = _thruster[0].get_Q_max();
 
-		if (fabsf(_F_T_MAX - _sih_f_thrust_max.get()) > 1.0e-5f) {
-			_sih_f_thrust_max.set(_F_T_MAX);
-			_sih_f_thrust_max.commit();
+		if (fabsf(_F_T_MAX - _param_sih_f_t_max.get()) > 1.0e-5f) {
+			_param_sih_f_t_max.set(_F_T_MAX);
+			_param_sih_f_t_max.commit();
 			PX4_INFO("SIH_F_CT0 > 0, using propeller dynamic model, overriding SIH_F_T_MAX");
 		}
 
-		if (fabsf(_F_Q_MAX - _sih_f_torque_max.get()) > 1.0e-5f) {
-			_sih_f_torque_max.set(_F_Q_MAX);
-			_sih_f_torque_max.commit();
+		if (fabsf(_F_Q_MAX - _param_sih_f_q_max.get()) > 1.0e-5f) {
+			_param_sih_f_q_max.set(_F_Q_MAX);
+			_param_sih_f_q_max.commit();
 			PX4_INFO("SIH_F_CP0 > 0, using propeller dynamic model, overriding SIH_F_Q_MAX");
 		}
 	}
 
 	if (!_lpos_ref.isInitialized()
-	    || (fabsf(static_cast<float>(_lpos_ref.getProjectionReferenceLat()) - _sih_lat0.get()) > FLT_EPSILON)
-	    || (fabsf(static_cast<float>(_lpos_ref.getProjectionReferenceLon()) - _sih_lon0.get()) > FLT_EPSILON)
-	    || (fabsf(_terrain.defaultAltitude() - _sih_h0.get()) > FLT_EPSILON)) {
-		const double lat0 = static_cast<double>(_sih_lat0.get());
-		const double lon0 = static_cast<double>(_sih_lon0.get());
+	    || (fabsf(static_cast<float>(_lpos_ref.getProjectionReferenceLat()) - _param_sih_loc_lat0.get()) > FLT_EPSILON)
+	    || (fabsf(static_cast<float>(_lpos_ref.getProjectionReferenceLon()) - _param_sih_loc_lon0.get()) > FLT_EPSILON)
+	    || (fabsf(_terrain.defaultAltitude() - _param_sih_loc_h0.get()) > FLT_EPSILON)) {
+		const double lat0 = static_cast<double>(_param_sih_loc_lat0.get());
+		const double lon0 = static_cast<double>(_param_sih_loc_lon0.get());
 		_lpos_ref.initReference(lat0, lon0);
 
 		// start on the ground: flat at SIH_LOC_H0, or on the terrain model
-		_terrain.setDefaultAltitude(_sih_h0.get());
+		_terrain.setDefaultAltitude(_param_sih_loc_h0.get());
 		_lpos_ref_alt = _terrain.vehicleGroundAltitude(lat0, lon0);
 		_ground_alt = _lpos_ref_alt;
 
@@ -430,33 +430,33 @@ void Sih::parameters_updated()
 		const Dcmf R_E2N = _lla.computeRotEcefToNed();
 		_R_N2E = R_E2N.transpose();
 		_v_E = _R_N2E * _v_N;
-		_q = Quatf(Eulerf(0.f, 0.f, _sih_yaw0.get()));
+		_q = Quatf(Eulerf(0.f, 0.f, _param_sih_loc_yaw0.get()));
 		_q_E = Quatf(_R_N2E) * _q;
 		_q_E.normalize();
 	}
 
-	_MASS = _sih_mass.get();
+	_MASS = _param_sih_mass.get();
 
-	_I = diag(Vector3f(_sih_ixx.get(), _sih_iyy.get(), _sih_izz.get()));
-	_I(0, 1) = _I(1, 0) = _sih_ixy.get();
-	_I(0, 2) = _I(2, 0) = _sih_ixz.get();
-	_I(1, 2) = _I(2, 1) = _sih_iyz.get();
+	_I = diag(Vector3f(_param_sih_ixx.get(), _param_sih_iyy.get(), _param_sih_izz.get()));
+	_I(0, 1) = _I(1, 0) = _param_sih_ixy.get();
+	_I(0, 2) = _I(2, 0) = _param_sih_ixz.get();
+	_I(1, 2) = _I(2, 1) = _param_sih_iyz.get();
 
 	// guards against too small determinants
 	_Im1 = 100.0f * inv(static_cast<typeof _I>(100.0f * _I));
 
-	_distance_snsr_min = _sih_distance_snsr_min.get();
-	_distance_snsr_max = _sih_distance_snsr_max.get();
-	_distance_snsr_override = _sih_distance_snsr_override.get();
-	_distance_snsr_noise = _sih_distance_snsr_noise.get();
+	_distance_snsr_min = _param_sih_distsnsr_min.get();
+	_distance_snsr_max = _param_sih_distsnsr_max.get();
+	_distance_snsr_override = _param_sih_distsnsr_ovr.get();
+	_distance_snsr_noise = _param_sih_distsnsr_noi.get();
 	_px4_rangefinder.set_min_distance(_distance_snsr_min);
 	_px4_rangefinder.set_max_distance(_distance_snsr_max);
 
-	_optical_flow_interval_us = static_cast<hrt_abstime>(roundf(1e6f / math::max(_sih_optical_flow_rate.get(), 1.f)));
+	_optical_flow_interval_us = static_cast<hrt_abstime>(roundf(1e6f / math::max(_param_sih_of_rate.get(), 1.f)));
 
-	_T_TAU = _sih_thrust_tau.get();
+	_T_TAU = _param_sih_t_tau.get();
 
-	_v_wind_N = Vector3f(_sih_wind_n.get(), _sih_wind_e.get(), 0.f);
+	_v_wind_N = Vector3f(_param_sih_wind_n.get(), _param_sih_wind_e.get(), 0.f);
 }
 
 void Sih::read_motors(const float dt)
@@ -502,6 +502,8 @@ uint8_t Sih::num_motors() const
 
 	case VehicleType::RoverAckermann: return 1;
 
+	case VehicleType::RoverDifferential: return 2; // right wheel at 0, left wheel at 1
+
 	default:                          return 0;
 	}
 }
@@ -534,7 +536,7 @@ void Sih::publish_esc_status()
 	float max_rpm = 10000.f;
 
 	if (_vehicle == VehicleType::FixedWing || _vehicle == VehicleType::TailsitterVTOL || _vehicle == VehicleType::StandardVTOL) {
-		max_rpm = _sih_forward_rpm_max.get();
+		max_rpm = _param_sih_f_rpm_max.get();
 	}
 
 	for (int i = 0; i < NUM_ACTUATORS_MAX && motor_idx < num_motors(); i++) {
@@ -633,6 +635,9 @@ void Sih::generate_force_and_torques(const float dt)
 
 	} else if (_vehicle == VehicleType::RoverAckermann) {
 		generate_rover_ackermann_dynamics(_u[1], _u[0], dt);
+
+	} else if (_vehicle == VehicleType::RoverDifferential) {
+		generate_rover_differential_dynamics(_u[0], _u[1]);
 	}
 }
 
@@ -713,10 +718,10 @@ void Sih::generate_rover_ackermann_dynamics(const float throttle_cmd, const floa
 		// Link: https://srianumakonda.medium.com/everything-you-need-to-know-about-self-driving-in-30-minutes-b38d68bd3427
 		const float a_y = C * delta / _MASS - fabsf(v_B(0)) * _w_B(2)
 				  - 2 * C * v_B(1) / (_MASS * fabsf(v_B(0))); // [m/s^2] Lateral acceleration
-		const float psi_dot_dot = WHEEL_BASE * C * delta / _sih_izz.get()
-					  - C * WHEEL_BASE * WHEEL_BASE  * _w_B(2) / (_sih_izz.get() * fabsf(v_B(0))); // [rad/s^2] Yaw acceleration
+		const float psi_dot_dot = WHEEL_BASE * C * delta / _param_sih_izz.get()
+					  - C * WHEEL_BASE * WHEEL_BASE  * _w_B(2) / (_param_sih_izz.get() * fabsf(v_B(0))); // [rad/s^2] Yaw acceleration
 		F_y = _MASS * a_y; // Lateral force [N]
-		M_z = _sih_izz.get() * psi_dot_dot; // [Nm] Yaw moment
+		M_z = _param_sih_izz.get() * psi_dot_dot; // [Nm] Yaw moment
 	}
 
 	_T_B = Vector3f(F_x, F_y, 0.f);
@@ -751,6 +756,40 @@ void Sih::generate_rover_ackermann_dynamics(const float throttle_cmd, const floa
 
 }
 
+void Sih::generate_rover_differential_dynamics(const float right_cmd, const float left_cmd)
+{
+	// Unicycle model: each wheel is driven towards the ground speed its motor command asks for, with the force limited
+	// by the traction of the wheel, and the wheels do not let the rover slip sideways.
+	static constexpr float WHEEL_TRACK = 0.6f;     // [m] Distance between the left and right wheels, matches RD_WHEEL_TRACK
+	static constexpr float MAX_WHEEL_SPEED = 2.f;  // [m/s] Wheel ground speed at full motor command, matches RO_MAX_THR_SPEED
+	static constexpr float WHEEL_SPEED_TAU = 0.2f; // [s] Time constant of the wheel speed response
+	static constexpr float LATERAL_TAU = 0.05f;    // [s] Time constant of the lateral slip decay
+	static constexpr float MU = 0.8f;              // [-] Friction coefficient between the wheels and the ground
+
+	const Vector3f v_B = _q.rotateVectorInverse(_v_N); // Nav -> Body
+	const float yaw_rate = _w_B(2); // [rad/s] positive when turning right
+
+	// Ground speed of each wheel [m/s], turning right slows down the right wheel
+	const float v_right = v_B(0) - yaw_rate * WHEEL_TRACK / 2.f;
+	const float v_left = v_B(0) + yaw_rate * WHEEL_TRACK / 2.f;
+
+	// Longitudinal force [N]: force per wheel
+	const float wheel_gain = _MASS / (2.f * WHEEL_SPEED_TAU); // [N/(m/s)] per wheel, the forward speed responds with WHEEL_SPEED_TAU
+	const float max_wheel_force = MU * _MASS * CONSTANTS_ONE_G / 2.f; // [N] the weight is shared by both sides
+	const float F_right = constrain(wheel_gain * (MAX_WHEEL_SPEED * right_cmd - v_right), -max_wheel_force, max_wheel_force);
+	const float F_left = constrain(wheel_gain * (MAX_WHEEL_SPEED * left_cmd - v_left), -max_wheel_force, max_wheel_force);
+
+	// Lateral force [N]: provides the centripetal force of the turn and removes any sideways velocity
+	const float max_lateral_force = MU * _MASS * CONSTANTS_ONE_G;
+	const float F_y = constrain(_MASS * (yaw_rate * v_B(0) - v_B(1) / LATERAL_TAU), -max_lateral_force, max_lateral_force);
+
+	_T_B = Vector3f(F_right + F_left, F_y, 0.f); // Forces [N]
+	_Mt_B = Vector3f(0.f, 0.f, (F_left - F_right) * WHEEL_TRACK / 2.f); // Moments [Nm]
+
+	_Fa_E = Vector3f(); // [N] Second order drag and friction: rolling resistance is part of the wheel speed response, no aerodynamic drag at rover speeds
+	_Ma_B = -_KDW * _w_B; // [Nm] First order angular damper
+}
+
 void Sih::equations_of_motion(const float dt)
 {
 	const Vector3f gravity_acceleration_E = Vector3f(_R_N2E.col(2)) * LatLonAlt::Wgs84::gravity(
@@ -780,7 +819,8 @@ void Sih::equations_of_motion(const float dt)
 			_grounded = true;
 
 		} else if (_vehicle == VehicleType::FixedWing
-			   || _vehicle == VehicleType::RoverAckermann) {
+			   || _vehicle == VehicleType::RoverAckermann
+			   || _vehicle == VehicleType::RoverDifferential) {
 			Vector3f down_u = _R_N2E.col(2);
 			ground_force_E = -down_u * sum_of_forces_E * down_u;
 
@@ -1096,9 +1136,9 @@ void Sih::accumulate_optical_flow(const float dt)
 	// value is produced by a right handed rotation of the sensor about the body axis, which
 	// gives the translation over the ground the opposite sign (see the flow observation model
 	// in the EKF).
-	const float distance = ground_distance(_sih_optical_flow_h_max.get());
+	const float distance = ground_distance(_param_sih_of_h_max.get());
 
-	if (!PX4_ISFINITE(distance) || distance > _sih_optical_flow_h_max.get()) {
+	if (!PX4_ISFINITE(distance) || distance > _param_sih_of_h_max.get()) {
 		// too high above the ground, or not looking at it: no image to track
 		_optical_flow_tracking = false;
 		_optical_flow_dt += dt;
@@ -1142,7 +1182,7 @@ void Sih::send_optical_flow(const hrt_abstime &time_now_us)
 
 	if (tracking) {
 		// white noise on the flow rate estimate, integrated over the interval
-		pixel_flow += Vector2f(generate_wgn(), generate_wgn()) * (_sih_optical_flow_noise.get() * integration_time);
+		pixel_flow += Vector2f(generate_wgn(), generate_wgn()) * (_param_sih_of_noise.get() * integration_time);
 		flow.quality = UINT8_MAX;
 
 	} else {
@@ -1162,7 +1202,7 @@ void Sih::send_optical_flow(const hrt_abstime &time_now_us)
 
 	flow.max_flow_rate = FLOW_MAX_RATE;
 	flow.min_ground_distance = 0.f;
-	flow.max_ground_distance = _sih_optical_flow_h_max.get();
+	flow.max_ground_distance = _param_sih_of_h_max.get();
 	flow.mode = sensor_optical_flow_s::MODE_LOWLIGHT;
 	flow.error_count = 0;
 
@@ -1180,7 +1220,7 @@ void Sih::send_ranging_beacon(const hrt_abstime &time_now_us)
 			for (uint8_t i = 0; i < NUM_RANGING_BEACONS; i++) {
 				_lpos_ref.reproject(RANGING_BEACON_OFFSETS[i].north_m, RANGING_BEACON_OFFSETS[i].east_m,
 						    _ranging_beacons[i].lat_deg, _ranging_beacons[i].lon_deg);
-				_ranging_beacons[i].alt_m = _sih_h0.get() + RANGING_BEACON_OFFSETS[i].alt_offset_m;
+				_ranging_beacons[i].alt_m = _param_sih_loc_h0.get() + RANGING_BEACON_OFFSETS[i].alt_offset_m;
 			}
 		}
 
@@ -1192,7 +1232,7 @@ void Sih::send_ranging_beacon(const hrt_abstime &time_now_us)
 		const matrix::Vector3d delta_ecef = beacon_ecef - _p_E;
 		const double true_range_m = delta_ecef.norm();
 
-		const float noise_std = _sih_ranging_beacon_noise.get();
+		const float noise_std = _param_sih_rngbc_noise.get();
 		const float noise_m = (noise_std > 0.f) ? math::generate_wgn() * noise_std : 0.f;
 		const double measured_range_m = math::max(0.0, true_range_m + static_cast<double>(noise_m));
 
@@ -1329,6 +1369,9 @@ int Sih::print_status()
 
 	} else if (_vehicle == VehicleType::RoverAckermann) {
 		PX4_INFO("Rover Ackermann");
+
+	} else if (_vehicle == VehicleType::RoverDifferential) {
+		PX4_INFO("Rover Differential");
 	}
 
 	_terrain.printStatus();

@@ -78,12 +78,13 @@ def imxrt_is_dshot(line):
     return False
 
 def load_board_config(board_config):
-    """ return the set of symbols assigned in a Kconfig .config style file
-    (e.g. the boardconfig the build generates); None gives an empty set """
+    """ return the symbols assigned in a Kconfig .config style file (e.g. the
+    boardconfig the build generates) as a dict of symbol to value, with string
+    quotes stripped; None gives an empty dict """
     if board_config is None:
-        return set()
+        return {}
     with open(board_config, 'r') as f:
-        return {m.group(1) for m in (re.match(r'(\w+)=', l) for l in f) if m}
+        return {m.group(1): m.group(2).strip('"') for m in (re.match(r'(\w+)=(.*)', l.strip()) for l in f) if m}
 
 def preprocess(text, defined):
     """ return the lines of text the C preprocessor keeps, given the set of defined symbols.

@@ -85,16 +85,19 @@ parameters:
         short: Gyro calibration reference temperature
       category: System
       type: float
+      unit: celcius
       default: 25.0
     TC_G1_TMIN:
       description:
         short: Gyro calibration minimum temperature
       category: System
       type: float
+      unit: celcius
       default: 0.0
     TC_G1_TMAX:
       description:
         short: Gyro calibration maximum temperature
       category: System
       type: float
+      unit: celcius
       default: 100.0

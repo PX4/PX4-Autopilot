@@ -64,6 +64,22 @@ ManualSticks mapSticks(const manual_control_setpoint_s &manual_control_setpoint,
 	}
 }
 
+bool sticksCommandMotion(const manual_control_setpoint_s &manual_control_setpoint, int32_t stick_map, bool can_drive_sideways,
+			 bool tank_style_sticks)
+{
+	const float arming_stick_threshold = 0.2f;
+	const ManualSticks sticks = mapSticks(manual_control_setpoint, stick_map);
+	const bool lateral = can_drive_sideways && fabsf(sticks.lateral) >= arming_stick_threshold;
+
+	if (tank_style_sticks) {
+		const float left = manual_control_setpoint.throttle;
+		const float right = manual_control_setpoint.pitch;
+		return fabsf(left) >= arming_stick_threshold || fabsf(right) >= arming_stick_threshold || lateral;
+	}
+
+	return fabsf(sticks.forward) >= arming_stick_threshold || lateral;
+}
+
 float throttleControl(SlewRate<float> &motor_setpoint, const float throttle_setpoint,
 		      const float current_motor_setpoint, const float max_accel, const float max_decel, const float max_thr_spd,
 		      const float dt)
@@ -73,7 +89,10 @@ float throttleControl(SlewRate<float> &motor_setpoint, const float throttle_setp
 		return NAN;
 	}
 
-	const bool accelerating = fabsf(throttle_setpoint) > fabsf(current_motor_setpoint);
+	// Accelerating towards a larger setpoint of the same sign, otherwise decelerating
+	// Without a deceleration limit, only the magnitudes are compared
+	const bool accelerating = (throttle_setpoint * current_motor_setpoint >= 0.f || max_decel <= FLT_EPSILON)
+				  && fabsf(throttle_setpoint) > fabsf(current_motor_setpoint);
 
 	if (accelerating && max_accel > FLT_EPSILON && max_thr_spd > FLT_EPSILON) { // Acceleration slew rate
 		motor_setpoint.setSlewRate(max_accel / max_thr_spd);
@@ -142,7 +161,13 @@ float speedControl(SlewRate<float> &speed_with_rate_limit, PID &pid_speed, const
 	}
 
 	// Apply acceleration and deceleration limit
-	if (fabsf(speed_setpoint) >= fabsf(vehicle_speed) && max_accel > FLT_EPSILON) {
+	// Accelerating towards a larger setpoint of the same sign as the vehicle speed or the rate limited setpoint,
+	// otherwise decelerating. Without a deceleration limit, only the magnitudes are compared
+	const bool accelerating = (speed_setpoint * vehicle_speed >= 0.f
+				   || speed_setpoint * speed_with_rate_limit.getState() >= 0.f || max_decel <= FLT_EPSILON)
+				  && fabsf(speed_setpoint) >= fabsf(vehicle_speed);
+
+	if (accelerating && max_accel > FLT_EPSILON) {
 		speed_with_rate_limit.setSlewRate(max_accel);
 		speed_with_rate_limit.update(speed_setpoint, dt);
 
@@ -152,7 +177,7 @@ float speedControl(SlewRate<float> &speed_with_rate_limit, PID &pid_speed, const
 			speed_with_rate_limit.setForcedValue(speed_setpoint);
 		}
 
-	} else if (fabsf(speed_setpoint) < fabsf(vehicle_speed) && max_decel > FLT_EPSILON) {
+	} else if (!accelerating && max_decel > FLT_EPSILON) {
 		speed_with_rate_limit.setSlewRate(max_decel);
 		speed_with_rate_limit.update(speed_setpoint, dt);
 
@@ -194,6 +219,11 @@ float rateControl(SlewRate<float> &adjusted_yaw_rate_setpoint, PID &pid_yaw_rate
 		  const float max_yaw_decel,
 		  const float wheel_track, const float dt)
 {
+	// Sanitize inputs
+	if (!PX4_ISFINITE(yaw_rate_setpoint) || !PX4_ISFINITE(vehicle_yaw_rate) || !PX4_ISFINITE(dt)) {
+		return NAN;
+	}
+
 	// Apply acceleration and deceleration limit
 	if (fabsf(yaw_rate_setpoint) >= fabsf(vehicle_yaw_rate) && max_yaw_accel > FLT_EPSILON) {
 		adjusted_yaw_rate_setpoint.setSlewRate(max_yaw_accel);

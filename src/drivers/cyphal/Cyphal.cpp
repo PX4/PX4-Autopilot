@@ -225,6 +225,10 @@ void CyphalNode::Run()
 	if (_instance && _task_should_exit.load()) {
 		ScheduleClear();
 
+		// The CAN fd belongs to the work queue task group, so close it here
+		// and not in the destructor, which runs in the shell calling stop.
+		_canard_handle.close();
+
 		if (_initialized) {
 			_initialized = false;
 		}

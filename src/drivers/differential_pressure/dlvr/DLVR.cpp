@@ -246,7 +246,7 @@ void DLVR::publish_pressure(const float pressure_p, const float temperature_c,
 	differential_pressure.differential_pressure_pa = pressure_p;
 
 	//If differential pressure reverse param set, swap positive and negative
-	if (_param_dpres_rev.get() == 1) {
+	if (_param_sens_dpres_rev.get() == 1) {
 		differential_pressure.differential_pressure_pa = -1.0f * pressure_p;
 	}
 

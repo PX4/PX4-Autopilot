@@ -52,7 +52,7 @@
 #include <rc/sbus.h>
 
 #include "px4io.h"
-#include "protocol.h"
+#include <lib/px4io_protocol/protocol.h>
 
 static int	registers_set_one(uint8_t page, uint8_t offset, uint16_t value);
 static void	pwm_configure_rates(uint16_t map, uint16_t defaultrate, uint16_t altrate);

@@ -63,6 +63,7 @@ The debug port location and pinouts for a subset of current autopilots are linke
 | [S-Vehicle E2](../flight_controller/svehicle_e2.md#debug-port)                       | [Pixhawk Debug Mini]                      |
 | [AP-H743-R1](../flight_controller/x-mav_ap-h743r1.md#debug-port)                     | 4-pin JST GH (SWD only)                   |
 | [mRo Control Zero F7](../flight_controller/mro_control_zero_f7.md#debug_port)        |                                           |
+| [CyberCraft CyberX-v10](../flight_controller/cyberx_v10.md#debug_port)               | 6-pin JST GH (SWD only)                   |
 
 ## Pixhawk Connector Standard Debug Ports {#pixhawk-standard-debug-ports}
 

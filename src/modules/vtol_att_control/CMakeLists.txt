@@ -43,6 +43,8 @@ px4_add_module(
 		standard_params.yaml
 		tiltrotor_params.yaml
 		vtol_att_control_params.yaml
+	DEPENDS
+		hysteresis
 	)
 
 px4_add_functional_gtest(SRC test_vtol_quadchute.cpp LINKLIBS modules__vtol_att_control)

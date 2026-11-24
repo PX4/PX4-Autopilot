@@ -47,31 +47,7 @@ px4_add_module(
 		button_publisher
 		circuit_breaker
 		mixer_module
+		px4io_protocol
 	)
 
-# include the px4io binary in ROMFS
-if(CONFIG_BOARD_IO)
-	message(STATUS "drivers/px4io: ROMFS including ${CONFIG_BOARD_IO}")
-
-	include(ExternalProject)
-
-	ExternalProject_Add(px4io_firmware_build
-		DOWNLOAD_COMMAND rsync -a --safe-links --delete --exclude=build --exclude=*.o --exclude=*.a --exclude=.config ${PX4_SOURCE_DIR}/ ${PX4_BINARY_DIR}/external/Source/px4io_firmware_build/
-		UPDATE_COMMAND   rsync -a --safe-links --delete --exclude=build --exclude=*.o --exclude=*.a --exclude=.config ${PX4_SOURCE_DIR}/ ${PX4_BINARY_DIR}/external/Source/px4io_firmware_build/
-		DEPENDS git_nuttx git_nuttx_apps
-		SOURCE_DIR ${PX4_BINARY_DIR}/external/Source/px4io_firmware_build/
-		CMAKE_ARGS -DCONFIG=${CONFIG_BOARD_IO}
-		INSTALL_COMMAND ""
-		USES_TERMINAL_BUILD true
-		EXCLUDE_FROM_ALL true
-		BUILD_ALWAYS true
-	)
-
-	ExternalProject_Get_Property(px4io_firmware_build BINARY_DIR)
-
-	add_custom_target(px4io_firmware_update
-		COMMAND ${CMAKE_COMMAND} -E copy_if_different ${BINARY_DIR}/${CONFIG_BOARD_IO}.bin ${PX4_BOARD_DIR}/extras/${CONFIG_BOARD_IO}.bin
-		DEPENDS px4io_firmware_build
-		COMMENT "Copying ${CONFIG_BOARD_IO} to board extras"
-	)
-endif()
+# The px4io firmware binary is added to ROMFS by ROMFS/CMakeLists.txt (see CONFIG_BOARD_IO).

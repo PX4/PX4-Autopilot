@@ -528,7 +528,7 @@ ControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessUpdateReaso
 						// Failure recovery: a forward propeller driven in reverse makes only a fraction of its forward thrust
 						minimum[selected_matrix](actuator_idx_matrix[selected_matrix]) = -_param_ca_rev_thr_frac.get();
 
-					} else if (_param_r_rev.get() & (1u << actuator_type_idx)) {
+					} else if (_param_ca_r_rev.get() & (1u << actuator_type_idx)) {
 						// Statically reversible thruster (symmetric): full reverse authority
 						minimum[selected_matrix](actuator_idx_matrix[selected_matrix]) = -1.f;
 
@@ -719,7 +719,7 @@ ControlAllocator::publish_control_allocator_status(int matrix_index)
 float
 ControlAllocator::get_ice_shedding_output(hrt_abstime now)
 {
-	const float period_sec = _param_ice_shedding_period.get();
+	const float period_sec = _param_ca_ice_period.get();
 
 	const bool feature_disabled_by_param = period_sec <= FLT_EPSILON;
 	const bool in_forward_flight = _actuator_effectiveness->getFlightPhase() == ActuatorEffectiveness::FlightPhase::FORWARD_FLIGHT;
@@ -756,7 +756,7 @@ ControlAllocator::publish_actuator_controls()
 	actuator_servos.timestamp = actuator_motors.timestamp;
 	actuator_servos.timestamp_sample = _timestamp_sample;
 
-	actuator_motors.reversible_flags = _param_r_rev.get() | _runtime_reversible_bitmask;
+	actuator_motors.reversible_flags = _param_ca_r_rev.get() | _runtime_reversible_bitmask;
 
 	int actuator_idx = 0;
 	int actuator_idx_matrix[ActuatorEffectiveness::MAX_NUM_MATRICES] {};

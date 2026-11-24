@@ -412,7 +412,7 @@ void SCH16T::ConfigurationFromParameters()
 	_px4_accel.set_scale(1.f / 3200.f); // 3200 LSB/(m/s2)
 
 	// Gyro filter
-	switch (_sch16t_gyro_filt.get()) {
+	switch (_param_sch16t_gyro_filt.get()) {
 	case 0:
 		filt_rate.bits.FILT_SEL_RATE_X = FILTER_13_HZ;
 		filt_rate.bits.FILT_SEL_RATE_Y = FILTER_13_HZ;
@@ -457,7 +457,7 @@ void SCH16T::ConfigurationFromParameters()
 	}
 
 	// ACC12 / ACC3 filter
-	switch (_sch16t_acc_filt.get()) {
+	switch (_param_sch16t_acc_filt.get()) {
 	case 0:
 		filt_acc12.bits.FILT_SEL_ACC_X12 = FILTER_13_HZ;
 		filt_acc12.bits.FILT_SEL_ACC_Y12 = FILTER_13_HZ;
@@ -530,7 +530,7 @@ void SCH16T::ConfigurationFromParameters()
 	}
 
 	// Gyro decimation (only affects channel 2, ie RATE2)
-	switch (_sch16t_decim.get()) {
+	switch (_param_sch16t_decim.get()) {
 	case 0:
 		_sample_interval_us = 85;
 		rate_ctrl.bits.DEC_RATE_X2 = DECIMATION_NONE;

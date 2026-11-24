@@ -48,8 +48,6 @@ param set-default SIM_GZ_EC_MAX2 1500
 param set-default SIM_GZ_EC_MAX3 1500
 param set-default SIM_GZ_EC_MAX4 1500
 
-param set-default FD_FAIL_R 70
-
 param set-default FW_P_TC 0.6
 
 param set-default FW_PR_I 0.3

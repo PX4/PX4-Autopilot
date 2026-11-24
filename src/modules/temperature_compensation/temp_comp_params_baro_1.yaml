@@ -49,16 +49,19 @@ parameters:
         short: Barometer calibration reference temperature
       category: System
       type: float
+      unit: celcius
       default: 40.0
     TC_B1_TMIN:
       description:
         short: Barometer calibration minimum temperature
       category: System
       type: float
+      unit: celcius
       default: 5.0
     TC_B1_TMAX:
       description:
         short: Barometer calibration maximum temperature
       category: System
       type: float
+      unit: celcius
       default: 75.0

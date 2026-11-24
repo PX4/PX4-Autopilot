@@ -68,7 +68,6 @@ This document shows a markdown-rendered version of [dds_topics.yaml](https://git
 | `/fmu/in/onboard_computer_status`            | [px4_msgs::msg::OnboardComputerStatus](../msg_docs/OnboardComputerStatus.md)                       |
 | `/fmu/in/register_ext_component_request`     | [px4_msgs::msg::RegisterExtComponentRequest](../msg_docs/RegisterExtComponentRequest.md)           |
 | `/fmu/in/sensor_gnss`                        | [px4_msgs::msg::SensorGnss](../msg_docs/SensorGnss.md)                                             |
-| `/fmu/in/sensor_optical_flow`                | [px4_msgs::msg::SensorOpticalFlow](../msg_docs/SensorOpticalFlow.md)                               |
 | `/fmu/in/setpoint_config`                    | [px4_msgs::msg::SetpointConfig](../msg_docs/SetpointConfig.md)                                     |
 | `/fmu/in/surface_vehicle_attitude_setpoint`  | [px4_msgs::msg::SurfaceVehicleAttitudeSetpoint](../msg_docs/SurfaceVehicleAttitudeSetpoint.md)     |
 | `/fmu/in/surface_vehicle_course_setpoint`    | [px4_msgs::msg::SurfaceVehicleCourseSetpoint](../msg_docs/SurfaceVehicleCourseSetpoint.md)         |
@@ -95,6 +94,7 @@ This document shows a markdown-rendered version of [dds_topics.yaml](https://git
 | --------------------------- | -------------------------------------------------------------------- | ----------- | ------------- |
 | /fmu/in/aux_global_position | [px4_msgs::msg::AuxGlobalPosition](../msg_docs/AuxGlobalPosition.md) | `id`        | 4             |
 | /fmu/in/rtcm_corrections    | [px4_msgs::msg::RtcmData](../msg_docs/RtcmData.md)                   | `device_id` | 4             |
+| /fmu/in/sensor_optical_flow | [px4_msgs::msg::SensorOpticalFlow](../msg_docs/SensorOpticalFlow.md) | `device_id` | 2             |
 
 ## Not Exported
 

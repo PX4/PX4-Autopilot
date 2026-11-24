@@ -245,7 +245,7 @@ void InternalCombustionEngineControl::Run()
 				_starting_retry_cycle = 0;
 				PX4_INFO("ICE: Stopped");
 
-			} else if (!_is_engine_running && _param_ice_running_fault_detection.get()) {
+			} else if (!_is_engine_running && _param_ice_run_fault_d.get()) {
 				// without RPM feedback we assume the engine is running after the
 				// starting procedure but only switch state if fault detection is enabled
 				_state = State::Starting;
@@ -395,11 +395,11 @@ bool InternalCombustionEngineControl::isStartingPermitted(const hrt_abstime now)
 bool InternalCombustionEngineControl::maximumAttemptsReached()
 {
 	// First and only attempt
-	if (_param_ice_strt_attempts.get() == 0) {
+	if (_param_ice_strt_attempt.get() == 0) {
 		return _starting_retry_cycle > 0;
 	}
 
-	return _starting_retry_cycle >= _param_ice_strt_attempts.get();
+	return _starting_retry_cycle >= _param_ice_strt_attempt.get();
 }
 
 int InternalCombustionEngineControl::print_usage(const char *reason)

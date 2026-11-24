@@ -36,6 +36,7 @@
 #include <px4_platform_common/px4_config.h>
 
 #include <canard.h>
+#include <unistd.h>
 
 #include "CanardInterface.hpp"
 
@@ -60,6 +61,18 @@ public:
 	/// This function is blocking
 	/// The return value is number of bytes received, negative value on error.
 	int16_t receive(CanardRxFrame *rxf);
+
+	/// Close the CAN device
+	int close() override
+	{
+		if (_fd < 0) {
+			return 0;
+		}
+
+		const int ret = ::close(_fd);
+		_fd = -1;
+		return ret;
+	}
 
 private:
 	int _fd{-1};

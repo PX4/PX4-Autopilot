@@ -89,8 +89,8 @@ void LandDetector::Run()
 		updateParams();
 		_update_params();
 
-		_total_flight_time = static_cast<uint64_t>(_param_total_flight_time_high.get()) << 32;
-		_total_flight_time |= static_cast<uint32_t>(_param_total_flight_time_low.get());
+		_total_flight_time = static_cast<uint64_t>(_param_lnd_flight_t_hi.get()) << 32;
+		_total_flight_time |= static_cast<uint32_t>(_param_lnd_flight_t_lo.get());
 	}
 
 	actuator_armed_s actuator_armed;
@@ -103,6 +103,25 @@ void LandDetector::Run()
 
 	if (_vehicle_acceleration_sub.update(&vehicle_acceleration)) {
 		_acceleration = matrix::Vector3f{vehicle_acceleration.xyz};
+
+		const bool first_sample = (_time_last_acceleration_sample_us == 0);
+		const float dt_s = (vehicle_acceleration.timestamp_sample - _time_last_acceleration_sample_us) * 1e-6f;
+		_time_last_acceleration_sample_us = vehicle_acceleration.timestamp_sample;
+
+		if (first_sample || (dt_s > 1.f)) {
+			_specific_force_fast.reset(_acceleration);
+			_specific_force_slow.reset(_acceleration);
+		}
+
+		// Catches smooth accelerations, such as a takeoff roll, that the high-passed vibration metrics miss.
+		static constexpr float kSpecificForceChangeMax = 0.3f;
+
+		const matrix::Vector3f specific_force_change = _specific_force_fast.update(_acceleration, dt_s)
+				- _specific_force_slow.update(_acceleration, dt_s);
+
+		if (specific_force_change.longerThan(kSpecificForceChangeMax)) {
+			_time_last_move_detect_us = vehicle_acceleration.timestamp_sample;
+		}
 	}
 
 	vehicle_angular_velocity_s vehicle_angular_velocity{};
@@ -117,7 +136,20 @@ void LandDetector::Run()
 		}
 	}
 
-	_vehicle_local_position_sub.update(&_vehicle_local_position);
+	if (_vehicle_local_position_sub.update(&_vehicle_local_position)) {
+		// Catches constant velocity motion where the acceleration and vibration checks would fail.
+		static constexpr float kAidedVelocityMax = 1.f;
+		static constexpr float kAidedVelocityStdDevMax = 5.f;
+
+		const matrix::Vector2f velocity_xy{_vehicle_local_position.vx, _vehicle_local_position.vy};
+		const float velocity_threshold = math::max(kAidedVelocityMax, kAidedVelocityStdDevMax * _vehicle_local_position.evh);
+
+		if (_vehicle_local_position.v_xy_valid && !_vehicle_local_position.dead_reckoning
+		    && velocity_xy.longerThan(velocity_threshold)) {
+			_time_last_move_detect_us = _vehicle_local_position.timestamp_sample;
+		}
+	}
+
 	_vehicle_status_sub.update(&_vehicle_status);
 
 	_update_topics();
@@ -180,13 +212,13 @@ void LandDetector::Run()
 
 		uint32_t flight_time = (_total_flight_time >> 32) & 0xffffffff;
 
-		_param_total_flight_time_high.set(flight_time);
-		_param_total_flight_time_high.commit_no_notification();
+		_param_lnd_flight_t_hi.set(flight_time);
+		_param_lnd_flight_t_hi.commit_no_notification();
 
 		flight_time = _total_flight_time & 0xffffffff;
 
-		_param_total_flight_time_low.set(flight_time);
-		_param_total_flight_time_low.commit_no_notification();
+		_param_lnd_flight_t_lo.set(flight_time);
+		_param_lnd_flight_t_lo.commit_no_notification();
 	}
 
 	_previous_armed_state = _armed;

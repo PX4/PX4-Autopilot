@@ -220,8 +220,9 @@ Example plot:
 ![high-rate accel power spectral density](../../assets/flight_log_analysis/flight_review/accel_spectral_density_fifo.png)
 
 ::: info
-Data of the first IMU is logged, which is not necessarily the same as the one used for flying.
-This is mostly only important in cases where IMU's are mounted differently (e.g. hard-mounted vs. soft-mounted).
+Data of the IMU that is the primary one when the log starts is logged, not necessarily instance 0.
+This instance is kept for the whole log and is not changed after an in-flight primary IMU switch.
+No high-rate data is logged if no IMU is selected when the log starts or if the selected IMU does not publish FIFO data.
 :::
 
 ::: info

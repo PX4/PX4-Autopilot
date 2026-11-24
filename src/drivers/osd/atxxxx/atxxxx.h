@@ -127,6 +127,8 @@ private:
 	// flight mode
 	uint8_t _nav_state{0};
 
+	uint8_t _num_rows{OSD_NUM_ROWS_NTSC};
+
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::OSD_ATXXXX_CFG>) _param_osd_atxxxx_cfg
 	)
