@@ -1615,7 +1615,7 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 		fw_lateral_ctrl_sp.lateral_acceleration = sp.lateral_acceleration_feedforward;
 		_lateral_ctrl_sp_pub.publish(fw_lateral_ctrl_sp);
 
-		const float roll_wingtip_strike = getMaxRollAngleNearGround(_current_altitude, _takeoff_ground_alt);
+		const float roll_wingtip_strike = getMaxRollAngleNearGround(_current_altitude, terrain_alt);
 		_ctrl_configuration_handler.setLateralAccelMax(rollAngleToLateralAccel(roll_wingtip_strike));
 
 		/* longitudinal guidance */
