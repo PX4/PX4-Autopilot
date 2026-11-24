@@ -263,6 +263,8 @@ public:
 		_mission_sub.update();
 		_home_pos_sub.update();
 		_wind_sub.update();
+
+		_rtl_direct.run(false);
 		const ReturnSelection selection = selectReturn();
 		applyReturn(selection);
 		return selection.fallback_safe_time_estimate;
@@ -3448,47 +3450,6 @@ TEST_F(RTLGeofenceAvoidanceTest, DirectEstimateCoversTheWayAroundTheGeofence)
 	EXPECT_NEAR(around.time_estimate - direct.time_estimate, (around_m - direct_m) / cruise_speed, 0.1f);
 }
 
-TEST_F(RTLGeofenceAvoidanceTest, Type6UsesDirectRallyEstimateWhileHomeHasADetour)
-{
-	// Home is 600 m south of the vehicle. The two rally positions will be on opposite sides of the fence.
-	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 600.f, 0.f, kAlt + 100.f));
-	publishLandDetected(false);
-	primeNavigatorState();
-	const auto setRallyPoint = [&](float north_of_home) {
-		const auto rally = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, north_of_home, 0.f, kAlt);
-		loadSafePointsIntoRouteCache({makeSafePointItem(rally.lat, rally.lon, kAlt, NAV_FRAME_GLOBAL)});
-	};
-	_rtl.on_inactive();
-	const auto directEstimateWithoutFence = [&](float north_of_home) {
-		setRallyPoint(north_of_home);
-		_rtl.evaluateReturnTypeForTest(5);
-		return _rtl.directEstimateForTest();
-	};
-	const rtl_time_estimate_s clear_leg = directEstimateWithoutFence(700.f);
-	const rtl_time_estimate_s blocked_leg = directEstimateWithoutFence(200.f);
-	ASSERT_TRUE(clear_leg.valid && blocked_leg.valid);
-	ASSERT_NO_FATAL_FAILURE(loadExclusionZone({{280.f, -400.f}, {320.f, -400.f}, {320.f, 400.f}, {280.f, 400.f}}));
-
-	battery_status_s battery{};
-	battery.timestamp = hrt_absolute_time();
-	battery.connected = true;
-	battery.time_remaining_s = 3600.f;
-	orb_advert_t battery_pub = orb_advertise(ORB_ID(battery_status), &battery);
-
-	// One inactive cycle installs Home's route. The next estimates the rally point with that route in the planner.
-	setRallyPoint(700.f);
-	_rtl.evaluateReturnTypeForTest(6);
-	EXPECT_GT(_navigator.get_geofence_avoidance_planner().get_num_waypoints(), 0);
-	const float fallback = _rtl.evaluateReturnTypeForTest(6);
-	EXPECT_FLOAT_EQ(fallback, clear_leg.safe_time_estimate);
-	EXPECT_LT(fallback, _rtl.directEstimateForTest().safe_time_estimate);
-
-	// Even across the fence, the fallback uses the direct leg to the rally point.
-	setRallyPoint(200.f);
-	EXPECT_FLOAT_EQ(_rtl.evaluateReturnTypeForTest(6), blocked_leg.safe_time_estimate);
-	orb_unadvertise(battery_pub);
-}
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 // WHY: A stop that never lands must not count a landing in the remaining time estimate.
@@ -3522,10 +3483,9 @@ TEST_F(RTLTest, RallyPointReturnWithoutRallyPointEstimatesNoFixedWingLanding)
 	EXPECT_FLOAT_EQ(no_delay.time_estimate, hold.time_estimate);
 }
 
-// WHY: Return compares destinations only by straight-line distance,
-// so it has no reason to prefer a rally point that is farther away than Home.
+// WHY: a rally point that takes longer to reach than Home is even less within reach.
 // WHAT: RTL_TYPE 6 keeps Home while the battery reaches it. When the battery does not reach Home,
-// it takes a rally point only if it is closer than Home.
+// it takes a rally point only if it is quicker to reach than Home.
 TEST_F(RTLTest, Type6BeyondBatteryTakesOnlyCloserRallyPoint)
 {
 	// GIVEN: Home 300 m away
@@ -3658,11 +3618,12 @@ TEST_F(RTLLowestEstimateTest, CloserButSlowerRallyDoesNotProvideFallbackTime)
 	EXPECT_FLOAT_EQ(home.min_safe_time_estimate, home.safe_time_estimate);
 
 	publishBatteryTimeRemaining(1.f);
-	const float selected_rally_fallback = _rtl.evaluateReturnTypeForTest(6);
-	ASSERT_TRUE(selectsRallyPoint());
-	const rtl_time_estimate_s selected_rally = publishedEstimate(selected_rally_fallback);
-	EXPECT_GT(selected_rally.safe_time_estimate, home.safe_time_estimate);
-	EXPECT_FLOAT_EQ(selected_rally.min_safe_time_estimate, selected_rally.safe_time_estimate);
+	const float low_battery_fallback = _rtl.evaluateReturnTypeForTest(6);
+	ASSERT_FALSE(selectsRallyPoint());
+	EXPECT_TRUE(std::isnan(low_battery_fallback));
+	const rtl_time_estimate_s low_battery = publishedEstimate(low_battery_fallback);
+	EXPECT_FLOAT_EQ(low_battery.safe_time_estimate, home.safe_time_estimate);
+	EXPECT_FLOAT_EQ(low_battery.min_safe_time_estimate, low_battery.safe_time_estimate);
 }
 
 // WHY: only RTL_TYPE 6 chooses between two destinations by the battery.
@@ -3715,3 +3676,135 @@ TEST_F(RTLLowestEstimateTest, Type6LowestEstimateFollowsTheActiveReturn)
 	EXPECT_FLOAT_EQ(active.min_safe_time_estimate, active.safe_time_estimate);
 	EXPECT_FLOAT_EQ(active.safe_time_estimate, inactive.safe_time_estimate);
 }
+
+
+// A multicopter 100 m above the scene whose battery does not reach Home.
+class RTLQuickestRallyPointTest : public RTLLowestEstimateTest
+{
+protected:
+	void SetUp() override
+	{
+		RTLLowestEstimateTest::SetUp();
+		publishBatteryTimeRemaining(1.f);
+	}
+
+	void TearDown() override
+	{
+		mission_stats_entry_s no_fence{};
+		EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_FENCE_POINTS_0));
+		EXPECT_TRUE(_dataman_client.writeSync(DM_KEY_FENCE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&no_fence),
+						      sizeof(no_fence)));
+		RTLLowestEstimateTest::TearDown();
+	}
+
+	void setHomeAndRallyPoints(float home_north_m, const std::vector<PositionYawSetpoint> &rally_points)
+	{
+		publishHomePosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, home_north_m, 0.f, kAlt));
+		primeNavigatorState();
+		std::vector<mission_item_s> items;
+
+		for (const PositionYawSetpoint &rally_point : rally_points) {
+			items.push_back(makeSafePointItem(rally_point.lat, rally_point.lon, rally_point.alt, NAV_FRAME_GLOBAL));
+		}
+
+		loadSafePointsIntoRouteCache(items);
+	}
+
+	// an exclusion zone, as corners in meters north and east of the vehicle, with the avoidance graph Navigator builds
+	void loadExclusionZone(const std::vector<matrix::Vector2f> &corners)
+	{
+		for (size_t i = 0; i < corners.size(); ++i) {
+			const PositionYawSetpoint corner = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, corners[i](0),
+							   corners[i](1), kAlt);
+			mission_fence_point_s point{};
+			point.nav_cmd = NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION;
+			point.frame = NAV_FRAME_GLOBAL;
+			point.lat = corner.lat;
+			point.lon = corner.lon;
+			point.vertex_count = static_cast<uint16_t>(corners.size());
+			ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_FENCE_POINTS_0, static_cast<uint32_t>(i),
+							      reinterpret_cast<uint8_t *>(&point), sizeof(point)));
+		}
+
+		mission_stats_entry_s stats{};
+		stats.num_items = static_cast<uint16_t>(corners.size());
+		stats.opaque_id = 77;
+		stats.dataman_id = DM_KEY_FENCE_POINTS_0;
+		ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_FENCE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&stats),
+						      sizeof(stats)));
+
+		Geofence &fence = _navigator.get_geofence();
+		fence.updateFence();
+		const hrt_abstime start = hrt_absolute_time();
+
+		while (!fence.isReadyForPathChecks() && hrt_elapsed_time(&start) < 1_s) {
+			fence.run();
+			px4_usleep(1000);
+		}
+
+		ASSERT_TRUE(fence.isReadyForPathChecks());
+		GeofenceAvoidancePlanner &planner = _navigator.get_geofence_avoidance_planner();
+		planner.updateGraphFromGeofence(fence, 10.f);
+		ASSERT_EQ(planner.status(), GeofenceAvoidancePlanner::Status::Success);
+	}
+
+	rtl_time_estimate_s evaluateAndPublish(uint8_t expected_safe_point)
+	{
+		const float fallback = _rtl.evaluateReturnTypeForTest(6);
+		EXPECT_TRUE(_rtl_status_sub.update());
+		EXPECT_EQ(_rtl_status_sub.get().safe_point_index, expected_safe_point);
+		return publishedEstimate(fallback);
+	}
+};
+
+// WHY: the closest destination is not the quickest one when it needs more climb or descent, a way around a
+// geofence, or a headwind leg.
+// WHAT: beyond the battery, RTL_TYPE 6 takes the rally point with the lowest time estimate, not the closest one,
+// and reports its estimate as the lowest.
+TEST_F(RTLQuickestRallyPointTest, Type6TakesTheQuickestRallyPoint)
+{
+	// GIVEN: Home 600 m away, a rally point 100 m away but 400 m further down, and one 300 m away
+	setHomeAndRallyPoints(-600.f, {
+		makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt - 400.f),
+		makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt),
+	});
+
+	// THEN: it takes the second one
+	const rtl_time_estimate_s beyond_battery = evaluateAndPublish(1);
+	EXPECT_FLOAT_EQ(beyond_battery.min_safe_time_estimate, beyond_battery.safe_time_estimate);
+
+	// WHEN: the battery reaches Home
+	publishBatteryTimeRemaining(3600.f);
+
+	// THEN: it goes Home, and the lowest estimate is still the one to that rally point
+	EXPECT_FLOAT_EQ(evaluateAndPublish(UINT8_MAX).min_safe_time_estimate, beyond_battery.safe_time_estimate);
+}
+
+// WHAT: beyond the battery, RTL_TYPE 6 keeps Home if it is quicker to reach than a closer rally point.
+TEST_F(RTLQuickestRallyPointTest, Type6KeepsHomeIfQuickerThanCloserRallyPoint)
+{
+	// GIVEN: Home 300 m away and a rally point 100 m away but 400 m further down
+	setHomeAndRallyPoints(-300.f, {makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt - 400.f)});
+
+	const rtl_time_estimate_s estimate = evaluateAndPublish(UINT8_MAX);
+	EXPECT_FLOAT_EQ(estimate.min_safe_time_estimate, estimate.safe_time_estimate);
+}
+
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+// WHY: each destination has its own way around the geofence.
+// WHAT: RTL_TYPE 6 takes a rally point that is closer than Home only while the way to it is not longer.
+TEST_F(RTLQuickestRallyPointTest, Type6CountsTheWayAroundTheGeofence)
+{
+	// GIVEN: Home 400 m south and a rally point 200 m north
+	setHomeAndRallyPoints(-400.f, {makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt)});
+	const rtl_time_estimate_s straight = evaluateAndPublish(0);
+
+	// WHEN: an exclusion zone 400 m wide lies between the vehicle and the rally point
+	loadExclusionZone({{50.f, -200.f}, {150.f, -200.f}, {150.f, 200.f}, {50.f, 200.f}});
+
+	// THEN: Home is quicker to reach
+	const rtl_time_estimate_s around = evaluateAndPublish(UINT8_MAX);
+	EXPECT_FLOAT_EQ(around.min_safe_time_estimate, around.safe_time_estimate);
+	EXPECT_GT(around.safe_time_estimate, straight.safe_time_estimate);
+}
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
