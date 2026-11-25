@@ -313,7 +313,7 @@ TEST_F(EKF2SelectorTest, noFallbackToSustainedWarnedInstance)
 // a timed out primary falls back to the warned instance without delay
 TEST_F(EKF2SelectorTest, timedOutPrimaryFallsBackImmediately)
 {
-	runFor(2500_ms, 2.f, 0, 0.1f, 0);
+	degradeUntilSwitched();
 	ASSERT_EQ(primaryInstance(), 1);
 
 	// primary goes silent, only the warned instance 0 keeps publishing
