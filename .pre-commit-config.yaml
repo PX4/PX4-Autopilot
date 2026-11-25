@@ -1,23 +1,33 @@
 # File checks run locally on commit and in CI (.github/workflows/checks.yml).
 #
-#   pip install -r Tools/setup/requirements.txt  # provides pre-commit
-#   pre-commit install                           # run the checks on every commit
+#   pip install -r Tools/setup/requirements.txt  # provides prek
+#   prek install                                 # run the checks on every commit
 #   make check_format                            # run all checks on all files
 #   make format                                  # apply all automatic fixes
 #
 # Checks never modify files. Each one that can be fixed automatically has a
 # companion *-fix hook in the manual stage, which only `make format` runs.
 #
-# See https://pre-commit.com for usage.
+# The hooks run with prek (https://prek.j178.dev), a drop-in replacement for
+# pre-commit that runs hooks of the same priority concurrently. The read-only
+# checks share one priority, the fixes modify the same files and run one after
+# the other.
 
-minimum_pre_commit_version: '3.2.0'
+minimum_prek_version: '0.5.0'
 default_stages: [pre-commit]
+
+priorities:
+  checks: 0
+  fix-param-names: 10
+  fix-astyle: 11
+  fix-newlines: 12
 
 repos:
   - repo: local
     hooks:
       - id: param-names
         name: parameter member names
+        priority: checks
         description: DEFINE_PARAMETERS() members must be named _param_<lower case parameter name>.
         language: python
         entry: Tools/astyle/check_param_names.py
@@ -26,9 +36,10 @@ repos:
         exclude: ^platforms/nuttx/NuttX/
 
       # Renames violating members, which can touch files outside the checked
-      # set, so it only runs on request (make format) and never in parallel.
+      # set, so it only runs on request (make format) and before the other fixes.
       - id: param-names-fix
         name: parameter member names (fix)
+        priority: fix-param-names
         language: python
         entry: Tools/astyle/check_param_names.py --fix
         types_or: [c, c++]
@@ -39,6 +50,7 @@ repos:
 
       - id: astyle
         name: astyle (C/C++ formatting)
+        priority: checks
         description: Checks C/C++ formatting with astyle 3.1 and Tools/astyle/astylerc.
         language: python
         additional_dependencies: [astyle-py==1.1.0]
@@ -88,6 +100,7 @@ repos:
 
       - id: astyle-fix
         name: astyle (C/C++ formatting, fix)
+        priority: fix-astyle
         language: python
         additional_dependencies: [astyle-py==1.1.0]
         entry: Tools/astyle/fix_code_style.sh
@@ -97,6 +110,7 @@ repos:
 
       - id: validate-module-configs
         name: module config schema
+        priority: checks
         language: python
         additional_dependencies: [cerberus, pyyaml]
         entry: Tools/validate_yaml.py --schema-file validation/module_schema.yaml
@@ -117,6 +131,7 @@ repos:
       # without NUL bytes are taken for text, hence the .bin exclusion.
       - id: newlines
         name: newline at end of file
+        priority: checks
         language: python
         entry: Tools/astyle/check_newlines.py
         types: [text]
@@ -124,6 +139,7 @@ repos:
 
       - id: newlines-fix
         name: newline at end of file (fix)
+        priority: fix-newlines
         language: python
         entry: Tools/astyle/check_newlines.py --fix
         types: [text]
@@ -136,6 +152,7 @@ repos:
       # code, still contain such whitespace. Checks nothing on a clean tree.
       - id: whitespace
         name: whitespace in changed lines
+        priority: checks
         language: system
         entry: git diff --check HEAD --
         types: [text]
@@ -147,6 +164,7 @@ repos:
       # of a build is checked separately: make <board> shellcheck
       - id: shellcheck
         name: shellcheck (ROMFS sources)
+        priority: checks
         files: ^ROMFS/px4fmu_common/
         exclude: \.(txt|bin)$
         types: [text]
@@ -168,9 +186,11 @@ repos:
     hooks:
       - id: flake8
         name: flake8 (MAVSDK tests)
+        priority: checks
         files: ^test/mavsdk_tests/[^/]*\.py$
         args: [--config, test/mavsdk_tests/.flake8]
       - id: flake8
+        priority: checks
         files: |
           (?x)^(
             Tools/ci/ai_review/.*|

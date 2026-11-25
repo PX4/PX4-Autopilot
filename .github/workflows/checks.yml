@@ -34,16 +34,16 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install pre-commit
-        run: python -m pip install pre-commit
+      - name: Install prek
+        run: python -m pip install prek
 
       - uses: actions/cache@v5
         with:
-          path: ~/.cache/pre-commit
-          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
+          path: ~/.cache/prek
+          key: prek-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
 
       - name: Run pre-commit checks
-        run: pre-commit run --all-files --color=always
+        run: prek run --all-files --color=always
 
   # Checks that need a build
   gate_checks:
