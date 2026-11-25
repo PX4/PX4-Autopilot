@@ -1,0 +1,6 @@
+menuconfig DRIVERS_IMU_INVENSENSE_ICM45X
+	bool "TDK ICM45x/ICM56x SPI IMU family"
+	default n
+	help
+		Enable support for the Gen-4 IREG little-endian FIFO TDK ICM-45686
+		and ICM-56686 SPI IMU family.
