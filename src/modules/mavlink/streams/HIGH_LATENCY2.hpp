@@ -333,8 +333,8 @@ private:
 		geofence_result_s geofence;
 
 		if (_geofence_sub.update(&geofence)) {
-			if (geofence.geofence_max_dist_triggered || geofence.geofence_max_alt_triggered
-			    || geofence.geofence_custom_fence_triggered) {
+			if (geofence.geofence_emer_max_dist_triggered || geofence.geofence_emer_max_alt_triggered
+			    || geofence.geofence_emer_custom_fence_triggered) {
 				msg->failure_flags |= HL_FAILURE_FLAG_GEOFENCE;
 			}
 

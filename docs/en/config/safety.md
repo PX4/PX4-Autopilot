@@ -207,13 +207,8 @@ In its simplest form, the perimeter is set up as a cylinder centered around the 
 If the vehicle moves outside the radius or above the altitude the specified _Failsafe Action_ will trigger.
 
 Note that the failsafe action will only trigger once the vehicle has already breached the geofence.
-If you have a strict no-fly zone for safety or legal reasons, set [GF_ACTION](../advanced_config/parameter_reference.md#GF_ACTION) to `Hold` and include a safety margin in your geofences.
-The margin should be at least:
-
-- **Fixed-Wing**: The loiter radius [NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_LOITER_RAD).
-- **Multicopter**: The stopping distance (`v^2 / 2a` with `v`=[MPC_XY_VEL_MAX](../advanced_config/parameter_reference.md#MPC_XY_VEL_MAX) and `a`=[MPC_ACC_HOR_MAX](../advanced_config/parameter_reference.md#MPC_ACC_HOR_MAX)).
-
-Use a margin above those nominal values to account for possible tailwind, position uncertainty, attitude tracking delay, etc.
+If a horizontal boundary must not be crossed, for safety or legal reasons, configure a [Contingency Geofence](#contingency-geofence).
+It triggers its own action, for example `Hold`, before the vehicle reaches the geofence.
 
 ![Safety - Geofence (QGC)](../../assets/qgc/setup/safety/safety_geofence.png)
 
@@ -230,7 +225,7 @@ The settings and underlying [geofence parameters](../advanced_config/parameter_r
 | Max Altitude     | [GF_MAX_VER_DIST](../advanced_config/parameter_reference.md#GF_MAX_VER_DIST) | Height of geofence cylinder. Geofence disabled if 0.            |
 
 ::: info
-Setting `GF_ACTION` to terminate will kill the vehicle on violation of the fence.
+Setting `GF_ACTION` to terminate will kill the vehicle on a breach of the fence.
 Due to the inherent danger of this, this function is disabled using [CBRK_FLIGHTTERM](#CBRK_FLIGHTTERM), which needs to be reset to 0 to really shut down the system.
 :::
 
@@ -240,6 +235,88 @@ The following settings also apply, but are not displayed in the QGC UI.
 | ------------------------------------------------------------------ | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | <a id="GF_SOURCE"></a>Geofence source                              | [GF_SOURCE](../advanced_config/parameter_reference.md#GF_SOURCE)             | Set whether position source is estimated global position or direct from the GPS device. |
 | <a id="CBRK_FLIGHTTERM"></a>Circuit breaker for flight termination | [CBRK_FLIGHTTERM](../advanced_config/parameter_reference.md#CBRK_FLIGHTTERM) | Enables/Disables flight termination action (disabled by default).                       |
+
+### Contingency Geofence
+
+<Badge type="tip" text="main (PX4 v2.0)" />
+
+A contingency geofence is a second boundary at a horizontal margin inside the geofence, with its own failsafe action.
+The vehicle reaches it first, so it can for example hold at the contingency geofence, and only terminate if it still crosses the geofence.
+
+The two geofences are named after the volumes of the [SORA](http://jarus-rpas.org/wp-content/uploads/2024/06/SORA-v2.5-Main-Body-Release-JAR_doc_25.pdf) framework, which many countries use to approve complex operations:
+
+- The **contingency geofence** is the horizontal boundary of the flight geography.
+  A vehicle that leaves it carries out a contingency procedure, for example it holds or returns.
+- The **emergency geofence** is the geofence described above, with the action `GF_ACTION`.
+  It is the outer boundary of the contingency volume: a vehicle that leaves it carries out an emergency procedure, typically flight termination.
+
+Use a contingency geofence where the emergency geofence must not be crossed, or where its action has to be severe.
+
+#### Contingency Geofence Setup
+
+The contingency geofence is off while the margin is 0 (the default).
+
+| Setting                     | Parameter                                                                      | Description                                                     |
+| --------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------- |
+| Contingency geofence action | [GF_CONT_ACTION](../advanced_config/parameter_reference.md#GF_CONT_ACTION)     | None, Warning, Hold mode (default), Return mode, or Land mode.  |
+| Contingency geofence margin | [GF_CONT_H_MARGIN](../advanced_config/parameter_reference.md#GF_CONT_H_MARGIN) | Horizontal distance from the emergency geofence. Disabled if 0. |
+
+The margin applies to the maximum distance from Home ([GF_MAX_HOR_DIST](../advanced_config/parameter_reference.md#GF_MAX_HOR_DIST)) and to every inclusion and exclusion area of the [Geofence Plan](../flying/geofence.md#geofence-plan): the vehicle breaches the contingency geofence once it comes closer to one of them than `GF_CONT_H_MARGIN`.
+The maximum altitude ([GF_MAX_VER_DIST](../advanced_config/parameter_reference.md#GF_MAX_VER_DIST)) has no contingency geofence.
+
+`GF_CONT_H_MARGIN` is only available on flight controllers that [check the mission flight path](#mission-feasibility-checks) against the geofence (not on `px4_fmu-v2`, for example).
+The others have no contingency geofence.
+
+![Top view of an emergency geofence with the contingency geofence at the distance GF_CONT_H_MARGIN inside it: a fixed-wing vehicle that comes closer to the emergency geofence than the margin holds and loiters there, instead of flying on and breaching it](../../assets/config/safety/contingency_geofence_margin.svg)
+
+The margin has to leave the vehicle enough room to stop or turn around before the emergency geofence.
+It should be at least:
+
+- Fixed-wing: The loiter radius ([NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_LOITER_RAD)).
+- Multicopter: The nominal stopping distance (`v^2 / 2a` with `v`=[MPC_XY_VEL_MAX](../advanced_config/parameter_reference.md#MPC_XY_VEL_MAX) and `a`=[MPC_ACC_HOR](../advanced_config/parameter_reference.md#MPC_ACC_HOR)).
+  Allow additional distance for the acceleration ramp ([MPC_JERK_AUTO](../advanced_config/parameter_reference.md#MPC_JERK_AUTO)).
+
+Use a margin above these nominal values to account for possible tailwind, position uncertainty, attitude tracking delay, etc.
+
+::: info
+PX4 does not check the setup:
+
+- The contingency geofence action should be the milder of the two.
+  It has no `Terminate`, which is left to the emergency geofence.
+- If the margin leaves no room inside `GF_MAX_HOR_DIST` or inside an inclusion area, the contingency geofence is breached everywhere.
+- As for the emergency geofence, a mission that is already uploaded is not checked again when these parameters change, also not while it is being flown.
+  It is checked again when Mission mode is activated, or when the mission or the Geofence Plan is uploaded.
+- A geofence plan is not rejected because of the contingency geofence, for example when Home or the vehicle lies within the margin.
+  If the vehicle is already outside the contingency geofence when the plan is uploaded or a parameter changes, the action is triggered at once.
+- As for the emergency geofence, rally points are not checked against the contingency geofence.
+  Keep them inside it: a vehicle that returns to a rally point within the margin triggers the contingency geofence action on the way there.
+
+:::
+
+#### Contingency Geofence Behaviour
+
+When the vehicle breaches the contingency geofence:
+
+- The contingency geofence action is triggered, in all flight modes.
+  With `None` nothing is triggered and arming is not denied, as with `GF_ACTION` set to `None`.
+  With `Hold` the vehicle holds where it breached the contingency geofence, in the same way as after an emergency geofence breach (a fixed-wing vehicle loiters around that position).
+  A vehicle that was already loitering when it breached keeps its loiter centre.
+  Switch to another mode to take over.
+  The action is triggered again the next time the vehicle breaches the contingency geofence.
+- Arming is denied.
+- If the vehicle breaches the emergency geofence as well, the more severe of the two actions is taken, as for other failsafes.
+  This also applies after you have taken over.
+  If both actions are `Hold`, a vehicle that is still holding after the contingency geofence breach keeps that hold position.
+  Example: a fixed-wing vehicle loiters where it breached the contingency geofence, and its loiter circle crosses the emergency geofence.
+  Holding again where it crosses would only move the loiter circle further out.
+
+PX4 also keeps planned flight inside the contingency geofence:
+
+- A mission is rejected if one of its positions, a leg between positions or a fixed-wing loiter circle comes closer to the emergency geofence than the margin.
+- The target of a _Go to location_ ([reposition](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_REPOSITION)) or of an altitude change, and the centre of a fixed-wing orbit or figure-eight, is refused if it lies outside the contingency geofence (unless the action is `None` or `Warning`).
+  As for the emergency geofence, only the target is checked, not the path to it or the loiter circle around it.
+  An altitude change keeps the vehicle's position, so it is refused while the vehicle is outside the contingency geofence: send the vehicle back inside first.
+- [Return mode](../flight_modes/return.md#geofence_awareness) plans its route around the Geofence Plan with the margin added.
 
 ## Position Estimation Failsafes
 

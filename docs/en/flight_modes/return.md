@@ -254,6 +254,8 @@ The figures below show an exclusion zone and an inclusion zone.
 
 ![Inclusion Zone](../../assets/flight_modes/rtl_geofence_inclusion.jpg)
 
+If a [contingency geofence margin](../config/safety.md#contingency-geofence) is set ([GF_CONT_H_MARGIN](../advanced_config/parameter_reference.md#GF_CONT_H_MARGIN)), the polygons are enlarged or shrunk by that distance as well, so that the route keeps out of the margin.
+
 ### Geofence Limitations
 
 - The size of geofence that can be handled is limited by [GF_AVOID_NODES](../advanced_config/parameter_reference.md#GF_AVOID_NODES) (default 100, maximum 200, reboot required).
@@ -269,6 +271,8 @@ The figures below show an exclusion zone and an inclusion zone.
 - The safety margin in the [Shortest-path Calculation](#shortest-path-calculation) above may not be appropriate for all vehicles.
   It is derived from [NAV_LOITER_RAD](../advanced_config/parameter_reference.md#NAV_LOITER_RAD) for fixed-wing and VTOL vehicles, and from twice [NAV_ACC_RAD](../advanced_config/parameter_reference.md#NAV_ACC_RAD) for multicopters.
   It is not directly configurable.
+- A wide [contingency geofence margin](../config/safety.md#contingency-geofence) makes it more likely that a region is cut off, or that the destination lies within the margin.
+  Keep Home and the rally points further from the fence than both margins together, because the autopilot otherwise falls back to a direct path.
 
 ### Geofence Awareness Messages
 

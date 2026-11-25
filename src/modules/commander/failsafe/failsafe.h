@@ -176,6 +176,7 @@ private:
 	static ActionOptions fromNavDllOrRclActParam(int param_value);
 
 	static ActionOptions fromGfActParam(int param_value);
+	static ActionOptions fromGfContActParam(int param_value);
 	static ActionOptions fromActuatorFailureActParam(int param_value);
 	static ActionOptions fromBatteryWarningActParam(int param_value, uint8_t battery_warning);
 	static ActionOptions fromQuadchuteActParam(int param_value);
@@ -226,6 +227,7 @@ private:
 					(ParamInt<px4::params::COM_DLL_EXCEPT>) _param_com_dll_except,
 					(ParamInt<px4::params::COM_RC_IN_MODE>) _param_com_rc_in_mode,
 					(ParamInt<px4::params::GF_ACTION>)  	_param_gf_action,
+					(ParamInt<px4::params::GF_CONT_ACTION>) _param_gf_cont_action,
 					(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time,
 					(ParamInt<px4::params::CBRK_FLIGHTTERM>) _param_cbrk_flightterm,
 					(ParamInt<px4::params::COM_ACT_FAIL_ACT>) _param_com_act_fail_act,

@@ -218,6 +218,10 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 				missionitem.altitude);
 #endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 
+		// As for the emergency geofence in both branches above, the contingency geofence distance to Home is
+		// checked at every position. Its margin to the plan is checked with the paths, see addGeofencePath().
+		point_valid = point_valid && geofence.isCloserThanContMaxDistToHome(missionitem.lat, missionitem.lon);
+
 		if (!point_valid) {
 			failure = Failure::Waypoint;
 			failed_item = i;
@@ -293,9 +297,9 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 		break;
 
 	case Failure::Waypoint:
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence violation for waypoint %zu\t", failed_item + 1);
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence breach for waypoint %zu\t", failed_item + 1);
 		events::send<int16_t>(events::ID("navigator_mis_geofence_violation"), {events::Log::Error, events::LogInternal::Info},
-				      "Geofence violation for waypoint {1}", failed_item + 1);
+				      "Geofence breach for waypoint {1}", failed_item + 1);
 		break;
 	}
 
@@ -361,6 +365,8 @@ bool MissionFeasibilityChecker::addGeofencePath(GeofencePathBatch &batch, const 
 	path.start = start;
 	path.end = end;
 	path.end_radius = end_radius;
+	// The contingency geofence margin triggers GF_CONT_ACTION in flight, so paths and loiter circles keep it too.
+	path.margin = _navigator->get_geofence().getContGeofencePlanMargin();
 	batch.is_jump[batch.count] = is_jump;
 	batch.mission_indices[batch.count++] = static_cast<uint16_t>(mission_index);
 	return batch.count < kGeofencePathBatchSize || checkGeofencePathBatch(batch);
