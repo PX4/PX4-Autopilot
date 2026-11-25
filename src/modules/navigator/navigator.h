@@ -330,7 +330,7 @@ public:
 	void geofence_breach_check();
 
 	// Param access
-	int get_loiter_min_alt() const { return _param_min_ltr_alt.get(); }
+	int get_loiter_min_alt() const { return _param_nav_min_ltr_alt.get(); }
 	int get_landing_abort_min_alt() const { return _param_mis_lnd_abrt_alt.get(); }
 	float get_param_mis_takeoff_alt() const { return _param_mis_takeoff_alt.get(); }
 	float get_yaw_timeout() const { return _param_mis_yaw_tmt.get(); }
@@ -428,7 +428,8 @@ private:
 
 	Geofence	_geofence;			/**< class that handles the geofence */
 	hrt_abstime _last_geofence_check{0};
-	bool _geofence_reposition_sent{false};	/**< true if a reposition triplet has been sent for the current breach */
+	bool _geofence_emer_reposition_sent{false};	/**< reposition triplet sent for the current emergency geofence breach */
+	bool _geofence_cont_reposition_sent{false};	/**< reposition triplet sent for the current contingency geofence breach */
 	hrt_abstime _time_loitering_after_gf_breach{0};	/**< latches breach state while loitering, prevents reposition center walking */
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 	GeofenceAvoidancePlanner _geofence_avoidance_planner; /**< Return path planner that routes around fences (visibility graph + Dijkstra) */
@@ -504,7 +505,8 @@ private:
 
 	void publish_distance_sensor_mode_request();
 
-	bool geofence_allows_position(const vehicle_global_position_s &pos);
+	bool geofence_emer_allows_position(const vehicle_global_position_s &pos);
+	bool geofence_cont_allows_position(const vehicle_global_position_s &pos);
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::NAV_LOITER_RAD>)   _param_nav_loiter_rad,	/**< loiter radius for fixedwing */
@@ -514,7 +516,7 @@ private:
 		_param_nav_fw_altl_rad,	/**< acceptance rad for fixedwing alt before landing*/
 		(ParamFloat<px4::params::NAV_MC_ALT_RAD>)   _param_nav_mc_alt_rad,	/**< acceptance rad for multicopter alt */
 		(ParamInt<px4::params::NAV_FORCE_VT>)       _param_nav_force_vt,	/**< acceptance radius for multicopter alt */
-		(ParamFloat<px4::params::NAV_MIN_LTR_ALT>)   _param_min_ltr_alt,	/**< minimum altitude in Loiter mode*/
+		(ParamFloat<px4::params::NAV_MIN_LTR_ALT>)   _param_nav_min_ltr_alt,	/**< minimum altitude in Loiter mode*/
 		(ParamFloat<px4::params::NAV_MIN_GND_DIST>)
 		_param_nav_min_gnd_dist,	/**< minimum distance to ground (Mission and Return)*/
 

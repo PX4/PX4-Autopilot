@@ -66,8 +66,10 @@ void Ekf::controlBaroHeightFusion(const imuSample &imu_sample)
 		if (measurement_valid) {
 			if ((_baro_counter == 0) || baro_sample.reset) {
 				_baro_lpf.reset(measurement);
-				_baro_counter = 1;
+				_baro_counter++;
 				_control_status.flags.baro_fault = false;
+				// restarts below in the same update, on the new datum
+				stopBaroHgtFusion();
 
 			} else {
 				_baro_lpf.update(measurement);

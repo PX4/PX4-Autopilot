@@ -1,4 +1,5 @@
 argcomplete
+astyle-py==1.1.0
 cerberus
 coverage
 empy>=3.3,<4

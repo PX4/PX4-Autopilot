@@ -70,7 +70,7 @@ Community members are encouraged to document changes as they are merged into `ma
 
 ### Create the Release Branch
 
-Once the next release version is decided, create the new release branch from `main` in PX4-Autopilot and the companion repositories:
+Once the next release version is decided, create the new release branch from `main` in PX4-Autopilot:
 
 ```sh
 # PX4-Autopilot
@@ -79,17 +79,16 @@ git checkout -b release/1.18
 git push origin release/1.18
 ```
 
-Matching release branches must also be created in:
+The companion repositories get a matching release branch without further steps:
 
-- [PX4/px4_msgs](https://github.com/PX4/px4_msgs)
-- [Auterion/px4-ros2-interface-lib](https://github.com/Auterion/px4-ros2-interface-lib)
+- [PX4/px4_msgs](https://github.com/PX4/px4_msgs): created right away by the `create_px4_msgs_release_branch.yml` workflow in PX4-Autopilot.
+- [Auterion/px4-ros2-interface-lib](https://github.com/Auterion/px4-ros2-interface-lib): created within a day by that repository's [create_release_branch.yml](https://github.com/Auterion/px4-ros2-interface-lib/blob/main/.github/workflows/create_release_branch.yml) workflow, which checks PX4 for new release branches.
 
-After creating the companion branches, update the [ROS integration test workflow](https://github.com/PX4/PX4-Autopilot/blob/main/.github/workflows/ros_integration_tests.yml) on the release branch to clone `px4-ros2-interface-lib` from the matching release branch:
+Check that both branches exist.
+Either workflow can also be run by hand from the Actions tab of its repository, with the release branch name as input.
 
-```diff
-- git clone --recursive https://github.com/Auterion/px4-ros2-interface-lib.git
-+ git clone --recursive --branch release/1.18 https://github.com/Auterion/px4-ros2-interface-lib.git
-```
+The [ROS integration tests](https://github.com/PX4/PX4-Autopilot/blob/main/.github/workflows/ros_integration_tests.yml) build `px4-ros2-interface-lib` at the commit pinned in [Tools/ros2/ros2.repos](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/ros2/ros2.repos), and the new release branch starts with the pin it inherited from `main`.
+When the PX4 release branch needs a fix from the library, update the pin on the release branch to a commit from the library's matching release branch.
 
 ::: warning
 Once the release branches are created, they only accept bug fixes and regression fixes. All new feature development continues on `main`.
@@ -227,6 +226,11 @@ git pull
 git tag -s v1.18.0 -m "v1.18.0"
 git push origin v1.18.0
 ```
+
+Pushing a stable tag also tags [PX4/px4_msgs](https://github.com/PX4/px4_msgs).
+The [tag_px4_msgs_from_px4_release_tag.yml](https://github.com/PX4/PX4-Autopilot/blob/main/.github/workflows/tag_px4_msgs_from_px4_release_tag.yml) workflow checks that the `release/1.18` branch of `px4_msgs` has the same message definitions as the tag, sets the package version to `1.18.0`, and pushes a `v1.18.0` tag there.
+Alpha, beta and RC tags are not propagated.
+If the workflow fails, fix the cause and run it again from the Actions tab with the tag name as input.
 
 ### 9. Update the Stable Branch
 

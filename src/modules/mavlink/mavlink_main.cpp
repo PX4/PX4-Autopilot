@@ -311,6 +311,12 @@ Mavlink::mavlink_update_parameters()
 	// Refresh atomic snapshots of params read by the receiver thread, so the
 	// receiver doesn't read the (non-atomic) ModuleParams members directly.
 	_use_hil_gps_atomic.store(_param_mav_usehilgps.get());
+	_hb_forw_en_atomic.store(_param_mav_hb_forw_en.get());
+	_fwdextsp_atomic.store(_param_mav_fwdextsp.get());
+	_hash_chk_en_atomic.store(_param_mav_hash_chk_en.get());
+#if defined(CONFIG_MODULES_FAILURE_INJECTION_MANAGER)
+	_failure_injection_en_atomic.store(_param_sys_failure_en.get());
+#endif // CONFIG_MODULES_FAILURE_INJECTION_MANAGER
 
 	setProtocolVersion(_param_mav_proto_ver.get());
 
@@ -319,6 +325,8 @@ Mavlink::mavlink_update_parameters()
 		_param_mav_type.commit_no_notification();
 		PX4_ERR("MAV_TYPE parameter invalid, resetting to 0.");
 	}
+
+	_mav_type_atomic.store(_param_mav_type.get());
 }
 
 bool Mavlink::set_channel()
@@ -1666,7 +1674,7 @@ Mavlink::update_rate_mult()
 	} else if (_radio_status_available) {
 
 		// check for RADIO_STATUS timeout and reset
-		if (hrt_elapsed_time(&_rstatus.timestamp) > (_param_mav_radio_timeout.get() * 1_s)) {
+		if (hrt_elapsed_time(&_rstatus.timestamp) > (_param_mav_radio_tout.get() * 1_s)) {
 			_radio_status_available = false;
 			log_radio_timeout = true;
 
@@ -3432,7 +3440,7 @@ void Mavlink::publish_telemetry_status()
 void Mavlink::configure_sik_radio()
 {
 	/* radio config check */
-	if (_uart_fd >= 0 && _param_sik_radio_id.get() != 0) {
+	if (_uart_fd >= 0 && _param_mav_sik_radio_id.get() != 0) {
 		/* request to configure radio and radio is present */
 		FILE *fs = fdopen(_uart_fd, "w");
 
@@ -3443,9 +3451,9 @@ void Mavlink::configure_sik_radio()
 			fflush(fs);
 			px4_usleep(1200000);
 
-			if (_param_sik_radio_id.get() > 0) {
+			if (_param_mav_sik_radio_id.get() > 0) {
 				/* set channel */
-				fprintf(fs, "ATS3=%" PRIu32 "\r\n", _param_sik_radio_id.get());
+				fprintf(fs, "ATS3=%" PRIu32 "\r\n", _param_mav_sik_radio_id.get());
 				px4_usleep(200000);
 
 			} else {
@@ -3476,8 +3484,8 @@ void Mavlink::configure_sik_radio()
 		}
 
 		/* reset param and save */
-		_param_sik_radio_id.set(0);
-		_param_sik_radio_id.commit_no_notification();
+		_param_mav_sik_radio_id.set(0);
+		_param_mav_sik_radio_id.commit_no_notification();
 	}
 }
 
@@ -3643,6 +3651,7 @@ Mavlink::display_status()
 	printf("\t  rx loss: %.1f%%\n", (double)_tstatus.rx_message_lost_rate * 100.0);
 	printf("\t  rx unknown messages: %" PRIu32 "\n", _tstatus.rx_unknown_message_count);
 	printf("\t  rx bad signatures: %" PRIu32 "\n", _tstatus.rx_bad_signature_count);
+	printf("\t  rx bad CRCs: %" PRIu32 "\n", _tstatus.rx_bad_crc_count);
 
 #if !defined(CONSTRAINED_FLASH)
 	_receiver.print_detailed_rx_stats();

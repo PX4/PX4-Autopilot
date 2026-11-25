@@ -125,6 +125,7 @@ add_custom_command(
 		${romfs_copy_files}
 		${jinja_templates}
 		${module_config_files}
+		${PX4_BINARY_DIR}/px4_boardconfig.h
 		${romfs_cmake_files}
 		${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
 		${PX4_SOURCE_DIR}/Tools/px4airframes/markdownout.py
@@ -133,6 +134,7 @@ add_custom_command(
 		${PX4_SOURCE_DIR}/Tools/px4airframes/srcscanner.py
 		${PX4_SOURCE_DIR}/Tools/px4airframes/xmlout.py
 		${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
+		${PX4_SOURCE_DIR}/Tools/module_config/output_groups_from_timer_config.py
 	)
 
 
@@ -153,7 +155,8 @@ add_custom_command(
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
 		--rc-dir ${romfs_gen_root_dir}/init.d
 		--serial-ports ${board_serial_ports} ${added_arguments}
-		--config-files ${module_config_files} #--verbose
+		--config-files ${module_config_files}
+		--board-config ${BOARD_CONFIG} #--verbose
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/filepaths/generate_config.py
 		--rc-dir ${romfs_gen_root_dir}/init.d
 		--params-file ${CONFIG_BOARD_PARAM_FILE}
@@ -294,17 +297,56 @@ foreach(board_extra_file ${OPTIONAL_BOARD_EXTRAS})
 			list(REMOVE_ITEM OPTIONAL_BOARD_EXTRAS ${board_extra_file})
 		endif()
 	elseif(${extra_file_base_name} MATCHES "_io-v[0-9]+_default\\.bin$")
-		# px4io firmware: only the px4io driver can use it
-		if(NOT CONFIG_DRIVERS_PX4IO)
-			list(REMOVE_ITEM OPTIONAL_BOARD_EXTRAS ${board_extra_file})
-		endif()
+		# px4io firmware is not kept in the tree, see CONFIG_BOARD_IO below
+		file(RELATIVE_PATH extra_file_relative_source ${PX4_SOURCE_DIR} ${board_extra_file})
+		message(FATAL_ERROR "Delete ${extra_file_relative_source}: the px4io firmware is built from source "
+			"for CONFIG_BOARD_IO and must not be committed.")
 	endif()
 endforeach()
+
+# px4io firmware (optional)
+#  - built from source for CONFIG_BOARD_IO, once per checkout, in build/px4io/<CONFIG_BOARD_IO>/
+#  - the build runs on every build of this target so that IO source changes reach the ROMFS,
+#    the ROMFS is only regenerated when the IO binary changed
+if(CONFIG_DRIVERS_PX4IO AND CONFIG_BOARD_IO)
+	if(NOT CONFIG_BOARD_IO MATCHES "^([^_]+)_(.+)_([^_]+)$")
+		message(FATAL_ERROR "BOARD_IO '${CONFIG_BOARD_IO}' is not of the form <vendor>_<model>_<label>")
+	endif()
+	set(px4io_firmware_bin ${PX4_SOURCE_DIR}/build/px4io/${CONFIG_BOARD_IO}/build/${CONFIG_BOARD_IO}.bin)
+	message(STATUS "ROMFS:  Adding px4io firmware ${CONFIG_BOARD_IO} -> /etc/extras/${CONFIG_BOARD_IO}.bin")
+
+	add_custom_target(px4io_firmware
+		COMMAND ${CMAKE_COMMAND}
+			-DPX4_SOURCE_DIR=${PX4_SOURCE_DIR}
+			-DBOARD_IO=${CONFIG_BOARD_IO}
+			-DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}
+			-P ${PX4_SOURCE_DIR}/platforms/nuttx/cmake/px4io_firmware_build.cmake
+		BYPRODUCTS ${px4io_firmware_bin}
+		COMMENT "ROMFS: building px4io firmware ${CONFIG_BOARD_IO}"
+		VERBATIM
+	)
+
+	add_custom_command(
+		OUTPUT
+			${romfs_gen_root_dir}/extras/${CONFIG_BOARD_IO}.bin
+			${CONFIG_BOARD_IO}.bin.stamp
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different ${px4io_firmware_bin} ${romfs_gen_root_dir}/extras/${CONFIG_BOARD_IO}.bin
+		COMMAND ${CMAKE_COMMAND} -E touch ${CONFIG_BOARD_IO}.bin.stamp
+		DEPENDS
+			${px4io_firmware_bin}
+			romfs_copy.stamp
+		COMMENT "ROMFS: copying px4io firmware ${CONFIG_BOARD_IO}"
+	)
+
+	list(APPEND extras_dependencies
+		${CONFIG_BOARD_IO}.bin.stamp
+	)
+endif()
 
 foreach(board_extra_file ${OPTIONAL_BOARD_EXTRAS})
 
 	if(EXISTS "${board_extra_file}")
-		file(RELATIVE_PATH extra_file_base_name ${PX4_BOARD_DIR}/extras/ ${board_extra_file})
+		get_filename_component(extra_file_base_name ${board_extra_file} NAME)
 		file(RELATIVE_PATH extra_file_relative_source ${PX4_SOURCE_DIR} ${board_extra_file})
 		message(STATUS "ROMFS:  Adding ${extra_file_relative_source} -> /etc/extras/${extra_file_base_name}")
 
@@ -312,7 +354,7 @@ foreach(board_extra_file ${OPTIONAL_BOARD_EXTRAS})
 			OUTPUT
 				${romfs_gen_root_dir}/extras/${extra_file_base_name}
 				${extra_file_base_name}.stamp
-			COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PX4_BOARD_DIR}/extras/${extra_file_base_name} ${romfs_gen_root_dir}/extras/${extra_file_base_name}
+			COMMAND ${CMAKE_COMMAND} -E copy_if_different ${board_extra_file} ${romfs_gen_root_dir}/extras/${extra_file_base_name}
 			COMMAND ${CMAKE_COMMAND} -E touch ${extra_file_base_name}.stamp
 			DEPENDS
 				${board_extra_file}
@@ -373,7 +415,7 @@ if("${CONFIG_FS_CROMFS}" STREQUAL "y")
 		OUTPUT ${CMAKE_BINARY_DIR}/gencromfs
 		COMMAND make --no-print-directory --silent -f Makefile.host gencromfs
 		COMMAND ${CMAKE_COMMAND} -E copy_if_different gencromfs ${CMAKE_BINARY_DIR}/gencromfs
-		DEPENDS ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/tools/gencromfs.c
+		DEPENDS ${NUTTX_DIR}/tools/gencromfs.c
 		WORKING_DIRECTORY ${NUTTX_DIR}/tools
 	)
 

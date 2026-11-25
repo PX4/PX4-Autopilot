@@ -81,11 +81,20 @@ bool checkBatch(Geofence &geofence, PathBatch &batch)
 
 } // namespace
 
-// Polygons and circles only: a vehicle above the altitude limits or too far from Home does not recover, so its
-// segments are still checked.
+// The vehicle breaches a polygon or circle of the emergency geofence, for example 20 m outside an inclusion polygon.
+// Every way back in crosses that boundary, so segments from the vehicle are accepted without a fence check.
+// Too high, too far from Home or outside the contingency geofence is no recovery: those segments are checked.
 bool GeofencePathChecker::recovering(const Position &vehicle) const
 {
 	return !_geofence.isInsideHorizontalFences(vehicle.lat, vehicle.lon, vehicle.alt);
+}
+
+// A vehicle that is already outside the contingency geofence cannot keep it: it is closer to the emergency geofence
+// than GF_CONT_H_MARGIN. Its segments are checked against the emergency geofence only.
+// Example: the Return that GF_CONT_ACTION starts there may fly back through the margin, but not across the fence.
+bool GeofencePathChecker::vehicleOutsideContGeofence(const Position &vehicle) const
+{
+	return !_geofence.isInsideContGeofence(vehicle.lat, vehicle.lon);
 }
 
 bool GeofencePathChecker::pruneCandidates(ProjectionReferenceBatch &batch) const
@@ -110,18 +119,26 @@ bool GeofencePathChecker::pruneCandidates(ProjectionReferenceBatch &batch) const
 			continue;
 		}
 
-		if (reference.source_index < 0) {
+		// The reference is the vehicle (no source index) or a safe point.
+		const bool is_vehicle = reference.source_index < 0;
+
+		if (is_vehicle) {
 			// A vehicle in recovery keeps all its candidates unchecked: set bits 0 to count - 1.
 			if (recovering(anchor)) {
 				shared_paths.valid_masks[i] = static_cast<uint8_t>((1U << reference.candidate_buffer.count) - 1U);
 				continue;
 			}
 
-		} else if (!_geofence.checkPointAgainstAllGeofences(anchor.lat, anchor.lon, anchor.alt)) {
+		} else if (!_geofence.checkPointAgainstAllGeofences(anchor.lat, anchor.lon, anchor.alt)
+			   || !_geofence.isCloserThanContMaxDistToHome(anchor.lat, anchor.lon)) {
 			// A safe point outside the allowed area keeps no candidates: a segment entirely inside an exclusion
-			// area would cross no boundary.
+			// area would cross no boundary. Neither does one closer to GF_MAX_HOR_DIST than the margin.
 			continue;
 		}
+
+		// Segments keep GF_CONT_H_MARGIN from the polygons and circles, like the legs of a mission.
+		const bool emergency_only = is_vehicle && vehicleOutsideContGeofence(anchor);
+		const float margin = emergency_only ? 0.f : _geofence.getContGeofencePlanMargin();
 
 		for (uint8_t j = 0; j < reference.candidate_buffer.count; ++j) {
 			const Position &projection = reference.candidate_buffer.candidates[j].projection;
@@ -130,7 +147,7 @@ bool GeofencePathChecker::pruneCandidates(ProjectionReferenceBatch &batch) const
 				continue;
 			}
 
-			shared_paths.paths[shared_paths.count] = {{anchor.lat, anchor.lon}, {projection.lat, projection.lon}};
+			shared_paths.paths[shared_paths.count] = {{anchor.lat, anchor.lon}, {projection.lat, projection.lon}, 0.f, margin};
 			shared_paths.reference_indices[shared_paths.count] = i;
 			shared_paths.candidate_indices[shared_paths.count] = j;
 			++shared_paths.count;
@@ -181,7 +198,9 @@ bool GeofencePathChecker::checkPath(const Position &vehicle, const Position &end
 		return true;
 	}
 
-	const Geofence::PathCheck path{{vehicle.lat, vehicle.lon}, {end.lat, end.lon}};
+	const bool emergency_only = vehicleOutsideContGeofence(vehicle);
+	const float margin = emergency_only ? 0.f : _geofence.getContGeofencePlanMargin();
+	const Geofence::PathCheck path{{vehicle.lat, vehicle.lon}, {end.lat, end.lon}, 0.f, margin};
 	return _geofence.checkPathBatch(&path, 1, &clear);
 }
 

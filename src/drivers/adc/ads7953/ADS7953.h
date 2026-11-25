@@ -36,7 +36,7 @@ private:
 	perf_counter_t _comms_errors;
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::ADC_ADS7953_REFV>) _adc_ads7953_refv
+		(ParamFloat<px4::params::ADC_ADS7953_REFV>) _param_adc_ads7953_refv
 	)
 	adc_report_s _adc_report{};
 

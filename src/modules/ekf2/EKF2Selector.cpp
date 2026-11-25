@@ -174,8 +174,8 @@ bool EKF2Selector::UpdateErrorScores()
 			_last_update_us = sensors_status_imu.timestamp;
 
 			{
-				const float angle_rate_threshold = radians(_param_ekf2_sel_imu_angle_rate.get());
-				const float angle_threshold = radians(_param_ekf2_sel_imu_angle.get());
+				const float angle_rate_threshold = radians(_param_ekf2_sel_imu_rat.get());
+				const float angle_threshold = radians(_param_ekf2_sel_imu_ang.get());
 				uint8_t n_gyros = 0;
 				uint8_t n_gyro_exceedances = 0;
 				float largest_accumulated_gyro_error = 0.0f;
@@ -217,8 +217,8 @@ bool EKF2Selector::UpdateErrorScores()
 			}
 
 			{
-				const float accel_threshold = _param_ekf2_sel_imu_accel.get();
-				const float velocity_threshold = _param_ekf2_sel_imu_velocity.get();
+				const float accel_threshold = _param_ekf2_sel_imu_acc.get();
+				const float velocity_threshold = _param_ekf2_sel_imu_vel.get();
 				uint8_t n_accels = 0;
 				uint8_t n_accel_exceedances = 0;
 				float largest_accumulated_accel_error = 0.0f;

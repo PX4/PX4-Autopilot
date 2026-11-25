@@ -64,6 +64,6 @@ private:
 	uavcan::Publisher<uavcan::equipment::actuator::ArrayCommand>	_uavcan_pub_array_cmd;
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::UAVCAN_SV_RTMAX>) _param_sv_rtmax
+		(ParamInt<px4::params::UAVCAN_SV_RTMAX>) _param_uavcan_sv_rtmax
 	)
 };

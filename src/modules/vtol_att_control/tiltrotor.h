@@ -55,7 +55,6 @@ public:
 	Tiltrotor(VtolAttitudeControl *_att_controller);
 	~Tiltrotor() override = default;
 
-	void update_vtol_state() override;
 	void update_transition_state() override;
 	void fill_actuator_outputs() override;
 	void update_mc_state() override;
@@ -64,32 +63,25 @@ public:
 	void blendThrottleAfterFrontTransition(float scale) override;
 
 private:
-	enum class vtol_mode {
-		MC_MODE = 0,			/**< vtol is in multicopter mode */
-		TRANSITION_FRONT_P1,	/**< vtol is in front transition part 1 mode */
-		TRANSITION_FRONT_P2,	/**< vtol is in front transition part 2 mode */
-		TRANSITION_BACK,		/**< vtol is in back transition mode */
-		FW_MODE					/**< vtol is in fixed wing mode */
-	};
-
-	/**
-	 * Specific to tiltrotor with vertical aligned rear engine/s.
-	 * These engines need to be shut down in fw mode. During the back-transition
-	 * they need to idle otherwise they need too much time to spin up for mc mode.
-	 */
-
-	vtol_mode _vtol_mode{vtol_mode::MC_MODE};			/**< vtol flight mode, defined by enum vtol_mode */
 
 	uORB::Publication<tiltrotor_extra_controls_s>	_tiltrotor_extra_controls_pub{ORB_ID(tiltrotor_extra_controls)};
 
 	float _tilt_control{0.0f};		/**< actuator value for the tilt servo */
+
+	bool _front_transition_phase_2{false};	/**< rotors at VT_TILT_TRANS and tilting forward completely */
 
 	void parameters_update() override;
 	float timeUntilMotorsAreUp();
 	float moveLinear(float start, float stop, float progress);
 
 	void blendThrottleDuringBacktransition(const float scale, const float target_throttle);
-	bool isFrontTransitionCompletedBase() override;
+	bool isFrontTransitionCompleted() override;
+	bool isBackTransitionCompleted() override;
+	// switch to fixed-wing at once only while the rotors are still tilted forward enough for the wing. Once they are
+	// coming back, restart the front transition from the current tilt instead of handing the fixed-wing controller
+	// a vehicle with the rotors near vertical
+	bool canSwitchToFixedWingDuringBackTransition() override { return _tilt_control >= _param_vt_tilt_trans.get(); }
+	void onTransitionStart() override { _front_transition_phase_2 = false; }
 
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(VtolType,

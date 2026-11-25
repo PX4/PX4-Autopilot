@@ -41,6 +41,8 @@
 
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/atomic.h>
+#include <px4_platform_common/time.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <drivers/drv_hrt.h>
 #include <uORB/Publication.hpp>
@@ -169,6 +171,9 @@ private:
 	uORB::Publication<obstacle_distance_s> _obstacle_distance_pub{ORB_ID(obstacle_distance)};
 
 	int _fd{-1};
+
+	px4::atomic_bool _stop_requested{false};
+	px4::atomic_bool _stopped{false};
 	int _read_interval_us{2000};
 	char _device[20] {};
 	bool _print_config_only{false};

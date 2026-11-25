@@ -210,7 +210,7 @@ define cmake-build
 		|| (rm -rf $(BUILD_DIR)); \
 	fi
 	@# run the build for the specified target
-	@cmake --build $(BUILD_DIR) -- $(PX4_MAKE_ARGS) $(ARGS)
+	+@cmake --build $(BUILD_DIR) -- $(PX4_MAKE_ARGS) $(ARGS)
 endef
 
 # check if the options we want to build with in CMAKE_ARGS match the ones which are already configured in the cache inside BUILD_DIR
@@ -335,28 +335,6 @@ uorb_graphs:
 	@$(MAKE) --no-print-directory px4_fmu-v6x_default uorb_graph
 	@$(MAKE) --no-print-directory px4_sitl_default uorb_graph
 
-px4io_update:
-	@$(MAKE) --no-print-directory px4_io-v2_default
-	@$(MAKE) --no-print-directory cubepilot_io-v2_default
-	# px4_io-v2_default
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/ark/fmu-v6x/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/holybro/durandal-v1/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/holybro/pix32v5/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/mro/x21/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/mro/x21-777/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/fmu-v2/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/fmu-v3/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/fmu-v4pro/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/fmu-v5/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/fmu-v5x/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/fmu-v6x/extras/px4_io-v2_default.bin
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/fmu-v6c/extras/px4_io-v2_default.bin
-	# cubepilot_io-v2_default
-	cp build/cubepilot_io-v2_default/cubepilot_io-v2_default.bin boards/cubepilot/cubeorange/extras/cubepilot_io-v2_default.bin
-	cp build/cubepilot_io-v2_default/cubepilot_io-v2_default.bin boards/cubepilot/cubeorangeplus/extras/cubepilot_io-v2_default.bin
-	cp build/cubepilot_io-v2_default/cubepilot_io-v2_default.bin boards/cubepilot/cubeyellow/extras/cubepilot_io-v2_default.bin
-	git status
-
 bootloaders_update: \
 	3dr_ctrl-n1_bootloader \
 	3dr_ctrl-zero-h7-oem-revg_bootloader \
@@ -440,10 +418,12 @@ px4_metadata: parameters_metadata airframe_metadata module_documentation extract
 check_format:
 	$(call colorecho,'Checking formatting with astyle')
 	@"$(SRC_DIR)"/Tools/astyle/check_code_style_all.sh
+	@"$(SRC_DIR)"/Tools/astyle/check_param_names.py
 	@cd "$(SRC_DIR)" && git diff --check
 
 format:
 	$(call colorecho,'Formatting with astyle')
+	@"$(SRC_DIR)"/Tools/astyle/check_param_names.py --fix
 	@"$(SRC_DIR)"/Tools/astyle/check_code_style_all.sh --fix
 
 format_changed:

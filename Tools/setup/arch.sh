@@ -44,7 +44,6 @@ echo
 echo "Installing PX4 general dependencies"
 
 sudo pacman -Sy --noconfirm --needed \
-	astyle \
 	base-devel \
 	clang \
 	cmake \

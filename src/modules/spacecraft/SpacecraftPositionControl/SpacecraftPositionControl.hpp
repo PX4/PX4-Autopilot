@@ -105,25 +105,25 @@ private:
 
 	DEFINE_PARAMETERS(
 		// Position Control
-		(ParamFloat<px4::params::SPC_POS_P>)        _param_mpc_pos_p,
-		(ParamFloat<px4::params::SPC_POS_I>)        _param_mpc_pos_i,
-		(ParamFloat<px4::params::SPC_POS_I_LIM>)    _param_mpc_pos_i_lim,
-		(ParamFloat<px4::params::SPC_VEL_P>) 		_param_mpc_vel_p_acc,
-		(ParamFloat<px4::params::SPC_VEL_I>) 		_param_mpc_vel_i_acc,
-		(ParamFloat<px4::params::SPC_VEL_I_LIM>)    _param_mpc_vel_i_lim,
-		(ParamFloat<px4::params::SPC_VEL_D>) 		_param_mpc_vel_d_acc,
-		(ParamFloat<px4::params::SPC_VEL_ALL>)   	_param_mpc_vel_all,
-		(ParamFloat<px4::params::SPC_VEL_MAX>)   	_param_mpc_vel_max,
-		(ParamFloat<px4::params::SPC_VEL_CRUISE>)   _param_mpc_vel_cruise,
-		(ParamFloat<px4::params::SPC_VEL_MANUAL>)   _param_mpc_vel_manual,
-		(ParamFloat<px4::params::SPC_VEHICLE_RESP>) _param_sys_vehicle_resp,
-		(ParamFloat<px4::params::SPC_ACC>)      	_param_mpc_acc,
-		(ParamFloat<px4::params::SPC_ACC_MAX>)      _param_mpc_acc_max,
-		(ParamFloat<px4::params::SPC_MAN_Y_MAX>)    _param_mpc_man_y_max,
-		(ParamFloat<px4::params::SPC_MAN_Y_TAU>)    _param_mpc_man_y_tau,
-		(ParamFloat<px4::params::SPC_JERK_AUTO>)    _param_mpc_jerk_auto,
-		(ParamFloat<px4::params::SPC_JERK_MAX>)     _param_mpc_jerk_max,
-		(ParamFloat<px4::params::SPC_THR_MAX>)      _param_mpc_thr_max
+		(ParamFloat<px4::params::SPC_POS_P>)        _param_spc_pos_p,
+		(ParamFloat<px4::params::SPC_POS_I>)        _param_spc_pos_i,
+		(ParamFloat<px4::params::SPC_POS_I_LIM>)    _param_spc_pos_i_lim,
+		(ParamFloat<px4::params::SPC_VEL_P>) 		_param_spc_vel_p,
+		(ParamFloat<px4::params::SPC_VEL_I>) 		_param_spc_vel_i,
+		(ParamFloat<px4::params::SPC_VEL_I_LIM>)    _param_spc_vel_i_lim,
+		(ParamFloat<px4::params::SPC_VEL_D>) 		_param_spc_vel_d,
+		(ParamFloat<px4::params::SPC_VEL_ALL>)   	_param_spc_vel_all,
+		(ParamFloat<px4::params::SPC_VEL_MAX>)   	_param_spc_vel_max,
+		(ParamFloat<px4::params::SPC_VEL_CRUISE>)   _param_spc_vel_cruise,
+		(ParamFloat<px4::params::SPC_VEL_MANUAL>)   _param_spc_vel_manual,
+		(ParamFloat<px4::params::SPC_VEHICLE_RESP>) _param_spc_vehicle_resp,
+		(ParamFloat<px4::params::SPC_ACC>)      	_param_spc_acc,
+		(ParamFloat<px4::params::SPC_ACC_MAX>)      _param_spc_acc_max,
+		(ParamFloat<px4::params::SPC_MAN_Y_MAX>)    _param_spc_man_y_max,
+		(ParamFloat<px4::params::SPC_MAN_Y_TAU>)    _param_spc_man_y_tau,
+		(ParamFloat<px4::params::SPC_JERK_AUTO>)    _param_spc_jerk_auto,
+		(ParamFloat<px4::params::SPC_JERK_MAX>)     _param_spc_jerk_max,
+		(ParamFloat<px4::params::SPC_THR_MAX>)      _param_spc_thr_max
 	);
 
 	matrix::Vector3f target_pos_sp;

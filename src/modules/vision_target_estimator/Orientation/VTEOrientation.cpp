@@ -229,7 +229,7 @@ bool VTEOrientation::processObsVision(VisionObs &vision_obs)
 		return false;
 	}
 
-	const float min_ev_angle_var = sq(fmaxf(_param_vte_ev_angle_noise.get(), kMinObservationNoise));
+	const float min_ev_angle_var = sq(fmaxf(_param_vte_eva_noise.get(), kMinObservationNoise));
 	const float yaw_unc = fmaxf(fiducial_marker_yaw.yaw_var_ned, min_ev_angle_var);
 
 	vision_obs.timestamp = fiducial_marker_yaw.timestamp_sample;

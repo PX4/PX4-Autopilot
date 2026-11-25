@@ -188,6 +188,7 @@ private:
 	failure_injection::Config _failure_config;
 	failure_injection::Stuck<sensor_gnss_s> _gnss_stuck[_MAX_GNSS_SENSORS];
 	failure_injection::Stuck<vehicle_odometry_s> _visual_odometry_stuck{};
+	failure_injection::AirspeedState _airspeed_failure;
 
 	GZMixingInterfaceESC   _mixing_interface_esc{_node};
 	GZMixingInterfaceServo _mixing_interface_servo{_node};
@@ -227,14 +228,14 @@ private:
 	const float _vel_markov_time = 0.85f;       // Velocity Markov process coefficient
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SIM_GPS_USED>) _sim_gps_used,
-		(ParamInt<px4::params::SIM_GZ_EN_LIDAR>) _sim_gz_en_lidar,
-		(ParamInt<px4::params::SIM_GZ_EN_FLOW>) _sim_gz_en_flow,
-		(ParamInt<px4::params::SIM_GZ_EN_ASPD>) _sim_gz_en_aspd,
-		(ParamInt<px4::params::SIM_GZ_EN_BARO>) _sim_gz_en_baro,
-		(ParamInt<px4::params::SIM_GZ_EN_ODOM>) _sim_gz_en_odom,
-		(ParamInt<px4::params::SIM_GZ_EN_GPS>) _sim_gz_en_gps,
-		(ParamInt<px4::params::SIM_GZ_EN_IMU>) _sim_gz_en_imu,
-		(ParamInt<px4::params::SIM_GZ_EN_MAG>) _sim_gz_en_mag
+		(ParamInt<px4::params::SIM_GPS_USED>) _param_sim_gps_used,
+		(ParamInt<px4::params::SIM_GZ_EN_LIDAR>) _param_sim_gz_en_lidar,
+		(ParamInt<px4::params::SIM_GZ_EN_FLOW>) _param_sim_gz_en_flow,
+		(ParamInt<px4::params::SIM_GZ_EN_ASPD>) _param_sim_gz_en_aspd,
+		(ParamInt<px4::params::SIM_GZ_EN_BARO>) _param_sim_gz_en_baro,
+		(ParamInt<px4::params::SIM_GZ_EN_ODOM>) _param_sim_gz_en_odom,
+		(ParamInt<px4::params::SIM_GZ_EN_GPS>) _param_sim_gz_en_gps,
+		(ParamInt<px4::params::SIM_GZ_EN_IMU>) _param_sim_gz_en_imu,
+		(ParamInt<px4::params::SIM_GZ_EN_MAG>) _param_sim_gz_en_mag
 	)
 };

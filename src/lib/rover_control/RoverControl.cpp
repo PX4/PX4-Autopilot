@@ -64,6 +64,22 @@ ManualSticks mapSticks(const manual_control_setpoint_s &manual_control_setpoint,
 	}
 }
 
+bool sticksCommandMotion(const manual_control_setpoint_s &manual_control_setpoint, int32_t stick_map, bool can_drive_sideways,
+			 bool tank_style_sticks)
+{
+	const float arming_stick_threshold = 0.2f;
+	const ManualSticks sticks = mapSticks(manual_control_setpoint, stick_map);
+	const bool lateral = can_drive_sideways && fabsf(sticks.lateral) >= arming_stick_threshold;
+
+	if (tank_style_sticks) {
+		const float left = manual_control_setpoint.throttle;
+		const float right = manual_control_setpoint.pitch;
+		return fabsf(left) >= arming_stick_threshold || fabsf(right) >= arming_stick_threshold || lateral;
+	}
+
+	return fabsf(sticks.forward) >= arming_stick_threshold || lateral;
+}
+
 float throttleControl(SlewRate<float> &motor_setpoint, const float throttle_setpoint,
 		      const float current_motor_setpoint, const float max_accel, const float max_decel, const float max_thr_spd,
 		      const float dt)
@@ -203,6 +219,11 @@ float rateControl(SlewRate<float> &adjusted_yaw_rate_setpoint, PID &pid_yaw_rate
 		  const float max_yaw_decel,
 		  const float wheel_track, const float dt)
 {
+	// Sanitize inputs
+	if (!PX4_ISFINITE(yaw_rate_setpoint) || !PX4_ISFINITE(vehicle_yaw_rate) || !PX4_ISFINITE(dt)) {
+		return NAN;
+	}
+
 	// Apply acceleration and deceleration limit
 	if (fabsf(yaw_rate_setpoint) >= fabsf(vehicle_yaw_rate) && max_yaw_accel > FLT_EPSILON) {
 		adjusted_yaw_rate_setpoint.setSlewRate(max_yaw_accel);

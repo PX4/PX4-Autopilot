@@ -166,10 +166,10 @@ bool FixedwingLandDetector::_get_landed_state()
 						      && airspeed_invalid) ? math::radians(_param_lndfw_rot_max.get()) : INFINITY;
 
 		// Crude land detector for fixedwing.
-		landDetected = _airspeed_filtered         < _param_lndfw_airspd.get()
+		landDetected = _airspeed_filtered         < _param_lndfw_airspd_max.get()
 			       && _velocity_xy_filtered   < vel_xy_max_threshold
 			       && _velocity_z_filtered    < _param_lndfw_vel_z_max.get()
-			       && _xy_accel_filtered      < _param_lndfw_xyaccel_max.get()
+			       && _xy_accel_filtered      < _param_lndfw_xyacc_max.get()
 			       && _velocity_rot_filtered  < max_rotation_threshold;
 
 	} else {

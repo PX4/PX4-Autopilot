@@ -31,6 +31,8 @@
 #     <target>_canbootloader.bin
 #   - In-tree *_bootloader targets are attached as <target>_bootloader.bin
 #     (raw SWD image). Bootloader .px4 files are not attached.
+#   - px4io firmware is attached as <target>.bin (e.g. px4_io-v2_default.bin),
+#     the raw image the FMU flashes to the IO coprocessor.
 #
 # IMPORTANT: Version tags do NOT upload to stable/ or beta/. Only the
 # corresponding branch pushes control those directories. This prevents
@@ -94,9 +96,10 @@ on:
       - 'Tools/ci/generate_board_targets_json.py'
       - 'Tools/ci/generate_sbom.py'
       - 'Tools/ci/license-overrides.yaml'
-      - 'Tools/ci/package_build_artifacts.sh'
+      - 'Tools/ci/package_build_artifacts.py'
       - 'Tools/ci/test_build_all_runner.py'
       - 'Tools/ci/test_generate_board_targets_json.py'
+      - 'Tools/ci/test_package_build_artifacts.py'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -133,7 +136,7 @@ jobs:
 
       - name: Test Build Matrix and Slot Assignment
         working-directory: Tools/ci
-        run: python3 -m unittest -v test_generate_board_targets_json test_build_all_runner
+        run: python3 -m unittest -v test_generate_board_targets_json test_build_all_runner test_package_build_artifacts
 
       # The generator runs as a standalone assignment so a non-zero exit
       # fails the step; embedded in `echo "x=$(...)"` it would be masked
@@ -292,7 +295,7 @@ jobs:
 
       - name: Arrange Build Artifacts
         run: |
-          ./Tools/ci/package_build_artifacts.sh
+          ./Tools/ci/package_build_artifacts.py
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v7
@@ -320,7 +323,14 @@ jobs:
     # runs-on: ubuntu-latest
     runs-on: [runs-on,runner=1cpu-linux-x64,image=ubuntu24-full-x64,"run-id=${{ github.run_id }}",spot=false]
     needs: [setup, group_targets]
-    if: startsWith(github.ref, 'refs/tags/v') || contains(fromJSON('["main","stable","beta"]'), needs.group_targets.outputs.branchname)
+    # Without a status function GitHub adds an implicit success(), which is
+    # false whenever any upstream job was skipped. The seed stage is skipped
+    # whenever every chip family cache is warm, so check the build result
+    # explicitly instead (see actions/runner#491).
+    if: >-
+      !cancelled() &&
+      needs.setup.result == 'success' &&
+      (startsWith(github.ref, 'refs/tags/v') || contains(fromJSON('["main","stable","beta"]'), needs.group_targets.outputs.branchname))
     outputs:
       uploadlocation: ${{ steps.upload-location.outputs.uploadlocation }}
     steps:
@@ -387,6 +397,7 @@ jobs:
             artifacts/*.uavcan.bin
             artifacts/*_bootloader.bin
             artifacts/*_canbootloader.bin
+            artifacts/*_io-v*_default.bin
             artifacts/*.deb
             artifacts/**/*.sbom.spdx.json
           name: ${{ steps.upload-location.outputs.uploadlocation }}

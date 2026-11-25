@@ -4,10 +4,10 @@ parameters:
   definitions:
     GF_ACTION:
       description:
-        short: Geofence violation action
+        short: Emergency geofence breach action
         long: |-
           Note: Setting this value to 4 enables flight termination,
-          which will kill the vehicle on violation of the fence.
+          which will kill the vehicle on a breach of the fence.
       type: enum
       values:
         0: None
@@ -36,9 +36,7 @@ parameters:
     GF_MAX_HOR_DIST:
       description:
         short: Max horizontal distance from Home
-        long: |-
-          Maximum horizontal distance in meters the vehicle can be from Home before triggering a geofence action.
-          Disabled if 0.
+        long: Triggers GF_ACTION beyond this distance. Disabled if 0.
       type: float
       default: 0.0
       unit: m
@@ -48,12 +46,24 @@ parameters:
     GF_MAX_VER_DIST:
       description:
         short: Max vertical distance from Home
-        long: |-
-          Maximum vertical distance in meters the vehicle can be from Home before triggering a geofence action.
-          Disabled if 0.
+        long: Triggers GF_ACTION above this height over Home. Disabled if 0.
       type: float
       default: 0.0
       unit: m
       min: 0
       max: 10000
       increment: 1
+    GF_CONT_ACTION:
+      description:
+        short: Contingency geofence breach action
+        long: If the emergency geofence is breached as well, the more severe of this action and GF_ACTION is taken.
+      type: enum
+      values:
+        0: None
+        1: Warning
+        2: Hold mode
+        3: Return mode
+        5: Land mode
+      default: 2
+      min: 0
+      max: 5

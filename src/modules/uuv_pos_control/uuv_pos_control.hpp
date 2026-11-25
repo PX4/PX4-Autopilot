@@ -123,30 +123,30 @@ private:
 	float hgtData[2];//des_hgt,integrated hgt error
 	bool altitudeStateFlag;
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::UUV_GAIN_X_P>) _param_pose_gain_x,
-		(ParamFloat<px4::params::UUV_GAIN_Y_P>) _param_pose_gain_y,
-		(ParamFloat<px4::params::UUV_GAIN_Z_P>) _param_pose_gain_z,
-		(ParamFloat<px4::params::UUV_GAIN_X_D>) _param_pose_gain_d_x,
-		(ParamFloat<px4::params::UUV_GAIN_Y_D>) _param_pose_gain_d_y,
-		(ParamFloat<px4::params::UUV_GAIN_Z_D>) _param_pose_gain_d_z,
-		(ParamInt<px4::params::UUV_STAB_MODE>) _param_stab_mode,
-		(ParamFloat<px4::params::UUV_POS_STICK_DB>) _param_pos_stick_db,
-		(ParamFloat<px4::params::UUV_PGM_VEL>) _param_pgm_vel,
-		(ParamFloat<px4::params::UUV_SGM_ROLL>) _param_sgm_roll,
-		(ParamFloat<px4::params::UUV_SGM_PITCH>) _param_sgm_pitch,
-		(ParamFloat<px4::params::UUV_SGM_YAW>) _param_sgm_yaw,
-		(ParamFloat<px4::params::UUV_SP_MAX_AGE>) _param_setpoint_max_age,
-		(ParamInt<px4::params::UUV_POS_MODE>) _param_pos_mode,
+		(ParamFloat<px4::params::UUV_GAIN_X_P>) _param_uuv_gain_x_p,
+		(ParamFloat<px4::params::UUV_GAIN_Y_P>) _param_uuv_gain_y_p,
+		(ParamFloat<px4::params::UUV_GAIN_Z_P>) _param_uuv_gain_z_p,
+		(ParamFloat<px4::params::UUV_GAIN_X_D>) _param_uuv_gain_x_d,
+		(ParamFloat<px4::params::UUV_GAIN_Y_D>) _param_uuv_gain_y_d,
+		(ParamFloat<px4::params::UUV_GAIN_Z_D>) _param_uuv_gain_z_d,
+		(ParamInt<px4::params::UUV_STAB_MODE>) _param_uuv_stab_mode,
+		(ParamFloat<px4::params::UUV_POS_STICK_DB>) _param_uuv_pos_stick_db,
+		(ParamFloat<px4::params::UUV_PGM_VEL>) _param_uuv_pgm_vel,
+		(ParamFloat<px4::params::UUV_SGM_ROLL>) _param_uuv_sgm_roll,
+		(ParamFloat<px4::params::UUV_SGM_PITCH>) _param_uuv_sgm_pitch,
+		(ParamFloat<px4::params::UUV_SGM_YAW>) _param_uuv_sgm_yaw,
+		(ParamFloat<px4::params::UUV_SP_MAX_AGE>) _param_uuv_sp_max_age,
+		(ParamInt<px4::params::UUV_POS_MODE>) _param_uuv_pos_mode,
 
-		(ParamFloat<px4::params::UUV_SGM_THRTL>) _param_sgm_thrtl,
-		(ParamFloat<px4::params::UUV_HGT_P>) _param_hgt_p,
-		(ParamFloat<px4::params::UUV_HGT_D>) _param_hgt_d,
-		(ParamFloat<px4::params::UUV_HGT_I>) _param_hgt_i,
-		(ParamFloat<px4::params::UUV_HGT_I_SPD>) _param_hgt_i_speed,
-		(ParamFloat<px4::params::UUV_HGT_STR>) _param_hgt_strength,
-		(ParamInt<px4::params::UUV_HGT_B_UP>) _param_hgt_b_up,
-		(ParamInt<px4::params::UUV_HGT_B_DOWN>) _param_hgt_b_down,
-		(ParamFloat<px4::params::UUV_HGT_MAX_DIFF>) _param_hgt_max_diff
+		(ParamFloat<px4::params::UUV_SGM_THRTL>) _param_uuv_sgm_thrtl,
+		(ParamFloat<px4::params::UUV_HGT_P>) _param_uuv_hgt_p,
+		(ParamFloat<px4::params::UUV_HGT_D>) _param_uuv_hgt_d,
+		(ParamFloat<px4::params::UUV_HGT_I>) _param_uuv_hgt_i,
+		(ParamFloat<px4::params::UUV_HGT_I_SPD>) _param_uuv_hgt_i_spd,
+		(ParamFloat<px4::params::UUV_HGT_STR>) _param_uuv_hgt_str,
+		(ParamInt<px4::params::UUV_HGT_B_UP>) _param_uuv_hgt_b_up,
+		(ParamInt<px4::params::UUV_HGT_B_DOWN>) _param_uuv_hgt_b_down,
+		(ParamFloat<px4::params::UUV_HGT_MAX_DIFF>) _param_uuv_hgt_max_diff
 	)
 
 	void Run() override;

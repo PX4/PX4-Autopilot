@@ -250,6 +250,8 @@ void LightwareLaserSerial::start()
 {
 	/* reset the report ring and state machine */
 	_collect_phase = false;
+	_stop_requested.store(false);
+	_stopped.store(false);
 
 	/* schedule a cycle to start things */
 	ScheduleNow();
@@ -257,12 +259,28 @@ void LightwareLaserSerial::start()
 
 void LightwareLaserSerial::stop()
 {
+	// The serial port is opened in Run() on the work queue. File descriptors are
+	// per task group on NuttX, so it must also be closed there and not from the
+	// shell calling stop. Let Run() close it and wait until it has.
+	_stop_requested.store(true);
+	ScheduleNow();
+
+	for (int i = 0; i < 100 && !_stopped.load(); i++) {
+		px4_usleep(10000);
+	}
+
 	ScheduleClear();
-	_uart.close();
 }
 
 void LightwareLaserSerial::Run()
 {
+	if (_stop_requested.load()) {
+		ScheduleClear();
+		_uart.close();
+		_stopped.store(true);
+		return;
+	}
+
 	if (!_uart.isOpen()) {
 		if (!_uart.setPort(_port)) {
 			PX4_ERR("failed to configure port %s", _port);

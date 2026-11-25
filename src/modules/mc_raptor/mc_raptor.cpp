@@ -258,7 +258,7 @@ bool Raptor::init()
 	register_ext_component_request.px4_ros2_api_version = register_ext_component_request_s::LATEST_PX4_ROS2_API_VERSION;
 	register_ext_component_request.register_arming_check = true;
 	register_ext_component_request.register_mode = true;
-	register_ext_component_request.enable_replace_internal_mode = _param_mc_raptor_offboard.get();
+	register_ext_component_request.enable_replace_internal_mode = _param_mc_raptor_offb.get();
 	register_ext_component_request.replace_internal_mode = vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
 	register_ext_component_request.request_offboard_setpoints = true;
 	_register_ext_component_request_pub.publish(register_ext_component_request);
