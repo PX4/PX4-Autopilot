@@ -40,7 +40,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Where to Buy
 
-Order from [CORVON](https://www.corvon.tech/en).
+Order from [CORVON](https://www.corvon.tech/en/products/corvon-h743-flight-controller-30x30-fc-for-drones-with-dual-imu-compass-barometer-stm32h743-7-uart-10-pwm-supports-betaflight-inav-ardupilot-px4-usb-c-blackbox-logging-5v-9v-bec-outputs).
 
 ## Physical / Mechanical
 

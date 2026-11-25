@@ -95,7 +95,8 @@ void RTL::on_inactive()
 
 	if ((now - _destination_check_time) > RTL_REPLAN_INTERVAL) {
 		_destination_check_time = now;
-		setRtlTypeAndDestination();
+		const ReturnSelection selection = selectReturn();
+		applyReturn(selection);
 		publishRemainingTimeEstimate();
 	}
 
@@ -310,14 +311,24 @@ void RTL::selectHomeIfReachable(ReturnSelection &selection)
 rtl_time_estimate_s RTL::estimateTimeToHome()
 {
 	const PositionYawSetpoint home = homeDestination();
-	loiter_point_s home_loiter;
-	home_loiter.lat = home.lat;
-	home_loiter.lon = home.lon;
-	home_loiter.height_m = NAN;
+	return _rtl_direct.estimateReturnTo({home, landingLoiter(home), computeReturnAltitude(home)});
+}
 
-	_rtl_direct.setRtlAlt(computeReturnAltitude(home));
-	_rtl_direct.setRtlPosition(home, home_loiter);
-	return _rtl_direct.calc_rtl_time_estimate();
+loiter_point_s RTL::landingLoiter(const PositionYawSetpoint &destination) const
+{
+	loiter_point_s landing_loiter{};
+
+#if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
+	landing_loiter = selectLandingApproach(destination);
+#endif
+
+	if (!landing_loiter.isValid()) {
+		landing_loiter.lat = destination.lat;
+		landing_loiter.lon = destination.lon;
+		landing_loiter.height_m = NAN;
+	}
+
+	return landing_loiter;
 }
 
 void RTL::applyReturn(const ReturnSelection &selection)
@@ -358,15 +369,7 @@ void RTL::applyReturn(const ReturnSelection &selection)
 	loiter_point_s landing_loiter{};
 
 	if (new_rtl_type == RtlType::RTL_DIRECT) {
-#if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
-		landing_loiter = selectLandingApproach(destination);
-#endif
-
-		if (!landing_loiter.isValid()) {
-			landing_loiter.lat = destination.lat;
-			landing_loiter.lon = destination.lon;
-			landing_loiter.height_m = NAN;
-		}
+		landing_loiter = landingLoiter(destination);
 	}
 
 	_rtl_direct.setRtlAlt(rtl_alt);
