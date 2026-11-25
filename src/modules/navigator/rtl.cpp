@@ -97,7 +97,7 @@ void RTL::on_inactive()
 		_destination_check_time = now;
 		const ReturnSelection selection = selectReturn();
 		applyReturn(selection);
-		publishRemainingTimeEstimate();
+		publishRemainingTimeEstimate(selection.fallback_safe_time_estimate);
 	}
 
 }
@@ -113,7 +113,7 @@ void RTL::on_inactivation()
 	_rtl_direct.run(false);
 }
 
-void RTL::publishRemainingTimeEstimate()
+void RTL::publishRemainingTimeEstimate(float fallback_safe_time_estimate)
 {
 	const bool global_position_recently_updated = _global_pos_sub.get().timestamp > 0
 			&& hrt_elapsed_time(&_global_pos_sub.get().timestamp) < 10_s;
@@ -133,8 +133,8 @@ void RTL::publishRemainingTimeEstimate()
 	// RTL_TYPE 6 while inactive: the lower estimate of Home and its rally point, for the distance-aware return failsafe
 	estimated_time.min_safe_time_estimate = estimated_time.safe_time_estimate;
 
-	if (estimated_time.valid && !isActive() && PX4_ISFINITE(_alternative_safe_time_estimate)) {
-		estimated_time.min_safe_time_estimate = min(estimated_time.safe_time_estimate, _alternative_safe_time_estimate);
+	if (estimated_time.valid && PX4_ISFINITE(fallback_safe_time_estimate)) {
+		estimated_time.min_safe_time_estimate = min(estimated_time.safe_time_estimate, fallback_safe_time_estimate);
 	}
 
 	estimated_time.timestamp = hrt_absolute_time();
@@ -192,7 +192,7 @@ void RTL::on_active()
 
 	if ((now - _destination_check_time) > RTL_REPLAN_INTERVAL) {
 		_destination_check_time = now;
-		publishRemainingTimeEstimate();
+		publishRemainingTimeEstimate(NAN);
 	}
 }
 
@@ -320,14 +320,12 @@ void RTL::selectHomeIfReachable(ReturnSelection &selection)
 		}
 
 		// If no rally points are closer (or none are defined), fall back to home (already set as the destination)
-	}
+	} else if (has_rally_point) {
+		// Only a quicker rally point can extend the available return time.
+		const rtl_time_estimate_s fallback = estimateDirectReturn(rally_point);
 
-	if (has_rally_point) {
-		// Estimate the destination not selected, for min_safe_time_estimate
-		const rtl_time_estimate_s alternative = home_within_reach ? estimateDirectReturn(rally_point) : time_to_home;
-
-		if (alternative.valid) {
-			selection.alternative_safe_time_estimate = alternative.safe_time_estimate;
+		if (fallback.valid && fallback.safe_time_estimate < time_to_home.safe_time_estimate) {
+			selection.fallback_safe_time_estimate = fallback.safe_time_estimate;
 		}
 	}
 }
@@ -400,7 +398,6 @@ void RTL::applyReturn(const ReturnSelection &selection)
 				   selection.destination_type == DestinationType::DESTINATION_TYPE_CURRENT_POSITION);
 
 	_rtl_type = new_rtl_type;
-	_alternative_safe_time_estimate = selection.alternative_safe_time_estimate;
 
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 

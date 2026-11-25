@@ -129,7 +129,7 @@ private:
 		uint8_t safe_point_index{RTL_STATUS_NO_SAFE_POINT};
 		bool home_has_land_approach{false}; ///< Home has a VTOL land approach, for the types that look
 		bool rally_point_has_land_approach{false}; ///< A rally point searched for this selection has one
-		float alternative_safe_time_estimate{NAN}; ///< [s] RTL_TYPE 6: estimate to the destination not selected
+		float fallback_safe_time_estimate{NAN}; ///< [s] Safe return time to an available fallback, or NAN
 	};
 
 	/** Selects the destination of the current RTL_TYPE, then applies it. */
@@ -162,7 +162,7 @@ private:
 	 *
 	 * While inactive, RTL_TYPE 6 also reports the lower estimate of Home and its rally point.
 	 */
-	void publishRemainingTimeEstimate();
+	void publishRemainingTimeEstimate(float fallback_safe_time_estimate);
 
 	/**
 	 * @brief Find the closest rally point within min_dist
@@ -226,8 +226,6 @@ private:
 	bool _mission_land_failure_reported{false};
 
 	RtlDirect _rtl_direct;
-
-	float _alternative_safe_time_estimate{NAN}; ///< [s] from the latest selection
 
 	bool _enforce_rtl_alt{false};
 

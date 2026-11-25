@@ -255,7 +255,7 @@ public:
 	bool directActiveForTest() { return _rtl_direct.isActive(); }
 
 	// an inactive evaluation of the given RTL_TYPE with the latest vehicle state
-	void evaluateReturnTypeForTest(int32_t rtl_type)
+	float evaluateReturnTypeForTest(int32_t rtl_type)
 	{
 		_param_rtl_type.set(rtl_type);
 		_global_pos_sub.update();
@@ -263,7 +263,9 @@ public:
 		_mission_sub.update();
 		_home_pos_sub.update();
 		_wind_sub.update();
-		setRtlTypeAndDestination();
+		const ReturnSelection selection = selectReturn();
+		applyReturn(selection);
+		return selection.fallback_safe_time_estimate;
 	}
 
 	void activateReturnTypeForTest(int32_t rtl_type)
@@ -276,7 +278,7 @@ public:
 	rtl_time_estimate_s directEstimateForTest() { return _rtl_direct.calc_rtl_time_estimate(); }
 
 	// RTL publishes its estimate every few seconds, after it selected the destination
-	void publishTimeEstimateForTest() { publishRemainingTimeEstimate(); }
+	void publishTimeEstimateForTest(float fallback) { publishRemainingTimeEstimate(fallback); }
 
 	// the estimate RTL publishes while the return type is mission-based
 	rtl_time_estimate_s missionEstimateForTest() { return _rtl_mission_type_handle->calc_rtl_time_estimate(); }
@@ -3559,9 +3561,9 @@ protected:
 	}
 
 	// the estimate RTL publishes after an evaluation
-	rtl_time_estimate_s publishedEstimate()
+	rtl_time_estimate_s publishedEstimate(float fallback)
 	{
-		_rtl.publishTimeEstimateForTest();
+		_rtl.publishTimeEstimateForTest(fallback);
 		EXPECT_TRUE(_estimate_sub.update());
 		EXPECT_TRUE(_estimate_sub.get().valid);
 		return _estimate_sub.get();
@@ -3585,20 +3587,40 @@ TEST_F(RTLLowestEstimateTest, Type6LowestEstimateDoesNotDependOnTheBattery)
 {
 	// WHEN: the battery reaches Home
 	publishBatteryTimeRemaining(3600.f);
-	_rtl.evaluateReturnTypeForTest(6);
+	const float home_fallback = _rtl.evaluateReturnTypeForTest(6);
 	ASSERT_FALSE(selectsRallyPoint());
-	const rtl_time_estimate_s to_home = publishedEstimate();
+	const rtl_time_estimate_s to_home = publishedEstimate(home_fallback);
 
 	// WHEN: the battery does not reach Home
 	publishBatteryTimeRemaining(1.f);
-	_rtl.evaluateReturnTypeForTest(6);
+	const float rally_fallback = _rtl.evaluateReturnTypeForTest(6);
 	ASSERT_TRUE(selectsRallyPoint());
-	const rtl_time_estimate_s to_rally_point = publishedEstimate();
+	const rtl_time_estimate_s to_rally_point = publishedEstimate(rally_fallback);
 
 	// THEN: the selected estimate drops from Home's to the rally point's, the lowest one stays the rally point's
 	EXPECT_GT(to_home.safe_time_estimate, to_rally_point.safe_time_estimate + 1.f);
 	EXPECT_FLOAT_EQ(to_home.min_safe_time_estimate, to_rally_point.safe_time_estimate);
 	EXPECT_FLOAT_EQ(to_rally_point.min_safe_time_estimate, to_rally_point.safe_time_estimate);
+}
+
+TEST_F(RTLLowestEstimateTest, CloserButSlowerRallyDoesNotProvideFallbackTime)
+{
+	const PositionYawSetpoint rally = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt + 500.f);
+	loadSafePointsIntoRouteCache({makeSafePointItem(rally.lat, rally.lon, rally.alt, NAV_FRAME_GLOBAL)});
+
+	publishBatteryTimeRemaining(3600.f);
+	const float fallback = _rtl.evaluateReturnTypeForTest(6);
+	ASSERT_FALSE(selectsRallyPoint());
+	EXPECT_TRUE(std::isnan(fallback));
+	const rtl_time_estimate_s home = publishedEstimate(fallback);
+	EXPECT_FLOAT_EQ(home.min_safe_time_estimate, home.safe_time_estimate);
+
+	publishBatteryTimeRemaining(1.f);
+	const float selected_rally_fallback = _rtl.evaluateReturnTypeForTest(6);
+	ASSERT_TRUE(selectsRallyPoint());
+	const rtl_time_estimate_s selected_rally = publishedEstimate(selected_rally_fallback);
+	EXPECT_GT(selected_rally.safe_time_estimate, home.safe_time_estimate);
+	EXPECT_FLOAT_EQ(selected_rally.min_safe_time_estimate, selected_rally.safe_time_estimate);
 }
 
 // WHY: only RTL_TYPE 6 chooses between two destinations by the battery.
@@ -3607,14 +3629,14 @@ TEST_F(RTLLowestEstimateTest, LowestEstimateIsTheSelectedOneWithoutAnotherDestin
 {
 	// GIVEN: RTL_TYPE 6 going Home with the rally point as the other destination
 	publishBatteryTimeRemaining(3600.f);
-	_rtl.evaluateReturnTypeForTest(6);
-	const rtl_time_estimate_s with_rally_point = publishedEstimate();
+	const float home_fallback = _rtl.evaluateReturnTypeForTest(6);
+	const rtl_time_estimate_s with_rally_point = publishedEstimate(home_fallback);
 	ASSERT_LT(with_rally_point.min_safe_time_estimate, with_rally_point.safe_time_estimate);
 
 	// WHEN: RTL_TYPE 0 takes the closest destination, the rally point
-	_rtl.evaluateReturnTypeForTest(0);
+	const float closest_fallback = _rtl.evaluateReturnTypeForTest(0);
 	ASSERT_TRUE(selectsRallyPoint());
-	const rtl_time_estimate_s closest = publishedEstimate();
+	const rtl_time_estimate_s closest = publishedEstimate(closest_fallback);
 
 	// THEN: its estimate is also the lowest one
 	EXPECT_FLOAT_EQ(closest.min_safe_time_estimate, closest.safe_time_estimate);
@@ -3623,9 +3645,9 @@ TEST_F(RTLLowestEstimateTest, LowestEstimateIsTheSelectedOneWithoutAnotherDestin
 	// WHEN: RTL_TYPE 6 has no rally point closer than Home
 	const PositionYawSetpoint far_rally_point = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt);
 	loadSafePointsIntoRouteCache({makeSafePointItem(far_rally_point.lat, far_rally_point.lon, kAlt, NAV_FRAME_GLOBAL)});
-	_rtl.evaluateReturnTypeForTest(6);
+	const float home_only_fallback = _rtl.evaluateReturnTypeForTest(6);
 	ASSERT_FALSE(selectsRallyPoint());
-	const rtl_time_estimate_s home_only = publishedEstimate();
+	const rtl_time_estimate_s home_only = publishedEstimate(home_only_fallback);
 
 	// THEN: Home's estimate is also the lowest one
 	EXPECT_FLOAT_EQ(home_only.min_safe_time_estimate, home_only.safe_time_estimate);
@@ -3638,14 +3660,14 @@ TEST_F(RTLLowestEstimateTest, Type6LowestEstimateFollowsTheActiveReturn)
 {
 	// GIVEN: the battery reaches Home, and the rally point's estimate is the lowest one
 	publishBatteryTimeRemaining(3600.f);
-	_rtl.evaluateReturnTypeForTest(6);
-	const rtl_time_estimate_s inactive = publishedEstimate();
+	const float home_fallback = _rtl.evaluateReturnTypeForTest(6);
+	const rtl_time_estimate_s inactive = publishedEstimate(home_fallback);
 	ASSERT_LT(inactive.min_safe_time_estimate, inactive.safe_time_estimate);
 
 	// WHEN: Return activates
 	_rtl.activateReturnTypeForTest(6);
 	ASSERT_FALSE(selectsRallyPoint());
-	const rtl_time_estimate_s active = publishedEstimate();
+	const rtl_time_estimate_s active = publishedEstimate(NAN);
 
 	// THEN: the lowest estimate is the one to Home
 	EXPECT_FLOAT_EQ(active.min_safe_time_estimate, active.safe_time_estimate);
