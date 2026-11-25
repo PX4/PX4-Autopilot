@@ -38,6 +38,7 @@
 #include <string.h>
 #include <errno.h>
 
+#include <containers/LockGuard.hpp>
 #include <mathlib/mathlib.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/log.h>
@@ -217,10 +218,13 @@ bool LogWriterFile::start_log(LogType type, const char *filename)
 		}
 	}
 
-	// The writer thread may already run for the other log type and reads the buffer state under the lock
-	lock();
+	{
+		// The writer thread may already run for the other log type and reads the buffer state under the lock
+		LockGuard lg{_mtx};
 
-	if (_buffers[(int)type].start_log(filename)) {
+		if (!_buffers[(int)type].start_log(filename)) {
+			return false;
+		}
 
 #if PX4_CRYPTO
 		bool enc_init = init_logfile_encryption(type);
@@ -231,20 +235,15 @@ bool LogWriterFile::start_log(LogType type, const char *filename)
 			_buffers[(int)type]._should_run.store(false);
 			_buffers[(int)type].close_file();
 			_buffers[(int)type].reset();
-			unlock();
 			return false;
 		}
 
 #endif
-
-		unlock();
-		PX4_INFO("Opened %s log file: %s", log_type_str(type), filename);
-		notify();
-		return true;
 	}
 
-	unlock();
-	return false;
+	PX4_INFO("Opened %s log file: %s", log_type_str(type), filename);
+	notify();
+	return true;
 }
 
 int LogWriterFile::hardfault_store_filename(const char *log_file)
