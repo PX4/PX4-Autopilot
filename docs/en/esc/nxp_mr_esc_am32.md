@@ -18,7 +18,7 @@ Order this module from:
 
 ## Hardware Specifications
 
-- Battery Voltage: 2-6s
+- Battery Voltage: 2-6S
   - 6V Minimum
   - 25.2V Maximum
 - Current Rating: 25A continuous, 50A peak (at 6S, without heat sink)
