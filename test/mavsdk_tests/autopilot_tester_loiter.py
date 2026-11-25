@@ -7,6 +7,7 @@ internally. Checks observe both the commanded loiter center and the actual traje
 from contextlib import contextmanager
 import json
 import math
+import threading
 from typing import Any, Iterator, List, Optional, Tuple
 
 from mavsdk.plugins.telemetry import FlightMode  # type: ignore
@@ -55,11 +56,10 @@ class AutopilotTesterLoiter(AutopilotTester):
         in POSITION_TARGET_GLOBAL_INT, so moving along a fence edge is detected too.
         """
         centers: List[Tuple[int, int]] = []
-        target_count = 0
+        target_received = threading.Event()
         ct = self.get_coordinate_transformation() if expected_center is not None else None
 
         def on_target(message: Any, _user_data: Any) -> None:
-            nonlocal target_count
             fields = json.loads(message.fields_json)
             center = (int(fields["lat_int"]), int(fields["lon_int"]))
             if not centers:
@@ -68,9 +68,9 @@ class AutopilotTesterLoiter(AutopilotTester):
                     if math.hypot(north_m - expected_center[0], east_m - expected_center[1]) > 1.0:
                         return
                 centers.append(center)
-            target_count += 1
             self.check_in_callback(center == centers[0],
                                    "Hold center changed from {} to {}".format(centers[0], center))
+            target_received.set()
 
         def on_mode(flight_mode: FlightMode, _user_data: Any) -> None:
             self.check_in_callback(flight_mode == FlightMode.HOLD,
@@ -83,14 +83,17 @@ class AutopilotTesterLoiter(AutopilotTester):
             on_mode(self._telemetry.flight_mode(), None)
             self.send_command_long(MAV_CMD_REQUEST_MESSAGE,
                                    param1=MAVLINK_MSG_ID_POSITION_TARGET_GLOBAL_INT)
-            assert self.poll_condition_with_timeout(lambda: bool(centers), 5), \
+            assert self.poll_condition_with_timeout(target_received.is_set, 5), \
                 "No Hold position target received"
             yield centers[0][0] / 1e7, centers[0][1] / 1e7
+            # Check a target received after the last operation in the block.
+            target_received.clear()
+            assert self.poll_condition_with_timeout(target_received.is_set, 5), \
+                "No fresh Hold position target received"
         finally:
             self._mavlink_direct.unsubscribe_message(target_handle)
             self._telemetry.unsubscribe_flight_mode(mode_handle)
         self._assert_no_callback_failures()
-        assert target_count > 1, "No further Hold position targets received"
 
     def _global_int(self, point: Local2) -> Tuple[int, int]:
         latitude_deg, longitude_deg = self.get_coordinate_transformation().global_from_local(

@@ -30,6 +30,8 @@ ACTION_HOLD = 2
 ACTION_RETURN = 3
 ACTION_LAND = 5
 
+# How far past the edge the vehicle must be for a crossing to count.
+CROSSING_DEPTH_M = 5.0
 # How far inside the fence a recovered vehicle must be on the ground truth, beyond any error of the
 # estimate it navigates with.
 RECOVERED_DEPTH_M = 10.0
@@ -99,6 +101,13 @@ class AutopilotTesterGeofence(AutopilotTesterLoiter):
                 current=1 if seq == 0 else 0))
 
         self.upload_mission_raw(items)
+
+    def check_reposition_rejected(self, target: Local2, rel_alt_m: float, event_name: str) -> None:
+        """Wait for Navigator's rejection after Commander acknowledges the Go-to."""
+        with self.observe_event(name=event_name) as rejected:
+            self.command_reposition(target, rel_alt_m)
+            assert self.poll_condition_with_timeout(rejected.is_set, 5), \
+                "Navigator did not report {}".format(event_name)
 
     def check_arming_is_denied(self) -> None:
         """One arming attempt, without the retries of arm(), that must be denied."""
@@ -212,7 +221,7 @@ class AutopilotTesterGeofence(AutopilotTesterLoiter):
 
     def home_distance_m(self) -> float:
         """Current horizontal distance from Home."""
-        return self._ground_truth_horizontal_distance_to(*self._home_or_fail())
+        return self.ground_truth_horizontal_distance_to(*self._home_or_fail())
 
     def max_home_distance_m(self) -> float:
         with self._track_lock:

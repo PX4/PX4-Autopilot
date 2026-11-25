@@ -11,12 +11,11 @@ from mavsdk.plugins.telemetry import FlightMode  # type: ignore
 from autopilot_tester import log
 from autopilot_tester_geofence import (
     ACTION_HOLD, ACTION_LAND, ACTION_RETURN, ACTION_WARNING, AutopilotTesterGeofence)
-from geofence_geometry import FenceKind, FenceShape, rectangle
+from geofence_geometry import FenceKind, FenceShape
 
 HOME = (0.0, 0.0)
 # Home is in the middle of a square inclusion fence, this far from each edge.
 FENCE_DISTANCE_M = 80.0
-INCLUSION = rectangle(-FENCE_DISTANCE_M, FENCE_DISTANCE_M, -FENCE_DISTANCE_M, FENCE_DISTANCE_M)
 TAKEOFF_ALTITUDE_M = 20.0
 # Past the fence by the time the 5 Hz breach check sees it, and then braking.
 OVERSHOOT_M = 20.0
@@ -37,12 +36,8 @@ def prepare(tester: AutopilotTesterGeofence, action: int) -> None:
 
 
 def upload_inclusion(tester: AutopilotTesterGeofence) -> None:
-    tester.upload_fence([FenceShape(FenceKind.POLYGON_INCLUSION, vertices=INCLUSION)])
-
-
-def take_off(tester: AutopilotTesterGeofence, altitude_m: float = TAKEOFF_ALTITUDE_M) -> None:
-    tester.arm_and_take_off(altitude_m)
-    tester.start_tracking()
+    tester.upload_inclusion_rectangle(-FENCE_DISTANCE_M, FENCE_DISTANCE_M,
+                                      -FENCE_DISTANCE_M, FENCE_DISTANCE_M)
 
 
 def check_acted_at_the_fence(tester: AutopilotTesterGeofence) -> None:
@@ -60,7 +55,8 @@ def breach_recover_and_breach_again(tester: AutopilotTesterGeofence, action: int
     pilot flies out again, until GF_ACTION takes over again."""
     prepare(tester, action)
     upload_inclusion(tester)
-    take_off(tester)
+    tester.arm_and_take_off(TAKEOFF_ALTITUDE_M)
+    tester.start_tracking()
     tester.fly_in_position_mode_until_failsafe(flight_mode)
     tester.recover_with_reposition(HOME, TAKEOFF_ALTITUDE_M)
     check_acted_at_the_fence(tester)
@@ -78,12 +74,17 @@ def test_emergency_geofence_holds_again_after_a_goto_recovery(
     tester = tester_geofence
     breach_recover_and_breach_again(tester, ACTION_HOLD, FlightMode.HOLD)
     with tester.keep_manual_control_alive(), tester.monitor_hold_position() as center:
+        # Compare the commanded center with the vehicle as soon as the second Hold is observed.
+        offset_m = tester.ground_truth_horizontal_distance_to(*center)
+        assert offset_m < OVERSHOOT_M, "Hold center {:.1f} m from the breach".format(offset_m)
         # Outside the fence whichever edge the vehicle crossed: the Hold stays where it is.
-        tester.command_reposition((2 * FENCE_DISTANCE_M, 0.0), TAKEOFF_ALTITUDE_M)
-        tester.sleep_for(3)
+        tester.check_reposition_rejected((2 * FENCE_DISTANCE_M, 0.0), TAKEOFF_ALTITUDE_M,
+                                         "navigator_reposition_outside_geofence")
+        tester.wait_until_speed_lower_than(1.0, 10)
     check_acted_at_the_fence(tester)
     held_at_m = tester.fence_distance_m(*center)
-    assert held_at_m < POSITION_TOLERANCE_M, "Held {:.1f} m inside the fence".format(held_at_m)
+    assert -OVERSHOOT_M < held_at_m < POSITION_TOLERANCE_M, \
+        "Hold center has {:.1f} m fence clearance".format(held_at_m)
 
 
 @pytest.mark.multicopter
@@ -116,7 +117,8 @@ def test_emergency_geofence_home_distance_triggers_return(
     prepare(tester, ACTION_RETURN)
     tester.set_param_float("GF_MAX_HOR_DIST", FENCE_DISTANCE_M)
     tester.set_rtl_altitude(TAKEOFF_ALTITUDE_M)
-    take_off(tester)
+    tester.arm_and_take_off(TAKEOFF_ALTITUDE_M)
+    tester.start_tracking()
     tester.fly_in_position_mode_until_failsafe(FlightMode.RETURN_TO_LAUNCH)
     with tester.keep_manual_control_alive():
         tester.wait_until_disarmed(90)
@@ -137,9 +139,12 @@ def test_emergency_geofence_altitude_triggers_hold(
     max_altitude_m = 20.0
     tester.set_param_float("GF_MAX_VER_DIST", max_altitude_m)
     # Take off below the limit and climb through it.
-    take_off(tester, max_altitude_m - 10.0)
+    tester.arm_and_take_off(max_altitude_m - 10.0)
     tester.fly_in_position_mode_until_failsafe(FlightMode.HOLD, forward=0.0, throttle=0.8,
                                                timeout_s=30)
+    altitude_at_hold_m = tester.current_relative_altitude()
+    assert altitude_at_hold_m >= max_altitude_m - POSITION_TOLERANCE_M, \
+        "Hold started at {:.1f} m with a {:.1f} m limit".format(altitude_at_hold_m, max_altitude_m)
     with tester.keep_manual_control_alive(), tester.monitor_hold_position():
         tester.check_holds_altitude(max_altitude_m, 5.0, 5)
     tester.check_home_within(5.0)
@@ -159,10 +164,11 @@ def test_emergency_exclusion_circle_triggers_hold_with_gnss_source(
     radius_m = 30.0
     tester.upload_fence([FenceShape(FenceKind.CIRCLE_EXCLUSION,
                                     center=(FENCE_DISTANCE_M + radius_m, 0.0), radius_m=radius_m)])
-    take_off(tester)
+    tester.arm_and_take_off(TAKEOFF_ALTITUDE_M)
+    tester.start_tracking()
     tester.fly_in_position_mode_until_failsafe(FlightMode.HOLD)
     with tester.keep_manual_control_alive(), tester.monitor_hold_position():
-        tester.sleep_for(3)
+        tester.wait_until_speed_lower_than(1.0, 10)
     check_acted_at_the_fence(tester)
 
 
@@ -173,7 +179,7 @@ def test_emergency_geofence_warning_keeps_position_mode(
     tester = tester_geofence
     prepare(tester, ACTION_WARNING)
     upload_inclusion(tester)
-    take_off(tester)
+    tester.arm_and_take_off(TAKEOFF_ALTITUDE_M)
     with tester.observe_event("Failsafe warning", "Emergency geofence breach") as warning:
         tester.fly_in_position_mode_until(
             lambda: warning.is_set()

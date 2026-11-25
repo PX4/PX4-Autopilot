@@ -1,7 +1,8 @@
 import pytest
 from mavsdk.plugins.telemetry import FlightMode  # type: ignore
 
-from autopilot_tester_geofence import ACTION_HOLD, RECOVERED_DEPTH_M, AutopilotTesterGeofence
+from autopilot_tester_geofence import (
+    ACTION_HOLD, CROSSING_DEPTH_M, RECOVERED_DEPTH_M, AutopilotTesterGeofence)
 
 HOME = (0.0, 0.0)
 ALTITUDE_M = 40.0
@@ -11,8 +12,6 @@ LOITER_RADIUS_M = 80.0
 LOITER_TOLERANCE_M = 30.0
 # Past the edge by the time the 5 Hz breach check sees it, at 10 m/s.
 BREACH_TOLERANCE_M = 10.0
-# How far past the edge the vehicle must be for a crossing to count.
-CROSSING_DEPTH_M = 5.0
 # Half the 10 m/s trim airspeed: past the far side of the loiter and flying back towards the fence.
 INWARD_SPEED_M_S = 5.0
 # Each position the loiter waits for comes once per orbit, and an orbit takes about 50 s.

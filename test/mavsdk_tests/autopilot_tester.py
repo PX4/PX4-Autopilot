@@ -520,17 +520,17 @@ class AutopilotTester:
         return self._home_altitude_m
 
     def check_home_within(self, acceptance_radius_m: float) -> None:
-        distance_m = self._ground_truth_horizontal_distance_to(*self._home_or_fail())
+        distance_m = self.ground_truth_horizontal_distance_to(*self._home_or_fail())
         assert distance_m < acceptance_radius_m, \
             "Distance to home {:.2f} m, expected < {} m".format(distance_m, acceptance_radius_m)
 
     def check_home_not_within(self, min_distance_m: float) -> None:
-        distance_m = self._ground_truth_horizontal_distance_to(*self._home_or_fail())
+        distance_m = self.ground_truth_horizontal_distance_to(*self._home_or_fail())
         assert distance_m > min_distance_m, \
             "Distance to home {:.2f} m, expected > {} m".format(distance_m, min_distance_m)
 
-    def _ground_truth_horizontal_distance_to(self, latitude_deg: float,
-                                             longitude_deg: float) -> float:
+    def ground_truth_horizontal_distance_to(self, latitude_deg: float,
+                                            longitude_deg: float) -> float:
         assert math.isfinite(latitude_deg) and math.isfinite(longitude_deg)
         current = self._telemetry.ground_truth()
         assert math.isfinite(current.latitude_deg) and math.isfinite(current.longitude_deg), \
@@ -733,8 +733,7 @@ class AutopilotTester:
         land_item = self._mission_raw.download_mission()[-1]
         assert land_item.command in (MAV_CMD_NAV_LAND, MAV_CMD_NAV_VTOL_LAND), \
             "Last mission item is command {}, not a landing".format(land_item.command)
-        distance_m = self._ground_truth_horizontal_distance_to(land_item.x / 1e7,
-                                                               land_item.y / 1e7)
+        distance_m = self.ground_truth_horizontal_distance_to(land_item.x / 1e7, land_item.y / 1e7)
         assert distance_m < acceptance_radius_m, \
             "Distance to mission landing {:.2f} m, expected < {} m".format(
                 distance_m, acceptance_radius_m)
@@ -857,9 +856,9 @@ class AutopilotTester:
         return int(self._system.get_system_id())
 
     @contextmanager
-    def observe_event(self, *texts: str) -> Iterator[threading.Event]:
-        """Record whether the autopilot reports an event with all texts in its message during the
-        block. MAVSDK appends the failing health and arming checks to failsafe and arming events.
+    def observe_event(self, *texts: str, name: Optional[str] = None) -> Iterator[threading.Event]:
+        """Watch for a PX4 event by name or by text in its message. MAVSDK appends the failing
+        health and arming checks to failsafe and arming events.
 
         Events rather than STATUSTEXT: PX4 sends STATUSTEXT only within 2.5 s of a GCS heartbeat,
         and MAVSDK sends one per second of host time, 10 s of autopilot time at speed factor 10.
@@ -867,6 +866,8 @@ class AutopilotTester:
         received = threading.Event()
 
         def on_event(event: Any, _user_data: Any) -> None:
+            if name is not None and (event.event_namespace != "px4" or event.event_name != name):
+                return
             if all(text in event.message for text in texts):
                 received.set()
 
@@ -972,9 +973,12 @@ class AutopilotTester:
                                rate_hz: float = 10.0) -> None:
         """Run check(position_velocity_ned) on every sample for duration_s. It returns an error
         message when the check fails, which then fails the test."""
+        received = threading.Event()
+
         def on_sample(sample: Any, _user_data: Any) -> None:
             error = check(sample)
             self.check_in_callback(error is None, error or "")
+            received.set()
 
         self._telemetry.set_rate_position_velocity_ned(rate_hz)
         handle = self._telemetry.subscribe_position_velocity_ned(on_sample)
@@ -983,6 +987,7 @@ class AutopilotTester:
         finally:
             self._telemetry.unsubscribe_position_velocity_ned(handle)
         self._assert_no_callback_failures()
+        assert received.is_set(), "No position_velocity_ned samples in {} s".format(duration_s)
 
     def _assert_no_callback_failures(self) -> None:
         with self._failures_lock:
@@ -1043,17 +1048,16 @@ class AutopilotTester:
         """Send centered sticks during the block.
 
         Once sticks were sent, a gap longer than COM_RC_LOSS_T triggers the RC loss failsafe, also
-        in automatic modes. SITL sets it to 1 s times the speed factor.
+        in automatic modes. SITL scales that timeout with the speed factor, so 10 Hz in host
+        time keeps the link alive.
         """
         stop = threading.Event()
-        # Keep the link rate in simulated time, while allowing teardown if PX4 stops.
-        interval_s = 1.0 / (MANUAL_CONTROL_RATE_HZ * max(1.0, self._speed_factor or 1.0))
 
         def send() -> None:
             try:
                 while not stop.is_set():
                     self._manual_control.set_manual_control_input(0.0, 0.0, 0.5, 0.0)
-                    stop.wait(interval_s)
+                    stop.wait(0.1)
             except Exception as error:
                 self.check_in_callback(False, "Manual-control keepalive failed: {}".format(error))
 

@@ -36,14 +36,17 @@ def test_pilot_is_held_at_contingency_geofence_margin(
     tester.fly_in_position_mode_until_failsafe(FlightMode.HOLD)
     with tester.keep_manual_control_alive():
         with tester.monitor_hold_position():
-            tester.sleep_for(8)
+            tester.wait_until_speed_lower_than(1.0, 10)
         # Home is out of the margin, so this Go-to is flown although the vehicle is still in it.
+        clearance_m = tester.current_fence_distance_m()
+        assert 0.0 < clearance_m < margin_m, "Recovery started {:.1f} m from the fence".format(
+            clearance_m)
         tester.command_reposition(HOME, TAKEOFF_ALTITUDE_M)
         with tester.monitor_hold_position(expected_center=HOME):
             tester.wait_for_position_ned(lambda s: horizontal_distance(s, HOME) < 3.0, 30)
             # In the margin, 10 m from the fence: refused, so the Hold stays at Home.
-            tester.command_reposition((70.0, 0.0), TAKEOFF_ALTITUDE_M)
-            tester.sleep_for(3)
+            tester.check_reposition_rejected((70.0, 0.0), TAKEOFF_ALTITUDE_M,
+                                             "navigator_reposition_outside_cont_geofence")
 
     closest_m = tester.min_fence_distance_m()
     log("Closest to the fence: {:.1f} m".format(closest_m))
