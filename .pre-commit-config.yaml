@@ -1,0 +1,181 @@
+# File checks run locally on commit and in CI (.github/workflows/checks.yml).
+#
+#   pip install -r Tools/setup/requirements.txt  # provides pre-commit
+#   pre-commit install                           # run the checks on every commit
+#   make check_format                            # run all checks on all files
+#   make format                                  # apply all automatic fixes
+#
+# Checks never modify files. Each one that can be fixed automatically has a
+# companion *-fix hook in the manual stage, which only `make format` runs.
+#
+# See https://pre-commit.com for usage.
+
+minimum_pre_commit_version: '3.2.0'
+default_stages: [pre-commit]
+
+repos:
+  - repo: local
+    hooks:
+      - id: param-names
+        name: parameter member names
+        description: DEFINE_PARAMETERS() members must be named _param_<lower case parameter name>.
+        language: python
+        entry: Tools/astyle/check_param_names.py
+        types_or: [c, c++]
+        files: ^(boards|msg|platforms|src|test)/
+        exclude: ^platforms/nuttx/NuttX/
+
+      # Renames violating members, which can touch files outside the checked
+      # set, so it only runs on request (make format) and never in parallel.
+      - id: param-names-fix
+        name: parameter member names (fix)
+        language: python
+        entry: Tools/astyle/check_param_names.py --fix
+        types_or: [c, c++]
+        files: ^(boards|msg|platforms|src|test)/
+        exclude: ^platforms/nuttx/NuttX/
+        require_serial: true
+        stages: [manual]
+
+      - id: astyle
+        name: astyle (C/C++ formatting)
+        description: Checks C/C++ formatting with astyle 3.1 and Tools/astyle/astylerc.
+        language: python
+        additional_dependencies: [astyle-py==1.1.0]
+        entry: Tools/astyle/check_code_style.sh
+        files: &astyle_files ^(boards|msg|platforms|src|test)/.*\.(c|cpp|h|hpp)$
+        # Third-party code that keeps its upstream formatting
+        exclude: &astyle_exclude |
+          (?x)^(
+            boards/modalai/voxl2/libfc-sensor-api|
+            boards/modalai/voxl2/src/lib/mpa/libmodal-json|
+            boards/modalai/voxl2/src/lib/mpa/libmodal-pipe|
+            msg/translation_node|
+            platforms/nuttx/NuttX|
+            platforms/qurt/dspal|
+            src/drivers/actuators/vertiq_io/iq-module-communication-cpp|
+            src/drivers/cyphal/libcanard|
+            src/drivers/ins/ilabs|
+            src/drivers/ins/microstrain/mip_sdk|
+            src/drivers/ins/sbgecom/sbgECom|
+            src/drivers/ins/vectornav/libvnc|
+            src/drivers/uavcan/libdronecan|
+            src/drivers/uavcan/libuavcan|
+            src/drivers/uavcan/uavcan_drivers/kinetis/driver/include/uavcan_kinetis|
+            src/lib/cdrstream/cyclonedds|
+            src/lib/cdrstream/rosidl|
+            src/lib/crypto/libtomcrypt|
+            src/lib/crypto/libtommath|
+            src/lib/crypto/monocypher|
+            src/lib/events/libevents|
+            src/lib/heatshrink/heatshrink|
+            src/lib/parameters/uthash|
+            src/lib/rl_tools/rl_tools|
+            src/lib/tensorflow_lite_micro/tflite_micro|
+            src/lib/ulog_cpp|
+            src/lib/wind_estimator/python/generated|
+            src/modules/ekf2/EKF/python/ekf_derivation/generated|
+            src/modules/ekf2/EKF/yaw_estimator/derivation/generated|
+            src/modules/gyro_fft/CMSIS_5|
+            src/modules/mavlink/mavlink|
+            src/modules/mc_raptor/blob|
+            src/modules/simulation/gz_plugins/optical_flow/PX4-OpticalFlow|
+            src/modules/uxrce_dds_client/Micro-XRCE-DDS-Client|
+            src/modules/uxrce_dds_client/Micro-XRCE-DDS-Client-v3|
+            src/modules/zenoh/zenoh-pico|
+            test/fuzztest
+          )/
+
+      - id: astyle-fix
+        name: astyle (C/C++ formatting, fix)
+        language: python
+        additional_dependencies: [astyle-py==1.1.0]
+        entry: Tools/astyle/fix_code_style.sh
+        files: *astyle_files
+        exclude: *astyle_exclude
+        stages: [manual]
+
+      - id: validate-module-configs
+        name: module config schema
+        language: python
+        additional_dependencies: [cerberus, pyyaml]
+        entry: Tools/validate_yaml.py --schema-file validation/module_schema.yaml
+        files: ^src/(drivers|lib|modules)/.*\.yaml$
+        exclude: |
+          (?x)^src/(
+            lib/cdrstream/|
+            lib/crypto/libtommath/|
+            lib/events/libevents/|
+            lib/mixer_module/|
+            lib/tensorflow_lite_micro/|
+            modules/uxrce_dds_client/dds_topics\.yaml|
+            modules/zenoh/dds_topics\.yaml|
+            modules/zenoh/zenoh-pico/
+          )
+
+      # Exactly one newline at the end of every text file. Firmware images
+      # without NUL bytes are taken for text, hence the .bin exclusion.
+      - id: newlines
+        name: newline at end of file
+        language: python
+        entry: Tools/astyle/check_newlines.py
+        types: [text]
+        exclude: &newlines_exclude ^docs/|\.bin$
+
+      - id: newlines-fix
+        name: newline at end of file (fix)
+        language: python
+        entry: Tools/astyle/check_newlines.py --fix
+        types: [text]
+        exclude: *newlines_exclude
+        stages: [manual]
+
+      # Whitespace errors (trailing whitespace, spaces before a tab in the
+      # indentation) on lines changed against HEAD, as git diff --check reports
+      # them. Only changed lines because existing files, mostly third-party
+      # code, still contain such whitespace. Checks nothing on a clean tree.
+      - id: whitespace
+        name: whitespace in changed lines
+        language: system
+        entry: git diff --check HEAD --
+        types: [text]
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1-1
+    hooks:
+      # NSH startup scripts as written in the source tree. The generated ROMFS
+      # of a build is checked separately: make <board> shellcheck
+      - id: shellcheck
+        name: shellcheck (ROMFS sources)
+        files: ^ROMFS/px4fmu_common/
+        exclude: \.(txt|bin)$
+        types: [text]
+        # SC1008: unrecognized shebang
+        # SC1090: can't follow non-constant source
+        # SC1091: not following sourced file
+        # SC2039: POSIX sh array references (TODO: fix)
+        # SC2086: double quote to prevent globbing and word splitting
+        # SC2121: 'set' as assignment (NuttX style)
+        # SC2148: files without shebang
+        # SC2166: [ a -o b ] form
+        # SC2169: 'source' in dash (we alias it)
+        # SC2181: checking $? indirectly
+        # SC2268: x-prefix in comparisons (NSH relies on it for empty strings)
+        args: [-x, --shell=dash, -e, 'SC1008,SC1090,SC1091,SC2039,SC2086,SC2121,SC2148,SC2166,SC2169,SC2181,SC2268']
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.4.1
+    hooks:
+      - id: flake8
+        name: flake8 (MAVSDK tests)
+        files: ^test/mavsdk_tests/[^/]*\.py$
+        args: [--config, test/mavsdk_tests/.flake8]
+      - id: flake8
+        files: |
+          (?x)^(
+            Tools/ci/ai_review/.*|
+            Tools/ci/(check_usb_ids|usb_ids_runner|test_check_usb_ids|test_usb_ids_runner|test_pr_review_poster)|
+            Tools/ros2/[^/]*|
+            Tools/(migrate_param_file|test_migrate_param_file|test_copy_to_ros_ws)|
+            src/modules/uxrce_dds_client/test_generate_dds_topics
+          )\.py$

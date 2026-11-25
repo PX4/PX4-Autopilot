@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Check the formatting of the given files, print a diff for each badly formatted
-# one and fail. With PX4_ASTYLE_FIX=1 the files get fixed instead.
+# one and fail. Never modifies the files, fix_code_style.sh does.
 #
 # All files are formatted in one batch on a temporary copy to keep the
 # formatter startup cost independent of the number of files.
@@ -12,11 +12,10 @@ fi
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
+tar cf - -- "$@" | tar xf - -C "$TMP_DIR" || exit 1
 
 FORMATTED=()
 for FILE in "$@"; do
-	mkdir -p "$TMP_DIR/$(dirname "$FILE")"
-	cp "$FILE" "$TMP_DIR/$FILE"
 	FORMATTED+=("$TMP_DIR/$FILE")
 done
 
@@ -29,13 +28,8 @@ for FILE in "$@"; do
 		echo
 		git --no-pager diff --no-index --minimal --histogram --color=always "$FILE" "$TMP_DIR/$FILE" | tail -n +5
 		echo
-
-		if [[ $PX4_ASTYLE_FIX -eq 1 ]]; then
-			cp "$TMP_DIR/$FILE" "$FILE"
-		else
-			echo 'to fix automatically run "make format", "make format_changed" or "./Tools/astyle/fix_code_style.sh' "$FILE"'"'
-			CHECK_FAILED=1
-		fi
+		echo 'to fix automatically run "make format", "make format_changed" or "./Tools/astyle/fix_code_style.sh' "$FILE"'"'
+		CHECK_FAILED=1
 	fi
 done
 
