@@ -186,7 +186,7 @@ DroneCAN is disabled by default: enable it with [UAVCAN_ENABLE](../advanced_conf
 ## Building Firmware {#building_firmware}
 
 ::: tip
-From PX4 v2.0, most users will not need to build this firmware!
+Most users will not need to build this firmware (from PX4 v2.0).
 It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
