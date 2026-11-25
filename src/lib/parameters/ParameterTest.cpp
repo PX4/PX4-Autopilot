@@ -115,7 +115,7 @@ TEST_F(ParameterTest, testUorbSendReceive)
 class ParamTableModule : public ModuleParams
 {
 public:
-	ParamTableModule() : ModuleParams(nullptr), _param_cp_delay(_ext_delay), _param_sys_autocfg(_ext_autoconfig) {}
+	ParamTableModule() : ModuleParams(nullptr), _param_cp_delay(_ext_delay), _param_sys_autoconfig(_ext_autoconfig) {}
 
 	void update() { updateParams(); }
 
@@ -132,7 +132,7 @@ public:
 		(ParamBool<px4::params::SYS_HAS_GPS>) _param_sys_has_gps,
 		(ParamExtFloat<px4::params::CP_DELAY>) _param_cp_delay,
 		(ParamInt<px4::params::SYS_AUTOSTART>) _param_sys_autostart,
-		(ParamExtInt<px4::params::SYS_AUTOCONFIG>) _param_sys_autocfg,
+		(ParamExtInt<px4::params::SYS_AUTOCONFIG>) _param_sys_autoconfig,
 		(ParamFloat<px4::params::CP_GUIDE_ANG>) _param_cp_guide_ang
 	)
 };
@@ -161,7 +161,7 @@ TEST_F(ParameterTest, testDefineParametersTable)
 	EXPECT_FLOAT_EQ(delay, module._param_cp_delay.get());
 	EXPECT_FLOAT_EQ(delay, module.ext_delay());
 	EXPECT_EQ(autostart, module._param_sys_autostart.get());
-	EXPECT_EQ(autoconfig, module._param_sys_autocfg.get());
+	EXPECT_EQ(autoconfig, module._param_sys_autoconfig.get());
 	EXPECT_EQ(autoconfig, module.ext_autoconfig());
 	EXPECT_FLOAT_EQ(guide_ang, module._param_cp_guide_ang.get());
 	EXPECT_TRUE(param_used(param_handle(px4::params::CP_DIST)));
