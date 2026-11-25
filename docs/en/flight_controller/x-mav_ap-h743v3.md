@@ -176,29 +176,28 @@ For an HD system, connect the air unit to the DJI O3 Air Unit connector and conf
 
 ## Building Firmware {#building_firmware}
 
+::: tip
+Most users will not need to build this firmware (from PX4 v2.0).
+It is pre-built, but _QGroundControl_ can't install it automatically: see [Installing PX4 Firmware](#installing_px4_firmware).
+:::
+
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
 ```sh
 make x-mav_ap-h743v3_default
 ```
 
+Build and upload via USB:
+
+```sh
+make x-mav_ap-h743v3_default upload
+```
+
 ## Installing PX4 Firmware {#installing_px4_firmware}
 
-The firmware can be installed in any of the normal ways:
-
-- Build and upload the source
-
-  ```sh
-  make x-mav_ap-h743v3_default upload
-  ```
-
-- [Load the firmware](../config/firmware.md) using _QGroundControl_.
-  You can use either pre-built firmware or your own custom firmware.
-
 ::: warning
-The AP-H743v3 shares its USB VID:PID with the other X-MAV boards, so _QGroundControl_ can't tell them apart.
-_QGroundControl_ may therefore identify the board as one of the other X-MAV boards, and offer to install their firmware.
-Do not install the firmware that _QGroundControl_ detects automatically: install the AP-H743v3 firmware as a custom firmware file.
+The AP-H743v3 shares its USB VID:PID with the other X-MAV boards, so _QGroundControl_ can't tell them apart, and may offer to install another board's firmware.
+Install the AP-H743v3 firmware as a custom firmware file instead.
 :::
 
 To install the AP-H743v3 firmware in _QGroundControl_:
