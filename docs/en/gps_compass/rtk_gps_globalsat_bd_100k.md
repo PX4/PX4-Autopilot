@@ -3,6 +3,7 @@
 The [GlobalSat BD-100K](https://www.globalsat.com.tw/en/product-285502/Dual-Band-RTK-Receiver-for-Drone-and-Autopilot-BD-100K.html) is an L1/L5 dual-band RTK GNSS receiver that connects to the flight controller using UART.
 It is based on the AIROHA AG3335A and includes a compass, barometer, safety switch, buzzer and LED.
 Powered by an advanced multi-frequency GNSS engine, the BD-100K delivers centimetre-level positioning, fast RTK convergence, and robust tracking in challenging environments such as urban canyons or dense foliage.
+GlobalSat has tested this receiver on PX4 v1.17.0 with a [Holybro Pixhawk 6C](../flight_controller/pixhawk6c.md).
 
 Typical applications include:
 
@@ -38,7 +39,7 @@ Typical applications include:
 
 Order this module from:
 
-- [GlobalSat BD-100K](https://www.amazon.com/dp/B0HLH35TNM) GPS/GNSS
+- [GlobalSat BD-100K](https://www.amazon.com/dp/B0HLH35TNM) GPS/GNSS (Amazon)
 
 ## Hardware Setup {#hardware_setup}
 

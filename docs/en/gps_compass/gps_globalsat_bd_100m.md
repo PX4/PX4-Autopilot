@@ -2,6 +2,7 @@
 
 The [GlobalSat BD-100M](https://www.globalsat.com.tw/en/product-285501/Dual-Band-GNSS-Receiver-for-Drone-and-Autopilot-BD-100M.html) is a compact, L1/L5 dual-band GNSS receiver that connects to the flight controller using UART.
 It is based on the AIROHA AG3335M and includes a compass, barometer, safety switch, buzzer and LED.
+GlobalSat has tested this receiver on PX4 v1.17.0 with a [Holybro Pixhawk 6C](../flight_controller/pixhawk6c.md).
 
 Typical applications include:
 
