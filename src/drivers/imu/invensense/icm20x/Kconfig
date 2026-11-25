@@ -1,0 +1,6 @@
+menuconfig DRIVERS_IMU_INVENSENSE_ICM20X
+	bool "TDK ICM20x banked SPI FIFO family"
+	default n
+	help
+	  Shared SPI six-axis implementation for ICM20649 and ICM20948.
+	  Does not provide AK09916, auxiliary I2C master or passthrough functionality.
