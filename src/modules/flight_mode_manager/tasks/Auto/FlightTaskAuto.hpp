@@ -55,6 +55,7 @@
 #include <lib/motion_planning/PositionSmoothing.hpp>
 #include <lib/sticks/Sticks.hpp>
 #include <lib/stick_yaw/StickYaw.hpp>
+#include <lib/terrain_altitude/TerrainAltitudeLatch.hpp>
 #include <lib/weather_vane/WeatherVane.hpp>
 #include "StickAccelerationXY.hpp"
 
@@ -127,6 +128,10 @@ protected:
 	WaypointType _type{WaypointType::idle}; /**< Type of current target triplet. */
 
 	uORB::SubscriptionData<position_setpoint_triplet_s> _position_setpoint_triplet_sub{ORB_ID(position_setpoint_triplet)};
+
+	TerrainAltitudeLatch _terrain_altitude; ///< terrain below the vehicle, for terrain-relative setpoints (agl_alt)
+	bool _terrain_altitude_lost_reported{false};
+	bool _terrain_relative_target{false}; ///< the current setpoint has a terrain-relative altitude
 	uORB::SubscriptionData<home_position_s> _sub_home_position{ORB_ID(home_position)};
 	uORB::SubscriptionData<vehicle_status_s> _sub_vehicle_status{ORB_ID(vehicle_status)};
 	uORB::SubscriptionData<takeoff_status_s> _takeoff_status_sub{ORB_ID(takeoff_status)};

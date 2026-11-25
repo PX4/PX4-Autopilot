@@ -37,6 +37,7 @@
 #include "FlightTaskAuto.hpp"
 #include <mathlib/mathlib.h>
 #include <float.h>
+#include <px4_platform_common/events.h>
 
 using namespace matrix;
 using namespace time_literals;
@@ -104,6 +105,7 @@ bool FlightTaskAuto::updateInitialize()
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	_position_setpoint_triplet_sub.update();
 	_takeoff_status_sub.update();
+	_terrain_altitude.update(_sub_vehicle_local_position.get());
 
 	// require valid reference and valid target
 	ret = ret && _evaluateGlobalReference() && _evaluatePositionSetpointTriplet();
@@ -216,6 +218,11 @@ bool FlightTaskAuto::update()
 		// the expense of the braking feedforward.
 		_position_smoothing.forceSetPosition(_position);
 	}
+
+	// A terrain-relative target moves with the terrain below the vehicle: track its altitude directly instead of
+	// spreading the altitude change over the whole leg
+	_position_smoothing.setVerticalDecoupled(_terrain_relative_target
+			&& (_type == WaypointType::position || _type == WaypointType::loiter));
 
 	PositionSmoothing::PositionSmoothingSetpoints smoothed_setpoints;
 	_position_smoothing.generateSetpoints(
@@ -406,7 +413,23 @@ void FlightTaskAuto::_smoothYaw()
 
 bool FlightTaskAuto::_evaluatePositionSetpointTriplet()
 {
-	const position_setpoint_triplet_s &position_setpoint_triplet = _position_setpoint_triplet_sub.get();
+	// Terrain-relative setpoints follow the terrain below the vehicle: convert them on every update, with the
+	// latest terrain altitude. A change of the terrain is then handled like a change of the setpoint altitude.
+	position_setpoint_triplet_s position_setpoint_triplet = _position_setpoint_triplet_sub.get();
+	_terrain_altitude.convertTriplet(position_setpoint_triplet);
+
+	const bool terrain_relative = position_setpoint_triplet.current.valid
+				      && PX4_ISFINITE(position_setpoint_triplet.current.agl_alt);
+	_terrain_relative_target = terrain_relative;
+
+	if (terrain_relative && _terrain_altitude.isLatched() && !_terrain_altitude_lost_reported) {
+		events::send(events::ID("flight_task_auto_terrain_alt_lost"), events::Log::Warning,
+			     "Terrain altitude lost, keeping the last terrain altitude for the setpoint");
+		_terrain_altitude_lost_reported = true;
+
+	} else if (_terrain_altitude.isValid()) {
+		_terrain_altitude_lost_reported = false;
+	}
 
 	// Check if triplet is valid. There must be at least a valid altitude.
 	if (!position_setpoint_triplet.current.valid || !PX4_ISFINITE(position_setpoint_triplet.current.alt)) {
