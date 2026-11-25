@@ -81,7 +81,7 @@ class AutopilotTesterRtl(AutopilotTester):
     def check_rally_point_within(self, acceptance_radius_m: float) -> None:
         ct = CoordinateTransformation(*self._home_or_fail())
         distances_m = [
-            self._ground_truth_horizontal_distance_to(*ct.global_from_local(north_m, east_m))
+            self.ground_truth_horizontal_distance_to(*ct.global_from_local(north_m, east_m))
             for north_m, east_m in self._local_rally_points]
         assert any(d < acceptance_radius_m for d in distances_m), \
             "Not within {} m of any rally point, distances: {}".format(

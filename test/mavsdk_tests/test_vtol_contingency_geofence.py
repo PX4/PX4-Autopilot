@@ -3,7 +3,7 @@ from mavsdk.plugins.telemetry import FlightMode  # type: ignore
 
 from autopilot_tester import log
 from autopilot_tester_geofence import (
-    ACTION_HOLD, ACTION_LAND, ACTION_WARNING, AutopilotTesterGeofence)
+    ACTION_HOLD, ACTION_LAND, ACTION_WARNING, CROSSING_DEPTH_M, AutopilotTesterGeofence)
 
 MISSION_ALTITUDE_M = 40.0
 
@@ -59,15 +59,14 @@ def test_more_severe_action_wins_after_contingency_geofence_hold(
     assert 0.0 < closest_at_hold_m < MARGIN_M, "Not held inside the margin"
 
     if final_flight_mode == FlightMode.HOLD:
-        # Monitor the mode and center before the crossing and for more than one orbit after it.
+        # Keep observing the mode and center through re-entry and the next breach.
         with tester.monitor_hold_position() as center:
             held_at_m = tester.fence_distance_m(*center)
             log("Hold center {:.1f} m from the fence".format(held_at_m))
             assert 0.0 < held_at_m < MARGIN_M, "Hold center is not inside the margin"
-            assert tester.poll_condition_with_timeout(
-                lambda: tester.min_fence_distance_m() < 0.0, 90), \
-                "The loiter did not cross the geofence"
-            tester.sleep_for(60)
+            tester.wait_until_outside_fence(CROSSING_DEPTH_M, 90)
+            tester.wait_until_inside_fence(CROSSING_DEPTH_M, 90)
+            tester.wait_until_outside_fence(CROSSING_DEPTH_M, 90)
 
             # Also bound the actual flight's outward excursion beyond the commanded circle.
             closest_m = tester.min_fence_distance_m()
@@ -76,7 +75,4 @@ def test_more_severe_action_wins_after_contingency_geofence_hold(
 
     else:
         tester.wait_for_flight_mode(final_flight_mode, 120)
-
-    closest_m = tester.min_fence_distance_m()
-    log("Closest to the fence: {:.1f} m".format(closest_m))
-    assert closest_m < 0.0, "The loiter did not cross the geofence"
+        assert tester.min_fence_distance_m() < 0.0, "The loiter did not cross the geofence"
