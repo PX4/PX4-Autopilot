@@ -78,10 +78,18 @@ private:
 				mavlink_position_target_global_int_t msg{};
 
 				msg.time_boot_ms = hrt_absolute_time() / 1000;
-				msg.coordinate_frame = MAV_FRAME_GLOBAL;
 				msg.lat_int = pos_sp_triplet.current.lat * 1e7;
 				msg.lon_int = pos_sp_triplet.current.lon * 1e7;
-				msg.alt = pos_sp_triplet.current.alt;
+
+				// a terrain-relative setpoint is reported as such, its alt is only an AMSL estimate
+				if (PX4_ISFINITE(pos_sp_triplet.current.agl_alt)) {
+					msg.coordinate_frame = MAV_FRAME_GLOBAL_TERRAIN_ALT;
+					msg.alt = pos_sp_triplet.current.agl_alt;
+
+				} else {
+					msg.coordinate_frame = MAV_FRAME_GLOBAL;
+					msg.alt = pos_sp_triplet.current.alt;
+				}
 
 				vehicle_local_position_setpoint_s lpos_sp;
 
