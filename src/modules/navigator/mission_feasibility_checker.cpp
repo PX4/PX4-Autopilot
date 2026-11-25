@@ -125,7 +125,7 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 		return true;
 	}
 
-	enum class Failure { None, DatamanRead, NoHome, Waypoint } failure = Failure::None;
+	enum class Failure { None, DatamanRead, NoHome, InvalidPosition, Waypoint } failure = Failure::None;
 	size_t failed_item = 0;
 #if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
 	const vehicle_status_s &status = *_navigator->get_vstatus();
@@ -193,9 +193,10 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 		// Geofence function checks against home altitude amsl
 		missionitem.altitude = missionitem.altitude_is_relative ? missionitem.altitude + home_alt : missionitem.altitude;
 
-		bool point_valid = PX4_ISFINITE(missionitem.lat) && PX4_ISFINITE(missionitem.lon)
-				   && PX4_ISFINITE(missionitem.altitude)
-				   && fabs(missionitem.lat) <= 90.0 && fabs(missionitem.lon) <= 180.0;
+		const bool position_valid = PX4_ISFINITE(missionitem.lat) && PX4_ISFINITE(missionitem.lon)
+					    && PX4_ISFINITE(missionitem.altitude)
+					    && fabs(missionitem.lat) <= 90.0 && fabs(missionitem.lon) <= 180.0;
+		bool point_valid = position_valid;
 
 #if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
 
@@ -223,7 +224,8 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 		point_valid = point_valid && geofence.isCloserThanContMaxDistToHome(missionitem.lat, missionitem.lon);
 
 		if (!point_valid) {
-			failure = Failure::Waypoint;
+			// A malformed position is not a geofence breach, so it is reported separately.
+			failure = position_valid ? Failure::Waypoint : Failure::InvalidPosition;
 			failed_item = i;
 			break;
 		}
@@ -294,6 +296,12 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence requires valid home position\t");
 		events::send(events::ID("navigator_mis_geofence_no_home2"), {events::Log::Error, events::LogInternal::Info},
 			     "Geofence requires a valid home position");
+		break;
+
+	case Failure::InvalidPosition:
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Invalid position for waypoint %zu\t", failed_item + 1);
+		events::send<int16_t>(events::ID("navigator_mis_invalid_position"), {events::Log::Error, events::LogInternal::Info},
+				      "Invalid position or altitude for waypoint {1}", failed_item + 1);
 		break;
 
 	case Failure::Waypoint:

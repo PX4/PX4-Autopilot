@@ -229,6 +229,64 @@ TEST_F(MissionFeasibilityGeofenceTest, EmptyFenceAcceptsPositionsAndCommandOnlyM
 	EXPECT_TRUE(missionFeasible({changeSpeed()}));
 }
 
+struct InvalidPositionCase {
+	const char *name;
+	double lat_offset;
+	double lon_offset;
+	float altitude;
+	bool altitude_is_relative;
+};
+
+class MissionInvalidPositionTest : public MissionFeasibilityGeofenceTest,
+	public ::testing::WithParamInterface<InvalidPositionCase>
+{
+protected:
+	mission_item_s invalidItem() const
+	{
+		const InvalidPositionCase &test = GetParam();
+		mission_item_s item = waypoint({0.f, 100.f});
+		item.lat += test.lat_offset;
+		item.lon += test.lon_offset;
+		item.altitude = test.altitude;
+		item.altitude_is_relative = test.altitude_is_relative;
+		return item;
+	}
+
+	void expectInvalidPosition(int16_t waypoint_index)
+	{
+		const std::string message = "Invalid position for waypoint " + std::to_string(waypoint_index);
+		EXPECT_TRUE(logContains(message.c_str()));
+		EXPECT_TRUE(waypointEvent(events::ID("navigator_mis_invalid_position"), waypoint_index));
+	}
+};
+
+TEST_P(MissionInvalidPositionTest, WithoutFenceIsNotReportedAsGeofenceBreach)
+{
+	EXPECT_FALSE(missionFeasible({waypoint({0.f, 0.f}), invalidItem()}));
+	expectInvalidPosition(2);
+}
+
+TEST_P(MissionInvalidPositionTest, InsideFenceIsNotReportedAsGeofenceBreach)
+{
+	ASSERT_TRUE(loadFence(inclusionSquare()));
+	EXPECT_FALSE(missionFeasible({changeSpeed(), invalidItem()}));
+	expectInvalidPosition(2);
+}
+
+INSTANTIATE_TEST_SUITE_P(InvalidPositions, MissionInvalidPositionTest, ::testing::Values(
+				 InvalidPositionCase{"NanAltitude", 0., 0., NAN, false},
+				 InvalidPositionCase{"NanRelativeAltitude", 0., 0., NAN, true},
+				 InvalidPositionCase{"InfiniteAltitude", 0., 0., INFINITY, false},
+				 InvalidPositionCase{"NegativeInfiniteAltitude", 0., 0., -INFINITY, false},
+				 InvalidPositionCase{"NanLatitude", static_cast<double>(NAN), 0., 500.f, false},
+				 InvalidPositionCase{"NanLongitude", 0., static_cast<double>(NAN), 500.f, false},
+				 InvalidPositionCase{"LatitudeOutOfRange", 100., 0., 500.f, false},
+				 InvalidPositionCase{"LongitudeOutOfRange", 0., 200., 500.f, false}),
+			 [](const ::testing::TestParamInfo<InvalidPositionCase> &test_info)
+{
+	return test_info.param.name;
+});
+
 // Home sits next to the antimeridian.
 class AntimeridianMissionGeofenceTest : public MissionFeasibilityGeofenceTest
 {
