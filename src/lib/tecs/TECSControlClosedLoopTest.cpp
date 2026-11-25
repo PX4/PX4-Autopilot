@@ -90,7 +90,6 @@ constexpr TECSControl::Param defaultParams()
 		.tas_min                   = paramDefault(px4::params::FW_AIRSPD_MIN),
 		.tas_stall                 = paramDefault(px4::params::FW_AIRSPD_STALL),
 		.tas_max                   = paramDefault(px4::params::FW_AIRSPD_MAX),
-		.tas_trim                  = paramDefault(px4::params::FW_AIRSPD_TRIM),  // EAS = CAS = TAS in this sim
 		.pitch_max                 = math::radians(paramDefault(px4::params::FW_P_LIM_MAX)),
 		.pitch_min                 = math::radians(paramDefault(px4::params::FW_P_LIM_MIN)),
 		.throttle_trim             = paramDefault(px4::params::FW_THR_TRIM),
@@ -573,8 +572,8 @@ TEST_F(TECSControlClosedLoopTest, AirspeedStepUpDefaultTuning)
 
 	setAirspeedSetpoint(_params.equivalent_airspeed_trim + AIRSPEED_STEP);
 
-	// Above trim, only the throttle accelerates and pitch holds altitude (#29009): the airspeed error decays as
-	// a first-order response with the airspeed loop time constant FW_T_TAS_TC, up to a small discretisation error
+	// The pitch and throttle decouple airspeed from altitude: the airspeed error decays as a first-order response
+	// with the airspeed loop time constant FW_T_TAS_TC, up to a small discretisation error
 	const float t_step = _t;
 
 	for (int i = 0; i < 10; i++) {

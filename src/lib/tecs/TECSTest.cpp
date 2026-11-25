@@ -54,7 +54,6 @@ TECSControl::Param makeParam()
 	param.tas_min = 10.f;
 	param.tas_stall = 7.f;
 	param.tas_max = 30.f;
-	param.tas_trim = 15.f;
 	param.pitch_max = radians(15.f);
 	param.pitch_min = radians(-15.f);
 	param.level_flight_pitch = 0.f;
@@ -978,54 +977,7 @@ void runTECS(TECS &tecs, float altitude, float hgt_setpoint, float equivalent_ai
 
 } // namespace
 
-// Above trim airspeed, accelerating towards a higher airspeed setpoint is left to the throttle:
-// the pitch loop must hold altitude instead of pitching down.
-TEST(TECSControlTest, NoPitchDownToAccelerateAboveTrim)
-{
-	// WHEN flying above trim airspeed (15 m/s) with a higher airspeed setpoint, at nominal and altitude priority
-	const float pitch_nominal_weight = pitchSetpointAtSpeed(20.f, 30.f, 1.f);
-	const float pitch_altitude_priority = pitchSetpointAtSpeed(20.f, 30.f, 0.f);
-
-	// THEN the pitch loop holds altitude and does not pitch down
-	EXPECT_NEAR(pitch_nominal_weight, 0.f, 1e-4f);
-	EXPECT_NEAR(pitch_altitude_priority, 0.f, 1e-4f);
-}
-
-// Below trim airspeed, pitch still trades altitude for speed, but only up to trim.
-TEST(TECSControlTest, PitchDownToAccelerateBelowTrim)
-{
-	// WHEN flying below trim airspeed with the setpoint at trim, and with the setpoint above trim
-	const float pitch_setpoint_at_trim = pitchSetpointAtSpeed(12.f, 15.f, 1.f);
-	const float pitch_setpoint_above_trim = pitchSetpointAtSpeed(12.f, 30.f, 1.f);
-
-	// THEN the pitch loop pitches down, but only as much as needed to reach trim airspeed
-	EXPECT_LT(pitch_setpoint_at_trim, 0.f);
-	EXPECT_NEAR(pitch_setpoint_above_trim, pitch_setpoint_at_trim, 1e-4f);
-}
-
-// With full speed priority (e.g. gliders), pitch is the only way to track the airspeed setpoint.
-TEST(TECSControlTest, PitchDownToAccelerateAboveTrimWithSpeedPriority)
-{
-	// WHEN flying above trim airspeed with a higher airspeed setpoint and full speed priority
-	const float pitch = pitchSetpointAtSpeed(20.f, 30.f, 2.f);
-
-	// THEN the pitch loop pitches down to accelerate
-	EXPECT_LT(pitch, 0.f);
-}
-
-// Between trim airspeed and the setpoint the throttle alone accelerates the vehicle: the pitch loop must not react to
-// that acceleration, otherwise it pitches up and turns the throttle's energy into height instead of speed.
-TEST(TECSControlTest, NoPitchUpWhileThrottleAcceleratesAboveTrim)
-{
-	// WHEN accelerating between trim airspeed (15 m/s) and the airspeed setpoint, at nominal and altitude priority
-	const float pitch_accelerating = pitchSetpointAtSpeed(18.f, 25.f, 1.f, 1.f);
-	const float pitch_steady = pitchSetpointAtSpeed(18.f, 25.f, 1.f, 0.f);
-
-	// THEN the pitch setpoint is the same as without acceleration
-	EXPECT_NEAR(pitch_accelerating, pitch_steady, 1e-5f);
-}
-
-// Above the airspeed setpoint pitch takes back speed control: an acceleration there is countered with pitch up.
+// Above the airspeed setpoint an acceleration is countered with pitch up.
 TEST(TECSControlTest, PitchUpOnAccelerationAboveSetpoint)
 {
 	// WHEN accelerating above the airspeed setpoint
@@ -1036,7 +988,7 @@ TEST(TECSControlTest, PitchUpOnAccelerationAboveSetpoint)
 	EXPECT_GT(pitch_accelerating, pitch_steady + 1e-3f);
 }
 
-// An overspeed above the airspeed setpoint is still corrected with pitch.
+// An overspeed above the airspeed setpoint is corrected with pitch.
 TEST(TECSControlTest, PitchUpOnOverspeed)
 {
 	// WHEN flying faster than the airspeed setpoint
@@ -1044,29 +996,6 @@ TEST(TECSControlTest, PitchUpOnOverspeed)
 
 	// THEN the pitch loop pitches up to slow down
 	EXPECT_GT(pitch, 0.f);
-}
-
-// Between trim airspeed and the setpoint, a speed weight between 1 and 2 must fade the pitch loop's kinetic setpoint
-// and estimate equally: accelerating exactly as commanded while holding altitude leaves no energy balance error.
-TEST(TECSControlTest, KineticSetpointAndEstimateFadeEquallyAboveTrim)
-{
-	TECSControl::Param param = makeParam();
-	param.pitch_speed_weight = 1.5f;
-	TECSControl::Flag flag = makeFlag();
-	flag.detect_underspeed_enabled = false;
-
-	TECSControl::Setpoint setpoint = makeSetpoint(); // altitude reference at the current altitude
-	setpoint.tas_setpoint = 18.f;
-
-	TECSControl::Input input = makeInput();
-	input.tas = 17.f; // between trim (15 m/s) and the setpoint
-	input.tas_rate = (setpoint.tas_setpoint - input.tas) * param.airspeed_error_gain; // the commanded acceleration
-
-	TECSControl control;
-	control.initialize(setpoint, input, param, flag);
-
-	const TECSControl::DebugOutput &debug = control.getDebugOutput();
-	EXPECT_NEAR(debug.energy_balance_rate_sp, debug.energy_balance_rate_estimate, 1e-4f);
 }
 
 // The stall airspeed is converted to TAS the same way as the minimum airspeed.
