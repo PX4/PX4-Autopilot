@@ -375,20 +375,20 @@ Another tool then checks which files were already uploaded using a local databas
 
 ### Update over MAVLink
 
-A ground station can reach the DroneCAN bus through the flight controller's MAVLink link, without a separate CAN adapter.
-PX4 forwards CAN frames between one CAN bus and the requesting ground station using the MAVLink [MAV_CMD_CAN_FORWARD](https://mavlink.io/en/messages/common.html#MAV_CMD_CAN_FORWARD), [CAN_FRAME](https://mavlink.io/en/messages/common.html#CAN_FRAME) and [CAN_FILTER_MODIFY](https://mavlink.io/en/messages/common.html#CAN_FILTER_MODIFY) messages.
+A MAVLink client can reach the DroneCAN bus through the flight controller's MAVLink link, without a separate CAN adapter.
+PX4 forwards CAN frames between one CAN bus and the requesting client using the MAVLink [MAV_CMD_CAN_FORWARD](https://mavlink.io/en/messages/common.html#MAV_CMD_CAN_FORWARD), [CAN_FRAME](https://mavlink.io/en/messages/common.html#CAN_FRAME) and [CAN_FILTER_MODIFY](https://mavlink.io/en/messages/common.html#CAN_FILTER_MODIFY) messages.
 
-Forwarding is disabled by default: set [UAVCAN_CAN_FWD](../advanced_config/parameter_reference.md#UAVCAN_CAN_FWD) to use it.
-The parameter takes effect without a reboot and stays set until it is changed back.
-With `Configuration only` (`1`) the ground station can configure and update nodes (read node info, read and write parameters, restart nodes, update firmware), but no ESC, actuator or other commands reach the bus.
+Forwarding is disabled by default: set [UAVCAN_CAN_FWD](../advanced_config/parameter_reference.md#UAVCAN_CAN_FWD) to use it (reboot required).
+With `Configuration only` (`1`) the client can configure and update nodes (read node info, read and write parameters, restart nodes, update firmware), but no ESC, actuator or other commands reach the bus.
+The client uses one DroneCAN node ID for the whole session: the first one it sends from, which must not be the flight controller's or that of another node online on the bus.
 `Unrestricted` (`2`) allows any frame.
 The vehicle cannot be armed while forwarding is active.
-Forwarding ends when the ground station stops it, 5 seconds after its last `MAV_CMD_CAN_FORWARD`, or when the vehicle is armed.
+Forwarding ends when the client stops it, 5 seconds after its last `MAV_CMD_CAN_FORWARD`, or when the vehicle is armed.
 Until then `MAV_CMD_CAN_FORWARD` from any other client or MAVLink link is denied.
 While armed or disabled, `MAV_CMD_CAN_FORWARD` is denied.
 Behind a telemetry radio the frames share the link budget with the other bulk transfers (FTP, log download), and frames that do not fit are dropped: use `CAN_FILTER_MODIFY` on slow links.
 
-The feature is part of the `uavcan` driver (`CONFIG_UAVCAN_CAN_FORWARD`) and is not included on boards with constrained flash.
+The feature is part of the `uavcan` driver (`CONFIG_UAVCAN_CAN_FORWARD`). It is opt-in: enable it in the board configuration (it cannot be enabled on boards with constrained flash).
 
 ## Troubleshooting
 

@@ -38,48 +38,21 @@
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/log.h>
 #include <systemlib/mavlink_log.h>
-#include <uavcan/protocol/GetNodeInfo.hpp>
-#include <uavcan/protocol/NodeStatus.hpp>
-#include <uavcan/protocol/RestartNode.hpp>
-#include <uavcan/protocol/file/BeginFirmwareUpdate.hpp>
-#include <uavcan/protocol/file/GetInfo.hpp>
-#include <uavcan/protocol/file/Read.hpp>
-#include <uavcan/protocol/param/ExecuteOpcode.hpp>
-#include <uavcan/protocol/param/GetSet.hpp>
 
-// frames a ground station may send in configuration only mode (node info, parameters, restart, firmware update): no commands
-static bool isConfigurationFrame(uint32_t can_id)
-{
-	const uint32_t id = can_id & can_forward::CanMaskExtId;
-
-	if (!(can_id & can_forward::CanFlagEff) || (id & 0x7FU) == 0) {
-		return false;
-	}
-
-	if (id & 0x80U) {
-		switch (static_cast<uint8_t>(id >> 16)) {
-		case uavcan::protocol::GetNodeInfo::DefaultDataTypeID:
-		case uavcan::protocol::RestartNode::DefaultDataTypeID:
-		case uavcan::protocol::param::ExecuteOpcode::DefaultDataTypeID:
-		case uavcan::protocol::param::GetSet::DefaultDataTypeID:
-		case uavcan::protocol::file::BeginFirmwareUpdate::DefaultDataTypeID:
-		case uavcan::protocol::file::GetInfo::DefaultDataTypeID:
-		case uavcan::protocol::file::Read::DefaultDataTypeID:
-			return true;
-
-		default:
-			return false;
-		}
-	}
-
-	return static_cast<uint16_t>(id >> 8) == uavcan::protocol::NodeStatus::DefaultDataTypeID;
-}
-
-void CanForwarder::init(uavcan::Dispatcher &dispatcher)
+void CanForwarder::init(uavcan::Dispatcher &dispatcher, const uavcan::NodeStatusMonitor &node_status_monitor)
 {
 	_dispatcher = &dispatcher;
-	_param_can_fwd = param_find("UAVCAN_CAN_FWD");
+	_node_status_monitor = &node_status_monitor;
+	(void)param_get(param_find("UAVCAN_CAN_FWD"), &_mode);
+	_config_only = (_mode != 2);
 	_tx_sub.registerCallback();
+}
+
+bool CanForwarder::isNodeOnline(uint8_t node_id) const
+{
+	// the client's own frames are not received back, so they never make its node ID appear online
+	return node_id != 0 && _node_status_monitor != nullptr
+	       && _node_status_monitor->getNodeStatus(node_id).mode != uavcan::protocol::NodeStatus::MODE_OFFLINE;
 }
 
 void CanForwarder::deinit()
@@ -125,7 +98,7 @@ void CanForwarder::mirror(const uavcan::CanFrame &frame)
 	_rx_batch.len[i] = math::min(frame.dlc, can_forward::CanMaxDataLen);
 	memcpy(&_rx_batch.data[i * 8], frame.data, _rx_batch.len[i]);
 	_rx_batch.count++;
-	_frames_to_gcs++;
+	_frames_to_client++;
 
 	if (_rx_batch.count >= can_forward_frames_s::MAX_FRAMES) {
 		flushRx(hrt_absolute_time());
@@ -150,12 +123,8 @@ void CanForwarder::flushRx(hrt_abstime now)
 
 void CanForwarder::handleCommand(const vehicle_command_s &cmd, hrt_abstime now)
 {
-	int32_t mode = 0;
-	(void)param_get(_param_can_fwd, &mode);
-	_config_only = (mode != 2);
-
 	const int bus = PX4_ISFINITE(cmd.param1) ? static_cast<int>(roundf(cmd.param1)) : -1;
-	const bool allowed = mode != 0 && bus > 0 && bus <= _dispatcher->getCanIOManager().getNumIfaces()
+	const bool allowed = _mode != 0 && bus > 0 && bus <= _dispatcher->getCanIOManager().getNumIfaces()
 			     && _dispatcher->getCanIOManager().getCanDriver().getIface(bus - 1) != nullptr;
 
 	vehicle_command_ack_s ack{};
@@ -180,6 +149,7 @@ void CanForwarder::applySession(hrt_abstime now)
 
 	// nothing is kept for the next bus or client
 	_filter.clear();
+	_source_pin.clear();
 	_rx_batch.count = 0;
 
 	if (active) {
@@ -246,7 +216,7 @@ bool CanForwarder::nextTxBatch()
 	}
 
 	if (_tx_seen) {
-		_lost_from_gcs += _tx_sub.get_last_generation() - last_generation - 1;
+		_lost_from_client += _tx_sub.get_last_generation() - last_generation - 1;
 	}
 
 	_tx_seen = true;
@@ -265,7 +235,7 @@ void CanForwarder::pushFramesToBus(hrt_abstime now)
 		const uint8_t bus = _tx_batch.bus;
 
 		if (bus != _session.bus() || now > _tx_batch.timestamp + MaxBatchAge) {
-			_dropped_from_gcs += count - _tx_index;
+			_dropped_from_client += count - _tx_index;
 			_tx_pending = false;
 			continue;
 		}
@@ -277,19 +247,29 @@ void CanForwarder::pushFramesToBus(hrt_abstime now)
 				return;
 			}
 
-			if (_config_only && !isConfigurationFrame(_tx_batch.id[_tx_index])) {
+			const uint32_t id = _tx_batch.id[_tx_index];
+			const uint8_t source = can_forward::dronecanSourceNodeId(id);
+
+			if (_config_only && (!can_forward::isConfigurationFrame(id)
+					     || !_source_pin.accept(source, _dispatcher->getNodeID().get(), isNodeOnline(source)))) {
 				_tx_index++;
-				_dropped_from_gcs++;
+				_dropped_from_client++;
 				continue;
 			}
 
 			const uint8_t len = math::min(_tx_batch.len[_tx_index], can_forward::CanMaxDataLen);
-			const uavcan::CanFrame frame(_tx_batch.id[_tx_index], &_tx_batch.data[_tx_index * 8], len);
-			(void)canio.send(frame, uavcan::MonotonicTime::fromUSec(now + TxDeadline), uavcan::MonotonicTime(),
-					 static_cast<uint8_t>(1U << bus), uavcan::CanTxQueue::Persistent, 0);
+			const uavcan::CanFrame frame(id, &_tx_batch.data[_tx_index * 8], len);
+			const int res = canio.send(frame, uavcan::MonotonicTime::fromUSec(now + TxDeadline), uavcan::MonotonicTime(),
+						   static_cast<uint8_t>(1U << bus), uavcan::CanTxQueue::Persistent, 0);
+
+			if (res < 0) {
+				_tx_errors++;
+
+			} else {
+				_frames_from_client++;
+			}
 
 			_tx_index++;
-			_frames_from_gcs++;
 			sent++;
 		}
 
@@ -300,13 +280,15 @@ void CanForwarder::pushFramesToBus(hrt_abstime now)
 void CanForwarder::printStatus() const
 {
 	if (_session.active()) {
-		printf("CAN forwarding over MAVLink: CAN%d%s, client %" PRIu32 "/%u\n", _session.bus() + 1,
-		       _config_only ? " (configuration only)" : "", _session.system(), unsigned(_session.component()));
+		printf("CAN forwarding over MAVLink: CAN%d%s, client %" PRIu32 "/%u, node ID %u\n", _session.bus() + 1,
+		       _config_only ? " (configuration only)" : "", _session.system(), unsigned(_session.component()),
+		       unsigned(_source_pin.nodeId()));
 
 	} else {
 		printf("CAN forwarding over MAVLink: idle\n");
 	}
 
-	printf("\tto GCS: %" PRIu32 ", from GCS: %" PRIu32 ", dropped from GCS: %" PRIu32 ", lost batches from GCS: %" PRIu32
-	       ", filter IDs: %u\n", _frames_to_gcs, _frames_from_gcs, _dropped_from_gcs, _lost_from_gcs, unsigned(_filter.size()));
+	printf("\tto client: %" PRIu32 ", from client: %" PRIu32 ", dropped from client: %" PRIu32 ", lost batches from client: %" PRIu32
+	       ", send errors: %" PRIu32 ", filter IDs: %u\n", _frames_to_client, _frames_from_client, _dropped_from_client, _lost_from_client,
+	       _tx_errors, unsigned(_filter.size()));
 }

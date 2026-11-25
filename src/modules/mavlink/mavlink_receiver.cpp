@@ -940,8 +940,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 #if defined(CONFIG_UAVCAN_CAN_FORWARD)
 
 		if (vehicle_command.command == MAV_CMD_CAN_FORWARD
-		    && !_mavlink.get_can_forward().handleCommand(vehicle_command.param1, vehicle_command.source_system,
-				    vehicle_command.source_component)) {
+		    && !_mavlink.get_can_forward().handleCommand(vehicle_command.source_system, vehicle_command.source_component)) {
 			send_ack = true;
 			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
 		}

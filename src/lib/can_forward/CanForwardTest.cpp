@@ -58,6 +58,63 @@ TEST(CanForwardTest, TypeId)
 	EXPECT_EQ(dronecanTypeId(messageId(1, 0)), 0); // anonymous
 }
 
+TEST(CanForwardTest, ConfigurationFrameAllowsConfigurationServices)
+{
+	static constexpr uint32_t RequestBit = 1U << 15;
+	const uint8_t allowed[] = {
+		GetNodeInfoId, RestartNodeId, ParamExecuteOpcodeId, ParamGetSetId,
+		FileBeginFirmwareUpdateId, FileGetInfoId, FileReadId,
+	};
+
+	for (uint8_t type : allowed) {
+		// requests to a node and responses, as the client is the file server during a firmware update
+		EXPECT_TRUE(isConfigurationFrame(serviceId(type, 10, 127) | RequestBit)) << "request " << int(type);
+		EXPECT_TRUE(isConfigurationFrame(serviceId(type, 10, 127))) << "response " << int(type);
+	}
+
+	EXPECT_TRUE(isConfigurationFrame(messageId(NodeStatusId, 127)));
+}
+
+TEST(CanForwardTest, ConfigurationFrameRefusesCommands)
+{
+	EXPECT_FALSE(isConfigurationFrame(messageId(1030, 127))); // esc.RawCommand
+	EXPECT_FALSE(isConfigurationFrame(messageId(1010, 127))); // actuator.ArrayCommand
+	EXPECT_FALSE(isConfigurationFrame(messageId(1100, 127))); // safety.ArmingStatus
+	EXPECT_FALSE(isConfigurationFrame(messageId(5, 127)));    // Panic: message type 5, same number as service RestartNode
+	EXPECT_FALSE(isConfigurationFrame(serviceId(6, 10, 127)));  // AccessCommandShell
+	EXPECT_FALSE(isConfigurationFrame(serviceId(47, 10, 127))); // file.Delete
+	EXPECT_FALSE(isConfigurationFrame(serviceId(49, 10, 127))); // file.Write
+}
+
+TEST(CanForwardTest, ConfigurationFrameRefusesAnonymousAndStandardId)
+{
+	EXPECT_FALSE(isConfigurationFrame(messageId(NodeStatusId, 0)));     // anonymous
+	EXPECT_FALSE(isConfigurationFrame(serviceId(GetNodeInfoId, 10, 0))); // source node 0
+	EXPECT_FALSE(isConfigurationFrame(messageId(NodeStatusId, 127) & ~CanFlagEff & CanMaskStdId)); // standard ID
+	EXPECT_FALSE(isConfigurationFrame(0x155));
+}
+
+TEST(CanForwardTest, SourcePin)
+{
+	SourcePin pin;
+	EXPECT_EQ(dronecanSourceNodeId(serviceId(48, 10, 127)), 127);
+
+	EXPECT_FALSE(pin.accept(0, 1, false)); // anonymous
+	EXPECT_FALSE(pin.accept(1, 1, false)); // the flight controller's node ID
+	EXPECT_FALSE(pin.accept(125, 1, true)); // another node online with this ID
+	EXPECT_EQ(pin.nodeId(), 0);
+
+	EXPECT_TRUE(pin.accept(127, 1, false));
+	EXPECT_TRUE(pin.accept(127, 1, false));
+	EXPECT_FALSE(pin.accept(126, 1, false));
+	EXPECT_EQ(pin.nodeId(), 127);
+
+	EXPECT_FALSE(pin.accept(127, 1, true)); // a node with the pinned ID came online
+
+	pin.clear();
+	EXPECT_TRUE(pin.accept(126, 1, false));
+}
+
 TEST(CanForwardTest, EmptyFilterForwardsAll)
 {
 	Filter filter;

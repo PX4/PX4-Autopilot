@@ -3187,7 +3187,7 @@ void Mavlink::handleCanForwardOutput(const hrt_abstime &t)
 	}
 
 	const unsigned available = budget;
-	_can_forward.sendToGcs(get_channel(), message_size, budget);
+	_can_forward.sendToClient(get_channel(), message_size, budget);
 
 	if (paced) {
 		_can_forward_credit -= (float)(available - budget);

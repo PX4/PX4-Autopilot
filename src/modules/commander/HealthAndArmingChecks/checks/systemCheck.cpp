@@ -203,7 +203,7 @@ void SystemChecks::checkAndReport(const Context &context, Report &reporter)
 	if (_can_forward_status_sub.copy(&can_forward_status) && can_forward_status.active) {
 		/* EVENT
 		 * @description
-		 * A ground station has access to the CAN bus (MAV_CMD_CAN_FORWARD). Close the DroneCAN tool to arm.
+		 * A MAVLink client has access to the CAN bus (MAV_CMD_CAN_FORWARD). Close the DroneCAN tool to arm.
 		 */
 		reporter.armingCheckFailure(NavModes::All, health_component_t::system,
 					    events::ID("check_system_can_forward_active"),

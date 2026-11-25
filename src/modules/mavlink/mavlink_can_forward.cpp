@@ -57,21 +57,21 @@ bool MavlinkCanForward::isClient(uint8_t system, uint8_t component) const
 	       && _receiver_status.client_component == component;
 }
 
-bool MavlinkCanForward::handleCommand(float param1, uint8_t system, uint8_t component)
+bool MavlinkCanForward::handleCommand(uint8_t system, uint8_t component)
 {
 	_receiver_status_sub.update(&_receiver_status);
 
-	if (_receiver_status.active) {
-		// the session stays on its link: a keepalive from another link would keep it alive there
-		return isClient(system, component) ? claimLink() : _link.load() == this;
+	if (!_receiver_status.active) {
+		return true;
 	}
 
-	if (param1 >= 0.5f) {
-		// the first link to ask carries the session, if the driver accepts it
-		claimLink();
+	if (isClient(system, component)) {
+		// a keepalive from another link would keep the session alive there
+		return claimLink();
 	}
 
-	return true;
+	MavlinkCanForward *link = _link.load();
+	return link == nullptr || link == this;
 }
 
 void MavlinkCanForward::handleMessage(const mavlink_message_t &msg)
@@ -209,7 +209,7 @@ bool MavlinkCanForward::nextRxBatch()
 	return true;
 }
 
-void MavlinkCanForward::sendToGcs(mavlink_channel_t channel, unsigned message_size, unsigned &budget)
+void MavlinkCanForward::sendToClient(mavlink_channel_t channel, unsigned message_size, unsigned &budget)
 {
 	while (_rx_pending || nextRxBatch()) {
 		const uint8_t count = math::min(_rx_batch.count, can_forward_frames_s::MAX_FRAMES);
@@ -220,12 +220,13 @@ void MavlinkCanForward::sendToGcs(mavlink_channel_t channel, unsigned message_si
 			}
 
 			mavlink_can_frame_t msg{};
+			msg.target_system = static_cast<uint8_t>(_status.client_system);
 			msg.target_component = static_cast<uint8_t>(_status.client_component);
 			msg.bus = _rx_batch.bus;
 			msg.id = _rx_batch.id[_rx_index];
 			msg.len = math::min(_rx_batch.len[_rx_index], static_cast<uint8_t>(sizeof(msg.data)));
 			memcpy(msg.data, &_rx_batch.data[_rx_index * 8], msg.len);
-			mavlink_msg_send_struct_target(channel, CAN_FRAME, &msg, _status.client_system);
+			mavlink_msg_can_frame_send_struct(channel, &msg);
 			budget -= message_size;
 		}
 

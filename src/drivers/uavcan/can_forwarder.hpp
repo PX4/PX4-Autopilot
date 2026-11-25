@@ -44,6 +44,7 @@
 #include <drivers/drv_hrt.h>
 #include <lib/parameters/param.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <uavcan/protocol/node_status_monitor.hpp>
 #include <uavcan/transport/dispatcher.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
@@ -67,7 +68,7 @@ public:
 	explicit CanForwarder(px4::WorkItem *work_item) : _tx_sub{work_item, ORB_ID(can_forward_tx)} {}
 	~CanForwarder() { deinit(); }
 
-	void init(uavcan::Dispatcher &dispatcher);
+	void init(uavcan::Dispatcher &dispatcher, const uavcan::NodeStatusMonitor &node_status_monitor);
 	void deinit();
 
 	/// call before the node spins
@@ -87,15 +88,18 @@ private:
 	void mirror(const uavcan::CanFrame &frame);
 	void pushFramesToBus(hrt_abstime now);
 	bool nextTxBatch();
+	bool isNodeOnline(uint8_t node_id) const;
 	void flushRx(hrt_abstime now);
 
 	uavcan::Dispatcher *_dispatcher{nullptr};
-	param_t _param_can_fwd{PARAM_INVALID};
+	const uavcan::NodeStatusMonitor *_node_status_monitor{nullptr};
+	int32_t _mode{0}; ///< UAVCAN_CAN_FWD, read at startup
 
 	can_forward::Session _session;
 	can_forward_status_s _status{};
 	bool _config_only{true};
 	can_forward::Filter _filter;
+	can_forward::SourcePin _source_pin;
 
 	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
 	uORB::Subscription _vcmd_sub{ORB_ID(vehicle_command)};
@@ -115,8 +119,9 @@ private:
 	bool _tx_pending{false};
 	bool _tx_seen{false};
 
-	uint32_t _frames_to_gcs{0};
-	uint32_t _frames_from_gcs{0};
-	uint32_t _dropped_from_gcs{0};
-	uint32_t _lost_from_gcs{0}; ///< batches overwritten in the uORB queue
+	uint32_t _frames_to_client{0};
+	uint32_t _frames_from_client{0};
+	uint32_t _dropped_from_client{0};
+	uint32_t _lost_from_client{0};
+	uint32_t _tx_errors{0};
 };

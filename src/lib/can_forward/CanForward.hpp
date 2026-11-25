@@ -75,6 +75,44 @@ static inline uint16_t dronecanTypeId(uint32_t can_id)
 	return static_cast<uint16_t>(id >> 8);
 }
 
+// DroneCAN data type IDs allowed in configuration only mode
+static constexpr uint16_t GetNodeInfoId = 1;
+static constexpr uint16_t RestartNodeId = 5;
+static constexpr uint16_t ParamExecuteOpcodeId = 10;
+static constexpr uint16_t ParamGetSetId = 11;
+static constexpr uint16_t FileBeginFirmwareUpdateId = 40;
+static constexpr uint16_t FileGetInfoId = 45;
+static constexpr uint16_t FileReadId = 48;
+static constexpr uint16_t NodeStatusId = 341;
+
+/// frames a client may send in configuration only mode (node info, parameters, restart, firmware update): no commands
+static inline bool isConfigurationFrame(uint32_t can_id)
+{
+	const uint32_t id = can_id & CanMaskExtId;
+
+	if (!(can_id & CanFlagEff) || (id & 0x7FU) == 0) {
+		return false;
+	}
+
+	if (id & 0x80U) {
+		switch (static_cast<uint8_t>(id >> 16)) {
+		case GetNodeInfoId:
+		case RestartNodeId:
+		case ParamExecuteOpcodeId:
+		case ParamGetSetId:
+		case FileBeginFirmwareUpdateId:
+		case FileGetInfoId:
+		case FileReadId:
+			return true;
+
+		default:
+			return false;
+		}
+	}
+
+	return static_cast<uint16_t>(id >> 8) == NodeStatusId;
+}
+
 /// CAN_FILTER_MODIFY data type filter, empty forwards everything
 class Filter
 {
@@ -156,6 +194,38 @@ private:
 
 	uint16_t _ids[Capacity] {};
 	uint8_t _size{0};
+};
+
+/// DroneCAN source node ID, 0 for anonymous frames
+static inline uint8_t dronecanSourceNodeId(uint32_t can_id)
+{
+	return can_id & 0x7FU;
+}
+
+/// Pins a session to the DroneCAN node ID of the first frame its client sends
+class SourcePin
+{
+public:
+	/// @param local_node_id node ID of the flight controller, which the client may not use
+	/// @param online another node with this ID is online on the bus, which the client may not use either
+	bool accept(uint8_t node_id, uint8_t local_node_id, bool online)
+	{
+		if (node_id == 0 || node_id == local_node_id || online) {
+			return false;
+		}
+
+		if (_node_id == 0) {
+			_node_id = node_id;
+		}
+
+		return node_id == _node_id;
+	}
+
+	void clear() { _node_id = 0; }
+	uint8_t nodeId() const { return _node_id; } ///< 0 until pinned
+
+private:
+	uint8_t _node_id{0};
 };
 
 /// MAV_CMD_CAN_FORWARD session: one client at a time, ended by the client, a keepalive timeout or arming

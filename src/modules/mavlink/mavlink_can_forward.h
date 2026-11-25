@@ -50,7 +50,7 @@
 #include <uORB/topics/can_forward_frames.h>
 #include <uORB/topics/can_forward_status.h>
 
-/// Routes CAN frames between a GCS and the uavcan driver, which owns the session (can_forward_status)
+/// Routes CAN frames between a MAVLink client and the uavcan driver, which owns the session (can_forward_status)
 class MavlinkCanForward
 {
 public:
@@ -62,7 +62,7 @@ public:
 
 	// receiver thread
 	/// @return false if another link carries the session: the command must not reach the driver
-	bool handleCommand(float param1, uint8_t system, uint8_t component);
+	bool handleCommand(uint8_t system, uint8_t component);
 
 	void handleMessage(const mavlink_message_t &msg);
 
@@ -76,10 +76,10 @@ public:
 
 	// main thread, send lock held
 	/// @param budget bytes that may be sent, reduced by what was sent
-	void sendToGcs(mavlink_channel_t channel, unsigned message_size, unsigned &budget);
+	void sendToClient(mavlink_channel_t channel, unsigned message_size, unsigned &budget);
 
 private:
-	static constexpr hrt_abstime ClaimTimeout = 100'000; ///< the driver answers a request within a few ms
+	static constexpr hrt_abstime ClaimTimeout = 100'000; ///< free a claim whose session ended before update() saw it
 
 	bool claimLink(); ///< receiver thread
 	bool isClient(uint8_t system, uint8_t component) const; ///< receiver thread

@@ -450,7 +450,7 @@ UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	}
 
 #if defined(CONFIG_UAVCAN_CAN_FORWARD)
-	_instance->_can_forwarder.init(_instance->_node.getDispatcher());
+	_instance->_can_forwarder.init(_instance->_node.getDispatcher(), _instance->_node_status_monitor);
 #endif
 
 	_instance->ScheduleOnInterval(ScheduleIntervalMs * 1000);
