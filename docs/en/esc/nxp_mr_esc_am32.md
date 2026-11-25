@@ -21,7 +21,7 @@ Order this module from:
 - Battery Voltage: 2-6s
   - 6V Minimum
   - 25.2V Maximum
-- Current Rating: 25A continuous, 50A peak
+- Current Rating: 25A continuous, 50A peak (at 6S, without heat sink)
 - Input Protocols (auto-detected)
   - DShot (300, 600)
   - Bidirectional DShot (300, 600)
@@ -44,7 +44,7 @@ On the [NXP MR-VMU-RT1176](../flight_controller/nxp_mr_vmu_rt1176.md) shown belo
 
 ::: warning
 The board has no reverse polarity protection and no input fuse.
-Wrong polarity on the battery pads destroys it.
+Wrong polarity on the battery leads destroys it.
 Double-check battery polarity before applying power.
 
 The signal input is 3.3V logic.
