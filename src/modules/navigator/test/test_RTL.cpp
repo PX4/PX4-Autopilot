@@ -3348,6 +3348,102 @@ INSTANTIATE_TEST_SUITE_P(
 	return std::string(param_info.param.test_name);
 });
 
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+class RTLGeofenceAvoidanceTest : public RTLTest
+{
+protected:
+	void TearDown() override
+	{
+		mission_stats_entry_s no_fence{};
+		EXPECT_TRUE(_dataman_client.clearSync(DM_KEY_FENCE_POINTS_0));
+		EXPECT_TRUE(_dataman_client.writeSync(DM_KEY_FENCE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&no_fence),
+						      sizeof(no_fence)));
+		RTLTest::TearDown();
+	}
+
+	// an exclusion zone with corners in meters north and east of Home, and the avoidance graph Navigator builds
+	void loadExclusionZone(const std::vector<matrix::Vector2f> &corners)
+	{
+		for (size_t i = 0; i < corners.size(); ++i) {
+			const PositionYawSetpoint corner = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, corners[i](0),
+							   corners[i](1), kAlt);
+			mission_fence_point_s point{};
+			point.nav_cmd = NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION;
+			point.frame = NAV_FRAME_GLOBAL;
+			point.lat = corner.lat;
+			point.lon = corner.lon;
+			point.vertex_count = static_cast<uint16_t>(corners.size());
+			ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_FENCE_POINTS_0, static_cast<uint32_t>(i),
+							      reinterpret_cast<uint8_t *>(&point), sizeof(point)));
+		}
+
+		mission_stats_entry_s stats{};
+		stats.num_items = static_cast<uint16_t>(corners.size());
+		stats.opaque_id = 1;
+		stats.dataman_id = DM_KEY_FENCE_POINTS_0;
+		ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_FENCE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&stats),
+						      sizeof(stats)));
+
+		Geofence &fence = _navigator.get_geofence();
+		fence.updateFence();
+		const hrt_abstime start = hrt_absolute_time();
+
+		while (!fence.isReadyForPathChecks() && hrt_elapsed_time(&start) < 1_s) {
+			fence.run();
+			px4_usleep(1000);
+		}
+
+		ASSERT_TRUE(fence.isReadyForPathChecks());
+		GeofenceAvoidancePlanner &planner = _navigator.get_geofence_avoidance_planner();
+		planner.updateGraphFromGeofence(fence, 10.f);
+		ASSERT_EQ(planner.status(), GeofenceAvoidancePlanner::Status::Success);
+	}
+};
+
+// WHY: Around a geofence, Return flies to the last corner of the detour and from there to the destination.
+// WHAT: The direct Return estimate grows by the extra distance of the detour around an exclusion zone.
+TEST_F(RTLGeofenceAvoidanceTest, DirectEstimateCoversTheWayAroundTheGeofence)
+{
+	// GIVEN: a multicopter 200 m north of Home
+	const PositionYawSetpoint home = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
+	const PositionYawSetpoint vehicle = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt + 100.f);
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(vehicle);
+	publishLandDetected(false);
+
+	auto estimateReturnToHome = [&]() {
+		_rtl.on_inactive(); // RtlDirect reads the vehicle type, which sets its cruise speed
+		_rtl.evaluateReturnTypeForTest(0);
+		return _rtl.directEstimateForTest();
+	};
+
+	const rtl_time_estimate_s direct = estimateReturnToHome();
+
+	// WHEN: an exclusion zone 800 m wide lies between the vehicle and Home
+	ASSERT_NO_FATAL_FAILURE(loadExclusionZone({{80.f, -400.f}, {120.f, -400.f}, {120.f, 400.f}, {80.f, 400.f}}));
+	const rtl_time_estimate_s around = estimateReturnToHome();
+
+	// THEN: the estimate grows by the extra distance at MPC_XY_CRUISE, including the leg from the last corner to Home
+	const GeofenceAvoidancePlanner &planner = _navigator.get_geofence_avoidance_planner();
+	ASSERT_GT(planner.get_num_waypoints(), 0);
+	matrix::Vector2d from{vehicle.lat, vehicle.lon};
+	float around_m = 0.f;
+
+	for (int i = 0; i < planner.get_num_waypoints(); ++i) {
+		const matrix::Vector2d corner = planner.waypointAtIndex(i);
+		around_m += get_distance_to_next_waypoint(from(0), from(1), corner(0), corner(1));
+		from = corner;
+	}
+
+	around_m += get_distance_to_next_waypoint(from(0), from(1), home.lat, home.lon);
+	const float direct_m = get_distance_to_next_waypoint(vehicle.lat, vehicle.lon, home.lat, home.lon);
+	float cruise_speed = NAN;
+	param_get(param_find("MPC_XY_CRUISE"), &cruise_speed);
+	ASSERT_TRUE(direct.valid && around.valid);
+	EXPECT_NEAR(around.time_estimate - direct.time_estimate, (around_m - direct_m) / cruise_speed, 0.1f);
+}
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+
 // WHY: A stop that never lands must not count a landing in the remaining time estimate.
 // WHAT: The RTL_TYPE 5 stop of a pure fixed-wing has the same estimate with RTL_LAND_DELAY 0 as with -1.
 TEST_F(RTLTest, RallyPointReturnWithoutRallyPointEstimatesNoFixedWingLanding)

@@ -16,8 +16,8 @@ const { site } = useData();
 This contains changes to the PX4 `main` branch that are not included in the next release ([PX4 v1.18](../releases/1.18.md)).
 
 ::: warning
-PX4 v1.18 is in beta testing.
-Update these notes with features that are going to be in `main` (PX4 v2.0 or later) but not the PX4 v1.18 release.
+These notes cover changes on `main` since PX4 v1.18, the current stable release.
+Update them with features that are going to be in `main` (PX4 v2.0 or later).
 :::
 
 ## Read Before Upgrading
@@ -97,12 +97,18 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   Limits raised or disabled to allow large tilts, for example roll on fixed-wing vehicles, are no longer needed.
   The check is disabled with `FD_TILT_ERROR` set to -1.
   The `fd_roll` and `fd_pitch` fields of [FailureDetectorStatus](../msg_docs/FailureDetectorStatus.md) are replaced by `fd_tilt`.
+- **The failsafe flag `geofence_breached` is renamed to `gf_emer_breach`.**
+  The field of [FailsafeFlags](../msg_docs/FailsafeFlags.md) (`failsafe_flags`) now names the emergency geofence, next to the new `gf_cont_breach` flag of the contingency geofence.
+  Both names are short because the message is at the logger's format limit.
+  ROS 2 applications and log analysis that read `geofence_breached` must use the new name.
+- **The `geofence_result` fields of the existing geofence are renamed.**
+  `geofence_max_dist_triggered`, `geofence_max_alt_triggered`, `geofence_custom_fence_triggered` and `geofence_action` of [GeofenceResult](../msg_docs/GeofenceResult.md) are now `geofence_emer_max_dist_triggered`, `geofence_emer_max_alt_triggered`, `geofence_emer_custom_fence_triggered` and `geofence_emer_action`.
+  They name the emergency geofence, next to the new `geofence_cont_*` fields of the contingency geofence.
+  Log analysis that reads the old names must use the new ones.
 
 ## Other changes
 
 - Fast mission Return modes ([RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 2 and 4) now skip `DO_JUMP` commands (loops) while following the mission path. ([PX4-Autopilot#26993: fix(navigator): goToNextPositionItem skip loops when required](https://github.com/PX4/PX4-Autopilot/pull/26993))
-- A fixed-wing vehicle landing at the end of a reverse mission Return ([RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 2 or 4) uses the home altitude again instead of flaring at flight altitude, a regression in the v1.18 pre-releases.
-- A Return to the mission landing ([RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 1 or 3, or 0 as a last resort) uses the current return altitude for its climb, geofence detours and time estimate. It used the one from when the mission landing was first selected, often on the ground, so a multicopter could fly to the landing without climbing to [RTL_RETURN_ALT](../advanced_config/parameter_reference.md#RTL_RETURN_ALT), a regression in the v1.18 pre-releases.
 - A mission Return mode ([RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 1, 2, 3 or 4) now reads the current mission on the cycle that activates it, so a mission uploaded or changed right as Return starts is used for the return type, the geofence avoidance destination and the starting item. The fast variants also discard the item index they recorded from an earlier mission when a different one is current. ([PX4-Autopilot#28748](https://github.com/PX4/PX4-Autopilot/pull/28748))
 - A `DO_JUMP` whose counter cannot be written to storage, for example on a failing SD card, is now skipped with a message to the operator. Previously the jump was taken again on every pass, repeating the same mission segment until a failsafe stopped the mission. ([PX4-Autopilot#28752](https://github.com/PX4/PX4-Autopilot/pull/28752))
 - Return mode now stops in the cycle it is left, not one cycle later. Before, a precision landing selected right after Return was partly reset, and Return selected again after one cycle of Hold hovered in place instead of returning. ([PX4-Autopilot#29444](https://github.com/PX4/PX4-Autopilot/pull/29444))
@@ -111,9 +117,6 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - With [RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 5 and no rally point, a fixed-wing vehicle now circles where Return started, whatever [RTL_LAND_DELAY](../advanced_config/parameter_reference.md#RTL_LAND_DELAY) is.
   It used to land there when `RTL_LAND_DELAY` was not -1, with the altitude it was flying at as the ground altitude.
   VTOLs and multicopters still follow `RTL_LAND_DELAY`.
-- After its climb, a Return to a mission landing without `DO_LAND_START` ([RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 1 or 3, or 0 as a last resort) flies to the landing at altitude before it descends, and a VTOL transitions back to multicopter there.
-  Since PX4 v1.15 a multicopter descended right after the climb while flying to the landing and could touch down short of it, and a VTOL in fixed-wing flight flew a fixed-wing landing.
-  Mission now does the same after the climb it adds when it starts or resumes below a landing item.
 
 ### Hardware Support
 
@@ -143,6 +146,12 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 ### Safety
 
 - [Geofence Aware Return mode](../flight_modes/return.md#geofence_awareness). ([PX4-Autopilot#27145: feat(navigator): Geofence Aware RTL](https://github.com/PX4/PX4-Autopilot/pull/27145), [PX4-Autopilot#28001: docs(navigator): [geofence] added some more warnings about limitations](https://github.com/PX4/PX4-Autopilot/pull/28001)).
+- [Contingency geofence](../config/safety.md#contingency-geofence): a second boundary at a horizontal margin inside the geofence ([GF_CONT_H_MARGIN](../advanced_config/parameter_reference.md#GF_CONT_H_MARGIN)), with its own action ([GF_CONT_ACTION](../advanced_config/parameter_reference.md#GF_CONT_ACTION)).
+  A vehicle can for example hold at the contingency geofence, and only terminate if it still crosses the geofence.
+  The names follow the SORA framework: messages about a breach or a refused target now call the existing geofence the emergency geofence.
+  The margin applies to the maximum distance from Home and to the Geofence Plan.
+  Outside the contingency geofence missions are rejected, arming is denied unless its action is None, and _Go to location_ targets are refused unless its action is None or Warning.
+  Return mode plans its route with the margin added.
 - [Flight termination](../advanced_config/flight_termination.md) can now be used instead of a Descent mode as a fallback failsafe mode, allowing safer landing for unpiloted vehicles that carry a parachute.
   See [Battery level failsafe](../config/safety.md#battery-level-failsafe) ([COM_LOW_BAT_ACT](../advanced_config/parameter_reference.md#COM_LOW_BAT_ACT)) and [Position Loss Failsafe Action](../config/safety.md#position-loss-failsafe-action) (new [COM_POS_FS_ACT](../advanced_config/parameter_reference.md#COM_POS_FS_ACT)). ([PX4-Autopilot#28064: feat(commander): add terminate options for critical battery and lost position failsafes](https://github.com/PX4/PX4-Autopilot/pull/28064)).
 - [Failure injection](../debug/failure_injection.md) ( [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN)) has been significantly extended. (PX4-Autopilot#27572, PX4-Autopilot#27832, PX4-Autopilot#27950)

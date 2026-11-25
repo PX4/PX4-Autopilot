@@ -370,6 +370,7 @@
     - [TBS Crossfire (CRSF) Telemetry](telemetry/crsf_telemetry.md)
     - [Satellite Comms (Iridium/RockBlock)](advanced_features/satcom_roadblock.md)
     - [Analog Video Transmitters](vtx/index.md)
+    - [IP-Based Radios](data_links/ip_based_radios.md)
 
   - [Power Systems](power_systems/index.md)
     - [Battery Estimation Tuning](config/battery.md)
@@ -1015,8 +1016,8 @@
 - [Releases](releases/index.md)
   - [Release Process](releases/release_process.md)
   - [main (alpha)](releases/main.md)
-  - [v1.18 (beta)](releases/1.18.md)
-  - [1.17 (stable)](releases/1.17.md)
+  - [v1.18 (stable)](releases/1.18.md)
+  - [1.17](releases/1.17.md)
   - [1.16](releases/1.16.md)
   - [1.15](releases/1.15.md)
   - [1.14](releases/1.14.md)

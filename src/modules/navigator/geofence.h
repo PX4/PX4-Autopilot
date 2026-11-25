@@ -44,11 +44,13 @@
 
 #include <dataman_client/DatamanClient.hpp>
 #include <lib/mathlib/mathlib.h>
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/module_params.h>
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
 #include <px4_platform_common/defines.h>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/geofence_result.h>
 #include <uORB/topics/geofence_status.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -104,11 +106,13 @@ public:
 		matrix::Vector2d start; ///< latitude, longitude in degrees
 		matrix::Vector2d end;
 		float end_radius{0.f}; ///< Circle radius at end in metres; zero checks only the path.
+		float margin{0.f}; ///< Distance in metres the path and the end circle keep from every polygon and circle.
 	};
 
 	/**
 	 * Check 1..MAX_PATH_CHECKS paths and optional circles at their ends against horizontal fences.
-	 * Circles are also checked against the maximum distance from Home.
+	 * Circles are also checked against the maximum distance from Home, less GF_CONT_H_MARGIN.
+	 * A path's margin makes coming closer than it to a polygon or circle boundary a breach too.
 	 * Boundary contact is a breach, including contact by a circle. Callers choose the circles;
 	 * a fixed-wing waypoint turned into a loiter to reach its altitude cannot be predicted here.
 	 * At least one endpoint of each path must be valid under the existing point check.
@@ -134,9 +138,10 @@ public:
 	/**
 	 * @brief check if the horizontal distance to Home is greater than the maximum allowed distance
 	 *
+	 * @param margin distance in metres to keep from the maximum allowed distance
 	 * @return true if the horizontal distance to Home is smaller than the maximum allowed distance
 	 */
-	bool isCloserThanMaxDistToHome(double lat, double lon, float altitude);
+	bool isCloserThanMaxDistToHome(double lat, double lon, float altitude, float margin = 0.f);
 
 
 	/**
@@ -146,6 +151,13 @@ public:
 	 */
 	bool isBelowMaxAltitude(float altitude);
 
+	/** True if the position keeps GF_CONT_H_MARGIN from the maximum distance to Home, or one of the two is 0. */
+	bool isCloserThanContMaxDistToHome(double lat, double lon)
+	{
+		const float margin = getContGeofenceMargin();
+		return margin <= FLT_EPSILON || isCloserThanMaxDistToHome(lat, lon, 0.f, margin);
+	}
+
 	/** Check the altitude band from a loaded fence file, if configured. */
 	bool isWithinAltitudeBand(float altitude);
 
@@ -153,6 +165,40 @@ public:
 
 	/** Check the polygons and circles only, without the altitude band. */
 	bool isInsideHorizontalFences(double lat, double lon, float altitude);
+
+	/**
+	 * True if a circle lies inside the polygons and circles without touching a boundary.
+	 * The Home and altitude limits are not checked.
+	 * Checked like a mission path without length, on the loaded fence: like the point checks,
+	 * it also answers while a fence update is pending.
+	 *
+	 * @param radius Circle radius in metres; zero checks the centre only.
+	 */
+	bool isCircleInside(double lat, double lon, float radius);
+
+	/**
+	 * GF_CONT_H_MARGIN [m], the horizontal distance the contingency geofence keeps from the emergency geofence:
+	 * from the maximum distance to Home and from the polygons and circles. Zero disables the contingency geofence.
+	 * The polygons and circles need the path checks, so boards built without them have no such parameter.
+	 */
+	float getContGeofenceMargin() const
+	{
+#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
+		return math::max(_param_gf_cont_h_margin.get(), 0.f);
+#else
+		return 0.f;
+#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
+	}
+
+	/** GF_CONT_H_MARGIN as applied to the polygons and circles of the geofence plan, not to the distance from Home. */
+	float getContGeofencePlanMargin() const { return getContGeofenceMargin(); }
+
+	/** True if the position keeps GF_CONT_H_MARGIN from the polygons and circles, or the margin is disabled. */
+#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
+	bool isInsideContGeofence(double lat, double lon);
+#else
+	bool isInsideContGeofence(double lat, double lon) { return true; }
+#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 
 	bool valid();
 
@@ -181,6 +227,16 @@ public:
 
 	int getSource() { return _param_gf_source.get(); }
 	int getGeofenceAction() { return _param_gf_action.get(); }
+
+	/**
+	 * GF_CONT_ACTION, or None while the contingency geofence is disabled.
+	 * The value is passed on as set: commander decides what a breach triggers and keeps Terminate out, see
+	 * Failsafe::fromGfContActParam().
+	 */
+	int getContGeofenceAction() const
+	{
+		return getContGeofenceMargin() > FLT_EPSILON ? _param_gf_cont_action.get() : geofence_result_s::GF_ACTION_NONE;
+	}
 
 	float getMaxHorDistanceHome() { return _param_gf_max_hor_dist.get(); }
 
@@ -223,6 +279,9 @@ private:
 	DatamanState _error_state{DatamanState::UpdateRequestWait};
 	DatamanCache _dataman_cache{"geofence_dm_cache_miss", 0};
 	DatamanClient	&_dataman_client = _dataman_cache.client();
+#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
+	perf_counter_t _cont_check_perf {perf_alloc(PC_ELAPSED, "navigator: contingency geofence")};
+#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 
 	float _altitude_min{0.0f};
 	float _altitude_max{0.0f};
@@ -340,6 +399,10 @@ private:
 		(ParamInt<px4::params::GF_ACTION>)         _param_gf_action,
 		(ParamInt<px4::params::GF_SOURCE>)         _param_gf_source,
 		(ParamFloat<px4::params::GF_MAX_HOR_DIST>) _param_gf_max_hor_dist,
-		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist
+		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist,
+#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
+		(ParamFloat<px4::params::GF_CONT_H_MARGIN>) _param_gf_cont_h_margin,
+#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
+		(ParamInt<px4::params::GF_CONT_ACTION>)    _param_gf_cont_action
 	)
 };

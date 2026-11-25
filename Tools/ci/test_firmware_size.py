@@ -37,13 +37,13 @@ SECTIONS
 """)
 
     def build(self, name="firmware", *, text=32, data=16, bss=32,
-              ramfunc=16, reserved=16, debug=16, linker_flags=()):
+              ramfunc=16, reserved=16, debug=16, fill=1, linker_flags=()):
         source = self.root / f"{name}.s"
         obj = source.with_suffix(".o")
         elf = source.with_suffix(".elf")
         source.write_text(f"""
 .section .text,"ax"
-.space {text}, 1
+.space {text}, {fill}
 .section .ramfunc,"ax"
 .space {ramfunc}, 2
 .section .data,"aw"
@@ -144,17 +144,32 @@ SECTIONS
                 self.assertTrue(format_change(10000, 10000 + delta).startswith(
                     f"{expected}{delta:+,} B"))
 
+    def report(self, before, after, *flags):
+        output = subprocess.check_output([
+            sys.executable, str(Path(__file__).with_name("firmware_size.py").resolve()),
+            "--before", str(before), "--after", str(after), "--linker-script", str(self.linker), *flags,
+        ], cwd=self.root, text=True)
+        return json.loads(output)
+
     def test_cli_from_outside_checkout(self):
         before = self.build("before")
         after = self.build("after", bss=96)
-        output = subprocess.check_output([
-            sys.executable, str(Path(__file__).with_name("firmware_size.py").resolve()),
-            "--before", str(before), "--after", str(after), "--linker-script", str(self.linker),
-        ], cwd=self.root, text=True)
-        self.assertEqual(json.loads(output), {
+        self.assertEqual(self.report(before, after), {
             "flash": "+0 B (+0.00%)", "flash_used": "0.00%",
             "ram": "+64 B (+80.00%)", "ram_used": "0.03%", "changed": True,
         })
+
+    def test_reproducible_image_reports_changed_bytes_of_the_same_size(self):
+        # The px4io firmware is flashed to the IO by every FMU that carries it,
+        # so a change of its bytes has to surface even when no size moves.
+        # Debug information is not part of the image and must not count.
+        before = self.build("before")
+        for name, change, image, changed in (("same", {"debug": 4096}, "unchanged", False),
+                                             ("patched", {"fill": 9}, "🔴 changed", True)):
+            with self.subTest(name):
+                result = self.report(before, self.build(name, **change), "--reproducible-image")
+                self.assertEqual((result["image"], result["changed"], result["flash"]),
+                                 (image, changed, "+0 B (+0.00%)"))
 
 
 if __name__ == "__main__":
