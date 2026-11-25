@@ -111,7 +111,7 @@ EscBattery::Run()
 
 		average_voltage_v /= online_esc_count;
 
-		_battery.setConnected(true);
+		_battery.setConnected(average_voltage_v > BOARD_ESC_BATTERY_OPEN_CIRCUIT_V);
 		_battery.updateVoltage(average_voltage_v);
 		_battery.updateCurrent(total_current_a);
 		_battery.updateAndPublishBatteryStatus(esc_status.timestamp);

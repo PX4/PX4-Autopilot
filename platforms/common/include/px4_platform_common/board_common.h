@@ -137,6 +137,12 @@
 #  define BOARD_ADC_OPEN_CIRCUIT_V  (1.5f)
 #endif
 
+/* Define the default ESC-reported battery voltage at or below which no battery is considered connected */
+
+#if !defined(BOARD_ESC_BATTERY_OPEN_CIRCUIT_V)
+#  define BOARD_ESC_BATTERY_OPEN_CIRCUIT_V  (0.0f)
+#endif
+
 /* Define the default Under voltage Window on the LTC4417 as set by resistors on the
  * board. Default is that of the FMUv2 at 3.7V
  */
