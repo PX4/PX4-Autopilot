@@ -14,6 +14,19 @@ parameters:
       min: 0
       decimal: 1
       increment: 0.5
+    RTL_MAX_ALT:
+      description:
+        short: Return mode maximum return altitude
+        long: A vehicle in multicopter mode that starts a direct return to home or a
+          rally point higher than this above the destination descends to it on the way
+          back, instead of returning at its current altitude. Never below RTL_RETURN_ALT.
+          Not used in fixed-wing mode or for mission landing returns. Set to -1 to disable.
+      type: float
+      default: -1.0
+      unit: m
+      min: -1
+      decimal: 1
+      increment: 1
     RTL_DESCEND_ALT:
       description:
         short: Return mode loiter altitude
