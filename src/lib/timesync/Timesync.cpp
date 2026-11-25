@@ -142,17 +142,16 @@ uint64_t Timesync::sync_stamp(uint64_t usec)
  *   x <- A x,            A   = [1 dt; 0 1]   (offset += skew * dt, skew unchanged)
  *   P <- A P A^T + Q_d,  Q_d = [q_o dt + q_s dt^3/3   q_s dt^2/2;
  *                               q_s dt^2/2            q_s dt    ]
-
+ *
  * Q_d is the noise added over dt. Each random walk adds q dt to its own variance.
  * The skew noise also leaks into the offset through offset += skew * dt, which
  * gives the dt^2/2 and dt^3/3 terms. A skew kick w at s seconds before the end of
  * dt changes the skew by w and the offset by s w. Summing over the interval:
  *   cov(offset, skew) += integral_0^dt q_s s   ds = q_s dt^2/2
  *   var(offset)       += integral_0^dt q_s s^2 ds = q_s dt^3/3
-
+ *
  * https://en.wikipedia.org/wiki/Discretization#Discretization_of_process_noise
  */
-
 void Timesync::add_sample(int64_t offset_us, uint64_t now_us)
 {
 	static constexpr double R = MEASUREMENT_NOISE_STD * MEASUREMENT_NOISE_STD;
@@ -175,10 +174,11 @@ void Timesync::add_sample(int64_t offset_us, uint64_t now_us)
 		_cov_offset_skew += dt * (_var_skew + dt * SKEW_RANDOM_WALK / 2.0);
 		_var_skew += dt * SKEW_RANDOM_WALK;
 
-		// Update: K = P H^T / (H P H^T + R), x <- x + K (z - H x), P <- (I - K H) P
+		// Update: S = H P H^T + R, K = P H^T / S, x <- x + K (z - H x), P <- (I - K H) P
 		const double innovation = offset_s - _time_offset;
-		const double k_offset = _var_offset / (_var_offset + R);
-		const double k_skew = _cov_offset_skew / (_var_offset + R);
+		const double innovation_var = _var_offset + R;
+		const double k_offset = _var_offset / innovation_var;
+		const double k_skew = _cov_offset_skew / innovation_var;
 
 		_time_offset += k_offset * innovation;
 		_time_skew += k_skew * innovation;
@@ -193,14 +193,10 @@ void Timesync::add_sample(int64_t offset_us, uint64_t now_us)
 
 void Timesync::reset_filter()
 {
-	// Do a full reset of all statistics and parameters
+	// The filter state is initialized by the first sample after the reset (_sequence == 0).
+	// Clear the offset because it is reported before that sample arrives.
 	_sequence = 0;
 	_time_offset = 0.0;
-	_time_skew = 0.0;
-	_var_offset = 0.0;
-	_cov_offset_skew = 0.0;
-	_var_skew = 0.0;
-	_last_sample_us = 0;
 	_high_deviation_count = 0;
 	_high_rtt_count = 0;
 }
