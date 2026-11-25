@@ -119,14 +119,14 @@ void EKF2Selector::PrintInstanceChange(const uint8_t old_instance, uint8_t new_i
 	}
 }
 
-bool EKF2Selector::SelectInstance(uint8_t ekf_instance)
+bool EKF2Selector::SelectInstance(uint8_t ekf_instance, const hrt_abstime now)
 {
 	if ((ekf_instance != _selected_instance) && (ekf_instance < _available_instances)) {
 		// update sensor_selection immediately
 		sensor_selection_s sensor_selection{};
 		sensor_selection.accel_device_id = _instance[ekf_instance].accel_device_id;
 		sensor_selection.gyro_device_id = _instance[ekf_instance].gyro_device_id;
-		sensor_selection.timestamp = hrt_absolute_time();
+		sensor_selection.timestamp = now;
 		_sensor_selection_pub.publish(sensor_selection);
 
 		if (_selected_instance != INVALID_INSTANCE) {
@@ -157,7 +157,7 @@ bool EKF2Selector::SelectInstance(uint8_t ekf_instance)
 	return false;
 }
 
-bool EKF2Selector::UpdateErrorScores()
+bool EKF2Selector::UpdateErrorScores(const hrt_abstime now)
 {
 	// first check imu inconsistencies
 	_gyro_fault_detected = false;
@@ -323,19 +323,19 @@ bool EKF2Selector::UpdateErrorScores()
 				_instance[i].relative_test_ratio = 0;
 			}
 
-		} else if (!_instance[i].timeout && (hrt_elapsed_time(&_instance[i].timestamp_last) > status_timeout)) {
-			_instance[i].healthy.set_state_and_update(false, hrt_absolute_time());
+		} else if (!_instance[i].timeout && (now - _instance[i].timestamp_last > status_timeout)) {
+			_instance[i].healthy.set_state_and_update(false, now);
 			_instance[i].timeout = true;
 		}
 
 		// if the gyro used by the EKF is faulty, declare the EKF unhealthy without delay
 		if (_gyro_fault_detected && (faulty_gyro_id != 0) && (_instance[i].gyro_device_id == faulty_gyro_id)) {
-			_instance[i].healthy.set_state_and_update(false, hrt_absolute_time());
+			_instance[i].healthy.set_state_and_update(false, now);
 		}
 
 		// if the accelerometer used by the EKF is faulty, declare the EKF unhealthy without delay
 		if (_accel_fault_detected && (faulty_accel_id != 0) && (_instance[i].accel_device_id == faulty_accel_id)) {
-			_instance[i].healthy.set_state_and_update(false, hrt_absolute_time());
+			_instance[i].healthy.set_state_and_update(false, now);
 		}
 
 		if (prev_healthy != _instance[i].healthy.get_state()) {
@@ -712,6 +712,18 @@ void EKF2Selector::PublishWindEstimate()
 
 void EKF2Selector::Run()
 {
+	if (Update(hrt_absolute_time())) {
+		// re-schedule as backup timeout
+		ScheduleDelayed(FILTER_UPDATE_PERIOD);
+
+	} else {
+		// no valid instance yet, check again later
+		ScheduleDelayed(100_ms);
+	}
+}
+
+bool EKF2Selector::Update(const hrt_abstime now)
+{
 	// check for parameter updates
 	if (_parameter_update_sub.updated()) {
 		// clear update
@@ -723,7 +735,7 @@ void EKF2Selector::Run()
 	}
 
 	// update combined test ratio for all estimators
-	const bool updated = UpdateErrorScores();
+	const bool updated = UpdateErrorScores(now);
 
 	// if no valid instance then force select first instance with valid IMU
 	if (_selected_instance == INVALID_INSTANCE) {
@@ -731,7 +743,7 @@ void EKF2Selector::Run()
 			if ((_instance[i].accel_device_id != 0)
 			    && (_instance[i].gyro_device_id != 0)) {
 
-				if (SelectInstance(i)) {
+				if (SelectInstance(i, now)) {
 					break;
 				}
 			}
@@ -739,8 +751,7 @@ void EKF2Selector::Run()
 
 		// if still invalid return early and check again on next scheduled run
 		if (_selected_instance == INVALID_INSTANCE) {
-			ScheduleDelayed(100_ms);
-			return;
+			return false;
 		}
 	}
 
@@ -764,9 +775,9 @@ void EKF2Selector::Run()
 		uint8_t best_ekf_different_imu_no_sustained_warning = INVALID_INSTANCE;
 
 		// nominally healthy, but the test ratio has been failing for a while
-		const auto sustained_warning = [this](uint8_t i) {
+		const auto sustained_warning = [this, now](uint8_t i) {
 			return _instance[i].warning
-			       && (hrt_elapsed_time(&_instance[i].time_last_no_warning) > 1_s);
+			       && (now - _instance[i].time_last_no_warning > 1_s);
 		};
 
 		// loop through all available instances to find if an alternative is available
@@ -787,7 +798,7 @@ void EKF2Selector::Run()
 					alternative_error = relative_error;
 
 					// relative error less than selected instance and has not been the selected instance for at least 10 seconds
-					if ((relative_error <= -_rel_err_thresh) && hrt_elapsed_time(&_instance[i].time_last_selected) > 10_s) {
+					if ((relative_error <= -_rel_err_thresh) && (now - _instance[i].time_last_selected > 10_s)) {
 						lower_error_available = true;
 					}
 				}
@@ -819,40 +830,40 @@ void EKF2Selector::Run()
 
 		if (!_instance[_selected_instance].healthy.get_state()) {
 			if (_selected_unhealthy_since == 0) {
-				_selected_unhealthy_since = hrt_absolute_time();
+				_selected_unhealthy_since = now;
 			}
 
 			// ride out brief primary faults instead of switching to a diverged instance,
 			// but a timed out primary (frozen outputs) falls back without delay
 			const bool allow_sustained_warning_fallback = _instance[_selected_instance].timeout
-					|| (hrt_elapsed_time(&_selected_unhealthy_since) > kWarnedFallbackDelay);
+					|| (now - _selected_unhealthy_since > kWarnedFallbackDelay);
 
 			// prefer candidates without a sustained warning, different IMU first
-			if (!SelectInstance(best_ekf_different_imu_no_sustained_warning)) {
-				if (!SelectInstance(best_ekf_no_sustained_warning)) {
+			if (!SelectInstance(best_ekf_different_imu_no_sustained_warning, now)) {
+				if (!SelectInstance(best_ekf_no_sustained_warning, now)) {
 					if (allow_sustained_warning_fallback) {
-						if (!SelectInstance(best_ekf_different_imu)) {
-							SelectInstance(best_ekf);
+						if (!SelectInstance(best_ekf_different_imu, now)) {
+							SelectInstance(best_ekf, now);
 						}
 					}
 				}
 			}
 
 		} else if (lower_error_available
-			   && ((hrt_elapsed_time(&_last_instance_change) > 10_s)
+			   && ((now - _last_instance_change > 10_s)
 			       || (_instance[_selected_instance].warning
-				   && (hrt_elapsed_time(&_instance[_selected_instance].time_last_no_warning) > 1_s)))) {
+				   && (now - _instance[_selected_instance].time_last_no_warning > 1_s)))) {
 
 			// if this instance has a significantly lower relative error to the active primary, we consider it as a
 			// better instance and would like to switch to it even if the current primary is healthy
-			SelectInstance(best_ekf_alternate);
+			SelectInstance(best_ekf_alternate, now);
 
 		} else if (_request_instance.load() != INVALID_INSTANCE) {
 
 			const uint8_t new_instance = _request_instance.load();
 
 			// attempt to switch to user manually selected instance
-			if (!SelectInstance(new_instance)) {
+			if (!SelectInstance(new_instance, now)) {
 				PX4_ERR("unable to switch to user selected instance %d", new_instance);
 			}
 
@@ -861,14 +872,14 @@ void EKF2Selector::Run()
 		}
 
 		// publish selector status at ~1 Hz or immediately on any change
-		if (_selector_status_publish || (hrt_elapsed_time(&_last_status_publish) > 1_s)
+		if (_selector_status_publish || (now - _last_status_publish > 1_s)
 		    || (available_instances_prev != _available_instances)
 		    || (selected_instance_prev != _selected_instance)
 		    || (instance_changed_count_prev != _instance_changed_count)
 		    || (last_instance_change_prev != _last_instance_change)
 		    || _accel_fault_detected || _gyro_fault_detected) {
 
-			PublishEstimatorSelectorStatus();
+			PublishEstimatorSelectorStatus(now);
 			_selector_status_publish = false;
 		}
 	}
@@ -880,11 +891,10 @@ void EKF2Selector::Run()
 	PublishVehicleOdometry();
 	PublishWindEstimate();
 
-	// re-schedule as backup timeout
-	ScheduleDelayed(FILTER_UPDATE_PERIOD);
+	return true;
 }
 
-void EKF2Selector::PublishEstimatorSelectorStatus()
+void EKF2Selector::PublishEstimatorSelectorStatus(const hrt_abstime now)
 {
 	estimator_selector_status_s selector_status{};
 	selector_status.primary_instance = _selected_instance;
@@ -909,7 +919,7 @@ void EKF2Selector::PublishEstimatorSelectorStatus()
 		selector_status.accumulated_accel_error[i] = _accumulated_accel_error[i];
 	}
 
-	selector_status.timestamp = hrt_absolute_time();
+	selector_status.timestamp = now;
 	_estimator_selector_status_pub.publish(selector_status);
 	_last_status_publish = selector_status.timestamp;
 }
