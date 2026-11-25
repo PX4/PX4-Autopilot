@@ -1,0 +1,6 @@
+menuconfig DRIVERS_IMU_INVENSENSE_MPU_DIRECT
+	bool "TDK direct-register SPI FIFO family"
+	default n
+	help
+	  Shared SPI six-axis implementation for flat-register InvenSense/TDK IMUs
+	  (MPU6000, MPU6500, ICM20602, ICM20608G, ICM20689, IAM20680HP).
