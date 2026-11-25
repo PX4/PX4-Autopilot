@@ -42,7 +42,7 @@ Examine the throttle level (thrust) when the vehicle is level (no or little pitc
 The initial value to use as cruise speed should be the highest thrust applied during a roll or ascend, the thrust during level flight should be considered the minimum value if you decide to further tune down your speed.
 
 Also take note of the time it took for a front transition to complete.
-This will be used to set the minimum transition time.
+This will be used to set the open-loop transition time.
 For safety reasons you should add +- 30% to this time.
 
 Finally take note of the groundspeed during cruise flight.
@@ -60,7 +60,8 @@ Note that QGC scales this from `1..100` and the thrust value from the log is sca
 So a thrust of 0.65 should be entered as 65.
 For safety reasons it is recommended to add +- 10% throttle to the determined value for testing a first flight.
 
-Set the minimum front transition time ([VT_TRANS_MIN_TM](../advanced_config/parameter_reference.md#VT_TRANS_MIN_TM)) to the number of seconds determined from the reference flight and add +- 30% for safety.
+Set the open-loop front transition time ([VT_F_TR_OL_TM](../advanced_config/parameter_reference.md#VT_F_TR_OL_TM)) to the number of seconds determined from the reference flight and add +- 30% for safety.
+The multicopter motors are ramped down during the last part of this time, starting at the fraction [VT_ARSP_BLEND](../advanced_config/parameter_reference.md#VT_ARSP_BLEND) divided by [VT_ARSP_TRANS](../advanced_config/parameter_reference.md#VT_ARSP_TRANS) of it (e.g. after 8 s of 10 s with 8 m/s and 10 m/s).
 
 ### Optional Recommended Parameters
 
@@ -100,5 +101,5 @@ The relevant parameters are:
 - [SYS_HAS_NUM_ASPD](../advanced_config/parameter_reference.md#SYS_HAS_NUM_ASPD)
 - [EKF2_EN](../advanced_config/parameter_reference.md#EKF2_EN) (1), [ATT_EN](../advanced_config/parameter_reference.md#ATT_EN) (0), [LPE_EN](../advanced_config/parameter_reference.md#LPE_EN) (0)
 - [FW_THR_TRIM](../advanced_config/parameter_reference.md#FW_THR_TRIM): determined (e.g. 70%)
-- [VT_TRANS_MIN_TM](../advanced_config/parameter_reference.md#VT_TRANS_MIN_TM): determined (e.g. 10 seconds)
+- [VT_F_TR_OL_TM](../advanced_config/parameter_reference.md#VT_F_TR_OL_TM): determined (e.g. 10 seconds)
 - [VT_FW_MIN_ALT](../advanced_config/parameter_reference.md#VT_FW_MIN_ALT): 15

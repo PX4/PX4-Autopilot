@@ -202,6 +202,7 @@ parameters:
         short: Airspeed-less front transition time (open loop)
         long: |-
           The duration of the front transition when there is no airspeed feedback available.
+          Multicopter control is blended out over the part of this time in which the airspeed would be between VT_ARSP_BLEND and VT_ARSP_TRANS at constant acceleration.
           When airspeed is used, transition timeout is declared if airspeed does not
           reach VT_ARSP_BLEND after this time.
       type: float
