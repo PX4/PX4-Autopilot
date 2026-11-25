@@ -666,7 +666,8 @@ float VtolType::getFrontTransitionTimeout() const
 
 float VtolType::getOpenLoopFrontTransitionTime() const
 {
-	return getFrontTransitionTimeFactor() * _param_vt_f_tr_ol_tm.get();
+	// Constrain to param min to avoid division by 0
+	return getFrontTransitionTimeFactor() * math::max(1.f, _param_vt_f_tr_ol_tm.get());
 }
 float VtolType::getTransitionAirspeed() const
 {
