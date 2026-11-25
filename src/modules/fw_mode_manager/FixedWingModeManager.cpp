@@ -813,9 +813,7 @@ FixedWingModeManager::control_auto_position(const float control_interval, const 
 	const float target_airspeed = pos_sp_curr.cruising_speed > FLT_EPSILON ? pos_sp_curr.cruising_speed : NAN;
 
 	// waypoint is a plain navigation waypoint
-	_foh_altitude_active = true;
-	const float position_sp_alt = calculateFirstOrderHoldAltitude(pos_sp_curr.lat, pos_sp_curr.lon, pos_sp_curr.alt,
-				      _current_latitude, _current_longitude, _current_altitude, acc_rad, _foh_altitude_state);
+	const float position_sp_alt = firstOrderHoldAltitude(pos_sp_curr, acc_rad);
 
 	const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
 		.timestamp = hrt_absolute_time(),
@@ -917,9 +915,7 @@ FixedWingModeManager::control_auto_loiter(const float control_interval, const Ve
 	// Smoothly ramp the altitude setpoint from the current altitude such that the loiter altitude is reached
 	// by the time the vehicle arrives at the loiter circle.
 	const float acc_rad = _directional_guidance.switchDistance(500.0f) + loiter_radius;
-	_foh_altitude_active = true;
-	const float position_sp_alt = calculateFirstOrderHoldAltitude(pos_sp_curr.lat, pos_sp_curr.lon, pos_sp_curr.alt,
-				      _current_latitude, _current_longitude, _current_altitude, acc_rad, _foh_altitude_state);
+	const float position_sp_alt = firstOrderHoldAltitude(pos_sp_curr, acc_rad);
 
 	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
 	Vector2f curr_wp_local{_global_local_proj_ref.project(curr_wp(0), curr_wp(1))};
@@ -2159,6 +2155,8 @@ FixedWingModeManager::Run()
 
 		_current_altitude = -_local_pos.z + _reference_altitude; // Altitude AMSL in meters
 
+		_terrain_altitude.update(_local_pos);
+
 		// handle estimator reset events. we only adjust setpoins for manual modes
 		if (_control_mode.flag_control_manual_enabled) {
 			// adjust navigation waypoints in position control mode
@@ -2206,6 +2204,9 @@ FixedWingModeManager::Run()
 			if (_trajectory_setpoint_sub.update(&trajectory_setpoint)) {
 				bool valid_setpoint = false;
 				_pos_sp_triplet = {}; // clear any existing
+				_pos_sp_triplet.previous.agl_alt = NAN;
+				_pos_sp_triplet.current.agl_alt = NAN;
+				_pos_sp_triplet.next.agl_alt = NAN;
 				_pos_sp_triplet.timestamp = trajectory_setpoint.timestamp;
 				_pos_sp_triplet.current.timestamp = trajectory_setpoint.timestamp;
 				_pos_sp_triplet.current.cruising_speed = NAN; // ignored
@@ -2292,6 +2293,8 @@ FixedWingModeManager::Run()
 				_go_direct_to_destination = false;
 			}
 		}
+
+		updateTerrainRelativeSetpoints();
 
 		airspeed_poll();
 		manual_control_setpoint_poll();
@@ -2671,6 +2674,42 @@ FixedWingModeManager::calculateLandingApproachVector() const
 	// entrance point) is nudged with the touchdown point, which does not require any additions to the approach vector
 
 	return landing_approach_vector;
+}
+
+void FixedWingModeManager::updateTerrainRelativeSetpoints()
+{
+	// Terrain-relative setpoints (agl_alt) follow the terrain below the vehicle: convert them on every update with the
+	// latest terrain altitude. agl_alt is kept, so converting a converted setpoint again gives the same result.
+	_terrain_altitude.convertTriplet(_pos_sp_triplet);
+
+	const bool terrain_relative = _pos_sp_triplet.current.valid && PX4_ISFINITE(_pos_sp_triplet.current.agl_alt);
+
+	if (terrain_relative && _terrain_altitude.isLatched() && !_terrain_altitude_lost_reported) {
+		events::send(events::ID("fixedwing_position_control_terrain_alt_lost"), events::Log::Warning,
+			     "Terrain altitude lost, keeping the last terrain altitude for the setpoint");
+		_terrain_altitude_lost_reported = true;
+
+	} else if (_terrain_altitude.isValid()) {
+		_terrain_altitude_lost_reported = false;
+	}
+}
+
+float FixedWingModeManager::firstOrderHoldAltitude(const position_setpoint_s &pos_sp, const float acc_rad)
+{
+	_foh_altitude_active = true;
+
+	// A terrain-relative setpoint is ramped in height above the terrain. Its AMSL altitude changes with the terrain
+	// below the vehicle and would restart the ramp on every update, its height above the terrain does not.
+	float target_altitude = pos_sp.alt;
+	float terrain_altitude = 0.f;
+
+	if (pos_sp.valid && PX4_ISFINITE(pos_sp.agl_alt) && PX4_ISFINITE(_terrain_altitude.get())) {
+		target_altitude = pos_sp.agl_alt;
+		terrain_altitude = _terrain_altitude.get();
+	}
+
+	return calculateFirstOrderHoldAltitude(pos_sp.lat, pos_sp.lon, target_altitude, _current_latitude, _current_longitude,
+					       _current_altitude - terrain_altitude, acc_rad, _foh_altitude_state) + terrain_altitude;
 }
 
 float

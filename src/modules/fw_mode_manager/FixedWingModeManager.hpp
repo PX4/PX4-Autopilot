@@ -55,6 +55,7 @@
 #include <lib/perf/perf_counter.h>
 #include <lib/slew_rate/SlewRate.hpp>
 #include <lib/sticks/Sticks.hpp>
+#include <lib/terrain_altitude/TerrainAltitudeLatch.hpp>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
@@ -413,6 +414,9 @@ private:
 
 	hrt_abstime _time_in_fixed_bank_loiter{0}; // [us]
 	FirstOrderHoldAltitudeState _foh_altitude_state{};
+
+	TerrainAltitudeLatch _terrain_altitude; ///< terrain below the vehicle, for terrain-relative setpoints (agl_alt)
+	bool _terrain_altitude_lost_reported{false};
 	bool _foh_altitude_active{false}; ///< whether the altitude FOH ran on the current cycle (else its state is reset)
 
 #ifdef CONFIG_FIGURE_OF_EIGHT
@@ -731,6 +735,21 @@ private:
 	 */
 	float getLandingTerrainAltitudeEstimate(const hrt_abstime &now, const float land_point_altitude,
 						const bool abort_on_terrain_measurement_timeout, const bool abort_on_terrain_timeout);
+
+	/**
+	 * @brief Replace the altitude of the terrain-relative setpoints of the triplet with the latest terrain altitude
+	 */
+	void updateTerrainRelativeSetpoints();
+
+	/**
+	 * @brief Altitude setpoint ramped with calculateFirstOrderHoldAltitude(), in height above the terrain for a
+	 * terrain-relative setpoint
+	 *
+	 * @param pos_sp position setpoint
+	 * @param acc_rad [m] distance to the setpoint at which its altitude is reached
+	 * @return [m AMSL] altitude setpoint
+	 */
+	float firstOrderHoldAltitude(const position_setpoint_s &pos_sp, const float acc_rad);
 
 	/**
 	 * @brief Initializes landing states
