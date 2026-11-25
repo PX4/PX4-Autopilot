@@ -150,8 +150,11 @@ private:
 
 	PositionYawSetpoint homeDestination() const;
 
-	/** Time of a direct Return to Home, without configuring RtlDirect. */
+	/** Time of a direct Return to Home as applyReturn() would configure it, without configuring RtlDirect. */
 	rtl_time_estimate_s estimateTimeToHome();
+
+	/** The VTOL land approach of the destination, or the destination itself. */
+	loiter_point_s landingLoiter(const PositionYawSetpoint &destination) const;
 
 	/**
 	 * @brief Publish the remaining time estimate to go to the Return landing point.

@@ -117,6 +117,8 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - With [RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 5 and no rally point, a fixed-wing vehicle now circles where Return started, whatever [RTL_LAND_DELAY](../advanced_config/parameter_reference.md#RTL_LAND_DELAY) is.
   It used to land there when `RTL_LAND_DELAY` was not -1, with the altitude it was flying at as the ground altitude.
   VTOLs and multicopters still follow `RTL_LAND_DELAY`.
+- With [RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = 6, the check whether Home is within reach now includes the landing approach at Home for a VTOL in fixed-wing flight, as the Return and its remaining time estimate already did.
+  Home can therefore drop out of reach at a different battery level than before.
 
 ### Hardware Support
 
