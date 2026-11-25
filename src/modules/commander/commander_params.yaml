@@ -200,7 +200,7 @@ parameters:
         short: Delay between failsafe condition triggered and failsafe reaction
         long: |-
           Before entering failsafe (Return, Land, Hold), wait COM_FAIL_ACT_T seconds in Hold mode
-          for the user to realize.
+          for the user to realize (link loss: see NAV_RCL_ACT).
           During that time the user can switch modes, but cannot take over control via the manual control override feature (see MAN_OVERRIDE_SPD).
           Afterwards the configured failsafe action is triggered and the user may use manual control override.
 
@@ -442,6 +442,7 @@ parameters:
           The GCS connection loss failsafe will only be entered after a timeout,
           set by COM_DL_LOSS_T in seconds. Once the timeout occurs the selected
           action will be executed.
+          Autonomous modes continue during COM_FAIL_ACT_T and recover if regained.
       type: enum
       values:
         0: Disabled
@@ -457,6 +458,7 @@ parameters:
         long: |-
           The manual control loss failsafe will only be entered after a timeout,
           set by COM_RC_LOSS_T in seconds.
+          Autonomous modes continue during COM_FAIL_ACT_T and recover if regained.
 
           "Hold mode (no failsafe)" does not trigger the failsafe: instead, if manual control
           is lost while actively flying a manual mode, the vehicle switches to Hold as a regular

@@ -196,6 +196,7 @@ protected:
 		UserTakeoverAllowed allow_user_takeover{UserTakeoverAllowed::Auto};
 		bool can_be_deferred{true};
 		bool clear_during_delay{false}; ///< also clear if the condition clears during the Hold delay (COM_FAIL_ACT_T)
+		bool continue_during_delay{false}; ///< in a mode not requiring sticks, keep flying it instead of Hold during the delay, and clear if the condition clears in that time
 
 		bool state_failure{false}; ///< used when the clear_condition isn't set to clear immediately
 		bool activated{false}; ///< true if checkFailsafe was called during current update

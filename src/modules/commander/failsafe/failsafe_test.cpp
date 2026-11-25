@@ -1502,3 +1502,174 @@ TEST_F(GeofenceFailsafeTest, ContGeofenceHoldIsLeftByModeSwitch)
 	_flags.gf_cont_breach = true;
 	EXPECT_EQ(update(failsafe), Action::Hold);
 }
+
+class RcLossFailsafeTest : public FailsafeTest
+{
+public:
+	void SetUp() override
+	{
+		FailsafeTest::SetUp();
+		int32_t nav_rcl_act = 2; // Return
+		param_set(param_handle(px4::params::NAV_RCL_ACT), &nav_rcl_act);
+		int32_t com_rcl_except = 0;
+		param_set(param_handle(px4::params::COM_RCL_EXCEPT), &com_rcl_except);
+		mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
+		state.armed = true;
+		state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	}
+
+	uint8_t update(Failsafe &failsafe) { return failsafe.update(time, state, false, false, failsafe_flags); }
+
+	failsafe_flags_s failsafe_flags{};
+	FailsafeBase::State state{};
+	hrt_abstime time{5_s};
+};
+
+TEST_F(RcLossFailsafeTest, MissionContinuesDuringDelay)
+{
+	Failsafe failsafe(nullptr);
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
+	update(failsafe);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+
+	// RC lost -> keep flying the mission during the delay
+	time += 10_ms;
+	failsafe_flags.manual_control_signal_lost = true;
+	EXPECT_EQ(update(failsafe), vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Warn);
+	time += 4_s;
+	EXPECT_EQ(update(failsafe), vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Warn);
+
+	// Delay over -> RTL
+	time += 1100_ms;
+	update(failsafe);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+
+	// Regaining RC after the delay does not abort the RTL
+	time += 10_ms;
+	failsafe_flags.manual_control_signal_lost = false;
+	update(failsafe);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+}
+
+TEST_F(RcLossFailsafeTest, MissionRecoversDuringDelay)
+{
+	Failsafe failsafe(nullptr);
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
+	update(failsafe);
+
+	time += 10_ms;
+	failsafe_flags.manual_control_signal_lost = true;
+	update(failsafe);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Warn);
+
+	// Regained during the delay -> no action, mission continues
+	time += 2_s;
+	failsafe_flags.manual_control_signal_lost = false;
+	EXPECT_EQ(update(failsafe), vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+
+	// Much later, staying lost -> RTL after the delay
+	time += 30_s;
+	failsafe_flags.manual_control_signal_lost = true;
+	update(failsafe);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Warn);
+	time += 5100_ms;
+	update(failsafe);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+}
+
+TEST_F(RcLossFailsafeTest, ManualModeHoldsDuringDelayWithoutRecovery)
+{
+	Failsafe failsafe(nullptr);
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+	update(failsafe);
+
+	// RC lost in Position mode -> Hold to give the pilot time to react
+	time += 10_ms;
+	failsafe_flags.manual_control_signal_lost = true;
+	update(failsafe);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
+
+	// Regained during the delay -> stay in Hold, the pilot has to notice the failsafe
+	time += 2_s;
+	failsafe_flags.manual_control_signal_lost = false;
+	EXPECT_EQ(update(failsafe), vehicle_status_s::NAVIGATION_STATE_POSCTL);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
+
+	// Delay over -> RTL as before
+	time += 3100_ms;
+	update(failsafe);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+}
+
+TEST_F(RcLossFailsafeTest, HoldActionHoldsImmediately)
+{
+	int32_t nav_rcl_act = 1; // Hold
+	param_set(param_handle(px4::params::NAV_RCL_ACT), &nav_rcl_act);
+
+	// No delay for Hold, also not in an autonomous mode
+	Failsafe failsafe(nullptr);
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
+	update(failsafe);
+
+	time += 10_ms;
+	failsafe_flags.manual_control_signal_lost = true;
+	update(failsafe);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
+
+	// Regained -> stay in Hold
+	time += 1_s;
+	failsafe_flags.manual_control_signal_lost = false;
+	update(failsafe);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
+}
+
+TEST_F(RcLossFailsafeTest, MissionHoldsIfOtherFailsafeNeedsHold)
+{
+	int32_t com_gnssloss_act = 1; // Return, which holds during the delay
+	param_set(param_handle(px4::params::COM_GNSSLOSS_ACT), &com_gnssloss_act);
+
+	Failsafe failsafe(nullptr);
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
+	update(failsafe);
+
+	time += 10_ms;
+	failsafe_flags.manual_control_signal_lost = true;
+	failsafe_flags.gnss_lost = true;
+	update(failsafe);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
+}
+
+TEST_F(RcLossFailsafeTest, MissionIntermittentLossEndsInRtl)
+{
+	Failsafe failsafe(nullptr);
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
+	update(failsafe);
+
+	// RC toggling 1s lost / 1s regained: each loss recovers within the delay,
+	// but the delay shrinks faster than it grows back, so RTL is triggered eventually
+	bool rtl_triggered = false;
+
+	for (int cycle = 0; cycle < 20 && !rtl_triggered; ++cycle) {
+		failsafe_flags.manual_control_signal_lost = true;
+
+		for (int i = 0; i < 10; ++i) {
+			time += 100_ms;
+			update(failsafe);
+			rtl_triggered |= failsafe.selectedAction() == FailsafeBase::Action::RTL;
+		}
+
+		failsafe_flags.manual_control_signal_lost = false;
+
+		for (int i = 0; i < 10; ++i) {
+			time += 100_ms;
+			update(failsafe);
+			rtl_triggered |= failsafe.selectedAction() == FailsafeBase::Action::RTL;
+		}
+	}
+
+	EXPECT_TRUE(rtl_triggered);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+}
