@@ -643,29 +643,25 @@ int ADIS1650x::measure(hrt_abstime timestamp_sample)
 
 void ADIS1650x::print_error_flags(uint16_t diag_stat)
 {
-	if (diag_stat & DIAG_STAT_Z_ACCEL_FAILURE)      { PX4_ERR("Z-axis accelerometer failure"); }
+	if (diag_stat & DIAG_STAT_ACCEL_FAILURE)        { PX4_ERR("Accelerometer failure"); }
 
-	if (diag_stat & DIAG_STAT_Y_ACCEL_FAILURE)      { PX4_ERR("Y-axis accelerometer failure"); }
+	if (diag_stat & DIAG_STAT_GYRO_2_FAILURE)       { PX4_ERR("Gyro 2 failure"); }
 
-	if (diag_stat & DIAG_STAT_X_ACCEL_FAILURE)      { PX4_ERR("X-axis accelerometer failure"); }
+	if (diag_stat & DIAG_STAT_GYRO_1_FAILURE)       { PX4_ERR("Gyro 1 failure"); }
 
-	if (diag_stat & DIAG_STAT_Z_GYRO_FAILURE)       { PX4_ERR("Z-axis gyroscope failure"); }
+	if (diag_stat & DIAG_STAT_CLOCK_ERROR)          { PX4_ERR("Clock error"); }
 
-	if (diag_stat & DIAG_STAT_Y_GYRO_FAILURE)       { PX4_ERR("Y-axis gyroscope failure"); }
+	if (diag_stat & DIAG_STAT_MEMORY_FAILURE)       { PX4_ERR("Memory failure"); }
 
-	if (diag_stat & DIAG_STAT_X_GYRO_FAILURE)       { PX4_ERR("X-axis gyroscope failure"); }
+	if (diag_stat & DIAG_STAT_SELF_TEST_ERR)        { PX4_ERR("Sensor self-test failure"); }
 
-	if (diag_stat & DIAG_STAT_SELF_TEST_ERR)         { PX4_ERR("Self-test diagnostics failure"); }
+	if (diag_stat & DIAG_STAT_STANDBY_MODE)         { PX4_ERR("Standby mode (VDD < 2.8V)"); }
 
-	if (diag_stat & DIAG_STAT_POWER_SUPPLY)          { PX4_ERR("Power supply failure"); }
+	if (diag_stat & DIAG_STAT_SPI_COMM_ERROR)       { PX4_ERR("SPI communication error"); }
 
-	if (diag_stat & DIAG_STAT_SPI_COMM_ERROR)        { PX4_ERR("SPI communication error"); }
+	if (diag_stat & DIAG_STAT_FLASH_UPDATE_FAILURE) { PX4_ERR("Flash memory update failure"); }
 
-	if (diag_stat & DIAG_STAT_FLASH_UPDATE_FAILURE)  { PX4_ERR("Flash memory update failure"); }
-
-	if (diag_stat & DIAG_STAT_DATAPATH_OVERRUN)      { PX4_ERR("Datapath processing overrun"); }
-
-	if (diag_stat & DIAG_STAT_SENSOR_INIT_FAILURE)   { PX4_ERR("Sensor initialization failure"); }
+	if (diag_stat & DIAG_STAT_DATAPATH_OVERRUN)     { PX4_ERR("Datapath overrun"); }
 }
 
 // --- Status ---

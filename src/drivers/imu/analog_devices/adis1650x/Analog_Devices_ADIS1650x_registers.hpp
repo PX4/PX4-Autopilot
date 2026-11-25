@@ -45,7 +45,7 @@ namespace Analog_Devices_ADIS1650x
 {
 
 
-static constexpr uint32_t SPI_SPEED          = 1'100'000;
+static constexpr uint32_t SPI_SPEED          = 1'000'000;
 static constexpr uint32_t SPI_STALL_US       = 16;
 
 // Timing constants
@@ -97,20 +97,18 @@ static constexpr uint16_t GLOB_CMD_SENSOR_SELF_TEST = (1 << 2);
 static constexpr uint32_t SELF_TEST_TIME_MS       = 24;
 static constexpr uint32_t SELF_TEST_TIME_16501_MS = 35;
 
-// DIAG_STAT register bits
+// DIAG_STAT register bits (Table 11 on ADIS16500/16505/16507; bits 10:8 reserved on ADIS16501)
 enum DIAG_STAT_BIT : uint16_t {
-	DIAG_STAT_Z_ACCEL_FAILURE      = (1 << 13),
-	DIAG_STAT_Y_ACCEL_FAILURE      = (1 << 12),
-	DIAG_STAT_X_ACCEL_FAILURE      = (1 << 11),
-	DIAG_STAT_Z_GYRO_FAILURE       = (1 << 10),
-	DIAG_STAT_Y_GYRO_FAILURE       = (1 <<  9),
-	DIAG_STAT_X_GYRO_FAILURE       = (1 <<  8),
+	DIAG_STAT_ACCEL_FAILURE        = (1 << 10),
+	DIAG_STAT_GYRO_2_FAILURE       = (1 <<  9),
+	DIAG_STAT_GYRO_1_FAILURE       = (1 <<  8),
+	DIAG_STAT_CLOCK_ERROR          = (1 <<  7),
+	DIAG_STAT_MEMORY_FAILURE       = (1 <<  6),
 	DIAG_STAT_SELF_TEST_ERR        = (1 <<  5),
-	DIAG_STAT_POWER_SUPPLY         = (1 <<  4),
+	DIAG_STAT_STANDBY_MODE         = (1 <<  4),
 	DIAG_STAT_SPI_COMM_ERROR       = (1 <<  3),
 	DIAG_STAT_FLASH_UPDATE_FAILURE = (1 <<  2),
 	DIAG_STAT_DATAPATH_OVERRUN     = (1 <<  1),
-	DIAG_STAT_SENSOR_INIT_FAILURE  = (1 <<  0),
 };
 
 // Filter flush delay: >= 1/(2000 Hz) to allow one output cycle between bursts
