@@ -15,9 +15,9 @@ trust its public key.
 import argparse
 import binascii
 import json
+import os
 import sys
 import time
-from pathlib import Path
 
 import nacl.encoding
 import nacl.signing
@@ -37,18 +37,22 @@ def write_public_key_header(signing_key, key_name):
 
 
 def write_key_json(signing_key, key_name):
-    path = Path(key_name + ".json")
-    if path.exists():
+    path = key_name + ".json"
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+
+    try:
+        fd = os.open(path, flags, 0o600)
+    except FileExistsError:
         print(f"ERROR: {path} already exists. Refusing to overwrite.")
         print("Remove the file and run again if you really want a new key.")
         sys.exit(1)
 
-    keys = {
-        "date": time.asctime(),
-        "public": signing_key.verify_key.encode(encoder=nacl.encoding.HexEncoder).decode(),
-        "private": binascii.hexlify(signing_key._seed).decode(),
-    }
-    with open(path, "w") as f:
+    with os.fdopen(fd, "w") as f:
+        keys = {
+            "date": time.asctime(),
+            "public": signing_key.verify_key.encode(encoder=nacl.encoding.HexEncoder).decode(),
+            "private": binascii.hexlify(signing_key._seed).decode(),
+        }
         json.dump(keys, f)
 
 
