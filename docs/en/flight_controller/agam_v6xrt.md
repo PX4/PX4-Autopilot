@@ -177,8 +177,8 @@ Analog/ADC battery monitoring is also supported.
 ## Building Firmware
 
 ::: tip
-Most users will not need to build this firmware from PX4 v2.0.
-It will be pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
+Most users will not need to build this firmware (from PX4 v2.0).
+It is pre-built and automatically installed by _QGroundControl_ when appropriate hardware is connected.
 :::
 
 To [build PX4](../dev_setup/building_px4.md) for this target:
