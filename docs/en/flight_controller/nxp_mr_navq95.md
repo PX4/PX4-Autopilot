@@ -35,10 +35,10 @@ For a stable version, use NXP's tested image based on PX4 v1.17 (see [Building F
 ### Processor {#processor}
 
 - **Main FMU processor:** [NXP i.MX 95](https://www.nxp.com/products/i.MX95).
-  PX4 runs on its Arm® Cortex®-M7 core (800 MHz).
+  PX4 runs on its Arm® Cortex®-M7 core (800MHz).
   The Cortex®-A55 cores run Linux and the Cortex®-M33 core runs the NXP System Manager.
 - **Code store:** on-board octal NOR flash.
-  MCUboot starts PX4 from slot0 (7 MB), the primary image slot in the NOR flash (see [Flash Layout](#flash_layout)).
+  MCUboot starts PX4 from slot0 (7MB), the primary image slot in the NOR flash (see [Flash Layout](#flash_layout)).
   The `ddr` build runs from SDRAM and is loaded by Linux.
 
 ### Sensors {#sensors}
@@ -63,15 +63,15 @@ For a stable version, use NXP's tested image based on PX4 v1.17 (see [Building F
 
 ### Electrical Data {#electrical_data}
 
-- **Input voltage:** 9 V to 52 V (3S to 12S battery), 60 V absolute maximum
-- **Input power:** 60 W between 9 V and 20 V, 125 W between 20 V and 52 V
+- **Input voltage:** 9V to 52V (3S to 12S battery), 60V absolute maximum
+- **Input power:** 60W between 9V and 20V, 125W between 20V and 52V
 - **Power monitoring:** 1 analog input, voltage only (`ADC_IN0` measures VIN/64, hence the `BAT1_V_DIV` default of 64.4)
 
 ### Mechanical Data {#mechanical_data}
 
-- **Dimensions:** main board 137 x 112 mm, IO board 120 x 79 mm (PCB outline; height and weight are not specified)
-- **Memory for PX4:** 256 KB ITCM, 256 KB DTCM and 256 KB OCRAM on the Cortex-M7, and a 7 MB flash slot
-- **Operating temperature:** the SoC (`MIMX9596AVZXNMC`, automotive grade) is rated -40 °C to 105 °C ambient (125 °C junction) in the i.MX 95 data sheet.
+- **Dimensions:** main board 137 x 112mm, IO board 120 x 79mm (PCB outline; height and weight are not specified)
+- **Memory for PX4:** 256KB ITCM, 256KB DTCM and 256KB OCRAM on the Cortex-M7, and a 7MB flash slot
+- **Operating temperature:** the SoC (`MIMX9596AVZXNMC`, automotive grade) is rated -40°C to 105°C ambient (125°C junction) in the i.MX 95 data sheet.
   The board-level operating temperature is not specified.
 
 ## Where to Buy {#store}
@@ -99,34 +99,34 @@ The PWM header (IO board `J9 PWM`) has its own pin order.
 
 ## Power {#power}
 
-The board is powered through the main board `J9 PWR_IN` connector (Molex Micro-Fit 3.0, 2-pin) from 9 V to 52 V.
+The board is powered through the main board `J9 PWR_IN` connector (Molex Micro-Fit 3.0, 2-pin) from 9V to 52V.
 
 Battery monitoring is analog and voltage only, with [BAT1_V_DIV](../advanced_config/parameter_reference.md#BAT1_V_DIV) set to 64.4 by default.
 For battery and power module configuration see [Battery and Power Module Setup](../config/battery.md).
 
 The PWM output rail is not powered by the board's power input (main board `J9 PWR_IN`).
 The output rail must be [separately powered](../peripherals/pwm_escs_and_servo.md) if it needs to power servos or other hardware.
-The rail (IO board `J9 PWM` pin 1, `VDD_CON_PWM`) can only be linked to the board 5 V by fitting R60 (0 ohm), which is not fitted by default.
-Do not put more than 5 V on the servo rail while R60 is fitted.
+The rail (IO board `J9 PWM` pin 1, `VDD_CON_PWM`) can only be linked to the board 5V by fitting R60 (0Ω), which is not fitted by default.
+Do not put more than 5V on the servo rail while R60 is fitted.
 
 ::: warning
-Never feed power into the 5 V pins of the JST-GH connectors; they are outputs.
+Never feed power into the 5V pins of the JST-GH connectors; they are outputs.
 :::
 
 ## Voltage Ratings {#voltage_ratings}
 
 ### Normal Operation Maximum Ratings
 
-1. `PWR_IN` (main board `J9`): 9 V to 52 V
+1. `PWR_IN` (main board `J9`): 9V to 52V
 
 ### Absolute Maximum Ratings
 
-1. `PWR_IN` (main board `J9`): 60 V
-2. Servo rail (`VDD_CON_PWM`, IO board `J9` pin 1): 12 V with R60 not fitted (the rail is only sensed, through `ADC_IN6`), 5 V with R60 fitted
+1. `PWR_IN` (main board `J9`): 60V
+2. Servo rail (`VDD_CON_PWM`, IO board `J9` pin 1): 12V with R60 not fitted (the rail is only sensed, through `ADC_IN6`), 5V with R60 fitted
 
 ## PWM Outputs {#pwm_outputs}
 
-The 8 outputs are on the IO board `J9 PWM` connector (3.3 V logic), in 4 groups:
+The 8 outputs are on the IO board `J9 PWM` connector (3.3V logic), in 4 groups:
 
 - Outputs 1-3 in group 1 (TPM3)
 - Outputs 4-5 in group 2 (TPM4)
@@ -171,7 +171,7 @@ The receiver (for example CRSF, ELRS or SBUS) connects to the main board `J2 CON
 
 | Pin | Signal   | Connection                                                                  |
 | --- | -------- | --------------------------------------------------------------------------- |
-| 1   | 5 V      | Receiver power                                                              |
+| 1   | 5V       | Receiver power                                                              |
 | 2   | UART1 TX | Linux console                                                               |
 | 3   | UART1 RX | Linux console                                                               |
 | 4   | UART2 RX | Receiver TX                                                                 |
@@ -217,7 +217,7 @@ PX4 uses two of the three CAN FD buses:
 - `can1` is FlexCAN3 on the IO board `J3 CAN3` connector
 
 The IO board `J5 CAN1` connector belongs to Linux.
-Each port has 120 ohm split termination, so each port is a bus end.
+Each port has 120Ω split termination, so each port is a bus end.
 
 [DroneCAN](../dronecan/index.md) is off by default.
 The board brings up `can0` and `can1` only when [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) is above 0.
@@ -352,12 +352,12 @@ A convenient field update (image upload through Linux into slot1 and an MCUboot 
 The octal NOR flash is mapped at `0x28000000` in the Cortex-M7 address space.
 MCUboot, built from Zephyr in the [NavQ95 BSP](https://github.com/NXP-Robotics/meta-nxp-mr) (board `mr_navq95b`), defines the partitions, and the PX4 linker script and `imgtool` arguments match slot0:
 
-| Address      | Size    | Partition         | Use                                                                                         |
-| ------------ | ------- | ----------------- | ------------------------------------------------------------------------------------------- |
-| `0x28000000` | 128 KB  | `mcuboot`         | MCUboot bootloader                                                                          |
-| `0x28020000` | 7 MB    | slot0 (`image-0`) | Primary slot, PX4 runs from here (execute in place)                                         |
-| `0x28720000` | 7 MB    | slot1 (`image-1`) | Secondary slot for an uploaded update, swapped into slot0 by MCUboot                        |
-| `0x28E20000` | 1920 KB | `storage`         | Reserved for the planned on-flash parameter storage (see [Current Status](#current_status)) |
+| Address      | Size   | Partition         | Use                                                                                         |
+| ------------ | ------ | ----------------- | ------------------------------------------------------------------------------------------- |
+| `0x28000000` | 128KB  | `mcuboot`         | MCUboot bootloader                                                                          |
+| `0x28020000` | 7MB    | slot0 (`image-0`) | Primary slot, PX4 runs from here (execute in place)                                         |
+| `0x28720000` | 7MB    | slot1 (`image-1`) | Secondary slot for an uploaded update, swapped into slot0 by MCUboot                        |
+| `0x28E20000` | 1920KB | `storage`         | Reserved for the planned on-flash parameter storage (see [Current Status](#current_status)) |
 
 The rest of the flash is unused.
 
@@ -390,9 +390,9 @@ pyocd reset -t mimx95_cm33 -f 20M
 The PX4 [system console](../debug/system_console.md) is `/dev/ttynsh` on the Linux side.
 An NSH shell that does not need Linux can run on LPUART2 (IO board `J1 CONSOLE` or main board `J2 CONSOLE`) instead of the RC input; see [Serial Port Mapping](#serial_port_mapping).
 
-The [SWD interface](../debug/swd_debug.md) is on the main board `J7 DEBUG` connector, a standard Arm Cortex 10-pin header (2x5, 1.27 mm), for an external debug probe (J-Link, CMSIS-DAP or any probe _pyOCD_ supports; see the [`J7` pinout](https://nxp-robotics.github.io/robotics-docs/platforms/mr-navq95/user-manual/hardware.html#main-j7-debug)).
+The [SWD interface](../debug/swd_debug.md) is on the main board `J7 DEBUG` connector, a standard Arm Cortex 10-pin header (2x5, 1.27mm), for an external debug probe (J-Link, CMSIS-DAP or any probe _pyOCD_ supports; see the [`J7` pinout](https://nxp-robotics.github.io/robotics-docs/platforms/mr-navq95/user-manual/hardware.html#main-j7-debug)).
 It is not a Pixhawk Debug Full or Debug Mini connector.
-VTref is 1.8 V, so the probe must support 1.8 V targets.
+VTref is 1.8V, so the probe must support 1.8V targets.
 nRESET is connected through a diode, so the probe can only pull it low.
 With _pyOCD_, the M7 core is reached with `pyocd gdb -t mimx95_cm7_mx25um`.
 
@@ -416,7 +416,7 @@ Known gaps at the time of writing:
   The `reboot` command, `MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN` and the reboot that _QGroundControl_ requests after calibration or airframe selection do not restart the M7 yet; power-cycle the board instead.
   An M7 reset through the i.MX 95 System Manager is planned.
 - PWM timing and input capture:
-  Output group 1 (TPM3) runs from a 133 MHz clock root.
+  Output group 1 (TPM3) runs from a 133MHz clock root.
   OneShot is not supported yet on any output, and neither is bidirectional DShot 150.
   The PWM timing code is being reworked, and PWM input capture is not available.
 - Defaults may change:
