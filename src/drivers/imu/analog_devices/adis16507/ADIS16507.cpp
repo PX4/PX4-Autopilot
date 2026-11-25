@@ -377,8 +377,7 @@ void ADIS16507::RunImpl()
 
 			const uint64_t error_count = perf_event_count(_bad_transfer_perf)
 						     + perf_event_count(_bad_status_perf)
-						     + perf_event_count(_bad_checksum_perf)
-						     + perf_event_count(_bad_data_cntr_perf);
+						     + perf_event_count(_bad_checksum_perf);
 			_px4_accel.set_error_count(error_count);
 			_px4_gyro.set_error_count(error_count);
 
