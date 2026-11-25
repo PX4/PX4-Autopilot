@@ -98,6 +98,7 @@ constexpr TECSControl::Param defaultParams()
 		.altitude_error_gain       = 1.f / paramDefault(px4::params::FW_T_ALT_TC),
 		.altitude_setpoint_gain_ff = paramDefault(px4::params::FW_T_HRATE_FF),
 		.airspeed_error_gain       = 1.f / paramDefault(px4::params::FW_T_TAS_TC),
+		.throttle_speed_share      = paramDefault(px4::params::FW_T_SPD_THR),
 		.ste_rate_time_const       = paramDefault(px4::params::FW_T_STE_R_TC),
 		.pitch_speed_weight        = paramDefault(px4::params::FW_T_SPDWEIGHT),
 		.integrator_gain_pitch     = paramDefault(px4::params::FW_T_I_GAIN_PIT),
@@ -762,6 +763,142 @@ INSTANTIATE_TEST_SUITE_P(SpeedWeight, TECSControlClosedLoopShortfallTest, ::test
 {
 	return "Weight" + std::to_string(static_cast<int>(param_info.param * 10.f + 0.5f));
 });
+
+// --- Throttle share of airspeed corrections ------------------------------------------
+//
+// With the throttle providing a share alpha of the kinetic energy rate setpoint, the pitch provides the rest from
+// altitude. With p = g (h_sp - h), k = V (V_sp - V) and the throttle delivering its setpoint:
+//     k' = -k / tau_v
+//     p' = (1 - alpha) k / tau_v - p / tau_h
+// The airspeed error stays a first-order response with tau_v, and the altitude error follows from it:
+//     p(t) = (p0 + c k0) exp(-t / tau_h) - c k0 exp(-t / tau_v),  c = (1 - alpha) / (1 - tau_v / tau_h)
+//     p(t) = (p0 + (1 - alpha) k0 t / tau) exp(-t / tau)           for tau_v = tau_h = tau
+// The disturbances are small, so that k = V (V_sp - V) is close to linear in the airspeed error.
+
+struct ShareAndTimeConstants {
+	float throttle_speed_share;
+	float altitude_time_const;
+	float airspeed_time_const;
+	float speed_weight;
+};
+
+class TECSControlClosedLoopSpeedShareTest : public TECSControlClosedLoopTest,
+	public ::testing::WithParamInterface<ShareAndTimeConstants>
+{
+protected:
+	void SetUp() override
+	{
+		_params.throttle_speed_share = GetParam().throttle_speed_share;
+		_params.altitude_error_gain = 1.f / GetParam().altitude_time_const;
+		_params.airspeed_error_gain = 1.f / GetParam().airspeed_time_const;
+		_params.pitch_speed_weight = GetParam().speed_weight;
+	}
+
+	// Potential energy error predicted by the linear model
+	float expectedSpeError(float t, float p0, float k0) const
+	{
+		const float tau_h = 1.f / _params.altitude_error_gain;
+		const float tau_v = 1.f / _params.airspeed_error_gain;
+		const float coupling = 1.f - _params.throttle_speed_share;
+
+		if (fabsf(tau_v - tau_h) < 1e-3f) {
+			return (p0 + coupling * k0 * t / tau_h) * expf(-t / tau_h);
+		}
+
+		const float c = coupling / (1.f - tau_v / tau_h);
+		return (p0 + c * k0) * expf(-t / tau_h) - c * k0 * expf(-t / tau_v);
+	}
+
+	void checkDisturbance(float altitude_offset, float airspeed_offset)
+	{
+		run(10.f);
+		_state.h += altitude_offset;
+		_state.V += airspeed_offset;
+		resetSimStats();
+
+		const float t_disturbance = _t;
+		const float p0 = CONSTANTS_ONE_G * (_alt_sp - _state.h);
+		const float k0 = _V_sp * (_V_sp - _state.V);
+
+		for (int i = 0; i < 15; i++) {
+			run(2.0f);
+			const float t = _t - t_disturbance;
+			EXPECT_NEAR(_state.V - _V_sp, airspeed_offset * expf(-t * _params.airspeed_error_gain), MAX_NUMERICAL_ERR)
+					<< "at t=" << _t << " s";
+			EXPECT_NEAR(_alt_sp - _state.h, expectedSpeError(t, p0, k0) / CONSTANTS_ONE_G, 2.f * MAX_NUMERICAL_ERR)
+					<< "at t=" << _t << " s";
+		}
+	}
+};
+
+TEST_P(TECSControlClosedLoopSpeedShareTest, AltitudeDisturbance) { checkDisturbance(0.5f, 0.f); }
+TEST_P(TECSControlClosedLoopSpeedShareTest, AirspeedDisturbance) { checkDisturbance(0.f, -0.3f); }
+TEST_P(TECSControlClosedLoopSpeedShareTest, CombinedDisturbance) { checkDisturbance(-0.5f, 0.3f); }
+
+INSTANTIATE_TEST_SUITE_P(ShareAndTimeConstants, TECSControlClosedLoopSpeedShareTest, ::testing::Values(
+				 ShareAndTimeConstants{1.0f, 5.f, 2.5f, 1.f},
+				 ShareAndTimeConstants{0.5f, 5.f, 2.5f, 1.f},
+				 ShareAndTimeConstants{0.5f, 5.f, 2.5f, 0.f},
+				 ShareAndTimeConstants{0.5f, 5.f, 2.5f, 1.8f},
+				 ShareAndTimeConstants{0.5f, 5.f, 5.f, 1.f},
+				 ShareAndTimeConstants{0.5f, 3.f, 6.f, 1.f},
+				 ShareAndTimeConstants{0.0f, 5.f, 2.5f, 1.f},
+				 ShareAndTimeConstants{0.8f, 5.f, 2.5f, 1.f}),
+			 [](const ::testing::TestParamInfo<ShareAndTimeConstants> &param_info)
+{
+	auto name = [](float value) { return std::to_string(static_cast<int>(value * 10.f + 0.5f)); };
+	return "Share" + name(param_info.param.throttle_speed_share) + "_AltTc" + name(param_info.param.altitude_time_const)
+	       + "_TasTc" + name(param_info.param.airspeed_time_const) + "_Weight" + name(param_info.param.speed_weight);
+});
+
+TEST_F(TECSControlClosedLoopTest, SpeedShareExchangeNeedsNoThrottle)
+{
+	// With the share at tau_v / tau_h, an exchange of altitude for airspeed (equal and opposite energy errors) decays
+	// with tau_v along the exchange direction and the total energy rate setpoint stays zero: the throttle holds.
+	_params.altitude_error_gain = 1.f / 5.f;
+	_params.airspeed_error_gain = 1.f / 2.5f;
+	_params.throttle_speed_share = 0.5f;
+
+	run(10.f);
+	const float airspeed_offset = 0.3f;
+	_state.V += airspeed_offset;
+	_state.h -= _V_sp * airspeed_offset / CONSTANTS_ONE_G; // the same energy, below the altitude setpoint
+	const float spe_error0 = CONSTANTS_ONE_G * (_alt_sp - _state.h);
+	const float t_disturbance = _t;
+
+	for (int i = 0; i < 15; i++) {
+		run(1.0f);
+		const float t = _t - t_disturbance;
+		EXPECT_NEAR(_state.V - _V_sp, airspeed_offset * expf(-t * _params.airspeed_error_gain), MAX_NUMERICAL_ERR)
+				<< "at t=" << _t << " s";
+		EXPECT_NEAR(CONSTANTS_ONE_G * (_alt_sp - _state.h), spe_error0 * expf(-t * _params.airspeed_error_gain),
+			    CONSTANTS_ONE_G * 2.f * MAX_NUMERICAL_ERR) << "at t=" << _t << " s";
+		EXPECT_NEAR(_tecs_control.getDebugOutput().total_energy_rate_sp, 0.f, 0.05f) << "at t=" << _t << " s";
+	}
+}
+
+TEST_F(TECSControlClosedLoopTest, SpeedShareShortfallSplit)
+{
+	// With a throttle shortfall d the speed weight still splits it as without the share: the kinetic energy rate
+	// setpoint settles at (1 - w/2) d, and the altitude takes w/2 d plus the share the pitch trades for airspeed.
+	_params.throttle_speed_share = 0.5f;
+	_params.integrator_gain_throttle = 0.f;
+	_plant_ste_rate_offset = -0.5f * CONSTANTS_ONE_G;
+
+	run(100.f);
+
+	const auto &dbg = _tecs_control.getDebugOutput();
+	const float shortfall = dbg.total_energy_rate_sp - dbg.total_energy_rate_estimate;
+	ASSERT_GT(shortfall, 0.1f);
+	const float tolerance = 0.01f * shortfall;
+
+	const float w = _params.pitch_speed_weight;
+	const float altitude_share = CONSTANTS_ONE_G * (_alt_sp - _state.h) * _params.altitude_error_gain;
+	const float airspeed_share = _state.V * (_V_sp - _state.V) * _params.airspeed_error_gain;
+
+	EXPECT_NEAR(airspeed_share, (1.f - 0.5f * w) * shortfall, tolerance);
+	EXPECT_NEAR(altitude_share, 0.5f * w * shortfall + (1.f - _params.throttle_speed_share) * airspeed_share, tolerance);
+}
 
 TEST_F(TECSControlClosedLoopTest, FastDescend)
 {

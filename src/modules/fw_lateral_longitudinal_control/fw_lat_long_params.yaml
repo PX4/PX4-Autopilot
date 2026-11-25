@@ -164,6 +164,16 @@ parameters:
       min: 2.0
       decimal: 2
       increment: 0.5
+    FW_T_SPD_THR:
+      description:
+        short: Throttle share of airspeed corrections
+        long: Share of the kinetic energy rate demand from an airspeed error that the throttle provides. Pitch provides the rest by trading altitude for airspeed. At 1 an airspeed error does not disturb altitude. At FW_T_TAS_TC divided by FW_T_ALT_TC an exchange of altitude for airspeed needs no throttle change.
+      type: float
+      default: 1.0
+      min: 0.0
+      max: 1.0
+      decimal: 2
+      increment: 0.05
     FW_T_STE_R_TC:
       description:
         short: Specific total energy rate first order filter time constant
