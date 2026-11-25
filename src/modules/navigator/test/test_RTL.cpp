@@ -3702,6 +3702,7 @@ protected:
 		publishHomePosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, home_north_m, 0.f, kAlt));
 		primeNavigatorState();
 		std::vector<mission_item_s> items;
+		items.reserve(rally_points.size());
 
 		for (const PositionYawSetpoint &rally_point : rally_points) {
 			items.push_back(makeSafePointItem(rally_point.lat, rally_point.lon, rally_point.alt, NAV_FRAME_GLOBAL));
