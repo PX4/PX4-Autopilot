@@ -600,6 +600,7 @@ public:
 
 	bool accept_unsigned(uint32_t message_id) { return _sign_control.accept_unsigned(message_id, _mode == MAVLINK_MODE_UAVIONIX); }
 	bool is_signing_active() const { return _sign_control.is_signing_active(); }
+	bool has_signing_storage_error() const { return _sign_control.has_storage_error(); }
 	void set_signing_key_dirty() { _signing_key_dirty.store(true); }
 	void check_signing_key_dirty();
 

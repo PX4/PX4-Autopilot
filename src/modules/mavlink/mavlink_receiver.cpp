@@ -4298,6 +4298,13 @@ MavlinkReceiver::FrameCheck MavlinkReceiver::check_frame(uint8_t framing, const 
 {
 	switch (framing) {
 	case MAVLINK_FRAMING_OK:
+		// Without a valid stored key the parser cannot authenticate frames. Keep only
+		// the documented unsigned allowlist available until storage is repaired.
+		if (_mavlink.get_status()->signing == nullptr && _mavlink.has_signing_storage_error()
+		    && !_mavlink.accept_unsigned(message.msgid)) {
+			return FrameCheck::BadSignature;
+		}
+
 		return FrameCheck::Ok;
 
 	case MAVLINK_FRAMING_BAD_SIGNATURE:
@@ -4327,6 +4334,10 @@ MavlinkReceiver::FrameCheck MavlinkReceiver::check_frame(uint8_t framing, const 
 	const mavlink_signing_t *signing = _mavlink.get_status()->signing;
 
 	if (signing == nullptr) {
+		if (_mavlink.has_signing_storage_error()) {
+			return FrameCheck::BadSignature;
+		}
+
 		return FrameCheck::ForwardOnly;
 	}
 

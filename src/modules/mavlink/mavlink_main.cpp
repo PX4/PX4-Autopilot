@@ -1271,6 +1271,10 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 			send_statustext_critical("MAVLink signing: blank key rejected");
 			break;
 
+		case MavlinkSignControl::STORAGE_ERROR:
+			send_statustext_critical("MAVLink signing: storage update failed");
+			break;
+
 		default:
 			break;
 		}

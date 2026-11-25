@@ -72,7 +72,8 @@ public:
 		NOT_SETUP_SIGNING = 0,  ///< Message was not SETUP_SIGNING
 		KEY_ACCEPTED,           ///< New key provisioned successfully
 		SIGNING_DISABLED,       ///< Signing disabled via signed blank key
-		BLANK_KEY_REJECTED      ///< Blank key rejected (unsigned or signing not active)
+		BLANK_KEY_REJECTED,     ///< Blank key rejected (unsigned or signing not active)
+		STORAGE_ERROR           ///< Key change rejected because it could not be stored safely
 	};
 
 	/**
@@ -88,11 +89,6 @@ public:
 	void reload_key();
 
 	/**
-	 * Stores the key and timestamp from memory to file
-	 */
-	void write_key_and_timestamp();
-
-	/**
 	 * Checks whether an unsigned message should be accepted
 	 * @param traffic_link true if the link is configured for a traffic receiver, which may
 	 *                     send traffic messages unsigned
@@ -103,8 +99,9 @@ public:
 	 * Only call from the instance's receiver thread, which is the only thread that changes it.
 	 */
 	bool is_signing_active() const { return _is_signing_initialized; }
+	bool has_storage_error() const { return _storage_error; }
 
-	static bool is_array_all_zeros(uint8_t arr[], size_t size);
+	static bool is_array_all_zeros(const uint8_t arr[], size_t size);
 
 	/**
 	 * Lock the signing stream table shared by all instances.
@@ -116,12 +113,24 @@ public:
 	static void unlock_streams() { pthread_mutex_unlock(&_streams_mutex); }
 
 private:
+	enum class KeyLoadResult {
+		Active,
+		Disabled,
+		Missing,
+		Error
+	};
+
 	static pthread_mutex_t _streams_mutex;
+	static pthread_mutex_t _key_file_mutex;
 
 	mavlink_signing_t _mavlink_signing {};
 	mavlink_status_t *_mavlink_status{nullptr};
 
 	bool _is_signing_initialized{false};
+	bool _storage_error{false};
+
+	KeyLoadResult _read_key_and_timestamp(uint8_t secret_key[MAVLINK_SECRET_KEY_LENGTH], uint64_t &timestamp);
+	bool _write_key_and_timestamp(const uint8_t secret_key[MAVLINK_SECRET_KEY_LENGTH], uint64_t timestamp);
 
 	/**
 	 * Wire or unwire the signing struct into the mavlink status based on key state.
