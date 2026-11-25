@@ -453,3 +453,12 @@ parameters:
       default: 6000.0
       min: 0.1
       decimal: 1
+    SIH_IMU_COUNT:
+      description:
+        short: Number of simulated IMUs
+        long: Set to 2 together with EKF2_MULTI_IMU 2 and SENS_IMU_MODE 0 to run one estimator instance per IMU.
+      type: int32
+      default: 1
+      min: 1
+      max: 2
+      reboot_required: true

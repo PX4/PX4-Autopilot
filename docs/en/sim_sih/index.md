@@ -244,6 +244,19 @@ PX4 SITL opens the following UDP ports (all instance-aware, offset by instance n
 
 QGC auto-connects on port **14550** by default. MAVSDK connects on **14540**. No manual port configuration needed for single-instance use.
 
+### Fault and Failure Testing {#fault-testing}
+
+SIH publishes one IMU by default.
+Set [SIH_IMU_COUNT](../advanced_config/parameter_reference.md#SIH_IMU_COUNT) to 2 together with [EKF2_MULTI_IMU](../advanced_config/parameter_reference.md#EKF2_MULTI_IMU) 2 and [SENS_IMU_MODE](../advanced_config/parameter_reference.md#SENS_IMU_MODE) 0 to get a second IMU with independent noise and one EKF instance per IMU, which activates the estimator instance selector.
+
+[Failure injection](../debug/failure_injection.md) addresses each IMU on its own with `-i`, so a fault can hit the IMU behind one estimator instance while the other instance keeps clean data:
+
+- `failure accel off -i 2` stops the accelerometer of the second IMU.
+- `failure accel stuck -i 2`, `failure accel wrong -i 2`, `failure accel garbage -i 2` and `failure accel drift -i 2` keep that accelerometer publishing but freeze or corrupt its samples, which degrades one estimator instance without silencing the sensor.
+  The `SYS_FAIL_A_*` parameters set the size of the bias, noise and drift, see [Supported Failure Types](../debug/failure_injection.md#supported-failure-types).
+
+The same works for the gyro with `failure gyro`.
+
 ### Multi-Vehicle Simulation
 
 SIH supports multi-vehicle simulation using PX4's instance system.

@@ -94,6 +94,12 @@ Sih::Sih() :
 
 Sih::~Sih()
 {
+	// index 0 is a member, the rest are only allocated when SIH_IMU_COUNT asks for them
+	for (uint8_t i = 1; i < IMU_COUNT; i++) {
+		delete _px4_accel[i];
+		delete _px4_gyro[i];
+	}
+
 	perf_free(_loop_perf);
 	perf_free(_loop_interval_perf);
 	_terrain = Terrain{}; // free the DEM
@@ -101,8 +107,29 @@ Sih::~Sih()
 
 void Sih::run()
 {
-	_px4_accel.set_temperature(T1_C);
-	_px4_gyro.set_temperature(T1_C);
+	_imu_count = math::constrain((uint8_t)_param_sih_imu_count.get(), (uint8_t)1, IMU_COUNT);
+
+	for (uint8_t i = 1; i < _imu_count; i++) {
+		_px4_accel[i] = new PX4Accelerometer(IMU_DEVICE_ID[i]);
+		_px4_gyro[i] = new PX4Gyroscope(IMU_DEVICE_ID[i]);
+
+		if ((_px4_accel[i] == nullptr) || (_px4_gyro[i] == nullptr)) {
+			// The drivers advertise in their constructor, so a half allocated IMU would
+			// leave one orphan topic behind. Drop both and carry on with fewer IMUs.
+			delete _px4_accel[i];
+			delete _px4_gyro[i];
+			_px4_accel[i] = nullptr;
+			_px4_gyro[i] = nullptr;
+			PX4_ERR("alloc failed for IMU %d", i);
+			_imu_count = i;
+			break;
+		}
+	}
+
+	for (uint8_t i = 0; i < _imu_count; i++) {
+		_px4_accel[i]->set_temperature(T1_C);
+		_px4_gyro[i]->set_temperature(T1_C);
+	}
 
 	// the vehicle type is needed by parameters_updated() to place the vehicle on the terrain
 	_vehicle = static_cast<VehicleType>(constrain(_param_sih_vehicle_type.get(),
@@ -269,10 +296,6 @@ void Sih::updateFailureConfig()
 				    == failure_injection::Mode::Off);
 	_optical_flow_blocked = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_OPTICAL_FLOW, 1)
 				 == failure_injection::Mode::Off);
-	_accel_blocked = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_ACCEL, 1)
-			  == failure_injection::Mode::Off);
-	_gyro_blocked = (_failure_config.mode(failure_injection_s::FAILURE_UNIT_SENSOR_GYRO, 1)
-			 == failure_injection::Mode::Off);
 
 	_stuck_motor_mask = 0;
 
@@ -1027,32 +1050,18 @@ void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
 
 	// IMU
 	const Dcmf R_E2B(_q_E.inversed());
-	Vector3f accel_noise;
-	Vector3f gyro_noise;
-
-	if (false && _T_B.longerThan(FLT_EPSILON)) { // too much noise at least for the low update rate O.O
-		accel_noise = math::noiseGauss3f(0.5f, 1.7f, 1.4f);
-		gyro_noise = math::noiseGauss3f(0.14f, 0.07f, 0.03f);
-
-	} else {
-		// Lower noise when not armed
-		accel_noise = math::noiseGauss3f(0.1f, 0.1f, 0.1f);
-		gyro_noise = math::noiseGauss3f(0.01f, 0.01f, 0.01f);
-	}
-
-	Vector3f specific_force_B = R_E2B * _specific_force_E;
-	Vector3f accel = specific_force_B + accel_noise;
-
+	const Vector3f specific_force_B = R_E2B * _specific_force_E;
 	const Vector3f earth_spin_rate_B = R_E2B * Vector3f(0.f, 0.f, CONSTANTS_EARTH_SPIN_RATE);
-	Vector3f gyro = _w_B + earth_spin_rate_B + gyro_noise;
 
-	// update IMU every iteration
-	if (!_accel_blocked) {
-		_px4_accel.update(time_now_us, accel(0), accel(1), accel(2));
-	}
+	// Publish to all simulated IMUs with independent noise. Failure injection on the gyro and the
+	// accelerometer is applied per uORB instance by PX4Gyroscope and PX4Accelerometer.
+	for (uint8_t i = 0; i < _imu_count; i++) {
+		const Vector3f accel = specific_force_B + math::noiseGauss3f(0.1f, 0.1f, 0.1f);
+		const Vector3f gyro = _w_B + earth_spin_rate_B + math::noiseGauss3f(0.01f, 0.01f, 0.01f);
 
-	if (!_gyro_blocked) {
-		_px4_gyro.update(time_now_us, gyro(0), gyro(1), gyro(2));
+		// update IMU every iteration
+		_px4_accel[i]->update(time_now_us, accel(0), accel(1), accel(2));
+		_px4_gyro[i]->update(time_now_us, gyro(0), gyro(1), gyro(2));
 	}
 }
 
