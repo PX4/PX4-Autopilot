@@ -303,12 +303,12 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_open_drone_id_system(msg);
 		break;
 
-#if defined(MAVLINK_MSG_ID_RANGING_BEACON)
+#if PX4_MAVLINK_WIP(RANGING_BEACON)
 
 	case MAVLINK_MSG_ID_RANGING_BEACON:
 		handle_message_ranging_beacon(msg);
 		break;
-#endif // MAVLINK_MSG_ID_RANGING_BEACON
+#endif // PX4_MAVLINK_WIP(RANGING_BEACON)
 
 #if !defined(CONSTRAINED_FLASH)
 
@@ -334,19 +334,19 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 #endif // !CONSTRAINED_FLASH
 
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
-#if defined(MAVLINK_MSG_ID_TARGET_RELATIVE)
+#if PX4_MAVLINK_WIP(TARGET_RELATIVE)
 
 	case MAVLINK_MSG_ID_TARGET_RELATIVE:
 		handle_message_target_relative(msg);
 		break;
-#endif // MAVLINK_MSG_ID_TARGET_RELATIVE
+#endif // PX4_MAVLINK_WIP(TARGET_RELATIVE)
 
-#if defined(MAVLINK_MSG_ID_TARGET_ABSOLUTE)
+#if PX4_MAVLINK_WIP(TARGET_ABSOLUTE)
 
 	case MAVLINK_MSG_ID_TARGET_ABSOLUTE:
 		handle_message_target_absolute(msg);
 		break;
-#endif // MAVLINK_MSG_ID_TARGET_ABSOLUTE
+#endif // PX4_MAVLINK_WIP(TARGET_ABSOLUTE)
 
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
@@ -374,7 +374,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_gimbal_manager_status(msg);
 		break;
 
-#if defined(MAVLINK_MSG_ID_SET_VELOCITY_LIMITS) // For now only defined if development.xml is used
+#if PX4_MAVLINK_WIP(SET_VELOCITY_LIMITS)
 
 	case MAVLINK_MSG_ID_SET_VELOCITY_LIMITS:
 		handle_message_set_velocity_limits(msg);
@@ -382,7 +382,7 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 #endif
 
-#if defined(MAVLINK_MSG_ID_ESC_EEPROM) // For now only defined if development.xml is used
+#if PX4_MAVLINK_WIP(ESC_EEPROM)
 
 	case MAVLINK_MSG_ID_ESC_EEPROM:
 		handle_message_esc_eeprom(msg);
@@ -797,7 +797,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 		uint16_t message_id = (uint16_t)roundf(vehicle_command.param1);
 
-#if defined(MAVLINK_MSG_ID_ESC_EEPROM)
+#if PX4_MAVLINK_WIP(ESC_EEPROM)
 
 		// Translate ESC_EEPROM request into the PX4 internal command so the DShot driver handles it
 		if (message_id == MAVLINK_MSG_ID_ESC_EEPROM) {
@@ -1526,7 +1526,7 @@ MavlinkReceiver::handle_message_set_gps_global_origin(mavlink_message_t *msg)
 	}
 }
 
-#if defined(MAVLINK_MSG_ID_SET_VELOCITY_LIMITS) // For now only defined if development.xml is used
+#if PX4_MAVLINK_WIP(SET_VELOCITY_LIMITS)
 void MavlinkReceiver::handle_message_set_velocity_limits(mavlink_message_t *msg)
 {
 	mavlink_set_velocity_limits_t mavlink_set_velocity_limits;
@@ -1539,9 +1539,9 @@ void MavlinkReceiver::handle_message_set_velocity_limits(mavlink_message_t *msg)
 	velocity_limits.timestamp = hrt_absolute_time();
 	_velocity_limits_pub.publish(velocity_limits);
 }
-#endif // MAVLINK_MSG_ID_SET_VELOCITY_LIMITS
+#endif // PX4_MAVLINK_WIP(SET_VELOCITY_LIMITS)
 
-#if defined(MAVLINK_MSG_ID_ESC_EEPROM) // For now only defined if development.xml is used
+#if PX4_MAVLINK_WIP(ESC_EEPROM)
 void
 MavlinkReceiver::handle_message_esc_eeprom(mavlink_message_t *msg)
 {
@@ -1581,7 +1581,7 @@ MavlinkReceiver::handle_message_esc_eeprom(mavlink_message_t *msg)
 
 	_esc_eeprom_write_pub.publish(eeprom);
 }
-#endif // MAVLINK_MSG_ID_ESC_EEPROM
+#endif // PX4_MAVLINK_WIP(ESC_EEPROM)
 
 void
 MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
@@ -2919,7 +2919,7 @@ MavlinkReceiver::handle_message_global_position_sensor(mavlink_message_t *msg)
 	_aux_global_position_pub.publish(aux_global_position);
 }
 
-#if defined(MAVLINK_MSG_ID_RANGING_BEACON)
+#if PX4_MAVLINK_WIP(RANGING_BEACON)
 void
 MavlinkReceiver::handle_message_ranging_beacon(mavlink_message_t *msg)
 {
@@ -2945,7 +2945,7 @@ MavlinkReceiver::handle_message_ranging_beacon(mavlink_message_t *msg)
 
 	_ranging_beacon_pub.publish(ranging_beacon);
 }
-#endif // MAVLINK_MSG_ID_RANGING_BEACON
+#endif // PX4_MAVLINK_WIP(RANGING_BEACON)
 
 void
 MavlinkReceiver::handle_message_follow_target(mavlink_message_t *msg)
@@ -3358,7 +3358,7 @@ MavlinkReceiver::handle_message_debug_float_array(mavlink_message_t *msg)
 
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
-#if defined(MAVLINK_MSG_ID_TARGET_ABSOLUTE)
+#if PX4_MAVLINK_WIP(TARGET_ABSOLUTE)
 void
 MavlinkReceiver::handle_message_target_absolute(mavlink_message_t *msg)
 {
@@ -3415,9 +3415,9 @@ MavlinkReceiver::handle_message_target_absolute(mavlink_message_t *msg)
 
 	if (updated) { _target_gnss_pub.publish(target_GNSS_report); }
 }
-#endif // MAVLINK_MSG_ID_TARGET_ABSOLUTE
+#endif // PX4_MAVLINK_WIP(TARGET_ABSOLUTE)
 
-#if defined(MAVLINK_MSG_ID_TARGET_RELATIVE)
+#if PX4_MAVLINK_WIP(TARGET_RELATIVE)
 void
 MavlinkReceiver::handle_message_target_relative(mavlink_message_t *msg)
 {
@@ -3588,7 +3588,7 @@ MavlinkReceiver::handle_message_target_relative(mavlink_message_t *msg)
 	}
 
 }
-#endif // MAVLINK_MSG_ID_TARGET_RELATIVE
+#endif // PX4_MAVLINK_WIP(TARGET_RELATIVE)
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 void

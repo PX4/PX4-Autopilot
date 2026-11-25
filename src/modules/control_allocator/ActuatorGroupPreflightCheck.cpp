@@ -110,7 +110,13 @@ void ActuatorGroupPreflightCheck::handleCommand(hrt_abstime now, bool is_tiltrot
 
 	if (!_vehicle_command_sub.update(&vehicle_command)) { return; }
 
+#if PX4_MAVLINK_WIP_LEGACY(MAV_CMD_ACTUATOR_GROUP_TEST)
+
 	if (vehicle_command.command != vehicle_command_s::VEHICLE_CMD_ACTUATOR_GROUP_TEST) { return; }
+
+#else
+	return; // MAV_CMD_ACTUATOR_GROUP_TEST is WIP and the legacy list is off: not handled in this build
+#endif
 
 	const uint8_t group = (uint8_t) lroundf(vehicle_command.param1);
 

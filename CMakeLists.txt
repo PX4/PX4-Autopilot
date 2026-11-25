@@ -154,6 +154,9 @@ list(GET PX4_VERSION_PATCH 0 PX4_VERSION_PATCH)
 string(REGEX MATCH "g([a-f0-9]+)$" GIT_HASH "${PX4_GIT_TAG}")
 set(PX4_GIT_HASH ${CMAKE_MATCH_1})
 
+# release stage (dev, beta or release) and the MAVLink WIP diagnostics for it
+include(px4_release_stage)
+
 define_property(GLOBAL PROPERTY PX4_MODULE_LIBRARIES
                  BRIEF_DOCS "PX4 module libs"
                  FULL_DOCS "List of all PX4 module libraries"

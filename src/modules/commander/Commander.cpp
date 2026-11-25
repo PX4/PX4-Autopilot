@@ -348,6 +348,8 @@ int Commander::custom_command(int argc, char *argv[])
 		return 0;
 	}
 
+#if PX4_MAVLINK_WIP_LEGACY(MAV_CMD_ACTUATOR_GROUP_TEST)
+
 	if (!strcmp(argv[0], "actuator_group_test")) {
 		if (argc < 2) {
 			PX4_ERR("missing argument");
@@ -401,6 +403,8 @@ int Commander::custom_command(int argc, char *argv[])
 		send_vehicle_command(vehicle_command_s::VEHICLE_CMD_ACTUATOR_GROUP_TEST, group, value);
 		return 0;
 	}
+
+#endif // PX4_MAVLINK_WIP_LEGACY(MAV_CMD_ACTUATOR_GROUP_TEST)
 
 	if (!strcmp(argv[0], "arm")) {
 		float param2 = 0.f;
@@ -569,6 +573,8 @@ int Commander::custom_command(int argc, char *argv[])
 		}
 	}
 
+#if PX4_MAVLINK_WIP_LEGACY(MAV_CMD_EXTERNAL_ATTITUDE_ESTIMATE)
+
 	if (!strcmp(argv[0], "set_heading")) {
 		if (argc > 1) {
 			const float heading = atof(argv[1]);
@@ -583,6 +589,8 @@ int Commander::custom_command(int argc, char *argv[])
 			return 0;
 		}
 	}
+
+#endif // PX4_MAVLINK_WIP_LEGACY(MAV_CMD_EXTERNAL_ATTITUDE_ESTIMATE)
 
 
 	if (!strcmp(argv[0], "poweroff")) {
@@ -1792,10 +1800,16 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_DO_GRIPPER:
 	case vehicle_command_s::VEHICLE_CMD_EXTERNAL_POSITION_ESTIMATE:
 	case vehicle_command_s::VEHICLE_CMD_REQUEST_CAMERA_INFORMATION:
+#if PX4_MAVLINK_WIP_LEGACY(MAV_CMD_EXTERNAL_ATTITUDE_ESTIMATE)
 	case vehicle_command_s::VEHICLE_CMD_EXTERNAL_ATTITUDE_ESTIMATE:
+#endif
 	case vehicle_command_s::VEHICLE_CMD_DO_AUTOTUNE_ENABLE:
+#if PX4_MAVLINK_WIP_LEGACY(MAV_CMD_ESTIMATOR_SENSOR_ENABLE)
 	case vehicle_command_s::VEHICLE_CMD_ESTIMATOR_SENSOR_ENABLE:
+#endif
+#if PX4_MAVLINK_WIP_LEGACY(MAV_CMD_ACTUATOR_GROUP_TEST)
 	case vehicle_command_s::VEHICLE_CMD_ACTUATOR_GROUP_TEST:
+#endif
 		/* ignore commands that are handled by other parts of the system: no reply from here */
 		return true;
 

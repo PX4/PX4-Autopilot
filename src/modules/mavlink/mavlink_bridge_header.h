@@ -103,6 +103,7 @@ extern mavlink_message_t *mavlink_get_channel_buffer(uint8_t chan);
 
 #include <mavlink.h>
 #include <uAvionix.h>
+#include <mavlink_wip.h> // PX4_MAVLINK_WIP() guards
 
 /**
  * Full target system of a received message.
