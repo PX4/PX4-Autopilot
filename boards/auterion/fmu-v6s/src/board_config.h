@@ -166,9 +166,21 @@
 #define BOARD_INDICATE_EXTERNAL_LOCKOUT_STATE(enabled)  px4_arch_configgpio((enabled) ? GPIO_ARMED : GPIO_ARMED_INIT)
 #define BOARD_GET_EXTERNAL_LOCKOUT_STATE() px4_arch_gpioread(GPIO_ARMED)
 
+/* Safety plug input on FMU_CAP1 (PWM10, PC7, timer channel index 9)
+ * safety_button reserves the timer channel so that pwm_out leaves the pin alone.
+ * While it runs, PWM10 can not be used as PWM output, PPS or RPM input.
+ */
+#define GPIO_SAFETY_SWITCH_IN  /* PC7 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTC|GPIO_PIN7)
+#define BOARD_SAFETY_BUTTON()  (!px4_arch_gpioread(GPIO_SAFETY_SWITCH_IN))
+#define BOARD_SAFETY_BUTTON_IO_TIMER_CHANNEL 9
+/* The plug has to be seen fitted for 3 seconds (at 30 Hz) before pulling it is accepted,
+ * so that booting without a plug does not turn safety off. */
+#define BOARD_SAFETY_BUTTON_FITTED_COUNT 90
+
 /* All pins to initialize on boot */
 #define PX4_GPIO_INIT_LIST { \
 		GPIO_ARMED_INIT, \
+		GPIO_SAFETY_SWITCH_IN, \
 		PX4_ADC_GPIO,    \
 		GPIO_CAN1_TX,    \
 		GPIO_CAN1_RX,    \

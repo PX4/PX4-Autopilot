@@ -36,9 +36,11 @@
 #include <float.h>
 
 #include <drivers/drv_hrt.h>
+#include <px4_platform_common/events.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <button/ButtonPublisher.hpp>
+#include <systemlib/mavlink_log.h>
 #include <uORB/topics/vehicle_status.h>
 
 class SafetyButton : public ModuleBase, public px4::ScheduledWorkItem
@@ -72,6 +74,15 @@ private:
 	uint8_t			_button_counter{0};
 	uint8_t			_blink_counter{0};
 	bool			_button_prev_sate{false};	///< Previous state of the HW button
+
+	// Switch has to be seen inactive before it is accepted (BOARD_SAFETY_BUTTON_FITTED_COUNT)
+	bool			_input_accepted{true};
+	uint8_t			_fitted_counter{0};
+	uint8_t			_not_fitted_counter{0};
+	orb_advert_t		_mavlink_log_pub{nullptr};
+
+	// Timer channel of the input pin is reserved (BOARD_SAFETY_BUTTON_IO_TIMER_CHANNEL)
+	bool			_timer_channel_reserved{false};
 
 	// Pairing request
 	hrt_abstime		_pairing_start{0};

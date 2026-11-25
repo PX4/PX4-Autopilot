@@ -34,6 +34,11 @@
 #include <board_config.h>
 #include "SafetyButton.hpp"
 
+#ifdef BOARD_SAFETY_BUTTON_IO_TIMER_CHANNEL
+#include <px4_arch/io_timer.h>
+static_assert(BOARD_SAFETY_BUTTON_IO_TIMER_CHANNEL < MAX_TIMER_IO_CHANNELS, "safety input timer channel out of range");
+#endif
+
 // BOARD_SAFETY_BUTTON() is true while the safety button is pressed, and BOARD_SAFETY_LED(on_true) turns the safety
 // LED on and off: by default, the GPIO_BTN_SAFETY input, high while pressed, and the active low GPIO_LED_SAFETY
 #if !defined(BOARD_SAFETY_BUTTON) && defined(GPIO_BTN_SAFETY)
@@ -52,7 +57,24 @@ using namespace time_literals;
 
 ModuleBase::Descriptor SafetyButton::desc{task_spawn, custom_command, print_usage};
 
-static constexpr uint8_t CYCLE_COUNT{30}; /* safety switch must be held for 1 second to activate */
+// Number of consecutive 30 Hz samples the safety switch must be active to turn safety off.
+// Boards can override the default of 1 second, e.g. for a switch that is not operated by hand.
+#ifndef BOARD_SAFETY_BUTTON_CYCLE_COUNT
+#define BOARD_SAFETY_BUTTON_CYCLE_COUNT 30
+#endif
+
+static constexpr uint8_t CYCLE_COUNT{BOARD_SAFETY_BUTTON_CYCLE_COUNT};
+
+// Number of consecutive 30 Hz samples the safety switch must be inactive before it is accepted as an input.
+// Boards with a pull-out safety plug set this, so that a plug that is missing at boot does not turn safety off.
+// Such boards also get no pairing request, as anything that toggles the input would trigger it.
+// The default of 0 accepts the switch right away.
+#ifndef BOARD_SAFETY_BUTTON_FITTED_COUNT
+#define BOARD_SAFETY_BUTTON_FITTED_COUNT 0
+#endif
+
+static constexpr uint8_t FITTED_COUNT{BOARD_SAFETY_BUTTON_FITTED_COUNT};
+static constexpr uint8_t NOT_FITTED_WARN_COUNT{150}; /* warn if still not fitted 5 seconds after start */
 
 // Define the various LED flash sequences for each system state.
 enum class LED_PATTERN : uint16_t {
@@ -67,16 +89,47 @@ SafetyButton::SafetyButton() :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
 	_has_px4io = PX4_MFT_HW_SUPPORTED(PX4_MFT_PX4IO);
+	_input_accepted = (FITTED_COUNT == 0);
 }
 
 SafetyButton::~SafetyButton()
 {
 	ScheduleClear();
+
+#ifdef BOARD_SAFETY_BUTTON_IO_TIMER_CHANNEL
+
+	if (_timer_channel_reserved) {
+		io_timer_unallocate_channel(BOARD_SAFETY_BUTTON_IO_TIMER_CHANNEL);
+	}
+
+#endif
 }
 
 void
 SafetyButton::CheckSafetyRequest(bool button_pressed)
 {
+	if (!_input_accepted) {
+		/* The switch has to be seen inactive first, e.g. a safety plug has to be fitted */
+		if (!button_pressed) {
+			if (++_fitted_counter >= FITTED_COUNT) {
+				_input_accepted = true;
+			}
+
+		} else {
+			_fitted_counter = 0;
+
+			if (_not_fitted_counter < NOT_FITTED_WARN_COUNT) {
+				if (++_not_fitted_counter == NOT_FITTED_WARN_COUNT) {
+					mavlink_log_critical(&_mavlink_log_pub, "Safety plug not fitted, safety stays on\t");
+					events::send(events::ID("safety_button_plug_not_fitted"), events::Log::Critical,
+						     "Safety plug not fitted, safety stays on");
+				}
+			}
+		}
+
+		return;
+	}
+
 	/* Keep button pressed for one second to turn off safety */
 	if (button_pressed) {
 
@@ -181,7 +234,11 @@ SafetyButton::Run()
 		CheckSafetyRequest(button_pressed);
 	}
 
-	CheckPairingRequest(button_pressed);
+	// Pressing 3 times to pair only makes sense for a hand operated button, not for a plug
+	if (FITTED_COUNT == 0) {
+		CheckPairingRequest(button_pressed);
+	}
+
 	_button_prev_sate = button_pressed;
 }
 
@@ -211,6 +268,18 @@ SafetyButton::task_spawn(int argc, char *argv[])
 int
 SafetyButton::Start()
 {
+#ifdef BOARD_SAFETY_BUTTON_IO_TIMER_CHANNEL
+	// Reserve the timer channel of the input pin, so that pwm_out does not turn it into an output
+	int ret = io_timer_allocate_channel(BOARD_SAFETY_BUTTON_IO_TIMER_CHANNEL, IOTimerChanMode_Other);
+
+	if (ret != 0) {
+		PX4_ERR("safety input timer channel %d is in use (%i)", BOARD_SAFETY_BUTTON_IO_TIMER_CHANNEL, ret);
+		return ret;
+	}
+
+	_timer_channel_reserved = true;
+#endif
+
 	ScheduleOnInterval(33_ms); // run at 30 Hz
 
 	return PX4_OK;

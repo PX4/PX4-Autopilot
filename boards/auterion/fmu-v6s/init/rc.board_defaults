@@ -43,6 +43,12 @@ netman update_default -i eth0
 # Start a second NSH connected to the debug port
 nshterm /dev/ttyS3 &
 
+# Safety plug on PWM10, only needed when COM_SAFETY_MODE requires a physical switch
+if param compare COM_SAFETY_MODE 1 2
+then
+	safety_button start
+fi
+
 # Start the time_persistor to cyclically store the RTC in FRAM
 time_persistor start
 
