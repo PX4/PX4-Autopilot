@@ -44,6 +44,7 @@
 
 #include <dataman_client/DatamanClient.hpp>
 #include <lib/mathlib/mathlib.h>
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/module_params.h>
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
@@ -193,11 +194,11 @@ public:
 	float getContGeofencePlanMargin() const { return getContGeofenceMargin(); }
 
 	/** True if the position keeps GF_CONT_H_MARGIN from the polygons and circles, or the margin is disabled. */
-	bool isInsideContGeofence(double lat, double lon)
-	{
-		const float margin = getContGeofencePlanMargin();
-		return margin <= FLT_EPSILON || isCircleInside(lat, lon, margin);
-	}
+#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
+	bool isInsideContGeofence(double lat, double lon);
+#else
+	bool isInsideContGeofence(double lat, double lon) { return true; }
+#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 
 	bool valid();
 
@@ -278,6 +279,9 @@ private:
 	DatamanState _error_state{DatamanState::UpdateRequestWait};
 	DatamanCache _dataman_cache{"geofence_dm_cache_miss", 0};
 	DatamanClient	&_dataman_client = _dataman_cache.client();
+#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
+	perf_counter_t _cont_check_perf {perf_alloc(PC_ELAPSED, "navigator: contingency geofence")};
+#endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
 
 	float _altitude_min{0.0f};
 	float _altitude_max{0.0f};
