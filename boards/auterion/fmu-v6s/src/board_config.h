@@ -98,6 +98,15 @@
 #define ADC1_CH(n)                  (n)
 #define SYSTEM_ADC_BASE STM32_ADC1_BASE
 
+/* Don't show battery voltage warnings when connected using only USB-C */
+#define BOARD_ADC_OPEN_CIRCUIT_V     (5.6f)
+
+/* USB-C can back feed the ESC which keeps the ESCs alive without a battery */
+#define BOARD_ESC_BATTERY_OPEN_CIRCUIT_V (5.6f)
+
+/* The minimum voltage the board still works with correctly */
+#define BOARD_AVIONICS_5V_MIN_V      (4.5f)
+
 /* Define GPIO pins used as ADC N.B. Channel numbers must match below  */
 /* PC3_C connected to PC3 internally, which connects to GPIO_ADC12_INP13 */
 
