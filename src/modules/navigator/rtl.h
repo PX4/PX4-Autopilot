@@ -180,13 +180,23 @@ private:
 	void setLandPosAsDestination(PositionYawSetpoint &rtl_position, mission_item_s &land_mission_item) const;
 
 	/**
-	 * @brief calculate return altitude from return altitude parameter, current altitude and cone angle
+	 * @brief calculate return altitude from return altitude parameter, current altitude, cone angle and minimum climb
 	 *
 	 * @param[in] rtl_position landing position of the rtl
 	 *
-	 * @return return altitude
+	 * @return return altitude, at least RTL_MIN_CLIMB above the current altitude
 	 */
 	float computeReturnAltitude(const PositionYawSetpoint &rtl_position) const;
+
+	/**
+	 * @brief Limit the return altitude of a direct Return in multicopter mode to RTL_MAX_ALT above the destination
+	 *
+	 * @param[in] return_altitude_amsl return altitude from computeReturnAltitude()
+	 * @param[in] rtl_position landing position of the rtl
+	 *
+	 * @return return altitude, at most max(RTL_MAX_ALT, RTL_RETURN_ALT) above the destination
+	 */
+	float limitDirectReturnAltitude(float return_altitude_amsl, const PositionYawSetpoint &rtl_position) const;
 
 	/**
 	 * @brief initialize Return mission type
@@ -228,6 +238,8 @@ private:
 		(ParamInt<px4::params::RTL_TYPE>)          _param_rtl_type,
 		(ParamInt<px4::params::RTL_CONE_ANG>)      _param_rtl_cone_ang,
 		(ParamFloat<px4::params::RTL_RETURN_ALT>)  _param_rtl_return_alt,
+		(ParamFloat<px4::params::RTL_MAX_ALT>)     _param_rtl_max_alt,
+		(ParamFloat<px4::params::RTL_MIN_CLIMB>)   _param_rtl_min_climb,
 		(ParamFloat<px4::params::RTL_MIN_DIST>)    _param_rtl_min_dist,
 		(ParamFloat<px4::params::NAV_ACC_RAD>)     _param_nav_acc_rad,
 		(ParamInt<px4::params::RTL_APPR_FORCE>)    _param_rtl_appr_force
