@@ -56,6 +56,7 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/failure_detector_status.h>
 #include <uORB/topics/flight_phase_estimation.h>
 #include <uORB/topics/vehicle_status.h>
 
@@ -178,6 +179,7 @@ private:
 
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::SubscriptionData<flight_phase_estimation_s> _flight_phase_estimation_sub{ORB_ID(flight_phase_estimation)};
+	uORB::Subscription _failure_detector_status_sub{ORB_ID(failure_detector_status)};
 	uORB::PublicationMulti<battery_status_s> _battery_status_pub{ORB_ID(battery_status)};
 
 	failure_injection::Config _failure_config;
@@ -209,11 +211,17 @@ private:
 	bool _armed{false};
 	bool _vehicle_status_is_fw{false};
 	bool _vehicle_status_was_fw{false};
+	uint16_t _motor_failure_mask{0};
+	float _time_since_reset_s{NAN}; ///< time since the last time-remaining reset, NAN if none is active
+	float _reset_min_current_a{0.f}; ///< lower bound for the current average until the reset is completed
 	hrt_abstime _last_unconnected_timestamp{0};
 
 	// Internal Resistance estimation
 	void updateInternalResistanceEstimation(const float voltage_v, const float current_a);
 	void resetInternalResistanceEstimation(const float voltage_v, const float current_a);
+	bool checkNewMotorFailure();
+	void resetTimeRemainingEstimate(float min_current_a);
+	void updateCurrentAverage(float current_a);
 	matrix::Vector2f _RLS_est; // [Open circuit voltage estimate [V], Total internal resistance estimate [Ohm]]^T
 	matrix::Matrix2f _estimation_covariance;
 	bool _internal_resistance_initialized{false};
@@ -232,4 +240,6 @@ private:
 	// that depending on the setup this may be measured in/close to the
 	// battery (smart battery) or from a separate power monitor module.
 	static constexpr float BAT_TEMP_MAX = 100.0f;
+	static constexpr float CURRENT_AVERAGE_TIME_CONSTANT_S = 50.f;
+	static constexpr float RESET_HOLD_TIME_S = 2.f; ///< [s] hold the current average through the load spike following the event
 };
