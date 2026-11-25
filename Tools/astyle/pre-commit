@@ -53,6 +53,14 @@ if [ $? -ne 0 ]; then
 	exit 1
 fi
 
+# Check for missing or duplicate newlines at the end of changed text files
+git diff --cached --name-only --diff-filter=ACM -z -- ':!docs/*' | xargs -0 -r git grep --cached -Il -z '' -- | xargs -0 -r ./Tools/astyle/check_newlines.py
+if [ $? -ne 0 ]
+then
+	echo "Pre-commit style error: Missing or duplicate newlines at the end of files, fix with ./Tools/astyle/check_newlines.py --fix"
+	exit 1
+fi
+
 # Check for code style, only in changed files
 bash -c "comm -12 <(./Tools/astyle/files_to_check_code_style.sh | sort) <(git diff --cached --name-only --diff-filter=ACM) | xargs ./Tools/astyle/check_code_style.sh"
 if [ $? -ne 0 ]

@@ -30,7 +30,6 @@ jobs:
       matrix:
         check: [
           "check_format",
-          "check_newlines",
           "validate_module_configs",
           "shellcheck_all",
           "module_documentation",
