@@ -41,8 +41,8 @@ TEST(ADISBurstDecoderTest, DecimationDiagnosticAndDecode)
 	using adis_burst_decoder::decimationDelayUs;
 	using adis_burst_decoder::kDiagOverrun;
 	using adis_burst_decoder::kDiagSpiError;
-	using adis_burst_decoder::kTransientDiagnosticMask;
 	using adis_burst_decoder::shouldRecoverOnDiagnostic;
+	using adis_burst_decoder::transientDiagnosticMask;
 
 	EXPECT_EQ(decimationDelayUs(Format::kBurst16, 0), 0u);
 	EXPECT_EQ(decimationDelayUs(Format::kBurst16, 1), 0u);
@@ -55,23 +55,42 @@ TEST(ADISBurstDecoderTest, DecimationDiagnosticAndDecode)
 	EXPECT_EQ(decimationDelayUs(Format::kTimestamp32, 1), 250u);
 	EXPECT_EQ(decimationDelayUs(Format::kTimestamp32, 199), 49'750u);
 
-	EXPECT_FALSE(shouldRecoverOnDiagnostic(0, 0));
-	EXPECT_FALSE(shouldRecoverOnDiagnostic(0, 1));
-	EXPECT_FALSE(shouldRecoverOnDiagnostic(0, 4));
+	for (Format format : {Format::kBurst16, Format::kBurst32, Format::kTimestamp32}) {
+		EXPECT_FALSE(shouldRecoverOnDiagnostic(format, 0, 0));
+		EXPECT_FALSE(shouldRecoverOnDiagnostic(format, 0, 1));
+		EXPECT_FALSE(shouldRecoverOnDiagnostic(format, 0, 4));
 
-	for (uint8_t streak = 1; streak <= 3; ++streak) {
-		EXPECT_FALSE(shouldRecoverOnDiagnostic(kDiagOverrun, streak));
-		EXPECT_FALSE(shouldRecoverOnDiagnostic(kDiagSpiError, streak));
-		EXPECT_FALSE(shouldRecoverOnDiagnostic(kTransientDiagnosticMask, streak));
+		// Non-transient fault bit (e.g. self-test failure bit 5) triggers immediate recovery on streak 1.
+		EXPECT_TRUE(shouldRecoverOnDiagnostic(format, uint16_t(1u << 5), 1));
+		EXPECT_TRUE(shouldRecoverOnDiagnostic(format, uint16_t((1u << 5) | kDiagSpiError), 1));
 	}
 
-	EXPECT_TRUE(shouldRecoverOnDiagnostic(kDiagOverrun, 4));
-	EXPECT_TRUE(shouldRecoverOnDiagnostic(kDiagSpiError, 4));
-	EXPECT_TRUE(shouldRecoverOnDiagnostic(kTransientDiagnosticMask, 4));
+	// ADIS16470/16477 (kBurst16) and ADIS1650x (kBurst32) require immediate reset on datapath overrun,
+	// while isolated SPI SCLK count errors tolerate retries until persistent.
+	for (Format format : {Format::kBurst16, Format::kBurst32}) {
+		EXPECT_EQ(transientDiagnosticMask(format), kDiagSpiError);
+		EXPECT_TRUE(shouldRecoverOnDiagnostic(format, kDiagOverrun, 1));
+		EXPECT_TRUE(shouldRecoverOnDiagnostic(format, uint16_t(kDiagOverrun | kDiagSpiError), 1));
 
-	// Non-transient fault bit (e.g. self-test failure bit 5) triggers immediate recovery on streak 1.
-	EXPECT_TRUE(shouldRecoverOnDiagnostic(uint16_t(1u << 5), 1));
-	EXPECT_TRUE(shouldRecoverOnDiagnostic(uint16_t((1u << 5) | kDiagOverrun), 1));
+		for (uint8_t streak = 1; streak <= 3; ++streak) {
+			EXPECT_FALSE(shouldRecoverOnDiagnostic(format, kDiagSpiError, streak));
+		}
+
+		EXPECT_TRUE(shouldRecoverOnDiagnostic(format, kDiagSpiError, 4));
+	}
+
+	// ADIS1657x (kTimestamp32) recovers from isolated datapath overruns without resetting (Table 15).
+	EXPECT_EQ(transientDiagnosticMask(Format::kTimestamp32), uint16_t(kDiagOverrun | kDiagSpiError));
+
+	for (uint8_t streak = 1; streak <= 3; ++streak) {
+		EXPECT_FALSE(shouldRecoverOnDiagnostic(Format::kTimestamp32, kDiagOverrun, streak));
+		EXPECT_FALSE(shouldRecoverOnDiagnostic(Format::kTimestamp32, kDiagSpiError, streak));
+		EXPECT_FALSE(shouldRecoverOnDiagnostic(Format::kTimestamp32, uint16_t(kDiagOverrun | kDiagSpiError), streak));
+	}
+
+	EXPECT_TRUE(shouldRecoverOnDiagnostic(Format::kTimestamp32, kDiagOverrun, 4));
+	EXPECT_TRUE(shouldRecoverOnDiagnostic(Format::kTimestamp32, kDiagSpiError, 4));
+	EXPECT_TRUE(shouldRecoverOnDiagnostic(Format::kTimestamp32, uint16_t(kDiagOverrun | kDiagSpiError), 4));
 
 	// ADIS1657x (kTimestamp32) excludes DIAG_STAT from SPI_CHKSUM:
 	// an all-zero dead bus stays invalid without updating diagnostic, while a safe-mode fault frame

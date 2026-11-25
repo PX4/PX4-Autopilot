@@ -132,7 +132,7 @@ constexpr ADISBurstProfile kModels[] {
 			"adisburst:16500",
 			DRV_IMU_DEVTYPE_ADIS1650X,
 			2100 * imu::kHz,
-			1100 * imu::kHz,
+			1 * imu::MHz,
 			Format::kBurst32
 		),
 		ADISBurstVariant::kAdis165xx, // variant
@@ -160,7 +160,7 @@ constexpr ADISBurstProfile kModels[] {
 			"adisburst:16501",
 			DRV_IMU_DEVTYPE_ADIS1650X,
 			10 * imu::MHz,
-			1100 * imu::kHz,
+			1 * imu::MHz,
 			Format::kBurst32
 		),
 		ADISBurstVariant::kAdis165xx, // variant
@@ -188,7 +188,7 @@ constexpr ADISBurstProfile kModels[] {
 			"adisburst:16505",
 			DRV_IMU_DEVTYPE_ADIS1650X,
 			2100 * imu::kHz,
-			1100 * imu::kHz,
+			1 * imu::MHz,
 			Format::kBurst32
 		),
 		ADISBurstVariant::kAdis165xx,    // variant
@@ -216,7 +216,7 @@ constexpr ADISBurstProfile kModels[] {
 			"adisburst:16507_32",
 			DRV_IMU_DEVTYPE_ADIS1650X,
 			2100 * imu::kHz,
-			1100 * imu::kHz,
+			1 * imu::MHz,
 			Format::kBurst32
 		),
 		ADISBurstVariant::kAdis165xx,       // variant

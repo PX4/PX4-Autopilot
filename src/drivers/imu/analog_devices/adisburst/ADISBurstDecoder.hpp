@@ -88,35 +88,55 @@ static_assert(decimationDelayUs(Format::kBurst32, 1) == 500, "ADIS1650x dec=1 mu
 static_assert(decimationDelayUs(Format::kTimestamp32, 0) == 0, "ADIS1657x dec=0 must report zero decimation delay");
 static_assert(decimationDelayUs(Format::kTimestamp32, 199) == 49750, "ADIS1657x dec=199 must report 49750 us");
 
-constexpr uint16_t kDiagOverrun             { 1u << 1 };
-constexpr uint16_t kDiagSpiError            { 1u << 3 };
-constexpr uint16_t kTransientDiagnosticMask { kDiagOverrun | kDiagSpiError };
+constexpr uint16_t kDiagOverrun  { 1u << 1 };
+constexpr uint16_t kDiagSpiError { 1u << 3 };
+
+/**
+ * @brief Return DIAG_STAT bits that may self-clear without a sensor reset.
+ *
+ * All variants allow repeating a transaction after an isolated SPI SCLK count error
+ * (bit 3). ADIS1657x (kTimestamp32, Table 15) also recovers from datapath overrun
+ * (bit 1) without reset, whereas ADIS16470/16477/1650x (Tables 10-12) require a reset.
+ */
+constexpr uint16_t transientDiagnosticMask(Format format)
+{
+	return format == Format::kTimestamp32 ? (kDiagOverrun | kDiagSpiError) : kDiagSpiError;
+}
 
 /**
  * @brief Decide whether a device DIAG_STAT reading requires resetting the IMU.
  *
- * Non-transient fault bits trigger recovery immediately; transient SPI/overrun flags
+ * Non-transient fault bits trigger recovery immediately; self-clearing flags
  * tolerate isolated single-burst glitches and recover only when persistent.
  */
-constexpr bool shouldRecoverOnDiagnostic(uint16_t diagnostic, uint8_t consecutive_transient_errors,
-		uint8_t persistent_limit = 4)
+constexpr bool shouldRecoverOnDiagnostic(Format format, uint16_t diagnostic,
+		uint8_t consecutive_transient_errors, uint8_t persistent_limit = 4)
 {
 	if (diagnostic == 0) {
 		return false;
 	}
 
-	if ((diagnostic & ~kTransientDiagnosticMask) != 0) {
+	if ((diagnostic & ~transientDiagnosticMask(format)) != 0) {
 		return true;
 	}
 
 	return consecutive_transient_errors >= persistent_limit;
 }
 
-static_assert(!shouldRecoverOnDiagnostic(0, 10), "Zero diagnostic must not recover");
-static_assert(shouldRecoverOnDiagnostic(1u << 5, 0), "Non-transient diagnostic must recover immediately");
-static_assert(!shouldRecoverOnDiagnostic(kDiagOverrun, 1), "Single overrun must not trigger reset");
-static_assert(!shouldRecoverOnDiagnostic(kTransientDiagnosticMask, 3), "Transient diagnostics below limit must not reset");
-static_assert(shouldRecoverOnDiagnostic(kDiagOverrun, 4), "Persistent overrun at limit must trigger reset");
+static_assert(!shouldRecoverOnDiagnostic(Format::kBurst16, 0, 10), "Zero diagnostic must not recover");
+static_assert(shouldRecoverOnDiagnostic(Format::kBurst16, 1u << 5, 1), "Self-test fault must recover immediately");
+static_assert(shouldRecoverOnDiagnostic(Format::kBurst16, kDiagOverrun, 1),
+	      "16-bit datapath overrun must trigger reset immediately");
+static_assert(shouldRecoverOnDiagnostic(Format::kBurst32, kDiagOverrun, 1),
+	      "ADIS1650x datapath overrun must trigger reset immediately");
+static_assert(!shouldRecoverOnDiagnostic(Format::kBurst32, kDiagSpiError, 3),
+	      "Isolated SPI error below limit must not trigger reset");
+static_assert(shouldRecoverOnDiagnostic(Format::kBurst32, kDiagSpiError, 4),
+	      "Persistent SPI error at limit must trigger reset");
+static_assert(!shouldRecoverOnDiagnostic(Format::kTimestamp32, kDiagOverrun | kDiagSpiError, 3),
+	      "ADIS1657x transient overrun/SPI flags below limit must not reset");
+static_assert(shouldRecoverOnDiagnostic(Format::kTimestamp32, kDiagOverrun, 4),
+	      "Persistent ADIS1657x overrun at limit must trigger reset");
 
 /** Validated raw single-sample channels; conversion and timestamps remain driver policy. */
 struct Sample {

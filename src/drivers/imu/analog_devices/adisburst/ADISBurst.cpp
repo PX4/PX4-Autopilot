@@ -405,11 +405,11 @@ void ADISBurst::handleDiagnostic()
 			++_diagnostic_streak;
 		}
 
-		if (adis_burst_decoder::shouldRecoverOnDiagnostic(_last_diagnostic, _diagnostic_streak)) {
+		if (adis_burst_decoder::shouldRecoverOnDiagnostic(_profile.format, _last_diagnostic, _diagnostic_streak)) {
 			recover(RecoveryReason::kDiagnostic);
 
 		} else {
-			// Clear ADI's sticky DIAG_STAT latch (0x02) on ADIS16470/16477/1650x without resetting.
+			// Clear ADI's sticky DIAG_STAT latch (0x02) after an isolated self-clearing flag without resetting.
 			px4_udelay(_profile.stall_us);
 			(void)readRegister(Register::DiagStat);
 			_transfer_failed = false;
@@ -420,7 +420,7 @@ void ADISBurst::handleDiagnostic()
 	}
 
 	// State::kWaitReset just read Register::DiagStat directly; only non-transient faults require another reset.
-	if ((_last_diagnostic & ~adis_burst_decoder::kTransientDiagnosticMask) != 0) {
+	if ((_last_diagnostic & ~adis_burst_decoder::transientDiagnosticMask(_profile.format)) != 0) {
 		recover(RecoveryReason::kDiagnostic);
 
 	} else {
