@@ -15,9 +15,9 @@
 #
 
 # ---- IMU on SPI3 (ICM-42688P + BMI088) ----
-icm42688p -s -R 2 start
-bmi088 -A -R 2 -s start
-bmi088 -G -R 2 -s start
+icm42x -T icm42688p -s -R 2 start
+bmi_hybrid -T bmi088 -A -R 2 -s start
+bmi_hybrid -T bmi088 -G -R 2 -s start
 
 # ---- Onboard I2C2 (BMP581 + IST8310) ----
 # IST8310 on this PCB responds at 0x0E (not the datasheet default 0x0C).

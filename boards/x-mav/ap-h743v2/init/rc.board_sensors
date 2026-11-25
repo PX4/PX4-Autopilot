@@ -6,11 +6,11 @@
 board_adc start
 
 # BMI088
-bmi088 -A -R 2 -s start
-bmi088 -G -R 2 -s start
+bmi_hybrid -T bmi088 -A -R 2 -s start
+bmi_hybrid -T bmi088 -G -R 2 -s start
 
 # 42688P
-icm42688p -s start
+icm42x -T icm42688p -s start
 
 # baro
 dps310 -I start -a 118

@@ -71,28 +71,28 @@ then
 	if ver hwtypecmp V6X006
 	then
 		# Internal SPI bus ICM45686
-		adis16470 -s -R 0 start
-		iim42652 -s -R 6 start
-		icm45686 -s -R 10 start
+		adisburst -T adis16470 -s -R 0 start
+		icm42x -T iim42652 -s -R 6 start
+		icm45x -T icm45686 -s -R 10 start
 	else
 		# Internal SPI bus 3x ICM45686, IIM42653, or LSM6DSV
-		if ! icm45686 -b 3 -s -R 0 -q start
+		if ! icm45x -T icm45686 -b 3 -s -R 0 -q start
 		then
-			if ! iim42653 -b 3 -s -R 0 -q start
+			if ! icm42x -T iim42653 -b 3 -s -R 0 -q start
 			then
 				lsm6dsv -b 3 -s -R 0 start
 			fi
 		fi
-		if ! icm45686 -b 2 -s -R 0 -q start
+		if ! icm45x -T icm45686 -b 2 -s -R 0 -q start
 		then
-			if ! iim42653 -b 2 -s -R 0 -q start
+			if ! icm42x -T iim42653 -b 2 -s -R 0 -q start
 			then
 				lsm6dsv -b 2 -s -R 0 start
 			fi
 		fi
-		if ! icm45686 -b 1 -s -R 10 -q start
+		if ! icm45x -T icm45686 -b 1 -s -R 10 -q start
 		then
-			if ! iim42653 -b 1 -s -R 10 -q start
+			if ! icm42x -T iim42653 -b 1 -s -R 10 -q start
 			then
 				lsm6dsv -b 1 -s -R 10 start
 			fi
@@ -102,25 +102,25 @@ else
 	if ver hwtypecmp V6X004
 	then
 		# Internal SPI bus ICM20649
-		icm20649 -s -R 6 start
+		icm20x -T icm20649 -s -R 6 start
 	else
 		# Internal SPI BMI088
 		if ver hwtypecmp V6X010
 		then
-			bmi088 -A -R 0 -s start
-			bmi088 -G -R 0 -s start
+			bmi_hybrid -T bmi088 -A -R 0 -s start
+			bmi_hybrid -T bmi088 -G -R 0 -s start
 		else
-			bmi088 -A -R 4 -s start
-			bmi088 -G -R 4 -s start
+			bmi_hybrid -T bmi088 -A -R 4 -s start
+			bmi_hybrid -T bmi088 -G -R 4 -s start
 		fi
 	fi
 
 	# Internal SPI bus ICM42688p
 	if ver hwtypecmp V6X010
 	then
-		icm42688p -R 14 -s start
+		icm42x -T icm42688p -R 14 -s start
 	else
-		icm42688p -R 6 -s start
+		icm42x -T icm42688p -R 6 -s start
 	fi
 
 	if ver hwtypecmp V6X003 V6X004
@@ -129,7 +129,7 @@ else
 		icm42670p -R 10 -s start
 	else
 		# Internal SPI bus ICM-20649 (hard-mounted)
-		icm20649 -R 14 -s start
+		icm20x -T icm20649 -R 14 -s start
 	fi
 fi
 

@@ -1,5 +1,6 @@
 menuconfig DRIVERS_IMU_INVENSENSE_ICM40609D
 	bool "icm40609d"
 	default n
+	depends on !DRIVERS_IMU_INVENSENSE_ICM42X
 	---help---
 		Enable support for icm40609d

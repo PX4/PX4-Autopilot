@@ -6,14 +6,14 @@
 board_adc start
 
 # IMU
-if ! icm42688p -s -b 1 -R 4 start
+if ! icm42x -T icm42688p -s -b 1 -R 4 start
 then
-	bmi270 -s -b 1 -R 2 start
+	bmi_hybrid -T bmi270 -s -b 1 -R 2 start
 fi
 
-if ! icm42688p -s -b 4 -R 4 start
+if ! icm42x -T icm42688p -s -b 4 -R 4 start
 then
-	bmi270 -s -b 4 -R 2 start
+	bmi_hybrid -T bmi270 -s -b 4 -R 2 start
 fi
 
 # baro

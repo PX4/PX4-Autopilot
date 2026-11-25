@@ -70,25 +70,25 @@ fi
 if ver hwtypecmp ARKV6X000
 then
 	# Internal SPI bus IIM42652
-	iim42652 -R 3 -s -b 1 start
+	icm42x -T iim42652 -R 3 -s -b 1 start
 
 	# Internal SPI bus ICM42688p
-	icm42688p -R 9 -s -b 2 start
+	icm42x -T icm42688p -R 9 -s -b 2 start
 
 	# Internal SPI bus ICM42688p
-	icm42688p -R 6 -s -b 3 start
+	icm42x -T icm42688p -R 6 -s -b 3 start
 fi
 
 if ver hwtypecmp ARKV6X001
 then
 	# Internal SPI bus IIM42653
-	iim42653 -R 3 -s -b 1 start
+	icm42x -T iim42653 -R 3 -s -b 1 start
 
 	# Internal SPI bus IIM42653
-	iim42653 -R 9 -s -b 2 start
+	icm42x -T iim42653 -R 9 -s -b 2 start
 
 	# Internal SPI bus IIM42653
-	iim42653 -R 6 -s -b 3 start
+	icm42x -T iim42653 -R 6 -s -b 3 start
 fi
 
 # Internal magnetometer on I2C

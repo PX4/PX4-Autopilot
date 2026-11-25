@@ -5,11 +5,11 @@
 board_adc start
 
 # SPI1
-bmi088 -s -b 1 -A -R 2 start
-bmi088 -s -b 1 -G -R 2 start
+bmi_hybrid -T bmi088 -s -b 1 -A -R 2 start
+bmi_hybrid -T bmi088 -s -b 1 -G -R 2 start
 
 # SPI1
-icm20689 -s -b 1 -R 2 start
+mpu_direct -T icm20689 -s -b 1 -R 2 start
 
 # I2C1
 ist8310 -X -b 1 -R 10 -a 0xE start

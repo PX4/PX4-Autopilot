@@ -7,16 +7,16 @@ board_adc start
 if ver hwtypecmp V6C000002 V6C002002
 then
        # Internal SPI BMI088 accel/gyro
-       bmi088 -A -R 4 -s start
-       bmi088 -G -R 4 -s start
+       bmi_hybrid -T bmi088 -A -R 4 -s start
+       bmi_hybrid -T bmi088 -G -R 4 -s start
 else
        # Internal SPI bus BMI055 accel/gyro
-       bmi055 -A -R 4 -s start
-       bmi055 -G -R 4 -s start
+       bmi_hybrid -T bmi055 -A -R 4 -s start
+       bmi_hybrid -T bmi055 -G -R 4 -s start
 fi
 
 # Internal SPI bus IMU (probe-based: LSM6DSV or ICM42688P on same CS)
-if ! icm42688p -R 6 -s -q start
+if ! icm42x -T icm42688p -R 6 -s -q start
 then
     lsm6dsv -R 6 -s start
 fi

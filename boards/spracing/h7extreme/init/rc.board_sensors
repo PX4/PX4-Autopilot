@@ -8,15 +8,15 @@ board_adc start
 # Internal SPI bus ICM-20602 or ICM-42688-P
 
 # SPI2
-if ! icm20602 -s -b 2 -R 5 start
+if ! mpu_direct -T icm20602 -s -b 2 -R 5 start
 then
-	icm42688p -s -b 2 -R 5 start
+	icm42x -T icm42688p -s -b 2 -R 5 start
 fi
 
 # SPI3
-if ! icm20602 -s -b 3 -R 4 start
+if ! mpu_direct -T icm20602 -s -b 3 -R 4 start
 then
-	icm42688p -s -b 3 -R 4 start
+	icm42x -T icm42688p -s -b 3 -R 4 start
 fi
 
 # Internal I2C bus

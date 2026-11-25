@@ -1,5 +1,6 @@
 menuconfig DRIVERS_IMU_ANALOG_DEVICES_ADIS16477
 	bool "adis16477"
 	default n
+	depends on !DRIVERS_IMU_ANALOG_DEVICES_ADISBURST
 	---help---
 		Enable support for adis16477

@@ -6,7 +6,7 @@
 board_adc start
 
 # # Internal SPI bus ICM45686 accel/gyro
-icm45686 -s -b 3 -R 2 start
+icm45x -T icm45686 -s -b 3 -R 2 start
 
 # Internal baro
 spa06 -I -b 2 -a 0x77 start

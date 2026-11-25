@@ -11,12 +11,12 @@ else
 	board_adc start
 fi
 
-iim42652 -s -R 22 start
+icm42x -T iim42652 -s -R 22 start
 
-bmi088 -A -R 29 -s start
-if ! bmi088 -G -R 29 -s start
+bmi_hybrid -T bmi088 -A -R 29 -s start
+if ! bmi_hybrid -T bmi088 -G -R 29 -s start
 then
-	iim42653 -s -b 2 -R 22 start
+	icm42x -T iim42653 -s -b 2 -R 22 start
 fi
 
 if ! ist8310 -I -R 18 start

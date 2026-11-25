@@ -51,8 +51,8 @@ then
 fi
 
 sch16t -s -R 2 -b 1 start
-iim42652 -s -b 2 -C 32768 start
-iim42653 -s -b 5 -R 12 start
+icm42x -T iim42652 -s -b 2 -C 32768 start
+icm42x -T iim42653 -s -b 5 -R 12 start
 
 rm3100 -s -b 4 start
 

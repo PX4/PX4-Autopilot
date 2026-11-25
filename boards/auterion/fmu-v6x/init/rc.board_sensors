@@ -62,16 +62,16 @@ auterion_autostarter start
 param set-default INA238_SHUNT 0.0003
 
 # Internal SPI BMI088
-bmi088 -A -R 6 -s start
-bmi088 -G -R 6 -s start
+bmi_hybrid -T bmi088 -A -R 6 -s start
+bmi_hybrid -T bmi088 -G -R 6 -s start
 
 # Internal SPI bus ICM42688p
-icm42688p -R 12 -s start
+icm42x -T icm42688p -R 12 -s start
 
 if ver hwtypecmp V6X010
 then
 	# Internal SPI bus ICM20602
-	icm20602 -R 6 -s start
+	mpu_direct -T icm20602 -R 6 -s start
 
 	# Internal magnetometer (BMM150) on I2C
 	bmm150 -I -R 0 start
@@ -83,7 +83,7 @@ then
 	bmp388 -I -b 2 start
 else
 	# Internal SPI bus ICM45686
-	icm45686 -R 0 -s start
+	icm45x -T icm45686 -R 0 -s start
 
 	# Internal magnetometer (BMM350) on I2C
 	bmm350 -I -R 4 start

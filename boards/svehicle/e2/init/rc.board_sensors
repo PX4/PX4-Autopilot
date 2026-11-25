@@ -17,13 +17,13 @@ then
 	ina228 -X  start
 fi
 
-bmi088 -A -R 4 -s -b 3 start
-bmi088 -G -R 4 -s -b 3 start
+bmi_hybrid -T bmi088 -A -R 4 -s -b 3 start
+bmi_hybrid -T bmi088 -G -R 4 -s -b 3 start
 
-icm42688p -R 6 -s start
+icm42x -T icm42688p -R 6 -s start
 
 # Internal SPI bus ICM-20649 (hard-mounted)
-icm20649 -R 14 -s start
+icm20x -T icm20649 -R 14 -s start
 
 # Internal magnetometer on I2c
 rm3100 -I -R 12 start

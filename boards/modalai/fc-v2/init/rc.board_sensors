@@ -15,10 +15,10 @@ voxlpm -X -b 3 -k -T VBATT start
 voxlpm -X -b 3 -T P5VDC start
 
 # Internal SPI1 ICM-42688
-icm42688p -s -b 1 -R 12 start
+icm42x -T icm42688p -s -b 1 -R 12 start
 
 # Internal SPI2 ICM-42688
-icm42688p -s -b 2 -R 12 start
+icm42x -T icm42688p -s -b 2 -R 12 start
 
 # Don't start Internal I2C mag
 # bmm150 -I start

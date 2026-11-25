@@ -15,29 +15,29 @@ board_adc start
 # SPI4, isolated
 ms5611 -s -b 4 start
 
-if icm42688p -s -b 4 -R 10 -q start -c 15
+if icm42x -T icm42688p -s -b 4 -R 10 -q -c 15 start
 then
 	# We need to use the temperature of the first isolated IMU for heater control.
 	param set-default HEATER1_SENS_ID 2490402
 
 	if ! icm20948 -s -b 4 -R 10 -M -q start
 	then
-		icm42688p -s -b 4 -R 6 start -c 13
+		icm42x -T icm42688p -s -b 4 -R 6 -c 13 start
 	fi
 else
-	icm45686 -s -b 4 -R 10 start -c 15
-	icm45686 -s -b 4 -R 6 start -c 13
+	icm45x -T icm45686 -s -b 4 -R 10 -c 15 start
+	icm45x -T icm45686 -s -b 4 -R 6 -c 13 start
 
 	param set-default HEATER1_SENS_ID 3407906
 fi
 
 # SPI1, body-fixed
-if icm45686 -s -b 1 -R 3 -q start
+if icm45x -T icm45686 -s -b 1 -R 3 -q start
 then
 	# if we detected the ICM45686 we also ought to have an AK09918
 	ak09916 start -I -R 13
 else
-	icm20649 -s -b 1 start
+	icm20x -T icm20649 -s -b 1 start
 fi
 
 ms5611 -s -b 1 start

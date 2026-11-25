@@ -1,5 +1,6 @@
 menuconfig DRIVERS_IMU_INVENSENSE_ICM56686
 	bool "icm56686"
 	default n
+	depends on !DRIVERS_IMU_INVENSENSE_ICM45X
 	---help---
 		Enable support for icm56686
