@@ -69,7 +69,8 @@ void DifferentialCourseControl::updateCourseControl()
 	if (PX4_ISFINITE(_course_setpoint)) {
 		// The heading setpoint is the course setpoint corrected by the drift angle, like the fixed wing crabs into the wind.
 		// In reverse the rover points away from its direction of travel.
-		yaw_setpoint = calcHeadingSetpoint(_course_setpoint, _drift_angle_estimator.getDriftAngle(), expectedDirection());
+		yaw_setpoint = calcHeadingSetpoint(_course_setpoint, _drift_angle_estimator.getDriftAngle(_course_setpoint,
+						   _speed_setpoint), expectedDirection());
 
 		const float heading_error = fabsf(matrix::wrap_pi(yaw_setpoint - _vehicle_yaw));
 
@@ -132,11 +133,11 @@ void DifferentialCourseControl::updateSubscriptions()
 		_speed_setpoint = surface_vehicle_course_setpoint.speed;
 	}
 
-	// After the setpoints, so the drift angle is estimated for the current direction of travel
+	// After the setpoints, so the estimate uses the direction of travel and the speed commanded now
 	if (_vehicle_local_position_sub.updated()) {
 		vehicle_local_position_s vehicle_local_position{};
 		_vehicle_local_position_sub.copy(&vehicle_local_position);
-		_drift_angle_estimator.update(vehicle_local_position, expectedDirection());
+		_drift_angle_estimator.update(vehicle_local_position, expectedDirection(), _speed_setpoint);
 	}
 }
 
