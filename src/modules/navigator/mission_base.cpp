@@ -637,7 +637,7 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 	if (pos_sp_triplet->current.valid
 	    && (pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION
 		|| _work_item_type == WorkItemType::WORK_ITEM_TYPE_CLIMB)) {
-		altitude = pos_sp_triplet->current.alt;
+		altitude = get_setpoint_altitude_amsl(pos_sp_triplet->current);
 	}
 
 	/* move to land wp as fixed wing */
@@ -752,6 +752,7 @@ bool MissionBase::position_setpoint_equal(const position_setpoint_s *p1, const p
 		(fabs(p1->lat - p2->lat) < DBL_EPSILON) &&
 		(fabs(p1->lon - p2->lon) < DBL_EPSILON) &&
 		(fabsf(p1->alt - p2->alt) < FLT_EPSILON) &&
+		((fabsf(p1->agl_alt - p2->agl_alt) < FLT_EPSILON) || (!PX4_ISFINITE(p1->agl_alt) && !PX4_ISFINITE(p2->agl_alt))) &&
 		((fabsf(p1->yaw - p2->yaw) < FLT_EPSILON) || (!PX4_ISFINITE(p1->yaw) && !PX4_ISFINITE(p2->yaw))) &&
 		(fabsf(p1->loiter_radius - p2->loiter_radius) < FLT_EPSILON) &&
 		(p1->loiter_direction_counter_clockwise == p2->loiter_direction_counter_clockwise) &&
@@ -968,7 +969,7 @@ MissionBase::do_abort_landing()
 	// the early landing configuration (flaps and landing airspeed) during the hold.
 	_navigator->get_position_setpoint_triplet()->next.lat = (double)NAN;
 	_navigator->get_position_setpoint_triplet()->next.lon = (double)NAN;
-	_navigator->get_position_setpoint_triplet()->next.alt = NAN;
+	set_setpoint_altitude_amsl(_navigator->get_position_setpoint_triplet()->next, NAN);
 
 	publish_navigator_mission_item(); // for logging
 	_navigator->set_position_setpoint_triplet_updated();

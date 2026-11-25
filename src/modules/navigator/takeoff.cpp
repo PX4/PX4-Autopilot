@@ -206,7 +206,7 @@ Takeoff::on_active()
 			} else {
 				if (pos_sp_triplet->current.valid
 				    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-					setLoiterItemFromCurrentPositionSetpoint(_mission_item, pos_sp_triplet->current);
+					setLoiterItemFromCurrentPositionSetpoint(_mission_item, pos_sp_triplet->current, false);
 				}
 			}
 

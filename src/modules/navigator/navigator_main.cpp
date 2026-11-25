@@ -1489,6 +1489,7 @@ void Navigator::reset_position_setpoint(position_setpoint_s &sp)
 	sp.lon = static_cast<double>(NAN);
 	sp.yaw = NAN;
 	sp.course = NAN;
+	sp.agl_alt = NAN;
 	sp.loiter_radius = get_default_loiter_rad();
 	sp.acceptance_radius = get_default_acceptance_radius();
 	sp.cruising_speed = get_cruising_speed();

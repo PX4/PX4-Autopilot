@@ -219,7 +219,7 @@ void RtlMissionFastReverse::handleLanding(WorkItemType &new_work_item_type)
 			float altitude = _global_pos_sub.get().alt;
 
 			if (pos_sp_triplet->current.valid && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
-				altitude = pos_sp_triplet->current.alt;
+				altitude = get_setpoint_altitude_amsl(pos_sp_triplet->current);
 			}
 
 			_mission_item.lat = _home_pos_sub.get().lat;

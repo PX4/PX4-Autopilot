@@ -156,6 +156,11 @@ float getAbsoluteAltitudeForMissionItem(const mission_item_s &mission_item, floa
 		return PX4_ISFINITE(home_altitude_amsl) ? mission_item.altitude + home_altitude_amsl : NAN;
 	}
 
+	if (mission_item_altitude_is_terrain(mission_item)) {
+		// Only an estimate: the terrain below the item is unknown, assume it is at the home altitude
+		return PX4_ISFINITE(home_altitude_amsl) ? mission_item.altitude + home_altitude_amsl : NAN;
+	}
+
 	return mission_item.altitude;
 }
 

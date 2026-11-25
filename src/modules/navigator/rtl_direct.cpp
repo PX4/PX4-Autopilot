@@ -334,7 +334,7 @@ void RtlDirect::set_rtl_item()
 			}
 
 			pos_sp_triplet->next.valid = true;
-			pos_sp_triplet->next.alt = _rtl_alt;
+			set_setpoint_altitude_amsl(pos_sp_triplet->next, _rtl_alt);
 			pos_sp_triplet->next.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 
 			if (next_point.isAllFinite()) {
@@ -445,7 +445,7 @@ void RtlDirect::set_rtl_item()
 			// location and land location after exiting the loiter circle
 			pos_sp_triplet->previous.lat = _land_approach.lat;
 			pos_sp_triplet->previous.lon = _land_approach.lon;
-			pos_sp_triplet->previous.alt = get_absolute_altitude_for_item(_mission_item);
+			set_setpoint_altitude_amsl(pos_sp_triplet->previous, get_absolute_altitude_for_item(_mission_item));
 			pos_sp_triplet->previous.valid = true;
 
 			break;
