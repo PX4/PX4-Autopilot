@@ -41,7 +41,7 @@ void TrafficAvoidanceChecks::checkAndReport(const Context &context, Report &repo
 	const bool enabled = traffic_avoidance::isEnabled(mode);
 
 	// Always update the flag, so that disabling the check also clears a previously-set flag
-	reporter.failsafeFlags().traffic_avoidance_unhealthy = enabled
+	reporter.failsafeFlags().traff_avoid_unhealthy = enabled
 			&& !context.status().traffic_avoidance_system_present;
 
 	if (!enabled) {

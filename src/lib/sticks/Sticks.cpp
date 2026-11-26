@@ -69,7 +69,7 @@ bool Sticks::checkAndUpdateStickInputs()
 		failsafe_flags_s failsafe_flags;
 
 		if (_failsafe_flags_sub.update(&failsafe_flags)) {
-			if (failsafe_flags.manual_control_signal_lost) {
+			if (failsafe_flags.rc_conn_lost) {
 				_input_available = false;
 			}
 		}

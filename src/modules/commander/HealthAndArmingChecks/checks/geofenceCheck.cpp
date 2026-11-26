@@ -142,7 +142,7 @@ void GeofenceChecks::checkAndReport(const Context &context, Report &reporter)
 
 	if ((geofence_result.geofence_emer_action == geofence_result_s::GF_ACTION_RTL
 	     || geofence_result.geofence_cont_action == geofence_result_s::GF_ACTION_RTL)
-	    && reporter.failsafeFlags().home_position_invalid) {
+	    && reporter.failsafeFlags().home_pos_bad) {
 		/* EVENT
 		 * @description
 		 * <profile name="dev">

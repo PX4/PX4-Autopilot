@@ -693,7 +693,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 	if (run_preflight_checks) {
 		if (_vehicle_control_mode.flag_control_manual_enabled) {
 
-			if (!_failsafe_flags.manual_control_signal_lost) {
+			if (!_failsafe_flags.rc_conn_lost) {
 				bool throttle_safe;
 
 				if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
@@ -2260,7 +2260,7 @@ void Commander::checkForMissionUpdate()
 
 		if (mission_result_ok) {
 			/* Only evaluate mission state if home is set */
-			if (!_failsafe_flags.home_position_invalid &&
+			if (!_failsafe_flags.home_pos_bad &&
 			    (prev_mission_mission_id != mission_result.mission_id)) {
 
 				if (!auto_mission_available) {
@@ -2774,7 +2774,7 @@ void Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 				led_color = led_control_s::COLOR_RED;
 
 			} else {
-				if (!_failsafe_flags.home_position_invalid && !_failsafe_flags.global_position_invalid) {
+				if (!_failsafe_flags.home_pos_bad && !_failsafe_flags.global_pos_bad) {
 					led_color = led_control_s::COLOR_GREEN;
 
 				} else {
@@ -3168,9 +3168,9 @@ void Commander::dataLinkCheck()
 void Commander::battery_status_check()
 {
 	// Handle shutdown request from emergency battery action
-	if (_battery_warning != _failsafe_flags.battery_warning) {
+	if (_battery_warning != _failsafe_flags.bat_warning) {
 
-		if (_failsafe_flags.battery_warning == battery_status_s::WARNING_EMERGENCY) {
+		if (_failsafe_flags.bat_warning == battery_status_s::WARNING_EMERGENCY) {
 #if defined(BOARD_HAS_POWER_CONTROL)
 
 			if (!isArmed() && (px4_shutdown_request(60_s) == 0)) {
@@ -3193,7 +3193,7 @@ void Commander::battery_status_check()
 		}
 	}
 
-	_battery_warning = _failsafe_flags.battery_warning;
+	_battery_warning = _failsafe_flags.bat_warning;
 }
 
 void Commander::manualControlCheck()
@@ -3236,7 +3236,7 @@ void Commander::manualControlLossModeSwitch()
 	// Kept in sync with gcs_connection_loss_failsafe_mode::Hold_mode_no_failsafe (private to the failsafe).
 	static constexpr int32_t NAV_RCL_ACT_HOLD_NO_FAILSAFE = 7;
 
-	const bool manual_control_lost = _failsafe_flags.manual_control_signal_lost;
+	const bool manual_control_lost = _failsafe_flags.rc_conn_lost;
 
 	// Only act on the moment manual control is lost while actively flying a manual mode. Using an edge avoids
 	// repeatedly overriding the pilot if they command a different mode while manual control stays lost.
@@ -3261,7 +3261,7 @@ void Commander::manualControlLossModeSwitch()
 void Commander::offboardControlCheck()
 {
 	if (_offboard_control_mode_sub.update()) {
-		if (_failsafe_flags.offboard_control_signal_lost) {
+		if (_failsafe_flags.offboard_signal_lost) {
 			// Run arming checks immediately to allow for offboard mode activation
 			_status_changed = true;
 		}

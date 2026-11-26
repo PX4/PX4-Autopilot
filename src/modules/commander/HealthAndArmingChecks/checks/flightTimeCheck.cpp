@@ -37,7 +37,7 @@ void FlightTimeChecks::checkAndReport(const Context &context, Report &reporter)
 {
 	if (_param_com_flt_time_max.get() > FLT_EPSILON && context.status().takeoff_time != 0 &&
 	    (hrt_absolute_time() - context.status().takeoff_time) > (1_s * _param_com_flt_time_max.get())) {
-		reporter.failsafeFlags().flight_time_limit_exceeded = true;
+		reporter.failsafeFlags().flight_time_exceeded = true;
 
 		if (reporter.mavlink_log_pub()) {
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Maximum flight time reached\t");
@@ -54,11 +54,11 @@ void FlightTimeChecks::checkAndReport(const Context &context, Report &reporter)
 					    events::Log::Error, "Maximum flight time reached");
 
 	} else {
-		reporter.failsafeFlags().flight_time_limit_exceeded = false;
+		reporter.failsafeFlags().flight_time_exceeded = false;
 	}
 
 	// report warning when approaching max flight time
-	if (!reporter.failsafeFlags().flight_time_limit_exceeded
+	if (!reporter.failsafeFlags().flight_time_exceeded
 	    && context.status().takeoff_time != 0
 	    && _param_com_flt_time_max.get() > 0) {
 

@@ -74,7 +74,7 @@ void SystemChecks::checkAndReport(const Context &context, Report &reporter)
 
 	// Global position required
 	if (!_param_com_arm_wo_gps.get() && !context.isArmed()) {
-		if (reporter.failsafeFlags().global_position_invalid) {
+		if (reporter.failsafeFlags().global_pos_bad) {
 			/* EVENT
 			 * @description
 			 * <profile name="dev">
@@ -89,7 +89,7 @@ void SystemChecks::checkAndReport(const Context &context, Report &reporter)
 				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Global position estimate required");
 			}
 
-		} else if (reporter.failsafeFlags().home_position_invalid) {
+		} else if (reporter.failsafeFlags().home_pos_bad) {
 			/* EVENT
 			 * @description
 			 * <profile name="dev">

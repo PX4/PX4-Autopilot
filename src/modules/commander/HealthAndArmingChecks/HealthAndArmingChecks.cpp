@@ -38,17 +38,17 @@ HealthAndArmingChecks::HealthAndArmingChecks(ModuleParams *parent, vehicle_statu
 	  _context(status)
 {
 	// Initialize mode requirements to invalid
-	_failsafe_flags.angular_velocity_invalid = true;
-	_failsafe_flags.attitude_invalid = true;
-	_failsafe_flags.local_altitude_invalid = true;
-	_failsafe_flags.local_position_invalid = true;
-	_failsafe_flags.local_position_invalid_relaxed = true;
-	_failsafe_flags.local_velocity_invalid = true;
-	_failsafe_flags.global_position_invalid = true;
-	_failsafe_flags.global_position_invalid_relaxed = true;
+	_failsafe_flags.ang_vel_bad = true;
+	_failsafe_flags.attitude_bad = true;
+	_failsafe_flags.local_alt_bad = true;
+	_failsafe_flags.local_pos_bad = true;
+	_failsafe_flags.local_pos_bad_relaxed = true;
+	_failsafe_flags.local_vel_bad = true;
+	_failsafe_flags.global_pos_bad = true;
+	_failsafe_flags.global_pos_bad_relaxed = true;
 	_failsafe_flags.auto_mission_missing = true;
-	_failsafe_flags.offboard_control_signal_lost = true;
-	_failsafe_flags.home_position_invalid = true;
+	_failsafe_flags.offboard_signal_lost = true;
+	_failsafe_flags.home_pos_bad = true;
 }
 
 bool HealthAndArmingChecks::update(bool force_reporting, bool is_arming_request)

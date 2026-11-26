@@ -233,7 +233,7 @@ TEST_F(EscChecksTest, EscOfflineAfterOfflineTimeout)
 	EXPECT_FALSE(_can_arm);
 	EXPECT_TRUE(_health_error_escs);
 	EXPECT_EQ(_check.getMotorFailureMask(), 0b0100u);
-	EXPECT_TRUE(_failsafe_flags.fd_motor_failure);
+	EXPECT_TRUE(_failsafe_flags.fd_motor_fail);
 }
 
 TEST_F(EscChecksTest, EscOnlineInsideOfflineTimeout)
@@ -243,7 +243,7 @@ TEST_F(EscChecksTest, EscOnlineInsideOfflineTimeout)
 	EXPECT_TRUE(_can_arm);
 	EXPECT_FALSE(_health_error_escs);
 	EXPECT_EQ(_check.getMotorFailureMask(), 0u);
-	EXPECT_FALSE(_failsafe_flags.fd_motor_failure);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_fail);
 }
 
 // Right after arming the ESCs have not reported armed yet, which must not fail before the arming timeout
@@ -255,7 +255,7 @@ TEST_F(EscChecksTest, EscsNotYetArmedTolerated)
 	px4_usleep(EscChecks::ESC_ARMING_TIMEOUT_US - 50_ms);
 	publishWithStaleEsc(-1, 0, 0b0000);
 	runCheck(true);
-	EXPECT_FALSE(_failsafe_flags.fd_esc_arming_failure);
+	EXPECT_FALSE(_failsafe_flags.fd_esc_arming_fail);
 	EXPECT_FALSE(_check.getEscArmStatus());
 	EXPECT_EQ(_check.getMotorFailureMask(), 0u);
 }
@@ -268,7 +268,7 @@ TEST_F(EscChecksTest, EscsNotArmedFailAfterArmingTimeout)
 	px4_usleep(EscChecks::ESC_ARMING_TIMEOUT_US + 50_ms);
 	publishWithStaleEsc(-1, 0, 0b1011); // ESC 3 still not armed
 	runCheck(true);
-	EXPECT_TRUE(_failsafe_flags.fd_esc_arming_failure);
+	EXPECT_TRUE(_failsafe_flags.fd_esc_arming_fail);
 	EXPECT_TRUE(_check.getEscArmStatus());
 	EXPECT_TRUE(_health_error_escs);
 }
@@ -283,7 +283,7 @@ TEST_F(EscChecksTest, EscOfflineIgnoredWithChecksDisabled)
 	EXPECT_TRUE(_can_arm);
 	EXPECT_FALSE(_health_error_escs);
 	EXPECT_EQ(_check.getMotorFailureMask(), 0u);
-	EXPECT_FALSE(_failsafe_flags.fd_motor_failure);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_fail);
 }
 
 static const std::array<float, 4> kIdle{0.f, 0.f, 0.f, 0.f};
@@ -353,7 +353,7 @@ TEST_F(EscChecksTest, SpinupHealthyMotorsPass)
 {
 	publishSpinup(kSpinning, kIdle);
 	runSpinupCheck(hrt_absolute_time() - kAtDecision);
-	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_fail);
 }
 
 // A motor with no RPM, or the stuck fault, fails at the decision time and not before
@@ -361,15 +361,15 @@ TEST_F(EscChecksTest, SpinupStuckMotorFailsAtDecisionTime)
 {
 	publishSpinup({2000, 0, 2000, 2000}, kIdle);
 	runSpinupCheck(hrt_absolute_time() - kBeforeDecision);
-	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_fail);
 	runSpinupCheck(hrt_absolute_time() - kAtDecision);
-	EXPECT_TRUE(_failsafe_flags.fd_motor_stuck_failure);
+	EXPECT_TRUE(_failsafe_flags.fd_motor_stuck_fail);
 	EXPECT_TRUE(_health_error_escs);
 
 	runSpinupCheck(hrt_absolute_time() - 100_ms); // outside the window, forgets which motors were seen spinning
 	publishSpinup(kSpinning, kIdle, 2); // stuck fault with RPM reported
 	runSpinupCheck(hrt_absolute_time() - kAtDecision);
-	EXPECT_TRUE(_failsafe_flags.fd_motor_stuck_failure);
+	EXPECT_TRUE(_failsafe_flags.fd_motor_stuck_fail);
 }
 
 // A motor seen spinning while the window was open is not failed, even if it reads zero at the decision
@@ -379,7 +379,7 @@ TEST_F(EscChecksTest, SpinupMotorSeenSpinningIsNotFailed)
 	runSpinupCheck(hrt_absolute_time() - 550_ms);
 	publishSpinup({2000, 0, 2000, 2000}, kIdle);
 	runSpinupCheck(hrt_absolute_time() - kAtDecision);
-	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_fail);
 }
 
 // Nothing is evaluated during the grace period or after the spool-up time
@@ -387,9 +387,9 @@ TEST_F(EscChecksTest, SpinupOnlyEvaluatedInsideSpoolupWindow)
 {
 	publishSpinup({0, 0, 0, 0}, kIdle);
 	runSpinupCheck(hrt_absolute_time() - 100_ms);
-	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_fail);
 	runSpinupCheck(hrt_absolute_time() - 1100_ms);
-	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_fail);
 }
 
 // Each of these would fail at the decision time, if it were not for the condition under test
@@ -397,26 +397,26 @@ TEST_F(EscChecksTest, SpinupNotEvaluatedWhenGateNotMet)
 {
 	publishSpinup({0, 0, 0, 0}, kIdle);
 	runSpinupCheck(hrt_absolute_time() - kAtDecision, vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
-	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_fail);
 	runSpinupCheck(hrt_absolute_time() - kAtDecision, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, hrt_absolute_time()); // took off
-	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_fail);
 
 	publishSpinup({0, 0, 0, 0}, {NAN, NAN, NAN, NAN}); // motors not supposed to spin
 	runSpinupCheck(hrt_absolute_time() - kAtDecision);
-	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_fail);
 
 	publishSpinup({0, 0, 0, 0}, kIdle, -1, EscChecks::ESC_OFFLINE_TIMEOUT_US + 100_ms); // stale motor commands
 	runSpinupCheck(hrt_absolute_time() - kAtDecision);
-	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_fail);
 
 	publishSpinup({0, 0, 0, 0}, kIdle);
 	runSpinupCheck(hrt_absolute_time() - kAtDecision);
-	ASSERT_TRUE(_failsafe_flags.fd_motor_stuck_failure); // fails once none of the above applies
+	ASSERT_TRUE(_failsafe_flags.fd_motor_stuck_fail); // fails once none of the above applies
 
 	const int32_t zero = 0;
 	param_set_no_notification(param_find("COM_ARM_CHK_ESCS"), &zero);
 	runSpinupCheck(hrt_absolute_time() - kAtDecision);
-	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_fail);
 }
 
 // The check must not depend on FD_ACT_EN
@@ -426,7 +426,7 @@ TEST_F(EscChecksTest, SpinupIndependentOfActuatorFailureCheck)
 	param_set_no_notification(param_find("FD_ACT_EN"), &zero);
 	publishSpinup({0, 2000, 2000, 2000}, kIdle);
 	runSpinupCheck(hrt_absolute_time() - kAtDecision);
-	EXPECT_TRUE(_failsafe_flags.fd_motor_stuck_failure);
+	EXPECT_TRUE(_failsafe_flags.fd_motor_stuck_fail);
 }
 
 // A motor whose current collapses while commanded is flagged once it stays under the band for the
@@ -438,7 +438,7 @@ TEST_F(EscChecksTest, MotorUndercurrentLatchesUntilDisarm)
 
 	fly(600_ms, 2);
 	EXPECT_EQ(_check.getMotorFailureMask(), 0b0100u);
-	EXPECT_TRUE(_failsafe_flags.fd_motor_failure);
+	EXPECT_TRUE(_failsafe_flags.fd_motor_fail);
 	EXPECT_TRUE(_health_error_escs);
 
 	fly(300_ms, -1); // current back: still latched
@@ -447,11 +447,11 @@ TEST_F(EscChecksTest, MotorUndercurrentLatchesUntilDisarm)
 	publishWithStaleEsc(-1, 0);
 	runCheck(false); // disarm resets the detector
 	EXPECT_EQ(_check.getMotorFailureMask(), 0u);
-	EXPECT_FALSE(_failsafe_flags.fd_motor_failure);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_fail);
 
 	fly(200_ms, -1); // the next flight starts without the old failure
 	EXPECT_EQ(_check.getMotorFailureMask(), 0u);
-	EXPECT_FALSE(_failsafe_flags.fd_motor_failure);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_fail);
 }
 
 // The current model only describes forward thrust: a reversible motor is not judged.
@@ -460,7 +460,7 @@ TEST_F(EscChecksTest, ReversibleMotorNotJudged)
 	fly(200_ms, -1);
 	fly(600_ms, 2, 0b0100);
 	EXPECT_EQ(_check.getMotorFailureMask(), 0u);
-	EXPECT_FALSE(_failsafe_flags.fd_motor_failure);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_fail);
 }
 
 // Every ESC is judged on its own, also when two ESCs share a motor function.
@@ -470,7 +470,7 @@ TEST_F(EscChecksTest, EscSharingMotorFunctionJudgedSeparately)
 	fly(200_ms, -1, 0, functions);
 	fly(600_ms, 2, 0, functions); // the first of the two fails, the second stays healthy
 	EXPECT_EQ(_check.getMotorFailureMask(), 0b0100u);
-	EXPECT_TRUE(_failsafe_flags.fd_motor_failure);
+	EXPECT_TRUE(_failsafe_flags.fd_motor_fail);
 }
 
 // On ground a missing required battery blocks arming on its own: its unpowered ESCs are not reported offline
@@ -482,7 +482,7 @@ TEST_F(EscChecksTest, EscOfflineIgnoredDisarmedWithRequiredBatteryMissing)
 	EXPECT_TRUE(_can_arm);
 	EXPECT_FALSE(_health_error_escs);
 	EXPECT_EQ(_check.getMotorFailureMask(), 0u);
-	EXPECT_FALSE(_failsafe_flags.fd_motor_failure);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_fail);
 }
 
 TEST_F(EscChecksTest, EscOfflineReportedArmedWithRequiredBatteryMissing)
@@ -492,7 +492,7 @@ TEST_F(EscChecksTest, EscOfflineReportedArmedWithRequiredBatteryMissing)
 	runCheck(true);
 	EXPECT_TRUE(_health_error_escs);
 	EXPECT_EQ(_check.getMotorFailureMask(), 0b0100u);
-	EXPECT_TRUE(_failsafe_flags.fd_motor_failure);
+	EXPECT_TRUE(_failsafe_flags.fd_motor_fail);
 }
 
 // A motor failure latched in flight is cleared on disarm also when the required battery is missing,
@@ -502,13 +502,13 @@ TEST_F(EscChecksTest, MotorFailureClearedDisarmedWithRequiredBatteryMissing)
 	fly(200_ms, -1);
 	fly(600_ms, 2);
 	ASSERT_EQ(_check.getMotorFailureMask(), 0b0100u);
-	ASSERT_TRUE(_failsafe_flags.fd_motor_failure);
+	ASSERT_TRUE(_failsafe_flags.fd_motor_fail);
 
 	publishBattery(true, false);
 	runCheck(false);
 	EXPECT_EQ(_check.getMotorFailureMask(), 0u);
-	EXPECT_FALSE(_failsafe_flags.fd_motor_failure);
-	EXPECT_FALSE(_failsafe_flags.fd_esc_arming_failure);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_fail);
+	EXPECT_FALSE(_failsafe_flags.fd_esc_arming_fail);
 	EXPECT_FALSE(_health_error_escs);
 }
 
@@ -517,11 +517,11 @@ TEST_F(EscChecksTest, MotorStuckClearedDisarmedWithRequiredBatteryMissing)
 {
 	publishSpinup({2000, 0, 2000, 2000}, kIdle);
 	runSpinupCheck(hrt_absolute_time() - kAtDecision);
-	ASSERT_TRUE(_failsafe_flags.fd_motor_stuck_failure);
+	ASSERT_TRUE(_failsafe_flags.fd_motor_stuck_fail);
 
 	publishBattery(true, false);
 	runCheck(false);
-	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_failure);
+	EXPECT_FALSE(_failsafe_flags.fd_motor_stuck_fail);
 }
 
 // CBRK_SUPPLY_CHK stops the battery check from reporting the missing battery, so the ESC checks must still block arming

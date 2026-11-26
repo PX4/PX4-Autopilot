@@ -54,8 +54,8 @@ namespace status
 
 void StatusDisplay::set_leds()
 {
-	bool gps_lock_valid = !_failsafe_flags_sub.get().global_position_invalid;
-	bool home_position_valid = !_failsafe_flags_sub.get().home_position_invalid;
+	bool gps_lock_valid = !_failsafe_flags_sub.get().global_pos_bad;
+	bool home_position_valid = !_failsafe_flags_sub.get().home_pos_bad;
 	int nav_state = _vehicle_status_sub.get().nav_state;
 
 #if defined(BOARD_FRONT_LED_MASK)

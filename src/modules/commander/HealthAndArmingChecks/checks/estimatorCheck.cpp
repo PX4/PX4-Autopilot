@@ -149,8 +149,8 @@ void EstimatorChecks::checkInnovationsPreflight(const Context &context, Report &
 
 	// Heading is required to arm for all modes that need any form of local position, plus FW AUTO_TAKEOFF
 	const NavModes heading_required_groups = (NavModes)(
-				reporter.failsafeFlags().mode_req_local_position |
-				reporter.failsafeFlags().mode_req_local_position_relaxed |
+				reporter.failsafeFlags().mode_req_local_pos |
+				reporter.failsafeFlags().mode_req_local_pos_relaxed |
 				(1u << vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF));
 
 	// Only the first failing innovation is reported
@@ -289,7 +289,7 @@ void EstimatorChecks::reportGnssFusionChange(const Context &context, Report &rep
 			}
 
 			// only report this failure as critical if not already in a local position invalid state
-			events::Log log_level = reporter.failsafeFlags().local_position_invalid ? events::Log::Info : events::Log::Error;
+			events::Log log_level = reporter.failsafeFlags().local_pos_bad ? events::Log::Info : events::Log::Error;
 			events::send(events::ID("check_estimator_gnss_fusion_stopped"), {log_level, events::LogInternal::Info},
 				     "GNSS data fusion stopped");
 
@@ -354,9 +354,9 @@ void EstimatorChecks::reportFailedGnssCheckPreflight(Report &reporter, const est
 		break;
 
 	case GnssArmingCheck::WarningOnly:
-		required_modes.message_modes = (NavModes)(reporter.failsafeFlags().mode_req_local_position
-					       | reporter.failsafeFlags().mode_req_local_position_relaxed
-					       | reporter.failsafeFlags().mode_req_global_position);
+		required_modes.message_modes = (NavModes)(reporter.failsafeFlags().mode_req_local_pos
+					       | reporter.failsafeFlags().mode_req_local_pos_relaxed
+					       | reporter.failsafeFlags().mode_req_global_pos);
 		// Only warn and don't block arming because there could still be a valid position estimate from another source e.g. optical flow, VIO
 		required_modes.fail_modes = NavModes::None;
 		log_level = events::Log::Warning;
@@ -686,8 +686,8 @@ void EstimatorChecks::checkEstimatorStatusFlags(const Context &context, Report &
 	    && lpos.xy_global) {
 
 		const NavModes heading_required_groups = (NavModes)(
-					reporter.failsafeFlags().mode_req_local_position |
-					reporter.failsafeFlags().mode_req_local_position_relaxed |
+					reporter.failsafeFlags().mode_req_local_pos |
+					reporter.failsafeFlags().mode_req_local_pos_relaxed |
 					(1u << vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF));
 
 		/* EVENT
@@ -764,10 +764,10 @@ void EstimatorChecks::lowPositionAccuracy(const Context &context, Report &report
 
 	bool position_valid_but_low_accuracy = false;
 
-	if ((reporter.failsafeFlags().mode_req_global_position && !reporter.failsafeFlags().global_position_invalid) ||
-	    (reporter.failsafeFlags().mode_req_global_position_relaxed
-	     && !reporter.failsafeFlags().global_position_invalid_relaxed) ||
-	    (reporter.failsafeFlags().mode_req_local_position && !reporter.failsafeFlags().local_position_invalid)) {
+	if ((reporter.failsafeFlags().mode_req_global_pos && !reporter.failsafeFlags().global_pos_bad) ||
+	    (reporter.failsafeFlags().mode_req_global_pos_relaxed
+	     && !reporter.failsafeFlags().global_pos_bad_relaxed) ||
+	    (reporter.failsafeFlags().mode_req_local_pos && !reporter.failsafeFlags().local_pos_bad)) {
 
 		position_valid_but_low_accuracy = (_param_com_pos_low_eph.get() > FLT_EPSILON && lpos.eph > _param_com_pos_low_eph.get());
 	}
@@ -793,7 +793,7 @@ void EstimatorChecks::lowPositionAccuracy(const Context &context, Report &report
 		}
 	}
 
-	reporter.failsafeFlags().position_accuracy_low = position_valid_but_low_accuracy;
+	reporter.failsafeFlags().pos_accur_low = position_valid_but_low_accuracy;
 }
 
 void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_flt_fail_innov_vel_horiz,
@@ -829,42 +829,42 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 	// global position
 	const bool global_pos_valid = gpos.lat_lon_valid && gpos.alt_valid;
 
-	failsafe_flags.global_position_invalid =
+	failsafe_flags.global_pos_bad =
 		!checkPosVelValidity(now, global_pos_valid, gpos.eph, lpos_eph_threshold, gpos.timestamp,
-				     _last_gpos_fail_time_us, !failsafe_flags.global_position_invalid);
+				     _last_gpos_fail_time_us, !failsafe_flags.global_pos_bad);
 
 	// for relaxed global condition we don't have any accuracy requirement
 	const float pos_eph_relaxed_treshold = INFINITY;
-	failsafe_flags.global_position_invalid_relaxed = !checkPosVelValidity(now, global_pos_valid, gpos.eph,
-			pos_eph_relaxed_treshold, gpos.timestamp, _last_gpos_relaxed_fail_time_us,
-			!failsafe_flags.global_position_invalid_relaxed);
+	failsafe_flags.global_pos_bad_relaxed = !checkPosVelValidity(now, global_pos_valid, gpos.eph,
+						pos_eph_relaxed_treshold, gpos.timestamp, _last_gpos_relaxed_fail_time_us,
+						!failsafe_flags.global_pos_bad_relaxed);
 
 	warnOfImminentPositionFailure(reporter, now, gpos, lpos_eph_threshold, failsafe_flags);
 
 	// local position
-	const bool local_position_was_valid = !failsafe_flags.local_position_invalid;
+	const bool local_position_was_valid = !failsafe_flags.local_pos_bad;
 
-	failsafe_flags.local_position_invalid =
+	failsafe_flags.local_pos_bad =
 		!checkPosVelValidity(now, xy_valid, lpos.eph, lpos_eph_threshold, lpos.timestamp,
-				     _last_lpos_fail_time_us, !failsafe_flags.local_position_invalid);
+				     _last_lpos_fail_time_us, !failsafe_flags.local_pos_bad);
 
-	if (local_position_was_valid && failsafe_flags.local_position_invalid) {
+	if (local_position_was_valid && failsafe_flags.local_pos_bad) {
 		reportGnssReasonForPositionLoss(context, reporter, now, vehicle_gnss);
 	}
 
 	// In some modes we assume that the operator will compensate for the drift so we do not need to check the position error
 	const float lpos_eph_threshold_relaxed = INFINITY;
 
-	failsafe_flags.local_position_invalid_relaxed =
+	failsafe_flags.local_pos_bad_relaxed =
 		!checkPosVelValidity(now, xy_valid, lpos.eph, lpos_eph_threshold_relaxed, lpos.timestamp,
-				     _last_lpos_relaxed_fail_time_us, !failsafe_flags.local_position_invalid_relaxed);
+				     _last_lpos_relaxed_fail_time_us, !failsafe_flags.local_pos_bad_relaxed);
 
-	failsafe_flags.local_velocity_invalid =
+	failsafe_flags.local_vel_bad =
 		!checkPosVelValidity(now, v_xy_valid, lpos.evh, _param_com_vel_fs_evh.get(), lpos.timestamp,
-				     _last_lvel_fail_time_us, !failsafe_flags.local_velocity_invalid);
+				     _last_lvel_fail_time_us, !failsafe_flags.local_vel_bad);
 
 	// altitude
-	failsafe_flags.local_altitude_invalid = !lpos.z_valid || (now > lpos.timestamp + 1_s);
+	failsafe_flags.local_alt_bad = !lpos.z_valid || (now > lpos.timestamp + 1_s);
 
 	// attitude
 	vehicle_attitude_s attitude;
@@ -878,11 +878,11 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 							&& (fabsf(q(3)) <= 1.f + eps);
 		const bool norm_in_tolerance = fabsf(1.f - q.norm()) <= eps;
 
-		failsafe_flags.attitude_invalid = (now > attitude.timestamp + 1_s) || !norm_in_tolerance
-						  || !no_element_larger_than_one;
+		failsafe_flags.attitude_bad = (now > attitude.timestamp + 1_s) || !norm_in_tolerance
+					      || !no_element_larger_than_one;
 
 	} else {
-		failsafe_flags.attitude_invalid = true;
+		failsafe_flags.attitude_bad = true;
 	}
 
 	// angular velocity
@@ -894,7 +894,7 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 	const bool angular_velocity_invalid = !condition_angular_velocity_time_valid
 					      || !condition_angular_velocity_finite;
 
-	if (!failsafe_flags.angular_velocity_invalid && angular_velocity_invalid) {
+	if (!failsafe_flags.ang_vel_bad && angular_velocity_invalid) {
 		const char err_str[] {"angular velocity no longer valid"};
 
 		if (!condition_angular_velocity_time_valid && angular_velocity.timestamp != 0) {
@@ -905,7 +905,7 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 		}
 	}
 
-	failsafe_flags.angular_velocity_invalid = angular_velocity_invalid;
+	failsafe_flags.ang_vel_bad = angular_velocity_invalid;
 }
 
 void EstimatorChecks::warnOfImminentPositionFailure(Report &reporter, const hrt_abstime &now,
@@ -930,8 +930,8 @@ void EstimatorChecks::warnOfImminentPositionFailure(Report &reporter, const hrt_
 	const float eph_critical = 2.5f * lpos_eph_threshold; // threshold used to trigger the navigation failsafe
 	const float gpos_critical_warning_thrld = math::max(0.9f * eph_critical, math::max(eph_critical - 10.f, 0.f));
 
-	if (!failsafe_flags.global_position_invalid
-	    && failsafe_flags.mode_req_global_position
+	if (!failsafe_flags.global_pos_bad
+	    && failsafe_flags.mode_req_global_pos
 	    && !_nav_failure_imminent_warned
 	    && gpos.eph > gpos_critical_warning_thrld) {
 		/* EVENT

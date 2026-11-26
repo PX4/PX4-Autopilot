@@ -58,7 +58,7 @@ public:
 		vehicle_status_s status{};
 		Context context{status};
 		_failsafe_flags = {};
-		_failsafe_flags.home_position_invalid = home_position_invalid;
+		_failsafe_flags.home_pos_bad = home_position_invalid;
 		Report reporter{_failsafe_flags, 0};
 		_check.checkAndReport(context, reporter);
 		_can_arm = reporter.armingCheckResults().can_arm;

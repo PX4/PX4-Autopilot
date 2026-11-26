@@ -73,7 +73,7 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 {
 	const hrt_abstime now = hrt_absolute_time();
 
-	reporter.failsafeFlags().fd_motor_stuck_failure = false;
+	reporter.failsafeFlags().fd_motor_stuck_fail = false;
 
 	// On ground a missing required battery is reported and blocks arming: skip the ESC checks, its ESCs are unpowered,
 	// and give them ESC_INIT_TIME_US to boot once it connects, during which arming stays blocked.
@@ -100,8 +100,8 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 			_motor_failure_mask = 0;
 			_motor_failure_detector.reset();
 			_esc_arm_hysteresis.set_state_and_update(false, now);
-			reporter.failsafeFlags().fd_motor_failure = false;
-			reporter.failsafeFlags().fd_esc_arming_failure = false;
+			reporter.failsafeFlags().fd_motor_fail = false;
+			reporter.failsafeFlags().fd_esc_arming_fail = false;
 
 			// The battery check no longer blocks arming once the battery connects: block it until the ESCs booted
 			if (!required_battery_missing && _param_com_arm_chk_escs.get() > 0) {
@@ -135,7 +135,7 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 		if (_param_com_arm_chk_escs.get() > 0) {
 			mask |= checkEscOnline(context, reporter, esc_status, now);
 			mask |= checkEscStatus(context, reporter, esc_status);
-			reporter.failsafeFlags().fd_motor_stuck_failure = checkSpinupAfterArm(context, reporter, esc_status, now);
+			reporter.failsafeFlags().fd_motor_stuck_fail = checkSpinupAfterArm(context, reporter, esc_status, now);
 		}
 
 		if (_param_fd_act_en.get() > 0) {
@@ -152,7 +152,7 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 
 		_motor_failure_mask = mask;
 		reporter.setIsPresent(health_component_t::motors_escs);
-		reporter.failsafeFlags().fd_motor_failure = (mask != 0);
+		reporter.failsafeFlags().fd_motor_fail = (mask != 0);
 
 	} else if ((_param_com_arm_chk_escs.get() > 0) && now > _start_time + ESC_INIT_TIME_US) { // Allow ESCs to init
 		/* EVENT
@@ -544,12 +544,12 @@ void EscChecks::updateEscsStatus(const Context &context, Report &reporter, const
 				mavlink_log_critical(reporter.mavlink_log_pub(), "ESC failure: Not all ESCs are armed. Land now!\t");
 			}
 
-			reporter.failsafeFlags().fd_esc_arming_failure = true;
+			reporter.failsafeFlags().fd_esc_arming_fail = true;
 		}
 
 	} else {
 		// reset ESC bitfield
 		_esc_arm_hysteresis.set_state_and_update(false, now);
-		reporter.failsafeFlags().fd_esc_arming_failure = false;
+		reporter.failsafeFlags().fd_esc_arming_fail = false;
 	}
 }

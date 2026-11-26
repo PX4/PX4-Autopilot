@@ -35,14 +35,14 @@
 
 void MissionChecks::checkAndReport(const Context &context, Report &reporter)
 {
-	reporter.failsafeFlags().mission_failure = false;
+	reporter.failsafeFlags().mission_fail = false;
 	reporter.failsafeFlags().auto_mission_missing = true;
 	mission_result_s mission_result;
 
 	if (_mission_result_sub.copy(&mission_result) && mission_result.valid) {
-		reporter.failsafeFlags().mission_failure = mission_result.failure;
+		reporter.failsafeFlags().mission_fail = mission_result.failure;
 
-		if (reporter.failsafeFlags().mission_failure) {
+		if (reporter.failsafeFlags().mission_fail) {
 			// navigator sends out the exact reason
 			/* EVENT
 			 */

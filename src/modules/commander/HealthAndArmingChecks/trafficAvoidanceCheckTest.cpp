@@ -91,7 +91,7 @@ TEST_F(TrafficAvoidanceChecksTest, DisabledIgnoresMissingSystem)
 	setParam(traffic_avoidance::FailsafeMode::Disabled);
 
 	runCheck(false);
-	EXPECT_FALSE(_failsafe_flags.traffic_avoidance_unhealthy);
+	EXPECT_FALSE(_failsafe_flags.traff_avoid_unhealthy);
 	EXPECT_FALSE(_health_error_traffic_avoidance);
 	EXPECT_FALSE(_health_warning_traffic_avoidance);
 	EXPECT_TRUE(_can_arm_all_modes);
@@ -103,7 +103,7 @@ TEST_F(TrafficAvoidanceChecksTest, WarningMissingSystemDoesNotBlockArming)
 	setParam(traffic_avoidance::FailsafeMode::Warning);
 
 	runCheck(false);
-	EXPECT_TRUE(_failsafe_flags.traffic_avoidance_unhealthy);
+	EXPECT_TRUE(_failsafe_flags.traff_avoid_unhealthy);
 	EXPECT_TRUE(_health_warning_traffic_avoidance);
 	EXPECT_FALSE(_health_error_traffic_avoidance);
 	EXPECT_TRUE(_can_arm_all_modes);
@@ -115,7 +115,7 @@ TEST_F(TrafficAvoidanceChecksTest, ErrorMissingSystemBlocksArming)
 	setParam(traffic_avoidance::FailsafeMode::Error);
 
 	runCheck(false);
-	EXPECT_TRUE(_failsafe_flags.traffic_avoidance_unhealthy);
+	EXPECT_TRUE(_failsafe_flags.traff_avoid_unhealthy);
 	EXPECT_TRUE(_health_error_traffic_avoidance);
 	EXPECT_FALSE(_can_arm_all_modes);
 }
@@ -125,11 +125,11 @@ TEST_F(TrafficAvoidanceChecksTest, DisablingClearsStaleUnhealthyFlag)
 {
 	setParam(traffic_avoidance::FailsafeMode::Warning);
 	runCheck(false);
-	EXPECT_TRUE(_failsafe_flags.traffic_avoidance_unhealthy);
+	EXPECT_TRUE(_failsafe_flags.traff_avoid_unhealthy);
 
 	setParam(traffic_avoidance::FailsafeMode::Disabled);
 	runCheck(false);
-	EXPECT_FALSE(_failsafe_flags.traffic_avoidance_unhealthy);
+	EXPECT_FALSE(_failsafe_flags.traff_avoid_unhealthy);
 	EXPECT_TRUE(_can_arm_all_modes);
 }
 
@@ -139,7 +139,7 @@ TEST_F(TrafficAvoidanceChecksTest, PresentSystemIsHealthy)
 	setParam(traffic_avoidance::FailsafeMode::Error);
 
 	runCheck(true);
-	EXPECT_FALSE(_failsafe_flags.traffic_avoidance_unhealthy);
+	EXPECT_FALSE(_failsafe_flags.traff_avoid_unhealthy);
 	EXPECT_FALSE(_health_error_traffic_avoidance);
 	EXPECT_FALSE(_health_warning_traffic_avoidance);
 	EXPECT_TRUE(_is_present_traffic_avoidance);
