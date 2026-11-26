@@ -103,7 +103,7 @@ repos:
         priority: fix-astyle
         language: python
         additional_dependencies: [astyle-py==1.1.0]
-        entry: Tools/astyle/fix_code_style.sh
+        entry: Tools/astyle/check_code_style.sh --fix
         files: *astyle_files
         exclude: *astyle_exclude
         stages: [manual]
