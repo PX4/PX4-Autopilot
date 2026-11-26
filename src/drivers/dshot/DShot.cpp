@@ -1086,12 +1086,14 @@ bool DShot::initialize_dshot()
 {
 	uint32_t dshot_timer_channels = 0;  // Channels on DShot-enabled timers
 
+#if defined(CONFIG_DRIVERS_GPIO_OUT)
 	char gpio_param_name[17] = {};
 	snprintf(gpio_param_name, sizeof(gpio_param_name), "%s_GPIO_EN", _mixing_output.paramPrefix());
 
 	int32_t gpio_en = 0;
 	param_get(param_find(gpio_param_name), &gpio_en);
 	_gpio_mask = (uint32_t)gpio_en;
+#endif
 
 	// Iterate through timers to determine DShot frequency and BDShot channels
 	for (uint8_t timer_index = 0; timer_index < MAX_IO_TIMERS; timer_index++) {

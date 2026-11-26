@@ -87,6 +87,7 @@ bool PWMOut::update_pwm_out_state(bool on)
 			}
 		}
 
+#if defined(CONFIG_DRIVERS_GPIO_OUT)
 		// channels selected as GPIO are driven by gpio_out
 		char param_name[17];
 		snprintf(param_name, sizeof(param_name), "%s_GPIO_EN", _mixing_output.paramPrefix());
@@ -94,6 +95,7 @@ bool PWMOut::update_pwm_out_state(bool on)
 		int32_t gpio_en = 0;
 		param_get(param_find(param_name), &gpio_en);
 		_pwm_mask &= ~(uint32_t)gpio_en;
+#endif
 
 		int ret = up_pwm_servo_init(_pwm_mask);
 

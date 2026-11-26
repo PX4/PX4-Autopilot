@@ -424,8 +424,9 @@ To configure an output as GPIO:
 The selected outputs are skipped by `pwm_out` and `dshot`, and driven by the `gpio_out` driver instead.
 The remaining outputs of the same timer group can still be used as PWM or OneShot outputs.
 
-Until `gpio_out` starts, which happens after the other output drivers during boot, the pin is in its power-on state (which depends on the board).
-It is then set to the level of its disarmed value.
+Until `gpio_out` starts, the pin is in the state set by the board (nearly all boards drive the pin on boot low), and it can be floating briefly during power-up and reset.
+Use an external pull-down or pull-up resistor if the level matters then.
+`gpio_out` then sets the pin to the level of its disarmed value.
 
 ::: info
 GPIO outputs are only available on FMU outputs (AUX ports if an I/O board is present, and MAIN ports otherwise).
@@ -437,10 +438,10 @@ Note that [`dshot`](../modules/modules_driver.md#dshot) will not drive it in thi
 :::
 
 ::: tip
-The [PCA9685](../modules/modules_driver.md#pca9685-pwm-out) PWM driver supports the same feature through the [PCA9685_GPIO_EN](../advanced_config/parameter_reference.md#PCA9685_GPIO_EN) parameter (**GPIO Mode** column of the PCA9685 tab).
+The [PCA9685](../modules/modules_driver.md#pca9685-pwm-out) PWM driver supports the same feature through the [PCA9685_GPIO_EN](../advanced_config/parameter_reference.md#PCA9685_GPIO_EN) parameter (**GPIO Output** column of the PCA9685 tab).
 Changes take effect without a reboot.
 
-![Actuator Outputs - PCA9685 tab with GPIO Mode column](../../assets/config/actuators/qgc_actuators_pca9685_gpio_mode.png)
+![Actuator Outputs - PCA9685 tab with GPIO Output column](../../assets/config/actuators/qgc_actuators_pca9685_gpio_mode.png)
 :::
 
 ## Actuator Testing
