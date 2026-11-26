@@ -72,6 +72,22 @@ void RcCalibrationChecks::checkAndReport(const Context &context, Report &reporte
 		return;
 	}
 
+	// RC frames are received but RC is not calibrated, so it can never become a stick source
+	rc_channels_s rc_channels;
+
+	if (_rc_channels_sub.copy(&rc_channels)
+	    && !rc_channels.signal_lost
+	    && !rc_channels.calibrated
+	    && (hrt_elapsed_time(&rc_channels.timestamp) < 1_s)) {
+		/* EVENT
+		 * @description
+		 * Connected RC is not calibrated. Calibrate to use it or disable if not used.
+		 */
+		reporter.armingCheckFailure(NavModes::All, health_component_t::remote_control,
+					    events::ID("check_rc_not_calibrated"),
+					    events::Log::Error, "RC input detected but not calibrated");
+	}
+
 	for (unsigned i = 0; i < input_rc_s::RC_INPUT_MAX_CHANNELS; i++) {
 		float param_min = _param_values[i].min;
 		float param_max = _param_values[i].max;
