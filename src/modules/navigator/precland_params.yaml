@@ -25,6 +25,17 @@ parameters:
       max: 10
       decimal: 2
       increment: 0.1
+    PLD_DRIFT_RAD:
+      description:
+        short: Horizontal drift radius
+        long: Stop descending and return to horizontal approach if farther than this from the landing target. Values below PLD_HACC_RAD act as PLD_HACC_RAD. Set to 0 to disable.
+      type: float
+      default: 0.0
+      unit: m
+      min: 0.0
+      max: 10
+      decimal: 2
+      increment: 0.1
     PLD_MOVING_T_MAX:
       description:
         short: Maximum moving-target prediction time

@@ -52,6 +52,7 @@ A precision landing has the following phases:
 
 1. **Descent over target:** The vehicle descends, while remaining centered over the target.
    If the target is lost during this phase (not visible for longer than `PLD_BTOUT`), the vehicle searches again.
+   If [PLD_DRIFT_RAD](../advanced_config/parameter_reference.md#PLD_DRIFT_RAD) is set and the vehicle drifts farther than this from the target, it stops descending and returns to the horizontal approach.
 
 1. **Final approach:** When the vehicle is close to the [ground](#ground-altitude) (closer than [PLD_FAPPR_ALT](../advanced_config/parameter_reference.md#PLD_FAPPR_ALT)) and within `PLD_HACC_RAD` of a target seen in the last 0.5 seconds, it lands without further horizontal corrections.
    Otherwise the vehicle returns to the horizontal approach (if the target is visible) or searches again.
@@ -207,6 +208,7 @@ Some of the most useful ones are listed below.
 | <a id="SENS_EN_IRLOCK"></a>[SENS_EN_IRLOCK](../advanced_config/parameter_reference.md#SENS_EN_IRLOCK)       | IR-LOCK Sensor (external I2C). Disable: `0` (default): Enable: `1`).                                                   |
 | <a id="LTEST_MODE"></a>[LTEST_MODE](../advanced_config/parameter_reference.md#LTEST_MODE)                   | Landing target is moving (`0`) or stationary (`1`). Default is moving.                                                 |
 | <a id="PLD_HACC_RAD"></a>[PLD_HACC_RAD](../advanced_config/parameter_reference.md#PLD_HACC_RAD)             | Horizontal acceptance radius, within which the vehicle will start descending. Default is 0.2m.                         |
+| <a id="PLD_DRIFT_RAD"></a>[PLD_DRIFT_RAD](../advanced_config/parameter_reference.md#PLD_DRIFT_RAD)          | Horizontal drift radius, beyond which the vehicle stops descending and returns to the horizontal approach. Default is `0` (disabled). |
 | <a id="PLD_MOVING_T_MIN"></a>[PLD_MOVING_T_MIN](../advanced_config/parameter_reference.md#PLD_MOVING_T_MIN) | Minimum moving-target prediction time for the precision landing setpoint.                                              |
 | <a id="PLD_MOVING_T_MAX"></a>[PLD_MOVING_T_MAX](../advanced_config/parameter_reference.md#PLD_MOVING_T_MAX) | Maximum moving-target prediction time for the precision landing setpoint.                                              |
 | <a id="PLD_BTOUT"></a>[PLD_BTOUT](../advanced_config/parameter_reference.md#PLD_BTOUT)                      | Landing Target Timeout, after which the target is assumed lost. Default is 5 seconds.                                  |

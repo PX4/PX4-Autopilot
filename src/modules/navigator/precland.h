@@ -150,6 +150,9 @@ private:
 	// true if the vehicle is horizontally within PLD_HACC_RAD of the target position setpoint
 	bool within_acceptance_radius();
 
+	// true if the vehicle is horizontally within PLD_DRIFT_RAD of the target position setpoint, or PLD_DRIFT_RAD is 0
+	bool within_drift_radius();
+
 	// true if the vehicle is lower than PLD_FAPPR_ALT above the ground estimate
 	bool below_final_approach_alt();
 
@@ -218,6 +221,7 @@ private:
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 		(ParamFloat<px4::params::PLD_BTOUT>) _param_pld_btout,
 		(ParamFloat<px4::params::PLD_HACC_RAD>) _param_pld_hacc_rad,
+		(ParamFloat<px4::params::PLD_DRIFT_RAD>) _param_pld_drift_rad,
 		(ParamFloat<px4::params::PLD_FAPPR_ALT>) _param_pld_fappr_alt,
 		(ParamFloat<px4::params::PLD_SRCH_ALT>) _param_pld_srch_alt,
 		(ParamFloat<px4::params::PLD_SRCH_TOUT>) _param_pld_srch_tout,

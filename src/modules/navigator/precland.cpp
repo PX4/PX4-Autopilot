@@ -587,9 +587,9 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 
 	case PrecLandState::DescendAboveTarget:
 
-		// if we're already in this state, only leave it if target becomes unusable, don't care about horizontal offset to target
+		// if we're already in this state, only leave it if target becomes unusable or if outside the drift radius
 		if (_state == PrecLandState::DescendAboveTarget) {
-			return target_acquired();
+			return target_acquired() && within_drift_radius();
 
 		} else {
 			// if not already in this state, need to be above target to enter it
@@ -644,6 +644,22 @@ void PrecLand::update_ground_alt()
 	} else if (z_dist_sensor_valid) {
 		_ground_alt = current_alt - lpos->dist_bottom;
 	} // else keep already stored value
+}
+
+bool PrecLand::within_drift_radius()
+{
+	if (_param_pld_drift_rad.get() < FLT_EPSILON) {
+		return true;
+	}
+
+	// Make sure drift radius is at least as large as acceptance radius
+	const float drift_rad = math::max(_param_pld_drift_rad.get(), _param_pld_hacc_rad.get());
+
+	const matrix::Vector2f target_position_sp = get_target_position_setpoint();
+	const vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();
+
+	return fabsf(target_position_sp(0) - vehicle_local_position->x) < drift_rad
+	       && fabsf(target_position_sp(1) - vehicle_local_position->y) < drift_rad;
 }
 
 bool PrecLand::below_final_approach_alt()
