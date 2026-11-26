@@ -82,17 +82,17 @@ __EXPORT void led_init(void)
 
 static void phy_set_led(int led, bool state)
 {
-	/* Drive Low to switch on */
+	/* Drive high to switch on */
 	if (g_ledmap[led] != 0) {
-		stm32_gpiowrite(g_ledmap[led], !state);
+		stm32_gpiowrite(g_ledmap[led], state);
 	}
 }
 
 static bool phy_get_led(int led)
 {
-	/* If Low it is on */
+	/* If high it is on */
 	if (g_ledmap[led] != 0) {
-		return !stm32_gpioread(g_ledmap[led]);
+		return stm32_gpioread(g_ledmap[led]);
 	}
 
 	return false;
