@@ -47,6 +47,7 @@ In summary:
 1. Use the _Geofence Editor_ to set a fence as an inclusion or exclusion, and to select a fence to edit (**Edit** radio button) or Delete (**Del** button).
 1. Add the remaining fences.
    The emergency geofence and the [contingency geofence](../config/safety.md#contingency-geofence) each support up to 64 points: a polygon uses one point for each vertex and a circle uses one point.
+   Firmware builds can change this limit with `CONFIG_NUM_FENCE_POINTS_PER_LEVEL`.
 1. Once finished, click on the **Upload** button (top right) to send the fence (along with rally points and mission) to the vehicle.
 1. Set the breach action in the [Geofence Failsafe](../config/safety.md#geofence-failsafe).
 

@@ -38,8 +38,8 @@ These services are known to be supported in some form:
     Other `param1` values, NaN included, are rejected with `MAV_MISSION_INVALID_PARAM1`.
     A level item in another frame or between the vertices of a polygon is rejected too, and the previous plan then stays active.
     Put the emergency geofence areas first: a ground station without support stops reading a downloaded plan at the first level item.
-    Each level supports up to 64 points, counting one per polygon vertex or circle.
-    The plan holds up to 128 items, counting the level items and the return point.
+    Each level supports up to 64 points, counting one per polygon vertex or circle (board option `CONFIG_NUM_FENCE_POINTS_PER_LEVEL`).
+    The plan holds up to twice as many items, counting the level items and the return point.
     Level items are returned when the fence is downloaded.
 - [Offboard Control Protocol](https://mavlink.io/en/services/offboard_control.html)
 - [Remote ID](../peripherals/remote_id.md) ([Open Drone ID Protocol](https://mavlink.io/en/services/opendroneid.html))
