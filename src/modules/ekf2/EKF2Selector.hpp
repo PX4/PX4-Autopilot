@@ -181,8 +181,6 @@ private:
 	SensorInconsistencyCusum<IMU_STATUS_SIZE> _gyro_inconsistency_cusum;
 	SensorInconsistencyCusum<IMU_STATUS_SIZE> _accel_inconsistency_cusum;
 	hrt_abstime _last_update_us{0};
-	bool _gyro_fault_detected{false};
-	bool _accel_fault_detected{false};
 
 	uint8_t _available_instances{0};
 	uint8_t _selected_instance{INVALID_INSTANCE};
