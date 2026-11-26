@@ -99,20 +99,20 @@ parameters:
           long: On if the output is above the midpoint of PCA9685_MINn and PCA9685_MAXn, otherwise off. Overrides PCA9685_DUTY_EN.
         type: bitmask
         bit:
-          0: Put CH1 into GPIO mode
-          1: Put CH2 into GPIO mode
-          2: Put CH3 into GPIO mode
-          3: Put CH4 into GPIO mode
-          4: Put CH5 into GPIO mode
-          5: Put CH6 into GPIO mode
-          6: Put CH7 into GPIO mode
-          7: Put CH8 into GPIO mode
-          8: Put CH9 into GPIO mode
-          9: Put CH10 into GPIO mode
-          10: Put CH11 into GPIO mode
-          11: Put CH12 into GPIO mode
-          12: Put CH13 into GPIO mode
-          13: Put CH14 into GPIO mode
-          14: Put CH15 into GPIO mode
-          15: Put CH16 into GPIO mode
+          0: Put CH1 in GPIO mode
+          1: Put CH2 in GPIO mode
+          2: Put CH3 in GPIO mode
+          3: Put CH4 in GPIO mode
+          4: Put CH5 in GPIO mode
+          5: Put CH6 in GPIO mode
+          6: Put CH7 in GPIO mode
+          7: Put CH8 in GPIO mode
+          8: Put CH9 in GPIO mode
+          9: Put CH10 in GPIO mode
+          10: Put CH11 in GPIO mode
+          11: Put CH12 in GPIO mode
+          12: Put CH13 in GPIO mode
+          13: Put CH14 in GPIO mode
+          14: Put CH15 in GPIO mode
+          15: Put CH16 in GPIO mode
         default: 0
