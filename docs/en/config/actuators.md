@@ -327,7 +327,7 @@ The _Actuator Outputs_ section is used to assign motors, control surface servos,
 
 ![Actuator Outputs - Multicopter diagram](../../assets/config/actuators/qgc_actuators_mc_outputs.png)
 
-Separate tabs are displayed for each output bus supported by the connected flight controller: PWM MAIN (I/O Board output), PWM AUX (FMU Board output), UAVCAN.
+Separate tabs are displayed for each output bus supported by the connected flight controller: PWM MAIN (I/O Board output, or FMU Board output if there is no I/O board), PWM AUX (FMU Board output), UAVCAN.
 
 Motors and actuators (which are referred to as "[functions](#output-functions)") can be assigned to any physical output on any of the available buses.
 
@@ -400,41 +400,45 @@ This list is correct at PX4 v1.15.
 
 ### GPIO Outputs
 
-Individual FMU PWM outputs can be used as plain digital (on/off) outputs instead of PWM.
-For example to switch a relay, a LED or a payload power rail.
+<Badge type="tip" text="main (PX4 v2.0)" />
+
+Individual FMU PWM outputs can be used as plain digital (on/off) outputs instead of PWM, for example to switch a relay, an LED or a payload power rail.
 The output is assigned a [function](#output-functions) as usual, but instead of a pulse the pin is held high or low:
 
-- **High** if the output value is above the midpoint of its minimum and maximum, (`> (MINn + MAXn) / 2`).
+- **High** if the output value is above the midpoint of its minimum and maximum (`> (MINn + MAXn) / 2`).
 - **Low** otherwise.
 
 To configure an output as GPIO:
 
-1. Enable **Advanced**.
-2. Make sure the timer group of the channel is set to a PWM rate or OneShot.
+1. Select the **Advanced** checkbox.
+2. Make sure the timer group of the output is set to a PWM rate or OneShot.
    The **GPIO Output** column is hidden for timer groups set to DShot.
-3. Check the channel in the **GPIO Output** column of the PWM tab.
-   This sets the bitmask parameter `PWM_MAIN_GPIO_EN` or `PWM_AUX_GPIO_EN`, depending on which tab shows the FMU outputs on your flight controller (`PWM_AUX` on boards with an I/O board).
+3. Select the checkbox for the output in the **GPIO Output** column of the PWM tab.
+   This sets the bitmask parameter [PWM_MAIN_GPIO_EN](../advanced_config/parameter_reference.md#PWM_MAIN_GPIO_EN) or [PWM_AUX_GPIO_EN](../advanced_config/parameter_reference.md#PWM_AUX_GPIO_EN), depending on which tab shows the FMU outputs on your flight controller (PWM AUX on boards with an I/O board).
 
    ![Actuator Outputs - PWM MAIN tab with GPIO Output column](../../assets/config/actuators/qgc_actuators_pwm_gpio_output.png)
 
 4. Assign a function, minimum, maximum and disarmed value as for any other output.
 5. Reboot the vehicle.
 
-The selected channels are skipped by `pwm_out` and `dshot`, and driven by the `gpio_out` driver instead.
+The selected outputs are skipped by `pwm_out` and `dshot`, and driven by the `gpio_out` driver instead.
 The remaining outputs of the same timer group can still be used as PWM or OneShot outputs.
 
 The output keeps its reset level until `gpio_out` starts, which happens after the other output drivers during boot.
 It is then set to the level of its disarmed value.
 
 ::: info
-GPIO outputs are only available on FMU outputs, and only on boards where the `gpio_out` driver is enabled in the board configuration (`CONFIG_DRIVERS_GPIO_OUT`).
-Outputs on an I/O board (`PWM_MAIN` on boards with an I/O board) are not supported.
-Outputs on a timer group set to DShot are not supported either.
-If such a channel is selected in `PWM_MAIN_GPIO_EN` or `PWM_AUX_GPIO_EN` (for example through the parameter list), `gpio_out` ignores it and prints a warning.
+GPIO outputs are only available on FMU outputs (AUX ports if an I/O board is present, and MAIN ports otherwise).
+The [`gpio_out`](../modules/modules_driver.md#gpio-out) driver must also be present in firmware (it can be enabled by adding `CONFIG_DRIVERS_GPIO_OUT=y` to the [board configuration](../hardware/porting_guide_config.md) and building custom firmware).
+
+Outputs in a DShot timer group are not supported.
+If such an output is selected using [PWM_MAIN_GPIO_EN](../advanced_config/parameter_reference.md#PWM_MAIN_GPIO_EN) or [PWM_AUX_GPIO_EN](../advanced_config/parameter_reference.md#PWM_AUX_GPIO_EN) then `gpio_out` ignores it and prints a warning.
+Note that [`dshot`](../modules/modules_driver.md#dshot) will not drive it in this case.
 :::
 
 ::: tip
-The [PCA9685](../modules/modules_driver.md#pca9685-pwm-out) PWM driver supports the same feature through the `PCA9685_GPIO_EN` parameter (**GPIO Mode** column of the PCA9685 tab).
+The [PCA9685](../modules/modules_driver.md#pca9685-pwm-out) PWM driver supports the same feature through the [PCA9685_GPIO_EN](../advanced_config/parameter_reference.md#PCA9685_GPIO_EN) parameter (**GPIO Mode** column of the PCA9685 tab).
+Changes take effect without a reboot.
 
 ![Actuator Outputs - PCA9685 tab with GPIO Mode column](../../assets/config/actuators/qgc_actuators_pca9685_gpio_mode.png)
 :::
@@ -691,7 +695,7 @@ One approach for setting these up is:
 In some vehicle builds, flaps may be configured such that both flaps are controlled from a single output.
 In this case, you need to ensure that both flaps extend/deploy when raising the corresponding slider.
 If this is not the case and one servo deploys correctly and one does not, you need to change the servo direction with a third party servo programmer.
-Alternatively, you might move the servo that is not deflecting in the correct orientation to its own servo output channel and then reverse its direction via the `Rev range` check box.
+Alternatively, you might move the servo that is not deflecting in the correct orientation to its own servo output channel and then reverse its direction via the `Rev range` checkbox.
 :::
 
 ### Tilt Servo Setup
