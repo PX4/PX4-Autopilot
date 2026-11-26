@@ -151,31 +151,12 @@ void Tiltrotor::update_transition_state()
 			_tilt_control = math::max(_tilt_control, ramped_up_tilt);
 		}
 
-		// at low speeds give full weight to MC. A back transition zeroes the pitch and throttle weights
-		// while the rotors rotate, so a restarted front transition sets pitch and ramps the throttle back
-		_mc_roll_weight = 1.0f;
+		// A back transition zeroes the pitch and throttle weights while the rotors rotate,
+		// so a restarted front transition sets pitch and ramps the throttle back
+		_mc_roll_weight = getFrontTransitionMcWeight();
 		_mc_pitch_weight = 1.0f;
 		_mc_yaw_weight = 1.0f;
 		_mc_throttle_weight = math::min(_mc_throttle_weight + _transition_dt / BACKTRANS_THROTTLE_UPRAMP_DUR_S, 1.0f);
-
-		const float airspeed_trans_blend_margin = getTransitionAirspeed() - getBlendAirspeed();
-
-		if (airspeed_trans_blend_margin > FLT_EPSILON &&
-		    PX4_ISFINITE(_attc->get_calibrated_airspeed()) &&
-		    _attc->get_calibrated_airspeed() >= getBlendAirspeed()) {
-			_mc_roll_weight = 1.0f - (_attc->get_calibrated_airspeed() - getBlendAirspeed()) /
-					  airspeed_trans_blend_margin;
-		}
-
-		// without airspeed do timed weight changes
-		const float time_trans_open_loop_margin = getOpenLoopFrontTransitionTime() - getMinimumFrontTransitionTime();
-
-		if ((!PX4_ISFINITE(_attc->get_calibrated_airspeed())) &&
-		    time_trans_open_loop_margin > FLT_EPSILON &&
-		    _time_since_trans_start > getMinimumFrontTransitionTime()) {
-			_mc_roll_weight = 1.0f - (_time_since_trans_start - getMinimumFrontTransitionTime()) /
-					  time_trans_open_loop_margin;
-		}
 
 		// add minimum throttle for front transition
 		_thrust_transition = math::max(_thrust_transition, FRONTTRANS_THR_MIN);
