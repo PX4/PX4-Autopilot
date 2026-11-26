@@ -8,7 +8,6 @@ import math
 import threading
 from typing import Any, Callable, List, Optional, Tuple
 
-from mavsdk.plugins.mission_raw import MissionRawError, MissionRawResult  # type: ignore
 from mavsdk.plugins.telemetry import FlightMode  # type: ignore
 
 from autopilot_tester import (
@@ -88,17 +87,6 @@ class AutopilotTesterGeofence(AutopilotTesterLoiter):
         self._fence_origin = ct
         # PX4 needs time to load the fence.
         self.sleep_for(1)
-
-    def upload_fence_items(self, items: List[Any]) -> Any:
-        """Upload raw fence items. Returns the result instead of raising, to check rejections."""
-        try:
-            self._mission_raw.upload_geofence(items)
-        except MissionRawError as e:
-            return e.result
-        return MissionRawResult.SUCCESS
-
-    def download_fence_items(self) -> List[Any]:
-        return list(self._mission_raw.download_geofence())
 
     def upload_vtol_mission(self, waypoints: List[Local2], rel_alt_m: float) -> None:
         """Upload a VTOL takeoff followed by the waypoints, without a landing."""
