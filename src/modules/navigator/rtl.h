@@ -151,8 +151,8 @@ private:
 
 	PositionYawSetpoint homeDestination() const;
 
-	/** Configures RtlDirect for the destination to estimate it; applyReturn() then configures the selected one. */
-	rtl_time_estimate_s estimateDirectReturn(const PositionYawSetpoint &destination);
+	/** Estimates a direct Return to the destination */
+	rtl_time_estimate_s estimateDirectReturn(const PositionYawSetpoint &destination, bool follow_avoidance_path = true);
 
 	/** The VTOL land approach of the destination, or the destination itself. */
 	loiter_point_s landingLoiter(const PositionYawSetpoint &destination) const;

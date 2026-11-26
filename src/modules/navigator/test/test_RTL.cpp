@@ -3447,6 +3447,48 @@ TEST_F(RTLGeofenceAvoidanceTest, DirectEstimateCoversTheWayAroundTheGeofence)
 	ASSERT_TRUE(direct.valid && around.valid);
 	EXPECT_NEAR(around.time_estimate - direct.time_estimate, (around_m - direct_m) / cruise_speed, 0.1f);
 }
+
+TEST_F(RTLGeofenceAvoidanceTest, Type6UsesDirectRallyEstimateWhileHomeHasADetour)
+{
+	// Home is 600 m south of the vehicle. The two rally positions will be on opposite sides of the fence.
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 600.f, 0.f, kAlt + 100.f));
+	publishLandDetected(false);
+	primeNavigatorState();
+	const auto setRallyPoint = [&](float north_of_home) {
+		const auto rally = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, north_of_home, 0.f, kAlt);
+		loadSafePointsIntoRouteCache({makeSafePointItem(rally.lat, rally.lon, kAlt, NAV_FRAME_GLOBAL)});
+	};
+	_rtl.on_inactive();
+	const auto directEstimateWithoutFence = [&](float north_of_home) {
+		setRallyPoint(north_of_home);
+		_rtl.evaluateReturnTypeForTest(5);
+		return _rtl.directEstimateForTest();
+	};
+	const rtl_time_estimate_s clear_leg = directEstimateWithoutFence(700.f);
+	const rtl_time_estimate_s blocked_leg = directEstimateWithoutFence(200.f);
+	ASSERT_TRUE(clear_leg.valid && blocked_leg.valid);
+	ASSERT_NO_FATAL_FAILURE(loadExclusionZone({{280.f, -400.f}, {320.f, -400.f}, {320.f, 400.f}, {280.f, 400.f}}));
+
+	battery_status_s battery{};
+	battery.timestamp = hrt_absolute_time();
+	battery.connected = true;
+	battery.time_remaining_s = 3600.f;
+	orb_advert_t battery_pub = orb_advertise(ORB_ID(battery_status), &battery);
+
+	// One inactive cycle installs Home's route. The next estimates the rally point with that route in the planner.
+	setRallyPoint(700.f);
+	_rtl.evaluateReturnTypeForTest(6);
+	EXPECT_GT(_navigator.get_geofence_avoidance_planner().get_num_waypoints(), 0);
+	const float fallback = _rtl.evaluateReturnTypeForTest(6);
+	EXPECT_FLOAT_EQ(fallback, clear_leg.safe_time_estimate);
+	EXPECT_LT(fallback, _rtl.directEstimateForTest().safe_time_estimate);
+
+	// Even across the fence, the fallback uses the direct leg to the rally point.
+	setRallyPoint(200.f);
+	EXPECT_FLOAT_EQ(_rtl.evaluateReturnTypeForTest(6), blocked_leg.safe_time_estimate);
+	orb_unadvertise(battery_pub);
+}
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 // WHY: A stop that never lands must not count a landing in the remaining time estimate.

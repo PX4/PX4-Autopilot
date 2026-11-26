@@ -320,9 +320,10 @@ void RTL::selectHomeIfReachable(ReturnSelection &selection)
 		}
 
 		// If no rally points are closer (or none are defined), fall back to home (already set as the destination)
+
 	} else if (has_rally_point) {
-		// Only a quicker rally point can extend the available return time.
-		const rtl_time_estimate_s fallback = estimateDirectReturn(rally_point);
+		// The planner holds Home's path until the rally point is selected.
+		const rtl_time_estimate_s fallback = estimateDirectReturn(rally_point, /*follow_avoidance_path=*/false);
 
 		if (fallback.valid && fallback.safe_time_estimate < time_to_home.safe_time_estimate) {
 			selection.fallback_safe_time_estimate = fallback.safe_time_estimate;
@@ -347,9 +348,11 @@ loiter_point_s RTL::landingLoiter(const PositionYawSetpoint &destination) const
 	return landing_loiter;
 }
 
-rtl_time_estimate_s RTL::estimateDirectReturn(const PositionYawSetpoint &destination)
+rtl_time_estimate_s RTL::estimateDirectReturn(const PositionYawSetpoint &destination, bool follow_avoidance_path)
 {
-	return _rtl_direct.estimateReturnTo({destination, landingLoiter(destination), computeReturnAltitude(destination)});
+	RtlDirect::Target target{destination, landingLoiter(destination), computeReturnAltitude(destination)};
+	target.follow_avoidance_path = follow_avoidance_path;
+	return _rtl_direct.estimateReturnTo(target);
 }
 
 void RTL::applyReturn(const ReturnSelection &selection)

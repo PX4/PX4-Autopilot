@@ -125,7 +125,8 @@ PX4 compares:
 - The time needed to return, estimated along the current Return mode path (including climb, descent and landing), with the safety margin set by [RTL_TIME_FACTOR](../advanced_config/parameter_reference.md#RTL_TIME_FACTOR) and [RTL_TIME_MARGIN](../advanced_config/parameter_reference.md#RTL_TIME_MARGIN).
 - The remaining flight time of the battery with the least time left, if more than one is connected.
 
-With the [battery-aware home priority return type](../flight_modes/return.md#rtl_type_6) (`RTL_TYPE=6`) the return destination itself depends on the battery, so the time needed to return is the lower of the estimates to home and to the rally point that replaces it. The failsafe then engages once neither is within reach, not when home drops out of reach.
+With the [battery-aware home priority return type](../flight_modes/return.md#rtl_type_6) (`RTL_TYPE=6`), PX4 uses the lower of the available return time estimates for home and the closest eligible rally point.
+The failsafe engages when the remaining battery time reaches that estimate or falls below it.
 
 Once Return mode has been triggered, it is not cancelled if the estimate improves again on the way back.
 
