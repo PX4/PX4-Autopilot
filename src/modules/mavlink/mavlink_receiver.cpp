@@ -1071,7 +1071,7 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 
 	sensor_optical_flow_s sensor_optical_flow{};
 
-	sensor_optical_flow.timestamp_sample = hrt_absolute_time();
+	sensor_optical_flow.timestamp_sample = (flow.time_usec != 0) ? _mavlink_timesync.sync_stamp(flow.time_usec) : hrt_absolute_time();
 	sensor_optical_flow.device_id = device_id.devid;
 
 	sensor_optical_flow.pixel_flow[0] = flow.integrated_x;
