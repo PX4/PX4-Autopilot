@@ -40,6 +40,7 @@
 #include <lib/parameters/param.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/estimator_fusion_control.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -85,6 +86,11 @@ protected:
 
 		_flags.attitude_invalid = true;
 		_home = std::make_unique<HomePosition>(_flags);
+
+		estimator_fusion_control_s fusion_control{};
+		fusion_control.timestamp = hrt_absolute_time();
+		fusion_control.gps_intended[0] = true;
+		_fusion_control_pub.publish(fusion_control);
 
 		publishPosition(0.f, kRefAlt, true, true);
 		publishGnss(kRefAlt, false); // overwrite retained GNSS data with an invalid fix
@@ -215,6 +221,7 @@ protected:
 	uORB::Publication<vehicle_land_detected_s> _land_pub{ORB_ID(vehicle_land_detected)};
 	uORB::Publication<vehicle_air_data_s> _baro_pub{ORB_ID(vehicle_air_data)};
 	uORB::Publication<vehicle_gnss_s> _gnss_pub{ORB_ID(vehicle_gnss)};
+	uORB::Publication<estimator_fusion_control_s> _fusion_control_pub{ORB_ID(estimator_fusion_control)};
 	uORB::Subscription _home_sub{ORB_ID(home_position)};
 };
 
