@@ -267,7 +267,6 @@ px4_add_module(
 		EKF2.hpp
 		EKF2Selector.cpp
 		EKF2Selector.hpp
-		SensorInconsistencyCusum.hpp
 
 		${EKF_GENERATED_FILES}
 
