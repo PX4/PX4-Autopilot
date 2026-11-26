@@ -71,10 +71,10 @@ Note that once the ramp up period ends throttle will be at its target setting an
 
 Parameter: [VT_ARSP_BLEND](../advanced_config/parameter_reference.md#VT_ARSP_BLEND)
 
-By default, as the airspeed gets close to the transition speed, multirotor attitude control will be reduced and fixed-wing control will start increasing continuously until the transition occurs.
+By default, as the airspeed gets close to the transition speed, multirotor attitude control will be reduced linearly between `VT_ARSP_BLEND` and `VT_ARSP_TRANS`.
 The value is a calibrated airspeed and is scaled by the square root of the weight ratio (`WEIGHT_GROSS` / `WEIGHT_BASE`), like the transition airspeed.
 
-Disable blending by setting this parameter equal to the transition airspeed, which will keep full multirotor control and zero fixed-wing control until the transition occurs.
+Disable blending by setting this parameter equal to the transition airspeed, which will keep full MC and FW control active throughout the transition.
 
 #### Transition Airspeed
 
