@@ -49,13 +49,24 @@ public:
 	/**
 	 * @param device_ids 0 for an absent sensor
 	 * @param inconsistency magnitude of the difference between each sensor and the mean of all sensors
-	 * @param deadband inconsistency above which the error accumulates, in the unit of the inconsistency
+	 * @param deadband difference to the mean of the other sensors above which the error accumulates,
+	 *                 in the unit of the inconsistency
 	 * @param limit accumulated error above which a sensor is faulty, in the unit of the inconsistency times seconds
 	 */
 	void update(const uint32_t device_ids[SIZE], const float inconsistency[SIZE], float deadband, float limit,
 		    float dt)
 	{
 		uint8_t sensor_count = 0;
+
+		for (uint8_t i = 0; i < SIZE; i++) {
+			if (device_ids[i] != 0) {
+				sensor_count++;
+			}
+		}
+
+		// a sensor is part of the mean it is compared with, which hides 1/N of its own error
+		const float mean_of_others_scale = (sensor_count > 1) ? sensor_count / (sensor_count - 1.f) : 1.f;
+
 		bool limit_exceeded = false;
 		float largest_error = 0.f;
 		uint8_t largest_error_index = 0;
@@ -66,10 +77,10 @@ public:
 				continue;
 			}
 
-			sensor_count++;
+			const float error = mean_of_others_scale * inconsistency[i];
 
 			// fmaxf returns its other argument for a NAN, which restarts a sensor that was absent
-			_accumulated_error[i] = fmaxf(_accumulated_error[i] + (inconsistency[i] - deadband) * dt, 0.f);
+			_accumulated_error[i] = fmaxf(_accumulated_error[i] + (error - deadband) * dt, 0.f);
 
 			if (_accumulated_error[i] > limit) {
 				limit_exceeded = true;

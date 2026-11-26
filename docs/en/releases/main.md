@@ -105,6 +105,10 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   `geofence_max_dist_triggered`, `geofence_max_alt_triggered`, `geofence_custom_fence_triggered` and `geofence_action` of [GeofenceResult](../msg_docs/GeofenceResult.md) are now `geofence_emer_max_dist_triggered`, `geofence_emer_max_alt_triggered`, `geofence_emer_custom_fence_triggered` and `geofence_emer_action`.
   They name the emergency geofence, next to the new `geofence_cont_*` fields of the contingency geofence.
   Log analysis that reads the old names must use the new ones.
+- **The EKF2 selector IMU fault thresholds now refer to the full sensor error.**
+  [EKF2_SEL_IMU_RAT](../advanced_config/parameter_reference.md#EKF2_SEL_IMU_RAT), [EKF2_SEL_IMU_ANG](../advanced_config/parameter_reference.md#EKF2_SEL_IMU_ANG), [EKF2_SEL_IMU_ACC](../advanced_config/parameter_reference.md#EKF2_SEL_IMU_ACC) and [EKF2_SEL_IMU_VEL](../advanced_config/parameter_reference.md#EKF2_SEL_IMU_VEL) now compare each IMU with the mean of the other IMUs instead of the mean of all IMUs, so the same value detects the same sensor error whatever the number of IMUs.
+  The defaults are multiplied by 1.5, which keeps the behaviour with three IMUs.
+  Saved values are not migrated: multiply a tuned value by 2 with two IMUs, 1.5 with three and 1.33 with four to keep the previous behaviour.
 
 ## Other changes
 

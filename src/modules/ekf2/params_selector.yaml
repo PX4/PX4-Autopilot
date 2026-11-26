@@ -12,11 +12,10 @@ parameters:
     EKF2_SEL_IMU_RAT:
       description:
         short: Selector angular rate threshold
-        long: EKF2 selector angular rate error threshold for comparing gyros. Angular
-          rate vector differences larger than this will result in accumulated angular
-          error.
+        long: Angular rate difference between a gyro and the mean of the other gyros
+          above which angular error accumulates.
       type: float
-      default: 7.0
+      default: 10.5
       unit: deg/s
     EKF2_SEL_IMU_ANG:
       description:
@@ -25,23 +24,22 @@ parameters:
           gyros. Accumulated angular error larger than this will result in the sensor
           being declared faulty.
       type: float
-      default: 15.0
+      default: 22.5
       unit: deg
     EKF2_SEL_IMU_ACC:
       description:
         short: Selector acceleration threshold
-        long: EKF2 selector acceleration error threshold for comparing accelerometers.
-          Acceleration vector differences larger than this will result in accumulated
-          velocity error.
+        long: Acceleration difference between an accelerometer and the mean of the
+          other accelerometers above which velocity error accumulates.
       type: float
-      default: 1.0
+      default: 1.5
       unit: m/s^2
     EKF2_SEL_IMU_VEL:
       description:
-        short: Selector angular threshold
+        short: Selector velocity threshold
         long: EKF2 selector maximum accumulated velocity threshold for comparing accelerometers.
           Accumulated velocity error larger than this will result in the sensor being
           declared faulty.
       type: float
-      default: 2.0
+      default: 3.0
       unit: m/s

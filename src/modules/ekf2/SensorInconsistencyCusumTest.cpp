@@ -56,11 +56,27 @@ public:
 		}
 	}
 
-	void setInconsistency(float sensor_0, float sensor_1, float sensor_2)
+	void setSensorCount(uint8_t count)
 	{
-		_inconsistency[0] = sensor_0;
-		_inconsistency[1] = sensor_1;
-		_inconsistency[2] = sensor_2;
+		for (uint8_t i = 0; i < kSize; i++) {
+			_device_ids[i] = (i < count) ? (101 + i) : 0;
+		}
+	}
+
+	// deviation of each sensor from the mean of all sensors when one of them is off by sensor_error
+	void setSensorError(uint8_t faulty_index, float sensor_error)
+	{
+		uint8_t sensor_count = 0;
+
+		for (uint8_t i = 0; i < kSize; i++) {
+			sensor_count += (_device_ids[i] != 0) ? 1 : 0;
+		}
+
+		const float mean = sensor_error / sensor_count;
+
+		for (uint8_t i = 0; i < kSize; i++) {
+			_inconsistency[i] = fabsf(((i == faulty_index) ? sensor_error : 0.f) - mean);
+		}
 	}
 
 	SensorInconsistencyCusum<kSize> _cusum;
@@ -70,7 +86,7 @@ public:
 
 TEST_F(SensorInconsistencyCusumTest, staysAtZeroBelowDeadband)
 {
-	setInconsistency(0.9f * kDeadband, 0.5f * kDeadband, 0.f);
+	setSensorError(0, 0.9f * kDeadband);
 	run(100.f);
 
 	EXPECT_FALSE(_cusum.faultDetected());
@@ -84,7 +100,7 @@ TEST_F(SensorInconsistencyCusumTest, detectsOnceExcessIntegratesToLimit)
 {
 	const float excess = 4.f;
 	const float time_to_limit_s = kLimit / excess;
-	setInconsistency(kDeadband + excess, 0.f, 0.f);
+	setSensorError(0, kDeadband + excess);
 
 	run(0.9f * time_to_limit_s);
 	EXPECT_FALSE(_cusum.faultDetected());
@@ -95,28 +111,46 @@ TEST_F(SensorInconsistencyCusumTest, detectsOnceExcessIntegratesToLimit)
 	EXPECT_EQ(_cusum.faultyDeviceId(), _device_ids[0]);
 }
 
+TEST_F(SensorInconsistencyCusumTest, detectionTimeIndependentOfSensorCount)
+{
+	const float excess = 4.f;
+	const float time_to_limit_s = kLimit / excess;
+
+	for (uint8_t sensor_count = 2; sensor_count <= kSize; sensor_count++) {
+		_cusum = {};
+		setSensorCount(sensor_count);
+		setSensorError(0, kDeadband + excess);
+
+		run(0.9f * time_to_limit_s);
+		EXPECT_FALSE(_cusum.faultDetected()) << "sensor count " << static_cast<int>(sensor_count);
+
+		run(0.2f * time_to_limit_s);
+		EXPECT_TRUE(_cusum.faultDetected()) << "sensor count " << static_cast<int>(sensor_count);
+	}
+}
+
 TEST_F(SensorInconsistencyCusumTest, healthyPeriodEarnsNoCredit)
 {
 	const float excess = 4.f;
 	const float time_to_limit_s = kLimit / excess;
 
-	setInconsistency(0.f, 0.f, 0.f);
+	setSensorError(0, 0.f);
 	run(100.f);
 	EXPECT_FLOAT_EQ(_cusum.accumulatedError(0), 0.f);
 
-	setInconsistency(kDeadband + excess, 0.f, 0.f);
+	setSensorError(0, kDeadband + excess);
 	run(1.1f * time_to_limit_s);
 	EXPECT_TRUE(_cusum.faultDetected());
 }
 
 TEST_F(SensorInconsistencyCusumTest, clearsAfterDrainingBelowLimit)
 {
-	setInconsistency(kDeadband + 4.f, 0.f, 0.f);
+	setSensorError(0, kDeadband + 4.f);
 	run(2.f);
 	ASSERT_TRUE(_cusum.faultDetected());
 	const float error_at_fault_end = _cusum.accumulatedError(0);
 
-	setInconsistency(0.f, 0.f, 0.f);
+	setSensorError(0, 0.f);
 	const float time_to_drain_to_limit_s = (error_at_fault_end - kLimit) / kDeadband;
 
 	run(0.9f * time_to_drain_to_limit_s);
@@ -127,10 +161,10 @@ TEST_F(SensorInconsistencyCusumTest, clearsAfterDrainingBelowLimit)
 	EXPECT_EQ(_cusum.faultyDeviceId(), 0u);
 }
 
-TEST_F(SensorInconsistencyCusumTest, isolatesLargestErrorWithThreeSensors)
+TEST_F(SensorInconsistencyCusumTest, isolatesFaultySensorWithThreeSensors)
 {
-	// a fault on sensor 1 also shifts the mean the two healthy sensors are compared with
-	setInconsistency(5.f, 10.f, 5.f);
+	// large enough for the shifted mean to push the two healthy sensors over the limit as well
+	setSensorError(1, 10.f * kDeadband);
 	run(10.f);
 
 	EXPECT_TRUE(_cusum.faultDetected());
@@ -141,8 +175,8 @@ TEST_F(SensorInconsistencyCusumTest, isolatesLargestErrorWithThreeSensors)
 
 TEST_F(SensorInconsistencyCusumTest, cannotIsolateWithTwoSensors)
 {
-	_device_ids[2] = 0;
-	setInconsistency(6.f, 6.f, 0.f);
+	setSensorCount(2);
+	setSensorError(0, 10.f * kDeadband);
 	run(10.f);
 
 	EXPECT_TRUE(_cusum.faultDetected());
@@ -151,12 +185,12 @@ TEST_F(SensorInconsistencyCusumTest, cannotIsolateWithTwoSensors)
 
 TEST_F(SensorInconsistencyCusumTest, singleSensorNeverFaulty)
 {
-	_device_ids[1] = 0;
-	_device_ids[2] = 0;
-	setInconsistency(10.f, 0.f, 0.f);
+	setSensorCount(1);
+	const float excess = 8.f;
+	_inconsistency[0] = kDeadband + excess;
 	run(10.f);
 
-	EXPECT_GT(_cusum.accumulatedError(0), kLimit);
+	EXPECT_NEAR(_cusum.accumulatedError(0), 10.f * excess, 0.01f * kLimit);
 	EXPECT_FALSE(_cusum.faultDetected());
 	EXPECT_EQ(_cusum.faultyDeviceId(), 0u);
 }
@@ -175,9 +209,9 @@ TEST_F(SensorInconsistencyCusumTest, sensorAppearingLaterStartsFromZero)
 	run(1.f);
 	ASSERT_TRUE(isnan(_cusum.accumulatedError(3)));
 
-	_device_ids[3] = 104;
+	setSensorCount(4);
 	const float excess = 4.f;
-	_inconsistency[3] = kDeadband + excess;
+	setSensorError(3, kDeadband + excess);
 	run(0.5f);
 
 	EXPECT_NEAR(_cusum.accumulatedError(3), 0.5f * excess, 0.01f * kLimit);
