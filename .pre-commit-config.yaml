@@ -167,6 +167,10 @@ repos:
         priority: checks
         files: ^ROMFS/px4fmu_common/
         exclude: \.(txt|bin)$
+        # Overrides the upstream hook's require_serial: true, which runs a single
+        # shellcheck process. -x still follows sourced files from disk, parallel
+        # batches cut the run from 4 s to 1 s.
+        require_serial: false
         types: [text]
         # SC1008: unrecognized shebang
         # SC1090: can't follow non-constant source
