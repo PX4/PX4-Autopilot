@@ -45,7 +45,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <px4_boardconfig.h>
 
 /* compatible to mavlink MAV_CMD */
 enum NAV_CMD {
@@ -210,8 +209,6 @@ enum class FenceLevel : uint8_t {
 };
 
 static constexpr uint16_t kMinFencePolygonVertices = 3;
-// Points of each fence level, one per polygon vertex or circle, so also the largest polygon. Board option, 64 by default.
-static constexpr uint16_t kMaxFencePointsPerLevel = CONFIG_NUM_FENCE_POINTS_PER_LEVEL;
 
 /**
  * Geofence vertex point.

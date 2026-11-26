@@ -229,7 +229,8 @@ public:
 	static constexpr int kMaxPolygons = 16;
 	static constexpr int kCircleApproxVertices = 8;
 
-	// Conservative node bound for a stored fence that fits kMaxPolygons, ignoring the level split:
+	// Number of nodes needed to hold the largest geofence storable in dataman.
+	// Worst case:
 	//  - kMaxPolygons-1 circles (most nodes per dataman item)
 	//  - one remaining polygon using all remaining fence points, with max amount of split vertices
 	//  - 1 destination slot

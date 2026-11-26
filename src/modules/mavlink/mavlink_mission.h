@@ -150,10 +150,7 @@ private:
 		uint16_t remaining;
 		uint16_t vertex_count;
 		uint16_t command;
-		FenceLevel level;
 	} _fence_polygon{};
-	FenceLevel _fence_next_level{FenceLevel::Emergency}; ///< set by a fence level item for the next area
-	uint8_t _fence_level_point_count[2] {};
 
 	int32_t			_transfer_current_seq{-1};		///< Current item ID for current transmission (-1 means not initialized)
 

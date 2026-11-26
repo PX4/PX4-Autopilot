@@ -30,15 +30,14 @@ menuconfig NUM_MISSION_ITEMS_SUPPORTED
 		fit the available memory.
 		The runtime parameter to configure the storage option is `SYS_DM_BACKEND`.
 
-config NUM_FENCE_POINTS_PER_LEVEL
-	int "Maximum number of geofence points per fence level"
+config NUM_FENCE_ITEMS_SUPPORTED
+	int "Maximum number of geofence items"
 	default 64
-	range 3 127
+	range 3 255
 	---help---
-		Each fence level, the emergency and the contingency geofence, holds up to this
-		many points: one per polygon vertex or circle, so it is also the largest polygon.
-		The fence storage holds twice as many items, including the fence level items and
-		the return point. Each point of this limit costs 144 bytes of dataman storage
-		(RAM on boards without persistent storage or with `SYS_DM_BACKEND` set to RAM
-		storage) and 8 bytes of RAM in the Return geofence avoidance planner. The maximum
-		keeps the fence item index in 8 bits.
+		This limit sizes the geofence storage. It counts the items of both fence levels:
+		polygon vertices, circles, fence level items and the return point. It is also the
+		largest polygon. Each item costs 72 bytes of dataman storage (RAM on boards without
+		persistent storage or with `SYS_DM_BACKEND` set to RAM storage) and 8 bytes of RAM
+		in the Return geofence avoidance planner. The maximum keeps the fence item index
+		in 8 bits.

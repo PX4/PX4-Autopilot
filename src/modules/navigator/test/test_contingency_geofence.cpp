@@ -293,12 +293,12 @@ TEST_F(ContGeofenceTest, RejectsUnknownLevelAndLevelItemInsideAPolygon)
 
 TEST_F(ContGeofenceTest, FenceThatFillsTheStorageLoads)
 {
-	// The emergency geofence uses its whole point quota, the rest holds contingency circles behind their level items.
+	// Emergency geofence circles, then contingency geofence circles behind their level items, up to the last item.
 	const FencePoints emergency = circle(false, {0.f, 300.f}, 50.f);
 	const FencePoints contingency = circle(false, {0.f, 300.f}, 100.f, FenceLevel::Contingency);
-	constexpr int contingency_circles = (DM_KEY_FENCE_POINTS_MAX - kMaxFencePointsPerLevel) / 2;
-	static_assert(kMaxFencePointsPerLevel + 2 * contingency_circles == DM_KEY_FENCE_POINTS_MAX, "fill the storage");
-	FencePoints points(kMaxFencePointsPerLevel, emergency.front());
+	constexpr int contingency_circles = DM_KEY_FENCE_POINTS_MAX / 4;
+	constexpr int emergency_circles = DM_KEY_FENCE_POINTS_MAX - 2 * contingency_circles;
+	FencePoints points(emergency_circles, emergency.front());
 
 	for (int i = 0; i < contingency_circles; ++i) {
 		points.insert(points.end(), contingency.begin(), contingency.end());
@@ -309,7 +309,7 @@ TEST_F(ContGeofenceTest, FenceThatFillsTheStorageLoads)
 	EXPECT_FALSE(insideCont(0.f, 375.f));
 	EXPECT_FALSE(insideAll(0.f, 375.f));
 	GeofenceInterface &interface = _fence;
-	const int num_areas = kMaxFencePointsPerLevel + contingency_circles;
+	const int num_areas = emergency_circles + contingency_circles;
 	ASSERT_EQ(interface.getNumPolygons(), num_areas);
 	EXPECT_EQ(interface.getPolygonInfoByIndex(num_areas - 1).dataman_index, DM_KEY_FENCE_POINTS_MAX - 1);
 
@@ -317,31 +317,6 @@ TEST_F(ContGeofenceTest, FenceThatFillsTheStorageLoads)
 	bool clear = true;
 	ASSERT_TRUE(_fence.checkPathBatch(&query, 1, &clear));
 	EXPECT_FALSE(clear);
-}
-
-TEST_F(ContGeofenceTest, RejectsPolygonLargerThanOneLevelQuota)
-{
-	constexpr unsigned vertex_count = kMaxFencePointsPerLevel + 1;
-	FencePoints points;
-
-	for (unsigned i = 0; i < vertex_count; ++i) {
-		const double angle = 2.0 * M_PI * i / vertex_count;
-		const auto coordinate = position(static_cast<float>(500.0 * cos(angle)), static_cast<float>(500.0 * sin(angle)));
-		mission_fence_point_s point{};
-		point.nav_cmd = NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION;
-		point.frame = NAV_FRAME_GLOBAL;
-		point.lat = coordinate(0);
-		point.lon = coordinate(1);
-		point.vertex_count = vertex_count;
-		points.push_back(point);
-	}
-
-	for (const FenceLevel level : {FenceLevel::Emergency, FenceLevel::Contingency}) {
-		FencePoints fence = levelItems(level);
-		fence.insert(fence.end(), points.begin(), points.end());
-		ASSERT_TRUE(loadFence(fence, geofence_status_s::GF_STATUS_FAILED));
-		EXPECT_TRUE(_fence.isEmpty());
-	}
 }
 
 // The action must not drop out for the moment in which the fence is empty during an update.
