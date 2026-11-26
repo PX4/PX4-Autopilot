@@ -416,24 +416,29 @@ px4_metadata: parameters_metadata airframe_metadata module_documentation extract
 # Checks and fixes are pre-commit hooks, see .pre-commit-config.yaml. The
 # checks run in the default stage, the fixes in the manual stage. They run with
 # prek, which runs the checks concurrently. PRE_COMMIT=pre-commit works too.
-.PHONY: check_format format format_changed
+.PHONY: check_pre_commit check_format format format_changed
 
 PRE_COMMIT ?= prek
 
-check_format:
+# Fail with an install hint instead of "prek: not found"
+check_pre_commit:
+	@command -v $(PRE_COMMIT) >/dev/null 2>&1 || \
+	{ echo "$(PRE_COMMIT) not found, install it with: pip install prek" >&2; exit 1; }
+
+check_format: check_pre_commit
 	$(call colorecho,'Running all checks')
 	@cd "$(SRC_DIR)" && $(PRE_COMMIT) run --all-files
 
 # Apply the fixes, then run the checks to report what is left to fix by hand.
 # The fix run fails whenever it modified files, which is its purpose, so its
 # exit code is ignored. The checks also catch a fix that failed.
-format:
+format: check_pre_commit
 	$(call colorecho,'Applying all automatic fixes')
 	@cd "$(SRC_DIR)" && { $(PRE_COMMIT) run --hook-stage manual --all-files || true; }
 	$(call colorecho,'Running all checks')
 	@cd "$(SRC_DIR)" && $(PRE_COMMIT) run --all-files
 
-format_changed:
+format_changed: check_pre_commit
 	$(call colorecho,'Applying automatic fixes to files changed since HEAD')
 	@cd "$(SRC_DIR)" && FILES=$$(git diff --name-only --diff-filter=d HEAD) && \
 	{ $(PRE_COMMIT) run --hook-stage manual --files $$FILES || true; } && \
