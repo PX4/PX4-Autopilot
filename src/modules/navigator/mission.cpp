@@ -447,10 +447,17 @@ void Mission::handleVtolTransition(WorkItemType &new_work_item_type, mission_ite
 	// A VTOL takeoff turns towards its own waypoint, a DO_VTOL_TRANSITION item towards the next one.
 	// Once turned, the work item is ALIGN_HEADING and the reloaded item sends the transition.
 	const bool vtol_takeoff = _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF;
+	const bool front_transition = vtol_takeoff
+				      || int(_mission_item.params[0]) == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+	// A takeoff whose front transition already runs goes on without turning first.
+	const bool takeoff_in_front_transition = vtol_takeoff && _vehicle_status_sub.get().in_transition_to_fw;
 
-	if (_work_item_type != WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING) {
+	if (_work_item_type != WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING && !takeoff_in_front_transition) {
 		/* turn towards the waypoint before MC to FW transition, unless it is skipped after a quadchute */
-		if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+		// Not during a front transition: the vehicle cannot stop to turn then.
+		if (front_transition
+		    && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+		    && !_vehicle_status_sub.get().in_transition_to_fw
 		    && !_land_detected_sub.get().landed
 		    && (vtol_takeoff || num_found_items > 0u)
 		    && !_navigator->front_transition_inhibited()) {
