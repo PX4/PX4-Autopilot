@@ -125,6 +125,15 @@ private:
 	void slewrate(float &sp_x, float &sp_y);
 	void clear_current_yaw_setpoint();
 
+	// true if the landing target position is valid and not timed out
+	bool target_acquired();
+
+	// true if the vehicle is horizontally within PLD_HACC_RAD of the target position setpoint
+	bool within_acceptance_radius();
+
+	// true if the vehicle is lower than PLD_FAPPR_ALT above the target
+	bool below_final_approach_alt();
+
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	void update_current_yaw_setpoint();
 	void reset_target_yaw_state();

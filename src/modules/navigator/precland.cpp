@@ -580,8 +580,6 @@ matrix::Vector2f PrecLand::get_target_position_setpoint()
 
 bool PrecLand::check_state_conditions(PrecLandState state)
 {
-	vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();
-
 	switch (state) {
 	case PrecLandState::Start:
 		return _search_cnt <= _param_pld_max_srch.get();
@@ -590,12 +588,9 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 
 		// if we're already in this state, only want to make it invalid if we reached the target but can't see it anymore
 		if (_state == PrecLandState::HorizontalApproach) {
-			const matrix::Vector2f target_position_sp = get_target_position_setpoint();
-
-			if (fabsf(target_position_sp(0) - vehicle_local_position->x) < _param_pld_hacc_rad.get()
-			    && fabsf(target_position_sp(1) - vehicle_local_position->y) < _param_pld_hacc_rad.get()) {
+			if (within_acceptance_radius()) {
 				// we've reached the position where we last saw the target. If we don't see it now, we need to do something
-				return _target_pose_valid && _target_pose.abs_pos_valid;
+				return target_acquired();
 
 			} else {
 				// We've seen the target sometime during horizontal approach.
@@ -605,7 +600,7 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 		}
 
 		// If we're trying to switch to this state, the target needs to be visible
-		return _target_pose_updated && _target_pose_valid && _target_pose.abs_pos_valid;
+		return _target_pose_updated && target_acquired();
 
 	case PrecLandState::DescendAboveTarget:
 
@@ -616,20 +611,16 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 				return hrt_absolute_time() - _target_pose.timestamp < 500000; // 0.5s
 
 			} else {
-				return _target_pose_valid && _target_pose.abs_pos_valid;
+				return target_acquired();
 			}
 
 		} else {
 			// if not already in this state, need to be above target to enter it
-			const matrix::Vector2f target_position_sp = get_target_position_setpoint();
-			return _target_pose_updated && _target_pose.abs_pos_valid
-			       && fabsf(target_position_sp(0) - vehicle_local_position->x) < _param_pld_hacc_rad.get()
-			       && fabsf(target_position_sp(1) - vehicle_local_position->y) < _param_pld_hacc_rad.get();
+			return _target_pose_updated && _target_pose.abs_pos_valid && within_acceptance_radius();
 		}
 
 	case PrecLandState::FinalApproach:
-		return _target_pose_valid && _target_pose.abs_pos_valid
-		       && (_target_pose.z_abs - vehicle_local_position->z) < _param_pld_fappr_alt.get();
+		return target_acquired() && below_final_approach_alt();
 
 	case PrecLandState::Search:
 		return true;
@@ -640,6 +631,26 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 	default:
 		return false;
 	}
+}
+
+bool PrecLand::target_acquired()
+{
+	return _target_pose_valid && _target_pose.abs_pos_valid;
+}
+
+bool PrecLand::within_acceptance_radius()
+{
+	const matrix::Vector2f target_position_sp = get_target_position_setpoint();
+	const vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();
+
+	return fabsf(target_position_sp(0) - vehicle_local_position->x) < _param_pld_hacc_rad.get()
+	       && fabsf(target_position_sp(1) - vehicle_local_position->y) < _param_pld_hacc_rad.get();
+}
+
+bool PrecLand::below_final_approach_alt()
+{
+	const vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();
+	return (_target_pose.z_abs - vehicle_local_position->z) < _param_pld_fappr_alt.get();
 }
 
 void PrecLand::slewrate(float &sp_x, float &sp_y)
