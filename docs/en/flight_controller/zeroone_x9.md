@@ -25,37 +25,47 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Processor {#processor}
 
-<!-- placeholder
-FMU: STM32H753 (nsh/defconfig CONFIG_ARCH_CHIP_STM32H753II).
-IO: PX4IO (board_config.h PX4IO_SERIAL_DEVICE /dev/ttyS5); manufacturer lists the IO processor as STM32F103.
--->
+- **Main FMU processor:** [STM32H753](https://www.st.com/en/microcontrollers-microprocessors/stm32h753ii.html) (Arm Cortex-M7, 480MHz, 2MB flash, 1MB RAM)
+- **IO processor:** STM32F103 ([PX4IO](../hardware/reference_design.md#main-io-function-breakdown))
 
 ### Sensors {#sensors}
 
-<!-- placeholder
-IMU: 3x IIM-42653 on SPI1, SPI2, SPI3, with IIM-42652 fallback (rc.board_sensors); manufacturer lists 3x IIM-42652.
-Barometer: internal ICP-201xx (only when SENS_INT_BARO_EN = 1); manufacturer lists "ICP-20100x2 or BMP581+SPL07".
-Magnetometer: RM3100 on internal I2C4.
-Heater: built (CONFIG_DRIVERS_HEATER).
--->
+- **IMU:** 3× [InvenSense IIM-42652](https://www.invensense.tdk.com/en-us/products/6-axis/iim-42652) (SPI1, SPI2, SPI3), with omnidirectional vibration damping
+- **Barometer:** 2× TDK ICP-20100, or Bosch BMP581 and SPL07 (TBD: which bus each is on)
+- **Magnetometer:** PNI RM3100 (I2C4)
+- **Heater:** IMU heater (TBD: power)
 
 ### Interfaces {#interfaces}
 
-<!-- placeholder
-PWM: 8 IO (MAIN) + 8 FMU (AUX) in firmware; the X9 baseboard exposes MAIN 1-8 and AUX 1-6.
-Serial: GPS1, GPS2, TELEM1-3, UART4 (EXT2), debug console, PX4IO link.
-I2C: 3 external (I2C1-3), 1 internal (I2C4). SPI: external SPI6 (2 CS, 2 DRDY).
-CAN: 2. Ethernet: LAN8742A PHY. SD card over SDIO. USB.
-Parameter storage: FRAM on SPI5.
--->
+- **PWM outputs:** 14 on the X9 baseboard: 8 PX4IO (MAIN) and 6 FMU (AUX) (see [PWM Outputs](#pwm_outputs))
+- **Serial ports:** 7 (`GPS1`, `GPS2`, `TELEM1`, `TELEM2`, `TELEM3`, `UART4`, Debug Console) (TBD: which are on the X9 baseboard)
+- **I2C buses:** 4 (I2C4 internal, the rest external)
+- **SPI buses:** 5, of which SPI6 is external with 2 chip selects and 2 data-ready lines
+- **CAN buses:** 2
+- **Ethernet:** TBD (speed)
+- **USB:** USB-C
+- **RC input:** `SBUS` (TBD: DSM and PPM)
+- **Parameter storage:** FRAM on SPI5
+- **SD card:** TBD
+- **LED indicators:** Yes
 
 ### Electrical Data {#electrical_data}
 
-<!-- placeholder: input voltage range, current draw, power monitoring -->
+- **Input voltage:** 4.5V to 5.4V
+- **Current draw:** TBD
+- **Power monitoring:** 2 power inputs (`Power1`, `Power2`) (TBD: monitor type)
 
 ### Mechanical Data {#mechanical_data}
 
-<!-- placeholder: dimensions, mounting hole spacing, weight, operating temperature -->
+- **Dimensions:**
+  - X9: 38.8 × 38.8 × 38.8mm
+  - X9 Core: 38.8 × 38.8 × 26.5mm
+- **Mounting hole spacing:** 32 × 32mm (TBD: hole diameter)
+- **Weight:**
+  - X9: 72g
+  - X9 Core: 57.5g
+- **Form factor:** X9 Core module with two 80-pin Hirose DF17 board-to-board connectors, on an interface baseboard
+- **Operating temperature:** -20°C to 85°C
 
 ## Where to Buy {#store}
 
