@@ -108,13 +108,13 @@
 
 /* USB OTG FS
  *
- * PE15  OTG_FS_VBUS VBUS sensing
+ * PA15  OTG_FS_VBUS VBUS sensing
  */
 #define GPIO_OTGFS_VBUS         /* PA15 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_100MHz|GPIO_PORTA|GPIO_PIN15)
 #define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
 
 /* High-resolution timer */
-#define HRT_TIMER               8  /* use timer1 for the HRT */
+#define HRT_TIMER               8  /* use timer8 for the HRT */
 #define HRT_TIMER_CHANNEL       1  /* use capture/compare channel 1 */
 
 /* RC Serial port */

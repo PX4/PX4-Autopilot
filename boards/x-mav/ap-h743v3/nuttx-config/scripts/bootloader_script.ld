@@ -59,9 +59,8 @@
  *   2) BOOT=1: Boot address defined by user option byte BOOT_ADD1[15:0].
  *      ST programmed value: System bootloader at 0x1FF0:0000
  *
- * The Durandal has a Switch on board, the BOOT0 pin is at ground so by default,
- * the STM32 will boot to address 0x0800:0000 in FLASH unless the swiutch is
- * drepresed, then the boot will be from 0x1FF0:0000
+ * The board has a BOOT button. Pressing it at reset boots the STM32 from the
+ * system bootloader at 0x1FF0:0000 instead of FLASH at 0x0800:0000.
  *
  * The STM32H743VI also has 1024Kb of data SRAM.
  * SRAM is split up into several blocks and into three power domains:

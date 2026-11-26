@@ -213,7 +213,7 @@ To install the AP-H743v3 firmware in _QGroundControl_:
 
 ## Supported Platforms / Airframes {#supported_platforms_airframes}
 
-Any multicopter / airplane / rover or boat that can be controlled with normal RC servos or Futaba S-Bus servos.
+Any multicopter or airplane that can be controlled with normal RC servos.
 The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
 
 The default airframe is Generic Quadcopter ([SYS_AUTOSTART](../advanced_config/parameter_reference.md#SYS_AUTOSTART) `4001`).
