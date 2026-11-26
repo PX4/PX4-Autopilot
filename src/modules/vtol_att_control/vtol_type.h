@@ -213,7 +213,7 @@ public:
 	/**
 	 * Returns true if we're allowed to do a mode transition on the ground.
 	 */
-	bool can_transition_on_ground();
+	bool can_transition_on_ground() const;
 
 	/**
 	 * Pusher assist in hover (pusher/pull for standard VTOL, motor tilt for tiltrotor)
@@ -221,7 +221,6 @@ public:
 	float pusher_assist();
 
 	virtual void blendThrottleAfterFrontTransition(float scale) {};
-	virtual void blendPitchAfterFrontTransition(float scale) {};
 
 	mode get_mode() {return _common_vtol_mode;}
 
@@ -358,9 +357,10 @@ protected:
 	virtual void onTransitionStart() {}
 
 	/**
-	 * Called on the switch from front transition to fixed-wing mode.
+	 * Returns the last transition pitch in the fixed-wing frame, or NaN to skip blending.
 	 */
-	virtual void onFrontTransitionCompleted() {}
+	virtual float frontTransitionPitch() const { return NAN; }
+	void clearFrontTransitionPitch() { _front_transition_pitch = NAN; }
 
 	/**
 	 * Called when a front transition is aborted into hover because fixed-wing is no longer requested.
@@ -420,6 +420,9 @@ protected:
 				       )
 
 private:
+	float _front_transition_pitch{NAN};
+	void blendPitchAfterFrontTransition(float scale);
+
 	hrt_abstime _throttle_blend_start_ts{0};	// time at which we start blending between transition throttle and fixed wing throttle
 
 	bool shouldBlendThrottleAfterFrontTransition() { return _throttle_blend_start_ts != 0; };

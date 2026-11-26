@@ -63,13 +63,11 @@ public:
 	void fill_actuator_outputs() override;
 	void waiting_on_tecs() override;
 	void blendThrottleAfterFrontTransition(float scale) override;
-	void blendPitchAfterFrontTransition(float scale) override;
 
 private:
 	float _pusher_throttle{0.0f};
 	float _airspeed_trans_blend_margin{0.0f};
 	hrt_abstime _last_time_pusher_transition_update{0};
-	float _front_transition_pitch{NAN};
 
 	systemlib::Hysteresis _pusher_failure_hysteresis{false};
 	bool _pusher_failed{false}; ///< latched until reboot or until the detection is disabled
@@ -77,7 +75,7 @@ private:
 	void parameters_update() override;
 
 	bool isBackTransitionCompleted() override;
-	void onFrontTransitionCompleted() override;
+	float frontTransitionPitch() const override;
 	void onFrontTransitionAborted() override;
 	void onQuadchute() override;
 	void checkTypeSpecificQuadchute() override;
