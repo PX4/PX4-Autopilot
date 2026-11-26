@@ -83,6 +83,8 @@ private:
 	void announceFailure(uint8_t unit, uint8_t type, uint16_t mask);
 
 	void evaluateRcInjection();
+	void evaluateRcSwitch(const manual_control_setpoint_s &manual_control_setpoint, int32_t source,
+			      uint16_t high_mask, uint16_t low_mask, uint16_t &active_mask);
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_command_sub{this, ORB_ID(vehicle_command)};
 	uORB::SubscriptionCallbackWorkItem _manual_control_setpoint_sub{this, ORB_ID(manual_control_setpoint)};
@@ -94,15 +96,22 @@ private:
 
 	orb_advert_t _mavlink_log_pub{nullptr};
 
-	bool     _rc_active{false};
-	uint8_t  _rc_active_unit{0};
 	uint16_t _rc_active_mask{0};
+	uint16_t _rc2_active_mask{0};
+	uint16_t _rc3_active_mask{0};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SYS_FAIL_RC_SRC>) _param_sys_fail_rc_src,
 		(ParamInt<px4::params::SYS_FAIL_RC_UNIT>) _param_sys_fail_rc_unit,
 		(ParamInt<px4::params::SYS_FAIL_RC_MODE>) _param_sys_fail_rc_mode,
 		(ParamInt<px4::params::SYS_FAIL_RC_INST>) _param_sys_fail_rc_inst,
+		(ParamInt<px4::params::SYS_FAIL_RC_INSL>) _param_sys_fail_rc_insl,
+		(ParamInt<px4::params::SYS_FAIL_RC2_SRC>) _param_sys_fail_rc2_src,
+		(ParamInt<px4::params::SYS_FAIL_RC2_HI>) _param_sys_fail_rc2_hi,
+		(ParamInt<px4::params::SYS_FAIL_RC2_LO>) _param_sys_fail_rc2_lo,
+		(ParamInt<px4::params::SYS_FAIL_RC3_SRC>) _param_sys_fail_rc3_src,
+		(ParamInt<px4::params::SYS_FAIL_RC3_HI>) _param_sys_fail_rc3_hi,
+		(ParamInt<px4::params::SYS_FAIL_RC3_LO>) _param_sys_fail_rc3_lo,
 		// Consumed via param_find() in failure_injection::process_XXXX() and
 		// failure_injection::imu_offset(); registered here so they are marked used
 		// and show up in the GCS parameter list.

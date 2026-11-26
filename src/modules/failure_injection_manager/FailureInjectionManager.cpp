@@ -55,7 +55,7 @@ bool FailureInjectionManager::init()
 		return false;
 	}
 
-	if (_param_sys_fail_rc_src.get() != 0) {
+	if (_param_sys_fail_rc_src.get() != 0 || _param_sys_fail_rc2_src.get() != 0 || _param_sys_fail_rc3_src.get() != 0) {
 		if (!_manual_control_setpoint_sub.registerCallback()) {
 			PX4_ERR("manual_control_setpoint callback registration failed");
 			return false;
@@ -98,57 +98,82 @@ void FailureInjectionManager::Run()
 
 void FailureInjectionManager::evaluateRcInjection()
 {
-	if (_param_sys_fail_rc_src.get() == 0) {
+	if (_param_sys_fail_rc_src.get() == 0 && _param_sys_fail_rc2_src.get() == 0 && _param_sys_fail_rc3_src.get() == 0) {
 		return;
 	}
 
 	manual_control_setpoint_s manual_control_setpoint;
 
 	if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
-		float value = NAN;
+		// Switch high fails the first mask, switch low fails the second (0 = that position does nothing).
+		// SYS_FAIL_RC_INST = 0 keeps its upstream meaning of all instances.
+		const int32_t inst = _param_sys_fail_rc_inst.get();
+		evaluateRcSwitch(manual_control_setpoint, _param_sys_fail_rc_src.get(),
+				 (inst == 0) ? 0xFFFF : static_cast<uint16_t>(inst),
+				 static_cast<uint16_t>(_param_sys_fail_rc_insl.get()), _rc_active_mask);
+		evaluateRcSwitch(manual_control_setpoint, _param_sys_fail_rc2_src.get(),
+				 static_cast<uint16_t>(_param_sys_fail_rc2_hi.get()),
+				 static_cast<uint16_t>(_param_sys_fail_rc2_lo.get()), _rc2_active_mask);
+		evaluateRcSwitch(manual_control_setpoint, _param_sys_fail_rc3_src.get(),
+				 static_cast<uint16_t>(_param_sys_fail_rc3_hi.get()),
+				 static_cast<uint16_t>(_param_sys_fail_rc3_lo.get()), _rc3_active_mask);
+	}
+}
 
-		if (manual_control_setpoint.valid) {
-			switch (_param_sys_fail_rc_src.get()) {
-			case 1: value = manual_control_setpoint.aux1; break;
+void FailureInjectionManager::evaluateRcSwitch(const manual_control_setpoint_s &manual_control_setpoint, int32_t source,
+		uint16_t high_mask, uint16_t low_mask, uint16_t &active_mask)
+{
+	float value = NAN;
 
-			case 2: value = manual_control_setpoint.aux2; break;
+	if (manual_control_setpoint.valid) {
+		switch (source) {
+		case 1: value = manual_control_setpoint.aux1; break;
 
-			case 3: value = manual_control_setpoint.aux3; break;
+		case 2: value = manual_control_setpoint.aux2; break;
 
-			case 4: value = manual_control_setpoint.aux4; break;
+		case 3: value = manual_control_setpoint.aux3; break;
 
-			case 5: value = manual_control_setpoint.aux5; break;
+		case 4: value = manual_control_setpoint.aux4; break;
 
-			case 6: value = manual_control_setpoint.aux6; break;
+		case 5: value = manual_control_setpoint.aux5; break;
 
-			default: break; // 0 = disabled, or out of range
-			}
-		}
+		case 6: value = manual_control_setpoint.aux6; break;
 
-		const bool triggered = value > 0.5f;
-
-		if (triggered && !_rc_active) {
-			const int32_t raw = _param_sys_fail_rc_inst.get();
-			_rc_active_unit = static_cast<uint8_t>(_param_sys_fail_rc_unit.get());
-			// SYS_FAIL_RC_INST is an instance bitmask (bit 0 = instance 1); 0 = all instances.
-			_rc_active_mask = (raw == 0) ? 0xFFFF : static_cast<uint16_t>(raw);
-			_rc_active = true;
-
-			const uint8_t type = static_cast<uint8_t>(_param_sys_fail_rc_mode.get());
-
-			if (_table.injectMask(_rc_active_unit, type, _rc_active_mask) == failure_injection::FailureTable::AckResult::Accepted) {
-				announceFailure(_rc_active_unit, type, _rc_active_mask);
-			}
-
-		} else if (!triggered && _rc_active) {
-			if (_table.injectMask(_rc_active_unit, failure_injection_s::FAILURE_TYPE_OK,
-					      _rc_active_mask) == failure_injection::FailureTable::AckResult::Accepted) {
-				announceFailure(_rc_active_unit, failure_injection_s::FAILURE_TYPE_OK, _rc_active_mask);
-			}
-
-			_rc_active = false;
+		default: break; // 0 = disabled, or out of range
 		}
 	}
+
+	uint16_t mask = 0;
+
+	if (value > 0.5f) {
+		mask = high_mask;
+
+	} else if (value < -0.5f) {
+		mask = low_mask;
+	}
+
+	if (mask == active_mask) {
+		return;
+	}
+
+	const uint8_t unit = static_cast<uint8_t>(_param_sys_fail_rc_unit.get());
+
+	if (active_mask != 0) {
+		if (_table.injectMask(unit, failure_injection_s::FAILURE_TYPE_OK,
+				      active_mask) == failure_injection::FailureTable::AckResult::Accepted) {
+			announceFailure(unit, failure_injection_s::FAILURE_TYPE_OK, active_mask);
+		}
+	}
+
+	if (mask != 0) {
+		const uint8_t type = static_cast<uint8_t>(_param_sys_fail_rc_mode.get());
+
+		if (_table.injectMask(unit, type, mask) == failure_injection::FailureTable::AckResult::Accepted) {
+			announceFailure(unit, type, mask);
+		}
+	}
+
+	active_mask = mask;
 }
 
 void FailureInjectionManager::handleCommand(const vehicle_command_s &cmd)
