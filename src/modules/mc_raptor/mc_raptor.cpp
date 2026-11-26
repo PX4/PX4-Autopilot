@@ -37,14 +37,17 @@ Raptor::Raptor(): ModuleParams(nullptr), ScheduledWorkItem(MODULE_NAME, px4::wq_
 	_actuator_motors_pub.advertise();
 	_tune_control_pub.advertise();
 }
-void Raptor::reset()
+void Raptor::reset(bool reset_trajectory_setpoint)
 {
 
 	trajectory_setpoint_dt_index = 0;
 	trajectory_setpoint_dts_full = false;
 	trajectory_setpoint_invalid_count = 0;
 	trajectory_setpoint_dt_max_since_reset = 0;
-	timestamp_last_trajectory_setpoint_set = false;
+
+	if (reset_trajectory_setpoint) {
+		timestamp_last_trajectory_setpoint_set = false;
+	}
 
 
 	for (TI action_i = 0; action_i < EXECUTOR_SPEC::OUTPUT_DIM; action_i++) {
@@ -511,6 +514,8 @@ void Raptor::Run()
 		status.trajectory_setpoint_dt_max_since_activation = trajectory_setpoint_dt_max_since_reset;
 	}
 
+	const bool prev_accepts_offboard_setpoints = timestamp_last_vehicle_status_set
+			&& _vehicle_status.accepts_offboard_setpoints;
 	status.subscription_update_vehicle_status = _vehicle_status_sub.update(&_vehicle_status);
 
 	if (status.subscription_update_vehicle_status) {
@@ -530,7 +535,13 @@ void Raptor::Run()
 		setpoint_config.should_apply = true;
 		_setpoint_config_pub.publish(setpoint_config);
 
-		this->reset();
+		const bool preserve_trajectory_setpoint = !use_internal_reference
+				&& prev_accepts_offboard_setpoints
+				&& timestamp_last_trajectory_setpoint_set
+				&& (current_time >= timestamp_last_trajectory_setpoint)
+				&& ((current_time - timestamp_last_trajectory_setpoint) <= TRAJECTORY_SETPOINT_TIMEOUT);
+
+		this->reset(!preserve_trajectory_setpoint);
 		PX4_INFO("Resetting Inference Executor (Recurrent State)");
 
 	} else {
@@ -571,7 +582,10 @@ void Raptor::Run()
 
 	trajectory_setpoint_s temp_trajectory_setpoint;
 	bool use_external_reference = !use_internal_reference;
-	status.subscription_update_trajectory_setpoint = use_external_reference && _trajectory_setpoint_sub.update(&temp_trajectory_setpoint);
+	bool trajectory_setpoint_updated = use_external_reference && _trajectory_setpoint_sub.update(&temp_trajectory_setpoint);
+	status.subscription_update_trajectory_setpoint = trajectory_setpoint_updated
+			&& prev_accepts_offboard_setpoints
+			&& _vehicle_status.accepts_offboard_setpoints;
 
 	if (status.subscription_update_trajectory_setpoint) {
 		if (

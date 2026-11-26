@@ -230,7 +230,7 @@ private:
 	bool test_policy(FILE *f, TI input_offset, TI output_offset);
 #endif
 
-	void reset();
+	void reset(bool reset_trajectory_setpoint = true);
 	void observe(rl_tools::inference::applications::l2f::Observation<EXECUTOR_SPEC> &observation);
 
 	static constexpr bool REMAP_FROM_CRAZYFLIE =
