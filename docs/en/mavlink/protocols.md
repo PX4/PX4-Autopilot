@@ -33,11 +33,14 @@ These services are known to be supported in some form:
 - [Message Signing](../mavlink/message_signing.md) ([MAVLink spec](https://mavlink.io/en/guide/message_signing.html))
 - [Mission Protocol](https://mavlink.io/en/services/mission.html)
   - <a id="contingency_geofence"></a>Fence items (`MAV_MISSION_TYPE_FENCE`) can be marked as [contingency geofence](../config/safety.md#contingency-geofence) areas.
-    PX4 uses `param3` of the fence polygon and circle commands ([MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION), [MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION), [MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION), [MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION)) as the fence level: `0` or `NaN` for an emergency geofence area, `1` for a contingency geofence area.
-    Other values are rejected with `MAV_MISSION_INVALID_PARAM3`.
-    All vertices of a polygon must have the same level, otherwise the upload is rejected and the previous plan stays active.
+    A fence level item in front of a polygon or circle sets its level: `MAV_CMD_NAV_FENCE_LEVEL` (`5006`, proposed in [mavlink/mavlink#2681](https://github.com/mavlink/mavlink/pull/2681)) in `MAV_FRAME_MISSION`, with `param1` `0` for the emergency geofence and `1` for the contingency geofence.
+    It applies to the next area only, and an area without one is an emergency geofence area.
+    Other `param1` values, NaN included, are rejected with `MAV_MISSION_INVALID_PARAM1`.
+    A level item in another frame or between the vertices of a polygon is rejected too, and the previous plan then stays active.
+    Put the emergency geofence areas first: a ground station without support stops reading a downloaded plan at the first level item.
     Each level supports up to 64 points, counting one per polygon vertex or circle.
-    The level is returned when the fence is downloaded.
+    The plan holds up to 128 items, counting the level items and the return point.
+    Level items are returned when the fence is downloaded.
 - [Offboard Control Protocol](https://mavlink.io/en/services/offboard_control.html)
 - [Remote ID](../peripherals/remote_id.md) ([Open Drone ID Protocol](https://mavlink.io/en/services/opendroneid.html))
 - [Parameter Protocol](https://mavlink.io/en/services/parameter.html)

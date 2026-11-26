@@ -288,7 +288,8 @@ Every emergency geofence area then needs its own contingency geofence area, excl
 ::: warning
 The ground station must support contingency geofence areas (see [MAVLink support](../mavlink/protocols.md#contingency_geofence)).
 A ground station without support uploads every area as an emergency geofence area.
-If it downloads a plan with a contingency geofence and uploads it again, the contingency geofence areas come back as emergency geofence areas, and `GF_ACTION` is triggered where the contingency geofence action was planned.
+It may also fail to read back a plan with contingency geofence areas: _QGroundControl_ reports an unsupported command and only reads the areas before the first fence level item, the item in front of a contingency geofence area.
+Uploading that plan again drops all later areas, emergency geofence areas included.
 :::
 
 The margin, or the gap between a contingency geofence area and the emergency geofence, has to leave the vehicle enough room to stop or turn around.

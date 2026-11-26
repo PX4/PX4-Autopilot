@@ -95,6 +95,7 @@ enum NAV_CMD {
 	NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION = 5002,
 	NAV_CMD_FENCE_CIRCLE_INCLUSION = 5003,
 	NAV_CMD_FENCE_CIRCLE_EXCLUSION = 5004,
+	NAV_CMD_FENCE_LEVEL = 5006, // MAV_CMD_NAV_FENCE_LEVEL, proposed in mavlink/mavlink#2681
 	NAV_CMD_RALLY_POINT = 5100,
 	NAV_CMD_CONDITION_GATE = 4501,
 	NAV_CMD_DO_WINCH = 42600,
@@ -201,7 +202,7 @@ struct mission_stats_entry_s {
 	uint8_t padding[1];
 };
 
-/** Level of a geofence area (param 3 of the MAV_CMD_NAV_FENCE_* polygon and circle commands). */
+/** Level of a geofence area, set by a NAV_CMD_FENCE_LEVEL item in front of it (param 1). Emergency without one. */
 enum class FenceLevel : uint8_t {
 	Emergency = 0,	/**< emergency geofence, breached with GF_ACTION */
 	Contingency = 1		/**< contingency geofence, breached with GF_CONT_ACTION */
@@ -229,7 +230,7 @@ struct mission_fence_point_s {
 	uint16_t nav_cmd;				/**< navigation command (one of MAV_CMD_NAV_FENCE_*) */
 	uint8_t frame;					/**< MAV_FRAME */
 
-	FenceLevel fence_level;				/**< emergency or contingency geofence */
+	FenceLevel fence_level;				/**< NAV_CMD_FENCE_LEVEL only: level of the next area */
 
 	uint8_t _padding0[4];				/**< padding struct size to alignment boundary  */
 };

@@ -71,7 +71,7 @@ protected:
 	// A polygon centred like exclusionSquare().
 	FencePoints exclusionRing(size_t vertices, FenceLevel level = FenceLevel::Emergency) const
 	{
-		FencePoints points;
+		FencePoints points = levelItems(level);
 
 		for (size_t i = 0; i < vertices; ++i) {
 			const double angle = 2.0 * M_PI * static_cast<double>(i) / static_cast<double>(vertices);
@@ -79,7 +79,6 @@ protected:
 			mission_fence_point_s point{};
 			point.nav_cmd = NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION;
 			point.frame = NAV_FRAME_GLOBAL;
-			point.fence_level = level;
 			point.lat = coordinate(0);
 			point.lon = coordinate(1);
 			point.vertex_count = static_cast<uint16_t>(vertices);
@@ -89,10 +88,12 @@ protected:
 		return points;
 	}
 
+	// Fills the fence storage: a maximum-size emergency polygon, then a contingency polygon behind its level item.
 	FencePoints fullFence() const
 	{
 		FencePoints points = exclusionRing(kMaxFencePointsPerLevel);
-		const FencePoints contingency = exclusionRing(kMaxFencePointsPerLevel, FenceLevel::Contingency);
+		const FencePoints contingency = exclusionRing(DM_KEY_FENCE_POINTS_MAX - kMaxFencePointsPerLevel - 1,
+						FenceLevel::Contingency);
 		points.insert(points.end(), contingency.begin(), contingency.end());
 		return points;
 	}
@@ -285,7 +286,7 @@ TEST_F(GeofenceTest, FullBatchMatchesIndividualChecks)
 	std::array<Geofence::PathCheck, Geofence::MAX_PATH_CHECKS> paths;
 	std::array<bool, Geofence::MAX_PATH_CHECKS> clear{};
 
-	// Alternate between crossing both maximum-size polygons and passing 10 m north of them.
+	// Alternate between crossing both polygons and passing 10 m north of them.
 	for (size_t i = 0; i < paths.size(); ++i) {
 		const float north = i % 2 == 0 ? 0.f : 60.f;
 		paths[i] = path({north, 100.f}, {north, 500.f});

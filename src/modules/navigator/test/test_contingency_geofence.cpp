@@ -256,25 +256,52 @@ TEST_F(ContGeofenceTest, ReturnPlannerDetoursAroundContGeofence)
 }
 #endif
 
-TEST_F(ContGeofenceTest, RejectsUnknownLevelAndMixedPolygonLevels)
+TEST_F(ContGeofenceTest, LevelItemSetsTheLevelOfTheNextAreaOnly)
 {
-	FencePoints points = inclusionSquare(300.f, FenceLevel::Contingency);
-	points[1].fence_level = FenceLevel::Emergency;
-	ASSERT_TRUE(loadFence(points, geofence_status_s::GF_STATUS_FAILED));
-	EXPECT_TRUE(_fence.isEmpty());
-	EXPECT_EQ(_fence.getContGeofenceAction(), geofence_result_s::GF_ACTION_NONE);
+	// A return point between a level item and its area keeps the level, and of two level items the second wins.
+	mission_fence_point_s return_point{};
+	return_point.nav_cmd = NAV_CMD_FENCE_RETURN_POINT;
+	FencePoints points{levelItem(FenceLevel::Contingency), return_point};
+	const FencePoints contingency = inclusionSquare(500.f);
+	const FencePoints emergency = inclusionSquare(600.f);
+	const FencePoints overridden = inclusionSquare(700.f);
+	points.insert(points.end(), contingency.begin(), contingency.end());
+	points.insert(points.end(), emergency.begin(), emergency.end());
+	points.push_back(levelItem(FenceLevel::Contingency));
+	points.push_back(levelItem(FenceLevel::Emergency));
+	points.insert(points.end(), overridden.begin(), overridden.end());
+	ASSERT_TRUE(loadFence(points));
+	GeofenceInterface &interface = _fence;
+	ASSERT_EQ(interface.getNumPolygons(), 3);
+	EXPECT_EQ(interface.getPolygonInfoByIndex(0).fence_level, FenceLevel::Contingency);
+	EXPECT_EQ(interface.getPolygonInfoByIndex(1).fence_level, FenceLevel::Emergency);
+	EXPECT_EQ(interface.getPolygonInfoByIndex(2).fence_level, FenceLevel::Emergency);
+	EXPECT_FALSE(insideCont(0.f, 550.f));
+	EXPECT_TRUE(insideEmergency(0.f, 550.f));
+}
+
+TEST_F(ContGeofenceTest, RejectsUnknownLevelAndLevelItemInsideAPolygon)
+{
 	ASSERT_TRUE(loadFence(circle(true, {0.f, 0.f}, 300.f, static_cast<FenceLevel>(2)), geofence_status_s::GF_STATUS_FAILED));
 	EXPECT_TRUE(_fence.isEmpty());
 	EXPECT_EQ(_fence.getContGeofenceAction(), geofence_result_s::GF_ACTION_NONE);
+	FencePoints points = inclusionSquare(300.f);
+	points.insert(points.begin() + 2, levelItem(FenceLevel::Contingency));
+	ASSERT_TRUE(loadFence(points, geofence_status_s::GF_STATUS_FAILED));
+	EXPECT_TRUE(_fence.isEmpty());
 }
 
-TEST_F(ContGeofenceTest, BothLevelsCanUseTheirFullPointQuota)
+TEST_F(ContGeofenceTest, FenceThatFillsTheStorageLoads)
 {
-	FencePoints points;
+	// The emergency geofence uses its whole point quota, the rest holds contingency circles behind their level items.
+	const FencePoints emergency = circle(false, {0.f, 300.f}, 50.f);
+	const FencePoints contingency = circle(false, {0.f, 300.f}, 100.f, FenceLevel::Contingency);
+	constexpr int contingency_circles = (DM_KEY_FENCE_POINTS_MAX - kMaxFencePointsPerLevel) / 2;
+	static_assert(kMaxFencePointsPerLevel + 2 * contingency_circles == DM_KEY_FENCE_POINTS_MAX, "fill the storage");
+	FencePoints points(kMaxFencePointsPerLevel, emergency.front());
 
-	for (const FenceLevel level : {FenceLevel::Emergency, FenceLevel::Contingency}) {
-		const FencePoints area = circle(false, {0.f, 300.f}, level == FenceLevel::Emergency ? 50.f : 100.f, level);
-		points.insert(points.end(), kMaxFencePointsPerLevel, area.front());
+	for (int i = 0; i < contingency_circles; ++i) {
+		points.insert(points.end(), contingency.begin(), contingency.end());
 	}
 
 	ASSERT_TRUE(loadFence(points));
@@ -282,8 +309,9 @@ TEST_F(ContGeofenceTest, BothLevelsCanUseTheirFullPointQuota)
 	EXPECT_FALSE(insideCont(0.f, 375.f));
 	EXPECT_FALSE(insideAll(0.f, 375.f));
 	GeofenceInterface &interface = _fence;
-	ASSERT_EQ(interface.getNumPolygons(), DM_KEY_FENCE_POINTS_MAX);
-	EXPECT_EQ(interface.getPolygonInfoByIndex(DM_KEY_FENCE_POINTS_MAX - 1).dataman_index, DM_KEY_FENCE_POINTS_MAX - 1);
+	const int num_areas = kMaxFencePointsPerLevel + contingency_circles;
+	ASSERT_EQ(interface.getNumPolygons(), num_areas);
+	EXPECT_EQ(interface.getPolygonInfoByIndex(num_areas - 1).dataman_index, DM_KEY_FENCE_POINTS_MAX - 1);
 
 	const Geofence::PathCheck query = path({0.f, 375.f}, {0.f, 500.f});
 	bool clear = true;
@@ -309,11 +337,9 @@ TEST_F(ContGeofenceTest, RejectsPolygonLargerThanOneLevelQuota)
 	}
 
 	for (const FenceLevel level : {FenceLevel::Emergency, FenceLevel::Contingency}) {
-		for (auto &point : points) {
-			point.fence_level = level;
-		}
-
-		ASSERT_TRUE(loadFence(points, geofence_status_s::GF_STATUS_FAILED));
+		FencePoints fence = levelItems(level);
+		fence.insert(fence.end(), points.begin(), points.end());
+		ASSERT_TRUE(loadFence(fence, geofence_status_s::GF_STATUS_FAILED));
 		EXPECT_TRUE(_fence.isEmpty());
 	}
 }

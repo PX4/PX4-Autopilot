@@ -236,7 +236,7 @@ static uint32_t crc32_for_fence_point(const mission_fence_point_s &fence_point, 
 	u.item.autocontinue = 0U;
 	u.item.params[0] = 0.f;
 	u.item.params[1] = 0.f;
-	u.item.params[2] = static_cast<float>(fence_point.fence_level);
+	u.item.params[2] = 0.f;
 	u.item.params[3] = 0.f;
 	u.item.params[4] = static_cast<float>(fence_point.lat);
 	u.item.params[5] = static_cast<float>(fence_point.lon);
@@ -489,6 +489,8 @@ Geofence::LoadResult Geofence::_updateFence()
 	_num_polygons = 0;
 	_has_cont_geofence_areas = false;
 	int current_seq = 0;
+	// A fence level item sets the level of the next area only.
+	FenceLevel next_level = FenceLevel::Emergency;
 
 	while (current_seq < _dataman_cache.size()) {
 
@@ -507,6 +509,19 @@ Geofence::LoadResult Geofence::_updateFence()
 		switch (mission_fence_point.nav_cmd) {
 		case NAV_CMD_FENCE_RETURN_POINT:
 			// TODO: do we need to store this?
+			++current_seq;
+			break;
+
+		case NAV_CMD_FENCE_LEVEL:
+
+			// Unknown levels are rejected: an area of an unknown level would be checked by neither geofence.
+			if (mission_fence_point.fence_level > FenceLevel::Contingency) {
+				_reportInvalidFence(current_seq);
+				_clearFence();
+				return LoadResult::Invalid;
+			}
+
+			next_level = mission_fence_point.fence_level;
 			++current_seq;
 			break;
 
@@ -546,7 +561,8 @@ Geofence::LoadResult Geofence::_updateFence()
 				PolygonInfo &polygon = _polygons[_num_polygons];
 				polygon.dataman_index = static_cast<uint8_t>(current_seq);
 				polygon.fence_type = mission_fence_point.nav_cmd;
-				polygon.fence_level = mission_fence_point.fence_level;
+				polygon.fence_level = next_level;
+				next_level = FenceLevel::Emergency;
 
 				if (is_circle_area) {
 					polygon.circle_radius = mission_fence_point.circle_radius;
@@ -619,8 +635,7 @@ Geofence::LoadResult Geofence::_validateFenceArea(unsigned index, const mission_
 				return LoadResult::ReadFailed;
 			}
 
-			if (!_fencePointValid(vertex) || vertex.nav_cmd != first.nav_cmd || vertex.vertex_count != first.vertex_count
-			    || vertex.fence_level != first.fence_level) {
+			if (!_fencePointValid(vertex) || vertex.nav_cmd != first.nav_cmd || vertex.vertex_count != first.vertex_count) {
 				_reportInvalidFence(index + v);
 				return LoadResult::Invalid;
 			}
@@ -641,8 +656,7 @@ Geofence::LoadResult Geofence::_validateFenceArea(unsigned index, const mission_
 
 bool Geofence::_fencePointValid(const mission_fence_point_s &point) const
 {
-	if (!PX4_ISFINITE(point.lat) || !PX4_ISFINITE(point.lon) || fabs(point.lat) > 90.0 || fabs(point.lon) > 180.0
-	    || point.fence_level > FenceLevel::Contingency) {
+	if (!PX4_ISFINITE(point.lat) || !PX4_ISFINITE(point.lon) || fabs(point.lat) > 90.0 || fabs(point.lon) > 180.0) {
 		return false;
 	}
 

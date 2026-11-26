@@ -1,4 +1,4 @@
-"""Fence levels, param 3 of the fence commands, in the upload and download of a geofence plan."""
+"""Fence level items in the upload and download of a geofence plan."""
 
 import math
 from dataclasses import dataclass, replace
@@ -7,18 +7,19 @@ from typing import Any, List
 import pytest
 from mavsdk.plugins.mission_raw import MissionRawResult  # type: ignore
 
-from autopilot_tester import MAV_CMD_NAV_WAYPOINT, MAV_FRAME_GLOBAL_INT, raw_mission_item
-from autopilot_tester_geofence import (
-    FENCE_LEVEL_EMERGENCY, FENCE_LEVEL_CONTINGENCY, MAV_MISSION_TYPE_FENCE,
-    AutopilotTesterGeofence)
+from autopilot_tester import (
+    MAV_CMD_NAV_WAYPOINT, MAV_FRAME_GLOBAL_INT, MAV_FRAME_MISSION, raw_mission_item)
+from autopilot_tester_geofence import MAV_MISSION_TYPE_FENCE, AutopilotTesterGeofence
 from geofence_geometry import (
-    MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION, MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION,
-    MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION, MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION)
+    FENCE_LEVEL_CONTINGENCY, FENCE_LEVEL_EMERGENCY, MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION,
+    MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION, MAV_CMD_NAV_FENCE_LEVEL,
+    MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION, MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION)
 
 MAV_CMD_NAV_FENCE_RETURN_POINT = 5000
 
-LEVELS = (FENCE_LEVEL_EMERGENCY, FENCE_LEVEL_CONTINGENCY)
+# Default build: points of each fence level, and fence items stored.
 POINTS_PER_LEVEL = 64
+STORED_ITEMS = 2 * POINTS_PER_LEVEL
 
 # MAVSDK reports MAV_MISSION_INVALID and MAV_MISSION_INVALID_PARAM1 to 7 as the same result.
 INVALID = MissionRawResult.INVALID_ARGUMENT
@@ -29,48 +30,57 @@ NO_SPACE = MissionRawResult.TOO_MANY_MISSION_ITEMS
 class FenceItem:
     command: int
     param1: float
-    level: float
-    latitude: int
-    longitude: int
+    latitude: int = 0
+    longitude: int = 0
+    frame: int = MAV_FRAME_GLOBAL_INT
+
+
+def level_item(level: float) -> FenceItem:
+    return FenceItem(MAV_CMD_NAV_FENCE_LEVEL, level, frame=MAV_FRAME_MISSION)
 
 
 @pytest.mark.multicopter
 def test_fence_levels_upload_and_download(tester_geofence: AutopilotTesterGeofence) -> None:
-    """The level of each fence area is stored and returned. An upload that breaks the rules for
-    levels, polygons or the points per level is rejected, and the active plan stays as it was."""
+    """Level items are stored and returned with the areas. An upload that breaks the rules for
+    level items, polygons or the points per level is rejected, and the active plan stays as it
+    was. Which areas a level item applies to is unit tested in Navigator."""
     tester = tester_geofence
     tester.wait_until_ready()
     ct = tester.get_coordinate_transformation()
 
-    def shape(command: int, level: float) -> List[FenceItem]:
-        """One area with Home on its allowed side: a triangle, or a circle."""
+    def area(command: int, level: float = FENCE_LEVEL_EMERGENCY,
+             vertices: int = 3) -> List[FenceItem]:
+        """One area with Home on its allowed side, behind a level item if it is in the
+        contingency geofence: a regular polygon, or a circle."""
         if command == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION:
-            param1, points = 3.0, [(-2000.0, -2000.0), (3000.0, 0.0), (-2000.0, 2000.0)]
+            param1, center, radius_m = float(vertices), (0.0, 0.0), 3000.0
         elif command == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION:
-            param1, points = 3.0, [(500.0, 0.0), (600.0, 100.0), (500.0, 200.0)]
+            param1, center, radius_m = float(vertices), (500.0, 0.0), 100.0
         elif command == MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION:
-            param1, points = 20000.0, [(0.0, 0.0)]
+            param1, center, radius_m, vertices = 20000.0, (0.0, 0.0), 0.0, 1
         else:
-            param1, points = 50.0, [(500.0, -500.0)]
+            param1, center, radius_m, vertices = 50.0, (500.0, -500.0), 0.0, 1
 
-        items = []
-        for north_m, east_m in points:
-            latitude_deg, longitude_deg = ct.global_from_local(north_m, east_m)
-            items.append(FenceItem(command, param1, level, round(latitude_deg * 1e7),
+        items = [level_item(level)] if level != FENCE_LEVEL_EMERGENCY else []
+        for i in range(vertices):
+            angle = 2.0 * math.pi * i / vertices
+            latitude_deg, longitude_deg = ct.global_from_local(
+                center[0] + radius_m * math.cos(angle), center[1] + radius_m * math.sin(angle))
+            items.append(FenceItem(command, param1, round(latitude_deg * 1e7),
                                    round(longitude_deg * 1e7)))
         return items
 
     def upload(items: List[FenceItem]) -> Any:
         return tester.upload_fence_items([
-            raw_mission_item(seq, item.command, MAV_FRAME_GLOBAL_INT, x=item.latitude,
-                             y=item.longitude, param1=item.param1, param3=item.level,
+            raw_mission_item(seq, item.command, item.frame, x=item.latitude, y=item.longitude,
+                             param1=item.param1,
                              # MAVSDK requires a current item.
                              current=1 if seq == 0 else 0, autocontinue=0,
                              mission_type=MAV_MISSION_TYPE_FENCE)
             for seq, item in enumerate(items)])
 
     def stored() -> List[FenceItem]:
-        return [FenceItem(item.command, item.param1, item.param3, item.x, item.y)
+        return [FenceItem(item.command, item.param1, item.x, item.y, item.frame)
                 for item in tester.download_fence_items()]
 
     def round_trip(label: str, items: List[FenceItem]) -> None:
@@ -87,33 +97,23 @@ def test_fence_levels_upload_and_download(tester_geofence: AutopilotTesterGeofen
 
     mixed: List[FenceItem] = []
     for command in polygons + (MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION, circle):
-        for level in LEVELS:
-            round_trip("command {}, level {}".format(command, level), shape(command, level))
-            mixed += shape(command, level)
-    round_trip("polygons and circles of both levels", mixed)
-
-    # A level that is not set (NaN) is the emergency geofence, as before fence levels existed.
-    for command in (polygon, circle):
-        assert upload(shape(command, math.nan)) == MissionRawResult.SUCCESS
-        assert stored() == shape(command, FENCE_LEVEL_EMERGENCY), "level not set"
-    round_trip("polygons and circles of both levels again", mixed)
+        for level in (FENCE_LEVEL_EMERGENCY, FENCE_LEVEL_CONTINGENCY):
+            round_trip("command {}, level {}".format(command, level), area(command, level))
+            mixed += area(command, level)
+    # An area without a level item is in the emergency geofence, but a level item may say so.
+    mixed += [level_item(FENCE_LEVEL_EMERGENCY)] + area(circle)
+    round_trip("areas of both levels", mixed)
 
     # Only the levels 0 and 1 exist.
-    for command in (polygon, circle):
-        for level in (math.inf, -math.inf, -1.0, 0.5, 1.5, 2.0, 256.0):
-            reject("command {}, level {}".format(command, level), shape(command, level),
-                   INVALID, mixed)
+    for level in (math.nan, math.inf, -math.inf, -1.0, 0.5, 1.5, 2.0, 256.0):
+        reject("level {}".format(level), [level_item(level)] + area(circle), INVALID, mixed)
 
-    # All vertices of a polygon have the same level.
-    for command in polygons:
-        for first, second in (LEVELS, LEVELS[::-1]):
-            items = shape(command, first)
-            items[1] = replace(items[1], level=second)
-            reject("command {} changes level {} to {}".format(command, first, second), items,
-                   INVALID, mixed)
+    # A level item goes in front of an area, not between the vertices of a polygon.
+    plain = area(polygon)
+    reject("level item inside a polygon",
+           plain[:1] + [level_item(FENCE_LEVEL_CONTINGENCY)] + plain[1:], INVALID, mixed)
 
     # A new upload starts without the polygon that the rejected one left unfinished.
-    plain = shape(polygon, FENCE_LEVEL_EMERGENCY)
     round_trip("plan after a rejected polygon", plain)
 
     # The vertex count is checked before it is used, and still rounded to the nearest integer.
@@ -125,7 +125,7 @@ def test_fence_levels_upload_and_download(tester_geofence: AutopilotTesterGeofen
         assert stored() == plain, "vertex count {}".format(count)
 
     for changed in (replace(plain[1], command=polygons[1]), replace(plain[1], param1=4.0),
-                    shape(circle, FENCE_LEVEL_EMERGENCY)[0]):
+                    area(circle)[0]):
         reject("polygon vertex replaced by {}".format(changed), [plain[0], changed, plain[2]],
                INVALID, plain)
 
@@ -135,22 +135,21 @@ def test_fence_levels_upload_and_download(tester_geofence: AutopilotTesterGeofen
            plain)
 
     # Each polygon vertex and each circle takes one of the 64 points of its level.
-    for level in LEVELS:
-        full = shape(circle, level) * POINTS_PER_LEVEL
-        round_trip("64 points at level {}".format(level), full)
-        reject("65 points at level {}".format(level), full + full[:1], NO_SPACE, full)
-        reject("polygon beyond the points left at level {}".format(level),
-               full[:-2] + shape(polygon, level), NO_SPACE, full)
+    emergency = area(circle) * POINTS_PER_LEVEL
+    round_trip("64 emergency geofence points", emergency)
+    reject("65 emergency geofence points", emergency + area(circle), NO_SPACE, emergency)
+    reject("polygon beyond the emergency geofence points left", emergency[:-2] + area(polygon),
+           NO_SPACE, emergency)
 
-    # A return point counts as an emergency geofence point.
-    geofence = shape(circle, FENCE_LEVEL_EMERGENCY) * (POINTS_PER_LEVEL - 1) + [return_point]
-    round_trip("63 points and a return point", geofence)
-    reject("64 points and a return point", geofence[:1] + geofence, NO_SPACE, geofence)
+    contingency = area(polygon, FENCE_LEVEL_CONTINGENCY, POINTS_PER_LEVEL)
+    round_trip("64 contingency geofence points", contingency)
+    reject("65 contingency geofence points",
+           contingency + area(circle, FENCE_LEVEL_CONTINGENCY), NO_SPACE, contingency)
 
-    both = [shape(circle, LEVELS[i % 2])[0] for i in range(2 * POINTS_PER_LEVEL)]
-    round_trip("64 points at each level", both)
-    for level in LEVELS:
-        reject("128 points, 65 of them at level {}".format(level),
-               shape(circle, level) * (POINTS_PER_LEVEL + 1)
-               + shape(circle, 1.0 - level) * (POINTS_PER_LEVEL - 1), NO_SPACE, both)
-    reject("129 points", both + both[:1], NO_SPACE, both)
+    # Level items and the return point take no points of a level, only storage.
+    round_trip("64 emergency geofence points and a return point", emergency + [return_point])
+    # A level item sets the next area only, so the points after it are in the emergency geofence.
+    full = area(polygon, FENCE_LEVEL_CONTINGENCY, POINTS_PER_LEVEL - 1) + emergency
+    assert len(full) == STORED_ITEMS
+    round_trip("full storage", full)
+    reject("one item more than PX4 stores", full + [return_point], NO_SPACE, full)
