@@ -193,7 +193,7 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 	static_assert((int)failsafe_action_t::_max + 1 == (int)Action::Count, "Enum needs to be extended");
 	failsafe_cause_t failsafe_cause = (failsafe_cause_t)cause;
 
-	if (action == Action::Hold && delayed_action != Action::None) {
+	if (delayed_action != Action::None) {
 		failsafe_action_t failsafe_action = (failsafe_action_t)delayed_action;
 
 		if (cause == Cause::Generic) {
@@ -216,7 +216,12 @@ void FailsafeBase::notifyUser(uint8_t user_intended_mode, Action action, Action 
 			(uint16_t) delay_s, failsafe_cause);
 		}
 
-		mavlink_log_critical(&_mavlink_log_pub, "Failsafe activated: entering Hold for %i seconds\t", delay_s);
+		if (action == Action::Hold) {
+			mavlink_log_critical(&_mavlink_log_pub, "Failsafe activated: entering Hold for %i seconds\t", delay_s);
+
+		} else {
+			mavlink_log_critical(&_mavlink_log_pub, "Failsafe activated: continuing for %i seconds\t", delay_s);
+		}
 
 	} else { // no delay
 		failsafe_action_t failsafe_action = (failsafe_action_t)action;
@@ -404,10 +409,11 @@ void FailsafeBase::removeAction(ActionOptions &action) const
 	// clear_condition to avoid triggering a failsafe after deferring is disabled.
 	const bool remove_while_deferring = _defer_failsafes && action.can_be_deferred;
 
-	// The action did not start yet (still in the delayed Hold), so recovering is allowed.
+	// The action did not start yet, so recovering is allowed. Warn during the delay means the mode
+	// kept flying (continue_during_delay). A pilot flying manually is in Hold and has to notice it.
 	// _current_delay is shared, so also check that no action beyond Hold is already running.
-	const bool remove_during_delay = action.clear_during_delay && _current_delay > 0
-					 && _selected_action <= Action::Hold;
+	const bool remove_during_delay = _current_delay > 0 && _selected_action <= Action::Hold
+					 && (action.clear_during_delay || _selected_action == Action::Warn);
 
 	if (action.clear_condition == ClearCondition::WhenConditionClears || remove_while_deferring || remove_during_delay) {
 		// Remove action
@@ -467,6 +473,7 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 	Action &selected_action = returned_state.action;
 	UserTakeoverAllowed allow_user_takeover = UserTakeoverAllowed::Always;
 	bool allow_failsafe_to_be_deferred{true};
+	bool continue_during_delay{true};
 
 	// Select the worst action based on the current active actions
 	for (int action_idx = 0; action_idx < max_num_actions; ++action_idx) {
@@ -490,6 +497,10 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 			if (!cur_action.can_be_deferred) {
 				allow_failsafe_to_be_deferred = false;
 			}
+
+			if (cur_action.action > Action::Warn && !cur_action.continue_during_delay) {
+				continue_during_delay = false;
+			}
 		}
 	}
 
@@ -509,8 +520,17 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 	if (_current_delay > 0 && !_user_takeover_active && allow_user_takeover <= UserTakeoverAllowed::AlwaysModeSwitchOnly
 	    && action_can_be_delayed) {
 		returned_state.delayed_action = selected_action;
-		selected_action = Action::Hold;
 		allow_user_takeover = UserTakeoverAllowed::AlwaysModeSwitchOnly;
+
+		const bool flying_with_sticks = status_flags.mode_req_manual_control & (1u << state.user_intended_mode);
+
+		if (continue_during_delay && !flying_with_sticks) {
+			// The Hold gives a pilot flying with sticks time to react, other modes keep flying their plan instead
+			selected_action = Action::Warn;
+
+		} else {
+			selected_action = Action::Hold;
+		}
 	}
 
 	// User takeover interrupting a failsafe is triggered by a change of the user-intended mode

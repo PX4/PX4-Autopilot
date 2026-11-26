@@ -70,11 +70,13 @@ FailsafeBase::ActionOptions Failsafe::fromNavDllOrRclActParam(int param_value)
 	case gcs_connection_loss_failsafe_mode::Return_mode:
 		options.action = Action::RTL;
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		options.continue_during_delay = true; // a short loss has no effect in modes not flown with sticks
 		break;
 
 	case gcs_connection_loss_failsafe_mode::Land_mode:
 		options.action = Action::Land;
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
+		options.continue_during_delay = true; // a short loss has no effect in modes not flown with sticks
 		break;
 
 	case gcs_connection_loss_failsafe_mode::Terminate:
