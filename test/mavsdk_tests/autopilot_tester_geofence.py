@@ -1,7 +1,7 @@
 """AutopilotTester for the emergency and the contingency geofence.
 
-Fence shapes use home-relative local (north, east) coordinates. Clearances are measured on
-ground truth using the origin saved when the fence was uploaded.
+Fence shapes use home-relative local (north, east) coordinates. Clearances from the emergency
+geofence are measured on ground truth using the origin saved when the fence was uploaded.
 """
 
 import math
@@ -13,12 +13,13 @@ from mavsdk.plugins.telemetry import FlightMode  # type: ignore
 
 from autopilot_tester import (
     MANUAL_CONTROL_RATE_HZ, MAV_CMD_COMPONENT_ARM_DISARM, MAV_CMD_NAV_WAYPOINT,
-    MAV_FRAME_GLOBAL_INT, MAV_FRAME_GLOBAL_RELATIVE_ALT, log, raw_mission_item)
+    MAV_FRAME_GLOBAL_INT, MAV_FRAME_GLOBAL_RELATIVE_ALT, MAV_FRAME_MISSION, log,
+    raw_mission_item)
 from autopilot_tester_loiter import AutopilotTesterLoiter, horizontal_distance
 from geofence_geometry import (
-    FenceKind, FenceShape, MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION,
-    MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION, MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION,
-    MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION, rectangle)
+    FENCE_LEVEL_CONTINGENCY, FenceKind, FenceShape, MAV_CMD_NAV_FENCE_LEVEL,
+    MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION, MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION,
+    MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION, MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION, rectangle)
 from geometry import CoordinateTransformation
 
 MAV_CMD_NAV_VTOL_TAKEOFF = 84
@@ -62,7 +63,8 @@ class AutopilotTesterGeofence(AutopilotTesterLoiter):
         self.upload_fence([FenceShape(FenceKind.POLYGON_INCLUSION, vertices=corners)])
 
     def upload_fence(self, shapes: List[FenceShape]) -> None:
-        """Upload the shapes as the geofence plan."""
+        """Upload the shapes as the geofence plan. Clearances are measured to the shapes of the
+        emergency geofence only."""
         ct = self.get_coordinate_transformation()
         items: List[Any] = []
         commands = {
@@ -72,6 +74,11 @@ class AutopilotTesterGeofence(AutopilotTesterLoiter):
             FenceKind.CIRCLE_EXCLUSION: MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION,
         }
         for shape in shapes:
+            if shape.contingency:
+                items.append(raw_mission_item(
+                    len(items), MAV_CMD_NAV_FENCE_LEVEL, MAV_FRAME_MISSION,
+                    param1=FENCE_LEVEL_CONTINGENCY, current=0 if items else 1, autocontinue=0,
+                    mission_type=MAV_MISSION_TYPE_FENCE))
             polygon = shape.kind in (FenceKind.POLYGON_INCLUSION, FenceKind.POLYGON_EXCLUSION)
             for point in shape.vertices if polygon else [shape.center]:
                 latitude_deg, longitude_deg = ct.global_from_local(*point)
@@ -84,7 +91,7 @@ class AutopilotTesterGeofence(AutopilotTesterLoiter):
                     autocontinue=0, mission_type=MAV_MISSION_TYPE_FENCE))
 
         self._mission_raw.upload_geofence(items)
-        self._fence_shapes = shapes
+        self._fence_shapes = [shape for shape in shapes if not shape.contingency]
         self._fence_origin = ct
         # PX4 needs time to load the fence.
         self.sleep_for(1)
@@ -192,13 +199,13 @@ class AutopilotTesterGeofence(AutopilotTesterLoiter):
         self._track_handle = self._telemetry.subscribe_ground_truth(on_ground_truth)
 
     def fence_distance_m(self, latitude_deg: float, longitude_deg: float) -> float:
-        """Signed clearance from the uploaded fence, using the same origin as its vertices."""
+        """Signed clearance from the emergency geofence, using the same origin as its vertices."""
         assert self._fence_shapes and self._fence_origin is not None, "No fence uploaded"
         north_m, east_m = self._fence_origin.local_from_global(latitude_deg, longitude_deg)
         return min(shape.clearance_m(north_m, east_m) for shape in self._fence_shapes)
 
     def current_fence_distance_m(self) -> float:
-        """Signed clearance of the ground truth position from the uploaded fence."""
+        """Signed clearance of the ground truth position from the emergency geofence."""
         position = self._telemetry.ground_truth()
         return self.fence_distance_m(position.latitude_deg, position.longitude_deg)
 

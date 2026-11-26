@@ -37,6 +37,7 @@ class FenceShape:
     vertices: List[Local2] = field(default_factory=list)  # polygons only
     center: Local2 = (0.0, 0.0)  # circles only
     radius_m: float = 0.0  # circles only
+    contingency: bool = False  # an area of the contingency geofence, uploaded behind a level item
 
     def is_breached_by(self, north_m: float, east_m: float) -> bool:
         """A breach is being inside an exclusion or outside an inclusion shape."""
