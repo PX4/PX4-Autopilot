@@ -6,8 +6,7 @@ parameters:
       PWM_MAIN_GPIO_EN:
         description:
           short: Enable GPIO output mode per channel on PWM Main
-          long: |
-              Selecting which channels are driven as plain digital (on/off) outputs.
+          long: High if the output is above the midpoint of PWM_MAIN_MINn and PWM_MAIN_MAXn, otherwise low. Not supported on DShot timers.
         type: bitmask
         bit:
           0: Put CH1 in GPIO mode
