@@ -65,7 +65,8 @@ parameters:
         short: Final approach altitude
         long: Allow final approach (without horizontal positioning) if losing landing
           target closer than this to the ground. Height is measured above the landing
-          target, else the distance sensor, else the landing waypoint, else home.
+          target, else the distance sensor, else the landing waypoint, else home. The
+          fallback landing also stops following the target below this height.
       type: float
       default: 0.1
       unit: m

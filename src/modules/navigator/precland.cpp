@@ -412,7 +412,21 @@ PrecLand::run_state_search()
 void
 PrecLand::run_state_fallback()
 {
-	// nothing to do, will land
+	if (_fallback_xy_frozen) {
+		// keep the last horizontal setpoint until touchdown
+		return;
+	}
+
+	// Stop following the target close to the ground, like in final approach
+	const vehicle_land_detected_s *land_detected = _navigator->get_land_detected();
+
+	if (below_final_approach_alt() || land_detected->ground_contact || land_detected->maybe_landed) {
+		_fallback_xy_frozen = true;
+		return;
+	}
+
+	// Keep landing, but move towards the target if it becomes visible again
+	aid_horizontally(VerticalAid::None, false, true);
 }
 
 bool
@@ -499,6 +513,9 @@ PrecLand::switch_to_state_fallback()
 {
 	print_state_switch_message("fallback");
 	reset_to_landing_setpoint();
+
+	_fallback_xy_frozen = false;
+	_last_slewrate_time = 0;
 
 	_state = PrecLandState::Fallback;
 	_state_start_time = hrt_absolute_time();

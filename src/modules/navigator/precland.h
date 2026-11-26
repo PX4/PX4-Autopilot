@@ -200,6 +200,7 @@ private:
 	float _ground_alt{0.0f}; /**< Current estimate of ground altitude */
 	float _hold_alt{0.0f}; /**< Altitude captured when entering VerticalAid::HoldAlt */
 	bool _below_search_alt{false}; /**< Whether the vehicle has been below the search altitude during the current search */
+	bool _fallback_xy_frozen{false}; /**< Whether the fallback landing stopped following the target close to the ground */
 	VerticalAid _last_vertical_aid{VerticalAid::None}; /**< Vertical aid applied by the previous setpoint update */
 
 	matrix::Vector2f _sp_pev;

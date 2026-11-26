@@ -60,6 +60,8 @@ A precision landing has the following phases:
 After the first search, the vehicle searches again at most [PLD_MAX_SRCH](../advanced_config/parameter_reference.md#PLD_MAX_SRCH) times.
 When no search is left, or when the search times out, the vehicle does a normal landing at the landing point.
 The landing point is the last known position of the target if it has been seen, otherwise the landing waypoint.
+If the target becomes visible again during this landing, the vehicle moves horizontally towards it without stopping its descent.
+It stops following the target below `PLD_FAPPR_ALT` or when it touches the ground, and then lands on the last setpoint.
 
 A flow diagram showing the phases can be found in [landing phases flow diagram](#landing-phases-flow-diagram) below.
 

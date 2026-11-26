@@ -225,6 +225,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   The vehicle now descends normally until the search altitude and only climbs back if the target is not visible there, instead of climbing to the search altitude first.
   Opportunistic precision landings no longer give up when the target is not visible at the start; they use it if it becomes visible during the descent.
   A lost target leads to a new search instead of a return to the start point, and the fallback landing is at the last known target position or the landing waypoint instead of the current position.
+  During that fallback landing the vehicle still moves towards the target if it becomes visible again, until it is below `PLD_FAPPR_ALT`.
 - Precision landing can stop descending and return to the horizontal approach when the vehicle drifts away from the target, set with the new [PLD_DRIFT_RAD](../advanced_config/parameter_reference.md#PLD_DRIFT_RAD) (disabled by default).
 - [Follow Me](../flight_modes_mc/follow_me.md) no longer treats an [EKF2 instance switch](../advanced_config/tuning_the_ecl_ekf.md#running-multiple-ekf-instances) or a change of the local origin as a jump of the target while the mode is active. The vehicle holds its position until the next target position message and keeps its altitude instead of climbing or descending by the change in reference altitude. ([PX4-Autopilot#29029](https://github.com/PX4/PX4-Autopilot/pull/29029))
 
