@@ -1382,6 +1382,7 @@ void Navigator::geofence_breach_check()
 		_geofence_emer_reposition_sent = breach_emergency && (_geofence_emer_reposition_sent || hold_emergency);
 		_geofence_cont_reposition_sent = breach_contingency && (_geofence_cont_reposition_sent || hold_contingency);
 
+		_global_gf_breach = breach_emergency || breach_contingency;
 		_geofence_result_pub.publish(_geofence_result);
 	}
 }
@@ -1395,7 +1396,9 @@ void Navigator::local_geofence_breach_check()
 	const float max_hor_dist = _geofence.getMaxHorDistanceHome();
 	const float max_ver_dist = _geofence.getMaxVerDistanceHome();
 
-	if (max_hor_dist <= FLT_EPSILON && max_ver_dist <= FLT_EPSILON) {
+	// A breach found with the global position stays until the global position is back: the local check
+	// must not clear it, e.g. when GNSS is lost outside the fence
+	if (_global_gf_breach || (max_hor_dist <= FLT_EPSILON && max_ver_dist <= FLT_EPSILON)) {
 		return;
 	}
 
@@ -1405,7 +1408,10 @@ void Navigator::local_geofence_breach_check()
 	bool cont_max_dist_triggered = false;
 	bool max_alt_triggered = false;
 
-	if (max_hor_dist > FLT_EPSILON && _local_pos.xy_valid && _home_pos.valid_lpos) {
+	const bool hor_checked = (max_hor_dist > FLT_EPSILON) && _local_pos.xy_valid && _home_pos.valid_lpos;
+	bool ver_checked = false;
+
+	if (hor_checked) {
 		const float dist_xy = hypotf(_local_pos.x - _home_pos.x, _local_pos.y - _home_pos.y);
 		max_dist_triggered = dist_xy >= max_hor_dist;
 
@@ -1424,6 +1430,7 @@ void Navigator::local_geofence_breach_check()
 
 		// Height unknown in flight counts as a breach rather than letting the vehicle climb unchecked
 		const bool alt_exceeded = PX4_ISFINITE(height) ? (height >= max_ver_dist) : armed;
+		ver_checked = PX4_ISFINITE(height) || armed;
 
 		// A reflection or a lost return makes the distance sensor jump for a moment (e.g. when tilting),
 		// so the breach is only reported once it has lasted LOCAL_GF_ALT_CONFIRM
@@ -1435,6 +1442,11 @@ void Navigator::local_geofence_breach_check()
 		}
 
 		max_alt_triggered = alt_exceeded && (now - _local_gf_alt_breach_start >= LOCAL_GF_ALT_CONFIRM);
+	}
+
+	// Nothing could be checked: like the global check without a valid position, publish no (clear) result
+	if (!hor_checked && !ver_checked) {
+		return;
 	}
 
 	_geofence_result.geofence_emer_max_dist_triggered = max_dist_triggered;

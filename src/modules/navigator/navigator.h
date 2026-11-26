@@ -438,6 +438,7 @@ private:
 	bool _geofence_cont_reposition_sent{false};	/**< reposition triplet sent for the current contingency geofence breach */
 	static constexpr hrt_abstime LOCAL_GF_ALT_CONFIRM{500_ms};	/**< local vertical limit must be exceeded this long */
 	hrt_abstime _local_gf_alt_breach_start{0};	/**< since when the local vertical limit is exceeded, 0 if not */
+	bool _global_gf_breach{false};			/**< the last result from the global check is a breach, not cleared by the local check */
 	RobustHeight _local_gf_height;			/**< distance sensor height without sudden jumps, for the local fence */
 	ArmedHeight _local_gf_armed_height;		/**< height above the arming point, for the local fence without a distance sensor */
 	hrt_abstime _time_loitering_after_gf_breach{0};	/**< latches breach state while loitering, prevents reposition center walking */
