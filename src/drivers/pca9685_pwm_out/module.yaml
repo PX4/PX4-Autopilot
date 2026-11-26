@@ -96,8 +96,7 @@ parameters:
       PCA9685_GPIO_EN:
         description:
           short: Enable GPIO output mode per channel
-          long: |
-              Selecting which channels are driven as plain digital (on/off) outputs.
+          long: On if the output is above the midpoint of PCA9685_MINn and PCA9685_MAXn, otherwise off. Overrides PCA9685_DUTY_EN.
         type: bitmask
         bit:
           0: Put CH1 into GPIO mode
