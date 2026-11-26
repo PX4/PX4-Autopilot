@@ -119,9 +119,7 @@ static constexpr size_t g_per_item_size[DM_KEY_NUM_KEYS] = {
 };
 
 /* increment this define whenever a binary incompatible change is performed */
-// The larger fence banks move the following items.
-// 6 was used by development builds that stored a fence level in each area.
-#define DM_COMPAT_VERSION	7ULL
+#define DM_COMPAT_VERSION	5ULL
 
 #define DM_COMPAT_KEY ((DM_COMPAT_VERSION << 32) + (sizeof(struct mission_item_s) << 24) + \
 		       (sizeof(struct mission_s) << 16) + (sizeof(struct mission_stats_entry_s) << 12) + \

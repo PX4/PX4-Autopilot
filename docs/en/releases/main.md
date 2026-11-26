@@ -30,8 +30,6 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 
 ## Upgrade Guide
 
-- The mission, geofence and rally points stored on the vehicle are cleared on the first boot after upgrading, because the fence storage format changed.
-  Save the plan in the ground station before upgrading and upload it again afterwards.
 - `COM_ARM_TRAFF` has been replaced by `COM_TRAFF_AVOID`. The old value 3 ("enforce for mission modes only") is migrated to `COM_TRAFF_AVOID=2`, which blocks arming in all modes, not just mission modes. If you relied on being able to arm manually with traffic detected, set `COM_TRAFF_AVOID=1` (warning only) instead.
 - `PCA9685_SCHD_HZ` has been removed. `PCA9685_PWM_FREQ` now sets both the PWM frequency of the PCA9685 and the rate at which values are pushed to it; if you had `PCA9685_SCHD_HZ` set to a non-default value, set `PCA9685_PWM_FREQ` to it after upgrading. Frequencies above 400Hz (previously only usable in duty-cycle mode) are no longer supported.
 - **Flight controller firmware no longer embeds CAN node firmware.** The `px4_fmu-v5_uavcanv0periph` build, which carried CUAV CAN GPS v1 firmware in its ROMFS so the flight controller could update the GPS over DroneCAN, and the `CONFIG_BOARD_UAVCAN_PERIPHERALS` board option behind it have been removed. Use the standard `px4_fmu-v5_default` firmware and update the GPS from the SD card with `cuav_can-gps-v1_default.uavcan.bin` from the release instead; see [DroneCAN Firmware Update](../dronecan/index.md#firmware-update). ([PX4-Autopilot#28870](https://github.com/PX4/PX4-Autopilot/pull/28870))
