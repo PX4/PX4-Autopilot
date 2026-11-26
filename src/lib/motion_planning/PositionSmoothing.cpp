@@ -283,7 +283,12 @@ const Vector3f PositionSmoothing::_generateVelocitySetpoint(const Vector3f &posi
 		// Use Z position setpoint to generate a Z velocity setpoint
 
 		const float z_dir = matrix::sign(target(2) - _trajectory[2].getCurrentPosition());
-		const float vel_sp_z = z_dir * _getMaxZSpeed(waypoints);
+
+		// A decoupled vertical holds its target (e.g. a height above the moving terrain) instead of passing
+		// through it towards the next waypoint: arrive with zero vertical speed, else it keeps overshooting
+		const Vector3f waypoints_hold[3] = {waypoints[0], waypoints[1], waypoints[1]};
+		const Vector3f(&waypoints_z)[3] = _vertical_decoupled ? waypoints_hold : waypoints;
+		const float vel_sp_z = z_dir * _getMaxZSpeed(waypoints_z);
 
 		// If available, use the existing velocity as a feedforward, otherwise replace it
 		if (PX4_ISFINITE(velocity_setpoint(2))) {
