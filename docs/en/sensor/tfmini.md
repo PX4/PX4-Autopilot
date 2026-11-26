@@ -126,7 +126,7 @@ The driver does not configure the sensor, so the sensor must be at its factory s
 If these have been changed, reset the sensor to its defaults as described in the Benewake user manual.
 
 [SENS_TFMINI_HW](../advanced_config/parameter_reference.md#SENS_TFMINI_HW) selects the model and sets the range limits PX4 reports.
-Set it to `5` (`TFMINI-S`) for the TFmini-S, `4` (`TFMINI Plus`) for the TFmini Plus, or `1` (`TFMINI (discontinued)`) for the discontinued TFmini.
+Set it to `5` (`TFMINI-S`) for the TFmini-S, `4` (`TFMINI Plus`) for the TFmini Plus, or `1` (`TFMINI (discontinued)`) for the discontinued TFmini, and then reboot.
 
 The configuration that is common to all rangefinders, such as the sensor position offsets used by the estimator, is covered in [Rangefinders > Configuration/Setup](../sensor/rangefinders.md#configuration).
 

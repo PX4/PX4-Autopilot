@@ -21,7 +21,7 @@ There may also be other DroneCAN rangefinders than those listed here.
 | [ARK DIST SR]                               | ToF (850 nm IR) | 8 cm to ~30 m     | DroneCAN, UART   | ✔️   |                                     |
 | [ARK DIST MR]                               | ToF (IR)        | 8 cm to ~50 m     | DroneCAN, UART   | ✔️   |                                     |
 | [Benewake TFmini Plus]                      | ToF (IR LED)    | 0.1 m – 12 m      | UART             | ~    | PX4 minimum 0.1 m                   |
-| [Benewake TFmini-S]                         | ToF (IR laser)  | 0.1 m – 12 m      | UART             | ~    | PX4 minimum 0.4 m                   |
+| [Benewake TFmini-S]                         | ToF (IR laser)  | 0.1 m – 12 m      | UART             | ~    | PX4 minimum 0.1 m                   |
 | [Benewake TFmini] _(disc.)_                 | ToF (IR)        | 0.3 m – 12 m      | UART             | ~    | Discontinued                        |
 | [Garmin LIDAR-Lite v3]                      | ToF (IR laser)  | up to 40 m        | I2C, PWM         | ~    | PX4 caps range to 35 m or less      |
 | [Holybro ST VL53L1X Lidar]                  | ToF (IR)        | up to ~4 m        | I2C              | ~    |                                     |
