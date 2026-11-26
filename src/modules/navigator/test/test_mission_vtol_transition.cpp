@@ -250,11 +250,13 @@ protected:
 
 TEST_F(MissionVtolTransitionTest, NominalFrontTransitionAlignsBeforeItsCommand)
 {
-	// The alignment holds position and turns towards the next waypoint; the command is sent once and the item
-	// completes in fixed-wing.
+	// The vehicle turns towards the next waypoint on the way to it. The command is sent once the heading is
+	// reached, wherever the vehicle is then, and the item completes in fixed-wing.
 	MissionTestPeer mission(&_navigator);
 	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
-	auto target = waypointAt(100.f, 0.f);
+	auto target = waypointAt(300.f, 0.f);
+	target.altitude_is_relative = true;
+	target.altitude = 50.f;
 	target.yaw = M_PI_4_F;
 	const float yaw = get_bearing_to_next_waypoint(position.lat, position.lon, target.lat, target.lon);
 	auto front_transition = makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
@@ -266,25 +268,32 @@ TEST_F(MissionVtolTransitionTest, NominalFrontTransitionAlignsBeforeItsCommand)
 
 	const auto &triplet = *_navigator.get_position_setpoint_triplet();
 	ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING);
-	// The published setpoint is the alignment item: hold here, heading towards the next waypoint.
-	EXPECT_DOUBLE_EQ(triplet.current.lat, position.lat);
-	EXPECT_DOUBLE_EQ(triplet.current.lon, position.lon);
+	// The published setpoint is the alignment item: the next waypoint, climbing to it, heading towards it.
+	EXPECT_DOUBLE_EQ(triplet.current.lat, target.lat);
+	EXPECT_DOUBLE_EQ(triplet.current.lon, target.lon);
+	EXPECT_FLOAT_EQ(triplet.current.alt, kAlt + 50.f);
 	EXPECT_NEAR(triplet.current.yaw, yaw, 1e-4f);
 	EXPECT_NEAR(mission.currentMissionItemForTest().yaw, yaw, 1e-4f);
 	mission.on_active();
 	EXPECT_FALSE(_command_sub.updated());
 	EXPECT_EQ(_navigator.get_mission_result()->seq_reached, -1);
 
+	// Aligned on the way, still far from that waypoint: the command is sent.
+	const auto moved = makePositionFromOffset(kBaseLat, kBaseLon, 120.f, 0.f, kAlt + 10.f);
+	publishGlobalPosition(moved);
 	publishLocalPosition(yaw);
 	mission.on_active();
 	ASSERT_TRUE(_command_sub.update(&command));
 	EXPECT_EQ(command.command, vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION);
 	EXPECT_FLOAT_EQ(command.param1, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
-	EXPECT_DOUBLE_EQ(triplet.current.lat, position.lat);
+	// The transition starts where the vehicle is, with the alignment heading.
+	EXPECT_DOUBLE_EQ(triplet.current.lat, moved.lat);
+	EXPECT_DOUBLE_EQ(triplet.current.lon, moved.lon);
+	EXPECT_FLOAT_EQ(triplet.current.alt, moved.alt);
 	EXPECT_NEAR(triplet.current.yaw, yaw, 1e-4f);
 	EXPECT_EQ(triplet.current.type, position_setpoint_s::SETPOINT_TYPE_POSITION);
-	// The hold point is also the previous setpoint while the transition starts.
-	EXPECT_DOUBLE_EQ(triplet.previous.lat, position.lat);
+	// That point is also the previous setpoint while the transition runs.
+	EXPECT_DOUBLE_EQ(triplet.previous.lat, moved.lat);
 	EXPECT_EQ(_navigator.get_mission_result()->seq_reached, 0);
 
 	// The front transition runs without a second command and the item completes in fixed-wing.
@@ -297,6 +306,21 @@ TEST_F(MissionVtolTransitionTest, NominalFrontTransitionAlignsBeforeItsCommand)
 	EXPECT_FALSE(_command_sub.updated());
 	EXPECT_EQ(mission.currentSequenceForTest(), 1);
 	EXPECT_EQ(_navigator.get_mission_result()->seq_reached, 0);
+	// The leg to the waypoint starts where the transition did.
+	EXPECT_DOUBLE_EQ(triplet.previous.lat, moved.lat);
+	EXPECT_DOUBLE_EQ(triplet.current.lat, target.lat);
+}
+
+TEST_F(MissionVtolTransitionTest, FrontTransitionAlignmentDoesNotDescend)
+{
+	// A lower next waypoint, here a landing on the ground, is flown towards at the current altitude.
+	MissionTestPeer mission(&_navigator);
+	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
+	const auto land = makeLandItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt - 50.f);
+	setAirborneVehicle(position, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, M_PI_2_F);
+	prepareExecution(mission, {makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW), land});
+	ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING);
+	EXPECT_FLOAT_EQ(_navigator.get_position_setpoint_triplet()->current.alt, kAlt);
 }
 
 TEST_F(MissionVtolTransitionTest, BackTransitionKeepsItsParameterAndWaitsForMulticopter)
