@@ -1,4 +1,4 @@
-# Польотний контролер Hex Cube Black
+# CubePilot Cube Black Flight Controller
 
 :::warning
 PX4 не розробляє цей (або будь-який інший) автопілот.
@@ -6,12 +6,10 @@ Contact the [manufacturer](https://cubepilot.org/#/home) for hardware support or
 :::
 
 :::tip
-The [Cube Orange](cubepilot_cube_orange.md) is the successor to this product.
-We recommend however to consider products built on industry standards, such as the [Pixhawk Standards](autopilot_pixhawk_standard.md).
-Цей контролер польоту не дотримується стандарту і використовує патентований роз'єм.
+The [CubePilot Cube Orange](cubepilot_cube_orange.md) and [CubePilot Cube Orange+](cubepilot_cube_orangeplus.md) are successors to this product.
 :::
 
-The [Hex Cube Black](https://docs.cubepilot.org/autopilot/the-cube) flight controller (previously known as Pixhawk 2.1) is a flexible autopilot intended primarily for manufacturers of commercial systems.
+The [CubePilot Cube Black](https://docs.cubepilot.org/autopilot/the-cube) flight controller (previously known as Pixhawk 2.1) is a flexible autopilot intended primarily for manufacturers of commercial systems.
 It is based on the [Pixhawk-project](https://pixhawk.org/) **FMUv3** open hardware design and runs PX4 on the [NuttX](https://nuttx.apache.org/) OS.
 
 ![Cube Black](../../assets/flight_controller/cube/cube_black_hero.png)

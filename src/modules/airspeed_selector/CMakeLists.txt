@@ -43,3 +43,5 @@ px4_add_module(
 		sensor_calibration
 		wind_estimator
 )
+
+px4_add_functional_gtest(SRC AirspeedValidatorTest.cpp LINKLIBS modules__airspeed_selector airspeed)

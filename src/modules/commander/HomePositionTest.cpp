@@ -68,10 +68,10 @@ protected:
 
 		// The constructor caches EKF2_HGT_REF and the parameter objects read their
 		// values on construction, so all parameters are set before HomePosition exists
-		const char *names[] = {"COM_HOME_EN", "EKF2_GPS_CTRL", "EKF2_HGT_REF"};
-		const int32_t values[] = {1, 3, 1};
+		const char *names[] = {"COM_HOME_EN", "EKF2_HGT_REF"};
+		const int32_t values[] = {1, 1};
 
-		for (unsigned i = 0; i < 3; ++i) {
+		for (unsigned i = 0; i < 2; ++i) {
 			_saved[i].handle = param_find(names[i]);
 			ASSERT_NE(_saved[i].handle, PARAM_INVALID) << names[i];
 			ASSERT_EQ(param_get(_saved[i].handle, &_saved[i].value), 0);
@@ -206,7 +206,7 @@ protected:
 
 	failsafe_flags_s _flags{}; // must outlive the HomePosition that references it
 	std::unique_ptr<HomePosition> _home;
-	SavedParam _saved[3] {};
+	SavedParam _saved[2] {};
 	bool _helpers_initialized{false};
 
 	uORB::Publication<vehicle_local_position_s> _lpos_pub{ORB_ID(vehicle_local_position)};

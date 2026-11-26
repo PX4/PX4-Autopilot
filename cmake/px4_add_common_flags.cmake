@@ -119,6 +119,12 @@ function(px4_add_common_flags)
 			add_compile_options(-Wno-stringop-truncation)
 		endif()
 
+		if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9)
+			# GCC before 9 ignores _Pragma inside a macro expansion, so the DEFINE_PARAMETERS
+			# layout check cannot silence its own offsetof warning there.
+			add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-Wno-invalid-offsetof>)
+		endif()
+
 		add_compile_options(
 			-fno-builtin-printf
 			-fno-strength-reduce

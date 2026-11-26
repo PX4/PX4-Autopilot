@@ -22,6 +22,7 @@ There may also be other DroneCAN rangefinders than those listed here.
 | [ARK DIST MR]                               | ToF (IR)        | 8 cm to ~50 m     | DroneCAN, UART   | ✔️   |                                     |
 | [Benewake TFmini Plus]                      | ToF (IR LED)    | 0.1 m – 12 m      | UART             | ~    | PX4 minimum 0.1 m                   |
 | [Benewake TFmini-S]                         | ToF (IR laser)  | 0.1 m – 12 m      | UART             | ~    | PX4 minimum 0.4 m                   |
+| [Benewake TFmini] _(disc.)_                 | ToF (IR)        | 0.3 m – 12 m      | UART             | ~    | Discontinued                        |
 | [Garmin LIDAR-Lite v3]                      | ToF (IR laser)  | up to 40 m        | I2C, PWM         | ~    | PX4 caps range to 35 m or less      |
 | [Holybro ST VL53L1X Lidar]                  | ToF (IR)        | up to ~4 m        | I2C              | ~    |                                     |
 | [LeddarOne]                                 | ToF (IR)        | 1 cm – 40 m       | UART             | ~    |                                     |
@@ -47,6 +48,7 @@ There may also be other DroneCAN rangefinders than those listed here.
 [ARK DIST MR]: ../dronecan/ark_dist_mr.md
 [Benewake TFmini Plus]: ../sensor/tfmini.md
 [Benewake TFmini-S]: ../sensor/tfmini.md
+[Benewake TFmini]: ../sensor/tfmini.md
 [Garmin LIDAR-Lite v3]: ../sensor/lidar_lite.md
 [Holybro ST VL53L1X Lidar]: #holybro-st-vl53l1x-lidar
 [Lanbao PSK-CM8JL65-CC5]: ../sensor/cm8jl65_ir_distance_sensor.md

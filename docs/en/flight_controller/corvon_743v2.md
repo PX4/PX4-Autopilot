@@ -40,7 +40,7 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ## Where to Buy
 
-Order from [CORVON](https://www.corvon.tech/en).
+Order from [CORVON](https://www.corvon.tech/en/products/h743v2-flight-controller).
 
 ## Physical / Mechanical
 

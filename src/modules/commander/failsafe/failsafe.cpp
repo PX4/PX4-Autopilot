@@ -132,6 +132,17 @@ FailsafeBase::ActionOptions Failsafe::fromGfActParam(int param_value)
 	return options;
 }
 
+// The contingency geofence is there to keep the vehicle from breaching the emergency geofence, where Terminate may
+// be set. Terminate is reserved for the emergency geofence, to prevent a misconfiguration.
+FailsafeBase::ActionOptions Failsafe::fromGfContActParam(int param_value)
+{
+	if (geofence_violation_action(param_value) == geofence_violation_action::Terminate) {
+		return ActionOptions(Action::Warn);
+	}
+
+	return fromGfActParam(param_value);
+}
+
 
 FailsafeBase::ActionOptions Failsafe::fromActuatorFailureActParam(int param_value)
 {
@@ -651,14 +662,16 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 
 	ActionOptions geofence_options = fromGfActParam(_param_gf_action.get());
 
-	// GF_ACT_FORCE: no stick or mode-switch takeover, only disarming ends the action
+	// GF_ACT_FORCE: no stick or mode-switch takeover of the emergency geofence action, only disarming ends it
 	if (_param_gf_act_force.get() && geofence_options.action >= Action::Hold
 	    && geofence_options.action != Action::Terminate) {
 		geofence_options.allow_user_takeover = UserTakeoverAllowed::Never;
 		geofence_options.clear_condition = ClearCondition::OnDisarm;
 	}
 
-	CHECK_FAILSAFE(status_flags, geofence_breached, geofence_options.cannotBeDeferred());
+	CHECK_FAILSAFE(status_flags, gf_emer_breach, geofence_options.cannotBeDeferred());
+	CHECK_FAILSAFE(status_flags, gf_cont_breach,
+		       fromGfContActParam(_param_gf_cont_action.get()).cannotBeDeferred());
 
 	const hrt_abstime spoolup = static_cast<hrt_abstime>(_param_com_spoolup_time.get() * 1_s);
 

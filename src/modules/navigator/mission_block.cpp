@@ -553,7 +553,8 @@ MissionBlock::issue_command(const mission_item_s &item)
 {
 	if (mission_item_contains_position(item)
 	    || item_contains_gate(item)
-	    || item_contains_marker(item)) {
+	    || item_contains_marker(item)
+	    || item.nav_cmd == NAV_CMD_DELAY) { // executed entirely by navigator
 		return;
 	}
 

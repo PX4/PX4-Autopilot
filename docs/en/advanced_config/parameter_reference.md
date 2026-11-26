@@ -36926,16 +36926,16 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Geofence
 
-<div class="param-group" style="--param-count: 5">
+<div class="param-group" style="--param-count: 7">
 
 <div class="param">
 
 ### GF_ACTION (`INT32`) {#GF_ACTION}
 
-Geofence violation action.
+Emergency geofence breach action.
 
 Note: Setting this value to 4 enables flight termination,
-which will kill the vehicle on violation of the fence.
+which will kill the vehicle on a breach of the fence.
 
 
 **Values:**
@@ -36977,12 +36977,50 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 <div class="param">
 
+### GF_CONT_ACTION (`INT32`) {#GF_CONT_ACTION}
+
+Contingency geofence breach action.
+
+If the emergency geofence is breached as well, the more severe of this action and GF_ACTION is taken.
+
+
+**Values:**
+
+- `0`: None
+- `1`: Warning
+- `2`: Hold mode
+- `3`: Return mode
+- `5`: Land mode
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 5 |  | 2 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### GF_CONT_H_MARGIN (`FLOAT`) {#GF_CONT_H_MARGIN}
+
+Contingency geofence horizontal margin.
+
+Triggers GF_CONT_ACTION within this horizontal distance of GF_MAX_HOR_DIST, or of a polygon or circle of the geofence plan. Disabled if 0.
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&nbsp; | 0 | 10000 | 10 | 0.0 | m | &nbsp;
+
+</div>
+
+<div class="param">
+
 ### GF_MAX_HOR_DIST (`FLOAT`) {#GF_MAX_HOR_DIST}
 
 Max horizontal distance from Home.
 
-Maximum horizontal distance in meters the vehicle can be from Home before triggering a geofence action.
-Disabled if 0.
+Triggers GF_ACTION beyond this distance. Disabled if 0.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
@@ -36997,8 +37035,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 Max vertical distance from Home.
 
-Maximum vertical distance in meters the vehicle can be from Home before triggering a geofence action.
-Disabled if 0.
+Triggers GF_ACTION above this height over Home. Disabled if 0.
 
 
 Reboot | minValue | maxValue | increment | default | unit | Read-Only

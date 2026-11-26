@@ -32,9 +32,11 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
   - ARKV6X: 2× [InvenSense ICM-42688-P](https://www.invensense.tdk.com/en-us/products/6-axis/icm-42688-p) (SPI2, SPI3), [InvenSense IIM-42652](https://www.invensense.tdk.com/en-us/products/6-axis/iim-42652) (industrial, SPI1)
   - ARKV6X Extended Range: 3× [InvenSense IIM-42653](https://www.invensense.tdk.com/en-us/products/6-axis/iim-42653) (SPI1, SPI2, SPI3), for a 4000 degrees per second (dps) gyroscope and 32 g accelerometer range.
     The Extended Range needs PX4 v1.14 or later.
+  - ARKV6X-32X: 3× [ST LSM6DSV32X](https://www.st.com/en/mems-and-sensors/lsm6dsv32x.html) (SPI1, SPI2, SPI3), with the same 4000 dps gyroscope and 32 g accelerometer range as the Extended Range.
+    The ARKV6X-32X needs PX4 v1.18 or later.
 - **Barometer:** [Bosch BMP390](https://www.bosch-sensortec.com/en/products/environmental-sensors/pressure-sensors/bmp390/) (I2C4)
 - **Magnetometer:** [Bosch BMM150](https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmm150-ds001.pdf) (I2C4)
-- **Heater:** 1 W, keeps the sensors warm in extreme conditions. It regulates on the temperature of the IIM-42652 (IIM-42653 on the Extended Range).
+- **Heater:** 1 W, keeps the sensors warm in extreme conditions. It regulates on the temperature of the IMU on SPI1.
 
 ### Interfaces {#interfaces}
 
