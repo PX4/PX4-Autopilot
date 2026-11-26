@@ -37,6 +37,18 @@ It keeps flying towards that waypoint while it turns, climbing to the waypoint's
 The transition starts where the vehicle is, once its heading is within [MIS_YAW_ERR](../advanced_config/parameter_reference.md#MIS_YAW_ERR) of the bearing to the waypoint.
 If the heading is not reached within the [waypoint heading timeout](#waypoint-heading-timeout), the mission fails; until then the vehicle keeps flying towards the waypoint.
 With [MPC_YAW_MODE](../advanced_config/parameter_reference.md#MPC_YAW_MODE) set to `towards waypoint (yaw first)` the vehicle still turns before it moves on.
+
+If a waypoint directly follows the transition item, the item completes once the front transition starts, and the vehicle follows the mission from where the transition started.
+It can turn during the transition at a waypoint it passes: waypoints are then reached as in fixed-wing flight, without their heading or hold time.
+The mission only goes on from waypoint to waypoint during the transition.
+Any other item, such as a command, a loiter or a landing, starts in fixed-wing mode, and the vehicle holds its heading from the last waypoint before that item until then.
+A waypoint passed outside its fixed-wing altitude acceptance radius is not reached until the vehicle is within that radius: it holds its heading meanwhile.
+If the mission is paused during the transition while it is still on the leg after the transition item, it resumes at that item, which starts the transition again if it was stopped.
+If the transition is stopped while the mission stays active, the mission continues in multicopter mode from the waypoint it flies to.
+A transition item that no waypoint follows still waits for fixed-wing mode, as before.
+A front transition commanded from the ground station or RC during a mission follows the leg to the current waypoint in the same way, if that leg lies within 90° of the vehicle heading.
+Otherwise it holds the transition heading, as in other modes.
+In other modes, and for tailsitters, which fly the transition attitude, the vehicle holds the transition heading until it is in fixed-wing mode.
 <Badge type="tip" text="main (PX4 v2.0)" />
 
 ## Mission Command Timeouts
@@ -63,7 +75,7 @@ Set `MIS_YAW_TMT` to -1 to always wait for the heading.
 Plan a VTOL mission takeoff by adding a `VTOL Takeoff` mission item to the map.
 
 During mission execution the vehicle will ascend vertically to the minimum takeoff altitude defined in the [MIS_TAKEOFF_ALT](../advanced_config/parameter_reference.md#MIS_TAKEOFF_ALT) parameter, then transition to fixed-wing mode with the heading defined in the mission item.
-After transitioning the vehicle heads towards the 3D position defined in the mission item.
+The vehicle heads towards the 3D position defined in the mission item, already during the transition.
 
 A VTOL mission requires a `VTOL Takeoff` mission item (`MAV_CMD_NAV_VTOL_TAKEOFF`) to takeoff (or a `MAV_CMD_NAV_TAKEOFF` when the vehicle is in MC mode); if however the vehicle is already flying when the mission is started the takeoff item will be treated as a normal waypoint.
 

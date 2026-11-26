@@ -347,6 +347,15 @@ public:
 	 */
 	bool front_transition_inhibited() const { return _front_transition_inhibited; }
 
+	/**
+	 * Fixed-wing flight or a VTOL front transition. In both the vehicle flies on past its waypoints,
+	 * it cannot stop at them.
+	 */
+	bool in_fixed_wing_or_front_transition() const
+	{
+		return _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING || _vstatus.in_transition_to_fw;
+	}
+
 	void acquire_gimbal_control();
 	void release_gimbal_control();
 	void set_gimbal_neutral();

@@ -86,6 +86,23 @@ Mission::on_inactive()
 }
 
 void
+Mission::on_inactivation()
+{
+	// The previous item is a front transition item that completed when its transition started, and that
+	// transition still runs. Resume at that item: it sends the transition again in case it gets stopped meanwhile.
+	mission_item_s previous_item;
+
+	if (_navigator->get_vstatus()->in_transition_to_fw
+	    && loadMissionItemFromCache(_mission.current_seq - 1, previous_item)
+	    && previous_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
+	    && int(previous_item.params[0]) == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW) {
+		setMissionIndex(_mission.current_seq - 1);
+	}
+
+	MissionBase::on_inactivation();
+}
+
+void
 Mission::on_activation()
 {
 	_need_mission_save = true;
@@ -229,6 +246,11 @@ void Mission::setActiveMissionItems()
 		}
 	}
 
+	// During a VTOL front transition the mission only goes on to a waypoint that directly follows.
+	// Any other item starts in fixed-wing flight.
+	const bool waypoint_follows = num_found_items > 0u && next_mission_items_index[0u] == _mission.current_seq + 1
+				      && next_mission_items[0u].nav_cmd == NAV_CMD_WAYPOINT;
+
 	/*********************************** handle mission item *********************************************/
 	WorkItemType new_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
 
@@ -262,6 +284,12 @@ void Mission::setActiveMissionItems()
 		if (new_work_item_type != WorkItemType::WORK_ITEM_TYPE_PRECISION_LAND) {
 			mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 		}
+
+		// The steps of a work item follow each other during a front transition too, e.g. a VTOL takeoff then
+		// flies to its waypoint. On top of that waypoint the takeoff completes in fixed-wing flight: it did not
+		// turn towards the next one.
+		_mission_item.reached_in_transition = (waypoint_follows && _mission_item.nav_cmd == NAV_CMD_WAYPOINT)
+						      || new_work_item_type != WorkItemType::WORK_ITEM_TYPE_DEFAULT;
 
 		// prevent fixed wing lateral guidance from loitering at a waypoint as part of a mission landing if the altitude
 		// is not achieved.
@@ -324,6 +352,7 @@ void Mission::setActiveMissionItems()
 
 	} else if (_mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION) {
 		handleVtolTransition(new_work_item_type, next_mission_items, num_found_items);
+		_mission_item.reached_in_transition = waypoint_follows;
 	}
 
 	// Only set the previous position item if the current one really changed.
@@ -484,6 +513,10 @@ void Mission::handleVtolTransition(WorkItemType &new_work_item_type, mission_ite
 				/* align heading towards the next waypoint on the way to it */
 				mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 			}
+
+		} else if (front_transition && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+			// Sent without turning first. The transition holds its heading, it has no leg to follow.
+			pos_sp_triplet->previous = pos_sp_triplet->current;
 		}
 
 	} else {
@@ -502,11 +535,12 @@ void Mission::handleVtolTransition(WorkItemType &new_work_item_type, mission_ite
 			pos_sp_triplet->current.lat = _global_pos_sub.get().lat;
 			pos_sp_triplet->current.lon = _global_pos_sub.get().lon;
 			pos_sp_triplet->current.alt = _global_pos_sub.get().alt;
-			pos_sp_triplet->previous = pos_sp_triplet->current;
 		}
 
 		// the FW position controller generates the wp to track during transition from the current setpoint
 		pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+		// It follows the leg from the previous setpoint: there is none until the mission goes on.
+		pos_sp_triplet->previous = pos_sp_triplet->current;
 	}
 }
 

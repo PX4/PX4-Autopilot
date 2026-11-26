@@ -185,7 +185,8 @@ struct mission_item_s {
 			 autocontinue : 1,			/**< true if next waypoint should follow after this one */
 			 vtol_back_transition : 1,		/**< part of the vtol back transition sequence */
 			 heading_only : 1,			/**< reached with the heading alone, wherever the vehicle is */
-			 _padding0 : 3;				/**< padding remaining unused bits  */
+			 reached_in_transition : 1,		/**< can be reached during a VTOL front transition: a waypoint follows */
+			 _padding0 : 2;				/**< padding remaining unused bits  */
 	};
 
 	uint8_t _padding1[2];				/**< padding struct size to alignment boundary  */

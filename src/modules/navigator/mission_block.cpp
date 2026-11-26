@@ -131,8 +131,10 @@ MissionBlock::is_mission_item_reached_or_completed()
 
 		} else if (int(_mission_item.params[0]) == 4) {
 			// transition to FW requested, only accept waypoint if vehicle state has changed accordingly.
+			// Before a waypoint the mission goes on once the transition runs, to follow the path during it.
 			// After a quadchute, also one during this transition, the mission continues in multicopter mode.
 			return _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+			       || (_mission_item.reached_in_transition && _navigator->get_vstatus()->in_transition_to_fw)
 			       || _navigator->front_transition_inhibited();
 
 		} else {
@@ -353,7 +355,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 
 			bool passed_curr_wp = false;
 
-			if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+			if (_navigator->in_fixed_wing_or_front_transition()) {
 
 				const float dist_prev_to_curr = get_distance_to_next_waypoint(_navigator->get_position_setpoint_triplet()->previous.lat,
 								_navigator->get_position_setpoint_triplet()->previous.lon, _navigator->get_position_setpoint_triplet()->current.lat,
@@ -384,7 +386,14 @@ MissionBlock::is_mission_item_reached_or_completed()
 				}
 			}
 
-			if (dist_xy >= 0.0f && (dist_xy <= acceptance_radius || passed_curr_wp) && dist_z <= alt_acc_rad_m) {
+			// During a front transition the mission only goes on from waypoint to waypoint.
+			// A waypoint before any other item is reached in fixed-wing flight.
+			const bool wait_for_fixed_wing = _mission_item.nav_cmd == NAV_CMD_WAYPOINT
+							 && _navigator->get_vstatus()->in_transition_to_fw
+							 && !_mission_item.reached_in_transition;
+
+			if (dist_xy >= 0.0f && (dist_xy <= acceptance_radius || passed_curr_wp) && dist_z <= alt_acc_rad_m
+			    && !wait_for_fixed_wing) {
 				_waypoint_position_reached = true;
 			}
 		}
@@ -608,7 +617,8 @@ float
 MissionBlock::get_time_inside(const mission_item_s &item) const
 {
 	if ((item.nav_cmd == NAV_CMD_WAYPOINT
-	     && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) ||
+	     && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+	     && !(item.reached_in_transition && _navigator->get_vstatus()->in_transition_to_fw)) ||
 	    item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
 	    item.nav_cmd == NAV_CMD_DELAY) {
 

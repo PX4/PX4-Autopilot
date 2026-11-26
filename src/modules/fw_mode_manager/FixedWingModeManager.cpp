@@ -546,13 +546,37 @@ FixedWingModeManager::move_position_setpoint_for_vtol_transition(position_setpoi
 
 	if (_vehicle_status.in_transition_to_fw) {
 
+		// In Mission the setpoints are the leg to the current waypoint: follow it up to that waypoint, never back
+		// to it. Without a leg, and in the other modes, hold the heading.
+		if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION
+		    && current_sp.type == position_setpoint_s::SETPOINT_TYPE_POSITION && _position_setpoint_previous_valid) {
+			const Vector2f prev_wp = _global_local_proj_ref.project(_pos_sp_triplet.previous.lat, _pos_sp_triplet.previous.lon);
+			const Vector2f curr_wp = _global_local_proj_ref.project(current_sp.lat, current_sp.lon);
+			const Vector2f leg = curr_wp - prev_wp;
+
+			// The vehicle accelerates along its nose: it only starts on a leg that lies ahead of it. Mission turns
+			// to the leg before its own transitions, one commanded by the operator can point anywhere.
+			const bool leg_ahead = _transition_followed_mission_leg || leg.dot(Vector2f(cosf(_yaw), sinf(_yaw))) > 0.f;
+
+			// a leg within the acceptance radius has no direction to follow
+			if (leg.norm() > math::max(current_sp.acceptance_radius, FLT_EPSILON)
+			    && leg.dot(Vector2f(_local_pos.x, _local_pos.y) - curr_wp) < 0.f && leg_ahead) {
+				// the heading hold after this leg starts anew
+				_transition_waypoint = Vector2d((double)NAN, (double)NAN);
+				_transition_followed_mission_leg = true;
+				return;
+			}
+		}
+
 		if (!PX4_ISFINITE(_transition_waypoint(0))) {
 			double lat_transition, lon_transition;
 
 			// Create a virtual waypoint HDG_HOLD_DIST_NEXT meters in front of the vehicle which the path navigation controller can track
 			// during the transition. Use the current yaw setpoint to determine the transition heading, as that one in turn
-			// is set to the transition heading by Navigator, or current yaw if setpoint is not valid.
-			const float transition_heading = PX4_ISFINITE(current_sp.yaw) ? current_sp.yaw : _yaw;
+			// is set to the transition heading by Navigator, or current yaw if setpoint is not valid. After a
+			// mission leg the setpoint yaw belongs to a waypoint: keep the current yaw.
+			const float transition_heading = PX4_ISFINITE(current_sp.yaw) && !_transition_followed_mission_leg ?
+							 current_sp.yaw : _yaw;
 			waypoint_from_heading_and_distance(_current_latitude, _current_longitude, transition_heading, HDG_HOLD_DIST_NEXT,
 							   &lat_transition,
 							   &lon_transition);
@@ -563,11 +587,6 @@ FixedWingModeManager::move_position_setpoint_for_vtol_transition(position_setpoi
 
 		current_sp.lat = _transition_waypoint(0);
 		current_sp.lon = _transition_waypoint(1);
-
-	} else {
-		/* reset transition waypoint, will be set upon entering front transition */
-		_transition_waypoint(0) = static_cast<double>(NAN);
-		_transition_waypoint(1) = static_cast<double>(NAN);
 	}
 }
 
@@ -2312,6 +2331,12 @@ FixedWingModeManager::Run()
 			// reset position of backtransition start if not in transition
 			_lpos_where_backtrans_started = Vector2f(NAN, NAN);
 			_backtrans_heading = NAN;
+		}
+
+		if (!_vehicle_status.in_transition_to_fw) {
+			// reset the front transition heading hold, also in hover where control_auto() does not run
+			_transition_waypoint = Vector2d((double)NAN, (double)NAN);
+			_transition_followed_mission_leg = false;
 		}
 
 
