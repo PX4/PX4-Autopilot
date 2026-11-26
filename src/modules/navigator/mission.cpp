@@ -322,7 +322,7 @@ void Mission::setActiveMissionItems()
 		// Invalidate next waypoint to ensure vehicle holds position and doesn't try to track ahead
 		pos_sp_triplet->next.valid = false;
 
-	} else {
+	} else if (_mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION) {
 		handleVtolTransition(new_work_item_type, next_mission_items, num_found_items);
 	}
 
@@ -351,8 +351,6 @@ void Mission::setActiveMissionItems()
 void Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s next_mission_items[],
 			    size_t &num_found_items)
 {
-	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-
 	/* do climb before going to setpoint if needed and not already executing climb */
 	/* in fixed-wing this whole block will be ignored and a takeoff item is always propagated */
 	if (PX4_ISFINITE(_mission_init_climb_altitude_amsl) &&
@@ -421,42 +419,13 @@ void Mission::handleTakeoff(WorkItemType &new_work_item_type, mission_item_s nex
 		_mission_item.yaw = NAN;
 	}
 
-	/* if we just did a VTOL takeoff, prepare transition */
+	/* after the VTOL takeoff climb, turn towards the takeoff waypoint, then send the front transition */
 	if (_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF &&
-	    _work_item_type == WorkItemType::WORK_ITEM_TYPE_CLIMB &&
+	    (_work_item_type == WorkItemType::WORK_ITEM_TYPE_CLIMB
+	     || _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING) &&
 	    _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING &&
 	    !_land_detected_sub.get().landed) {
-
-		/* set yaw setpoint to heading of VTOL_TAKEOFF wp against current position */
-		_mission_item.yaw = get_bearing_to_next_waypoint(
-					    _global_pos_sub.get().lat, _global_pos_sub.get().lon,
-					    _mission_item.lat, _mission_item.lon);
-
-		_mission_item.force_heading = true;
-
-		new_work_item_type = WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING;
-
-		/* set position setpoint to current while aligning */
-		_mission_item.lat = _global_pos_sub.get().lat;
-		_mission_item.lon = _global_pos_sub.get().lon;
-	}
-
-	/* heading is aligned now, prepare transition */
-	if (_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF &&
-	    _work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING &&
-	    _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING &&
-	    !_land_detected_sub.get().landed) {
-
-		/* check if the vtol_takeoff waypoint is on top of us */
-		if (do_need_move_to_takeoff()) {
-			new_work_item_type = WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF;
-		}
-
-		set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
-		_mission_item.yaw = NAN;
-
-		// keep current setpoints (FW position controller generates wp to track during transition)
-		pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+		handleVtolTransition(new_work_item_type, next_mission_items, num_found_items);
 	}
 
 	/* takeoff completed and transitioned, move to takeoff wp as fixed wing */
@@ -475,30 +444,54 @@ void Mission::handleVtolTransition(WorkItemType &new_work_item_type, mission_ite
 {
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-	/* turn towards next waypoint before MC to FW transition, unless it is skipped after a quadchute */
-	if (_mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
-	    && _work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT
-	    && new_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT
-	    && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-	    && !_land_detected_sub.get().landed
-	    && (num_found_items > 0u)
-	    && !_navigator->front_transition_inhibited()) {
+	// A VTOL takeoff turns towards its own waypoint, a DO_VTOL_TRANSITION item towards the next one.
+	// Once turned, the work item is ALIGN_HEADING and the reloaded item sends the transition.
+	const bool vtol_takeoff = _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF;
 
-		new_work_item_type = WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING;
+	if (_work_item_type != WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING) {
+		/* turn towards the waypoint before MC to FW transition, unless it is skipped after a quadchute */
+		if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+		    && !_land_detected_sub.get().landed
+		    && (vtol_takeoff || num_found_items > 0u)
+		    && !_navigator->front_transition_inhibited()) {
 
-		set_align_mission_item(&_mission_item, &next_mission_items[0u]);
+			new_work_item_type = WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING;
 
-		/* hold position and align heading towards the next waypoint */
-		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
-	}
+			if (vtol_takeoff) {
+				/* set yaw setpoint to heading of VTOL_TAKEOFF wp against current position */
+				_mission_item.yaw = get_bearing_to_next_waypoint(
+							    _global_pos_sub.get().lat, _global_pos_sub.get().lon,
+							    _mission_item.lat, _mission_item.lon);
 
-	/* yaw is aligned now */
-	if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING &&
-	    new_work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT) {
+				_mission_item.force_heading = true;
 
-		new_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
+				/* set position setpoint to current while aligning */
+				_mission_item.lat = _global_pos_sub.get().lat;
+				_mission_item.lon = _global_pos_sub.get().lon;
 
-		pos_sp_triplet->previous = pos_sp_triplet->current;
+			} else {
+				set_align_mission_item(&_mission_item, &next_mission_items[0u]);
+
+				/* hold position and align heading towards the next waypoint */
+				mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+			}
+		}
+
+	} else {
+		/* heading is aligned now, prepare transition */
+		if (vtol_takeoff) {
+			/* check if the vtol_takeoff waypoint is on top of us */
+			if (do_need_move_to_takeoff()) {
+				new_work_item_type = WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF;
+			}
+
+			set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+			_mission_item.yaw = NAN;
+
+		} else {
+			pos_sp_triplet->previous = pos_sp_triplet->current;
+		}
+
 		// keep current setpoints (FW position controller generates wp to track during transition)
 		pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 	}
