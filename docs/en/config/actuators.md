@@ -424,7 +424,7 @@ To configure an output as GPIO:
 The selected outputs are skipped by `pwm_out` and `dshot`, and driven by the `gpio_out` driver instead.
 The remaining outputs of the same timer group can still be used as PWM or OneShot outputs.
 
-The output keeps its reset level until `gpio_out` starts, which happens after the other output drivers during boot.
+Until `gpio_out` starts, which happens after the other output drivers during boot, the pin is in its power-on state (which depends on the board).
 It is then set to the level of its disarmed value.
 
 ::: info
