@@ -1392,6 +1392,11 @@ int MissionBase::setMissionToClosestItem(double lat, double lon, float alt, floa
 						alt,
 						&dist_xy, &dist_z);
 
+				// the altitude of a terrain-relative item is only an estimate, compare horizontally
+				if (mission_item_altitude_is_terrain(mission)) {
+					dist = dist_xy;
+				}
+
 				if (dist < min_dist) {
 					min_dist = dist;
 					min_dist_index = mission_item_index;
@@ -1562,8 +1567,10 @@ void MissionBase::checkClimbRequired(int32_t mission_item_index)
 		const bool is_fw_and_takeoff = mission.nav_cmd == NAV_CMD_TAKEOFF
 					       && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 
-		// for FW when on a Takeoff item do not require climb before mission, as we need to keep course to takeoff item straight
-		if (success && !is_fw_and_takeoff) {
+		// for FW when on a Takeoff item do not require climb before mission, as we need to keep course to takeoff item straight.
+		// A terrain-relative item needs no climb either: its altitude is only an estimate, and the position
+		// controller tracks the altitude above the terrain itself.
+		if (success && !is_fw_and_takeoff && !mission_item_altitude_is_terrain(mission)) {
 			const float altitude_amsl_next_position_item = MissionBlock::get_absolute_altitude_for_item(mission);
 			const float error_below_setpoint = altitude_amsl_next_position_item -
 							   _navigator->get_global_position()->alt;
@@ -1580,20 +1587,22 @@ void MissionBase::updateMissionAltAfterHomeChanged()
 {
 	if (_navigator->get_home_position()->update_count > _home_update_counter) {
 
-		if (mission_item_contains_position(_mission_item)) {
+		// a terrain-relative altitude does not depend on home
+		if (mission_item_contains_position(_mission_item) && !mission_item_altitude_is_terrain(_mission_item)) {
+			position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 			const float new_alt = get_absolute_altitude_for_item(_mission_item);
-			const float altitude_diff = new_alt - _navigator->get_position_setpoint_triplet()->current.alt;
+			const float altitude_diff = new_alt - pos_sp_triplet->current.alt;
 
-			if (_navigator->get_position_setpoint_triplet()->previous.valid
-			    && PX4_ISFINITE(_navigator->get_position_setpoint_triplet()->previous.alt)) {
-				_navigator->get_position_setpoint_triplet()->previous.alt += altitude_diff;
+			if (pos_sp_triplet->previous.valid && PX4_ISFINITE(pos_sp_triplet->previous.alt)
+			    && !PX4_ISFINITE(pos_sp_triplet->previous.agl_alt)) {
+				pos_sp_triplet->previous.alt += altitude_diff;
 			}
 
-			_navigator->get_position_setpoint_triplet()->current.alt += altitude_diff;
+			pos_sp_triplet->current.alt += altitude_diff;
 
-			if (_navigator->get_position_setpoint_triplet()->next.valid
-			    && PX4_ISFINITE(_navigator->get_position_setpoint_triplet()->next.alt)) {
-				_navigator->get_position_setpoint_triplet()->next.alt += altitude_diff;
+			if (pos_sp_triplet->next.valid && PX4_ISFINITE(pos_sp_triplet->next.alt)
+			    && !PX4_ISFINITE(pos_sp_triplet->next.agl_alt)) {
+				pos_sp_triplet->next.alt += altitude_diff;
 			}
 
 			_navigator->set_position_setpoint_triplet_updated();

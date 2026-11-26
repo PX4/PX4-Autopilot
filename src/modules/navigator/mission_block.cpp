@@ -193,6 +193,15 @@ MissionBlock::is_mission_item_reached_or_completed()
 				_navigator->get_global_position()->alt,
 				&dist_xy, &dist_z);
 
+		if (dist >= 0.f && mission_item_altitude_is_terrain(_mission_item)) {
+			// The altitude is above the terrain below the vehicle: compare it with the distance to the ground.
+			// Without a valid distance to the ground, the item is reached horizontally only.
+			const vehicle_local_position_s &local_pos = *_navigator->get_local_position();
+			dist_z = (local_pos.dist_bottom_valid && PX4_ISFINITE(local_pos.dist_bottom)) ?
+				 fabsf(local_pos.dist_bottom - _mission_item.altitude) : 0.f;
+			dist = sqrtf(dist_xy * dist_xy + dist_z * dist_z);
+		}
+
 		if ((_mission_item.nav_cmd == NAV_CMD_TAKEOFF || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF)
 		    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 
@@ -1132,8 +1141,7 @@ void MissionBlock::updateAltToAvoidTerrainCollisionAndRepublishTriplet(const mis
 	    && _navigator->get_local_position()->dist_bottom_valid
 	    && _navigator->get_local_position()->dist_bottom < _navigator->get_nav_min_gnd_dist_param()
 	    && _navigator->get_local_position()->vz > FLT_EPSILON
-	    && _navigator->get_global_position()->alt - get_absolute_altitude_for_item(mission_item) >
-	    kAltitudeDifferenceForDescentCondition) {
+	    && altitudeAboveItem(mission_item) > kAltitudeDifferenceForDescentCondition) {
 
 		_navigator->sendWarningDescentStoppedDueToTerrain();
 
@@ -1146,6 +1154,15 @@ void MissionBlock::updateAltToAvoidTerrainCollisionAndRepublishTriplet(const mis
 	}
 }
 
+float MissionBlock::altitudeAboveItem(const mission_item_s &mission_item) const
+{
+	if (mission_item_altitude_is_terrain(mission_item)) {
+		return _navigator->get_local_position()->dist_bottom - mission_item.altitude;
+	}
+
+	return _navigator->get_global_position()->alt - get_absolute_altitude_for_item(mission_item);
+}
+
 void MissionBlock::updateFailsafeChecks()
 {
 	updateMaxHaglFailsafe();
@@ -1153,10 +1170,20 @@ void MissionBlock::updateFailsafeChecks()
 
 void MissionBlock::updateMaxHaglFailsafe()
 {
-	const float target_alt = _navigator->get_position_setpoint_triplet()->current.alt;
+	const position_setpoint_s &current_sp = _navigator->get_position_setpoint_triplet()->current;
 	const float max_alt = math::min(_navigator->get_local_position()->hagl_max_z, _navigator->get_local_position()->hagl_max_xy);
 	const float terrain_alt = _navigator->get_global_position()->terrain_alt;
 	const bool terrain_alt_valid = _navigator->get_global_position()->terrain_alt_valid;
+
+	// height of the target above the terrain: given directly by a terrain-relative setpoint
+	float target_hagl = NAN;
+
+	if (PX4_ISFINITE(current_sp.agl_alt)) {
+		target_hagl = current_sp.agl_alt;
+
+	} else if (terrain_alt_valid) {
+		target_hagl = current_sp.alt - terrain_alt;
+	}
 
 	// If the HAGL failsafe is declared during front transition, we enter a
 	// FW hold at the current low altitude while not having finished the
@@ -1165,7 +1192,7 @@ void MissionBlock::updateMaxHaglFailsafe()
 	// failsafe here.
 	const bool in_transition_to_fw = _navigator->get_vstatus()->in_transition_to_fw;
 
-	if (!in_transition_to_fw && terrain_alt_valid && (target_alt - terrain_alt) > max_alt) {
+	if (!in_transition_to_fw && PX4_ISFINITE(target_hagl) && target_hagl > max_alt) {
 		// Handle case where the altitude setpoint is above the maximum HAGL (height above ground level)
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Target altitude higher than max HAGL\t");
 		events::send(events::ID("navigator_fail_max_hagl"), events::Log::Error, "Target altitude higher than max HAGL");

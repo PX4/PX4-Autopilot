@@ -260,6 +260,11 @@ protected:
 	 */
 	float get_setpoint_altitude_amsl(const position_setpoint_s &setpoint) const;
 
+	/**
+	 * [m] Altitude of the vehicle above the altitude of a position item, in the item's frame
+	 */
+	float altitudeAboveItem(const mission_item_s &mission_item) const;
+
 	mission_item_s _mission_item{}; // Current mission item that is being executed
 
 	bool _waypoint_position_reached{false};
