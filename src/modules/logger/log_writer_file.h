@@ -86,7 +86,7 @@ public:
 
 	void stop_log(LogType type);
 
-	bool is_started(LogType type) const { return _buffers[(int)type]._should_run; }
+	bool is_started(LogType type) const { return _buffers[(int)type]._should_run.load(); }
 
 	/** @see LogWriter::write_message() */
 	int write_message(LogType type, void *ptr, size_t size, uint64_t dropout_start = 0);
@@ -208,7 +208,7 @@ private:
 		size_t buffer_size() const { return _buffer_size; }
 		size_t count() const { return _count; }
 
-		bool _should_run = false;
+		px4::atomic_bool _should_run{false}; // read without the lock in is_started()
 		px4::atomic_bool _had_write_error{false};
 	private:
 		size_t _buffer_size;

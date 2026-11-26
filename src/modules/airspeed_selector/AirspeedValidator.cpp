@@ -271,7 +271,11 @@ AirspeedValidator::check_load_factor(float accel_z)
 
 		float max_lift_ratio = fmaxf(_CAS, 0.7f) / fmaxf(_airspeed_stall, 1.0f);
 		max_lift_ratio *= max_lift_ratio;
-		_load_factor_ratio = 0.95f * _load_factor_ratio + 0.05f * (fabsf(accel_z) / 9.81f) / max_lift_ratio;
+
+		// Limit the raw ratio before filtering. It scales with 1/CAS^2, so without a limit a single
+		// sample with very low airspeed (e.g. right after launch) saturates the filter state.
+		const float load_factor_ratio_raw = fminf((fabsf(accel_z) / 9.81f) / max_lift_ratio, kLoadFactorRatioRawMax);
+		_load_factor_ratio = 0.95f * _load_factor_ratio + 0.05f * load_factor_ratio_raw;
 		_load_factor_ratio = math::constrain(_load_factor_ratio, 0.25f, 2.0f);
 		_load_factor_check_failed = (_load_factor_ratio > 1.1f);
 

@@ -69,7 +69,7 @@ Twist the VCC/GND and CAN_H/CAN_L wires as pairs to reduce electromagnetic inter
 ### 장착
 
 Mount the module with the sensors facing down and the X arrow on the enclosure pointing towards the front of the vehicle.
-This corresponds to the default value (`0`) of the parameter [SENS_FLOW_ROT](../advanced_config/parameter_reference.md#SENS_FLOW_ROT).
+This corresponds to the default value (`0`) of the parameter [SENS_FLOW0_ROT](../advanced_config/parameter_reference.md#SENS_FLOW0_ROT).
 Change the parameter appropriately if using a different orientation.
 
 ## Firmware Setup
@@ -103,15 +103,15 @@ DroneCAN configuration in PX4 is explained in more detail in [DroneCAN > Enablin
 
 Set the following parameters in _QGroundControl_, depending on which functions of the module you use:
 
-- Enable optical flow fusion with [EKF2_OF_CTRL](../advanced_config/parameter_reference.md#EKF2_OF_CTRL) (enabled by default).
+- Enable optical flow fusion with [EKF2_OF0_CTRL](../advanced_config/parameter_reference.md#EKF2_OF0_CTRL) (enabled by default).
 - To optionally disable GPS aiding, set [EKF2_GPS_CTRL](../advanced_config/parameter_reference.md#EKF2_GPS_CTRL) to `0`.
 - Enable [UAVCAN_SUB_FLOW](../advanced_config/parameter_reference.md#UAVCAN_SUB_FLOW).
 - Enable [UAVCAN_SUB_RNG](../advanced_config/parameter_reference.md#UAVCAN_SUB_RNG).
 - Set [UAVCAN_RNG_MIN](../advanced_config/parameter_reference.md#UAVCAN_RNG_MIN) to `0.08`, the minimum working distance of the flow sensor, and [UAVCAN_RNG_MAX](../advanced_config/parameter_reference.md#UAVCAN_RNG_MAX) to `30`, the maximum range of the distance sensor.
 - If using the distance sensor for height aiding, enable [EKF2_RNG_CTRL](../advanced_config/parameter_reference.md#EKF2_RNG_CTRL) and set [EKF2_RNG_A_HMAX](../advanced_config/parameter_reference.md#EKF2_RNG_A_HMAX) to `10` and [EKF2_RNG_QLTY_T](../advanced_config/parameter_reference.md#EKF2_RNG_QLTY_T) to `0.2`.
-- Set [SENS_FLOW_MINHGT](../advanced_config/parameter_reference.md#SENS_FLOW_MINHGT) to `0.08`, the minimum height of the flow sensor, and [SENS_FLOW_MAXHGT](../advanced_config/parameter_reference.md#SENS_FLOW_MAXHGT) to `30`, the maximum range of the distance sensor.
-- Set [SENS_FLOW_MAXR](../advanced_config/parameter_reference.md#SENS_FLOW_MAXR) to `7.4` to match the PAA3905 maximum angular flow rate.
-- The parameters [EKF2_OF_POS_X](../advanced_config/parameter_reference.md#EKF2_OF_POS_X), [EKF2_OF_POS_Y](../advanced_config/parameter_reference.md#EKF2_OF_POS_Y), [EKF2_OF_POS_Z](../advanced_config/parameter_reference.md#EKF2_OF_POS_Z) and [EKF2_RNG_POS_X](../advanced_config/parameter_reference.md#EKF2_RNG_POS_X), [EKF2_RNG_POS_Y](../advanced_config/parameter_reference.md#EKF2_RNG_POS_Y), [EKF2_RNG_POS_Z](../advanced_config/parameter_reference.md#EKF2_RNG_POS_Z) can be set to account for the offset of the module from the vehicle centre of gravity.
+- Set [SENS_FLOW0_HMIN](../advanced_config/parameter_reference.md#SENS_FLOW0_HMIN) to `0.08`, the minimum height of the flow sensor, and [SENS_FLOW0_HMAX](../advanced_config/parameter_reference.md#SENS_FLOW0_HMAX) to `30`, the maximum range of the distance sensor.
+- Set [SENS_FLOW0_MAXR](../advanced_config/parameter_reference.md#SENS_FLOW0_MAXR) to `7.4` to match the PAA3905 maximum angular flow rate.
+- The parameters [SENS_FLOW0_POS_X](../advanced_config/parameter_reference.md#SENS_FLOW0_POS_X), [SENS_FLOW0_POS_Y](../advanced_config/parameter_reference.md#SENS_FLOW0_POS_Y), [SENS_FLOW0_POS_Z](../advanced_config/parameter_reference.md#SENS_FLOW0_POS_Z) and [EKF2_RNG_POS_X](../advanced_config/parameter_reference.md#EKF2_RNG_POS_X), [EKF2_RNG_POS_Y](../advanced_config/parameter_reference.md#EKF2_RNG_POS_Y), [EKF2_RNG_POS_Z](../advanced_config/parameter_reference.md#EKF2_RNG_POS_Z) can be set to account for the offset of the module from the vehicle centre of gravity.
 
 When optical flow is the only source of horizontal position/velocity, reduce the horizontal position gain [MPC_XY_P](../advanced_config/parameter_reference.md#MPC_XY_P) (for example to `0.5`) to reduce oscillations.
 

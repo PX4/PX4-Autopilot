@@ -82,8 +82,8 @@ void PowerChecks::checkAndReport(const Context &context, Report &reporter)
 		if (!system_power.usb_connected) {
 			float avionics_power_rail_voltage = system_power.voltage5v_v;
 
-			const float low_error_threshold = 4.7f;
-			const float high_error_threshold = 5.4f;
+			const float low_error_threshold = BOARD_AVIONICS_5V_MIN_V;
+			const float high_error_threshold = BOARD_AVIONICS_5V_MAX_V;
 
 			const auto now = hrt_absolute_time();
 

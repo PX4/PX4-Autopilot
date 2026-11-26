@@ -335,27 +335,6 @@ uorb_graphs:
 	@$(MAKE) --no-print-directory px4_fmu-v6x_default uorb_graph
 	@$(MAKE) --no-print-directory px4_sitl_default uorb_graph
 
-# The px4io firmware is committed once per IO board and embedded into the ROMFS of every
-# board with CONFIG_BOARD_IO set. The build is reproducible, but only with the same
-# toolchain, so regenerate it in the px4-dev image used by the check_px4io CI job
-# (.github/workflows/checks.yml):
-#   PX4_DOCKER_REPO=<that image> ./Tools/docker_run.sh 'make px4io_update'
-.PHONY: px4io_build px4io_update check_px4io
-
-px4io_build:
-	@$(MAKE) --no-print-directory px4_io-v2_default
-	@$(MAKE) --no-print-directory cubepilot_io-v2_default
-
-px4io_update: px4io_build
-	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/io-v2/extras/
-	cp build/cubepilot_io-v2_default/cubepilot_io-v2_default.bin boards/cubepilot/io-v2/extras/
-
-# compares without touching the committed binaries
-check_px4io: px4io_build
-	@cmp build/px4_io-v2_default/px4_io-v2_default.bin boards/px4/io-v2/extras/px4_io-v2_default.bin \
-		&& cmp build/cubepilot_io-v2_default/cubepilot_io-v2_default.bin boards/cubepilot/io-v2/extras/cubepilot_io-v2_default.bin \
-		|| { echo "px4io firmware is out of date, regenerate it with 'make px4io_update' (see Makefile)"; exit 1; }
-
 bootloaders_update: \
 	3dr_ctrl-n1_bootloader \
 	3dr_ctrl-zero-h7-oem-revg_bootloader \
@@ -434,26 +413,24 @@ px4_metadata: parameters_metadata airframe_metadata module_documentation extract
 
 # Style
 # --------------------------------------------------------------------
-.PHONY: check_format format format_changed check_newlines
+.PHONY: check_format format format_changed
 
 check_format:
 	$(call colorecho,'Checking formatting with astyle')
 	@"$(SRC_DIR)"/Tools/astyle/check_code_style_all.sh
 	@"$(SRC_DIR)"/Tools/astyle/check_param_names.py
+	@"$(SRC_DIR)"/Tools/astyle/check_newlines.py
 	@cd "$(SRC_DIR)" && git diff --check
 
 format:
 	$(call colorecho,'Formatting with astyle')
 	@"$(SRC_DIR)"/Tools/astyle/check_param_names.py --fix
+	@"$(SRC_DIR)"/Tools/astyle/check_newlines.py --fix
 	@"$(SRC_DIR)"/Tools/astyle/check_code_style_all.sh --fix
 
 format_changed:
 	$(call colorecho,'Formatting changed files with astyle')
 	@"$(SRC_DIR)"/Tools/astyle/check_code_style_all.sh --fix --diff-only
-
-check_newlines:
-	$(call colorecho,'Checking for missing or duplicate newlines at the end of files')
-	@"$(SRC_DIR)"/Tools/astyle/check_newlines.sh
 
 # Testing
 # --------------------------------------------------------------------

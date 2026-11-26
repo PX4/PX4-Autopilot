@@ -38,6 +38,7 @@
 #include <string.h>
 #include <errno.h>
 
+#include <containers/LockGuard.hpp>
 #include <mathlib/mathlib.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/log.h>
@@ -217,7 +218,13 @@ bool LogWriterFile::start_log(LogType type, const char *filename)
 		}
 	}
 
-	if (_buffers[(int)type].start_log(filename)) {
+	{
+		// The writer thread may already run for the other log type and reads the buffer state under the lock
+		LockGuard lg{_mtx};
+
+		if (!_buffers[(int)type].start_log(filename)) {
+			return false;
+		}
 
 #if PX4_CRYPTO
 		bool enc_init = init_logfile_encryption(type);
@@ -225,20 +232,18 @@ bool LogWriterFile::start_log(LogType type, const char *filename)
 		if (!enc_init) {
 			PX4_ERR("Failed to start encrypted logging");
 			_crypto.close();
-			_buffers[(int)type]._should_run = false;
+			_buffers[(int)type]._should_run.store(false);
 			_buffers[(int)type].close_file();
 			_buffers[(int)type].reset();
 			return false;
 		}
 
 #endif
-
-		PX4_INFO("Opened %s log file: %s", log_type_str(type), filename);
-		notify();
-		return true;
 	}
 
-	return false;
+	PX4_INFO("Opened %s log file: %s", log_type_str(type), filename);
+	notify();
+	return true;
 }
 
 int LogWriterFile::hardfault_store_filename(const char *log_file)
@@ -276,7 +281,7 @@ int LogWriterFile::hardfault_store_filename(const char *log_file)
 void LogWriterFile::stop_log(LogType type)
 {
 	lock();
-	_buffers[(int)type]._should_run = false;
+	_buffers[(int)type]._should_run.store(false);
 	unlock();
 	notify();
 }
@@ -308,7 +313,8 @@ void LogWriterFile::thread_stop()
 	// this will terminate the main loop of the writer thread
 	lock();
 	_exit_thread.store(true);
-	_buffers[0]._should_run = _buffers[1]._should_run = false;
+	_buffers[0]._should_run.store(false);
+	_buffers[1]._should_run.store(false);
 	unlock();
 
 	notify();
@@ -338,7 +344,7 @@ void LogWriterFile::run()
 			bool start = false;
 			pthread_mutex_lock(&_mtx);
 			pthread_cond_wait(&_cv, &_mtx);
-			start = _buffers[0]._should_run || _buffers[1]._should_run;
+			start = _buffers[0]._should_run.load() || _buffers[1]._should_run.load();
 			pthread_mutex_unlock(&_mtx);
 
 			if (start) {
@@ -388,7 +394,7 @@ void LogWriterFile::run()
 #endif // PX4_CRYPTO
 
 				/* if sufficient data available or partial read or terminating, write data */
-				if (available >= min_available[i] || is_part || (!buffer._should_run && available > 0)) {
+				if (available >= min_available[i] || is_part || (!buffer._should_run.load() && available > 0)) {
 					pthread_mutex_unlock(&_mtx);
 
 #if defined(PX4_CRYPTO)
@@ -433,7 +439,7 @@ void LogWriterFile::run()
 						/* subtract bytes written from number in buffer (count -= written) */
 						buffer.mark_read(written);
 
-						if (!buffer._should_run && written == static_cast<int>(available) && !is_part) {
+						if (!buffer._should_run.load() && written == static_cast<int>(available) && !is_part) {
 							/* Stop only when all data written */
 							pthread_mutex_unlock(&_mtx);
 							buffer.close_file();
@@ -444,19 +450,19 @@ void LogWriterFile::run()
 					} else {
 						PX4_ERR("write failed (%i)", errno);
 						buffer._had_write_error.store(true);
-						buffer._should_run = false;
+						buffer._should_run.store(false);
 						pthread_mutex_unlock(&_mtx);
 						buffer.close_file();
 						pthread_mutex_lock(&_mtx);
 						buffer.reset();
 					}
 
-				} else if (call_fsync && buffer._should_run) {
+				} else if (call_fsync && buffer._should_run.load()) {
 					pthread_mutex_unlock(&_mtx);
 					buffer.fsync();
 					pthread_mutex_lock(&_mtx);
 
-				} else if (available == 0 && !buffer._should_run) {
+				} else if (available == 0 && !buffer._should_run.load()) {
 					pthread_mutex_unlock(&_mtx);
 					buffer.close_file();
 					pthread_mutex_lock(&_mtx);
@@ -487,7 +493,7 @@ void LogWriterFile::run()
 			 * not an issue because notify() is called regularly.
 			 * If the logger was switched off in the meantime, do not wait for data, instead run this loop
 			 * once more to write remaining data and close the file. */
-			if (_buffers[0]._should_run || _buffers[1]._should_run) {
+			if (_buffers[0]._should_run.load() || _buffers[1]._should_run.load()) {
 				pthread_cond_wait(&_cv, &_mtx);
 			}
 		}
@@ -685,7 +691,7 @@ bool LogWriterFile::LogFileBuffer::start_log(const char *filename)
 	_count = 0;
 	_total_written.store(0);
 
-	_should_run = true;
+	_should_run.store(true);
 
 	return true;
 }

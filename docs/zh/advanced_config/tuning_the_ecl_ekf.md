@@ -281,6 +281,7 @@ GSF 应用于各个 3 状态 EKF 输出的权重位于 `weight` 字段中。
 | vpos 漂移率                           | <&nbsp;0.2 ([GNSS_REQ_VDRIFT](../advanced_config/parameter_reference.md#GNSS_REQ_VDRIFT)) | 0.02                   | 米/秒                           | 静止时基于 GNSS 高度计算的漂移率。                                                                                                                                                                                                                          |
 | hspd                               | <&nbsp;0.1 ([GNSS_REQ_HDRIFT](../advanced_config/parameter_reference.md#GNSS_REQ_HDRIFT)) | 0.01                   | 米/秒                           | 报告的 GNSS 水平速度的滤波幅值。                                                                                                                                                                                                                           |
 | 报告的 GNSS 垂直速度的滤波幅值。                | <&nbsp;0.2 ([GNSS_REQ_VDRIFT](../advanced_config/parameter_reference.md#GNSS_REQ_VDRIFT)) | 0.02                   | 米/秒                           | 所报告的全球导航卫星系统垂直速度的滤波量级。                                                                                                                                                                                                                        |
+| hkin inconsistency                 | <&nbsp;2.0 ([GNSS_REQ_HKIN](../advanced_config/parameter_reference.md#GNSS_REQ_HKIN))     | -                                      | 米/秒                           | Filtered rate of change of the reported horizontal position minus the reported horizontal velocity, also in flight.                                                                                                           |
 
 :::info
 `hpos_drift_rate`、`vpos_drift_rate` 和 `hspd` 是在 10 秒的时间段内计算的，并在 `ekf2_gps_drift` 主题中发布。注意 `ekf2_gps_drift` 不会被记录！
@@ -449,11 +450,13 @@ EKF 可以使用垂直速度估计值与测距仪数据数值导数之间的运�
 如果满足以下条件，将使用 [光流](../sensor/optical_flow.md) 数据：
 
 - 有效的测距仪数据可用。
-- [EKF2_OF_CTRL](../advanced_config/parameter_reference.md#EKF2_OF_CTRL) 已设置。
-- 流量传感器返回的质量指标大于 [EKF2_OF_QMIN](../advanced_config/parameter_reference.md#EKF2_OF_QMIN) 参数设置的最低要求。
+- [EKF2_OF0_CTRL](../advanced_config/parameter_reference.md#EKF2_OF0_CTRL) is set.
+- The quality metric returned by the flow sensor is greater than the minimum requirement set by the [EKF2_OF0_QMIN](../advanced_config/parameter_reference.md#EKF2_OF0_QMIN) parameter.
+- For a second flow sensor [EKF2_OF1_CTRL](../advanced_config/parameter_reference.md#EKF2_OF1_CTRL) is set and the quality metric is greater than [EKF2_OF1_QMIN](../advanced_config/parameter_reference.md#EKF2_OF1_QMIN).
 
-为了获得更好的性能，请按照 [此处](../sensor/optical_flow.md#ekf2) 所述设置光流传感器的位置。
+Up to two optical flow sensors can be fused at the same time, each with its own set of `EKF2_OFn_*` parameters (see [Optical Flow > Multiple Optical Flow Sensors](../sensor/optical_flow.md#multiple-flow-sensors)).
 
+For better performance, set the location of the optical flow sensor as described in [Optical Flow > EKF2](../sensor/optical_flow.md#ekf2).
 如果在低空（< 10m）可以实现稳定的悬停，但在较高高度出现缓慢振荡，请考虑调整 [光流比例因子](../sensor/optical_flow.md#scale-factor)。
 
 ### 外部视觉系统

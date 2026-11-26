@@ -52,27 +52,17 @@ using namespace time_literals;
 
 static constexpr time_t PX4_EPOCH_SECS = 1234567890ULL;
 
-// Filter gains
-//
-// Alpha : Used to smooth the overall clock offset estimate. Smaller values will lead
-// to a smoother estimate, but track time drift more slowly, introducing a bias
-// in the estimate. Larger values will cause low-amplitude oscillations.
-//
-// Beta : Used to smooth the clock skew estimate. Smaller values will lead to a
-// tighter estimation of the skew (derivative), but will negatively affect how fast the
-// filter reacts to clock skewing (e.g cause by temperature changes to the oscillator).
-// Larger values will cause large-amplitude oscillations.
-static constexpr double ALPHA_GAIN_INITIAL = 0.05;
-static constexpr double BETA_GAIN_INITIAL = 0.05;
-static constexpr double ALPHA_GAIN_FINAL = 0.003;
-static constexpr double BETA_GAIN_FINAL = 0.003;
+// Kalman filter tuning. The model is defined above Timesync::add_sample().
+// MEASUREMENT_NOISE_STD : sqrt(R), std of an observed offset [s], mostly asymmetric link delay
+// OFFSET_RANDOM_WALK : q_o, offset random walk density [s^2/s], damps the response to offset steps
+// SKEW_RANDOM_WALK : q_s, skew random walk density [1/s], higher follows clock corrections faster
+// INITIAL_SKEW_STD : prior skew std [s/s], i.e. crystal tolerance
+static constexpr double MEASUREMENT_NOISE_STD = 1e-3;
+static constexpr double OFFSET_RANDOM_WALK = 1e-8;
+static constexpr double SKEW_RANDOM_WALK = 7e-13;
+static constexpr double INITIAL_SKEW_STD = 100e-6;
 
-// Filter gain scheduling
-//
-// The filter interpolates between the INITIAL and FINAL gains while the number of
-// exhanged timesync packets is less than CONVERGENCE_WINDOW. A lower value will
-// allow the timesync to converge faster, but with potentially less accurate initial
-// offset and skew estimates.
+// Number of exchanged timesync packets before the estimate is considered converged.
 static constexpr uint32_t CONVERGENCE_WINDOW = 500;
 
 // Outlier rejection and filter reset
@@ -104,7 +94,7 @@ public:
 	 */
 	uint64_t sync_stamp(uint64_t usec);
 
-	int64_t offset() const { return (int64_t)_time_offset; }
+	int64_t offset() const { return (int64_t)(_time_offset * 1e6); } // [us]
 
 	/**
 	 * Return true if the timesync algorithm converged to a good estimate,
@@ -121,20 +111,22 @@ public:
 private:
 
 	/**
-	 * Online exponential filter to smooth time offset
+	 * Kalman filter update of time offset and skew
 	 */
-	void add_sample(int64_t offset_us);
+	void add_sample(int64_t offset_us, uint64_t now_us);
 	uORB::PublicationMulti<timesync_status_s>  _timesync_status_pub{ORB_ID(timesync_status)};
 
 	uint32_t _sequence{0};
 
 	// Timesync statistics
-	double _time_offset{0};
-	double _time_skew{0};
+	double _time_offset{0}; // [s]
+	double _time_skew{0};   // [s/s]
 
-	// Filter parameters
-	double _filter_alpha{ALPHA_GAIN_INITIAL};
-	double _filter_beta{BETA_GAIN_INITIAL};
+	// Filter covariance
+	double _var_offset{0};      // [s^2]
+	double _cov_offset_skew{0}; // [s]
+	double _var_skew{0};        // [-]
+	uint64_t _last_sample_us{0};
 
 	// Outlier rejection and filter reset
 	uint32_t _high_deviation_count{0};
