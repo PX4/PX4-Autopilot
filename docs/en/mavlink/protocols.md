@@ -36,7 +36,7 @@ These services are known to be supported in some form:
     A fence level item in front of a polygon or circle sets its level: `MAV_CMD_NAV_FENCE_LEVEL` (`5006`, proposed in [mavlink/mavlink#2681](https://github.com/mavlink/mavlink/pull/2681)) in `MAV_FRAME_MISSION`, with `param1` `0` for the emergency geofence and `1` for the contingency geofence.
     It applies to the next area only, and an area without one is an emergency geofence area.
     Other `param1` values, NaN included, are rejected with `MAV_MISSION_INVALID_PARAM1`.
-    A level item in another frame or between the vertices of a polygon is rejected too, and the previous plan then stays active.
+    A level item in another frame is rejected too, and one between the vertices of a polygon makes the fence invalid.
     Put the emergency geofence areas first: a ground station without support stops reading a downloaded plan at the first level item.
     The plan holds up to 64 items, level items included (board option `CONFIG_NUM_FENCE_ITEMS_SUPPORTED`).
     Level items are returned when the fence is downloaded.

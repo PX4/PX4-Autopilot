@@ -208,8 +208,6 @@ enum class FenceLevel : uint8_t {
 	Contingency = 1		/**< contingency geofence, breached with GF_CONT_ACTION */
 };
 
-static constexpr uint16_t kMinFencePolygonVertices = 3;
-
 /**
  * Geofence vertex point.
  * Corresponds to the DM_KEY_FENCE_POINTS_0 dataman item
