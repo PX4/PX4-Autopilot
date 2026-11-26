@@ -61,7 +61,7 @@ public:
 		_failsafe_flags.home_position_invalid = home_position_invalid;
 		Report reporter{_failsafe_flags, 0};
 		_check.checkAndReport(context, reporter);
-		_can_arm_all_modes = reporter.armingCheckResults().can_arm == NavModes::All;
+		_can_arm = reporter.armingCheckResults().can_arm;
 	}
 
 	static geofence_result_s resultWithActions(uint8_t geofence_emer_action, uint8_t geofence_cont_action)
@@ -73,34 +73,77 @@ public:
 	}
 
 	failsafe_flags_s _failsafe_flags{};
-	bool             _can_arm_all_modes{false};
+	NavModes         _can_arm{NavModes::None};
 	GeofenceChecks   _check;
 	uORB::Publication<geofence_result_s> _geofence_result_pub{ORB_ID(geofence_result)};
 };
 
-// Each contingency geofence trigger sets its own flag and denies arming before the emergency geofence is breached.
-TEST_F(GeofenceChecksTest, ContGeofenceSetsItsOwnFlagAndDeniesArming)
+TEST_F(GeofenceChecksTest, NoTriggerAllowsArming)
 {
-	bool geofence_result_s::*const triggers[] = {
-		&geofence_result_s::geofence_cont_max_dist_triggered,
-		&geofence_result_s::geofence_cont_custom_fence_triggered,
-	};
-
-	for (const auto trigger : triggers) {
-		geofence_result_s result = resultWithActions(geofence_result_s::GF_ACTION_TERMINATE,
-					   geofence_result_s::GF_ACTION_LOITER);
-		runCheck(result);
-		EXPECT_FALSE(_failsafe_flags.gf_emer_breach);
-		EXPECT_FALSE(_failsafe_flags.gf_cont_breach);
-		EXPECT_TRUE(_can_arm_all_modes);
-
-		result.*trigger = true;
-		runCheck(result);
-		EXPECT_FALSE(_failsafe_flags.gf_emer_breach);
-		EXPECT_TRUE(_failsafe_flags.gf_cont_breach);
-		EXPECT_FALSE(_can_arm_all_modes);
-	}
+	runCheck(resultWithActions(geofence_result_s::GF_ACTION_LOITER, geofence_result_s::GF_ACTION_WARN));
+	EXPECT_FALSE(_failsafe_flags.gf_emer_breach);
+	EXPECT_FALSE(_failsafe_flags.gf_cont_breach);
+	EXPECT_EQ(_can_arm, NavModes::All);
 }
+
+// Each trigger sets the flag of its fence and denies arming, unless that fence's action is None.
+struct GeofenceTriggerCase {
+	const char *name;
+	bool geofence_result_s::*trigger;
+	bool contingency;
+};
+
+class GeofenceTriggerTest : public GeofenceChecksTest, public ::testing::WithParamInterface<GeofenceTriggerCase>
+{
+public:
+	// Apply action to the triggered fence and other_action to the other fence.
+	void checkTrigger(uint8_t action, uint8_t other_action)
+	{
+		const GeofenceTriggerCase &trigger_case = GetParam();
+		geofence_result_s result = resultWithActions(trigger_case.contingency ? other_action : action,
+					   trigger_case.contingency ? action : other_action);
+		result.*(trigger_case.trigger) = true;
+		runCheck(result);
+	}
+};
+
+static const char *triggerName(const ::testing::TestParamInfo<GeofenceTriggerCase> &info)
+{
+	return info.param.name;
+}
+
+TEST_P(GeofenceTriggerTest, HoldSetsTheFlagOfItsFenceAndDeniesArming)
+{
+	checkTrigger(geofence_result_s::GF_ACTION_LOITER, geofence_result_s::GF_ACTION_NONE);
+	EXPECT_EQ(_failsafe_flags.gf_emer_breach, !GetParam().contingency);
+	EXPECT_EQ(_failsafe_flags.gf_cont_breach, GetParam().contingency);
+	EXPECT_EQ(_can_arm, NavModes::None);
+}
+
+// Warning also prevents arming during a breach.
+TEST_P(GeofenceTriggerTest, WarningSetsTheFlagOfItsFenceAndDeniesArming)
+{
+	checkTrigger(geofence_result_s::GF_ACTION_WARN, geofence_result_s::GF_ACTION_NONE);
+	EXPECT_EQ(_failsafe_flags.gf_emer_breach, !GetParam().contingency);
+	EXPECT_EQ(_failsafe_flags.gf_cont_breach, GetParam().contingency);
+	EXPECT_EQ(_can_arm, NavModes::None);
+}
+
+TEST_P(GeofenceTriggerTest, NoneIgnoresTheTrigger)
+{
+	checkTrigger(geofence_result_s::GF_ACTION_NONE, geofence_result_s::GF_ACTION_LOITER);
+	EXPECT_FALSE(_failsafe_flags.gf_emer_breach);
+	EXPECT_FALSE(_failsafe_flags.gf_cont_breach);
+	EXPECT_EQ(_can_arm, NavModes::All);
+}
+
+INSTANTIATE_TEST_SUITE_P(Triggers, GeofenceTriggerTest, ::testing::Values(
+				 GeofenceTriggerCase{"ContingencyMaxDistance", &geofence_result_s::geofence_cont_max_dist_triggered, true},
+				 GeofenceTriggerCase{"ContingencyCustomFence", &geofence_result_s::geofence_cont_custom_fence_triggered, true},
+				 GeofenceTriggerCase{"EmergencyMaxDistance", &geofence_result_s::geofence_emer_max_dist_triggered, false},
+				 GeofenceTriggerCase{"EmergencyMaxAltitude", &geofence_result_s::geofence_emer_max_alt_triggered, false},
+				 GeofenceTriggerCase{"EmergencyCustomFence", &geofence_result_s::geofence_emer_custom_fence_triggered, false}),
+			 triggerName);
 
 // The contingency geofence does not depend on GF_ACTION.
 TEST_F(GeofenceChecksTest, ContGeofenceWorksWithoutAGeofenceAction)
@@ -111,7 +154,7 @@ TEST_F(GeofenceChecksTest, ContGeofenceWorksWithoutAGeofenceAction)
 	runCheck(result);
 	EXPECT_FALSE(_failsafe_flags.gf_emer_breach);
 	EXPECT_TRUE(_failsafe_flags.gf_cont_breach);
-	EXPECT_FALSE(_can_arm_all_modes);
+	EXPECT_EQ(_can_arm, NavModes::None);
 }
 
 TEST_F(GeofenceChecksTest, GeofenceAndContGeofenceSetIndependentFlags)
@@ -122,36 +165,38 @@ TEST_F(GeofenceChecksTest, GeofenceAndContGeofenceSetIndependentFlags)
 	runCheck(result);
 	EXPECT_TRUE(_failsafe_flags.gf_emer_breach);
 	EXPECT_FALSE(_failsafe_flags.gf_cont_breach);
-	EXPECT_FALSE(_can_arm_all_modes);
+	EXPECT_EQ(_can_arm, NavModes::None);
 
 	result.geofence_cont_custom_fence_triggered = true;
 	runCheck(result);
 	EXPECT_TRUE(_failsafe_flags.gf_emer_breach);
 	EXPECT_TRUE(_failsafe_flags.gf_cont_breach);
-	EXPECT_FALSE(_can_arm_all_modes);
+	EXPECT_EQ(_can_arm, NavModes::None);
 }
 
-// A contingency geofence with a Return action needs a valid Home to arm.
-TEST_F(GeofenceChecksTest, ContGeofenceReturnNeedsAValidHome)
-{
-	geofence_result_s result = resultWithActions(geofence_result_s::GF_ACTION_LOITER, geofence_result_s::GF_ACTION_RTL);
-	runCheck(result);
-	EXPECT_TRUE(_can_arm_all_modes);
-	runCheck(result, true);
-	EXPECT_FALSE(_can_arm_all_modes);
+// A geofence with a Return action needs a valid Home to arm.
+class GeofenceReturnTest : public GeofenceChecksTest, public ::testing::WithParamInterface<bool> {};
 
+static const char *fenceName(const ::testing::TestParamInfo<bool> &info)
+{
+	return info.param ? "Contingency" : "Emergency";
+}
+
+TEST_P(GeofenceReturnTest, NeedsAValidHome)
+{
+	const bool contingency = GetParam();
+	geofence_result_s result = resultWithActions(
+					   contingency ? geofence_result_s::GF_ACTION_LOITER : geofence_result_s::GF_ACTION_RTL,
+					   contingency ? geofence_result_s::GF_ACTION_RTL : geofence_result_s::GF_ACTION_LOITER);
+	runCheck(result);
+	EXPECT_EQ(_can_arm, NavModes::All);
+	runCheck(result, true);
+	EXPECT_EQ(_can_arm, NavModes::None);
+
+	result.geofence_emer_action = geofence_result_s::GF_ACTION_LOITER;
 	result.geofence_cont_action = geofence_result_s::GF_ACTION_LOITER;
 	runCheck(result, true);
-	EXPECT_TRUE(_can_arm_all_modes);
+	EXPECT_EQ(_can_arm, NavModes::All);
 }
 
-// A disabled contingency geofence has no action, even if an old trigger remains in a received result.
-TEST_F(GeofenceChecksTest, DisabledContGeofenceIgnoresStaleTrigger)
-{
-	geofence_result_s result = resultWithActions(geofence_result_s::GF_ACTION_NONE, geofence_result_s::GF_ACTION_NONE);
-	result.geofence_cont_max_dist_triggered = true;
-	runCheck(result, true);
-	EXPECT_FALSE(_failsafe_flags.gf_emer_breach);
-	EXPECT_FALSE(_failsafe_flags.gf_cont_breach);
-	EXPECT_TRUE(_can_arm_all_modes);
-}
+INSTANTIATE_TEST_SUITE_P(Fences, GeofenceReturnTest, ::testing::Bool(), fenceName);

@@ -59,6 +59,17 @@ public:
 		navigator._last_geofence_check = 0;
 		navigator.geofence_breach_check();
 	}
+
+	// The breach check takes a GNSS position up to 2 s old, with at least a 2D fix.
+	static void setRawGps(Navigator &navigator, const vehicle_global_position_s &position, hrt_abstime age = 0,
+			      uint8_t fix_type = sensor_gnss_s::FIX_TYPE_3D)
+	{
+		navigator._vehicle_gnss.timestamp = hrt_absolute_time() - age;
+		navigator._vehicle_gnss.receiver.latitude = position.lat;
+		navigator._vehicle_gnss.receiver.longitude = position.lon;
+		navigator._vehicle_gnss.receiver.altitude_msl = static_cast<double>(position.alt);
+		navigator._vehicle_gnss.receiver.fix_type = fix_type;
+	}
 };
 
 // The contingency geofence and its action in Navigator. Home is at the origin, 400 m AMSL.
@@ -100,7 +111,7 @@ protected:
 		*_navigator.get_vstatus() = status;
 	}
 
-	// The breach latch of a Hold is only dropped 100 ms after it was set.
+	// Leaving Hold drops the latch only after the initial 100 ms guard.
 	void setNavState(uint8_t nav_state)
 	{
 		_navigator.get_vstatus()->nav_state = nav_state;
@@ -119,8 +130,7 @@ protected:
 		_navigator.updateParams();
 	}
 
-	// Place the vehicle and run one breach check.
-	geofence_result_s checkAt(const Place &place)
+	void setPosition(const Place &place)
 	{
 		const matrix::Vector2d vehicle = position(place.north, place.east);
 		vehicle_global_position_s &global_position = *_navigator.get_global_position();
@@ -128,6 +138,12 @@ protected:
 		global_position.lat = vehicle(0);
 		global_position.lon = vehicle(1);
 		global_position.alt = place.altitude;
+	}
+
+	// Place the vehicle and run one breach check.
+	geofence_result_s checkAt(const Place &place)
+	{
+		setPosition(place);
 		MissionBaseTestNavigator::breachCheck(_navigator);
 
 		geofence_result_s result{};
@@ -186,6 +202,112 @@ protected:
 
 	uORB::Subscription _result_sub{ORB_ID(geofence_result)};
 };
+
+enum class BreachFenceShape { InclusionPolygon, ExclusionPolygon, InclusionCircle, ExclusionCircle };
+
+static const char *shapeName(const ::testing::TestParamInfo<BreachFenceShape> &info)
+{
+	switch (info.param) {
+	case BreachFenceShape::InclusionPolygon: return "InclusionPolygon";
+
+	case BreachFenceShape::ExclusionPolygon: return "ExclusionPolygon";
+
+	case BreachFenceShape::InclusionCircle: return "InclusionCircle";
+
+	case BreachFenceShape::ExclusionCircle: return "ExclusionCircle";
+	}
+
+	return "Unknown";
+}
+
+class GeofenceShapeBreachTest : public ContGeofenceBreachTest,
+	public ::testing::WithParamInterface<BreachFenceShape>
+{
+};
+
+TEST_P(GeofenceShapeBreachTest, FlagsFollowThePermittedSideAndMargin)
+{
+	// Every shape has its first boundary 100 m north of Home.
+	switch (GetParam()) {
+	case BreachFenceShape::InclusionPolygon:
+		ASSERT_TRUE(loadFence(polygon(true, {{-100.f, -100.f}, {100.f, -100.f}, {100.f, 100.f}, {-100.f, 100.f}})));
+		break;
+
+	case BreachFenceShape::ExclusionPolygon:
+		ASSERT_TRUE(loadFence(polygon(false, {{100.f, -100.f}, {200.f, -100.f}, {200.f, 100.f}, {100.f, 100.f}})));
+		break;
+
+	case BreachFenceShape::InclusionCircle:
+		ASSERT_TRUE(loadFence(circle(true, {0.f, 0.f}, 100.f)));
+		break;
+
+	case BreachFenceShape::ExclusionCircle:
+		ASSERT_TRUE(loadFence(circle(false, {150.f, 0.f}, 50.f)));
+		break;
+	}
+
+	// Warning leaves the geometry observable without the post-Hold latch.
+	setParam("GF_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_WARN));
+	setParam("GF_CONT_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_WARN));
+	setParam("GF_CONT_H_MARGIN", 20.f);
+	const geofence_result_s safe = checkAt({50.f, 0.f, kAltitude});
+	EXPECT_FALSE(emergencyBreached(safe));
+	EXPECT_FALSE(contingencyBreached(safe));
+	const geofence_result_s margin = checkAt({90.f, 0.f, kAltitude});
+	EXPECT_FALSE(emergencyBreached(margin));
+	EXPECT_TRUE(margin.geofence_cont_custom_fence_triggered);
+	const geofence_result_s forbidden = checkAt({110.f, 0.f, kAltitude});
+	EXPECT_TRUE(forbidden.geofence_emer_custom_fence_triggered);
+	EXPECT_TRUE(forbidden.geofence_cont_custom_fence_triggered);
+	EXPECT_FALSE(forbidden.geofence_emer_max_dist_triggered);
+	EXPECT_FALSE(forbidden.geofence_emer_max_alt_triggered);
+	EXPECT_FALSE(forbidden.geofence_cont_max_dist_triggered);
+	const geofence_result_s recovered = checkAt({50.f, 0.f, kAltitude});
+	EXPECT_FALSE(emergencyBreached(recovered));
+	EXPECT_FALSE(contingencyBreached(recovered));
+}
+
+INSTANTIATE_TEST_SUITE_P(Shapes, GeofenceShapeBreachTest, ::testing::Values(
+				 BreachFenceShape::InclusionPolygon, BreachFenceShape::ExclusionPolygon,
+				 BreachFenceShape::InclusionCircle, BreachFenceShape::ExclusionCircle),
+			 shapeName);
+
+TEST_F(ContGeofenceBreachTest, SelectedPositionSourceDeterminesTheBreach)
+{
+	setParam("GF_MAX_HOR_DIST", 100.f);
+	setParam("GF_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_WARN));
+	MissionBaseTestNavigator::setRawGps(_navigator, target({110.f, 0.f, kAltitude}));
+	setParam("GF_SOURCE", static_cast<int32_t>(Geofence::GF_SOURCE_GLOBALPOS));
+	EXPECT_FALSE(emergencyBreached(checkAt({0.f, 0.f, kAltitude})));
+	setParam("GF_SOURCE", static_cast<int32_t>(Geofence::GF_SOURCE_GPS));
+	EXPECT_TRUE(checkAt({0.f, 0.f, kAltitude}).geofence_emer_max_dist_triggered);
+	MissionBaseTestNavigator::setRawGps(_navigator, target({0.f, 0.f, kAltitude}));
+	EXPECT_FALSE(emergencyBreached(checkAt({110.f, 0.f, kAltitude})));
+}
+
+TEST_F(ContGeofenceBreachTest, InvalidSelectedSourceDoesNotPublishAClearResult)
+{
+	setParam("GF_MAX_HOR_DIST", 100.f);
+	setParam("GF_ACTION", static_cast<int32_t>(geofence_result_s::GF_ACTION_WARN));
+	ASSERT_TRUE(emergencyBreached(checkAt({110.f, 0.f, kAltitude})));
+	setPosition({0.f, 0.f, kAltitude});
+	_navigator.get_global_position()->timestamp = 0;
+	MissionBaseTestNavigator::breachCheck(_navigator);
+	geofence_result_s result{};
+	EXPECT_FALSE(_result_sub.update(&result));
+
+	setParam("GF_SOURCE", static_cast<int32_t>(Geofence::GF_SOURCE_GPS));
+	setPosition({0.f, 0.f, kAltitude});
+	MissionBaseTestNavigator::setRawGps(_navigator, target({0.f, 0.f, kAltitude}), 3_s);
+	MissionBaseTestNavigator::breachCheck(_navigator);
+	EXPECT_FALSE(_result_sub.update(&result));
+	MissionBaseTestNavigator::setRawGps(_navigator, target({0.f, 0.f, kAltitude}), 0, sensor_gnss_s::FIX_TYPE_NONE);
+	MissionBaseTestNavigator::breachCheck(_navigator);
+	EXPECT_FALSE(_result_sub.update(&result));
+
+	MissionBaseTestNavigator::setRawGps(_navigator, target({0.f, 0.f, kAltitude}));
+	EXPECT_FALSE(emergencyBreached(checkAt({0.f, 0.f, kAltitude})));
+}
 
 TEST_F(ContGeofenceBreachTest, DisabledByDefault)
 {
@@ -272,6 +394,20 @@ TEST_F(ContGeofenceBreachTest, MaximumAltitudeHasNoContGeofence)
 	const geofence_result_s above = checkAt({0.f, 0.f, kHomeAltitude + 110.f});
 	EXPECT_FALSE(contingencyBreached(above));
 	EXPECT_TRUE(above.geofence_emer_max_alt_triggered);
+}
+
+// A Go-to above GF_MAX_VER_DIST is refused, unless GF_ACTION is Warning or None.
+TEST_F(ContGeofenceBreachTest, TargetAboveTheMaximumAltitude)
+{
+	setParam("GF_MAX_VER_DIST", 100.f);
+	EXPECT_TRUE(targetAllowed({0.f, 0.f, kHomeAltitude + 90.f}));
+	EXPECT_FALSE(targetAllowed({0.f, 0.f, kHomeAltitude + 110.f}));
+
+	for (const int32_t action : {geofence_result_s::GF_ACTION_WARN, geofence_result_s::GF_ACTION_NONE}) {
+		SCOPED_TRACE(action);
+		setParam("GF_ACTION", action);
+		EXPECT_TRUE(targetAllowed({0.f, 0.f, kHomeAltitude + 110.f}));
+	}
 }
 
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
