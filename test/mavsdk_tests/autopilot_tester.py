@@ -8,6 +8,7 @@ swallowed. Checks done in callbacks are therefore collected with check_in_callba
 reported when the tester is closed.
 """
 
+from contextlib import contextmanager
 import datetime
 import json
 import math
@@ -16,7 +17,7 @@ import threading
 import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
 
 from mavsdk import ComponentType, Configuration, ConnectionResult, Mavsdk  # type: ignore
 from mavsdk.plugins.action import Action, ActionError  # type: ignore
@@ -321,6 +322,14 @@ class AutopilotTester:
             lambda: self._telemetry.landed_state() == landed_state, timeout_s), \
             "Landed state {} not reached within {} s".format(landed_state, timeout_s)
 
+    def check_flight_mode_for(self, flight_mode: FlightMode, duration_s: float) -> None:
+        start_us = self._autopilot_time_us()
+        while (self._autopilot_time_us() - start_us) / 1e6 < duration_s:
+            current = self._telemetry.flight_mode()
+            assert current == flight_mode, \
+                "Flight mode {}, expected {}".format(current, flight_mode)
+            self.sleep_for(0.2)
+
     # ------------------------------------------------------------------
     # Parameters and settings
     # ------------------------------------------------------------------
@@ -376,6 +385,16 @@ class AutopilotTester:
 
     def takeoff(self) -> None:
         self._action.takeoff()
+
+    def arm_and_take_off(self, altitude_m: float) -> None:
+        """Take off and wait at altitude_m above Home."""
+        self.set_takeoff_altitude(altitude_m)
+        # The navigator reads parameter changes at most once per second.
+        self.sleep_for(1)
+        self.arm()
+        self.takeoff()
+        self.wait_until_hovering()
+        self.wait_until_altitude(altitude_m, 30)
 
     def land(self) -> None:
         self._action.land()
@@ -998,6 +1017,33 @@ class AutopilotTester:
     # ------------------------------------------------------------------
     # Manual control
     # ------------------------------------------------------------------
+
+    @contextmanager
+    def keep_manual_control_alive(self) -> Iterator[None]:
+        """Send centered sticks during the block.
+
+        Once sticks were sent, a gap longer than COM_RC_LOSS_T triggers the RC loss failsafe, also
+        in automatic modes. SITL sets it to 1 s times the speed factor.
+        """
+        stop = threading.Event()
+        # Keep the link rate in simulated time, while allowing teardown if PX4 stops.
+        interval_s = 1.0 / (MANUAL_CONTROL_RATE_HZ * max(1.0, self._speed_factor or 1.0))
+
+        def send() -> None:
+            try:
+                while not stop.is_set():
+                    self._manual_control.set_manual_control_input(0.0, 0.0, 0.5, 0.0)
+                    stop.wait(interval_s)
+            except Exception as error:
+                self.check_in_callback(False, "Manual-control keepalive failed: {}".format(error))
+
+        worker = threading.Thread(target=send, daemon=True)
+        worker.start()
+        try:
+            yield
+        finally:
+            stop.set()
+            worker.join()
 
     def _send_manual_control(self, duration_s: float, x: float, y: float, z: float, r: float,
                              stop_when_landed: bool = False) -> None:

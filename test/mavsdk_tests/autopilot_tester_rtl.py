@@ -2,8 +2,6 @@
 
 import math
 import threading
-from dataclasses import dataclass, field
-from enum import Enum
 from typing import Any, List, Optional, Tuple
 
 from mavsdk.plugins.telemetry import VtolState  # type: ignore
@@ -12,57 +10,16 @@ from autopilot_tester import (
     MAV_FRAME_GLOBAL_RELATIVE_ALT, MAV_GLOBAL_FRAMES, AutopilotTester, log, raw_mission_item,
     raw_item_local)
 from geometry import CoordinateTransformation
+from geofence_geometry import (
+    FenceKind, FenceShape, MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION,
+    MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION, MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION,
+    MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION)
 
 MAV_CMD_NAV_LOITER_TO_ALT = 31
 MAV_CMD_NAV_RALLY_POINT = 5100
 MAV_MISSION_TYPE_RALLY = 2
 
-MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION = 5001
-MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION = 5002
-MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION = 5003
-MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION = 5004
-
 Local2 = Tuple[float, float]
-
-
-class FenceKind(Enum):
-    POLYGON_INCLUSION = 0
-    POLYGON_EXCLUSION = 1
-    CIRCLE_INCLUSION = 2
-    CIRCLE_EXCLUSION = 3
-
-
-@dataclass
-class FenceShape:
-    kind: FenceKind
-    vertices: List[Local2] = field(default_factory=list)  # polygons only
-    center: Local2 = (0.0, 0.0)  # circles only
-    radius_m: float = 0.0  # circles only
-
-    def is_breached_by(self, north_m: float, east_m: float) -> bool:
-        """A breach is being inside an exclusion or outside an inclusion shape."""
-        if self.kind in (FenceKind.POLYGON_INCLUSION, FenceKind.POLYGON_EXCLUSION):
-            if len(self.vertices) < 3:
-                return False
-            inside = point_in_polygon(north_m, east_m, self.vertices)
-            return inside == (self.kind == FenceKind.POLYGON_EXCLUSION)
-
-        distance_m = math.hypot(north_m - self.center[0], east_m - self.center[1])
-        if self.kind == FenceKind.CIRCLE_EXCLUSION:
-            return distance_m < self.radius_m
-        return distance_m > self.radius_m
-
-
-def point_in_polygon(north_m: float, east_m: float, polygon: List[Local2]) -> bool:
-    inside = False
-    j = len(polygon) - 1
-    for i in range(len(polygon)):
-        ni, ei = polygon[i]
-        nj, ej = polygon[j]
-        if (ei > east_m) != (ej > east_m) and north_m < (nj - ni) * (east_m - ei) / (ej - ei) + ni:
-            inside = not inside
-        j = i
-    return inside
 
 
 class AutopilotTesterRtl(AutopilotTester):
