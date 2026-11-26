@@ -69,6 +69,12 @@ enum class PrecLandMode {
 	Required = 2 // try to find landing target if not visible at the beginning
 };
 
+enum class VerticalAid {
+	None = 0, // Remaining in landing and do not change the vertical behavior
+	HoldAlt = 1, // Hold current altitude
+	ClimbToSearch = 2 // Climb to SEARCH_ALT above ground level
+};
+
 class PrecLand : public MissionBlock, public ModuleParams
 {
 public:
@@ -110,6 +116,19 @@ private:
 
 	// check if a given state could be changed into. Return true if possible to transition to state, false otherwise
 	bool check_state_conditions(PrecLandState state);
+
+	/**
+	 * @brief Reset the current setpoint to the landing latitude, longitude, and altitude, and the setpoint type to LAND.
+	 */
+	void reset_to_landing_setpoint();
+
+	/**
+	 * @brief Correct the current setpoint using the target position
+	 * @param vertical_aid behavior to adopt along the vertical axis (see VerticalAid for options)
+	 * @param match_target_yaw whether to replace the current's setpoint with the target yaw
+	 * @param use_slewrate_limit whether to apply a slew rate limit to x and y requested movement
+	 */
+	void aid_horizontally(VerticalAid vertical_aid, bool match_target_yaw, bool use_slewrate_limit);
 
 	/**
 	 * Compute the horizontal landing-target position setpoint in the local NED frame.
@@ -169,11 +188,16 @@ private:
 	uint64_t _point_reached_time{0}; /**< time when we reached a setpoint */
 
 	int _search_cnt{0}; /**< counter of how many times we had to search for the landing target */
+	float _start_alt{0.0f}; /**< Altitude at start of precision landing */
 	bool _landing_sp_captured{false}; /**< Is the landing waypoint captured */
 	bool _landing_alt_valid{false}; /**< Whether the original setpoint gave a valid landing altitude */
 	float _landing_alt{0.0f}; /**< Landing altitude given by the landing waypoint */
+	double _landing_lat{0.0};  /**< Landing latitude given by the landing waypoint and updated with the target */
+	double _landing_lon{0.0};  /**< Landing longitude given by the landing waypoint and updated with the target*/
 	float _ground_alt{0.0f}; /**< Current estimate of ground altitude */
-	float _approach_alt{0.0f}; /**< altitude at which to stay during horizontal approach */
+	float _hold_alt{0.0f}; /**< Altitude captured when entering VerticalAid::HoldAlt */
+	bool _below_search_alt{false}; /**< Whether the vehicle has been below the search altitude during the current search */
+	VerticalAid _last_vertical_aid{VerticalAid::None}; /**< Vertical aid applied by the previous setpoint update */
 
 	matrix::Vector2f _sp_pev;
 	matrix::Vector2f _sp_pev_prev;

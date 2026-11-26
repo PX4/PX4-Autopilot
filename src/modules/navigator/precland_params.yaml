@@ -65,9 +65,10 @@ parameters:
     PLD_SRCH_ALT:
       description:
         short: Search altitude
-        long: Height above ground to which to climb when searching for the landing
-          target. Ground is the landing target, else the distance sensor, else the
-          landing waypoint, else home.
+        long: Height above ground below which to search for the landing target. In
+          required mode, the vehicle climbs back to it while the target is not visible.
+          Ground is the landing target, else the distance sensor, else the landing
+          waypoint, else home.
       type: float
       default: 10.0
       unit: m
@@ -78,8 +79,9 @@ parameters:
     PLD_SRCH_TOUT:
       description:
         short: Search timeout
-        long: Time allowed to search for the landing target before falling back to
-          normal landing.
+        long: Time allowed to search for the landing target below the search altitude
+          before falling back to normal landing. Set to 0 to fall back as soon as the
+          target is not visible below the search altitude.
       type: float
       default: 10.0
       unit: s

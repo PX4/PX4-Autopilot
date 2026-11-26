@@ -18,11 +18,12 @@ The choice of mode affects how a precision landing is performed.
 
 #### Required Mode
 
-In _Required Mode_ the vehicle will search for a target if none is visible when landing is initiated.
+In _Required Mode_ the vehicle will search for the target if it is not visible during the landing.
 The vehicle will perform a precision landing if a target is located.
 
-The search procedure consists of climbing to the search altitude ([PLD_SRCH_ALT](../advanced_config/parameter_reference.md#PLD_SRCH_ALT)) above the [ground estimate](#ground-altitude).
-If the target is still not visible at the search altitude and after a search timeout ([PLD_SRCH_TOUT](../advanced_config/parameter_reference.md#PLD_SRCH_TOUT)), a normal landing is initiated at the current position.
+The vehicle first descends normally towards the landing point until it reaches the search altitude ([PLD_SRCH_ALT](../advanced_config/parameter_reference.md#PLD_SRCH_ALT)) above the [ground estimate](#ground-altitude).
+If the target is not visible at that point, the vehicle climbs back to the search altitude.
+If the target is still not visible after the search timeout ([PLD_SRCH_TOUT](../advanced_config/parameter_reference.md#PLD_SRCH_TOUT)), a normal landing is initiated at the landing point.
 
 ::: info
 If using an offboard positioning system PX4 assumes that the target is visible when it is receiving MAVLink [LANDING_TARGET](https://mavlink.io/en/messages/common.html#LANDING_TARGET) messages.
@@ -30,25 +31,34 @@ If using an offboard positioning system PX4 assumes that the target is visible w
 
 #### Opportunistic Mode
 
-In _Opportunistic Mode_ the vehicle will use precision landing _if_ (and only if) the target is visible when landing is initiated.
-If it is not visible the vehicle immediately performs a _normal_ landing at the current position.
+In _Opportunistic Mode_ the vehicle performs a normal landing and uses the target _if_ it becomes visible.
+It never climbs to search for the target.
+If the target is not visible below the search altitude after the search timeout, the vehicle continues with a normal landing at the landing point.
 
 ### Landing Phases
 
-A precision landing has three phases:
+A precision landing has the following phases:
 
-1. **Horizontal approach:** The vehicle approaches the target horizontally while keeping its current altitude.
-   Once the position of the target relative to the vehicle is below a threshold ([PLD_HACC_RAD](../advanced_config/parameter_reference.md#PLD_HACC_RAD)), the next phase is entered.
-   If the target is lost during this phase (not visible for longer than [PLD_BTOUT](../advanced_config/parameter_reference.md#PLD_BTOUT)), a search procedure is initiated (during a required precision landing) or the vehicle does a normal landing (during an opportunistic precision landing).
+1. **Start:** The vehicle flies to the landing point (the land waypoint of a mission or Return, otherwise its current position) at its current altitude.
+
+1. **Search:** The vehicle descends normally towards the landing point, moving horizontally towards the target if it is visible.
+   Below the search altitude ([PLD_SRCH_ALT](../advanced_config/parameter_reference.md#PLD_SRCH_ALT)), the vehicle holds its altitude while the target is visible, or climbs back to the search altitude (in [required mode](#required-mode)) while it is not.
+   Once the target has been visible below the search altitude for one second, the next phase is entered.
+   If the target is not found below the search altitude within the search timeout ([PLD_SRCH_TOUT](../advanced_config/parameter_reference.md#PLD_SRCH_TOUT)), the vehicle does a normal landing at the landing point.
+
+1. **Horizontal approach:** The vehicle approaches the target horizontally while keeping its altitude.
+   Once the position of the target relative to the vehicle is below a threshold ([PLD_HACC_RAD](../advanced_config/parameter_reference.md#PLD_HACC_RAD)) for two seconds, the next phase is entered.
+   If the target is lost when the vehicle reaches its last known position (not visible for longer than [PLD_BTOUT](../advanced_config/parameter_reference.md#PLD_BTOUT)), the vehicle searches again.
 
 1. **Descent over target:** The vehicle descends, while remaining centered over the target.
-   If the target is lost during this phase (not visible for longer than `PLD_BTOUT`), a search procedure is initiated (during a required precision landing) or the vehicle does a normal landing (during an opportunistic precision landing).
+   If the target is lost during this phase (not visible for longer than `PLD_BTOUT`), the vehicle searches again.
 
-1. **Final approach:** When the vehicle is close to the [ground](#ground-altitude) (closer than [PLD_FAPPR_ALT](../advanced_config/parameter_reference.md#PLD_FAPPR_ALT)), it descends while remaining centered over the target.
-   If the target is lost during this phase, the descent is continued independent of the kind of precision landing.
+1. **Final approach:** When the vehicle is close to the [ground](#ground-altitude) (closer than [PLD_FAPPR_ALT](../advanced_config/parameter_reference.md#PLD_FAPPR_ALT)) and within `PLD_HACC_RAD` of a target seen in the last 0.5 seconds, it lands without further horizontal corrections.
+   Otherwise the vehicle returns to the horizontal approach (if the target is visible) or searches again.
 
-Search procedures are initiated in the first and second steps, and will run at most [PLD_MAX_SRCH](../advanced_config/parameter_reference.md#PLD_MAX_SRCH) times.
-Landing Phases Flow Diagram
+After the first search, the vehicle searches again at most [PLD_MAX_SRCH](../advanced_config/parameter_reference.md#PLD_MAX_SRCH) times.
+When no search is left, or when the search times out, the vehicle does a normal landing at the landing point.
+The landing point is the last known position of the target if it has been seen, otherwise the landing waypoint.
 
 A flow diagram showing the phases can be found in [landing phases flow diagram](#landing-phases-flow-diagram) below.
 
