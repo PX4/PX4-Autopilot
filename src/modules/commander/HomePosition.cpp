@@ -342,9 +342,8 @@ void HomePosition::setHomePosValid()
 
 bool HomePosition::isGpsPositionFusionEnabled()
 {
-	// Without an estimator publishing its fusion control, allow GPS usage
 	estimator_fusion_control_s fusion_control;
-	return !_estimator_fusion_control_sub.copy(&fusion_control) || fusion_control.gps_intended[0];
+	return _estimator_fusion_control_sub.copy(&fusion_control) && fusion_control.gps_intended[0];
 }
 
 void HomePosition::updateHomePositionYaw(float yaw)
