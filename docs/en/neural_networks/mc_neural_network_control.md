@@ -56,7 +56,15 @@ CONFIG_MODULES_MC_NN_CONTROL=y
 ```
 
 :::tip
-The `mc_nn_control` module takes up roughly 50KB, and many of the `default.px4board file` are already close to filling all the flash on their boards. To make room for the neural control module you can remove the include statements for other modules, such as FW, rover, VTOL and UUV.
+The `mc_nn_control` module takes up roughly 50KB, and many of the `default.px4board file` are already close to filling all the flash on their boards.
+To make room for the neural control module you can disable the [packages](../hardware/porting_guide_config.md#packages) of other vehicle types and enable only the multicopter package, as `mro/pixracerpro/neural.px4board` does:
+
+```sh
+CONFIG_PACKAGE_MULTICOPTER=y
+CONFIG_PACKAGE_VTOL=n
+CONFIG_PACKAGE_UUV=n
+```
+
 :::
 
 ## Example Module Overview

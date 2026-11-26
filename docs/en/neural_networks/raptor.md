@@ -155,18 +155,11 @@ Make sure that your platform uses the standard PX4 quadrotor motor layout:
 
 ##### Other Platforms
 
-To enable the `mc_raptor` module in other platforms, just add `CONFIG_MODULES_MC_RAPTOR=y` and `CONFIG_LIB_RL_TOOLS=y`
+To enable the `mc_raptor` module on other platforms, add these lines to the board configuration (as in `boards/px4/fmu-v6c/raptor.px4board`):
 
-```diff
-+++ b/boards/px4/fmu-v6c/raptor.px4board
-@@ -35,2 +35,3 @@
- CONFIG_DRIVERS_UAVCAN=y
-+CONFIG_LIB_RL_TOOLS=y
- CONFIG_MODULES_AIRSPEED_SELECTOR=y
-@@ -64,2 +65,3 @@
- CONFIG_MODULES_MC_POS_CONTROL=y
-+CONFIG_MODULES_MC_RAPTOR=y
- CONFIG_MODULES_MC_RATE_CONTROL=y
+```sh
+CONFIG_MODULES_MC_RAPTOR=y
+CONFIG_LIB_RL_TOOLS=y
 ```
 
 #### Results

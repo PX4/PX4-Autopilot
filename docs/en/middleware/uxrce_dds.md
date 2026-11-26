@@ -340,7 +340,7 @@ For more information about setting up communications channels see [Pixhawk + Com
 The uXRCE-DDS client module [uxrce_dds_client](../modules/modules_system.md#uxrce-dds-client) is included by default in most firmware and simulator targets.
 
 You can check if the module is present on your board by searching for the key `CONFIG_MODULES_UXRCE_DDS_CLIENT=y` in your board's `default.px4board` [KConfig file](../hardware/porting_guide_config.md).
-For example, you can see that the module is present in `px4_fmu-v6x` build targets from [/boards/px4/fmu-v6x/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6x/default.px4board#L81).
+For example, you can see that the module is present in `px4_fmu-v6x` build targets from [/boards/px4/fmu-v6x/default.px4board](https://github.com/PX4/PX4-Autopilot/blob/main/boards/px4/fmu-v6x/default.px4board).
 
 If `CONFIG_MODULES_UXRCE_DDS_CLIENT=y` is not preset you can add this key to your board configuration and rebuild.
 Note that due to flash constraints you may need to remove other components in order to include the module.

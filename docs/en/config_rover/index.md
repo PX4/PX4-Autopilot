@@ -50,5 +50,6 @@ CONFIG_PACKAGE_ROVER=y
 
 To add only one rover type, enable its package instead, e.g. `CONFIG_PACKAGE_ROVER_DIFFERENTIAL=y`.
 
-Adding the rover modules may lead to flash overflow, in which case you will need to disable packages that you do not plan to use (such as `CONFIG_PACKAGE_VTOL=n`, which also removes the multicopter and fixed-wing packages unless they are enabled separately).
+Adding the rover modules may lead to flash overflow, in which case you will need to disable packages that you do not plan to use (for example with `CONFIG_PACKAGE_VTOL=n`, which also removes the multicopter and fixed-wing packages unless they are enabled separately).
+Modules enabled individually, such as `CONFIG_MODULES_MC_AUTOTUNE_ATTITUDE_CONTROL`, must be disabled separately.
 :::
