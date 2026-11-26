@@ -53,6 +53,8 @@ class Sensor:
         self.start_times = []
         self.stop_count = 0
         self.restart_requested = False
+        self.self_test_status = 1
+        self.self_test_error = 0
         self.error = None
         self.done = threading.Event()
         self.thread = threading.Thread(target=self.run, daemon=True)
@@ -80,8 +82,7 @@ class Sensor:
                 if self.restart_requested:
                     self.restart_requested = False
                     self.streaming = False
-                    # Power-on self-test success, including the header in checksum.
-                    pending = bytes.fromhex("55 aa 80 01 00 00 00 80")
+                    pending = reply(command=0x80, status=self.self_test_status, distance=self.self_test_error)
 
                 if pending:
                     written = os.write(self.master, pending)
@@ -173,6 +174,9 @@ class Console:
         assert re.search(r"orientation: 25\b", output), output
         assert re.search(r"min_distance: 0\.200", output), output
         assert re.search(r"max_distance: 100\.000", output), output
+        timestamp = re.search(r"timestamp: (\d+)", output)
+        assert timestamp, output
+        return int(timestamp[1])
 
     def close(self):
         if self.process.isalive():
@@ -239,20 +243,30 @@ def run(executable, directory):
             sensor.mode = mode
             time.sleep(0.1)
             before = console.samples()
+            timestamp_before = console.distance(0 if mode == "failed" else 12.3, 0 if mode == "failed" else -1)
             starts_before = len(sensor.start_times)
             time.sleep(1.15)
-            assert console.samples() == before, f"{mode} refreshed distance"
+            assert console.samples() == before, f"{mode} counted a successful measurement"
             if mode == "failed":
+                assert console.distance(0, 0) > timestamp_before, "failure replies did not publish fresh invalid samples"
                 assert len(sensor.start_times) == starts_before, "failure replies triggered restart"
                 console.measurement_replies(receiving=True, expected_status=0)
+                message = link.recv_match(
+                    type="DISTANCE_SENSOR",
+                    condition="DISTANCE_SENSOR.current_distance == 0 and DISTANCE_SENSOR.signal_quality == 1",
+                    blocking=True, timeout=8,
+                )
+                assert message is not None, "invalid measurement missing from MAVLink"
             else:
+                assert console.distance(12.3) == timestamp_before, f"{mode} published a distance sample"
                 assert len(sensor.start_times) > starts_before, f"{mode} did not trigger retry"
                 console.measurement_replies(receiving=False)
             sensor.mode = "valid"
             time.sleep(0.2)
             assert console.samples() > before
             console.measurement_replies(receiving=True, expected_status=1)
-        print("PASS: failed/corrupt/control/legacy replies and outages never republish stale distance")
+        print("PASS: failure replies publish fresh invalid uORB and MAVLink samples without counting successes")
+        print("PASS: corrupt/control/legacy replies and outages do not publish distance samples")
         print("PASS: missing-reply diagnostics distinguish failed measurements and clear after recovery")
 
         sensor.mode = "noise"
@@ -286,7 +300,21 @@ def run(executable, directory):
         wait_for(lambda: sensor.streaming)
         time.sleep(0.15)
         console.distance(12.3)
-        print("PASS: range validity and module power-cycle recovery")
+        transcript.flush()
+        assert "self test failed" not in (directory / "console.txt").read_text(encoding="utf-8")
+
+        sensor.self_test_status = 0
+        sensor.self_test_error = 0x03
+        starts_before = len(sensor.start_times)
+        sensor.restart_requested = True
+        wait_for(lambda: len(sensor.start_times) > starts_before)
+        wait_for(lambda: sensor.streaming)
+        time.sleep(0.15)
+        console.distance(12.3)
+        assert "self test status: 0, error: 0x03" in console.command("ptgl100 status")
+        transcript.flush()
+        assert "self test failed (status 0, error 0x03)" in (directory / "console.txt").read_text(encoding="utf-8")
+        print("PASS: range validity, self-test fault warning and module power-cycle recovery")
 
         before = console.samples()
         console.command(f"ptgl100 start -d {serial_path}")
@@ -313,6 +341,11 @@ def run(executable, directory):
         assert datasets, "distance_sensor missing from default ULog profile"
         assert any(any(abs(value - 12.3) < 0.001 for value in data.data["current_distance"]) for data in datasets)
         assert any(any(abs(value - 100.0) < 0.001 for value in data.data["current_distance"]) for data in datasets)
+        assert any(
+            any(distance == 0 and quality == 0 for distance, quality in zip(
+                data.data["current_distance"], data.data["signal_quality"]))
+            for data in datasets
+        ), "invalid measurement missing from ULog"
         assert all((int(value) >> 16) & 0xFF == 0xF4 for data in datasets for value in data.data["device_id"])
         assert all((int(value) >> 3) & 0x1F == 29 for data in datasets for value in data.data["device_id"])
         print("PASS: default ULog contains measurements and the PTGL-100 serial device ID")

@@ -183,13 +183,16 @@ void PTGL100::handle_reply(const ptgl100::Reply &reply, hrt_abstime now)
 		_last_measurement_status = reply.status;
 
 		if (reply.status == ptgl100::STATUS_SUCCESS) {
+			// The 8-bit additive checksum can accept a truncated frame joined to the
+			// next frame as a successful measurement with an in-range distance.
 			_last_distance = ptgl100::distance_m(reply.distance_raw);
 			_last_sample = now;
 			_rangefinder.update(now, _last_distance);
 			perf_count(_samples);
 
 		} else {
-			// The distance bytes are undefined on failure. Do not refresh an old sample.
+			// Distance bytes are undefined on failure. Publish an invalid sample.
+			_rangefinder.update(now, 0.f, 0);
 			perf_count(_measurement_failures);
 		}
 
@@ -197,6 +200,11 @@ void PTGL100::handle_reply(const ptgl100::Reply &reply, hrt_abstime now)
 		_self_test_received = true;
 		_self_test_status = reply.status;
 		_self_test_error = reply.error_code;
+
+		if (reply.status != ptgl100::STATUS_SUCCESS) {
+			PX4_WARN("self test failed (status %u, error 0x%02x)", reply.status, reply.error_code);
+		}
+
 		// The module has restarted. The normal one-second retry will resume ranging.
 		_last_measurement_reply = 0;
 

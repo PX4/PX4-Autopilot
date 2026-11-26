@@ -215,13 +215,23 @@ TEST(PTGL100Parser, RecoversAfterTruncationWithChecksumCollision)
 	const Frame frame = reply_frame(0x69, 1, 100000);
 
 	for (size_t i = 0; i < 5; ++i) {
-		parser.parse(frame[i], reply);
+		EXPECT_EQ(parser.parse(frame[i], reply), Parser::Result::Incomplete);
 	}
 
 	// The truncated prefix plus the next header forms 55 aa 69 01 01 55 aa 69,
 	// which happens to pass the protocol's additive checksum. It is indistinguishable
 	// from a real measurement, but must not prevent recovery on the following frame.
-	feed(parser, frame, reply);
+	EXPECT_EQ(parser.parse(frame[0], reply), Parser::Result::Incomplete);
+	EXPECT_EQ(parser.parse(frame[1], reply), Parser::Result::Incomplete);
+	ASSERT_EQ(parser.parse(frame[2], reply), Parser::Result::Reply);
+	EXPECT_TRUE(reply.is_measurement());
+	EXPECT_EQ(reply.status, ptgl100::STATUS_SUCCESS);
+	EXPECT_EQ(reply.distance_raw, 87466u);
+
+	for (size_t i = 3; i < frame.size(); ++i) {
+		EXPECT_EQ(parser.parse(frame[i], reply), Parser::Result::Incomplete);
+	}
+
 	ASSERT_EQ(feed(parser, frame, reply), Parser::Result::Reply);
 	EXPECT_EQ(reply.distance_raw, 100000u);
 }
