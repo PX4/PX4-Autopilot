@@ -21,7 +21,7 @@ The choice of mode affects how a precision landing is performed.
 In _Required Mode_ the vehicle will search for a target if none is visible when landing is initiated.
 The vehicle will perform a precision landing if a target is located.
 
-The search procedure consists of climbing to the search altitude ([PLD_SRCH_ALT](../advanced_config/parameter_reference.md#PLD_SRCH_ALT)).
+The search procedure consists of climbing to the search altitude ([PLD_SRCH_ALT](../advanced_config/parameter_reference.md#PLD_SRCH_ALT)) above the [ground estimate](#ground-altitude).
 If the target is still not visible at the search altitude and after a search timeout ([PLD_SRCH_TOUT](../advanced_config/parameter_reference.md#PLD_SRCH_TOUT)), a normal landing is initiated at the current position.
 
 ::: info
@@ -44,13 +44,20 @@ A precision landing has three phases:
 1. **Descent over target:** The vehicle descends, while remaining centered over the target.
    If the target is lost during this phase (not visible for longer than `PLD_BTOUT`), a search procedure is initiated (during a required precision landing) or the vehicle does a normal landing (during an opportunistic precision landing).
 
-1. **Final approach:** When the vehicle is close to the ground (closer than [PLD_FAPPR_ALT](../advanced_config/parameter_reference.md#PLD_FAPPR_ALT)), it descends while remaining centered over the target.
+1. **Final approach:** When the vehicle is close to the [ground](#ground-altitude) (closer than [PLD_FAPPR_ALT](../advanced_config/parameter_reference.md#PLD_FAPPR_ALT)), it descends while remaining centered over the target.
    If the target is lost during this phase, the descent is continued independent of the kind of precision landing.
 
 Search procedures are initiated in the first and second steps, and will run at most [PLD_MAX_SRCH](../advanced_config/parameter_reference.md#PLD_MAX_SRCH) times.
 Landing Phases Flow Diagram
 
 A flow diagram showing the phases can be found in [landing phases flow diagram](#landing-phases-flow-diagram) below.
+
+### Ground Altitude
+
+The search altitude and the final approach altitude are heights above an estimate of the ground altitude.
+It starts at the altitude of the landing waypoint (mission or Return landing), or at the home altitude when there is none.
+During the landing it is updated from the landing target when it is visible, otherwise from a downward-facing [distance sensor](../sensor/rangefinders.md).
+When neither is available the last estimate is kept.
 
 ### Yaw Alignment
 
@@ -193,7 +200,8 @@ Some of the most useful ones are listed below.
 | <a id="PLD_MOVING_T_MIN"></a>[PLD_MOVING_T_MIN](../advanced_config/parameter_reference.md#PLD_MOVING_T_MIN) | Minimum moving-target prediction time for the precision landing setpoint.                                              |
 | <a id="PLD_MOVING_T_MAX"></a>[PLD_MOVING_T_MAX](../advanced_config/parameter_reference.md#PLD_MOVING_T_MAX) | Maximum moving-target prediction time for the precision landing setpoint.                                              |
 | <a id="PLD_BTOUT"></a>[PLD_BTOUT](../advanced_config/parameter_reference.md#PLD_BTOUT)                      | Landing Target Timeout, after which the target is assumed lost. Default is 5 seconds.                                  |
-| <a id="PLD_FAPPR_ALT"></a>[PLD_FAPPR_ALT](../advanced_config/parameter_reference.md#PLD_FAPPR_ALT)          | Final approach altitude. Default is 0.1 metres.                                                                        |
+| <a id="PLD_FAPPR_ALT"></a>[PLD_FAPPR_ALT](../advanced_config/parameter_reference.md#PLD_FAPPR_ALT)          | Final approach altitude above the [ground estimate](#ground-altitude). Default is 0.1 metres.                          |
+| <a id="PLD_SRCH_ALT"></a>[PLD_SRCH_ALT](../advanced_config/parameter_reference.md#PLD_SRCH_ALT)             | Search altitude above the [ground estimate](#ground-altitude). Default is 10 metres.                                   |
 | <a id="PLD_MAX_SRCH"></a>[PLD_MAX_SRCH](../advanced_config/parameter_reference.md#PLD_MAX_SRCH)             | Maximum number of search attempts in a required landing.                                                               |
 | <a id="PLD_YAW_EN"></a>[PLD_YAW_EN](../advanced_config/parameter_reference.md#PLD_YAW_EN)                   | Enable yaw alignment during precision landing when target orientation is available.                                    |
 | <a id="RTL_PLD_MD"></a>[RTL_PLD_MD](../advanced_config/parameter_reference.md#RTL_PLD_MD)                   | Return precision land mode. `0`: disabled, `1`: [Opportunistic](#opportunistic-mode), `2`: [Required](#required-mode). |

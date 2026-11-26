@@ -53,7 +53,8 @@ parameters:
       description:
         short: Final approach altitude
         long: Allow final approach (without horizontal positioning) if losing landing
-          target closer than this to the ground.
+          target closer than this to the ground. Height is measured above the landing
+          target, else the distance sensor, else the landing waypoint, else home.
       type: float
       default: 0.1
       unit: m
@@ -64,8 +65,9 @@ parameters:
     PLD_SRCH_ALT:
       description:
         short: Search altitude
-        long: Altitude above home to which to climb when searching for the landing
-          target.
+        long: Height above ground to which to climb when searching for the landing
+          target. Ground is the landing target, else the distance sensor, else the
+          landing waypoint, else home.
       type: float
       default: 10.0
       unit: m

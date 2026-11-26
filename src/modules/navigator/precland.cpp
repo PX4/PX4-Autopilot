@@ -83,6 +83,7 @@ void
 PrecLand::on_activation()
 {
 	_state = PrecLandState::Start;
+	_landing_sp_captured = false;
 	_search_cnt = 0;
 	_last_slewrate_time = 0;
 
@@ -106,6 +107,8 @@ PrecLand::on_activation()
 	const bool entered_as_mode = (_navigator->get_vstatus()->nav_state == getNavigatorStateId());
 	_navigator->reset_triplets();
 
+	_landing_alt_valid = previous_setpoint.valid && !entered_as_mode;
+
 	if (previous_setpoint.valid && !entered_as_mode) {
 		pos_sp_triplet->current = previous_setpoint;
 
@@ -121,6 +124,9 @@ PrecLand::on_activation()
 	_sp_pev = matrix::Vector2f(0, 0);
 	_sp_pev_prev = matrix::Vector2f(0, 0);
 	_last_slewrate_time = 0;
+
+	const home_position_s *home = _navigator->get_home_position();
+	_ground_alt = home->valid_alt ? home->alt : 0.0f;
 
 	switch_to_state_start();
 
@@ -140,6 +146,8 @@ PrecLand::on_active()
 	if ((hrt_elapsed_time(&_target_pose.timestamp) / 1e6f) > _param_pld_btout.get()) {
 		_target_pose_valid = false;
 	}
+
+	update_ground_alt();
 
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
@@ -252,6 +260,19 @@ PrecLand::updateParams()
 void
 PrecLand::run_state_start()
 {
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
+	if (!_landing_sp_captured) {
+		_landing_alt = pos_sp_triplet->current.alt;
+		_landing_sp_captured = true;
+
+		_landing_alt_valid = _landing_alt_valid && PX4_ISFINITE(_landing_alt);
+
+		if (_landing_alt_valid) {
+			_ground_alt = _landing_alt;
+		}
+	}
+
 	// check if target visible and go to horizontal approach
 	if (switch_to_state_horizontal_approach()) {
 		return;
@@ -262,7 +283,6 @@ PrecLand::run_state_start()
 		switch_to_state_fallback();
 	}
 
-	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	float dist = get_distance_to_next_waypoint(pos_sp_triplet->current.lat, pos_sp_triplet->current.lon,
 			_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
 
@@ -493,7 +513,7 @@ PrecLand::switch_to_state_search()
 {
 	PX4_INFO("Climbing to search altitude.");
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-	pos_sp_triplet->current.alt = _navigator->get_home_position()->alt + _param_pld_srch_alt.get();
+	pos_sp_triplet->current.alt = _ground_alt + _param_pld_srch_alt.get();
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 	clear_current_yaw_setpoint();
 	_navigator->set_position_setpoint_triplet_updated();
@@ -647,10 +667,30 @@ bool PrecLand::within_acceptance_radius()
 	       && fabsf(target_position_sp(1) - vehicle_local_position->y) < _param_pld_hacc_rad.get();
 }
 
+void PrecLand::update_ground_alt()
+{
+	const float current_alt = _navigator->get_global_position()->alt;
+	const vehicle_local_position_s *lpos = _navigator->get_local_position();
+
+	const float height_above_target = _target_pose.z_abs - lpos->z;
+	const bool z_target_valid = target_acquired() && lpos->z_valid && PX4_ISFINITE(height_above_target)
+				    && height_above_target > FLT_EPSILON;
+	const bool z_dist_sensor_valid = lpos->dist_bottom_valid
+					 && (lpos->dist_bottom_sensor_bitfield & vehicle_local_position_s::DIST_BOTTOM_SENSOR_RANGE)
+					 && PX4_ISFINITE(lpos->dist_bottom);
+
+	if (z_target_valid) {
+		_ground_alt = current_alt - height_above_target;
+
+	} else if (z_dist_sensor_valid) {
+		_ground_alt = current_alt - lpos->dist_bottom;
+	} // else keep already stored value
+}
+
 bool PrecLand::below_final_approach_alt()
 {
-	const vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();
-	return (_target_pose.z_abs - vehicle_local_position->z) < _param_pld_fappr_alt.get();
+	const float current_alt = _navigator->get_global_position()->alt;
+	return current_alt < _ground_alt + _param_pld_fappr_alt.get();
 }
 
 void PrecLand::slewrate(float &sp_x, float &sp_y)

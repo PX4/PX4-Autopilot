@@ -105,6 +105,11 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   `geofence_max_dist_triggered`, `geofence_max_alt_triggered`, `geofence_custom_fence_triggered` and `geofence_action` of [GeofenceResult](../msg_docs/GeofenceResult.md) are now `geofence_emer_max_dist_triggered`, `geofence_emer_max_alt_triggered`, `geofence_emer_custom_fence_triggered` and `geofence_emer_action`.
   They name the emergency geofence, next to the new `geofence_cont_*` fields of the contingency geofence.
   Log analysis that reads the old names must use the new ones.
+- **Precision landing search altitude is now relative to the ground.**
+  [PLD_SRCH_ALT](../advanced_config/parameter_reference.md#PLD_SRCH_ALT) was a height above home; it is now a height above the ground estimate (landing target, distance sensor, landing waypoint, then home).
+  [PLD_FAPPR_ALT](../advanced_config/parameter_reference.md#PLD_FAPPR_ALT) uses the same estimate.
+  Re-check `PLD_SRCH_ALT` if you land at a different altitude from home.
+  See [Precision Landing](../advanced_features/precland.md#ground-altitude).
 
 ## Other changes
 

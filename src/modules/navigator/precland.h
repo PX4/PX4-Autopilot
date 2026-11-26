@@ -131,8 +131,13 @@ private:
 	// true if the vehicle is horizontally within PLD_HACC_RAD of the target position setpoint
 	bool within_acceptance_radius();
 
-	// true if the vehicle is lower than PLD_FAPPR_ALT above the target
+	// true if the vehicle is lower than PLD_FAPPR_ALT above the ground estimate
 	bool below_final_approach_alt();
+
+	/**
+	 * @brief Update ground altitude using this order : target altitude, distance sensor altitude, landing waypoint altitude, home altitude, 0 AMSL
+	 */
+	void update_ground_alt();
 
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 	void update_current_yaw_setpoint();
@@ -164,6 +169,10 @@ private:
 	uint64_t _point_reached_time{0}; /**< time when we reached a setpoint */
 
 	int _search_cnt{0}; /**< counter of how many times we had to search for the landing target */
+	bool _landing_sp_captured{false}; /**< Is the landing waypoint captured */
+	bool _landing_alt_valid{false}; /**< Whether the original setpoint gave a valid landing altitude */
+	float _landing_alt{0.0f}; /**< Landing altitude given by the landing waypoint */
+	float _ground_alt{0.0f}; /**< Current estimate of ground altitude */
 	float _approach_alt{0.0f}; /**< altitude at which to stay during horizontal approach */
 
 	matrix::Vector2f _sp_pev;
