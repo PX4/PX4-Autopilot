@@ -45,6 +45,8 @@
 #include <uORB/Publication.hpp>
 
 #include "standard.h"
+#include "tailsitter.h"
+#include "tiltrotor.h"
 #include "vtol_att_control_main.h"
 
 using namespace matrix;
@@ -172,10 +174,18 @@ protected:
 
 	void commandFrontTransition(VtolAttitudeControl &attc)
 	{
+		commandTransition(attc, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+	}
+
+	void setAirspeed(VtolAttitudeControl &attc, float airspeed) { attc._calibrated_airspeed = airspeed; }
+
+	void commandTransition(VtolAttitudeControl &attc, uint8_t target, bool immediate = false)
+	{
 		vehicle_command_s command{};
 		command.timestamp = hrt_absolute_time();
 		command.command = vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION;
-		command.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+		command.param1 = target;
+		command.param2 = immediate;
 		uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
 		ASSERT_TRUE(command_pub.publish(command));
 		attc.vehicle_cmd_poll();
@@ -278,4 +288,136 @@ TEST_F(VtolPusherFailureTest, PusherAssistBelowThresholdIsNoPusherFailure)
 
 	fly(attc, standard, 300_ms);
 	EXPECT_FALSE(attc.is_fixed_wing_system_failure());
+}
+
+// Exercise the shared state machine from a partially completed transition.
+template<typename T>
+class VtolAbortTestPeer : public T
+{
+public:
+	explicit VtolAbortTestPeer(VtolAttitudeControl *attc) : T(attc) {}
+	void setMode(mode value) { this->_common_vtol_mode = value; }
+	void setMcWeight(float value) { this->_mc_roll_weight = value; }
+	float mcWeight() const { return this->_mc_roll_weight; }
+	void ageTransition() { this->_transition_start_timestamp = hrt_absolute_time() - 100_ms; }
+};
+
+TEST_F(VtolPusherFailureTest, StoppedFrontTransitionUsesBackTransitionOnlyWithKnownSpeed)
+{
+	struct Case {
+		float ground_speed;
+		bool ground_valid;
+		float airspeed;
+		bool immediate;
+		bool back_transition;
+	};
+
+	const float cruise = 5.f;
+	param_set(param_find("MPC_XY_CRUISE"), &cruise);
+
+	const Case cases[] = {
+		{10.f, true, NAN, false, true},
+		{5.f, true, NAN, false, true},
+		{4.f, true, 10.f, false, false}, // valid ground speed takes precedence
+		{NAN, true, 10.f, false, false}, // invalid speed must not enter a timed back transition
+		{0.f, false, 10.f, false, true},
+		{0.f, false, NAN, false, false},
+		{10.f, true, NAN, true, false},
+	};
+
+	for (const auto &test : cases) {
+		SCOPED_TRACE(::testing::Message() << test.ground_speed << ", " << test.ground_valid
+			     << ", " << test.airspeed << ", " << test.immediate);
+		VtolAttitudeControl attc;
+		VtolAbortTestPeer<Standard> standard(&attc);
+		setHover(attc, test.ground_speed);
+		attc.get_control_mode()->flag_armed = true; // a disarmed vehicle ends a back transition at once
+		attc.get_local_pos()->v_xy_valid = test.ground_valid;
+		setAirspeed(attc, test.airspeed);
+		standard.setMode(mode::TRANSITION_TO_FW);
+		standard.setMcWeight(0.2f);
+		commandTransition(attc, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC, test.immediate);
+		standard.update_vtol_state();
+		EXPECT_EQ(standard.get_mode(), test.back_transition ? mode::TRANSITION_TO_MC : mode::ROTARY_WING);
+		EXPECT_FLOAT_EQ(standard.mcWeight(), 1.f);
+		standard.fill_actuator_outputs();
+		EXPECT_FALSE(attc.is_fixed_wing_system_failure());
+
+		if (test.back_transition) {
+			EXPECT_FLOAT_EQ(attc.get_thrust_setpoint_0()->xyz[0], 0.f);
+			// It lasts until the speed is below the cruise speed.
+			standard.update_vtol_state();
+			EXPECT_EQ(standard.get_mode(), mode::TRANSITION_TO_MC);
+			attc.get_local_pos()->v_xy_valid = true;
+			attc.get_local_pos()->vx = 4.f;
+			standard.update_vtol_state();
+			EXPECT_EQ(standard.get_mode(), mode::ROTARY_WING);
+		}
+	}
+
+	param_reset(param_find("MPC_XY_CRUISE"));
+}
+
+TEST_F(VtolPusherFailureTest, AbortedFrontTransitionHasFullControlButNextRegularBackTransitionRamps)
+{
+	const float ramp = 1.f;
+	param_set(param_find("VT_B_TRANS_RAMP"), &ramp);
+	VtolAttitudeControl attc;
+	VtolAbortTestPeer<Standard> standard(&attc);
+	setHover(attc, 20.f);
+	standard.setMode(mode::TRANSITION_TO_FW);
+	standard.update_vtol_state();
+	ASSERT_EQ(standard.get_mode(), mode::TRANSITION_TO_MC);
+
+	const auto update_controls = [&]() {
+		attc.get_mc_virtual_att_sp()->timestamp = hrt_absolute_time();
+		attc.get_fw_virtual_att_sp()->timestamp = hrt_absolute_time();
+		Quatf().copyTo(attc.get_fw_virtual_att_sp()->q_d);
+		standard.ageTransition();
+		standard.update_transition_state();
+	};
+
+	update_controls();
+	EXPECT_FLOAT_EQ(standard.mcWeight(), 1.f);
+
+	standard.setMode(mode::FIXED_WING);
+	standard.update_vtol_state();
+	ASSERT_EQ(standard.get_mode(), mode::TRANSITION_TO_MC);
+	update_controls();
+	EXPECT_GT(standard.mcWeight(), 0.f);
+	EXPECT_LT(standard.mcWeight(), 0.5f);
+	param_reset(param_find("VT_B_TRANS_RAMP"));
+}
+
+TEST_F(VtolPusherFailureTest, QuadchuteDuringFrontTransitionStillSwitchesStraightToMulticopter)
+{
+	for (auto reason : {QuadchuteReason::ExternalCommand, QuadchuteReason::TransitionTimeout}) {
+		VtolAttitudeControl attc;
+		VtolAbortTestPeer<Standard> standard(&attc);
+		setHover(attc, 20.f);
+		standard.setMode(mode::TRANSITION_TO_FW);
+		attc.quadchute(reason);
+		standard.update_vtol_state();
+		EXPECT_EQ(standard.get_mode(), mode::ROTARY_WING);
+	}
+}
+
+TEST_F(VtolPusherFailureTest, OtherVtolTypesStillAbortStraightToMulticopter)
+{
+	VtolAttitudeControl attc;
+	setHover(attc, 20.f);
+	VtolAbortTestPeer<Tiltrotor> tiltrotor(&attc);
+	VtolAbortTestPeer<Tailsitter> tailsitter(&attc);
+
+	for (auto *vtol : {static_cast<VtolType *>(&tiltrotor), static_cast<VtolType *>(&tailsitter)}) {
+		if (vtol == &tiltrotor) {
+			tiltrotor.setMode(mode::TRANSITION_TO_FW);
+
+		} else {
+			tailsitter.setMode(mode::TRANSITION_TO_FW);
+		}
+
+		vtol->update_vtol_state();
+		EXPECT_EQ(vtol->get_mode(), mode::ROTARY_WING);
+	}
 }

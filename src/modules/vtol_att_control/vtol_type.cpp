@@ -215,9 +215,8 @@ void VtolType::update_vtol_state()
 			break;
 
 		case mode::TRANSITION_TO_FW:
-			// abort into hover
-			onFrontTransitionAborted();
-			_common_vtol_mode = mode::ROTARY_WING;
+			// let the vehicle type choose hover or a back transition
+			_common_vtol_mode = onFrontTransitionAborted();
 			break;
 
 		case mode::TRANSITION_TO_MC:
@@ -230,19 +229,23 @@ void VtolType::update_vtol_state()
 	}
 }
 
-bool VtolType::isBackTransitionSpeedOrTimeReached() const
+float VtolType::getForwardSpeed() const
 {
-	// speed exit condition: use ground if valid, otherwise airspeed
-	bool exit_backtransition_speed_condition = false;
-
+	// ground speed along the body x axis if valid, otherwise airspeed
 	if (_local_pos->v_xy_valid) {
 		const Dcmf R_to_body(Quatf(_v_att->q).inversed());
 		const Vector3f vel = R_to_body * Vector3f(_local_pos->vx, _local_pos->vy, _local_pos->vz);
-		exit_backtransition_speed_condition = vel(0) < _param_mpc_xy_cruise.get();
-
-	} else if (PX4_ISFINITE(_attc->get_calibrated_airspeed())) {
-		exit_backtransition_speed_condition = _attc->get_calibrated_airspeed() < _param_mpc_xy_cruise.get();
+		return vel(0);
 	}
+
+	return _attc->get_calibrated_airspeed();
+}
+
+bool VtolType::isBackTransitionSpeedOrTimeReached() const
+{
+	const float forward_speed = getForwardSpeed();
+	const bool exit_backtransition_speed_condition = PX4_ISFINITE(forward_speed)
+			&& forward_speed < _param_mpc_xy_cruise.get();
 
 	const bool exit_backtransition_time_condition = _time_since_trans_start > _param_vt_b_trans_dur.get();
 

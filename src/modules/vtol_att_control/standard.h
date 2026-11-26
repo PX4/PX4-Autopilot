@@ -70,6 +70,7 @@ private:
 	float _airspeed_trans_blend_margin{0.0f};
 	hrt_abstime _last_time_pusher_transition_update{0};
 	float _front_transition_pitch{NAN};
+	bool _full_mc_control_in_back_transition{false}; // no mc weight ramp after a stopped front transition
 
 	systemlib::Hysteresis _pusher_failure_hysteresis{false};
 	bool _pusher_failed{false}; ///< latched until reboot or until the detection is disabled
@@ -78,7 +79,8 @@ private:
 
 	bool isBackTransitionCompleted() override;
 	void onFrontTransitionCompleted() override;
-	void onFrontTransitionAborted() override;
+	mode onFrontTransitionAborted() override;
+	void onTransitionStart() override { _full_mc_control_in_back_transition = false; }
 	void onQuadchute() override;
 	void checkTypeSpecificQuadchute() override;
 
