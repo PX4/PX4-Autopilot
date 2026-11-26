@@ -9,6 +9,10 @@ MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION = 5001
 MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION = 5002
 MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION = 5003
 MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION = 5004
+# Sets the fence level of the next area. Proposed in mavlink/mavlink#2681, not yet in MAVLink.
+MAV_CMD_NAV_FENCE_LEVEL = 5006
+FENCE_LEVEL_EMERGENCY = 0.0
+FENCE_LEVEL_CONTINGENCY = 1.0
 
 Local2 = Tuple[float, float]
 
@@ -33,6 +37,7 @@ class FenceShape:
     vertices: List[Local2] = field(default_factory=list)  # polygons only
     center: Local2 = (0.0, 0.0)  # circles only
     radius_m: float = 0.0  # circles only
+    contingency: bool = False  # an area of the contingency geofence, uploaded behind a level item
 
     def is_breached_by(self, north_m: float, east_m: float) -> bool:
         """A breach is being inside an exclusion or outside an inclusion shape."""

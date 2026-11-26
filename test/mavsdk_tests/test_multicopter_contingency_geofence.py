@@ -2,8 +2,9 @@ import pytest
 from mavsdk.plugins.telemetry import FlightMode  # type: ignore
 
 from autopilot_tester import MissionOptions, log
-from autopilot_tester_geofence import ACTION_RETURN, AutopilotTesterGeofence
+from autopilot_tester_geofence import ACTION_LAND, ACTION_RETURN, AutopilotTesterGeofence
 from autopilot_tester_loiter import horizontal_distance
+from geofence_geometry import FenceKind, FenceShape, rectangle
 
 HOME = (0.0, 0.0)
 TAKEOFF_ALTITUDE_M = 10.0
@@ -113,3 +114,44 @@ def test_contingency_geofence_return_lands_at_home(
     log("Closest to the fence: {:.1f} m".format(closest_m))
     assert 150.0 - OVERSHOOT_M < closest_m < 150.0 + POSITION_TOLERANCE_M, \
         "Came within {:.1f} m of the fence with a margin of 150 m".format(closest_m)
+
+
+@pytest.mark.multicopter
+def test_pilot_is_held_at_contingency_geofence_area_and_lands_at_emergency_geofence(
+        tester_geofence: AutopilotTesterGeofence) -> None:
+    """A pilot flies out of a contingency geofence area, 30 m inside the emergency geofence. The
+    vehicle is held where it leaves the area, not at GF_CONT_H_MARGIN, which the area replaces.
+    The pilot then takes over and flies on: the contingency geofence does not hold the vehicle
+    again, and GF_ACTION takes over at the emergency geofence of the same plan."""
+    tester = tester_geofence
+    tester.wait_until_ready()
+    tester.store_home()
+    tester.set_param_int("GF_ACTION", ACTION_LAND)
+    # Land starts at the breach, without the default Hold before it.
+    tester.set_param_float("COM_FAIL_ACT_T", 0.0)
+    # Not used, 40 m closer to Home than the area.
+    tester.set_param_float("GF_CONT_H_MARGIN", 70.0)
+    tester.upload_fence([
+        FenceShape(FenceKind.POLYGON_INCLUSION, vertices=rectangle(-80.0, 80.0, -80.0, 80.0)),
+        FenceShape(FenceKind.POLYGON_INCLUSION, vertices=rectangle(-50.0, 50.0, -50.0, 50.0),
+                   contingency=True)])
+    tester.arm_and_take_off(TAKEOFF_ALTITUDE_M)
+
+    tester.start_tracking()
+    tester.fly_in_position_mode_until_failsafe(FlightMode.HOLD)
+    with tester.keep_manual_control_alive():
+        with tester.monitor_hold_position():
+            tester.wait_until_speed_lower_than(1.0, 10)
+    held_at_m = tester.min_fence_distance_m()
+    log("Held {:.1f} m from the emergency geofence".format(held_at_m))
+    assert 30.0 - OVERSHOOT_M < held_at_m < 30.0 + POSITION_TOLERANCE_M, \
+        "Held {:.1f} m from the emergency geofence, with the area 30 m inside it".format(held_at_m)
+
+    tester.reset_tracking_extremes()
+    tester.fly_in_position_mode_until_failsafe(FlightMode.LAND)
+    with tester.keep_manual_control_alive():
+        tester.wait_until_disarmed(60)
+    closest_m = tester.min_fence_distance_m()
+    log("Closest to the emergency geofence: {:.1f} m".format(closest_m))
+    assert -OVERSHOOT_M < closest_m < POSITION_TOLERANCE_M, \
+        "Land took over {:.1f} m from the emergency geofence".format(closest_m)
