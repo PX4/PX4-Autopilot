@@ -70,8 +70,9 @@ parameters:
     VT_ARSP_BLEND:
       description:
         short: Transition blending airspeed
-        long: Airspeed at which we can start blending both fw and mc controls. Set
-          to 0 to disable.
+        long: Airspeed at which we start blending down MC control in the transition to FW (FW control is always fully applied).
+          Set to VT_ARSP_TRANS to keep MC control fully active in entire transition.
+          If airspeed is not measured, we assume constant acceleration from 0 m/s (start of transition) to VT_ARSP_TRANS (after VT_F_TR_OL_TM).
       type: float
       default: 8.0
       unit: m/s
