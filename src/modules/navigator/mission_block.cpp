@@ -200,7 +200,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 			 * the altitude of the takeoff waypoint above home. Otherwise, we do not really follow
 			 * take-off procedures like leaving the landing gear down. */
 
-			float takeoff_alt = _mission_item.altitude_is_relative ?
+			float takeoff_alt = mission_item_altitude_is_relative(_mission_item) ?
 					    _mission_item.altitude :
 					    (_mission_item.altitude - _navigator->get_home_position()->alt);
 
@@ -586,7 +586,7 @@ MissionBlock::issue_command(const mission_item_s &item)
 		vehicle_command.param5 = item.lat;
 		vehicle_command.param6 = item.lon;
 
-		if (item.altitude_is_relative) {
+		if (mission_item_altitude_is_relative(item)) {
 			vehicle_command.param7 = item.altitude + _navigator->get_home_position()->alt;
 		}
 	}
@@ -793,7 +793,7 @@ MissionBlock::setLoiterItemCommonFields(struct mission_item_s *item)
 {
 	item->nav_cmd = NAV_CMD_LOITER_UNLIMITED;
 
-	item->altitude_is_relative = false;
+	item->frame = NAV_FRAME_GLOBAL;
 	item->acceptance_radius = _navigator->get_acceptance_radius();
 	item->yaw = NAN;
 	item->time_inside = 0.0f;
@@ -825,7 +825,7 @@ MissionBlock::set_takeoff_item(struct mission_item_s *item, float abs_altitude)
 	item->yaw = NAN;
 
 	item->altitude = abs_altitude;
-	item->altitude_is_relative = false;
+	item->frame = NAV_FRAME_GLOBAL;
 
 	item->acceptance_radius = _navigator->get_acceptance_radius();
 	item->loiter_radius = _navigator->get_default_loiter_rad();
@@ -899,7 +899,7 @@ MissionBlock::set_land_item(struct mission_item_s *item)
 	item->yaw = NAN;
 
 	item->altitude = 0;
-	item->altitude_is_relative = false;
+	item->frame = NAV_FRAME_GLOBAL;
 	item->loiter_radius = _navigator->get_default_loiter_rad();
 	item->acceptance_radius = _navigator->get_acceptance_radius();
 	item->time_inside = 0.0f;
@@ -913,7 +913,7 @@ MissionBlock::set_idle_item(struct mission_item_s *item)
 	item->nav_cmd = NAV_CMD_IDLE;
 	item->lat = _navigator->get_home_position()->lat;
 	item->lon = _navigator->get_home_position()->lon;
-	item->altitude_is_relative = false;
+	item->frame = NAV_FRAME_GLOBAL;
 	item->altitude = _navigator->get_home_position()->alt;
 	item->yaw = NAN;
 	item->loiter_radius = _navigator->get_default_loiter_rad();
@@ -941,7 +941,7 @@ MissionBlock::get_absolute_altitude_for_item(const mission_item_s &mission_item)
 float
 MissionBlock::get_absolute_altitude_for_item(const mission_item_s &mission_item, float home_alt)
 {
-	if (mission_item.altitude_is_relative) {
+	if (mission_item_altitude_is_relative(mission_item)) {
 		return mission_item.altitude + home_alt;
 
 	} else {
@@ -964,7 +964,7 @@ MissionBlock::copy_position_if_valid(struct mission_item_s *const mission_item,
 		mission_item->altitude = _navigator->get_global_position()->alt;
 	}
 
-	mission_item->altitude_is_relative = false;
+	mission_item->frame = NAV_FRAME_GLOBAL;
 }
 
 void
@@ -973,7 +973,7 @@ MissionBlock::set_align_mission_item(struct mission_item_s *const mission_item,
 {
 	mission_item->nav_cmd = NAV_CMD_WAYPOINT;
 	copy_position_if_valid(mission_item, &(_navigator->get_position_setpoint_triplet()->current));
-	mission_item->altitude_is_relative = false;
+	mission_item->frame = NAV_FRAME_GLOBAL;
 	mission_item->autocontinue = true;
 	mission_item->time_inside = 0.0f;
 	mission_item->yaw = get_bearing_to_next_waypoint(
@@ -1002,7 +1002,7 @@ void MissionBlock::setLoiterToAltMissionItem(mission_item_s &item, const Positio
 	item.lat = pos_yaw_sp.lat;
 	item.lon = pos_yaw_sp.lon;
 	item.altitude = pos_yaw_sp.alt;
-	item.altitude_is_relative = false;
+	item.frame = NAV_FRAME_GLOBAL;
 	item.yaw = pos_yaw_sp.yaw;
 
 	item.acceptance_radius = _navigator->get_acceptance_radius();
@@ -1027,7 +1027,7 @@ void MissionBlock::setLoiterHoldMissionItem(mission_item_s &item, const Position
 	item.lat = pos_yaw_sp.lat;
 	item.lon = pos_yaw_sp.lon;
 	item.altitude = pos_yaw_sp.alt;
-	item.altitude_is_relative = false;
+	item.frame = NAV_FRAME_GLOBAL;
 
 	item.yaw = NAN;
 
@@ -1044,7 +1044,7 @@ void MissionBlock::setMoveToPositionMissionItem(mission_item_s &item, const Posi
 	item.lat = pos_yaw_sp.lat;
 	item.lon = pos_yaw_sp.lon;
 	item.altitude = pos_yaw_sp.alt;
-	item.altitude_is_relative = false;
+	item.frame = NAV_FRAME_GLOBAL;
 
 	item.autocontinue = true;
 	item.acceptance_radius = _navigator->get_acceptance_radius();
@@ -1107,7 +1107,7 @@ void MissionBlock::updateAltToAvoidTerrainCollisionAndRepublishTriplet(const mis
 		_navigator->set_position_setpoint_triplet_updated();
 
 		_mission_item.altitude = _navigator->get_global_position()->alt;
-		_mission_item.altitude_is_relative = false;
+		_mission_item.frame = NAV_FRAME_GLOBAL;
 	}
 }
 

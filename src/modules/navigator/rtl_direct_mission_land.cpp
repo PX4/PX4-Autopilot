@@ -175,7 +175,7 @@ void RtlDirectMissionLand::setActiveMissionItems()
 		}
 
 		_mission_item.altitude = _rtl_alt;
-		_mission_item.altitude_is_relative = false;
+		_mission_item.frame = NAV_FRAME_GLOBAL;
 
 		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 		_mission_item.time_inside = 0.0f;
@@ -228,7 +228,7 @@ void RtlDirectMissionLand::setActiveMissionItems()
 		_mission_item.lon = point(1);
 		_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 		_mission_item.altitude = _rtl_alt;
-		_mission_item.altitude_is_relative = false;
+		_mission_item.frame = NAV_FRAME_GLOBAL;
 		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 		_mission_item.time_inside = 0.0f;
 		_mission_item.autocontinue = true;

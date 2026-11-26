@@ -181,14 +181,22 @@ struct mission_item_s {
 			 origin : 3,				/**< how the mission item was generated */
 			 loiter_exit_xtrack : 1,		/**< exit xtrack location: 0 for center of loiter wp, 1 for exit location */
 			 force_heading : 1,			/**< heading needs to be reached */
-			 altitude_is_relative : 1,		/**< true if altitude is relative from start point	*/
 			 autocontinue : 1,			/**< true if next waypoint should follow after this one */
 			 vtol_back_transition : 1,		/**< part of the vtol back transition sequence */
-			 _padding0 : 4;				/**< padding remaining unused bits  */
+			 _padding0 : 5;				/**< padding remaining unused bits  */
 	};
 
 	uint8_t _padding1[2];				/**< padding struct size to alignment boundary  */
 };
+
+/**
+ * @return true if the item's altitude is relative to the home altitude
+ */
+inline bool mission_item_altitude_is_relative(const mission_item_s &item)
+{
+	// MAV_FRAME_GLOBAL_RELATIVE_ALT_INT is a deprecated MAVLink synonym, still stored as uploaded
+	return item.frame == NAV_FRAME_GLOBAL_RELATIVE_ALT || item.frame == NAV_FRAME_GLOBAL_RELATIVE_ALT_INT;
+}
 
 /**
  * dataman housekeeping information for a specific item.

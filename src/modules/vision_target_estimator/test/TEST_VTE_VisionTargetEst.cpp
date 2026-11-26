@@ -123,7 +123,8 @@ navigator_mission_item_s makeNavigatorMissionItem(hrt_abstime timestamp, uint16_
 	mission_item.latitude = lat;
 	mission_item.longitude = lon;
 	mission_item.altitude = alt;
-	mission_item.altitude_is_relative = altitude_is_relative;
+	mission_item.frame = altitude_is_relative ? navigator_mission_item_s::FRAME_GLOBAL_RELATIVE_ALT :
+			     navigator_mission_item_s::FRAME_GLOBAL;
 	return mission_item;
 }
 

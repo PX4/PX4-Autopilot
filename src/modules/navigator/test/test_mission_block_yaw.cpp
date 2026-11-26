@@ -121,7 +121,7 @@ protected:
 		item.lat = kLat;
 		item.lon = kLon;
 		item.altitude = kAlt;
-		item.altitude_is_relative = false;
+		item.frame = NAV_FRAME_GLOBAL;
 		item.yaw = kItemYaw;
 		item.acceptance_radius = NAN;
 		item.time_inside = 0.f;
