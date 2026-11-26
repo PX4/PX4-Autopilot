@@ -19,7 +19,7 @@ actuator_output:
           show_as: bitset
           advanced: true
         - name: 'GPIO_EN'
-          label: "GPIO\n Mode"
+          label: "GPIO\n Output"
           index_offset: -1
           show_as: bitset
           advanced: true
