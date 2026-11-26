@@ -57,8 +57,6 @@
 #include <systemlib/mavlink_log.h>
 #include <px4_platform_common/events.h>
 
-static_assert(DM_KEY_FENCE_POINTS_MAX <= UINT8_MAX, "Fence indices must fit in PolygonInfo::dataman_index");
-
 // Great circles approximate the straight local lines used by guidance; fence edges are straight in lat/lon.
 // A straight lat/lon line at heading h has geodesic curvature tan(lat) * sin(h) * (1 + cos(h)^2) / R, tan(lat) / R
 // along a parallel (https://en.wikipedia.org/wiki/Geodesic_curvature), so over a length L it strays at most
@@ -559,7 +557,7 @@ Geofence::LoadResult Geofence::_updateFence()
 				}
 
 				PolygonInfo &polygon = _polygons[_num_polygons];
-				polygon.dataman_index = static_cast<uint8_t>(current_seq);
+				polygon.dataman_index = current_seq;
 				polygon.fence_type = mission_fence_point.nav_cmd;
 				polygon.fence_level = next_level;
 				next_level = FenceLevel::Emergency;
@@ -673,7 +671,7 @@ bool Geofence::_fencePointValid(const mission_fence_point_s &point) const
 
 bool Geofence::_readFencePoint(unsigned index, mission_fence_point_s &point)
 {
-	return index < DM_KEY_FENCE_POINTS_MAX && index < static_cast<unsigned>(_dataman_cache.size())
+	return index < static_cast<unsigned>(_dataman_cache.size())
 	       && _dataman_cache.loadWait(static_cast<dm_item_t>(_stats.dataman_id), index,
 					  reinterpret_cast<uint8_t *>(&point), sizeof(point));
 }

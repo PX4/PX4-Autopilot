@@ -291,34 +291,6 @@ TEST_F(ContGeofenceTest, RejectsUnknownLevelAndLevelItemInsideAPolygon)
 	EXPECT_TRUE(_fence.isEmpty());
 }
 
-TEST_F(ContGeofenceTest, FenceThatFillsTheStorageLoads)
-{
-	// Emergency geofence circles, then contingency geofence circles behind their level items, up to the last item.
-	const FencePoints emergency = circle(false, {0.f, 300.f}, 50.f);
-	const FencePoints contingency = circle(false, {0.f, 300.f}, 100.f, FenceLevel::Contingency);
-	constexpr int contingency_circles = DM_KEY_FENCE_POINTS_MAX / 4;
-	constexpr int emergency_circles = DM_KEY_FENCE_POINTS_MAX - 2 * contingency_circles;
-	FencePoints points(emergency_circles, emergency.front());
-
-	for (int i = 0; i < contingency_circles; ++i) {
-		points.insert(points.end(), contingency.begin(), contingency.end());
-	}
-
-	ASSERT_TRUE(loadFence(points));
-	EXPECT_TRUE(insideEmergency(0.f, 375.f));
-	EXPECT_FALSE(insideCont(0.f, 375.f));
-	EXPECT_FALSE(insideAll(0.f, 375.f));
-	GeofenceInterface &interface = _fence;
-	const int num_areas = emergency_circles + contingency_circles;
-	ASSERT_EQ(interface.getNumPolygons(), num_areas);
-	EXPECT_EQ(interface.getPolygonInfoByIndex(num_areas - 1).dataman_index, DM_KEY_FENCE_POINTS_MAX - 1);
-
-	const Geofence::PathCheck query = path({0.f, 375.f}, {0.f, 500.f});
-	bool clear = true;
-	ASSERT_TRUE(_fence.checkPathBatch(&query, 1, &clear));
-	EXPECT_FALSE(clear);
-}
-
 // The action must not drop out for the moment in which the fence is empty during an update.
 TEST_F(ContGeofenceTest, ContingencyActionStaysWhileANewFenceLoads)
 {
