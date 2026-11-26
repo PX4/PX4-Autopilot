@@ -53,21 +53,31 @@ void RallyPointChecks::checkAndReport(const Context &context, Report &reporter)
 	rtl_status_s rtl_status;
 
 	if (!_rtl_status_sub.copy(&rtl_status) || rtl_status.safe_point_index == UINT8_MAX) {
+		// Any value other than "warning only" denies arming
+		const bool warn_only = static_cast<RallyPointArmingCheck>(_param_com_arm_rally_pt.get())
+				       == RallyPointArmingCheck::WarningOnly;
+
 		/* EVENT
 		 * @description
-		 * No rally point is configured. Return mode will fall back to the current position when triggered.
-		 * Upload at least one rally point, or change <param>RTL_TYPE</param> to silence this warning.
+		 * Return mode falls back to the current position without a rally point.
+		 * Upload at least one rally point, or change <param>RTL_TYPE</param>.
 		 *
 		 * <profile name="dev">
-		 * This warning is active when RTL_TYPE is set to 5 (safe points only).
+		 * This check is active when RTL_TYPE is set to 5 (rally points only).
+		 * <param>COM_ARM_RALLY_PT</param> sets whether it denies arming or only warns.
 		 * </profile>
 		 */
-		reporter.armingCheckFailure(NavModes::None, health_component_t::system,
+		reporter.armingCheckFailure(warn_only ? NavModes::None : NavModes::All, health_component_t::system,
 					    events::ID("check_rally_point_missing"),
-					    events::Log::Warning, "No rally point configured");
+					    warn_only ? events::Log::Warning : events::Log::Error, "No rally point configured");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_warning(reporter.mavlink_log_pub(), "No rally point configured\t");
+			if (warn_only) {
+				mavlink_log_warning(reporter.mavlink_log_pub(), "No rally point configured\t");
+
+			} else {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: No rally point configured\t");
+			}
 		}
 	}
 }

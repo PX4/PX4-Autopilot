@@ -105,6 +105,9 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   `geofence_max_dist_triggered`, `geofence_max_alt_triggered`, `geofence_custom_fence_triggered` and `geofence_action` of [GeofenceResult](../msg_docs/GeofenceResult.md) are now `geofence_emer_max_dist_triggered`, `geofence_emer_max_alt_triggered`, `geofence_emer_custom_fence_triggered` and `geofence_emer_action`.
   They name the emergency geofence, next to the new `geofence_cont_*` fields of the contingency geofence.
   Log analysis that reads the old names must use the new ones.
+- **Arming without a rally point is denied again when [RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) is `5`.**
+  PX4 v1.18 only warned.
+  The new [COM_ARM_RALLY_PT](../advanced_config/parameter_reference.md#COM_ARM_RALLY_PT) sets the behaviour: `1` (the default) denies arming, `0` only warns as v1.18 did.
 
 ## Other changes
 
@@ -170,6 +173,9 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - [Secure boot](../advanced_config/bootloader_secure_boot.md#multi-part-signed-images) now supports applications that can boot securely from SD card or eMMC. ([PX4-Autopilot#28228](https://github.com/PX4/PX4-Autopilot/pull/28228))
 - [Motor failure detection](../config/motor_failure_detection.md) now compares a low-pass filtered current residual against a separate trip band and trigger time for the undercurrent and overcurrent directions, instead of one symmetric band on the instantaneous current, and the current model gains an offset term. See [Upgrading from PX4 v1.18](../config/motor_failure_detection.md#upgrading-from-px4-v1-18). ([PX4-Autopilot#27711](https://github.com/PX4/PX4-Autopilot/pull/27711), [PX4-Autopilot#27917](https://github.com/PX4/PX4-Autopilot/pull/27917))
 - For MC, arming check can detect [stuck motors](../config/safety.md#motor-not-spinning-after-arming) and disarm before takeoff. ([PX4-Autopilot#29436](https://github.com/PX4/PX4-Autopilot/pull/29436))
+- A missing rally point with [RTL_TYPE](../advanced_config/parameter_reference.md#RTL_TYPE) = `5` denies arming by default again.
+  Set [COM_ARM_RALLY_PT](../advanced_config/parameter_reference.md#COM_ARM_RALLY_PT) to `0` to only warn, as PX4 v1.18 did.
+  See the [Upgrade Guide](#upgrade-guide).
 
 ### Estimation
 

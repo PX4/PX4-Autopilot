@@ -304,6 +304,15 @@ parameters:
         long: The default allows to arm the vehicle without a valid mission.
       type: boolean
       default: 0
+    COM_ARM_RALLY_PT:
+      description:
+        short: Preflight check for a missing rally point
+        long: Only used when RTL_TYPE is 5 (Direct to rally point only). Without a rally point, Return mode falls back to the current position.
+      type: enum
+      values:
+        0: Warning only
+        1: Deny arming
+      default: 1
     COM_ARM_AUTH_REQ:
       description:
         short: Require arm authorization to arm
