@@ -55,7 +55,11 @@ bool FailureInjectionManager::init()
 		return false;
 	}
 
-	if (_param_sys_fail_rc_src.get() != 0) {
+	if (_param_sys_fail_rc_rst.get() != 0 && !rcResetEnabled()) {
+		PX4_WARN("SYS_FAIL_RC_RST uses the same aux input as SYS_FAIL_RC_SRC, reset switch disabled");
+	}
+
+	if (_param_sys_fail_rc_src.get() != 0 || rcResetEnabled()) {
 		if (!_manual_control_setpoint_sub.registerCallback()) {
 			PX4_ERR("manual_control_setpoint callback registration failed");
 			return false;
@@ -96,38 +100,92 @@ void FailureInjectionManager::Run()
 	}
 }
 
+float FailureInjectionManager::auxValue(const manual_control_setpoint_s &manual_control_setpoint, int32_t aux)
+{
+	// Aux inputs only come from RC; other sources (e.g. MAVLink joystick) report them as 0
+	if (!manual_control_setpoint.valid || manual_control_setpoint.data_source != manual_control_setpoint_s::SOURCE_RC) {
+		return NAN;
+	}
+
+	switch (aux) {
+	case 1: return manual_control_setpoint.aux1;
+
+	case 2: return manual_control_setpoint.aux2;
+
+	case 3: return manual_control_setpoint.aux3;
+
+	case 4: return manual_control_setpoint.aux4;
+
+	case 5: return manual_control_setpoint.aux5;
+
+	case 6: return manual_control_setpoint.aux6;
+
+	default: return NAN; // 0 = disabled, or out of range
+	}
+}
+
+bool FailureInjectionManager::rcResetEnabled() const
+{
+	return _param_sys_fail_rc_rst.get() != 0 && _param_sys_fail_rc_rst.get() != _param_sys_fail_rc_src.get();
+}
+
+void FailureInjectionManager::evaluateRcReset(float value)
+{
+	if (!PX4_ISFINITE(value)) {
+		_rc_reset_position = SwitchPosition::Unknown;
+		return;
+	}
+
+	SwitchPosition position = _rc_reset_position;
+
+	if (value > 0.5f) {
+		position = SwitchPosition::High;
+
+	} else if (value < -0.5f) {
+		position = SwitchPosition::Low;
+
+	} else if (fabsf(value) < 0.25f) {
+		position = SwitchPosition::Middle;
+	}
+
+	if (_rc_reset_position != SwitchPosition::Unknown && position != _rc_reset_position) {
+		_table.clearAll();
+		mavlink_log_warning(&_mavlink_log_pub, "Cleared: all failures");
+
+		_rc_active = false;
+		_rc_latched = true;
+	}
+
+	_rc_reset_position = position;
+}
+
 void FailureInjectionManager::evaluateRcInjection()
 {
-	if (_param_sys_fail_rc_src.get() == 0) {
+	const bool reset_enabled = rcResetEnabled();
+
+	if (_param_sys_fail_rc_src.get() == 0 && !reset_enabled) {
 		return;
 	}
 
 	manual_control_setpoint_s manual_control_setpoint;
 
 	if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
-		float value = NAN;
-
-		if (manual_control_setpoint.valid) {
-			switch (_param_sys_fail_rc_src.get()) {
-			case 1: value = manual_control_setpoint.aux1; break;
-
-			case 2: value = manual_control_setpoint.aux2; break;
-
-			case 3: value = manual_control_setpoint.aux3; break;
-
-			case 4: value = manual_control_setpoint.aux4; break;
-
-			case 5: value = manual_control_setpoint.aux5; break;
-
-			case 6: value = manual_control_setpoint.aux6; break;
-
-			default: break; // 0 = disabled, or out of range
-			}
+		if (reset_enabled) {
+			evaluateRcReset(auxValue(manual_control_setpoint, _param_sys_fail_rc_rst.get()));
 		}
 
+		if (_param_sys_fail_rc_src.get() == 0) {
+			return;
+		}
+
+		const float value = auxValue(manual_control_setpoint, _param_sys_fail_rc_src.get());
 		const bool triggered = value > 0.5f;
 
-		if (triggered && !_rc_active) {
+		if (PX4_ISFINITE(value) && !triggered) {
+			_rc_latched = false;
+		}
+
+		if (triggered && !_rc_active && !_rc_latched) {
 			const int32_t raw = _param_sys_fail_rc_inst.get();
 			_rc_active_unit = static_cast<uint8_t>(_param_sys_fail_rc_unit.get());
 			// SYS_FAIL_RC_INST is an instance bitmask (bit 0 = instance 1); 0 = all instances.
@@ -263,6 +321,8 @@ Failures can be triggered through:
 - the `failure` console command
 - an RC switch: `SYS_FAIL_RC_SRC` selects the aux input, and `SYS_FAIL_RC_UNIT` /
   `SYS_FAIL_RC_MODE` / `SYS_FAIL_RC_INST` define the failure applied while it is on
+
+Any change of the RC switch selected by `SYS_FAIL_RC_RST` clears all active failures.
 
 Requires `SYS_FAILURE_EN` to be set; the startup script only starts this module when it is.
 

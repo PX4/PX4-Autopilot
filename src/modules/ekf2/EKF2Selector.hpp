@@ -76,6 +76,14 @@ public:
 
 	void RequestInstance(uint8_t instance) { _request_instance.store(instance); }
 
+protected:
+	/**
+	 * Run one selection cycle at the given time without rescheduling.
+	 *
+	 * @return false while no instance can be selected yet
+	 */
+	bool Update(const hrt_abstime now);
+
 private:
 	static constexpr uint8_t INVALID_INSTANCE{UINT8_MAX};
 
@@ -88,17 +96,17 @@ private:
 
 	void PrintInstanceChange(const uint8_t old_instance, uint8_t new_instance);
 
-	void PublishEstimatorSelectorStatus();
+	void PublishEstimatorSelectorStatus(const hrt_abstime now);
 	void PublishVehicleAttitude();
 	void PublishVehicleLocalPosition();
 	void PublishVehicleGlobalPosition();
 	void PublishVehicleOdometry();
 	void PublishWindEstimate();
 
-	bool SelectInstance(uint8_t instance);
+	bool SelectInstance(uint8_t instance, const hrt_abstime now);
 
 	// Update the error scores for all available instances
-	bool UpdateErrorScores();
+	bool UpdateErrorScores(const hrt_abstime now);
 
 	// Subscriptions (per estimator instance)
 	struct EstimatorInstance {

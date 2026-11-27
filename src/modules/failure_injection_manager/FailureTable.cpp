@@ -209,6 +209,16 @@ FailureTable::AckResult FailureTable::injectMask(uint8_t unit, uint8_t type, uin
 	return AckResult::Accepted;
 }
 
+void FailureTable::clearAll()
+{
+	_changed = true;
+	_count = 0;
+
+	for (uint8_t i = 0; i < failure_injection_s::MAX_FAILURES; i++) {
+		_entries[i] = Entry{};
+	}
+}
+
 void FailureTable::fill(failure_injection_s &msg) const
 {
 	msg.count = _count;

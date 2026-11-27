@@ -83,6 +83,15 @@ See the documentation [Ark Electronics GitBook](https://arkelectron.gitbook.io/a
 - LED Indicators
 - MicroSD Slot
 
+## Analog OSD
+
+An analog OSD such as the ARK OSD connects to the SPI port or to the TELEM port, and is off until configured:
+
+- **SPI port:** set [OSD_ATXXXX_CFG](../advanced_config/parameter_reference.md#OSD_ATXXXX_CFG) to 1 for NTSC or 2 for PAL.
+- **TELEM port (MSP DisplayPort):** set [MSP_OSD_CONFIG](../advanced_config/parameter_reference.md#MSP_OSD_CONFIG) to `TELEM 1`, and move MAVLink off TELEM 1 if [MAV_0_CONFIG](../advanced_config/parameter_reference.md#MAV_0_CONFIG) uses it.
+
+Keep the VTX port for the video transmitter.
+
 ## Pinout
 
 See the [DS-10 Pixhawk Autopilot Bus Standard](https://arkelectron.gitbook.io/ark-documentation/flight-controllers/ark-fpv/pinout)

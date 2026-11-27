@@ -256,7 +256,7 @@ The bug is not reproducible, so it is likely a hardware or OS problem.
 c++: internal compiler error: Killed (program cc1plus)
 ```
 
-Спробуйте вимкнути паралельну збірку.
+Try disabling parallel builds, e.g. `make px4_fmu-v5x_default -j1`.
 
 **Allow Docker Control from the VM Host**
 

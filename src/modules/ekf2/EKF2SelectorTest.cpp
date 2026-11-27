@@ -43,10 +43,6 @@
 #include "EKF2Selector.hpp"
 
 #include <drivers/drv_hrt.h>
-#include <hrt_work.h>
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
-#include <px4_platform_common/time.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/estimator_status.h>
@@ -57,253 +53,181 @@ using namespace time_literals;
 // filter_fault_flags bit 10: bad vertical accelerometer data
 static constexpr uint32_t kFaultBadAccVertical = (1u << 10);
 
-// Keep output unbuffered so a CI harness kill cannot swallow it, and stop the
-// work queue manager at the end so the process exits instead of timing out.
-class EKF2SelectorTestEnvironment : public ::testing::Environment
+// The test steps the selector itself on simulated time. No work queue is
+// started, so neither its scheduling nor its uORB callbacks run it.
+class EKF2SelectorTestable : public EKF2Selector
 {
 public:
-	void SetUp() override { setvbuf(stdout, nullptr, _IONBF, 0); }
-	void TearDown() override { px4::WorkQueueManagerStop(); }
-};
-
-static const auto *global_env = ::testing::AddGlobalTestEnvironment(new EKF2SelectorTestEnvironment());
-
-// PX4 destroys a work queue when its last WorkItem detaches, so deleting the
-// selector between tests would race the next test's construction against the
-// dying queue. One keeper item pins the queue for the whole process.
-class WorkQueueKeeper : public px4::ScheduledWorkItem
-{
-public:
-	WorkQueueKeeper() : ScheduledWorkItem("wq_keeper", px4::wq_configurations::nav_and_controllers) {}
-
-private:
-	void Run() override {}
+	using EKF2Selector::Update;
 };
 
 class EKF2SelectorTest : public ::testing::Test
 {
 public:
+	// what one estimator instance publishes each cycle
+	struct Status {
+		bool publish;
+		float test_ratio;
+		uint32_t fault_flags;
+	};
+
+	static constexpr Status kGood{true, 0.1f, 0};
+	static constexpr Status kWarned{true, 2.f, 0}; // nominally healthy, failing test ratio
+	static constexpr Status kFaulted{true, 0.1f, kFaultBadAccVertical};
+	static constexpr Status kSilent{false, 0.f, 0};
+
+	static constexpr hrt_abstime kStep{10_ms}; // the selector's update period
+
+	// shared across tests: a fresh PublicationMulti per test would advertise
+	// new uORB instances while the selector watches 0..N
+	static void SetUpTestSuite()
+	{
+		for (auto &pub : _status_pub) {
+			ASSERT_TRUE(pub.advertise());
+		}
+	}
+
 	void SetUp() override
 	{
-		// the selector attaches to the work queue at construction
-		static bool wq_manager_started = false;
-
-		if (!wq_manager_started) {
-			// the gtest harness starts no platform threads: the hrt callout
-			// worker must exist before the selector's delayed self-scheduling
-			// runs, or the work queue blocks on an uninitialized semaphore.
-			// Without hrt_init() the callout lock is not recursive, so the
-			// worker deadlocks on its own nested lock the first time a
-			// callout is due
-			hrt_init();
-			hrt_work_queue_init();
-			ASSERT_EQ(px4::WorkQueueManagerStart(), 0);
-			wq_manager_started = true;
-		}
-
-		// the manager thread reports running asynchronously: wait for the
-		// selector's queue to be servable instead of sleeping a fixed time
-		const hrt_abstime wq_wait_start = hrt_absolute_time();
-
-		while (px4::WorkQueueFindOrCreate(px4::wq_configurations::nav_and_controllers) == nullptr) {
-			ASSERT_LT(hrt_elapsed_time(&wq_wait_start), 10_s) << "work queue manager did not start";
-			px4_usleep(100_ms);
-		}
-
-		static WorkQueueKeeper *wq_keeper = new WorkQueueKeeper();
-		ASSERT_NE(wq_keeper, nullptr);
-
-		// shared across tests: a fresh PublicationMulti per test would
-		// advertise new uORB instances while the selector watches 0..N
-		if (_status_pub[0] == nullptr) {
-			_status_pub[0] = new uORB::PublicationMulti<estimator_status_s>(ORB_ID(estimator_status));
-			_status_pub[1] = new uORB::PublicationMulti<estimator_status_s>(ORB_ID(estimator_status));
-			_status_pub[0]->advertise();
-			_status_pub[1]->advertise();
-		}
-
-		_selector = new EKF2Selector();
-		ASSERT_NE(_selector, nullptr);
-
 		settleBaseline();
 	}
 
-	void TearDown() override
+	void publishStatus(int instance, const Status &s)
 	{
-		_selector->Stop();
-		delete _selector;
-	}
+		if (!s.publish) {
+			return;
+		}
 
-	// publish one instance's estimator_status the way EKF2 would
-	void publishStatus(int instance, float test_ratio, uint32_t fault_flags)
-	{
 		estimator_status_s status{};
-		status.timestamp_sample = hrt_absolute_time();
+		status.timestamp_sample = _now;
 		status.accel_device_id = 1000 + instance;
 		status.gyro_device_id = 2000 + instance;
-		status.vel_test_ratio = test_ratio;
-		status.pos_test_ratio = test_ratio;
-		status.hgt_test_ratio = test_ratio;
-		status.filter_fault_flags = fault_flags;
-		status.timestamp = hrt_absolute_time();
-		_status_pub[instance]->publish(status);
+		status.vel_test_ratio = s.test_ratio;
+		status.pos_test_ratio = s.test_ratio;
+		status.hgt_test_ratio = s.test_ratio;
+		status.filter_fault_flags = s.fault_flags;
+		status.timestamp = _now;
+		_status_pub[instance].publish(status);
 	}
 
-	// run the scenario for a wall-clock duration at ~100 Hz
-	void runFor(hrt_abstime duration, float ratio0, uint32_t faults0, float ratio1, uint32_t faults1)
+	// one selector cycle: advance the clock, publish, run the selector
+	void step(const Status &s0, const Status &s1)
 	{
-		const hrt_abstime start = hrt_absolute_time();
+		_now += kStep;
+		publishStatus(0, s0);
+		publishStatus(1, s1);
+		_selector.Update(_now);
+	}
 
-		while (hrt_elapsed_time(&start) < duration) {
-			publishStatus(0, ratio0, faults0);
-			publishStatus(1, ratio1, faults1);
-			_selector->ScheduleNow();
-			px4_usleep(5_ms);
+	void runFor(hrt_abstime duration, const Status &s0, const Status &s1)
+	{
+		const hrt_abstime start = _now;
+
+		while (_now - start < duration) {
+			step(s0, s1);
 		}
 	}
 
-	// settle on both instances healthy with instance 0 selected
+	// step until the selector picks the instance or the timeout passes,
+	// returns the simulated time it took
+	hrt_abstime runUntilPrimary(uint8_t instance, hrt_abstime timeout, const Status &s0, const Status &s1)
+	{
+		const hrt_abstime start = _now;
+
+		while ((_now - start < timeout) && (primaryInstance() != instance)) {
+			step(s0, s1);
+		}
+
+		return _now - start;
+	}
+
+	// a fresh selector picks instance 0 and both pass the 1 s health hysteresis
 	void settleBaseline()
 	{
-		const hrt_abstime start = hrt_absolute_time();
+		const hrt_abstime start = _now;
 
-		hrt_abstime last_report = start;
+		runFor(1500_ms, kGood, kGood);
 
-		// generous timeout: a loaded machine can restart the 1 s health hysteresis
-		while (hrt_elapsed_time(&start) < 20_s) {
-			estimator_selector_status_s status{};
-			_selector_status_sub.copy(&status);
-
-			if (hrt_elapsed_time(&last_report) > 2_s) {
-				last_report = hrt_absolute_time();
-				printf("settle: elapsed=%.1fs now=%llu selector status timestamp=%llu primary=%d healthy=%d/%d changed=%lu\n",
-				       hrt_elapsed_time(&start) * 1e-6, (unsigned long long)last_report,
-				       (unsigned long long)status.timestamp, status.primary_instance,
-				       status.healthy[0], status.healthy[1], (unsigned long)status.instance_changed_count);
-			}
-
-			// only trust a status this selector instance produced
-			const bool fresh = (status.timestamp > start);
-
-			if (fresh && (status.primary_instance == 0) && (status.instances_available == 2)
-			    && status.healthy[0] && status.healthy[1]) {
-				return;
-			}
-
-			// a single request can be consumed during a transient
-			if (!fresh || (status.primary_instance != 0)) {
-				_selector->RequestInstance(0);
-			}
-
-			publishStatus(0, 0.1f, 0);
-			publishStatus(1, 0.1f, 0);
-			_selector->ScheduleNow();
-			px4_usleep(5_ms);
-		}
-
-		estimator_selector_status_s status{};
-		_selector_status_sub.copy(&status);
-		FAIL() << "selector did not settle on a healthy instance 0:"
-		       << " primary=" << (int)status.primary_instance
-		       << " available=" << (int)status.instances_available
-		       << " healthy0=" << status.healthy[0]
-		       << " healthy1=" << status.healthy[1]
-		       << " changed=" << status.instance_changed_count;
+		const estimator_selector_status_s status = selectorStatus();
+		ASSERT_GT(status.timestamp, start) << "no status from this test's selector";
+		ASSERT_EQ(status.primary_instance, 0);
+		ASSERT_EQ(status.instances_available, 2);
+		ASSERT_TRUE(status.healthy[0]);
+		ASSERT_TRUE(status.healthy[1]);
 	}
 
 	// peg instance 0's test ratio until the selector switches to instance 1
 	void degradeUntilSwitched()
 	{
-		const hrt_abstime start = hrt_absolute_time();
-
-		while (hrt_elapsed_time(&start) < 15_s) {
-			publishStatus(0, 2.f, 0);
-			publishStatus(1, 0.1f, 0);
-			_selector->ScheduleNow();
-			px4_usleep(5_ms);
-
-			if (primaryInstance() == 1) {
-				return;
-			}
-		}
-
-		FAIL() << "selector never switched away from the degraded primary";
+		runUntilPrimary(1, 15_s, kWarned, kGood);
+		ASSERT_EQ(primaryInstance(), 1) << "selector never switched away from the degraded primary";
 	}
 
-	uint8_t primaryInstance()
+	estimator_selector_status_s selectorStatus()
 	{
 		estimator_selector_status_s status{};
 		_selector_status_sub.copy(&status);
-		return status.primary_instance;
+		return status;
 	}
 
-	uint32_t instanceChangedCount()
-	{
-		estimator_selector_status_s status{};
-		_selector_status_sub.copy(&status);
-		return status.instance_changed_count;
-	}
+	uint8_t primaryInstance() { return selectorStatus().primary_instance; }
+	uint32_t instanceChangedCount() { return selectorStatus().instance_changed_count; }
 
-	EKF2Selector *_selector{nullptr};
-	static uORB::PublicationMulti<estimator_status_s> *_status_pub[2];
+	// Starts well after boot: the selector treats a never selected instance as
+	// last selected at time 0 and holds it off for 10 s after that. The clock
+	// keeps running across tests so that no sample left on uORB by an earlier
+	// test is in the future of a later one.
+	static hrt_abstime _now;
+	static uORB::PublicationMulti<estimator_status_s> _status_pub[2];
+
+	EKF2SelectorTestable _selector;
 	uORB::Subscription _selector_status_sub{ORB_ID(estimator_selector_status)};
 };
 
-uORB::PublicationMulti<estimator_status_s> *EKF2SelectorTest::_status_pub[2] {nullptr, nullptr};
+hrt_abstime EKF2SelectorTest::_now{100_s};
+uORB::PublicationMulti<estimator_status_s> EKF2SelectorTest::_status_pub[2] {
+	{ORB_ID(estimator_status)},
+	{ORB_ID(estimator_status)},
+};
 
 // two healthy instances: no churn
 TEST_F(EKF2SelectorTest, staysOnHealthyInstance)
 {
 	const uint32_t switches = instanceChangedCount();
 
-	runFor(500_ms, 0.1f, 0, 0.1f, 0);
+	runFor(5_s, kGood, kGood);
 
 	EXPECT_EQ(primaryInstance(), 0);
-	EXPECT_EQ(instanceChangedCount(), switches); // no changes after settling
+	EXPECT_EQ(instanceChangedCount(), switches);
 }
 
 // a hard fault on the primary fails over immediately to a clean alternative
 TEST_F(EKF2SelectorTest, cleanFallbackIsImmediate)
 {
-	const hrt_abstime fault_start = hrt_absolute_time();
-	hrt_abstime switched_after = 0;
-
-	while (hrt_elapsed_time(&fault_start) < 5_s) {
-		publishStatus(0, 0.1f, kFaultBadAccVertical);
-		publishStatus(1, 0.1f, 0);
-		_selector->ScheduleNow();
-		px4_usleep(5_ms);
-
-		if (primaryInstance() == 1) {
-			switched_after = hrt_elapsed_time(&fault_start);
-			break;
-		}
-	}
+	const hrt_abstime switched_after = runUntilPrimary(1, 5_s, kFaulted, kGood);
 
 	EXPECT_EQ(primaryInstance(), 1);
-	EXPECT_GT(switched_after, 0u);
 	EXPECT_LT(switched_after, 1_s); // immediate, not the warned-fallback delay
 }
 
 // the switch-away half of b7efd4f947 still works
 TEST_F(EKF2SelectorTest, switchesAwayFromDegradedPrimary)
 {
-	degradeUntilSwitched();
-	EXPECT_EQ(primaryInstance(), 1);
+	ASSERT_NO_FATAL_FAILURE(degradeUntilSwitched());
 }
 
 // the issue 27013 pattern: brief faults on the primary must not bounce the
 // selector to a nominally healthy instance with a pegged test ratio
 TEST_F(EKF2SelectorTest, noFallbackToSustainedWarnedInstance)
 {
-	degradeUntilSwitched();
+	ASSERT_NO_FATAL_FAILURE(degradeUntilSwitched());
 	const uint32_t switches_before = instanceChangedCount();
 
 	// clear windows exceed the 1 s healthy hysteresis, so these are three
 	// separate faults, not one long unhealthy episode
 	for (int cycle = 0; cycle < 3; cycle++) {
-		runFor(800_ms, 2.f, 0, 0.1f, kFaultBadAccVertical);	// faulted primary, diverged alternative
-		runFor(1600_ms, 2.f, 0, 0.1f, 0);	// fault clears, primary re-heals
+		runFor(800_ms, kWarned, kFaulted); // faulted primary, diverged alternative
+		runFor(1600_ms, kWarned, kGood);   // fault clears, primary re-heals
 	}
 
 	EXPECT_EQ(primaryInstance(), 1);
@@ -313,30 +237,21 @@ TEST_F(EKF2SelectorTest, noFallbackToSustainedWarnedInstance)
 // a timed out primary falls back to the warned instance without delay
 TEST_F(EKF2SelectorTest, timedOutPrimaryFallsBackImmediately)
 {
-	runFor(2500_ms, 2.f, 0, 0.1f, 0);
-	ASSERT_EQ(primaryInstance(), 1);
+	ASSERT_NO_FATAL_FAILURE(degradeUntilSwitched());
 
 	// primary goes silent, only the warned instance 0 keeps publishing
-	const hrt_abstime start = hrt_absolute_time();
-
-	while (hrt_elapsed_time(&start) < 3_s) {
-		publishStatus(0, 2.f, 0);
-		_selector->ScheduleNow();
-		px4_usleep(5_ms);
-
-		if (primaryInstance() == 0) {
-			break;
-		}
-	}
+	const hrt_abstime switched_after = runUntilPrimary(0, 3_s, kWarned, kSilent);
 
 	EXPECT_EQ(primaryInstance(), 0);
+	EXPECT_LT(switched_after, 1_s); // well within the 5 s warned-fallback delay
 }
 
 // a persistently faulted primary still falls back to the warned instance
 TEST_F(EKF2SelectorTest, sustainedFaultFallsBackEventually)
 {
-	degradeUntilSwitched();
+	ASSERT_NO_FATAL_FAILURE(degradeUntilSwitched());
 
-	runFor(7000_ms, 2.f, 0, 0.1f, kFaultBadAccVertical);
+	runFor(7_s, kWarned, kFaulted);
+
 	EXPECT_EQ(primaryInstance(), 0);
 }

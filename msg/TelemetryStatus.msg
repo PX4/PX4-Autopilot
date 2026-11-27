@@ -34,6 +34,7 @@ uint32 rx_parse_errors                  # number of parse errors
 uint32 rx_packet_drop_count             # number of packet drops
 uint32 rx_unknown_message_count         # number of messages not in the dialect, not processed
 uint32 rx_bad_signature_count           # number of messages with missing or invalid signature, not processed
+uint32 rx_bad_crc_count                 # number of known messages dropped for a bad CRC
 float32 rx_message_lost_rate            # fraction of messages lost (0 to 1)
 
 

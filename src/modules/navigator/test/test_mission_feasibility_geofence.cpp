@@ -352,6 +352,30 @@ TEST_F(MissionFeasibilityGeofenceTest, EmptyFenceStillChecksHomeLimits)
 	EXPECT_TRUE(waypointEvent(events::ID("navigator_mis_geofence_violation"), 2));
 }
 
+// Every position keeps the contingency geofence margin to the maximum distance from Home.
+TEST_F(MissionFeasibilityGeofenceTest, PositionsMustKeepTheMarginToTheHomeDistance)
+{
+	const float maximum = 400.f;
+	const float margin = 100.f;
+	ASSERT_EQ(param_set(param_find("GF_MAX_HOR_DIST"), &maximum), PX4_OK);
+	_navigator.updateParams();
+	EXPECT_TRUE(missionFeasible({waypoint({0.f, 200.f}), waypoint({0.f, 350.f})}));
+
+	ASSERT_EQ(param_set(param_find("GF_CONT_H_MARGIN"), &margin), PX4_OK);
+	_navigator.updateParams();
+	EXPECT_TRUE(missionFeasible({waypoint({0.f, 200.f}), waypoint({0.f, 290.f})}));
+	EXPECT_FALSE(missionFeasible({waypoint({0.f, 350.f})}));
+	EXPECT_TRUE(waypointEvent(events::ID("navigator_mis_geofence_violation"), 1));
+	EXPECT_FALSE(missionFeasible({waypoint({0.f, 200.f}), waypoint({0.f, 350.f})}));
+	EXPECT_TRUE(waypointEvent(events::ID("navigator_mis_geofence_violation"), 2));
+
+	// As with GF_ACTION, an action of None does not switch the mission check off.
+	const int32_t none = geofence_result_s::GF_ACTION_NONE;
+	ASSERT_EQ(param_set(param_find("GF_CONT_ACTION"), &none), PX4_OK);
+	_navigator.updateParams();
+	EXPECT_FALSE(missionFeasible({waypoint({0.f, 350.f})}));
+}
+
 TEST_F(MissionFeasibilityGeofenceTest, EmptyFenceIgnoresStoredAltitudeBand)
 {
 	GeofenceTestPeer::setAltitudeBand(_fence, 450.f, 550.f);
@@ -640,6 +664,16 @@ protected:
 		return true;
 	}
 
+	bool setMargin(float margin)
+	{
+		if (param_set(param_find("GF_CONT_H_MARGIN"), &margin) != PX4_OK) {
+			return false;
+		}
+
+		_navigator.updateParams();
+		return true;
+	}
+
 	mission_item_s loiter(float east, float radius, uint16_t command = NAV_CMD_LOITER_UNLIMITED) const
 	{
 		mission_item_s item = waypoint({0.f, east});
@@ -727,6 +761,54 @@ TEST_F(MissionGeofenceLoiterTest, EmptyFenceStillChecksCircleDistanceFromHome)
 	EXPECT_TRUE(missionFeasible({loiter(250.f, 40.f)}));
 	EXPECT_FALSE(missionFeasible({loiter(250.f, 60.f)}));
 	expectLoiterViolation(1);
+}
+
+TEST_F(MissionGeofenceLoiterTest, CircleMustKeepTheMarginToTheHomeDistance)
+{
+	ASSERT_TRUE(configureVehicle());
+	const float maximum = 400.f;
+	ASSERT_EQ(param_set(param_find("GF_MAX_HOR_DIST"), &maximum), PX4_OK);
+	_navigator.updateParams();
+
+	// The 60 m circle fits the geofence limit, but with the margin only the 40 m circle does.
+	EXPECT_TRUE(missionFeasible({loiter(250.f, 60.f)}));
+	ASSERT_TRUE(setMargin(100.f));
+	EXPECT_TRUE(missionFeasible({loiter(250.f, 40.f)}));
+	EXPECT_FALSE(missionFeasible({loiter(250.f, 60.f)}));
+	expectLoiterViolation(1);
+}
+
+TEST_F(MissionGeofenceLoiterTest, ContGeofenceMarginAppliesToPositionsAndPaths)
+{
+	ASSERT_TRUE(configureVehicle(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING));
+	ASSERT_TRUE(loadFence(inclusionSquare()));
+
+	// The middle waypoint is 50 m inside the eastern edge.
+	const std::vector<mission_item_s> items{waypoint({0.f, 800.f}), waypoint({0.f, 950.f}), waypoint({0.f, 800.f})};
+	EXPECT_TRUE(missionFeasible(items));
+
+	ASSERT_TRUE(setMargin(40.f));
+	EXPECT_TRUE(missionFeasible(items));
+
+	ASSERT_TRUE(setMargin(60.f));
+	EXPECT_FALSE(missionFeasible(items));
+	expectPathViolation(2);
+
+	// A first position within the margin fails its path without length.
+	EXPECT_FALSE(missionFeasible({waypoint({0.f, 950.f})}));
+	expectPathViolation(1);
+}
+
+TEST_F(MissionGeofenceLoiterTest, ContGeofenceMarginAppliesToLoiterCircles)
+{
+	ASSERT_TRUE(configureVehicle());
+	ASSERT_TRUE(setMargin(60.f));
+	ASSERT_TRUE(loadFence(inclusionSquare()));
+
+	// A 40 m loiter 100 m inside the edge: the vehicle on the circle keeps 60 m.
+	EXPECT_TRUE(missionFeasible({waypoint({0.f, 800.f}), loiter(890.f, 40.f), waypoint({0.f, 800.f})}));
+	EXPECT_FALSE(missionFeasible({waypoint({0.f, 800.f}), loiter(910.f, 40.f), waypoint({0.f, 800.f})}));
+	expectLoiterViolation(2);
 }
 
 TEST_F(MissionGeofenceLoiterTest, NaNDefaultRadiusRejectsTheEndLoiter)

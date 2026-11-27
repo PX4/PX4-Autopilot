@@ -106,11 +106,12 @@ OSDatxxxx::probe()
 	ret |= writeRegister(0x00, 0x01); //disable video output
 	ret |= readRegister(0x00, &data, 1);
 
-	if (data != 1 || ret != PX4_OK) {
-		PX4_ERR("probe failed (%i %i)", ret, data);
+	if (ret != PX4_OK || data != 1) {
+		DEVICE_DEBUG("probe failed (%i %i)", ret, data);
+		return PX4_ERROR;
 	}
 
-	return ret;
+	return PX4_OK;
 }
 
 int

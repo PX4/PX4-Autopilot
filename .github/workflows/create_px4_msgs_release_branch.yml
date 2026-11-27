@@ -1,0 +1,29 @@
+name: Create px4_msgs release branch
+
+on:
+  create:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Release branch name (e.g. release/1.18)'
+        required: true
+        type: string
+
+permissions: {}
+
+jobs:
+  # The px4_msgs sync only runs when messages change, so without this a new
+  # release branch has no px4_msgs branch until the first change lands on it.
+  sync-px4-msgs:
+    if: >-
+      github.repository == 'PX4/PX4-Autopilot' &&
+      (
+        (github.event_name == 'create' && github.ref_type == 'branch' && startsWith(github.ref_name, 'release/')) ||
+        github.event_name == 'workflow_dispatch'
+      )
+    permissions:
+      contents: read
+    uses: ./.github/workflows/sync_to_px4_msgs.yml
+    with:
+      branch: ${{ inputs.branch || github.ref_name }}
+    secrets: inherit

@@ -300,6 +300,11 @@ void RCInput::set_rc_scan_state(RC_SCAN newState)
 
 	_rc_scan_begin = 0;
 	_rc_scan_locked = false;
+
+	// All decoders share rc_decode_buf, so a frame a decoder was in the middle of when the
+	// scan moved on has since been overwritten by the others. Start the next one clean.
+	st24_reset();
+	sumd_reset();
 }
 
 void RCInput::rc_io_invert(bool invert)

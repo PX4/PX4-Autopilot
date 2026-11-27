@@ -1307,3 +1307,276 @@ TEST_F(FailsafeTest, GnssRecoveryDoesNotAbortRtlWhenAnotherFailsafeStartsADelay)
 	failsafe.update(time, state, false, false, failsafe_flags);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
 }
+
+using Action = FailsafeBase::Action;
+
+// Values of GF_ACTION and GF_CONT_ACTION.
+static constexpr int32_t kNone = 0;
+static constexpr int32_t kWarning = 1;
+static constexpr int32_t kHold = 2;
+static constexpr int32_t kReturn = 3;
+static constexpr int32_t kTerminate = 4;
+static constexpr int32_t kLand = 5;
+
+// The emergency and the contingency geofence are two failsafes: the more severe action wins.
+class GeofenceFailsafeTest : public FailsafeTest
+{
+public:
+	void SetUp() override
+	{
+		FailsafeTest::SetUp();
+
+		// No Hold delay, so that Return and Land are selected immediately.
+		const float com_fail_act_t = 0.f;
+		param_set(param_handle(px4::params::COM_FAIL_ACT_T), &com_fail_act_t);
+		reset();
+	}
+
+	void TearDown() override
+	{
+		param_reset(param_handle(px4::params::GF_CONT_ACTION));
+		param_reset(param_handle(px4::params::GF_ACTION));
+	}
+
+	// An armed multicopter in a mission, inside both fences.
+	void reset()
+	{
+		_flags = {};
+		mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, _flags);
+		_state = {};
+		_state.armed = true;
+		_state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
+		_state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	}
+
+	// Params are read when the Failsafe is constructed.
+	void setActions(int32_t gf_cont_action, int32_t gf_action)
+	{
+		param_set(param_handle(px4::params::GF_CONT_ACTION), &gf_cont_action);
+		param_set(param_handle(px4::params::GF_ACTION), &gf_action);
+	}
+
+	Action update(Failsafe &failsafe, bool mode_switch = false, bool stick_movement = false)
+	{
+		_time += 10_ms;
+		failsafe.update(_time, _state, mode_switch, stick_movement, _flags);
+		return failsafe.selectedAction();
+	}
+
+	failsafe_flags_s _flags{};
+	FailsafeBase::State _state{};
+	hrt_abstime _time{5_s};
+};
+
+// Names each case of a parameterized test after its row.
+template <typename Case>
+static const char *caseName(const ::testing::TestParamInfo<Case> &info)
+{
+	return info.param.name;
+}
+
+// One geofence with an action parameter, and the action the failsafe selects when it is breached.
+struct GeofenceActionCase {
+	const char *name;
+	bool contingency;
+	int32_t parameter;
+	Action action;
+};
+
+// Every value of GF_ACTION and GF_CONT_ACTION, and 6, which is not a valid value.
+class GeofenceParameterTest : public GeofenceFailsafeTest, public ::testing::WithParamInterface<GeofenceActionCase> {};
+
+TEST_P(GeofenceParameterTest, MapsTheActionParameter)
+{
+	const GeofenceActionCase &c = GetParam();
+	setActions(c.contingency ? c.parameter : kNone, c.contingency ? kNone : c.parameter);
+	Failsafe failsafe(nullptr);
+	ASSERT_EQ(update(failsafe), Action::None);
+	_flags.gf_cont_breach = c.contingency;
+	_flags.gf_emer_breach = !c.contingency;
+	EXPECT_EQ(update(failsafe), c.action);
+}
+
+INSTANTIATE_TEST_SUITE_P(Parameters, GeofenceParameterTest, ::testing::Values(
+				 GeofenceActionCase{"EmergencyNone", false, kNone, Action::None},
+				 GeofenceActionCase{"EmergencyWarning", false, kWarning, Action::Warn},
+				 GeofenceActionCase{"EmergencyHold", false, kHold, Action::Hold},
+				 GeofenceActionCase{"EmergencyReturn", false, kReturn, Action::RTL},
+				 GeofenceActionCase{"EmergencyTerminate", false, kTerminate, Action::Terminate},
+				 GeofenceActionCase{"EmergencyLand", false, kLand, Action::Land},
+				 GeofenceActionCase{"EmergencyUnknown", false, 6, Action::Warn},
+				 GeofenceActionCase{"ContingencyNone", true, kNone, Action::None},
+				 GeofenceActionCase{"ContingencyWarning", true, kWarning, Action::Warn},
+				 GeofenceActionCase{"ContingencyHold", true, kHold, Action::Hold},
+				 GeofenceActionCase{"ContingencyReturn", true, kReturn, Action::RTL},
+				 // Terminate is reserved for the emergency geofence.
+				 GeofenceActionCase{"ContingencyTerminate", true, kTerminate, Action::Warn},
+				 GeofenceActionCase{"ContingencyLand", true, kLand, Action::Land},
+				 GeofenceActionCase{"ContingencyUnknown", true, 6, Action::Warn}),
+			 caseName<GeofenceActionCase>);
+
+// The actions a pilot can take over from: Hold, Return and Land.
+class GeofenceActionTest : public GeofenceFailsafeTest, public ::testing::WithParamInterface<GeofenceActionCase> {};
+
+TEST_P(GeofenceActionTest, TakeoverClearsOnReentryAndANewBreachActsAgain)
+{
+	const GeofenceActionCase &c = GetParam();
+	setActions(c.contingency ? c.parameter : kNone, c.contingency ? kNone : c.parameter);
+	Failsafe failsafe(nullptr);
+	ASSERT_EQ(update(failsafe), Action::None);
+	bool &breached = c.contingency ? _flags.gf_cont_breach : _flags.gf_emer_breach;
+	breached = true;
+	ASSERT_EQ(update(failsafe), c.action);
+
+	// Without a Hold delay, stick movement does not take over.
+	EXPECT_EQ(update(failsafe, false, true), c.action);
+	EXPECT_FALSE(failsafe.userTakeoverActive());
+
+	// Clearing the breach alone must not cancel an established action.
+	breached = false;
+	EXPECT_EQ(update(failsafe), c.action);
+	EXPECT_EQ(update(failsafe), c.action);
+	breached = true;
+	ASSERT_EQ(update(failsafe), c.action);
+
+	// A GoTo requests Hold, even when the failsafe is already holding.
+	_state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+	EXPECT_EQ(update(failsafe, true), Action::Warn);
+	EXPECT_TRUE(failsafe.userTakeoverActive());
+	EXPECT_EQ(update(failsafe), Action::Warn); // still outside
+
+	breached = false;
+	update(failsafe);
+	EXPECT_EQ(update(failsafe), Action::None);
+	EXPECT_FALSE(failsafe.userTakeoverActive());
+	breached = true;
+	EXPECT_EQ(update(failsafe), c.action);
+	EXPECT_FALSE(failsafe.userTakeoverActive());
+}
+
+TEST_P(GeofenceActionTest, CannotBeDeferred)
+{
+	const GeofenceActionCase &c = GetParam();
+	setActions(c.contingency ? c.parameter : kNone, c.contingency ? kNone : c.parameter);
+	Failsafe failsafe(nullptr);
+	ASSERT_EQ(update(failsafe), Action::None);
+	ASSERT_TRUE(failsafe.deferFailsafes(true, -1));
+	_flags.gf_cont_breach = c.contingency;
+	_flags.gf_emer_breach = !c.contingency;
+	EXPECT_EQ(update(failsafe), c.action);
+}
+
+INSTANTIATE_TEST_SUITE_P(Actions, GeofenceActionTest, ::testing::Values(
+				 GeofenceActionCase{"EmergencyHold", false, kHold, Action::Hold},
+				 GeofenceActionCase{"EmergencyReturn", false, kReturn, Action::RTL},
+				 GeofenceActionCase{"EmergencyLand", false, kLand, Action::Land},
+				 GeofenceActionCase{"ContingencyHold", true, kHold, Action::Hold},
+				 GeofenceActionCase{"ContingencyReturn", true, kReturn, Action::RTL},
+				 GeofenceActionCase{"ContingencyLand", true, kLand, Action::Land}),
+			 caseName<GeofenceActionCase>);
+
+// The action of each geofence alone, and the action once both are breached.
+struct GeofenceActionPairCase {
+	const char *name;
+	int32_t gf_cont_action;
+	Action cont_action;
+	int32_t gf_action;
+	Action action;
+	Action both;
+};
+
+class GeofenceActionPairTest : public GeofenceFailsafeTest,
+	public ::testing::WithParamInterface<GeofenceActionPairCase> {};
+
+TEST_P(GeofenceActionPairTest, MoreSevereActionWinsContingencyBreachFirst)
+{
+	const GeofenceActionPairCase &c = GetParam();
+	setActions(c.gf_cont_action, c.gf_action);
+	Failsafe failsafe(nullptr);
+	ASSERT_EQ(update(failsafe), Action::None);
+	_flags.gf_cont_breach = true;
+	EXPECT_EQ(update(failsafe), c.cont_action);
+	_flags.gf_emer_breach = true;
+	EXPECT_EQ(update(failsafe), c.both);
+	EXPECT_EQ(update(failsafe), c.both);
+}
+
+TEST_P(GeofenceActionPairTest, MoreSevereActionWinsEmergencyBreachFirst)
+{
+	const GeofenceActionPairCase &c = GetParam();
+	setActions(c.gf_cont_action, c.gf_action);
+	Failsafe failsafe(nullptr);
+	ASSERT_EQ(update(failsafe), Action::None);
+	_flags.gf_emer_breach = true;
+	EXPECT_EQ(update(failsafe), c.action);
+	_flags.gf_cont_breach = true;
+	EXPECT_EQ(update(failsafe), c.both);
+	EXPECT_EQ(update(failsafe), c.both);
+}
+
+TEST_P(GeofenceActionPairTest, MoreSevereActionWinsBothBreachesTogether)
+{
+	const GeofenceActionPairCase &c = GetParam();
+	setActions(c.gf_cont_action, c.gf_action);
+	Failsafe failsafe(nullptr);
+	ASSERT_EQ(update(failsafe), Action::None);
+	_flags.gf_cont_breach = true;
+	_flags.gf_emer_breach = true;
+	EXPECT_EQ(update(failsafe), c.both);
+	EXPECT_EQ(update(failsafe), c.both);
+}
+
+INSTANTIATE_TEST_SUITE_P(ActionPairs, GeofenceActionPairTest, ::testing::Values(
+				 GeofenceActionPairCase{"ContingencyHoldEmergencyLand",
+						 kHold, Action::Hold, kLand, Action::Land, Action::Land},
+				 GeofenceActionPairCase{"ContingencyReturnEmergencyTerminate",
+						 kReturn, Action::RTL, kTerminate, Action::Terminate, Action::Terminate},
+				 // A Land in progress is not downgraded.
+				 GeofenceActionPairCase{"ContingencyLandEmergencyHold",
+						 kLand, Action::Land, kHold, Action::Hold, Action::Land},
+				 // An emergency Warning keeps the Hold.
+				 GeofenceActionPairCase{"ContingencyHoldEmergencyWarning",
+						 kHold, Action::Hold, kWarning, Action::Warn, Action::Hold},
+				 GeofenceActionPairCase{"ContingencyHoldEmergencyNone",
+						 kHold, Action::Hold, kNone, Action::None, Action::Hold}),
+			 caseName<GeofenceActionPairCase>);
+
+// An emergency geofence action, and whether a takeover after the contingency geofence Hold survives its breach.
+struct ContGeofenceTakeoverCase {
+	const char *name;
+	int32_t gf_action;
+	Action action;
+	bool takeover;
+};
+
+class ContGeofenceTakeoverTest : public GeofenceFailsafeTest,
+	public ::testing::WithParamInterface<ContGeofenceTakeoverCase> {};
+
+// Taking over after the contingency geofence action must not disable the emergency geofence action.
+TEST_P(ContGeofenceTakeoverTest, EmergencyBreachStillActs)
+{
+	const ContGeofenceTakeoverCase &c = GetParam();
+	setActions(kHold, c.gf_action);
+	Failsafe failsafe(nullptr);
+	ASSERT_EQ(update(failsafe), Action::None);
+
+	_flags.gf_cont_breach = true;
+	ASSERT_EQ(update(failsafe), Action::Hold);
+
+	// Mode switch -> user takeover
+	_state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+	ASSERT_EQ(update(failsafe, true), Action::Warn);
+	ASSERT_TRUE(failsafe.userTakeoverActive());
+
+	// The pilot flies on and breaches the emergency geofence
+	_flags.gf_emer_breach = true;
+	EXPECT_EQ(update(failsafe), c.action);
+	EXPECT_EQ(failsafe.userTakeoverActive(), c.takeover);
+}
+
+INSTANTIATE_TEST_SUITE_P(EmergencyActions, ContGeofenceTakeoverTest, ::testing::Values(
+				 ContGeofenceTakeoverCase{"EmergencyLand", kLand, Action::Land, false},
+				 // Also for the same action as the contingency geofence.
+				 ContGeofenceTakeoverCase{"EmergencyHold", kHold, Action::Hold, false},
+				 ContGeofenceTakeoverCase{"EmergencyWarning", kWarning, Action::Warn, true}),
+			 caseName<ContGeofenceTakeoverCase>);

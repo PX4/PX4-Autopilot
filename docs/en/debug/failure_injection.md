@@ -37,7 +37,7 @@ A `—` means the module still accepts the command, but no consumer applies it i
 
 - `gps off | stuck | wrong` on Gazebo (Gz): applied to the GNSS data from the simulator's own sensor as well as to the simulated-GPS module ([SIM_GZ_EN_GPS](../advanced_config/parameter_reference.md#SIM_GZ_EN_GPS) `0`).
 - `gyro wrong | garbage | drift` and `accel wrong | garbage | drift` <Badge type="tip" text="main (PX4 v2.0)" /> corrupt the addressed sensor's samples on all three axes: `wrong` adds a constant bias ([SYS_FAIL_G_BIAS](../advanced_config/parameter_reference.md#SYS_FAIL_G_BIAS) / [SYS_FAIL_A_BIAS](../advanced_config/parameter_reference.md#SYS_FAIL_A_BIAS)), `garbage` adds uniform noise within ±[SYS_FAIL_G_NOISE](../advanced_config/parameter_reference.md#SYS_FAIL_G_NOISE) / ±[SYS_FAIL_A_NOISE](../advanced_config/parameter_reference.md#SYS_FAIL_A_NOISE), and `drift` adds a bias that grows by [SYS_FAIL_G_DRIFT](../advanced_config/parameter_reference.md#SYS_FAIL_G_DRIFT) / [SYS_FAIL_A_DRIFT](../advanced_config/parameter_reference.md#SYS_FAIL_A_DRIFT) per second since injection.
-- `airspeed off | stuck | wrong` on Gazebo (Gz): only injectable when airspeed is provided by the simulated-airspeed module ([SENS_EN_ARSPDSIM](../advanced_config/parameter_reference.md#SENS_EN_ARSPDSIM)); worlds that model an airspeed sensor directly are not injected.
+- `airspeed off | stuck | wrong` on Gazebo (Gz): applied to the differential pressure data from the simulator's own sensor as well as to the simulated-airspeed module ([SIM_GZ_EN_ASPD](../advanced_config/parameter_reference.md#SIM_GZ_EN_ASPD) `0`).
 - `vio off | stuck` on Gazebo (Gz): applied to the external-vision odometry that the bridge publishes from the model's odometry topic (for example `x500_vision`); `stuck` keeps publishing the last good sample with fresh timestamps.
 - `battery wrong` reports the remaining charge just below the [SYS_FAIL_BAT_LVL](../advanced_config/parameter_reference.md#SYS_FAIL_BAT_LVL) warning threshold to trigger the battery failsafe; `off` stops publishing the battery status entirely.
 - `traffic off` suppresses incoming reports and marks the ADS-B/FLARM link unhealthy.
@@ -136,6 +136,17 @@ While the selected aux switch is on, the configured failure is injected; switchi
 The injection goes through the same path as the console/MAVLink commands, so for a motor it fails the motor exactly as `failure motor off` (`SYS_FAIL_RC_MODE` = `1`) or `failure motor wrong` (`SYS_FAIL_RC_MODE` = `4`) does, with the same [CA_FAILURE_MODE](../advanced_config/parameter_reference.md#CA_FAILURE_MODE) requirement.
 A `SYS_FAIL_RC_INST` mask addressing several motors only takes effect for `wrong`, the undetected failure.
 In SIH, `SYS_FAIL_RC_MODE` = `2` injects `motor stuck`, which does not need `CA_FAILURE_MODE`.
+
+Losing the RC link clears the switch-injected failure.
+
+### Reset Switch
+
+[SYS_FAIL_RC_RST](../advanced_config/parameter_reference.md#SYS_FAIL_RC_RST) selects an aux input (`1`–`6` = AUX1–AUX6, `0` = disabled) whose every position change clears all active failures, including those injected over MAVLink or the console.
+Any 2- or 3-position switch or momentary button works; each reset reports `Cleared: all failures`.
+
+- Changes while the RC link is lost, or a switch already on at boot, do not reset.
+- A `SYS_FAIL_RC_SRC` switch still on after a reset must be cycled to inject again.
+- It works alongside the `SYS_FAIL_RC_SRC` switch but must use a different aux input; if both are set to the same input, the reset switch is disabled.
 
 ## MAVSDK Failure Plugin
 

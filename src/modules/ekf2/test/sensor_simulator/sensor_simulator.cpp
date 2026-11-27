@@ -172,7 +172,7 @@ void SensorSimulator::runMicroseconds(uint32_t duration)
 		updateSensors();
 
 		if (update_imu) {
-			if (_imu.moving()) {
+			if (_motion_clears_at_rest && _imu.moving()) {
 				_ekf->set_vehicle_at_rest(false);
 			}
 
@@ -218,7 +218,7 @@ void SensorSimulator::runReplayMicroseconds(uint32_t duration)
 		updateSensors();
 
 		if (update_imu) {
-			if (_imu.moving()) {
+			if (_motion_clears_at_rest && _imu.moving()) {
 				_ekf->set_vehicle_at_rest(false);
 			}
 
@@ -345,7 +345,7 @@ void SensorSimulator::runTrajectoryMicroseconds(uint32_t duration)
 		updateSensors();
 
 		if (update_imu) {
-			if (_imu.moving()) {
+			if (_motion_clears_at_rest && _imu.moving()) {
 				_ekf->set_vehicle_at_rest(false);
 			}
 

@@ -249,11 +249,7 @@ void VehicleGPSPosition::Run()
 			vehicle_gnss_s gnss_output{};
 			gnss_output.receiver = _latest_sample[selected];
 
-			const GpsParamSlot *slot = findParamSlot(gnss_output.receiver.device_id, selected);
-
-			if (slot) {
-				slot->offset.copyTo(gnss_output.antenna_offset);
-			}
+			antennaOffset(selected).copyTo(gnss_output.antenna_offset);
 
 			const uint64_t pps_timestamp = _pps_time_sync.correct_gnss_timestamp(gnss_output.receiver.timestamp,
 						       gnss_output.receiver.time_utc_usec);
@@ -279,6 +275,7 @@ void VehicleGPSPosition::Run()
 			_vehicle_gnss_pub.publish(gnss_output);
 
 			_selected_device_id = gnss_output.receiver.device_id;
+			_published_instance = selected;
 		}
 
 		PublishStatus();
@@ -484,6 +481,25 @@ void VehicleGPSPosition::PublishStatus()
 
 	const hrt_abstime now = hrt_absolute_time();
 
+	bool publishing[GPS_MAX_RECEIVERS] {};
+
+	for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		publishing[i] = (_latest_sample[i].timestamp != 0) && (now < _latest_sample[i].timestamp + GnssSelector::GNSS_TIMEOUT_US);
+	}
+
+	for (int i = 0; i < sensors_status_gnss_s::MAX_RECEIVERS; i++) {
+		status.inconsistency_horizontal[i] = NAN;
+		status.inconsistency_vertical[i] = NAN;
+	}
+
+	const int selected = _published_instance;
+	const bool compare = (selected >= 0) && publishing[selected];
+
+	// Level and facing north until an attitude publishes
+	vehicle_attitude_s attitude{};
+	const matrix::Quatf attitude_q = (compare && _vehicle_attitude_sub.copy(&attitude)) ? matrix::Quatf(attitude.q)
+					 : matrix::Quatf();
+
 	for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
 		const GnssChecks &checks = _gnss_checks[i];
 		const sensor_gnss_s &sample = _latest_sample[i];
@@ -491,6 +507,15 @@ void VehicleGPSPosition::PublishStatus()
 		status.device_ids[i] = sample.device_id;
 		status.healthy[i] = !_gnss_selector.hasFailed(i, now);
 		status.availability[i] = _gnss_selector.getAvailability(i);
+
+		if (compare && publishing[i]) {
+			const gnss_inconsistency::Inconsistency inconsistency = (i == selected) ? gnss_inconsistency::Inconsistency{0.f, 0.f}
+					: gnss_inconsistency::inconsistency(_latest_sample[selected], antennaOffset(selected), sample, antennaOffset(i),
+							attitude_q);
+			status.inconsistency_horizontal[i] = inconsistency.horizontal;
+			status.inconsistency_vertical[i] = inconsistency.vertical;
+		}
+
 		status.failed_strict_checks[i] = checks.getStrictFailFlags();
 		status.failed_relaxed_checks[i] = checks.getRelaxedFailFlags();
 		status.strict[i] = checks.strict();
@@ -502,6 +527,12 @@ void VehicleGPSPosition::PublishStatus()
 
 	status.timestamp = hrt_absolute_time();
 	_sensors_status_gnss_pub.publish(status);
+}
+
+matrix::Vector3f VehicleGPSPosition::antennaOffset(int instance) const
+{
+	const GpsParamSlot *slot = findParamSlot(_latest_sample[instance].device_id, instance);
+	return slot ? slot->offset : matrix::Vector3f{};
 }
 
 int VehicleGPSPosition::resolvePreferredInstance() const

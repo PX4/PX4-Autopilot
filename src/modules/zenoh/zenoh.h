@@ -107,6 +107,9 @@ private:
 	// Wait up to 5 s for NuttX interface flags; return false on a stop request.
 	bool waitForLink(const char *locator);
 
+	// Sleep for timeout_ms, waking up early on a stop request; return false on a stop request.
+	bool sleepUnlessStopped(uint32_t timeout_ms);
+
 	Zenoh_Config _config;
 
 	int _pub_count;
@@ -115,6 +118,7 @@ private:
 	Zenoh_Subscriber **_zenoh_subscribers = nullptr;
 
 	z_owned_session_t _s;
+	z_owned_liveliness_token_t _node_token;
 	// written by the module task, read by print_status() from the shell task
 	px4::atomic_bool _connected{false};
 

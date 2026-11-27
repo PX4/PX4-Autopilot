@@ -68,10 +68,10 @@ protected:
 
 		// The constructor caches EKF2_HGT_REF and the parameter objects read their
 		// values on construction, so all parameters are set before HomePosition exists
-		const char *names[] = {"COM_HOME_EN", "EKF2_GPS_CTRL", "EKF2_HGT_REF"};
-		const int32_t values[] = {1, 3, 1};
+		const char *names[] = {"COM_HOME_EN", "EKF2_HGT_REF"};
+		const int32_t values[] = {1, 1};
 
-		for (unsigned i = 0; i < 3; ++i) {
+		for (unsigned i = 0; i < 2; ++i) {
 			_saved[i].handle = param_find(names[i]);
 			ASSERT_NE(_saved[i].handle, PARAM_INVALID) << names[i];
 			ASSERT_EQ(param_get(_saved[i].handle, &_saved[i].value), 0);
@@ -206,7 +206,7 @@ protected:
 
 	failsafe_flags_s _flags{}; // must outlive the HomePosition that references it
 	std::unique_ptr<HomePosition> _home;
-	SavedParam _saved[3] {};
+	SavedParam _saved[2] {};
 	bool _helpers_initialized{false};
 
 	uORB::Publication<vehicle_local_position_s> _lpos_pub{ORB_ID(vehicle_local_position)};
@@ -337,4 +337,40 @@ TEST_F(HomePositionTest, KeepsManualHomeDuringGnssAltitudeDrift)
 	EXPECT_FALSE(_home->setHomePosition());
 	_home->setInAirHomePosition();
 	EXPECT_FLOAT_EQ(readHome().alt, kManualAlt);
+}
+
+// A home set from the raw GNSS position must be compared against that GNSS position.
+// Comparing it against the invalid global position estimate sets it again on every update.
+TEST_F(HomePositionTest, KeepsGnssHomeWhileGlobalPositionIsInvalid)
+{
+	_flags.local_position_invalid = true;
+	_flags.global_position_invalid = true;
+	_flags.attitude_invalid = false;
+
+	vehicle_land_detected_s land{};
+	land.timestamp = hrt_absolute_time();
+	land.landed = true; // the home attitude is captured, it does not ask for another update
+	_land_pub.publish(land);
+
+	publishGnss(kRefAlt + 50.f); // away from the last global position estimate
+
+	_home->update(true, true);
+	const home_position_s home = readHome();
+	ASSERT_TRUE(home.valid_hpos);
+	ASSERT_FALSE(home.valid_lpos);
+	ASSERT_TRUE(home.valid_attitude);
+	ASSERT_NEAR(home.alt, kRefAlt + 50.f, kTolerance);
+
+	_home->update(true, true);
+	EXPECT_EQ(readHome().update_count, home.update_count);
+
+	publishGnss(kRefAlt + 60.f); // GNSS moves past the threshold, home follows once
+
+	_home->update(true, true);
+	const home_position_s moved = readHome();
+	EXPECT_EQ(moved.update_count, home.update_count + 1);
+	EXPECT_NEAR(moved.alt, kRefAlt + 60.f, kTolerance);
+
+	_home->update(true, true);
+	EXPECT_EQ(readHome().update_count, moved.update_count);
 }
