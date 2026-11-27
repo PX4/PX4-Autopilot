@@ -155,6 +155,13 @@ public:
 	}
 
 	const mission_route::ActiveJumpAnchor &jumpAnchor() const { return _active_jump_anchor; }
+	void setJumpAnchor(const mission_route::ActiveJumpAnchor &anchor) { _active_jump_anchor = anchor; }
+
+	void setDisarmedSinceActivation()
+	{
+		_mission_has_been_activated = true;
+		_system_disarmed_while_inactive = true;
+	}
 
 	// Publish the mission again with new contents or a new current item, as MAVLink does, and read it.
 	void processMissionSourceChange(bool items_changed = true)
@@ -189,6 +196,8 @@ public:
 	{
 		return _route_join_position;
 	}
+
+	using MissionBase::checkMissionRestart;
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	using MissionBase::findNextPositionIndex;
@@ -1981,5 +1990,26 @@ TEST_F(MissionBaseRouteTest, AdvanceRecordsTheJumpItTakes)
 		EXPECT_EQ(mission_base_with_nav.currentSequence(), taken ? 0 : 3);
 		EXPECT_EQ(mission_base_with_nav.jumpAnchor().jump_item_index, taken ? 2 : -1);
 	}
+}
+
+// A restart after a disarm also leaves the jump edge, so a join plans the restarted mission from its start.
+TEST_F(MissionBaseRouteTest, RestartLeavesTheJumpEdge)
+{
+	Navigator navigator{};
+	MissionBaseTestPeer mission_base_with_nav{&navigator};
+	mission_base_with_nav.loadTestMission({
+		makePositionItem(kBaseLat, kBaseLon, kAlt),
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
+		makeDoJump(0, 3, 1),
+		makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt),
+	});
+	mission_base_with_nav.setCurrentSequence(3);
+	mission_base_with_nav.setJumpAnchor({2});
+	mission_base_with_nav.setDisarmedSinceActivation();
+
+	mission_base_with_nav.checkMissionRestart();
+
+	EXPECT_EQ(mission_base_with_nav.currentSequence(), 0);
+	EXPECT_TRUE(mission_base_with_nav.jumpAnchor().empty());
 }
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
