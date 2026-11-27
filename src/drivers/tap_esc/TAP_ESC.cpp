@@ -359,6 +359,7 @@ void TAP_ESC::Run()
 		} else {
 			PX4_ERR("init failed");
 			exit_and_cleanup(desc);
+			return;
 		}
 
 	} else {
