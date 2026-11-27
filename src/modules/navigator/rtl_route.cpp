@@ -74,7 +74,7 @@ void RTL::updateRoute(bool evaluation_due)
 		return;
 	}
 
-	RtlMissionSafePointFollow &follower = *static_cast<RtlMissionSafePointFollow *>(_rtl_mission_type_handle);
+	RtlMissionSafePointFollow &follower = *_route_follower;
 	const mission_s &mission = _mission_sub.get();
 	const bool had_route = follower.plan().valid();
 	// Idle on the ground, Return stays there, also if the land detector then reports a takeoff. Example: a vehicle
@@ -114,7 +114,7 @@ void RTL::updateRoute(bool evaluation_due)
 void RTL::publishRouteStatus()
 {
 	const MissionRouteCache &mission_route_cache = _navigator->get_mission_route_cache();
-	const mission_route::RtlRoutePlan &plan = static_cast<RtlMissionSafePointFollow *>(_rtl_mission_type_handle)->plan();
+	const mission_route::RtlRoutePlan &plan = _route_follower->plan();
 
 	rtl_status_s rtl_status{};
 	rtl_status.safe_points_id = mission_route_cache.safePointsId();

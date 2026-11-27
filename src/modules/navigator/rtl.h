@@ -65,6 +65,9 @@
 class Navigator;
 class MissionRouteCache;
 class RTLTestPeer;
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+class RtlMissionSafePointFollow;
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 class RTL : public NavigatorMode, public ModuleParams
 {
@@ -237,6 +240,10 @@ private:
 	int32_t _mission_land_failure_index{-1};
 	uint8_t _mission_land_failure_dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_0};
 	bool _mission_land_failure_reported{false};
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	RtlMissionSafePointFollow *_route_follower {nullptr}; ///< _rtl_mission_type_handle as the route follower, null for other types
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	RtlDirect _rtl_direct;
 

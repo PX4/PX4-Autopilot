@@ -136,7 +136,7 @@ public:
 
 	RtlType rtlTypeForTest() const { return _rtl_type; }
 
-	RtlMissionSafePointFollow &follower() { return *static_cast<RtlMissionSafePointFollow *>(_rtl_mission_type_handle); }
+	RtlMissionSafePointFollow &follower() { return *_route_follower; }
 };
 
 namespace

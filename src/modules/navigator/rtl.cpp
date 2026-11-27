@@ -390,7 +390,7 @@ void RTL::applyReturn(const ReturnSelection &selection)
 
 		// The route follower plans at every evaluation too, on the latest mission, from the current position.
 		if (new_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW) {
-			static_cast<RtlMissionSafePointFollow *>(_rtl_mission_type_handle)->planRoute(_mission_sub.get());
+			_route_follower->planRoute(_mission_sub.get());
 		}
 
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
@@ -729,6 +729,10 @@ bool RTL::initRtlMissionType(RtlType new_rtl_type)
 		_rtl_mission_type_handle = nullptr;
 	}
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	_route_follower = nullptr;
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 	mission_s new_mission = _mission_sub.get();
 
 	switch (new_rtl_type) {
@@ -764,7 +768,8 @@ bool RTL::initRtlMissionType(RtlType new_rtl_type)
 
 	case RtlType::RTL_MISSION_SAFE_POINT_FOLLOW:
 		// It takes its mission when it plans.
-		_rtl_mission_type_handle = new RtlMissionSafePointFollow(_navigator);
+		_route_follower = new RtlMissionSafePointFollow(_navigator);
+		_rtl_mission_type_handle = _route_follower;
 
 		if (_rtl_mission_type_handle) {
 			_rtl_mission_type_handle->initialize();
