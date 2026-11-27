@@ -144,6 +144,21 @@ parameters:
       max: 1.0
       decimal: 1
       increment: 0.1
+    FW_LND_GS_MARG:
+      description:
+        short: Landing glide slope margin below
+        long: |-
+          On the straight landing approach, the aircraft tracks the glide slope. Once it is
+          more than this far below the slope, it holds the altitude where that happened
+          instead of climbing back up to the slope, and rejoins the slope when the slope
+          has come down to that altitude. Set it above the normal tracking error on the slope.
+      type: float
+      default: 3.0
+      unit: m
+      min: 0.0
+      max: 50.0
+      decimal: 1
+      increment: 0.5
     FW_LND_FL_TIME:
       description:
         short: Landing flare time

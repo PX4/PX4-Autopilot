@@ -1526,22 +1526,20 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 				    _param_fw_lnd_para_sink.get());
 	}
 
-	// Track the glide slope. Below it, hold level only where tracking it would command a climb: the
-	// altitude error over the altitude time constant exceeds the slope's sink rate (no step at the
-	// switch). Level is a zero height rate.
+	// Track the glide slope. Once more than FW_LND_GS_MARG below it, hold the altitude where that happened instead of
+	// climbing back, and rejoin the slope when it has come down to that altitude: altitude setpoints only, continuous
+	// at the switch back.
 	const float glide_slope_altitude = glide_slope_reference_alt + glide_slope_rel_alt;
-	const float along_track_ground_speed = math::max(ground_speed.dot(landing_approach_vector.unit_or_zero()), 0.f);
-	const float altitude_time_constant = math::max(_param_fw_t_alt_tc.get() * _param_fw_lnd_thrtc_sc.get(), 1.f);
-	const float glide_slope_sink_rate_over_ground = along_track_ground_speed * glide_slope;
 
-	float altitude_setpoint = glide_slope_altitude;
-	float approach_height_rate_setpoint = NAN;
+	if (!PX4_ISFINITE(_landing_hold_altitude)
+	    && (_current_altitude < glide_slope_altitude - _param_fw_lnd_gs_marg.get())) {
+		_landing_hold_altitude = _current_altitude;
 
-	if (glide_slope_altitude - _current_altitude > altitude_time_constant * glide_slope_sink_rate_over_ground) {
-		// far enough below the slope that tracking it would climb: hold level until it is intercepted
-		altitude_setpoint = _current_altitude;
-		approach_height_rate_setpoint = 0.f;
+	} else if (PX4_ISFINITE(_landing_hold_altitude) && (glide_slope_altitude <= _landing_hold_altitude)) {
+		_landing_hold_altitude = NAN;
 	}
+
+	float altitude_setpoint = PX4_ISFINITE(_landing_hold_altitude) ? _landing_hold_altitude : glide_slope_altitude;
 
 	if (parachute_landing_active) {
 		// follow the normal landing approach down to the release altitude, then continue level
@@ -1696,7 +1694,7 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 		const fixed_wing_longitudinal_setpoint_s fw_longitudinal_control_sp = {
 			.timestamp = hrt_absolute_time(),
 			.altitude = altitude_setpoint,
-			.height_rate = approach_height_rate_setpoint,
+			.height_rate = NAN,
 			.equivalent_airspeed = airspeed_land,
 			.pitch_direct = NAN,
 			.throttle_direct = NAN
@@ -2537,6 +2535,8 @@ FixedWingModeManager::reset_landing_state()
 	_lateral_touchdown_position_offset = 0.0f;
 
 	_parachute_release_commanded = false;
+
+	_landing_hold_altitude = NAN;
 
 	_last_time_terrain_alt_was_valid = 0;
 
