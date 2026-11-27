@@ -83,6 +83,7 @@ void InternalCombustionEngineControl::Run()
 	if (should_exit()) {
 		ScheduleClear();
 		exit_and_cleanup(desc);
+		return;
 	}
 
 	// check for parameter updates
