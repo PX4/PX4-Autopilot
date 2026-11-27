@@ -114,7 +114,10 @@ protected:
 	};
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	/** Branch-in point of a pending route join, valid until the waypoint is reached or the join is cancelled. */
+	/**
+	 * Branch-in point of a pending route join, valid until the waypoint is reached or the join is cancelled.
+	 * In MissionBase so that other mission modes, such as a Return along the route, can join the route too.
+	 */
 	mission_route::Position _route_join_position{};
 
 	/** DO_JUMP edge being flown, so a rejoin stays on an active loop. */

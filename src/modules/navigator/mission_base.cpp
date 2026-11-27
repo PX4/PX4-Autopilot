@@ -193,6 +193,7 @@ MissionBase::on_inactivation()
 	/* reset so current mission item gets restarted if mission was paused */
 	_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	// A pause drops a pending join: the next activation plans a new one.
 	resetJoinRouteState();
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
