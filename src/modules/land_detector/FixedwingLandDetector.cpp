@@ -57,33 +57,8 @@ FixedwingLandDetector::FixedwingLandDetector()
 
 bool FixedwingLandDetector::_get_ground_contact_state()
 {
-	const hrt_abstime now = hrt_absolute_time();
-	const float accel_abs = _acceleration.norm();
-	const float dt = (_time_last_impact_update != 0) ? (now - _time_last_impact_update) * 1e-6f : 0.f;
-	_time_last_impact_update = now;
-
-	// Only detect impacts after sustained flight, such that acceleration spikes during launch are not mistaken for one.
-	if (!_armed || _landed_hysteresis.get_state()) {
-		_time_in_air_start = 0;
-
-	} else if (_time_in_air_start == 0) {
-		_time_in_air_start = now;
-	}
-
-	const bool armed_for_impact = _time_in_air_start != 0 && (now - _time_in_air_start) > kImpactArmTime;
-
-	if (!armed_for_impact || dt <= 0.f || dt > kAccelBaselineTimeConstant) {
-		_accel_baseline.reset(accel_abs);
-	}
-
-	const bool impact = armed_for_impact && ((accel_abs - _accel_baseline.getState()) > kImpactAccelJump);
-
-	if (dt > 0.f && dt <= kAccelBaselineTimeConstant) {
-		_accel_baseline.setParameters(dt, kAccelBaselineTimeConstant);
-		_accel_baseline.update(accel_abs);
-	}
-
-	return impact;
+	return _ground_impact_detector.update(hrt_absolute_time(), _acceleration.norm(),
+					      _armed && !_landed_hysteresis.get_state());
 }
 
 bool FixedwingLandDetector::_get_landed_state()
