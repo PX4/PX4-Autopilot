@@ -442,6 +442,7 @@ AirspeedModule::Run()
 		input_data.q_att = _q_att;
 		input_data.air_pressure_pa = _vehicle_air_data.baro_pressure_pa;
 		input_data.accel_z = _accel.xyz[2];
+		input_data.ground_contact = _vehicle_land_detected.ground_contact;
 		input_data.vel_test_ratio = _estimator_status.vel_test_ratio;
 		input_data.hdg_test_ratio = _estimator_status.hdg_test_ratio;
 		input_data.tecs_timestamp = _tecs_status.timestamp;

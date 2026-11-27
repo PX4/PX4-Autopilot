@@ -68,6 +68,7 @@ struct airspeed_validator_update_data {
 	float vel_test_ratio;
 	float hdg_test_ratio;
 	bool in_fixed_wing_flight;
+	bool ground_contact;
 	float fixed_wing_throttle_filtered;
 	float fixed_wing_tecs_throttle_trim;
 	uint64_t tecs_timestamp;
@@ -206,7 +207,7 @@ private:
 	void check_airspeed_data_stuck(uint64_t timestamp);
 	void check_airspeed_innovation(uint64_t timestamp, float estimator_status_vel_test_ratio,
 				       float estimator_status_hdg_test_ratio, const matrix::Vector3f &vI, bool gnss_valid);
-	void check_load_factor(float accel_z);
+	void check_load_factor(float accel_z, bool ground_contact);
 	void check_first_principle(const uint64_t timestamp, const float throttle, const float throttle_trim,
 				   const uint64_t tecs_timestamp, const Quatf &att_q);
 	void update_airspeed_valid_status(const uint64_t timestamp);

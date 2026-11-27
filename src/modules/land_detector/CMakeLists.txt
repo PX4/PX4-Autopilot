@@ -49,3 +49,5 @@ px4_add_module(
 	DEPENDS
 		hysteresis
 	)
+
+px4_add_unit_gtest(SRC GroundImpactDetectorTest.cpp)

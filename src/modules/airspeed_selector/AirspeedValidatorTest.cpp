@@ -57,7 +57,7 @@ public:
 		ASSERT_TRUE(_validator.get_airspeed_valid());
 	}
 
-	void update(float indicated_airspeed, float load_factor, bool in_fixed_wing_flight)
+	void update(float indicated_airspeed, float load_factor, bool in_fixed_wing_flight, bool ground_contact = false)
 	{
 		_timestamp += kSampleInterval;
 
@@ -71,6 +71,7 @@ public:
 		input_data.air_temperature_celsius = 15.f;
 		input_data.accel_z = -load_factor * CONSTANTS_ONE_G;
 		input_data.in_fixed_wing_flight = in_fixed_wing_flight;
+		input_data.ground_contact = ground_contact;
 
 		_validator.update_airspeed_validator(input_data);
 	}
@@ -117,4 +118,48 @@ TEST_F(AirspeedValidatorLoadFactorTest, blockedSensorInCruise)
 	// THEN: the airspeed is invalidated shortly after the fail delay
 	EXPECT_FALSE(_validator.get_airspeed_valid());
 	EXPECT_LE(_timestamp - time_blocked, static_cast<uint64_t>(kChecksFailDelay * 1_s) + 500_ms);
+}
+
+TEST_F(AirspeedValidatorLoadFactorTest, groundContactDisablesCheck)
+{
+	// GIVEN: level cruise flight with a healthy sensor
+	for (int i = 0; i < 80; i++) {
+		update(kCruiseAirspeed, 1.f, true);
+	}
+
+	ASSERT_TRUE(_validator.get_airspeed_valid());
+
+	// WHEN: the land detector reports ground contact, the airspeed collapses and the vehicle is still considered flying
+	const uint64_t time_contact = _timestamp;
+
+	while ((_timestamp - time_contact) < 5_s) {
+		update(0.f, 1.5f, true, true);
+
+		// THEN: the load factor check does not invalidate the airspeed
+		EXPECT_TRUE(_validator.get_airspeed_valid());
+	}
+}
+
+TEST_F(AirspeedValidatorLoadFactorTest, checkResumesAfterGroundContact)
+{
+	// GIVEN: ground contact was reported in flight
+	for (int i = 0; i < 80; i++) {
+		update(kCruiseAirspeed, 1.f, true);
+	}
+
+	for (int i = 0; i < 30; i++) {
+		update(0.f, 1.f, true, true);
+	}
+
+	ASSERT_TRUE(_validator.get_airspeed_valid());
+
+	// WHEN: ground contact is no longer reported and the airspeed stays at zero
+	const uint64_t time_cleared = _timestamp;
+
+	while ((_timestamp - time_cleared) < 6_s) {
+		update(0.f, 1.f, true);
+	}
+
+	// THEN: the load factor check is active again and invalidates the airspeed
+	EXPECT_FALSE(_validator.get_airspeed_valid());
 }

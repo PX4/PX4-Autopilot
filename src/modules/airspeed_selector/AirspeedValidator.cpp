@@ -57,7 +57,7 @@ AirspeedValidator::update_airspeed_validator(const airspeed_validator_update_dat
 			      input_data.ground_velocity, input_data.lpos_evh, input_data.lpos_evv, input_data.q_att);
 	update_in_fixed_wing_flight(input_data.in_fixed_wing_flight);
 	check_airspeed_data_stuck(input_data.timestamp);
-	check_load_factor(input_data.accel_z);
+	check_load_factor(input_data.accel_z, input_data.ground_contact);
 	check_airspeed_innovation(input_data.timestamp, input_data.vel_test_ratio, input_data.hdg_test_ratio,
 				  input_data.ground_velocity, input_data.gnss_valid);
 	check_first_principle(input_data.timestamp, input_data.fixed_wing_throttle_filtered,
@@ -257,11 +257,13 @@ AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_
 
 
 void
-AirspeedValidator::check_load_factor(float accel_z)
+AirspeedValidator::check_load_factor(float accel_z, bool ground_contact)
 {
 	// Check if the airspeed reading is lower than physically possible given the load factor
 
-	if (!_load_factor_check_enabled) {
+	// The check is also suspended while the land detector reports ground contact. After touchdown the airspeed
+	// collapses while the vehicle is not yet detected as landed (e.g. landing in Stabilized mode).
+	if (!_load_factor_check_enabled || ground_contact) {
 		_load_factor_ratio = 0.5f;
 		_load_factor_check_failed = false;
 		return;

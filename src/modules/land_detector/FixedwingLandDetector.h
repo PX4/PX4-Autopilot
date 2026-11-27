@@ -48,6 +48,7 @@
 #include <uORB/topics/launch_detection_status.h>
 #include <uORB/topics/vehicle_attitude.h>
 
+#include "GroundImpactDetector.hpp"
 #include "LandDetector.h"
 
 using namespace time_literals;
@@ -64,6 +65,7 @@ public:
 protected:
 
 	bool _get_landed_state() override;
+	bool _get_ground_contact_state() override;
 
 private:
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
@@ -76,6 +78,10 @@ private:
 	float _velocity_z_filtered{0.0f};
 	float _xy_accel_filtered{0.0f};
 	float _velocity_rot_filtered{0.0f};
+
+	bool _airspeed_invalid{true}; ///< airspeed is not usable for the land detection
+
+	GroundImpactDetector _ground_impact_detector;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		LandDetector,
