@@ -87,6 +87,8 @@ Tuning parameters for fixed-wing land detection:
 - [LNDFW_VEL_XY_MAX ](../advanced_config/parameter_reference.md#LNDFW_VEL_XY_MAX) - the maximum horizontal velocity for the system to be still be considered landed.
 - [LNDFW_VEL_Z_MAX](../advanced_config/parameter_reference.md#LNDFW_VEL_XY_MAX) - the maximum vertical velocity for the system to be still be considered landed.
 - [LNDFW_XYACC_MAX](../advanced_config/parameter_reference.md#LNDFW_XYACC_MAX) - the maximal horizontal acceleration for the system to still be considered landed.
+- [LNDFW_AGL_MAX](../advanced_config/parameter_reference.md#LNDFW_AGL_MAX) - after takeoff, a landing without airspeed (no sensor, or the sensor failed in flight) with the throttle above half of [FW_THR_TRIM](../advanced_config/parameter_reference.md#FW_THR_TRIM) is only declared while the height above the ground, or the altitude difference to the takeoff point when no distance sensor is available, is below this value.
+  With the throttle below that a landing is declared as before. Raise it if the landing site can be further than this above or below the takeoff point, or if the engine idles above half of FW_THR_TRIM.
 - [LNDFW_TRIG_TIME](../advanced_config/parameter_reference.md#LNDFW_TRIG_TIME) - Trigger time during which the conditions above have to be fulfilled to declare a landing.
 
 ::: info
