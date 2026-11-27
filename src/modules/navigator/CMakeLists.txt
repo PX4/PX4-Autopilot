@@ -121,7 +121,7 @@ if(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
 endif()
 
 if(CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE)
-	list(APPEND NAVIGATOR_SOURCES mission_route_geofence.cpp mission_route_join.cpp)
+	list(APPEND NAVIGATOR_SOURCES mission_route_geofence.cpp mission_route_join.cpp rtl_mission_safe_point_follow.cpp)
 	list(APPEND NAVIGATOR_DEPENDS navigator_mission_route_planner)
 	list(APPEND NAVIGATOR_MODULE_CONFIG mission_route_params.yaml)
 endif()

@@ -380,6 +380,8 @@ void selectLowestCostSafePoint(const RtlRouteRequest &request, const ProjectionC
 				plan.goal_position = reference.position;
 				plan.safe_point_index = reference.source_index;
 				plan.branch_off_position = branch_off.projection;
+				// Not below the rally point: the leg to it is flown level. Example: a rally point on a hill above the route.
+				plan.branch_off_position.alt = math::max(branch_off.projection.alt, reference.position.alt);
 				// The branch-off point replaces the item flown toward on its segment.
 				plan.branch_off_mission_item_index = path.direction_reversed ? branch_off.segment.start.idx
 								     : branch_off.segment.end.idx;
