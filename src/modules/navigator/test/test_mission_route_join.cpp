@@ -1302,6 +1302,7 @@ protected:
 		MissionTestPeer mission(&_navigator);
 		const auto lane = [](float east_m) {
 			std::vector<mission_item_s> items;
+			items.reserve(4);
 
 			for (int index = 0; index < 4; ++index) {
 				items.push_back(makePositionItemFromOffset(kBaseLat, kBaseLon, index * 100.f, east_m, kAlt));
