@@ -76,6 +76,7 @@ parameters:
         4: Mission path, closest of landing or home
         5: Direct to rally point only
         6: Home if battery allows, else rally point
+        7: Mission route to rally point, landing or takeoff
       default: 0
     RTL_CONE_ANG:
       description:

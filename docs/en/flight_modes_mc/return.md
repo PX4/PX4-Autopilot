@@ -8,7 +8,7 @@ Multicopters use a [home/rally point return type](../flight_modes/return.md#rtl_
 In this return type vehicles ascend to a safe altitude above obstructions if needed, fly to the closest safe landing point (a rally point or the home position) via the shortest horizontal [geofence-aware path](../flight_modes/return.md#geofence_awareness), and then land.
 The return altitude, descent altitude, and landing delay are normally set to conservative "safe" values, but can be changed if needed.
 
-Multicopter supports the [other PX4 return types](../flight_modes/return.md#return_types), including mission landing, mission path and closest safe destination.
+Multicopter supports the [other PX4 return types](../flight_modes/return.md#return_types), including mission landing, mission path, closest safe destination and [route-following return](../flight_modes/return.md#rtl_type_7).
 The default type is recommended.
 
 ::: info
