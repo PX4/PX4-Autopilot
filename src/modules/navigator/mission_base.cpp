@@ -257,7 +257,7 @@ MissionBase::on_activation()
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 
 	// The join waypoint already flies to the route altitude, the rest is climbed along the route.
-	if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE) {
+	if (_route_join_position.valid()) {
 		_mission_init_climb_altitude_amsl = NAN;
 	}
 
@@ -466,15 +466,7 @@ void MissionBase::update_mission()
 		}
 
 		/* reset work item if new mission has been accepted */
-		bool keep_work_item = false;
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-		// The join is armed before activation reaches update_mission(); updateMavlinkMission() clears it on a real change.
-		keep_work_item = _work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE;
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
-
-		if (!keep_work_item) {
-			_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
-		}
+		_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
 
 		/* reset mission failure if we have an updated valid mission */
 		_navigator->get_mission_result()->failure = false;
@@ -806,13 +798,6 @@ bool MissionBase::position_setpoint_equal(const position_setpoint_s *p1, const p
 }
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-void MissionBase::setupJoinRoute(const mission_route::Position &join_position)
-{
-	_route_join_position = join_position;
-	_work_item_type = WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE;
-	reset_mission_item_reached();
-}
-
 void MissionBase::resetJoinRouteState()
 {
 	_route_join_position = {};
@@ -822,41 +807,25 @@ void MissionBase::resetJoinRouteState()
 	}
 }
 
-bool MissionBase::handleJoinRouteWorkItems()
+void MissionBase::handleJoinRoute(WorkItemType &new_work_item_type, mission_item_s next_mission_items[],
+				  size_t &num_found_items)
 {
-	if (_work_item_type != WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE) {
-		return false;
+	if (!_route_join_position.valid()) {
+		return;
 	}
 
-	if (_waypoint_position_reached && _waypoint_yaw_reached) {
+	// Reloaded after the branch-in waypoint was reached: fly the item as a fresh one.
+	if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE) {
 		resetJoinRouteState();
-		return false;
+		return;
 	}
 
-	const position_setpoint_s current_setpoint_copy = _navigator->get_position_setpoint_triplet()->current;
-	mission_item_s join_item;
-	setWaypointMissionItem(join_item, _route_join_position);
-	publishPositionItem(join_item, current_setpoint_copy);
-	return true;
-}
+	new_work_item_type = WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE;
 
-void MissionBase::publishPositionItem(const mission_item_s &item, const position_setpoint_s &current_setpoint_copy)
-{
-	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-	mission_item_to_position_setpoint(item, &pos_sp_triplet->current);
-	_navigator->reset_position_setpoint(pos_sp_triplet->next);
-
-	if (!position_setpoint_equal(&pos_sp_triplet->current, &current_setpoint_copy)) {
-		pos_sp_triplet->previous = current_setpoint_copy;
-	}
-
-	// Reach checks use the published target, which may be a virtual waypoint.
-	_mission_item = item;
-	reset_mission_item_reached();
-
-	set_mission_result();
-	publish_navigator_mission_item();
-	_navigator->set_position_setpoint_triplet_updated();
+	// Fly the branch-in waypoint first, with the loaded item as the next one.
+	num_found_items = 1u;
+	next_mission_items[0u] = _mission_item;
+	setWaypointMissionItem(_mission_item, _route_join_position);
 }
 
 void MissionBase::setWaypointMissionItem(mission_item_s &mission_item, const mission_route::Position &position) const

@@ -95,7 +95,6 @@ class MissionTestPeer : public Mission
 public:
 	explicit MissionTestPeer(Navigator *navigator) : Mission(navigator) {}
 
-	using Mission::trySetRouteJoinOnActivation;
 	const mission_route::ActiveJumpAnchor &jumpAnchorForTest() const { return _active_jump_anchor; }
 	bool advanceMissionForTest() { return setNextMissionItem(); }
 	bool plannedItemValidForTest() const { return _is_current_planned_mission_item_valid; }
@@ -573,7 +572,7 @@ TEST_F(MissionRouteJoinTest, NominalJumpAnchorMatchesStoredCounterAndRouteRejoin
 						     reinterpret_cast<uint8_t *>(&stored_jump), sizeof(stored_jump)));
 		EXPECT_EQ(stored_jump.do_jump_current_count, fail_write ? 0 : 1);
 
-		ASSERT_TRUE(mission.trySetRouteJoinOnActivation());
+		mission.on_activation();
 		EXPECT_EQ(mission.currentSequenceForTest(), fail_write ? 4 : 0);
 		EXPECT_EQ(mission.jumpAnchorForTest().jump_item_index, fail_write ? -1 : 3);
 		EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
@@ -807,6 +806,37 @@ TEST_F(MissionRouteJoinTest, JoinOnAscendingSegmentFollowsRouteWithoutVerticalCl
 	EXPECT_DOUBLE_EQ(triplet.current.lon, items[2].lon);
 	EXPECT_FLOAT_EQ(triplet.current.alt, items[2].altitude);
 	EXPECT_EQ(triplet.current.type, position_setpoint_s::SETPOINT_TYPE_POSITION);
+}
+
+// The joined item is the next setpoint of the branch-in waypoint, so a multicopter does not stop there.
+TEST_F(MissionRouteJoinTest, JoinWaypointHasTheJoinedItemNext)
+{
+	setIntParam("MIS_ROUTE_JOIN", 1);
+	MissionTestPeer mission(&_navigator);
+	const std::vector<mission_item_s> items{
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt),
+	};
+	const mission_route::Position beside_leg = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 40.f, kAlt);
+	const mission_s mission_state = publishMissionItems(items, 62, 0);
+	publishAirborneMulticopter(beside_leg);
+	updateRouteCacheUntilReady(mission_state);
+	mission.on_inactive();
+	markMissionResultValid();
+	startReachAndPause(mission, beside_leg);
+
+	mission.on_activation();
+
+	ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
+	ASSERT_EQ(mission.currentSequenceForTest(), 2);
+	const position_setpoint_triplet_s &triplet = *_navigator.get_position_setpoint_triplet();
+	EXPECT_DOUBLE_EQ(triplet.current.lat, mission.joinPositionForTest().lat);
+	EXPECT_DOUBLE_EQ(triplet.current.lon, mission.joinPositionForTest().lon);
+	ASSERT_TRUE(triplet.next.valid);
+	EXPECT_DOUBLE_EQ(triplet.next.lat, items[2].lat);
+	EXPECT_DOUBLE_EQ(triplet.next.lon, items[2].lon);
+	EXPECT_FLOAT_EQ(triplet.next.alt, items[2].altitude);
 }
 
 TEST_F(MissionRouteJoinTest, RestartedMissionCanJoinWhileAirborne)

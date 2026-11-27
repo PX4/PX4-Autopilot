@@ -116,7 +116,8 @@ bool Mission::trySetRouteJoinOnActivation()
 		return false;
 	}
 
-	setupJoinRoute(join_plan.join_position);
+	// Pending until setActiveMissionItems() flies it as a work item.
+	_route_join_position = join_plan.join_position;
 
 	PX4_DEBUG("Mission route join: target=%d", static_cast<int>(join_plan.first_mission_item_index));
 

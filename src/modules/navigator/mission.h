@@ -118,9 +118,9 @@ private:
 	bool routeJoinEnabled() const;
 
 	/**
-	 * Plan a smart rejoin onto the uploaded route and arm the virtual branch-in waypoint.
+	 * Plan a smart rejoin onto the uploaded route and store its branch-in waypoint as a pending join.
 	 *
-	 * @return true if a join route was armed, false to fly directly to the current item.
+	 * @return true if a join is pending, false to fly directly to the current item.
 	 */
 	bool trySetRouteJoinOnActivation();
 

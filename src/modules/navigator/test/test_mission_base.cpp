@@ -173,6 +173,13 @@ public:
 		updateMavlinkMission();
 	}
 
+	// A pending join whose branch-in waypoint is being flown.
+	void flyJoinRoute(const mission_route::Position &join_position)
+	{
+		_route_join_position = join_position;
+		_work_item_type = WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE;
+	}
+
 	bool joinWorkItemActive() const
 	{
 		return _work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE;
@@ -193,9 +200,6 @@ public:
 	using MissionBase::goToNextPositionItem;
 	using MissionBase::goToPreviousPositionItem;
 	using MissionBase::MissionTraversalType;
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	using MissionBase::setupJoinRoute;
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	using MissionBase::resetMissionJumpCounter;
 
 private:
@@ -1945,7 +1949,7 @@ TEST_F(MissionBaseRouteTest, MissionUpdateClearsJoin)
 		Navigator navigator{};
 		MissionBaseTestPeer mission_base_with_nav{&navigator};
 		mission_base_with_nav.loadTestMission({makePositionItem(kBaseLat, kBaseLon, kAlt)});
-		mission_base_with_nav.setupJoinRoute({kBaseLat, kBaseLon, kAlt});
+		mission_base_with_nav.flyJoinRoute({kBaseLat, kBaseLon, kAlt});
 		ASSERT_TRUE(mission_base_with_nav.joinWorkItemActive());
 
 		mission_base_with_nav.processMissionSourceChange(items_changed);

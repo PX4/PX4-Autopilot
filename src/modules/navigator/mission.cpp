@@ -248,15 +248,6 @@ Mission::do_need_move_to_takeoff()
 
 void Mission::setActiveMissionItems()
 {
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-
-	// The join flies a synthetic waypoint; loading the target item would replace it.
-	if (handleJoinRouteWorkItems()) {
-		return;
-	}
-
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
-
 	/* Get mission item that comes after current if available */
 	static constexpr size_t max_num_next_items{2u};
 	int32_t next_mission_items_index[max_num_next_items];
@@ -303,6 +294,10 @@ void Mission::setActiveMissionItems()
 			return;
 		}
 	}
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	handleJoinRoute(new_work_item_type, next_mission_items, num_found_items);
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	if (mission_item_contains_position(_mission_item)) {
 

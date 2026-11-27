@@ -114,7 +114,7 @@ protected:
 	};
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	/** Branch-in point of the route join, flown while the work item is WORK_ITEM_TYPE_JOIN_ROUTE. */
+	/** Branch-in point of a pending route join, valid until the waypoint is reached or the join is cancelled. */
 	mission_route::Position _route_join_position{};
 
 	/** DO_JUMP edge being flown, so a rejoin stays on an active loop. */
@@ -403,20 +403,21 @@ protected:
 	bool position_setpoint_equal(const position_setpoint_s *p1, const position_setpoint_s *p2) const;
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	/** Arm the virtual route-join waypoint. */
-	void setupJoinRoute(const mission_route::Position &join_position);
-
-	/** Clear a pending route-join work item. */
+	/** Cancel a pending route join and end its branch-in work item. */
 	void resetJoinRouteState();
 
-	/** Publish or advance an active route-join work item. */
-	bool handleJoinRouteWorkItems();
+	/**
+	 * @brief Handle a pending route join: fly the branch-in waypoint before the loaded item
+	 *
+	 * @param new_work_item_type new work item type state machine to be set
+	 * @param next_mission_items the next mission items after the current mission item
+	 * @param num_found_items number of found next mission items
+	 */
+	void handleJoinRoute(WorkItemType &new_work_item_type, mission_item_s next_mission_items[],
+			     size_t &num_found_items);
 
 	/** Onboard waypoint at a route position. */
 	void setWaypointMissionItem(mission_item_s &mission_item, const mission_route::Position &position) const;
-
-	/** Publish an onboard position item as the active mission item, without a next item. */
-	void publishPositionItem(const mission_item_s &item, const position_setpoint_s &current_setpoint_copy);
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	/**
