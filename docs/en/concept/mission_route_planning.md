@@ -89,6 +89,7 @@ With `RTL_TYPE=7`, Return uses the mission route as its return path:
 2. It climbs in place if it is more than [NAV_MC_ALT_RAD](../advanced_config/parameter_reference.md#NAV_MC_ALT_RAD) below the branch-in point, then flies to it.
 3. It follows the route, forwards or backwards, to the branch-off point where it leaves the route for the rally point, or to the landing or takeoff item.
 4. It flies level from the branch-off point to the rally point, at the route altitude there, or at the rally point altitude if that is higher: it climbs to that altitude on the way to the branch-off point.
+   A rally point higher than the route is therefore reached at its own altitude, with no height above it: give it an altitude above the ground there, or keep it below the route.
    It flies to the takeoff point at the altitude it had on the route.
    Above a rally point or the takeoff point it waits [RTL_LAND_DELAY](../advanced_config/parameter_reference.md#RTL_LAND_DELAY), at most [RTL_DESCEND_ALT](../advanced_config/parameter_reference.md#RTL_DESCEND_ALT) above the goal, and lands.
    A negative delay holds above the goal without landing.
@@ -134,7 +135,8 @@ It does not land there on its own, so configure a [battery failsafe](../config/s
 While airborne, Return plans again every two seconds and continues along the route once one is found, reporting `Return: mission route found`.
 A plan that fails keeps the hold point.
 After touchdown Return no longer plans.
-Started on the ground, Return stays there, with or without a route.
+Started on the ground, Return stays there with or without a route and reports itself complete, as the other return types do.
+It stays there also if the land detector then reports a takeoff, for example when the vehicle is lifted by hand.
 
 ### Uploads During Return
 
@@ -142,7 +144,7 @@ An upload of a mission, rally points or a geofence makes the route outdated, and
 While the upload still loads, or until Mission has checked the mission against a new geofence, Return holds as described above and briefly shows the hold message.
 
 From the move above the goal on, rally point and geofence uploads no longer change the Return.
-A mission upload or clear there ends the current step (the move, the turn above a mission landing or the wait; a descent still lands): Return reports itself complete, then plans again on the new mission from where the vehicle is.
+After a mission upload or clear there, Return finishes the current step (the move, the turn above a mission landing or the wait; a descent still lands), then reports itself complete and plans again on the new mission from where the vehicle is.
 It can wait above the same goal again, fly to another goal, or hold if the new mission gives no route.
 A geofence upload that makes Mission reject the mission does the same.
 

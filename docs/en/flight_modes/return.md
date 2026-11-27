@@ -221,6 +221,7 @@ The vehicle:
   Without a usable rally point it follows the route to the mission landing, or back to the takeoff point, whichever is closer along the route.
 - Flies level from the route to the rally point, at the route altitude where it leaves the route, or at the rally point altitude if that is higher.
   To reach a higher rally point altitude it climbs on the last part of the route.
+  A rally point higher than the route is reached at its own altitude, with no height above it: give it an altitude above the ground there, or keep it below the route.
   It flies to the takeoff point at the altitude it had on the route.
   Then it [lands or waits](#loiter-landing-at-destination) as the other return types do.
   A mission landing is flown as in Mission mode, without the landing delay.
