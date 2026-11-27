@@ -910,6 +910,19 @@ INSTANTIATE_TEST_SUITE_P(
 	return std::string(param_info.param.test_name);
 });
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE == 0
+// RTL_TYPE 7 needs the route cache. Without it a multicopter returns as with RTL_TYPE 0.
+INSTANTIATE_TEST_SUITE_P(
+	RTLWithoutRouteCache,
+	RTLSelectionTest,
+	::testing::Values(
+		ReturnSelectionCase{"Type7ClosestIsRallyPoint", 7, kMulticopter, -300.f, 100.f, false, NAN, 0, NAN, 0, kDirect, kRallyPoint}),
+	[](const ::testing::TestParamInfo<RTLSelectionTest::ParamType> &param_info)
+{
+	return std::string(param_info.param.test_name);
+});
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 #if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
 // WHY: the mission check reads rtl_status.has_vtol_approach for the Return type in use. It is set when Home
 // or any rally point the type checks has an approach, not only the destination.

@@ -21,9 +21,25 @@ parameters:
         short: Leg search margin of the multicopter mission rejoin
         long: |-
           Mission legs up to this much farther from the vehicle than the nearest leg
-          are also considered for the rejoin (MIS_ROUTE_JOIN). Example: with the
-          nearest leg 10 m away and the current leg 35 m away, 30 m rejoins the
-          current leg.
+          are also considered for the rejoin (MIS_ROUTE_JOIN) and for the Return
+          along the route (RTL_TYPE 7). Example: with the nearest leg 10 m away and
+          the current leg 35 m away, 30 m rejoins the current leg.
+      type: float
+      default: 30.0
+      unit: m
+      min: 0
+      decimal: 1
+      increment: 1
+- group: Return Mode
+  definitions:
+    RTL_RP_SEG_DIST:
+      description:
+        short: Leg search margin for rally points of the route Return
+        long: |-
+          With RTL_TYPE 7, the Return can leave the mission route for a rally point
+          on its nearest leg, and on legs up to this much farther from it. Example:
+          with the nearest leg 10 m away and another leg 35 m away, 30 m considers
+          both.
       type: float
       default: 30.0
       unit: m

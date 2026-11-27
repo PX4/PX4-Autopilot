@@ -129,7 +129,7 @@ bool GeofencePathChecker::pruneCandidates(ProjectionReferenceBatch &batch) const
 				continue;
 			}
 
-		} else if (!_geofence.checkPointAgainstAllGeofences(anchor.lat, anchor.lon, anchor.alt)
+		} else if (!_geofence.checkPointAgainstAllGeofences(anchor.lat, anchor.lon, anchor.alt + _safe_point_arrival_height_m)
 			   || !_geofence.isCloserThanContMaxDistToHome(anchor.lat, anchor.lon)) {
 			// A safe point outside the allowed area keeps no candidates: a segment entirely inside an exclusion
 			// area would cross no boundary. Neither does one closer to GF_MAX_HOR_DIST than the margin.

@@ -60,6 +60,7 @@ At high level these are:
   If no rally point is defined, land at the current position (a fixed-wing vehicle circles there instead).
 - [Battery-aware home priority return](#rtl_type_6) (`RTL_TYPE=6`): Return to home if the estimated flight time is within the remaining battery time, otherwise return to the closest rally point if it is closer than home.
   Falls back to the closest safe point (home or rally) if the remaining battery time is unknown/unavailable.
+- [Route-following return](#rtl_type_7) (`RTL_TYPE=7`): A multicopter follows the uploaded mission route to the rally point it reaches with the shortest flight along the route, else to the mission landing or the takeoff point, whichever is closer along the route.
 
 More detailed explanations for each of the types are provided in the following sections.
 
@@ -206,6 +207,43 @@ The vehicle:
   configured): falls back to returning to the closest safe point — whichever of home or the defined rally
   points is nearest.
 
+### Route-Following Return Type (RTL_TYPE=7) {#rtl_type_7}
+
+<Badge type="tip" text="main (PX4 v2.0)" />
+
+In this return type a multicopter uses the uploaded mission as its return path.
+The vehicle:
+
+- Joins the nearest leg of the mission route, or the leg it was flying if that is at most [MIS_MC_SEG_DIST](../advanced_config/parameter_reference.md#MIS_MC_SEG_DIST) farther.
+  If it is below the route, it first climbs in place to the route altitude.
+  Above the route, it descends on the way to it.
+- Follows the route, forwards or backwards, to the point where it leaves the route for the rally point it reaches with the shortest flight along the route and then off it.
+  Without a usable rally point it follows the route to the mission landing, or back to the takeoff point, whichever is closer along the route.
+- Leaves the route at the route altitude and flies level to the rally point.
+  Only if the route there is less than [RTL_DESCEND_ALT](#RTL_DESCEND_ALT) above the rally point does it climb on its last route leg, to `RTL_DESCEND_ALT` above the rally point.
+  It never descends before it is above the rally point.
+  Example with `RTL_DESCEND_ALT` 30 m and a rally point at 20 m: a route at 30 m climbs to 50 m before it leaves the route, a route at 100 m stays at 100 m until the vehicle is above the rally point.
+  A rally point the vehicle cannot reach `RTL_DESCEND_ALT` above it inside the geofence is not used.
+  It flies to the takeoff point at the altitude it had on the route.
+  Then it [lands or waits](#loiter-landing-at-destination) as the other return types do.
+  A mission landing is flown as in Mission mode, without the landing delay.
+
+The route sets the altitude: the vehicle does not climb to [RTL_RETURN_ALT](#RTL_RETURN_ALT).
+It flies at the default cruise speed ([MPC_XY_CRUISE](../advanced_config/parameter_reference.md#MPC_XY_CRUISE)): speed changes, camera and gimbal commands of the mission are not applied again.
+
+::: warning
+
+- This type needs firmware built with the [mission route cache](../advanced/mission_route_cache.md): SITL builds include it, most flight controller builds do not.
+  Other vehicles, and multicopters on firmware without the cache, return to the closest rally point or Home, as with `RTL_TYPE=0`, and the preflight checks warn `RTL_TYPE 7 not available, Return goes to the closest rally point or Home`.
+  One exception: a VTOL in fixed-wing flight that must use a land approach ([RTL_APPR_FORCE](#RTL_APPR_FORCE)), while Home has none, goes to the mission landing if that is closer than every rally point.
+- Without a route, for example without a mission or while an upload is still loading, the checks show `No mission route for Return`: a switch to Return is denied, and a failsafe that would return, such as RC or data link loss, lands instead.
+- A Return that is already flying when its route goes missing holds where the vehicle stops and reports `Return: no mission route, holding`, then goes on once a route is found.
+  It does not land on its own there: configure a [battery failsafe](../config/safety.md#battery-level-failsafe) that lands.
+
+:::
+
+See [Route-Following Return](../concept/mission_route_planning.md#route-following-return) for the details.
+
 ## Geofence Awareness {#geofence_awareness}
 
 <Badge type="tip" text="main (PX4 v1.20)" />
@@ -242,6 +280,9 @@ The following table shows which return types currently support geofence awarenes
 | 4 (mission path)       | No                 |
 | 5 (rally point only)   | Yes                |
 | 6 (battery-aware home) | Yes                |
+| 7 (mission route)      | Partial            |
+
+Route-following return (`RTL_TYPE=7`) rejects a route whose legs off the mission cross the geofence, but it does not fly around the geofence.
 
 ### Shortest-Path Calculation
 

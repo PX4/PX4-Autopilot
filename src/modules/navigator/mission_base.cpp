@@ -609,6 +609,8 @@ bool MissionBase::shouldReportMissionItemReached() const
 	case WorkItemType::WORK_ITEM_TYPE_CLIMB:
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 	case WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE:
+	case WorkItemType::WORK_ITEM_TYPE_BRANCH_OFF:
+	case WorkItemType::WORK_ITEM_TYPE_LAND_DELAY:
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 		return false;
 
@@ -650,6 +652,10 @@ void MissionBase::handleLanding(WorkItemType &new_work_item_type, mission_item_s
 
 	// The landing sequence starts after a normal arrival or after a climb inserted before the landing item.
 	const bool starts_landing = _work_item_type == WorkItemType::WORK_ITEM_TYPE_DEFAULT
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+				    // or at the point where a Return leaves the mission route
+				    || _work_item_type == WorkItemType::WORK_ITEM_TYPE_BRANCH_OFF
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 				    || _work_item_type == WorkItemType::WORK_ITEM_TYPE_CLIMB;
 
 	// The steps before the descent keep the altitude of the position setpoint or of the climb just reached:

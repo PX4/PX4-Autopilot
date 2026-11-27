@@ -94,6 +94,8 @@ protected:
 		WORK_ITEM_TYPE_CLIMB,		/**< takeoff before moving to waypoint */
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 		WORK_ITEM_TYPE_JOIN_ROUTE,	/**< fly a virtual branch-in waypoint before resuming the route */
+		WORK_ITEM_TYPE_BRANCH_OFF,	/**< fly the virtual waypoint where Return leaves the route */
+		WORK_ITEM_TYPE_LAND_DELAY,	/**< wait above the Return destination before landing */
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 		WORK_ITEM_TYPE_MOVE_TO_LAND,	/**< move to land waypoint before descent */
 		WORK_ITEM_TYPE_ALIGN_TO_LAND,
@@ -320,6 +322,13 @@ protected:
 	void update_mission();
 
 	/**
+	 * @brief Check if a climb is necessary to align with mission altitude prior to starting the mission
+	 *
+	 * @param mission_item_index The index of the mission item to check if a climb is necessary
+	 */
+	void checkClimbRequired(int32_t mission_item_index);
+
+	/**
 	 * Whether update_mission() may start flying the mission items now
 	 */
 	virtual bool canStartMission() const { return true; }
@@ -513,7 +522,12 @@ protected:
 	 * @brief Update mission subscription
 	 *
 	 */
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	// A Return along the route flies the mission RTL planned it on, not the published one.
+	virtual void updateMavlinkMission();
+#else
 	void updateMavlinkMission();
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 private:
 	/**
@@ -604,13 +618,6 @@ private:
 	 * Check for parameter changes and update them if needed.
 	 */
 	void parameters_update();
-
-	/**
-	 * @brief Check if a climb is necessary to align with mission altitude prior to starting the mission
-	 *
-	 * @param mission_item_index The index of the mission item to check if a climb is necessary
-	 */
-	void checkClimbRequired(int32_t mission_item_index);
 
 	/**
 	 * @brief update current mission altitude after the home position has changed.

@@ -222,6 +222,11 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - Added smart mission rejoin for multicopters ([MIS_ROUTE_JOIN](../advanced_config/parameter_reference.md#MIS_ROUTE_JOIN), off by default): starting or resuming Mission in flight joins the uploaded route near the vehicle instead of flying back to the current mission item.
   It needs firmware built with the mission route cache; SITL builds include it.
   See [Smart Mission Rejoin](../flight_modes_mc/mission.md#smart-mission-rejoin).
+- Added `RTL_TYPE=7` for multicopters: Return follows the uploaded mission route to the rally point it reaches with the shortest flight along the route, or to the mission landing or the takeoff point.
+  Without a route, a switch to Return is denied and a failsafe that would return lands instead; a Return already flying holds where it is.
+  Where type 7 is not available, a preflight warning says so.
+  It needs firmware built with the mission route cache; SITL builds include it.
+  See [Route-Following Return](../flight_modes/return.md#rtl_type_7).
 
 ### VTOL
 
