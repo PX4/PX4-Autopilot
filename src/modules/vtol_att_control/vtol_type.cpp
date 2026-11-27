@@ -349,8 +349,7 @@ bool VtolType::isUncommandedDescent()
 			_quadchute_ref_alt = current_altitude;
 		}
 
-		_quadchute_ref_alt = math::min(math::max(_quadchute_ref_alt, current_altitude),
-					       _tecs_status->altitude_reference);
+		_quadchute_ref_alt = math::constrain(_quadchute_ref_alt, current_altitude, _tecs_status->altitude_reference);
 
 		return (_quadchute_ref_alt - current_altitude) > _param_vt_qc_alt_loss.get();
 

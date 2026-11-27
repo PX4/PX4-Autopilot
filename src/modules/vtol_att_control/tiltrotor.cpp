@@ -180,13 +180,10 @@ void Tiltrotor::update_transition_state()
 	} else if (_common_vtol_mode == mode::TRANSITION_TO_MC) {
 
 		// tilt rotors back once motors are idle
-		if (_time_since_trans_start > BACKTRANS_THROTTLE_DOWNRAMP_DUR_S) {
-
-			float progress = (_time_since_trans_start - BACKTRANS_THROTTLE_DOWNRAMP_DUR_S) / math::max(_param_vt_bt_tilt_dur.get(),
-					 0.1f);
-			progress = math::constrain(progress, 0.0f, 1.0f);
-			_tilt_control = moveLinear(_param_vt_tilt_fw.get(), _param_vt_tilt_mc.get(), progress);
-		}
+		_tilt_control = math::interpolate(_time_since_trans_start,
+						  BACKTRANS_THROTTLE_DOWNRAMP_DUR_S, BACKTRANS_THROTTLE_DOWNRAMP_DUR_S + math::max(_param_vt_bt_tilt_dur.get(), 0.1f),
+						  _param_vt_tilt_fw.get(), _param_vt_tilt_mc.get()
+						 );
 
 		_mc_yaw_weight = 1.0f;
 
@@ -198,9 +195,10 @@ void Tiltrotor::update_transition_state()
 		if (_time_since_trans_start < BACKTRANS_THROTTLE_DOWNRAMP_DUR_S) {
 			// blend throttle from FW value to 0
 			_mc_throttle_weight = 1.0f;
-			const float target_throttle = 0.0f;
-			const float progress = _time_since_trans_start / BACKTRANS_THROTTLE_DOWNRAMP_DUR_S;
-			blendThrottleDuringBacktransition(progress, target_throttle);
+			_thrust_transition = math::interpolate(_time_since_trans_start,
+							       0.f, BACKTRANS_THROTTLE_DOWNRAMP_DUR_S,
+							       _last_thr_in_fw_mode, 0.f
+							      );
 
 		} else if (_time_since_trans_start < timeUntilMotorsAreUp()) {
 			// while we quickly rotate back the motors keep throttle at idle
@@ -214,9 +212,10 @@ void Tiltrotor::update_transition_state()
 			_mc_roll_weight = 1.0f;
 			_mc_pitch_weight = 1.0f;
 			// slowly ramp up throttle to avoid step inputs
-			float progress = (_time_since_trans_start - timeUntilMotorsAreUp()) / BACKTRANS_THROTTLE_UPRAMP_DUR_S;
-			progress = math::constrain(progress, 0.0f, 1.0f);
-			_mc_throttle_weight = moveLinear(0.0f, 1.0f, progress);
+			_mc_throttle_weight = math::interpolate(_time_since_trans_start,
+								timeUntilMotorsAreUp(), timeUntilMotorsAreUp() + BACKTRANS_THROTTLE_UPRAMP_DUR_S,
+								0.f, 1.f
+							       );
 		}
 	}
 
@@ -310,20 +309,10 @@ void Tiltrotor::blendThrottleAfterFrontTransition(float scale)
 {
 	const float tecs_throttle = _v_att_sp->thrust_body[0];
 
-	_v_att_sp->thrust_body[0] = scale * tecs_throttle + (1.0f - scale) * _thrust_transition;
-}
-
-void Tiltrotor::blendThrottleDuringBacktransition(float scale, float target_throttle)
-{
-	_thrust_transition = scale * target_throttle + (1.0f - scale) * _last_thr_in_fw_mode;
+	_v_att_sp->thrust_body[0] = math::lerp(_thrust_transition, tecs_throttle, scale);
 }
 
 float Tiltrotor::timeUntilMotorsAreUp()
 {
 	return BACKTRANS_THROTTLE_DOWNRAMP_DUR_S + _param_vt_bt_tilt_dur.get();
-}
-
-float Tiltrotor::moveLinear(float start, float stop, float progress)
-{
-	return start + progress * (stop - start);
 }
