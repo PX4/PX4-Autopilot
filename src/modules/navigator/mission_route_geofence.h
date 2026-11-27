@@ -63,7 +63,9 @@ namespace mission_route
 class GeofencePathChecker final : public PathChecker
 {
 public:
-	explicit GeofencePathChecker(Geofence &geofence) : _geofence(geofence) {}
+	/** Rally points are checked at the given height above them, where a Return arrives. */
+	explicit GeofencePathChecker(Geofence &geofence, float safe_point_arrival_height_m = 0.f) :
+		_geofence(geofence), _safe_point_arrival_height_m(safe_point_arrival_height_m) {}
 
 	bool pruneCandidates(ProjectionReferenceBatch &batch) const override;
 	bool checkPath(const Position &vehicle, const Position &end, bool &clear) const override;
@@ -73,6 +75,7 @@ private:
 	bool vehicleOutsideContGeofence(const Position &vehicle) const;
 
 	Geofence &_geofence;
+	const float _safe_point_arrival_height_m;
 };
 
 } // namespace mission_route

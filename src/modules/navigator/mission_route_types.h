@@ -120,6 +120,7 @@ struct MissionResumeRequest {
 /** @brief Inputs for the RTL route-following return: the join inputs plus goal selection. */
 struct RtlRouteRequest : MissionResumeRequest {
 	float safe_point_projection_search_distance_m{0.f};
+	float safe_point_arrival_height_m{0.f}; /**< The leg to a rally point is flown at least this high above it. */
 	float direct_goal_acceptance_radius_m{0.f};
 	float altitude_acceptance_radius_m{0.f};
 	bool require_vtol_approach{false};

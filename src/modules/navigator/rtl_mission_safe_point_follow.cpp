@@ -79,12 +79,14 @@ void RtlMissionSafePointFollow::planRoute(const mission_s &mission)
 	request.mission_index = math::max(mission.current_seq, int32_t{0});
 	request.projection_search_distance_m = _param_mis_mc_seg_dist.get();
 	request.safe_point_projection_search_distance_m = _param_rtl_rp_seg_dist.get();
+	request.safe_point_arrival_height_m = _param_rtl_descend_alt.get();
 	request.acceptance_radius_m = _navigator->get_acceptance_radius();
 	request.direct_goal_acceptance_radius_m = _navigator->get_default_acceptance_radius();
 	request.altitude_acceptance_radius_m = _navigator->get_altitude_acceptance_radius();
 	request.home_altitude_amsl = home_position.valid_alt ? home_position.alt : NAN;
 
-	const mission_route::GeofencePathChecker path_checker{_navigator->get_geofence()};
+	// A rally point the vehicle cannot wait above inside the fence is not used.
+	const mission_route::GeofencePathChecker path_checker{_navigator->get_geofence(), request.safe_point_arrival_height_m};
 	const MissionRoutePlanner planner{route_cache, &path_checker};
 	_plan_failure = planner.planRtlRoute(request, _plan);
 }
@@ -105,23 +107,25 @@ void RtlMissionSafePointFollow::on_activation()
 
 	const bool landed = _land_detected_sub.get().landed;
 
-	if (landed || !_plan.valid()) {
-		// Idle on the ground, or a hold in the air until RTL finds a route.
+	if (landed) {
+		// Idle on the ground: Return is done at once, as the other Return types report it.
 		setEndOfMissionItems();
+		_navigator->mode_completed(getNavigatorStateId());
+		return;
+	}
 
-		if (landed) {
-			// On the ground Return is done at once, as the other Return types report it.
-			_navigator->mode_completed(getNavigatorStateId());
+	if (!_plan.valid()) {
+		// Hold where the vehicle stops until RTL finds a route, then go on. Not the end of the mission or of Return.
+		setLoiterItemFromCurrentPositionWithBraking(&_mission_item);
+		_mission_item.altitude = _navigator->get_global_position()->alt;
+		mission_item_to_position_setpoint(_mission_item, &_navigator->get_position_setpoint_triplet()->current);
+		_navigator->set_position_setpoint_triplet_updated();
 
-		} else {
-			// The hold does not complete Return.
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Return: no mission route, holding\t");
-			events::send(events::ID("rtl_route_unavailable"), {events::Log::Critical, events::LogInternal::Warning},
-				     "Return: no mission route, holding");
-			// A FailureReason number: the names would cost flash for one console line.
-			PX4_WARN("Return route unavailable: planner failure %d (0: inputs not ready)", static_cast<int>(_plan_failure));
-		}
-
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Return: no mission route, holding\t");
+		events::send(events::ID("rtl_route_unavailable"), {events::Log::Critical, events::LogInternal::Warning},
+			     "Return: no mission route, holding");
+		// A FailureReason number: the names would cost flash for one console line.
+		PX4_WARN("Return route unavailable: planner failure %d (0: inputs not ready)", static_cast<int>(_plan_failure));
 		return;
 	}
 
@@ -135,6 +139,11 @@ void RtlMissionSafePointFollow::on_activation()
 	update_mission();
 	checkClimbRequired(_mission.current_seq);
 	set_mission_items();
+}
+
+bool RtlMissionSafePointFollow::isDescending() const
+{
+	return (_mission_type == MissionType::MISSION_TYPE_MISSION) && mission_route::isLandingCmd(_mission_item.nav_cmd);
 }
 
 bool RtlMissionSafePointFollow::isLanding()

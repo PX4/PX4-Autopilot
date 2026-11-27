@@ -219,9 +219,8 @@ The vehicle:
   Above the route, it descends on the way to it.
 - Follows the route, forwards or backwards, to the point where it leaves the route for the rally point it reaches with the shortest flight along the route and then off it.
   Without a usable rally point it follows the route to the mission landing, or back to the takeoff point, whichever is closer along the route.
-- Flies level from the route to the rally point, at the route altitude where it leaves the route, or at the rally point altitude if that is higher.
-  To reach a higher rally point altitude it climbs on the last part of the route.
-  A rally point higher than the route is reached at its own altitude, with no height above it: give it an altitude above the ground there, or keep it below the route.
+- Flies level from the route to the rally point, at the route altitude where it leaves the route, or [RTL_DESCEND_ALT](#RTL_DESCEND_ALT) above the rally point if that is higher: it climbs to that height on the last part of the route.
+  A rally point the vehicle cannot reach that high inside the geofence is not used.
   It flies to the takeoff point at the altitude it had on the route.
   Then it [lands or waits](#loiter-landing-at-destination) as the other return types do.
   A mission landing is flown as in Mission mode, without the landing delay.
@@ -234,9 +233,9 @@ It flies at the default cruise speed ([MPC_XY_CRUISE](../advanced_config/paramet
 - This type needs firmware built with the [mission route cache](../advanced/mission_route_cache.md): SITL builds include it, most flight controller builds do not.
   Other vehicles, and multicopters on firmware without the cache, return to the closest rally point or Home, as with `RTL_TYPE=0`.
   One exception: a VTOL in fixed-wing flight that must use a land approach ([RTL_APPR_FORCE](#RTL_APPR_FORCE)), while Home has none, goes to the mission landing if that is closer than every rally point.
-- Without a route, for example without a mission or while an upload is still loading, Return holds where the vehicle is and reports `Return: no mission route, holding`.
+- Without a route, for example without a mission or while an upload is still loading, Return holds where the vehicle stops and reports `Return: no mission route, holding`, then goes on once a route is found.
   It does not land on its own there: configure a [battery failsafe](../config/safety.md#battery-level-failsafe) that lands.
-  This also applies when a failsafe starts Return, such as RC or data link loss, and after a mission upload or clear near the end of the Return.
+  This also applies when a failsafe starts Return, such as RC or data link loss.
 
 :::
 

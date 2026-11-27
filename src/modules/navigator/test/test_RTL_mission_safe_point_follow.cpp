@@ -106,6 +106,13 @@ public:
 
 using FollowerPeer = RtlMissionSafePointFollowTestPeer;
 
+// Applies changed Navigator parameters, also the geofence's.
+class RouteTestNavigator : public Navigator
+{
+public:
+	using Navigator::updateParams;
+};
+
 class RTLTestPeer : public RTL
 {
 public:
@@ -472,7 +479,7 @@ protected:
 		get_vector_to_next_waypoint(kBaseLat, kBaseLon, lat, lon, &north_m, &east_m);
 	}
 
-	Navigator _navigator{};
+	RouteTestNavigator _navigator{};
 	DatamanClient _dataman_client{};
 	uORB::Publication<mission_s> _mission_pub{ORB_ID(mission)};
 	uORB::Publication<vehicle_status_s> _vehicle_status_pub{ORB_ID(vehicle_status)};
@@ -590,41 +597,60 @@ static const RouteCase kRouteCases[] = {
 			{Step::Land, 100.f, 230.f, kHomeAlt, 3, true},
 		}
 	},
-	// The wait never climbs: with RTL_DESCEND_ALT above the route, it waits at the route altitude.
+	// RTL_DESCEND_ALT above the route: it climbs to that height above the rally point before it leaves the route, and
+	// holds there.
 	{
 		"ForwardToRallyPointHolds", 200.f, 60.f, kRouteAlt, 2, {rallyPoint(100.f, 230.f)}, -1.f, 100.f, {
 			{Step::Join, 200.f, 60.f, kRouteAlt, 2, false},
 			{Step::Route, 200.f, 200.f, kRouteAlt, 2, true},
-			{Step::BranchOff, 100.f, 200.f, kRouteAlt, 3, false},
-			{Step::MoveToLand, 100.f, 230.f, kRouteAlt, 3, true},
-			{Step::Wait, 100.f, 230.f, kRouteAlt, 3, false},
+			{Step::BranchOff, 100.f, 200.f, kHomeAlt + 100.f, 3, false},
+			{Step::MoveToLand, 100.f, 230.f, kHomeAlt + 100.f, 3, true},
+			{Step::Wait, 100.f, 230.f, kHomeAlt + 100.f, 3, false},
 		}
 	},
-	// A rally point 20 m above the route: Return climbs to its altitude on the way to the branch-off point.
+	// Already above the rally point, lower than RTL_DESCEND_ALT above it: the wait never climbs.
+	{
+		"WaitsBelowTheDescentHeight", 101.f, 226.f, kRouteAlt, 3, {rallyPoint(100.f, 230.f)}, 5.f, 100.f, {
+			{Step::Wait, 100.f, 230.f, kRouteAlt, 3, false},
+			{Step::Land, 100.f, 230.f, kHomeAlt, 3, true},
+		}
+	},
+	// A rally point 20 m above the route: Return climbs to RTL_DESCEND_ALT above it on the way to the branch-off point.
 	{
 		"RallyPointAboveTheRoute", 200.f, 60.f, kRouteAlt, 2, {rallyPoint(100.f, 230.f, kRouteAlt + 20.f)}, 5.f, 30.f, {
+			{Step::Join, 200.f, 60.f, kRouteAlt, 2, false},
+			{Step::Route, 200.f, 200.f, kRouteAlt, 2, true},
+			{Step::BranchOff, 100.f, 200.f, kRouteAlt + 50.f, 3, false},
+			{Step::MoveToLand, 100.f, 230.f, kRouteAlt + 50.f, 3, true},
+			{Step::Wait, 100.f, 230.f, kRouteAlt + 50.f, 3, false},
+			{Step::Land, 100.f, 230.f, kRouteAlt + 20.f, 3, true},
+		}
+	},
+	// A route only 10 m above its rally point: it climbs to RTL_DESCEND_ALT above the rally point on its last leg.
+	{
+		"RouteLowAboveItsRallyPoint", 200.f, 60.f, kRouteAlt, 2, {rallyPoint(100.f, 230.f, kRouteAlt - 10.f)}, 5.f, 30.f, {
 			{Step::Join, 200.f, 60.f, kRouteAlt, 2, false},
 			{Step::Route, 200.f, 200.f, kRouteAlt, 2, true},
 			{Step::BranchOff, 100.f, 200.f, kRouteAlt + 20.f, 3, false},
 			{Step::MoveToLand, 100.f, 230.f, kRouteAlt + 20.f, 3, true},
 			{Step::Wait, 100.f, 230.f, kRouteAlt + 20.f, 3, false},
-			{Step::Land, 100.f, 230.f, kRouteAlt + 20.f, 3, true},
+			{Step::Land, 100.f, 230.f, kRouteAlt - 10.f, 3, true},
 		}
 	},
 	// On the leg to a rally point 20 m above the route, at the route altitude: no shortcut, it joins the route and climbs
-	// to the rally point altitude at the branch-off point.
+	// to RTL_DESCEND_ALT above the rally point at the branch-off point.
 	{
 		"BranchOffLegBelowARallyPointAboveTheRoute", 101.f, 215.f, kRouteAlt, 3, {rallyPoint(100.f, 230.f, kRouteAlt + 20.f)}, 0.f, 30.f, {
 			{Step::Join, 101.f, 200.f, kRouteAlt, 3, false},
-			{Step::BranchOff, 100.f, 200.f, kRouteAlt + 20.f, 3, false},
-			{Step::MoveToLand, 100.f, 230.f, kRouteAlt + 20.f, 3, true},
+			{Step::BranchOff, 100.f, 200.f, kRouteAlt + 50.f, 3, false},
+			{Step::MoveToLand, 100.f, 230.f, kRouteAlt + 50.f, 3, true},
 			{Step::Land, 100.f, 230.f, kRouteAlt + 20.f, 3, true},
 		}
 	},
-	// The same leg at the rally point altitude: straight to it.
+	// The same leg at the height the leg is flown: straight to the rally point.
 	{
-		"BranchOffLegAtARallyPointAboveTheRoute", 101.f, 215.f, kRouteAlt + 20.f, 3, {rallyPoint(100.f, 230.f, kRouteAlt + 20.f)}, 0.f, 30.f, {
-			{Step::MoveToLand, 100.f, 230.f, kRouteAlt + 20.f, 3, true},
+		"BranchOffLegAtARallyPointAboveTheRoute", 101.f, 215.f, kRouteAlt + 50.f, 3, {rallyPoint(100.f, 230.f, kRouteAlt + 20.f)}, 0.f, 30.f, {
+			{Step::MoveToLand, 100.f, 230.f, kRouteAlt + 50.f, 3, true},
 			{Step::Land, 100.f, 230.f, kRouteAlt + 20.f, 3, true},
 		}
 	},
@@ -869,15 +895,15 @@ static const EstimateCase kEstimateCases[] = {
 	EstimateCase{"ForwardToRallyPoint", 200.f, 60.f, kRouteAlt, 2, {rallyPoint(100.f, 230.f)}, 0.f, {{140.f, 0.f, 0.f}, {100.f, 0.f, 0.f}, {30.f, 0.f, 0.f}, {0.f, -60.f, 0.f}}},
 	EstimateCase{"ForwardToRallyPointWaits", 200.f, 60.f, kRouteAlt, 2, {rallyPoint(100.f, 230.f)}, 5.f, {{140.f, 0.f, 0.f}, {100.f, 0.f, 0.f}, {30.f, 0.f, 0.f}, {0.f, -30.f, 5.f}, {0.f, -30.f, 0.f}}},
 	EstimateCase{"ForwardToRallyPointHolds", 200.f, 60.f, kRouteAlt, 2, {rallyPoint(100.f, 230.f)}, -1.f, {{140.f, 0.f, 0.f}, {100.f, 0.f, 0.f}, {30.f, 0.f, 0.f}, {0.f, -30.f, 0.f}}},
-	// With RTL_DESCEND_ALT above the route, the wait is at the route altitude.
-	EstimateCase{"ForwardToRallyPointWaitsAtArrival", 200.f, 60.f, kRouteAlt, 2, {rallyPoint(100.f, 230.f)}, 5.f, {{140.f, 0.f, 0.f}, {100.f, 0.f, 0.f}, {30.f, 0.f, 5.f}, {0.f, -60.f, 0.f}}, 100.f},
+	// With RTL_DESCEND_ALT above the route, it climbs to that height on the way to the branch-off point and waits there.
+	EstimateCase{"ForwardToRallyPointWaitsAtArrival", 200.f, 60.f, kRouteAlt, 2, {rallyPoint(100.f, 230.f)}, 5.f, {{140.f, 0.f, 0.f}, {100.f, 40.f, 0.f}, {30.f, 0.f, 5.f}, {0.f, -100.f, 0.f}}, 100.f},
 	EstimateCase{"ReverseToTakeoffFromBelow", 60.f, 10.f, kRouteAlt - 20.f, 1, {}, 5.f, {{0.f, 20.f, 0.f}, {10.f, 0.f, 0.f}, {60.f, 0.f, 0.f}, {0.f, -30.f, 5.f}, {0.f, -30.f, 0.f}}},
 	EstimateCase{"MissionLanding", 50.f, 210.f, kRouteAlt, 3, {}, 5.f, {{10.f, 0.f, 0.f}, {50.f, 0.f, 0.f}, {100.f, 0.f, 0.f}, {0.f, -60.f, 0.f}}},
 	EstimateCase{"DirectToRallyPoint", 101.f, 215.f, kRouteAlt, 3, {rallyPoint(100.f, 230.f)}, 5.f, {{15.03f, 0.f, 0.f}, {0.f, -30.f, 5.f}, {0.f, -30.f, 0.f}}},
 	// Above the route: the join leg descends on the way, no separate descent.
 	EstimateCase{"JoinFromAbove", 220.f, 60.f, kRouteAlt + 20.f, 2, {rallyPoint(100.f, 230.f)}, 0.f, {{20.f, -20.f, 0.f}, {140.f, 0.f, 0.f}, {100.f, 0.f, 0.f}, {30.f, 0.f, 0.f}, {0.f, -60.f, 0.f}}},
-	// A rally point 20 m above the route: the climb on the way to the branch-off point.
-	EstimateCase{"RallyPointAboveTheRoute", 200.f, 60.f, kRouteAlt, 2, {rallyPoint(100.f, 230.f, kRouteAlt + 20.f)}, 0.f, {{140.f, 0.f, 0.f}, {100.f, 20.f, 0.f}, {30.f, 0.f, 0.f}}},
+	// A rally point 20 m above the route: the climb to RTL_DESCEND_ALT above it on the way to the branch-off point.
+	EstimateCase{"RallyPointAboveTheRoute", 200.f, 60.f, kRouteAlt, 2, {rallyPoint(100.f, 230.f, kRouteAlt + 20.f)}, 0.f, {{140.f, 0.f, 0.f}, {100.f, 50.f, 0.f}, {30.f, 0.f, 0.f}, {0.f, -30.f, 0.f}}},
 	// Next to a rally point that is 20 m above the vehicle: the landing adds no climb.
 	EstimateCase{"BelowARallyPointAboveGround", 101.f, 226.f, kRouteAlt, 3, {rallyPoint(100.f, 230.f, kRouteAlt + 20.f)}, 0.f, {{4.12f, 0.f, 0.f}}},
 };
@@ -919,6 +945,27 @@ TEST_F(RtlRouteTest, EstimateCountsOnlyTheRemainingSteps)
 	ASSERT_EQ(FollowerPeer::missionItem(follower).nav_cmd, NAV_CMD_LAND);
 
 	EXPECT_NEAR(follower.calc_rtl_time_estimate().time_estimate, expectedTime({{0.f, -30.f, 0.f}}), 0.1f);
+}
+
+// WHY: Return waits RTL_DESCEND_ALT above a rally point. A rally point it cannot wait above inside the fence ceiling is
+// not a goal.
+// WHAT: a rally point 50 m above Home under a 70 m ceiling: used with RTL_DESCEND_ALT 10 m, not with 30 m.
+TEST_F(RtlRouteTest, RallyPointNeedsRoomBelowTheFenceCeiling)
+{
+	setParam("GF_MAX_VER_DIST", 70.f);
+	moveTo(200.f, 60.f, kRouteAlt);
+	const mission_s mission = loadRoute(squareMission(), {rallyPoint(100.f, 230.f, kHomeAlt + 50.f)}, 2);
+
+	for (const float descend_alt : {10.f, 30.f}) {
+		SCOPED_TRACE(::testing::Message() << "RTL_DESCEND_ALT " << descend_alt);
+		setParam("RTL_DESCEND_ALT", descend_alt);
+		_navigator.updateParams();
+		RtlMissionSafePointFollow follower{&_navigator};
+		follower.planRoute(mission);
+
+		ASSERT_TRUE(follower.plan().valid());
+		EXPECT_EQ(follower.plan().goal_type == mission_route::GoalType::kSafePoint, descend_alt < 20.f);
+	}
 }
 
 // WHY: during Return the estimate walks from the route item the vehicle flies toward, not from the start of the plan.
@@ -1119,10 +1166,14 @@ INSTANTIATE_TEST_SUITE_P(
 	return std::string(param_info.param.test_name);
 });
 
-// WHY: without a route Return holds. It neither flies direct, nor tells an external mode executor that Return is done.
-// WHAT: without a mission, Return holds where the vehicle is and reports why, without the mission alarm.
+// WHY: without a route Return holds and goes on once one is found. It neither flies direct, nor tells an external mode
+// executor or a ground station that Return or the mission is done.
+// WHAT: without a mission, Return holds where the vehicle is, at its altitude also below NAV_MIN_LTR_ALT, and reports
+// why, without the mission alarm, without completing Return or the mission.
 TEST_F(RtlRouteReturnTest, WithoutARouteHoldsWithoutCompletingReturn)
 {
+	setParam("NAV_MIN_LTR_ALT", 100.f);
+	_navigator.updateParams();
 	moveTo(200.f, 60.f, kRouteAlt);
 	mission_s no_mission{};
 	no_mission.timestamp = hrt_absolute_time();
@@ -1146,6 +1197,7 @@ TEST_F(RtlRouteReturnTest, WithoutARouteHoldsWithoutCompletingReturn)
 	EXPECT_TRUE(route_events.sent(events::ID("rtl_route_unavailable")));
 	EXPECT_FALSE(mission_events.sent(events::ID("mission_not_valid_loiter")));
 	EXPECT_FALSE(mode_completed_sub.update());
+	EXPECT_FALSE(_navigator.get_mission_result()->finished);
 }
 
 namespace
@@ -1410,9 +1462,9 @@ struct LandingCase {
 
 class RtlRouteLandingTest : public RtlRouteReturnTest, public ::testing::WithParamInterface<LandingCase> {};
 
-// WHY: from the move above the goal on, new rally points no longer change the Return: it lands where it planned.
-// WHAT: new rally points during each landing step do not replan.
-TEST_P(RtlRouteLandingTest, RallyPointUploadDuringTheLandingKeepsIt)
+// WHY: once the final descent has started, an upload no longer changes the Return: it lands where it planned.
+// WHAT: new rally points during the landing and the precision landing do not replan.
+TEST_P(RtlRouteLandingTest, UploadDuringTheDescentKeepsIt)
 {
 	const LandingCase &c = GetParam();
 	setParam("RTL_LAND_DELAY", c.land_delay);
@@ -1446,12 +1498,9 @@ INSTANTIATE_TEST_SUITE_P(
 	RTL,
 	RtlRouteLandingTest,
 	::testing::Values(
-		LandingCase{"MoveToRallyPoint", 200.f, 60.f, 2, {rallyPoint(100.f, 230.f)}, 0.f, 0, NAN, FollowerPeer::WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND, NAV_CMD_WAYPOINT},
-		LandingCase{"WaitAboveRallyPoint", 200.f, 60.f, 2, {rallyPoint(100.f, 230.f)}, 5.f, 0, NAN, FollowerPeer::WorkItemType::WORK_ITEM_TYPE_LAND_DELAY, NAV_CMD_LOITER_TIME_LIMIT},
 		LandingCase{"LandAtRallyPoint", 200.f, 60.f, 2, {rallyPoint(100.f, 230.f)}, 0.f, 0, NAN, FollowerPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT, NAV_CMD_LAND},
 		LandingCase{"PrecisionLandAtRallyPoint", 200.f, 60.f, 2, {rallyPoint(100.f, 230.f)}, 0.f, 1, NAN, FollowerPeer::WorkItemType::WORK_ITEM_TYPE_PRECISION_LAND, NAV_CMD_LAND},
-		// A mission landing with a heading turns to it above the landing point, here east while the vehicle faces north.
-		LandingCase{"AlignAboveMissionLanding", 50.f, 210.f, 3, {}, 0.f, 0, 1.5f, FollowerPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_TO_LAND, NAV_CMD_WAYPOINT}),
+		LandingCase{"LandAtMissionLanding", 50.f, 210.f, 3, {}, 0.f, 0, NAN, FollowerPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT, NAV_CMD_LAND}),
 	[](const ::testing::TestParamInfo<LandingCase> &param_info)
 {
 	return std::string(param_info.param.test_name);
@@ -1498,12 +1547,11 @@ struct GoalStepCase {
 
 class RtlRouteGoalStepTest : public RtlRouteReturnTest, public ::testing::WithParamInterface<GoalStepCase> {};
 
-// WHY: from the move above the goal on, Return does not replan, but a new or cleared mission makes the planned one
-// invalid. Return finishes the step, reports itself complete, then plans on the new mission (a documented limit).
-// WHAT: a mission upload during the move, the turn or the wait, a mission clear and a fence that makes Mission reject
-// the mission during the wait: the step finishes, Return reports completion once, then flies the new route from
-// above the goal or holds without one.
-TEST_P(RtlRouteGoalStepTest, MissionChangeFinishesTheStepThenReplans)
+// WHY: above the goal Return still follows uploads: a new or cleared mission makes the plan outdated. It replans at once,
+// as on the route, and neither completes Return nor marks the mission finished.
+// WHAT: a mission upload during the move, the turn above a mission landing or the wait, a mission clear and a fence that
+// makes Mission reject the mission during the wait: Return flies the new plan from where the vehicle is, or holds.
+TEST_P(RtlRouteGoalStepTest, MissionChangeAboveTheGoalReplansAtOnce)
 {
 	const GoalStepCase &c = GetParam();
 	setParam("RTL_LAND_DELAY", c.land_delay);
@@ -1545,25 +1593,11 @@ TEST_P(RtlRouteGoalStepTest, MissionChangeFinishesTheStepThenReplans)
 	}
 
 	navigator_test::EventRecorder events;
-	_rtl.run(true);
-	ASSERT_EQ(FollowerPeer::workItem(_rtl.follower()), c.step);
-	ASSERT_EQ(FollowerPeer::missionId(_rtl.follower()), 31u);
 
-	// WHEN: the step ends, the turn once the vehicle faces the landing heading
-	if (PX4_ISFINITE(c.landing_yaw)) {
-		_navigator.get_local_position()->heading = c.landing_yaw;
-	}
-
-	reachStep();
-
-	// THEN: Return reports itself complete
-	ASSERT_TRUE(mode_completed_sub.update());
-	EXPECT_EQ(mode_completed_sub.get().nav_state, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
-	EXPECT_TRUE(_navigator.get_mission_result()->finished);
-
-	// THEN: and in the next cycle flies the new route from above the goal, or holds there
+	// WHEN: RTL runs
 	_rtl.run(true);
 
+	// THEN: Return flies the new route from where the vehicle is, or holds there, without completing anything
 	if (c.holds) {
 		expectHold();
 		EXPECT_TRUE(events.sent(events::ID("rtl_route_unavailable")));
@@ -1575,13 +1609,14 @@ TEST_P(RtlRouteGoalStepTest, MissionChangeFinishesTheStepThenReplans)
 	}
 
 	EXPECT_FALSE(mode_completed_sub.update());
+	EXPECT_FALSE(_navigator.get_mission_result()->finished);
 }
 
 INSTANTIATE_TEST_SUITE_P(
 	RTL,
 	RtlRouteGoalStepTest,
 	::testing::Values(
-		GoalStepCase{"MissionUploadDuringTheMove", 101.f, 215.f, 3, {rallyPoint(100.f, 230.f)}, NAN, 0.f, FollowerPeer::WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND, MissionChange::Upload, {Step::Land, 100.f, 230.f, kHomeAlt, 3, true}, false},
+		GoalStepCase{"MissionUploadDuringTheMove", 101.f, 215.f, 3, {rallyPoint(100.f, 230.f)}, NAN, 0.f, FollowerPeer::WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND, MissionChange::Upload, {Step::MoveToLand, 100.f, 230.f, kRouteAlt, 3, true}, false},
 		// The turn to the heading of a mission landing; the uploaded landing has none.
 		GoalStepCase{"MissionUploadDuringTheTurn", 50.f, 210.f, 3, {}, 1.5f, 0.f, FollowerPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_TO_LAND, MissionChange::Upload, {Step::Land, 0.f, 100.f, kHomeAlt, 4, true}, false},
 		GoalStepCase{"MissionUploadDuringTheWait", 101.f, 215.f, 3, {rallyPoint(100.f, 230.f)}, NAN, 5.f, FollowerPeer::WorkItemType::WORK_ITEM_TYPE_LAND_DELAY, MissionChange::Upload, {Step::Wait, 100.f, 230.f, kHomeAlt + 30.f, 3, false}, false},
@@ -1637,7 +1672,8 @@ TEST_P(RtlRouteGroundTest, IdleOnTheGroundStaysThere)
 	setParam("RTL_LAND_DELAY", 0.f);
 	uORB::SubscriptionData<mode_completed_s> mode_completed_sub{ORB_ID(mode_completed)};
 	(void)mode_completed_sub.update();
-	navigator_test::EventRecorder events;
+	navigator_test::EventRecorder hold_events;
+	navigator_test::EventRecorder refuse_events;
 	mission_s mission{};
 
 	switch (GetParam().idle) {
@@ -1669,7 +1705,8 @@ TEST_P(RtlRouteGroundTest, IdleOnTheGroundStaysThere)
 	ASSERT_EQ(FollowerPeer::missionItem(_rtl.follower()).nav_cmd, NAV_CMD_IDLE);
 	ASSERT_TRUE(mode_completed_sub.update());
 	EXPECT_EQ(mode_completed_sub.get().nav_state, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
-	EXPECT_FALSE(events.sent(events::ID("mission_not_valid_refuse")));
+	EXPECT_FALSE(refuse_events.sent(events::ID("mission_not_valid_refuse")));
+	EXPECT_FALSE(hold_events.sent(events::ID("rtl_route_unavailable")));
 
 	// WHEN: the land detector reports a takeoff, a route becomes available or a new mission arrives, and the retry is due
 	publishVehicle(false);
@@ -1689,7 +1726,7 @@ TEST_P(RtlRouteGroundTest, IdleOnTheGroundStaysThere)
 
 	// THEN: Return stays idle
 	EXPECT_EQ(FollowerPeer::missionItem(_rtl.follower()).nav_cmd, NAV_CMD_IDLE);
-	EXPECT_FALSE(events.sent(events::ID("rtl_route_unavailable")));
+	EXPECT_FALSE(hold_events.sent(events::ID("rtl_route_unavailable")));
 	EXPECT_FALSE(mode_completed_sub.update());
 }
 

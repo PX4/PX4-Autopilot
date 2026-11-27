@@ -1090,10 +1090,10 @@ TEST_F(MissionRoutePlannerTest, StackedTakeoffKeepsInteriorSafePointBranchOff)
 	EXPECT_NEAR(plan.branch_off_position.lon, mission[0].lon, kLatLonToleranceDeg);
 }
 
-// WHY: Return flies the leg from the branch-off point to the rally point level. A rally point on a hill above the
-// route would otherwise be approached below its altitude.
-// WHAT: the branch-off point is at the route altitude, or at the rally point's altitude if that is higher.
-TEST_F(MissionRoutePlannerTest, BranchOffIsNotBelowItsRallyPoint)
+// WHY: Return flies the leg from the branch-off point to the rally point level and waits there. Arriving lower than the
+// arrival height above the rally point, it would reach a rally point on a hill at ground level.
+// WHAT: the branch-off point is at the route altitude, or the arrival height above the rally point if that is higher.
+TEST_F(MissionRoutePlannerTest, BranchOffIsAtLeastTheArrivalHeightAboveItsRallyPoint)
 {
 	// A (0) ------- Q (100) ------- B (200), 50 m above kAlt, with the rally point R 30 m east of Q.
 	const std::vector<mission_item_s> mission{
@@ -1101,18 +1101,20 @@ TEST_F(MissionRoutePlannerTest, BranchOffIsNotBelowItsRallyPoint)
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt + 50.f),
 	};
 
-	for (const float rally_alt : {kAlt, kAlt + 70.f}) {
+	// Far below the route, 10 m below it, above it.
+	for (const float rally_alt : {kAlt, kAlt + 40.f, kAlt + 70.f}) {
 		SCOPED_TRACE(::testing::Message() << "rally point " << rally_alt - kAlt << " m above kAlt");
 		const std::vector<mission_item_s> safe_points{makeSafePointFromOffset(kBaseLat, kBaseLon, 100.f, 30.f, rally_alt)};
 		TestPlanner planner(mission, safe_points);
 		mission_route::RtlRouteRequest request = makeRtlRouteRequest(makePositionFromOffset(kBaseLat, kBaseLon, 20.f, 0.f,
 				kAlt + 50.f), 1);
+		request.safe_point_arrival_height_m = 30.f;
 		mission_route::RtlRoutePlan plan{};
 
 		ASSERT_EQ(planner.planRtlRoute(request, plan), mission_route::FailureReason::kNone);
 		ASSERT_EQ(plan.goal_type, mission_route::GoalType::kSafePoint);
 		EXPECT_FALSE(plan.fly_direct_to_goal);
-		EXPECT_NEAR(plan.branch_off_position.alt, math::max(kAlt + 50.f, rally_alt), 0.01f);
+		EXPECT_NEAR(plan.branch_off_position.alt, math::max(kAlt + 50.f, rally_alt + 30.f), 0.01f);
 	}
 }
 

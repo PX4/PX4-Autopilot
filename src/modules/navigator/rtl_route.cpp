@@ -81,9 +81,9 @@ void RTL::updateRoute(bool evaluation_due)
 	// lifted by hand.
 	const bool on_ground = _navigator->get_land_detected()->landed || follower.isIdle();
 
-	// In the air, an upload replans at once, unless the landing has started, and without a route Return plans at
-	// each evaluation. Example: new rally points while data still loads stop the vehicle until a replan finds a route.
-	const bool replan = had_route && !on_ground && !follower.isLanding() && !follower.plannedOn(mission);
+	// In the air, an upload replans at once, also above the goal, until the final descent; without a route Return
+	// plans at each evaluation. Example: new rally points while data still loads stop the vehicle until a route is found.
+	const bool replan = had_route && !on_ground && !follower.isDescending() && !follower.plannedOn(mission);
 	const bool retry = !had_route && !on_ground && evaluation_due;
 
 	if (!replan && !retry) {
