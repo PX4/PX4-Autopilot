@@ -136,8 +136,18 @@ private:
 	void updateFailureConfig();
 
 	// simulated sensors
-	PX4Accelerometer _px4_accel{1310988}; // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-	PX4Gyroscope     _px4_gyro{1310988};  // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+	static constexpr uint8_t IMU_COUNT_MAX = 3;
+	PX4Accelerometer _px4_accel[IMU_COUNT_MAX] {
+		{1310988}, // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+		{1310996}, // 1310996: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
+		{1311004}, // 1311004: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
+	};
+	PX4Gyroscope _px4_gyro[IMU_COUNT_MAX] {
+		{1310988}, // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+		{1310996}, // 1310996: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
+		{1311004}, // 1311004: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
+	};
+	uint8_t _imu_count{1};
 	PX4Rangefinder   _px4_rangefinder{10092548}; // 10092548: DRV_DIST_DEVTYPE_SIM, BUS: 0, ADDR: 0, TYPE: SIMULATION
 	uORB::Publication<airspeed_s>            _airspeed_pub{ORB_ID(airspeed)};
 	uORB::Publication<ranging_beacon_s>      _ranging_beacon_pub{ORB_ID(ranging_beacon)};
@@ -157,8 +167,6 @@ private:
 	bool _airspeed_blocked{false};
 	bool _distance_sensor_blocked{false};
 	bool _optical_flow_blocked{false};
-	bool _accel_blocked{false};
-	bool _gyro_blocked{false};
 	uint16_t _stuck_motor_mask{0};
 
 	// hard constants
@@ -426,6 +434,7 @@ private:
 		(ParamFloat<px4::params::SIH_F_RPM_MAX>) _param_sih_f_rpm_max,
 		(ParamInt<px4::params::BAT1_SOURCE>) _param_bat1_source,
 		(ParamInt<px4::params::SIH_VEHICLE_TYPE>) _param_sih_vehicle_type,
+		(ParamInt<px4::params::SIH_IMU_COUNT>) _param_sih_imu_count,
 		(ParamFloat<px4::params::SIH_WIND_N>) _param_sih_wind_n,
 		(ParamFloat<px4::params::SIH_WIND_E>) _param_sih_wind_e,
 		(ParamFloat<px4::params::SIH_RNGBC_NOISE>) _param_sih_rngbc_noise
