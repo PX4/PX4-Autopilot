@@ -123,7 +123,7 @@ private:
 	uint32_t _reschedule_time{0};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SYS_USB_AUTO>) _sys_usb_auto,
-		(ParamInt<px4::params::USB_MAV_MODE>) _usb_mav_mode
+		(ParamInt<px4::params::SYS_USB_AUTO>) _param_sys_usb_auto,
+		(ParamInt<px4::params::USB_MAV_MODE>) _param_usb_mav_mode
 	)
 };

@@ -134,11 +134,6 @@ A [Radio Control (RC) system](../getting_started/rc_transmitter_receiver.md) is 
 The RC port is connected to the FMU and you can attach a receiver that uses the protocols `DSM`, `SBUS`, `CSRF`, `GHST`, or other protocol listed in [Radio Control modules](../modules/modules_driver_radio_control.md).
 You will need to enable the protocol by setting the corresponding parameter `RC_xxxx_PRT_CFG`, such as [RC_CRSF_PRT_CFG](../advanced_config/parameter_reference.md#RC_CRSF_PRT_CFG) for a [CRSF receiver](../telemetry/crsf_telemetry.md).
 
-## Підтримувані платформи / Конструкції
-
-Будь-який мультикоптер / літак / наземна платформа / човен, який може керуватися звичайними RC сервоприводами або сервоприводами Futaba S-Bus.
-The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
-
 ## Периферійні пристрої
 
 - [MicoAir Telemetry Radio Modules](https://micoair.com/radio_telemetry/)

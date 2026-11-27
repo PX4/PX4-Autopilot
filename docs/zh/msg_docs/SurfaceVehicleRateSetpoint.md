@@ -1,0 +1,32 @@
+---
+pageClass: is-wide-page
+---
+
+# SurfaceVehicleRateSetpoint (UORB message)
+
+Surface Vehicle Rate Setpoint.
+
+**TOPICS:** surface_vehicle_rate_setpoint
+
+## Fields
+
+| 参数名                                                                                           | 类型        | Unit [Frame] | Range/Enum                                                                       | 描述                      |
+| --------------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------- | ----------------------- |
+| <a id="fld_timestamp"></a>timestamp                                                           | `uint64`  | us                                                               |                                                                                  | Time since system start |
+| <a id="fld_yaw_rate_setpoint"></a>yaw_rate_setpoint | `float32` | rad/s [NED]  | [-inf : inf] | Yaw rate setpoint       |
+
+## Source Message
+
+[Source file (GitHub)](https://github.com/PX4/PX4-Autopilot/blob/main/msg/SurfaceVehicleRateSetpoint.msg)
+
+:::details
+Click here to see original file
+
+```c
+# Surface Vehicle Rate Setpoint
+
+uint64 timestamp           # [us] Time since system start
+float32 yaw_rate_setpoint  # [rad/s] [@range -inf, inf] [@frame NED] Yaw rate setpoint
+```
+
+:::

@@ -67,7 +67,9 @@ endif()
 add_subdirectory(px4_work_queue)
 add_subdirectory(work_queue)
 
-if("${PX4_PLATFORM}" MATCHES "nuttx")
+if(PX4_NUTTX_TREE_DIR)
+	# built for another target's ROMFS (px4io firmware): the editor config belongs to that target
+elseif("${PX4_PLATFORM}" MATCHES "nuttx")
 	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/c_cpp_properties.json.nuttx.in ${PX4_SOURCE_DIR}/.vscode/c_cpp_properties.json @ONLY)
 else()
 	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/c_cpp_properties.json.in ${PX4_SOURCE_DIR}/.vscode/c_cpp_properties.json @ONLY)

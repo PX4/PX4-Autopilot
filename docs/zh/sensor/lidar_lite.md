@@ -163,12 +163,23 @@ The driver detects the hardware version of the connected sensor, and uses this t
 - Other versions: 25 m or 35 m, depending on the detected hardware version
 
 The minimum range is 5 cm.
+The maximum range is defined by [SENS_LL40LS_MAX](#max_range).
 
 ### PWM {#px4_configuration_pwm}
 
 Set [SENS_EN_LL40LS](../advanced_config/parameter_reference.md#SENS_EN_LL40LS) to `1`.
 
 PX4 uses a range of 5 cm to 25 m for all versions of the sensor.
+The maximum range is defined by [SENS_LL40LS_MAX](#max_range).
+
+### Maximum Range {#max_range}
+
+The default maximum range is deliberately below the 40 m datasheet figure, which applies to highly reflective targets.
+Over typical ground, the sensor's usable range is shorter, and readings near the limit become noisy or drop out.
+
+To use a different limit, set [SENS_LL40LS_MAX](../advanced_config/parameter_reference.md#SENS_LL40LS_MAX) (in metres) and reboot.
+A value of `0` (the default) keeps the built-in limit described above.
+Before you raise it, verify the readings over the terrain you will fly over at the new maximum height.
 
 ## Testing {#testing}
 

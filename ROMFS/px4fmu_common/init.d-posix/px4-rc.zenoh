@@ -1,0 +1,17 @@
+#!/bin/sh
+# shellcheck disable=SC2154
+
+# Start the Zenoh client (sourced by rcS when selected)
+if [ -n "$ROS_DOMAIN_ID" ]
+then
+	# Match ZENOH_DOMAIN_ID with ROS_DOMAIN_ID, if defined
+	param set ZENOH_DOMAIN_ID $ROS_DOMAIN_ID
+else
+	param set ZENOH_DOMAIN_ID 0
+fi
+if [ -n "$PX4_ZENOH_LOCATOR" ]
+then
+	# Connect to the Zenoh router at this locator, e.g. tcp/192.168.1.5:7447
+	zenoh config net client "$PX4_ZENOH_LOCATOR"
+fi
+zenoh start

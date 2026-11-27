@@ -198,8 +198,3 @@ To [build PX4](../dev_setup/building_px4.md) for this target:
 ```sh
 make narinfc_h7_default
 ```
-
-## Підтримувані платформи / Конструкції
-
-Будь-який мультикоптер / літак / наземна платформа / човен, який може керуватися звичайними RC сервоприводами або сервоприводами Futaba S-Bus.
-The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).

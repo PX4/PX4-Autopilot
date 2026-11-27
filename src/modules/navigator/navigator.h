@@ -100,6 +100,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_roi.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/mode_completed.h>
 #include <uORB/uORB.h>
 
@@ -329,7 +330,7 @@ public:
 	void geofence_breach_check();
 
 	// Param access
-	int get_loiter_min_alt() const { return _param_min_ltr_alt.get(); }
+	int get_loiter_min_alt() const { return _param_nav_min_ltr_alt.get(); }
 	int get_landing_abort_min_alt() const { return _param_mis_lnd_abrt_alt.get(); }
 	float get_param_mis_takeoff_alt() const { return _param_mis_takeoff_alt.get(); }
 	float get_yaw_timeout() const { return _param_mis_yaw_tmt.get(); }
@@ -339,6 +340,12 @@ public:
 	float get_vtol_back_trans_deceleration() const { return _param_back_trans_dec_mss; }
 
 	bool force_vtol();
+
+	/**
+	 * After a quadchute the next front transition would likely fail too, so navigator does not command one.
+	 * The quadchute stays latched until a front transition is commanded (e.g. by the pilot) or the vehicle reboots.
+	 */
+	bool front_transition_inhibited() const { return _front_transition_inhibited; }
 
 	void acquire_gimbal_control();
 	void release_gimbal_control();
@@ -365,6 +372,7 @@ public:
 	void trigger_hagl_failsafe(uint8_t nav_state);
 
 private:
+	friend class MissionBaseTestNavigator;
 
 	orb_sub_t _local_pos_sub{ORB_SUB_INVALID};
 	orb_sub_t _mission_sub{ORB_SUB_INVALID};
@@ -383,6 +391,7 @@ private:
 	uORB::Subscription _pos_ctrl_landing_status_sub{ORB_ID(position_controller_landing_status)};	/**< position controller landing status subscription */
 	uORB::Subscription _fw_takeoff_status_sub{ORB_ID(fixed_wing_takeoff_status)};	/**< fixed-wing takeoff status subscription */
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};	/**< vehicle commands (onboard and offboard) */
+	uORB::Subscription _vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
 
 	uORB::Publication<geofence_result_s>		_geofence_result_pub{ORB_ID(geofence_result)};
 	uORB::Publication<mission_result_s>		_mission_result_pub{ORB_ID(mission_result)};
@@ -404,6 +413,7 @@ private:
 	vehicle_land_detected_s				_land_detected{};	/**< vehicle land_detected */
 	vehicle_local_position_s			_local_pos{};		/**< local vehicle position */
 	vehicle_status_s				_vstatus{};		/**< vehicle status */
+	bool _front_transition_inhibited{false};
 
 	// Publications
 	geofence_result_s				_geofence_result{};
@@ -418,7 +428,8 @@ private:
 
 	Geofence	_geofence;			/**< class that handles the geofence */
 	hrt_abstime _last_geofence_check{0};
-	bool _geofence_reposition_sent{false};	/**< true if a reposition triplet has been sent for the current breach */
+	bool _geofence_emer_reposition_sent{false};	/**< reposition triplet sent for the current emergency geofence breach */
+	bool _geofence_cont_reposition_sent{false};	/**< reposition triplet sent for the current contingency geofence breach */
 	hrt_abstime _time_loitering_after_gf_breach{0};	/**< latches breach state while loitering, prevents reposition center walking */
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 	GeofenceAvoidancePlanner _geofence_avoidance_planner; /**< Return path planner that routes around fences (visibility graph + Dijkstra) */
@@ -494,7 +505,8 @@ private:
 
 	void publish_distance_sensor_mode_request();
 
-	bool geofence_allows_position(const vehicle_global_position_s &pos);
+	bool geofence_emer_allows_position(const vehicle_global_position_s &pos);
+	bool geofence_cont_allows_position(const vehicle_global_position_s &pos);
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::NAV_LOITER_RAD>)   _param_nav_loiter_rad,	/**< loiter radius for fixedwing */
@@ -504,7 +516,7 @@ private:
 		_param_nav_fw_altl_rad,	/**< acceptance rad for fixedwing alt before landing*/
 		(ParamFloat<px4::params::NAV_MC_ALT_RAD>)   _param_nav_mc_alt_rad,	/**< acceptance rad for multicopter alt */
 		(ParamInt<px4::params::NAV_FORCE_VT>)       _param_nav_force_vt,	/**< acceptance radius for multicopter alt */
-		(ParamFloat<px4::params::NAV_MIN_LTR_ALT>)   _param_min_ltr_alt,	/**< minimum altitude in Loiter mode*/
+		(ParamFloat<px4::params::NAV_MIN_LTR_ALT>)   _param_nav_min_ltr_alt,	/**< minimum altitude in Loiter mode*/
 		(ParamFloat<px4::params::NAV_MIN_GND_DIST>)
 		_param_nav_min_gnd_dist,	/**< minimum distance to ground (Mission and Return)*/
 

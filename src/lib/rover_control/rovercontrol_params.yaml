@@ -148,6 +148,17 @@ parameters:
       increment: 0.01
       decimal: 2
       default: 0.3
+    RO_STICK_MAP:
+      description:
+        short: Stick mapping for the manual modes
+        long: Follows the RC transmitter modes 1-4 with the pitch stick driving forwards/backwards, the roll stick sideways and the yaw stick turning, assuming the RC channels are mapped as for a mode 2 transmitter. Ackermann and differential rovers ignore the sideways assignment. In the tank-style Manual Parking mode of differential and mecanum rovers only the sideways assignment applies.
+      type: enum
+      values:
+        1: 'Mode 1: forward and turn on left stick, sideways on right stick'
+        2: 'Mode 2: turn on left stick, forward and sideways on right stick'
+        3: 'Mode 3: forward and sideways on left stick, turn on right stick'
+        4: 'Mode 4: sideways on left stick, forward and turn on right stick'
+      default: 3
 - group: Rover Velocity Control
   definitions:
     RO_MAX_THR_SPEED:
@@ -263,3 +274,17 @@ parameters:
       max: 100
       increment: 0.01
       decimal: 2
+    RO_WHEEL_RAD:
+      description:
+        short: Wheel radius in meters
+        long: |-
+          Used to convert wheel encoder counts to the distance travelled by each wheel
+          for the MAVLink WHEEL_DISTANCE message:
+          distance = 2 * pi * RO_WHEEL_RAD * encoder_counts / counts_per_rev
+      type: float
+      default: 0.1
+      unit: m
+      min: 0.01
+      max: 10
+      increment: 0.001
+      decimal: 3

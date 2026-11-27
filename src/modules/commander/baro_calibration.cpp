@@ -87,6 +87,10 @@ int do_baro_calibration(orb_advert_t *mavlink_log_pub)
 
 	while (hrt_elapsed_time(&time_start_us) < 3_s) {
 
+		if (calibrate_cancel_check(mavlink_log_pub)) {
+			return PX4_ERROR;
+		}
+
 		for (int instance = 0; instance < MAX_SENSOR_COUNT; instance++) {
 			sensor_baro_s sensor_baro;
 

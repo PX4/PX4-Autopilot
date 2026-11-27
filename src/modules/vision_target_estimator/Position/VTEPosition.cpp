@@ -168,7 +168,7 @@ bool VTEPosition::initEstimator(const AxisEstimatorStates &state_init, const Vec
 	// Get initial variance from params
 	const float state_pos_var = fmaxf(_param_vte_pos_unc_in.get(), kMinVariance);
 	const float state_vel_var = fmaxf(_param_vte_vel_unc_in.get(), kMinVariance);
-	const float state_bias_var = fmaxf(_param_vte_bias_unc_in.get(), kMinVariance);
+	const float state_bias_var = fmaxf(_param_vte_bia_unc_in.get(), kMinVariance);
 
 	EstimatorState state_var_init{};
 	state_var_init(vtest::State::vel_uav) = state_vel_var;
@@ -810,7 +810,7 @@ void VTEPosition::activateBiasEstimate(const Vector3f &position, const Vector3f 
 				       const TargetObs &vision_obs, bool position_from_vision)
 {
 	const float pos_var = fmaxf(_param_vte_pos_unc_in.get(), kMinVariance);
-	const float bias_var = fmaxf(_param_vte_bias_unc_in.get(), kMinVariance);
+	const float bias_var = fmaxf(_param_vte_bia_unc_in.get(), kMinVariance);
 	const hrt_abstime reset_time = math::min(vision_obs.timestamp, _last_predict);
 	const float latency = (_last_predict - reset_time) * kMicrosecondsToSeconds;
 
@@ -971,7 +971,7 @@ bool VTEPosition::processObsVision(TargetObs &obs)
 	quat_att.normalize();
 	const Vector3f vision_rel(report.rel_pos);
 	const Vector3f vision_ned = quat_att.rotateVector(vision_rel);
-	const float min_ev_pos_var = sq(fmaxf(_param_vte_ev_pos_noise.get(), kMinObservationNoise));
+	const float min_ev_pos_var = sq(fmaxf(_param_vte_evp_noise.get(), kMinObservationNoise));
 
 	// Rotate covariance matrix to vc-NED
 	const SquareMatrix<float, vtest::Axis::size> cov_mat = diag(Vector3f(
@@ -1428,22 +1428,22 @@ void VTEPosition::updateParams()
 
 float VTEPosition::getMinGpsVelVar() const
 {
-	return sq(fmaxf(_param_vte_gps_vel_noise.get(), kMinObservationNoise));
+	return sq(fmaxf(_param_vte_gps_v_noise.get(), kMinObservationNoise));
 }
 
 float VTEPosition::getMinGpsPosVar() const
 {
-	return sq(fmaxf(_param_vte_gps_pos_noise.get(), kMinObservationNoise));
+	return sq(fmaxf(_param_vte_gps_p_noise.get(), kMinObservationNoise));
 }
 
 float VTEPosition::getBiasAveragingThreshold() const
 {
-	return fmaxf(_param_vte_bias_avg_thr.get(), 0.f);
+	return fmaxf(_param_vte_bia_avg_thr.get(), 0.f);
 }
 
 hrt_abstime VTEPosition::getBiasAveragingTimeoutUs() const
 {
-	const float seconds = fmaxf(_param_vte_bias_avg_tout.get(), 0.f);
+	const float seconds = fmaxf(_param_vte_bia_avg_tout.get(), 0.f);
 	const float microseconds = fminf(seconds * 1e6f, static_cast<float>(UINT32_MAX));
 	return static_cast<hrt_abstime>(microseconds);
 }

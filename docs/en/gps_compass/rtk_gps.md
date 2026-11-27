@@ -15,6 +15,7 @@ Some RTK GNSS setups can provide yaw/heading information, as an alternative to t
 ## Supported Devices
 
 PX4 supports the [u-blox M8P](https://www.u-blox.com/en/product/neo-m8p-series), [u-blox F9P](https://www.u-blox.com/en/product/zed-f9p-module) and the [Trimble MB-Two](https://oemgnss.trimble.com/en/products/receiver-modules/mb-two) GPS, and products that incorporate them.
+PX4 also supports RTK receivers that use the NMEA protocol, such as the [GlobalSat BD-100K](../gps_compass/rtk_gps_globalsat_bd_100k.md).
 
 The RTK compatible devices below that are expected to work with PX4 (it omits discontined devices).
 The table indicates devices that also output yaw, and that can provide yaw when two on-vehicle units are used.
@@ -32,13 +33,17 @@ It also highlights devices that connect via the CAN bus, and those which support
 | [CUAV C-RTK2](../gps_compass/rtk_gps_cuav_c-rtk2.md)                                                               |         F9P          |    ✓     |            |             [Dual F9P]              |     |
 | [CUAV C-RTK 9Ps GPS](../gps_compass/rtk_gps_cuav_c-rtk-9ps.md)                                                     |         F9P          |  RM3100  |            |             [Dual F9P]              |     |
 | [CUAV C-RTK2 PPK/RTK GNSS](../gps_compass/rtk_gps_cuav_c-rtk.md)                                                   |         F9P          |  RM3100  |            |                                     |  ✓  |
-| [CubePilot Here+ RTK GPS](../gps_compass/rtk_gps_hex_hereplus.md)                                                  |         M8P          | HMC5983  |            |                                     |     |
-| [CubePilot Here3 CAN GNSS GPS (M8N)](https://www.cubepilot.org/#/here/here3)                                       |         M8P          | ICM20948 |     ✓      |                                     |     |
+| [CubePilot Here+ RTK GPS](../gps_compass/rtk_gps_cubepilot_hereplus.md)                                            |         M8P          | HMC5983  |            |                                     |     |
+| [CubePilot Here3][CubePilot Here3]                                                                                 |         M8P          | ICM20948 |     ✓      |                                     |     |
+| [CubePilot Here3+][CubePilot Here3]                                                                                |         M8P          |  RM3100  |     ✓      |                                     |     |
+| [CubePilot Here4][CubePilot Here4]                                                                                 |         F9P          |  RM3100  |     ✓      |                                     |     |
+| [CubePilot HerePro][CubePilot HerePro]                                                                             |         F9P          |    ✓     |     ✓      |                                     |     |
 | [Drotek SIRIUS RTK GNSS ROVER (F9P)](https://store-drotek.com/911-sirius-rtk-gnss-rover-f9p.html)                  |         F9P          |  RM3100  |            |             [Dual F9P]              |     |
 | [DATAGNSS NANO HRTK Receiver](../gps_compass/rtk_gps_datagnss_nano_hrtk.md)                                        |        [D10P]        | IST8310  |            |                  ✘                  |     |
 | [DATAGNSS GEM1305 RTK Receiver](../gps_compass/rtk_gps_gem1305.md)                                                 |       TAU951M        | IST8310  |            |                  ✘                  |     |
 | [Femtones MINI2 Receiver](../gps_compass/rtk_gps_fem_mini2.md)                                                     |     FB672, FB6A0     |    ✓     |            |                                     |     |
 | [Freefly RTK GPS](../gps_compass/rtk_gps_freefly.md)                                                               |         F9P          | IST8310  |            |                                     |     |
+| [GlobalSat BD-100K RTK GNSS](../gps_compass/rtk_gps_globalsat_bd_100k.md)                                          |       AG3335A        | IST8310  |            |                                     |     |
 | [Holybro H-RTK ZED-F9P RTK Rover (DroneCAN variant)](../dronecan/holybro_h_rtk_zed_f9p_gps.md)                     |         F9P          |  RM3100  |     ✓      |             [Dual F9P]              |     |
 | [Holybro H-RTK ZED-F9P RTK Rover](https://holybro.com/collections/h-rtk-gps/products/h-rtk-zed-f9p-rover)          |         F9P          |  RM3100  |            |             [Dual F9P]              |     |
 | [Holybro H-RTK F9P Ultralight](https://holybro.com/products/h-rtk-f9p-ultralight)                                  |         F9P          | IST8310  |            |             [Dual F9P]              |     |
@@ -69,6 +74,9 @@ It also highlights devices that connect via the CAN bus, and those which support
 [Unicore Dual Antenna]: ../gps_compass/rtk_gps_holybro_unicore_um982.md#enable-gps-heading-yaw
 [DATAGNSS GEM1305 RTK]: ../gps_compass/rtk_gps_gem1305.md
 [DroneCAN]: ../dronecan/index.md
+[CubePilot Here3]: https://docs.cubepilot.org/here-3-3+/here-3-manual
+[CubePilot Here4]: ../dronecan/cubepilot_here4.md
+[CubePilot HerePro]: https://docs.cubepilot.org/herepro/herepro-manual
 [GPS Yaw]: #configuring-gps-as-yaw-heading-source
 [mosaic-G5 P3]: https://www.septentrio.com/en/products/gnss-receivers/gnss-receiver-modules/mosaic-G5-P3
 [mosaic-G5 P3H]: https://www.septentrio.com/en/products/gnss-receivers/gnss-receiver-modules/mosaic-G5-P3H
@@ -81,8 +89,9 @@ Notes:
 - Where possible and relevant the part name is used (i.e. ✓ in the GPS column indicates that a GPS module is present but the part is not known).
 - Some RTK modules can only be used in a particular role (base or rover), while others can be used interchangeably.
 - The list may omit some discontinued hardware that is still supported.
-  For example [CubePilot Here+ RTK GPS](../gps_compass/rtk_gps_hex_hereplus.md) is discontinued and may be removed from the list in a future release.
+  For example [CubePilot Here+ RTK GPS](../gps_compass/rtk_gps_cubepilot_hereplus.md) is discontinued and may be removed from the list in a future release.
   Check earlier versions if a discontinued module is not mentioned here.
+- See [CubePilot Here4](../dronecan/cubepilot_here4.md) for the Here4 Base and Here4 Blue variants, and for CubePilot's mandatory Here4 bootloader update.
 
 ## Positioning Setup/Configuration
 

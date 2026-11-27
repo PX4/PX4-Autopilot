@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include <mathlib/math/WhiteGaussianNoise.hpp>
 #include <lib/failure_injection/FailureInjection.hpp>
 #include <lib/perf/perf_counter.h>
 #include <math.h>
@@ -79,30 +80,19 @@ public:
 
 	bool init();
 
-	void updateFailureConfig();
-
 private:
 	void Run() override;
 
-	// generate white Gaussian noise sample with std=1
-	static float generate_wgn();
-
-	// generate white Gaussian noise sample as a 3D vector with specified std
-	matrix::Vector3f noiseGauss3f(float stdx, float stdy, float stdz) { return matrix::Vector3f(generate_wgn() * stdx, generate_wgn() * stdy, generate_wgn() * stdz); }
-
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position_groundtruth)};
-	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position_groundtruth)};
+	uORB::Subscription _vehicle_attitude_groundtruth_sub{ORB_ID(vehicle_attitude_groundtruth)};
+	uORB::Subscription _vehicle_global_position_groundtruth_sub{ORB_ID(vehicle_global_position_groundtruth)};
+	uORB::Subscription _vehicle_local_position_groundtruth_sub{ORB_ID(vehicle_local_position_groundtruth)};
 
 	uORB::PublicationMulti<differential_pressure_s> _differential_pressure_pub{ORB_ID(differential_pressure)};
 
 	failure_injection::Config _failure_config;
 
-	bool _airspeed_disconnected{false};
-	bool _airspeed_stuck{false};
-	hrt_abstime _airspeed_blocked_timestamp{0};
-	float _last_differential_pressure_pa{0.f};
+	failure_injection::AirspeedState _airspeed_failure;
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 };

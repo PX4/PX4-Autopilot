@@ -226,6 +226,9 @@ protected:
 // parameter API backed by g_params; only the accessors ParamPckFile uses, plus the
 // logger behind param.h's SITL type check
 void px4_log_modulename(int, const char *, const char *, ...) {}
+void px4_log_info(const char *, const char *, ...) {}
+void px4_log_warn(const char *, const char *, ...) {}
+void px4_log_error(const char *, const char *, ...) {}
 #undef param_get
 unsigned param_count() { return g_params.size(); }
 unsigned param_count_used() { return used_params().size(); }

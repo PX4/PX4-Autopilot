@@ -72,6 +72,7 @@
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/power_button_state.h>
 #include <uORB/topics/rtl_time_estimate.h>
 #include <uORB/topics/sensor_gnss.h>
@@ -284,6 +285,7 @@ private:
 	bool _mode_switch_mapped{false};
 
 	float _last_manual_throttle{-1.f};
+	manual_control_setpoint_s _last_manual_control_setpoint{};
 	bool _manual_control_lost_prev{false}; ///< previous manual_control_signal_lost state, for edge detection
 
 	bool _arm_tune_played{false};
@@ -320,6 +322,7 @@ private:
 
 	uORB::SubscriptionData<mission_result_s>		_mission_result_sub{ORB_ID(mission_result)};
 	uORB::SubscriptionData<offboard_control_mode_s>		_offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
+	uORB::SubscriptionData<position_setpoint_triplet_s>	_position_setpoint_triplet_sub{ORB_ID(position_setpoint_triplet)};
 
 	// Publications
 	uORB::Publication<actuator_armed_s>			_actuator_armed_pub{ORB_ID(actuator_armed)};
@@ -337,6 +340,8 @@ private:
 	// optional parameters
 	param_t _param_mav_type{PARAM_INVALID};
 	param_t _param_rc_map_fltmode{PARAM_INVALID};
+	param_t _param_ro_stick_map{PARAM_INVALID};
+	param_t _param_ca_airframe{PARAM_INVALID};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::COM_DISARM_LAND>)  _param_com_disarm_land,

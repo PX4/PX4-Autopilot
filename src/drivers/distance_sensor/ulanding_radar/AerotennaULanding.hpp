@@ -50,6 +50,8 @@
 #include <lib/perf/perf_counter.h>
 #include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 #include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/atomic.h>
+#include <px4_platform_common/time.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <lib/perf/perf_counter.h>
@@ -107,11 +109,19 @@ private:
 	void start();
 	void stop();
 
+	/**
+	 * Closes the serial port, must be called from the thread that opened it.
+	 */
+	void close_serial_port();
+
 	PX4Rangefinder _px4_rangefinder;
 
 	char _port[20] {};
 
 	int _file_descriptor{-1};
+
+	px4::atomic_bool _stop_requested{false};
+	px4::atomic_bool _stopped{false};
 
 	uint8_t _buffer[ULANDING_BUFFER_LENGTH] {};
 

@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 650" width="960" height="650" font-family="Arial, Helvetica, sans-serif">
+<rect width="100%" height="100%" fill="#fff"/>
+<rect x="20" y="20" width="920" height="44" rx="4" fill="#eee" stroke="#000" stroke-width="1"/>
+<text x="480" y="46.0" font-size="12" text-anchor="middle">Power: POWER1, POWER2 and USB inputs, power selection, 5 V and 3.3 V supplies</text>
+<line x1="480" y1="64" x2="480" y2="100" stroke="#000" stroke-width="1"/>
+<rect x="400" y="100" width="160" height="446" rx="4" fill="#eee" stroke="#000" stroke-width="1"/>
+<text x="480" y="319.5" font-size="12" text-anchor="middle" font-weight="bold">STM32H753</text>
+<text x="480" y="334.5" font-size="12" text-anchor="middle">Main FMU processor</text>
+<rect x="20" y="106" width="270" height="36" rx="4" fill="#fff" stroke="#000" stroke-width="1"/>
+<text x="155" y="128.0" font-size="12" text-anchor="middle">ICM-45686 IMU</text>
+<line x1="290" y1="124" x2="400" y2="124" stroke="#000" stroke-width="1"/>
+<text x="345" y="120" font-size="10" text-anchor="middle" fill="#333">SPI1</text>
+<rect x="20" y="156" width="270" height="36" rx="4" fill="#fff" stroke="#000" stroke-width="1"/>
+<text x="155" y="178.0" font-size="12" text-anchor="middle">ICM-45686 IMU</text>
+<line x1="290" y1="174" x2="400" y2="174" stroke="#000" stroke-width="1"/>
+<text x="345" y="170" font-size="10" text-anchor="middle" fill="#333">SPI2</text>
+<rect x="20" y="205" width="270" height="36" rx="4" fill="#fff" stroke="#000" stroke-width="1"/>
+<text x="155" y="227.0" font-size="12" text-anchor="middle">BMI088 IMU</text>
+<line x1="290" y1="223" x2="400" y2="223" stroke="#000" stroke-width="1"/>
+<text x="345" y="219" font-size="10" text-anchor="middle" fill="#333">SPI3</text>
+<rect x="20" y="255" width="270" height="36" rx="4" fill="#fff" stroke="#000" stroke-width="1"/>
+<text x="155" y="269.5" font-size="12" text-anchor="middle">BMM350 magnetometer, BMP581 barometer,</text>
+<text x="155" y="284.5" font-size="12" text-anchor="middle">module EEPROM</text>
+<line x1="290" y1="273" x2="400" y2="273" stroke="#000" stroke-width="1"/>
+<text x="345" y="269" font-size="10" text-anchor="middle" fill="#333">I2C4</text>
+<rect x="20" y="305" width="270" height="36" rx="4" fill="#fff" stroke="#000" stroke-width="1"/>
+<text x="155" y="327.0" font-size="12" text-anchor="middle">BMP581 barometer</text>
+<line x1="290" y1="323" x2="400" y2="323" stroke="#000" stroke-width="1"/>
+<text x="345" y="319" font-size="10" text-anchor="middle" fill="#333">I2C2</text>
+<rect x="20" y="354" width="270" height="36" rx="4" fill="#fff" stroke="#000" stroke-width="1"/>
+<text x="155" y="376.0" font-size="12" text-anchor="middle">FM25V02A FRAM</text>
+<line x1="290" y1="372" x2="400" y2="372" stroke="#000" stroke-width="1"/>
+<text x="345" y="368" font-size="10" text-anchor="middle" fill="#333">SPI5</text>
+<rect x="20" y="404" width="270" height="36" rx="4" fill="#fff" stroke="#000" stroke-width="1"/>
+<text x="155" y="426.0" font-size="12" text-anchor="middle">microSD card</text>
+<line x1="290" y1="422" x2="400" y2="422" stroke="#000" stroke-width="1"/>
+<text x="345" y="418" font-size="10" text-anchor="middle" fill="#333">SDMMC2</text>
+<rect x="20" y="453" width="270" height="36" rx="4" fill="#fff" stroke="#000" stroke-width="1"/>
+<text x="155" y="475.0" font-size="12" text-anchor="middle">IMU heater</text>
+<line x1="290" y1="471" x2="400" y2="471" stroke="#000" stroke-width="1"/>
+<text x="345" y="467" font-size="10" text-anchor="middle" fill="#333">GPIO</text>
+<rect x="20" y="503" width="270" height="36" rx="4" fill="#fff" stroke="#000" stroke-width="1"/>
+<text x="155" y="525.0" font-size="12" text-anchor="middle">Baseboard EEPROM</text>
+<line x1="290" y1="521" x2="400" y2="521" stroke="#000" stroke-width="1"/>
+<text x="345" y="517" font-size="10" text-anchor="middle" fill="#333">I2C3</text>
+<rect x="670" y="104" width="270" height="26" rx="4" fill="#fff" stroke="#000" stroke-width="1"/>
+<text x="805" y="121.0" font-size="12" text-anchor="middle">TELEM1</text>
+<line x1="560" y1="117" x2="670" y2="117" stroke="#000" stroke-width="1"/>
+<text x="615" y="113" font-size="10" text-anchor="middle" fill="#333">UART7</text>
+<rect x="670" y="138" width="270" height="26" rx="4" fill="#fff" stroke="#000" stroke-width="1"/>
+<text x="805" y="155.0" font-size="12" text-anchor="middle">TELEM2</text>
+<line x1="560" y1="151" x2="670" y2="151" stroke="#000" stroke-width="1"/>
+<text x="615" y="147" font-size="10" text-anchor="middle" fill="#333">UART5</text>
+<rect x="670" y="172" width="270" height="26" rx="4" fill="#fff" stroke="#000" stroke-width="1"/>
+<text x="805" y="189.0" font-size="12" text-anchor="middle">TELEM3</text>
+<line x1="560" y1="185" x2="670" y2="185" stroke="#000" stroke-width="1"/>
+<text x="615" y="181" font-size="10" text-anchor="middle" fill="#333">USART2</text>
+<rect x="670" y="207" width="270" height="26" rx="4" fill="#fff" stroke="#000" stroke-width="1"/>
+<text x="805" y="224.0" font-size="12" text-anchor="middle">GPS1 (safety switch, buzzer)</text>
+<line x1="560" y1="220" x2="670" y2="220" stroke="#000" stroke-width="1"/>
+<text x="615" y="216" font-size="10" text-anchor="middle" fill="#333">USART1, I2C1</text>
+<rect x="670" y="241" width="270" height="26" rx="4" fill="#fff" stroke="#000" stroke-width="1"/>
+<text x="805" y="258.0" font-size="12" text-anchor="middle">GPS2</text>
+<line x1="560" y1="254" x2="670" y2="254" stroke="#000" stroke-width="1"/>
+<text x="615" y="250" font-size="10" text-anchor="middle" fill="#333">UART8, I2C2</text>
+<rect x="670" y="275" width="270" height="26" rx="4" fill="#fff" stroke="#000" stroke-width="1"/>
+<text x="805" y="292.0" font-size="12" text-anchor="middle">UART4 &amp; I2C, I2C</text>
+<line x1="560" y1="288" x2="670" y2="288" stroke="#000" stroke-width="1"/>
+<text x="615" y="284" font-size="10" text-anchor="middle" fill="#333">UART4, I2C3</text>
+<rect x="670" y="310" width="270" height="26" rx="4" fill="#fff" stroke="#000" stroke-width="1"/>
+<text x="805" y="327.0" font-size="12" text-anchor="middle">CAN1, CAN2</text>
+<line x1="560" y1="323" x2="670" y2="323" stroke="#000" stroke-width="1"/>
+<text x="615" y="319" font-size="10" text-anchor="middle" fill="#333">CAN1, CAN2</text>
+<rect x="670" y="344" width="270" height="26" rx="4" fill="#fff" stroke="#000" stroke-width="1"/>
+<text x="805" y="361.0" font-size="12" text-anchor="middle">LAN8742A PHY, ETHERNET</text>
+<line x1="560" y1="357" x2="670" y2="357" stroke="#000" stroke-width="1"/>
+<text x="615" y="353" font-size="10" text-anchor="middle" fill="#333">RMII</text>
+<rect x="670" y="378" width="270" height="26" rx="4" fill="#fff" stroke="#000" stroke-width="1"/>
+<text x="805" y="395.0" font-size="12" text-anchor="middle">SPI</text>
+<line x1="560" y1="391" x2="670" y2="391" stroke="#000" stroke-width="1"/>
+<text x="615" y="387" font-size="10" text-anchor="middle" fill="#333">SPI6</text>
+<rect x="670" y="412" width="270" height="26" rx="4" fill="#fff" stroke="#000" stroke-width="1"/>
+<text x="805" y="429.0" font-size="12" text-anchor="middle">USB, USB-C</text>
+<line x1="560" y1="425" x2="670" y2="425" stroke="#000" stroke-width="1"/>
+<text x="615" y="421" font-size="10" text-anchor="middle" fill="#333">USB FS</text>
+<rect x="670" y="447" width="270" height="26" rx="4" fill="#fff" stroke="#000" stroke-width="1"/>
+<text x="805" y="464.0" font-size="12" text-anchor="middle">AUX 1-8</text>
+<line x1="560" y1="460" x2="670" y2="460" stroke="#000" stroke-width="1"/>
+<text x="615" y="456" font-size="10" text-anchor="middle" fill="#333">TIM5, TIM4, TIM12</text>
+<rect x="670" y="481" width="270" height="26" rx="4" fill="#fff" stroke="#000" stroke-width="1"/>
+<text x="805" y="498.0" font-size="12" text-anchor="middle">ADIO</text>
+<line x1="560" y1="494" x2="670" y2="494" stroke="#000" stroke-width="1"/>
+<text x="615" y="490" font-size="10" text-anchor="middle" fill="#333">ADC, capture, GPIO</text>
+<rect x="670" y="515" width="270" height="26" rx="4" fill="#fff" stroke="#000" stroke-width="1"/>
+<text x="805" y="532.0" font-size="12" text-anchor="middle">FMU DEBUGGER</text>
+<line x1="560" y1="528" x2="670" y2="528" stroke="#000" stroke-width="1"/>
+<text x="615" y="524" font-size="10" text-anchor="middle" fill="#333">USART3, SWD</text>
+<line x1="480" y1="546" x2="480" y2="586" stroke="#000" stroke-width="1"/>
+<text x="486" y="569" font-size="10" fill="#333">USART6</text>
+<rect x="400" y="586" width="160" height="44" rx="4" fill="#eee" stroke="#000" stroke-width="1"/>
+<text x="480" y="604.5" font-size="12" text-anchor="middle" font-weight="bold">STM32F103</text>
+<text x="480" y="619.5" font-size="12" text-anchor="middle">PX4IO processor</text>
+<rect x="670" y="586" width="270" height="44" rx="4" fill="#fff" stroke="#000" stroke-width="1"/>
+<text x="805" y="612.0" font-size="12" text-anchor="middle">MAIN 1-8, SBUS IN, PPM IN, SBUS OUT</text>
+<line x1="560" y1="608" x2="670" y2="608" stroke="#000" stroke-width="1"/>
+<text x="615" y="604" font-size="10" text-anchor="middle" fill="#333">PWM, RC</text>
+<rect x="20" y="586" width="270" height="44" rx="4" fill="#fff" stroke="#000" stroke-width="1"/>
+<text x="155" y="612.0" font-size="12" text-anchor="middle">IO DEBUGGER</text>
+<line x1="290" y1="608" x2="400" y2="608" stroke="#000" stroke-width="1"/>
+<text x="345" y="604" font-size="10" text-anchor="middle" fill="#333">SWD</text>
+</svg>

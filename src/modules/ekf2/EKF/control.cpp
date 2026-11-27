@@ -110,7 +110,7 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	controlOpticalFlowFusion(imu_delayed);
+	_flow_aiding.update(*this, imu_delayed);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_GNSS)
@@ -174,32 +174,7 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 
 	const bool yaw_aiding = _control_status.flags.mag_hdg || _control_status.flags.mag_3D
 				|| _control_status.flags.ev_yaw || _control_status.flags.gnss_yaw;
-	_control_status.flags.heading_observable = isNorthEastAidingActive() || yaw_aiding;
-
-	updateYawManualValidity();
-}
-
-void Ekf::updateYawManualValidity()
-{
-	const bool heading_observation_fusing = !isTimedOut(_time_last_heading_fuse, _params.no_aid_timeout_max);
-
-	if (!_control_status.flags.yaw_manual || !heading_observation_fusing) {
-		_time_heading_fusion_start = 0;
-		return;
-	}
-
-	if (_time_heading_fusion_start == 0) {
-		_time_heading_fusion_start = _time_delayed_us;
-		return;
-	}
-
-	// A manually set heading is protected from automatic heading resets, but only until the
-	// heading aiding sources have had the opportunity to drive the heading themselves. After
-	// that the estimate is aiding derived and the manual value is stale, so keeping the
-	// protection would only block recovery resets.
-	static constexpr uint64_t kHeadingFusionTimeToClearYawManual = 30'000'000;
-
-	if ((_time_delayed_us - _time_heading_fusion_start) > kHeadingFusionTimeToClearYawManual) {
-		_control_status.flags.yaw_manual = false;
-	}
+	// North/East aiding only constrains the heading when the vehicle accelerates horizontally, never at rest
+	const bool ne_aiding_heading = isNorthEastAidingActive() && !_control_status.flags.vehicle_at_rest;
+	_control_status.flags.heading_observable = ne_aiding_heading || yaw_aiding;
 }

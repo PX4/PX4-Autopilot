@@ -45,6 +45,7 @@
 #include "mission.h"
 #include "mission_base.h"
 #include "navigator.h"
+#include "vtol_takeoff.h"
 #include "support/geofence_test_helpers.h"
 #include "support/mission_route_cache_test_peer.h"
 #include "support/navigator_dataman_test.h"
@@ -59,8 +60,10 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mavlink_log.h>
+#include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 
 class MissionBaseTestPeer : public MissionBase
 {
@@ -206,6 +209,7 @@ class MissionBaseTestNavigator : public Navigator
 {
 public:
 	using Navigator::updateParams;
+	void setFrontTransitionInhibited(bool inhibited) { _front_transition_inhibited = inhibited; }
 };
 
 class MissionBaseFeasibilityTest : public NavigatorDatamanTestBase
@@ -651,6 +655,161 @@ INSTANTIATE_TEST_SUITE_P(ReplacementSetpoints, MissionReplacementFeasibilityTest
 	return test_info.param.name;
 });
 
+// WHY: After a quadchute the next front transition would likely fail too, and its command would clear the quadchute.
+// WHAT: With the quadchute latched (true), navigator neither aligns for nor commands a front transition and goes on
+// in multicopter mode. Without it (false), the same steps command the transition.
+class QuadchuteFrontTransitionTest : public MissionBaseFeasibilityTest, public ::testing::WithParamInterface<bool>
+{
+protected:
+	void SetUp() override
+	{
+		MissionBaseFeasibilityTest::SetUp();
+
+		// a VTOL hovering above home at mission altitude, facing north
+		_navigator.get_vstatus()->is_vtol = true;
+		_status_pub.publish(*_navigator.get_vstatus());
+		_navigator.get_global_position()->timestamp = hrt_absolute_time(); // VTOL Takeoff needs a recent position
+		_navigator.get_global_position()->alt = kAlt;
+		_global_position_pub.publish(*_navigator.get_global_position());
+		_navigator.get_land_detected()->landed = false;
+		_land_detected_pub.publish(*_navigator.get_land_detected());
+		_navigator.get_local_position()->heading = 0.f;
+		_navigator.get_local_position()->heading_good_for_control = true;
+
+		_navigator.setFrontTransitionInhibited(GetParam());
+		transitionCommanded(); // drop commands of earlier tests
+	}
+
+	void TearDown() override
+	{
+		_navigator.get_land_detected()->landed = true;
+		_land_detected_pub.publish(*_navigator.get_land_detected());
+		MissionBaseFeasibilityTest::TearDown();
+	}
+
+	static mission_item_s waypointNorth(float north_m)
+	{
+		mission_item_s item = makePositionItem(kBaseLat, kBaseLon, kAlt);
+		add_vector_to_global_position(kBaseLat, kBaseLon, north_m, 0.f, &item.lat, &item.lon);
+		item.yaw = NAN;
+		return item;
+	}
+
+	void uploadMission(std::vector<mission_item_s> items)
+	{
+		for (size_t index = 0; index < items.size(); ++index) {
+			items[index].autocontinue = true;
+			ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_WAYPOINTS_OFFBOARD_0, index,
+							      reinterpret_cast<uint8_t *>(&items[index]), sizeof(mission_item_s)));
+		}
+
+		mission_s mission{};
+		mission.timestamp = hrt_absolute_time();
+		mission.mission_id = 2;
+		mission.geofence_id = 1; // the fence of MissionBaseFeasibilityTest
+		mission.mission_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+		mission.count = items.size();
+		_mission_pub.publish(mission);
+	}
+
+	bool transitionCommanded()
+	{
+		bool commanded = false;
+		vehicle_command_s vehicle_command{};
+
+		while (_vehicle_command_sub.update(&vehicle_command)) {
+			commanded |= vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION
+				     && static_cast<int>(vehicle_command.param1) == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+		}
+
+		return commanded;
+	}
+
+	uORB::Publication<vehicle_global_position_s> _global_position_pub{ORB_ID(vehicle_global_position)};
+	uORB::Publication<vehicle_land_detected_s> _land_detected_pub{ORB_ID(vehicle_land_detected)};
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
+};
+
+TEST_P(QuadchuteFrontTransitionTest, MissionSkipsFrontTransitionItem)
+{
+	// close to home, so that the loiter circle of the last waypoint stays inside the 100 m fence
+	const mission_item_s next_waypoint = waypointNorth(15.f);
+	uploadMission({waypointNorth(0.f), makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW), next_waypoint});
+	Mission mission{&_navigator};
+	mission.run(false);
+	mission.run(true);
+
+	mission.run(true); // on the first waypoint, the transition item comes next
+	const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
+	EXPECT_EQ(PX4_ISFINITE(current.yaw), !GetParam()); // the alignment towards the next waypoint
+
+	mission.run(true);
+	mission.run(true);
+	EXPECT_EQ(transitionCommanded(), !GetParam());
+
+	if (!GetParam()) {
+		_navigator.setFrontTransitionInhibited(true); // during the commanded transition
+		mission.run(true);
+	}
+
+	EXPECT_DOUBLE_EQ(current.lat, next_waypoint.lat); // on as a multicopter
+}
+
+TEST_P(QuadchuteFrontTransitionTest, MissionVtolTakeoffInTheAirSkipsTransition)
+{
+	mission_item_s vtol_takeoff = waypointNorth(10.f);
+	vtol_takeoff.nav_cmd = NAV_CMD_VTOL_TAKEOFF;
+	uploadMission({vtol_takeoff, waypointNorth(15.f)});
+	Mission mission{&_navigator};
+	mission.run(false);
+	mission.run(true);
+
+	mission.run(true); // already at the takeoff altitude
+	const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
+
+	if (GetParam()) {
+		// on to the takeoff waypoint as a multicopter
+		EXPECT_EQ(current.type, position_setpoint_s::SETPOINT_TYPE_POSITION);
+		EXPECT_DOUBLE_EQ(current.lat, vtol_takeoff.lat);
+
+	} else {
+		EXPECT_DOUBLE_EQ(current.lat, kBaseLat); // aligns in place towards the takeoff waypoint
+	}
+
+	mission.run(true);
+	EXPECT_EQ(transitionCommanded(), !GetParam());
+}
+
+TEST_P(QuadchuteFrontTransitionTest, VtolTakeoffSkipsTransition)
+{
+	const mission_item_s loiter = waypointNorth(200.f);
+	VtolTakeoff takeoff{&_navigator};
+	takeoff.setTransitionAltitudeAbsolute(kAlt);
+	takeoff.setTransitionDirection(GetParam() ? 90.f : 0.f); // after a quad-chute no alignment holds it back
+	takeoff.setLoiterLocation(matrix::Vector2d(loiter.lat, loiter.lon));
+	takeoff.setLoiterHeight(20.f);
+	takeoff.on_activation();
+
+	for (int cycle = 0; cycle < 4; ++cycle) {
+		takeoff.on_active();
+	}
+
+	EXPECT_EQ(transitionCommanded(), !GetParam());
+
+	if (GetParam()) {
+		// on to its loiter as a multicopter
+		const position_setpoint_s &current = _navigator.get_position_setpoint_triplet()->current;
+		EXPECT_EQ(current.type, position_setpoint_s::SETPOINT_TYPE_LOITER);
+		EXPECT_DOUBLE_EQ(current.lat, loiter.lat);
+	}
+}
+
+INSTANTIATE_TEST_SUITE_P(Quadchute, QuadchuteFrontTransitionTest, ::testing::Bool(),
+			 [](const ::testing::TestParamInfo<bool> &test_info)
+{
+	return test_info.param ? "AfterQuadchute" : "Nominal";
+});
+
 enum class MissionFeasibilityInput { Mission, Geofence, Home };
 
 struct ChangedMissionInput {
@@ -725,6 +884,159 @@ INSTANTIATE_TEST_SUITE_P(ChangedInputs, MissionBaseChangedInputTest, ::testing::
 	return test_info.param.name;
 });
 
+// A mission checked on the ground while disarmed, and the Home updates Commander makes around takeoff
+class MissionHomeUpdateTest : public MissionBaseFeasibilityTest
+{
+protected:
+	void SetUp() override
+	{
+		MissionBaseFeasibilityTest::SetUp();
+		_global_position_pub.publish(*_navigator.get_global_position());
+		setLanded(true);
+		_mission.run(false);
+		ASSERT_TRUE(_navigator.get_mission_result()->valid);
+	}
+
+	void TearDown() override
+	{
+		// later cases read these topics too
+		publishStatus(vehicle_status_s::ARMING_STATE_DISARMED, 0);
+		setLanded(true);
+		MissionBaseFeasibilityTest::TearDown();
+	}
+
+	void publishStatus(uint8_t arming_state, hrt_abstime takeoff_time)
+	{
+		vehicle_status_s *status = _navigator.get_vstatus();
+		status->timestamp = hrt_absolute_time();
+		status->arming_state = arming_state;
+		status->takeoff_time = takeoff_time;
+		_status_pub.publish(*status);
+	}
+
+	void setLanded(bool landed)
+	{
+		vehicle_land_detected_s *land_detected = _navigator.get_land_detected();
+		land_detected->timestamp = hrt_absolute_time();
+		land_detected->landed = landed;
+		_land_detected_pub.publish(*land_detected);
+	}
+
+	// Navigator copies Home before it runs the modes
+	void moveHome(float alt_change)
+	{
+		home_position_s *home = _navigator.get_home_position();
+		home->timestamp = hrt_absolute_time();
+		home->alt += alt_change;
+		++home->update_count;
+		_home_pub.publish(*home);
+	}
+
+	bool checkedWithCurrentHome()
+	{
+		return _navigator.get_mission_result()->home_position_counter == _navigator.get_home_position()->update_count;
+	}
+
+	Mission _mission{&_navigator};
+	uORB::Publication<vehicle_global_position_s> _global_position_pub{ORB_ID(vehicle_global_position)};
+	uORB::Publication<vehicle_land_detected_s> _land_detected_pub{ORB_ID(vehicle_land_detected)};
+};
+
+// WHY: Navigator copies Home at the start of its cycle and Mission reads vehicle_status later, so Mission can see
+// the armed state one cycle before the arming Home.
+// WHAT: the recheck runs once that Home arrives, not only when the armed state changes.
+TEST_F(MissionHomeUpdateTest, MissionIsCheckedOnceTheArmingHomeArrives)
+{
+	// GIVEN: armed on the ground, one cycle before the arming Home
+	publishStatus(vehicle_status_s::ARMING_STATE_ARMED, 0);
+	_mission.run(false);
+
+	// WHEN: the arming Home arrives
+	moveHome(0.f);
+	_mission.run(false);
+
+	// THEN: Mission rechecks with it
+	EXPECT_TRUE(checkedWithCurrentHome());
+	EXPECT_TRUE(_navigator.get_mission_result()->valid);
+}
+
+// WHY: DO_SET_HOME can move Home while the vehicle is armed in Mission on the ground, before it takes off.
+// WHAT: the active Mission rechecks with the new Home and ends a mission it now rejects.
+TEST_F(MissionHomeUpdateTest, SetHomeBeforeTakeoffRechecksTheActiveMission)
+{
+	// the waypoint is 100 m above Home, below a 120 m limit
+	const float maximum_altitude = 120.f;
+	ASSERT_EQ(param_set(param_find("GF_MAX_VER_DIST"), &maximum_altitude), PX4_OK);
+	_navigator.updateParams();
+
+	// GIVEN: armed in Mission on the ground
+	publishStatus(vehicle_status_s::ARMING_STATE_ARMED, 0);
+	_mission.run(true);
+	ASSERT_TRUE(_navigator.get_mission_result()->valid);
+	ASSERT_FALSE(_navigator.get_mission_result()->finished);
+
+	// WHEN: DO_SET_HOME moves Home 30 m down
+	moveHome(-30.f);
+	_mission.run(true);
+
+	// THEN: Mission rechecks, rejects the mission and ends it
+	EXPECT_TRUE(checkedWithCurrentHome());
+	EXPECT_FALSE(_navigator.get_mission_result()->valid);
+	EXPECT_TRUE(_navigator.get_mission_result()->finished);
+}
+
+// WHY: a recheck of the active Mission reloads its items, so it must run once per Home update, not every cycle.
+// WHAT: after the recheck, further cycles on the ground keep the current item.
+TEST_F(MissionHomeUpdateTest, MissionIsRecheckedOncePerHomeUpdate)
+{
+	// GIVEN: armed in Mission on the ground, rechecked after a Home update
+	publishStatus(vehicle_status_s::ARMING_STATE_ARMED, 0);
+	_mission.run(true);
+	moveHome(1.f);
+	_mission.run(true);
+	ASSERT_TRUE(checkedWithCurrentHome());
+	const hrt_abstime setpoint_timestamp = _navigator.get_position_setpoint_triplet()->current.timestamp;
+
+	// WHEN: Mission keeps running without another Home update
+	px4_usleep(2000);
+	_mission.run(true);
+	_mission.run(true);
+
+	// THEN: it does not reload and restart the current item
+	EXPECT_EQ(_navigator.get_position_setpoint_triplet()->current.timestamp, setpoint_timestamp);
+}
+
+// WHY: in flight a recheck with the new Home can reject the mission being flown, and Commander would then fail
+// over out of Mission.
+// WHAT: Home updates after takeoff keep the verdict, also before vehicle_status carries the takeoff time and after
+// a landing.
+TEST_F(MissionHomeUpdateTest, HomeUpdatesAfterTakeoffKeepTheVerdict)
+{
+	// GIVEN: armed on the ground
+	publishStatus(vehicle_status_s::ARMING_STATE_ARMED, 0);
+	_mission.run(false);
+
+	// WHEN: the takeoff Home arrives before vehicle_status carries the takeoff time
+	setLanded(false);
+	moveHome(0.f);
+	_mission.run(false);
+	EXPECT_FALSE(checkedWithCurrentHome());
+
+	// WHEN: Mission flies and a GNSS altitude correction moves Home
+	publishStatus(vehicle_status_s::ARMING_STATE_ARMED, hrt_absolute_time());
+	_mission.run(true);
+	moveHome(1.5f);
+	_mission.run(true);
+	EXPECT_FALSE(checkedWithCurrentHome());
+
+	// WHEN: Home moves after a landing, before disarming
+	setLanded(true);
+	moveHome(0.f);
+	_mission.run(true);
+	EXPECT_FALSE(checkedWithCurrentHome());
+	EXPECT_TRUE(_navigator.get_mission_result()->valid);
+}
+
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
 class MissionBaseRouteCacheSyncTest : public NavigatorDatamanTestBase
 {
@@ -732,12 +1044,6 @@ protected:
 	void SetUp() override
 	{
 		ASSERT_TRUE(_dataman_client.clearSync(DM_KEY_WAYPOINTS_OFFBOARD_0));
-		_navigator.get_mission_route_cache().invalidate();
-	}
-
-	void TearDown() override
-	{
-		_navigator.get_mission_route_cache().invalidate();
 	}
 
 	DatamanClient _dataman_client{};

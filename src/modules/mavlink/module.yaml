@@ -1,4 +1,6 @@
-__max_num_config_instances: &max_num_config_instances 3
+__max_num_config_instances: &max_num_config_instances
+    kconfig: MAVLINK_NUM_CONFIG_INSTANCES
+    default: 3
 
 module_name: MAVLink
 serial_config:
@@ -48,6 +50,7 @@ serial_config:
         # 0: Telem1 Port (Telemetry Link)
         # 1: Telem2 Port (Companion Link). Disabled by default to reduce RAM usage
         # 2: Board-specific / no fixed function or port
+        # 3+: Optional (CONFIG_MAVLINK_NUM_CONFIG_INSTANCES), defaults as instance 2
         default: [TEL1, "", ""]
       num_instances: *max_num_config_instances
       supports_networking: true
@@ -61,6 +64,10 @@ parameters:
                 long: |
                     The MAVLink Mode defines the set of streamed messages (for example the
                     vehicle's attitude) and their sending rates.
+
+                    Use ADS-B/Traffic for a traffic receiver such as an ADS-B or FLARM
+                    device. With message signing active, unsigned ADSB_VEHICLE and
+                    COLLISION messages are only accepted on links in this mode.
 
             type: enum
             values:
@@ -76,7 +83,7 @@ parameters:
                 #9: External Vision Minimal # hidden
                 10: Gimbal
                 11: Onboard Low Bandwidth
-                12: uAvionix
+                12: ADS-B/Traffic (uAvionix)
                 13: Low Bandwidth
             reboot_required: true
             num_instances: *max_num_config_instances
@@ -249,7 +256,7 @@ parameters:
                 #9: External Vision Minimal
                 #10: Gimbal
                 11: Onboard Low Bandwidth
-                #12: uAvionix
+                #12: ADS-B/Traffic (uAvionix)
                 13: Low Bandwidth
                 # We shadow the modes that can block the FMU to SOM connection
             reboot_required: true

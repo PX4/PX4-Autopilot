@@ -35,11 +35,13 @@
 
 using namespace time_literals;
 
-DifferentialPosControl::DifferentialPosControl(ModuleParams *parent) : ModuleParams(parent)
+DifferentialPosControl::DifferentialPosControl(ModuleParams *parent) :
+	ModuleParams(parent),
+	RoverControllerWorkItem("rover_differential_pos_control", ORB_ID(vehicle_local_position))
 {
 	_pure_pursuit_status_pub.advertise();
-	_rover_speed_setpoint_pub.advertise();
-	_rover_attitude_setpoint_pub.advertise();
+	_surface_vehicle_speed_setpoint_pub.advertise();
+	_surface_vehicle_attitude_setpoint_pub.advertise();
 
 	updateParams();
 }
@@ -70,9 +72,9 @@ void DifferentialPosControl::updatePosControl()
 		if (course_control || distance_to_target > _param_nav_acc_rad.get() || _arrival_speed > FLT_EPSILON) {
 			float speed_setpoint{_cruising_speed};
 
-			if (!course_control && _param_ro_decel_limit.get() > FLT_EPSILON && _param_ro_jerk_limit.get() > FLT_EPSILON) {
-				speed_setpoint = math::min(math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_limit.get(),
-							   _param_ro_decel_limit.get(), distance_to_target, fabsf(_arrival_speed)), _cruising_speed);
+			if (!course_control && _param_ro_decel_lim.get() > FLT_EPSILON && _param_ro_jerk_lim.get() > FLT_EPSILON) {
+				speed_setpoint = math::min(math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_lim.get(),
+							   _param_ro_decel_lim.get(), distance_to_target, fabsf(_arrival_speed)), _cruising_speed);
 			}
 
 			float yaw_setpoint{NAN};
@@ -90,6 +92,11 @@ void DifferentialPosControl::updatePosControl()
 						_param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), _target_waypoint_ned, _start_ned,
 						_curr_pos_ned, fabsf(speed_setpoint));
 				_pure_pursuit_status_pub.publish(pure_pursuit_status);
+			}
+
+			// Driving in reverse, the rover points away from its direction of travel
+			if (speed_setpoint < -FLT_EPSILON) {
+				yaw_setpoint = matrix::wrap_pi(yaw_setpoint + M_PI_F);
 			}
 
 			const float heading_error = matrix::wrap_pi(yaw_setpoint - _vehicle_yaw);
@@ -112,25 +119,24 @@ void DifferentialPosControl::updatePosControl()
 				speed_setpoint = math::constrain(speed_setpoint, -max_speed, max_speed);
 			}
 
-			rover_speed_setpoint_s rover_speed_setpoint{};
-			rover_speed_setpoint.timestamp = timestamp;
-			rover_speed_setpoint.speed_body_x = speed_setpoint;
-			_rover_speed_setpoint_pub.publish(rover_speed_setpoint);
-			rover_attitude_setpoint_s rover_attitude_setpoint{};
-			rover_attitude_setpoint.timestamp = timestamp;
-			rover_attitude_setpoint.yaw_setpoint = speed_setpoint > -FLT_EPSILON ? yaw_setpoint : matrix::wrap_pi(
-					yaw_setpoint + M_PI_F);
-			_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
+			surface_vehicle_speed_setpoint_s surface_vehicle_speed_setpoint{};
+			surface_vehicle_speed_setpoint.timestamp = timestamp;
+			surface_vehicle_speed_setpoint.x = speed_setpoint;
+			_surface_vehicle_speed_setpoint_pub.publish(surface_vehicle_speed_setpoint);
+			surface_vehicle_attitude_setpoint_s surface_vehicle_attitude_setpoint{};
+			surface_vehicle_attitude_setpoint.timestamp = timestamp;
+			surface_vehicle_attitude_setpoint.yaw_setpoint = yaw_setpoint;
+			_surface_vehicle_attitude_setpoint_pub.publish(surface_vehicle_attitude_setpoint);
 
 		}  else {
-			rover_speed_setpoint_s rover_speed_setpoint{};
-			rover_speed_setpoint.timestamp = timestamp;
-			rover_speed_setpoint.speed_body_x = 0.f;
-			_rover_speed_setpoint_pub.publish(rover_speed_setpoint);
-			rover_attitude_setpoint_s rover_attitude_setpoint{};
-			rover_attitude_setpoint.timestamp = timestamp;
-			rover_attitude_setpoint.yaw_setpoint = _vehicle_yaw;
-			_rover_attitude_setpoint_pub.publish(rover_attitude_setpoint);
+			surface_vehicle_speed_setpoint_s surface_vehicle_speed_setpoint{};
+			surface_vehicle_speed_setpoint.timestamp = timestamp;
+			surface_vehicle_speed_setpoint.x = 0.f;
+			_surface_vehicle_speed_setpoint_pub.publish(surface_vehicle_speed_setpoint);
+			surface_vehicle_attitude_setpoint_s surface_vehicle_attitude_setpoint{};
+			surface_vehicle_attitude_setpoint.timestamp = timestamp;
+			surface_vehicle_attitude_setpoint.yaw_setpoint = _vehicle_yaw;
+			_surface_vehicle_attitude_setpoint_pub.publish(surface_vehicle_attitude_setpoint);
 
 			if (!_stopped && fabsf(_vehicle_speed) < FLT_EPSILON) {
 				_stopped = true;
@@ -169,15 +175,15 @@ void DifferentialPosControl::updateSubscriptions()
 		_vehicle_speed = velocity_2d.norm() > _param_ro_speed_th.get() ? sign(velocity_2d(0)) * velocity_2d.norm() : 0.f;
 	}
 
-	if (_rover_position_setpoint_sub.updated()) {
-		rover_position_setpoint_s rover_position_setpoint;
-		_rover_position_setpoint_sub.copy(&rover_position_setpoint);
-		_start_ned = Vector2f(rover_position_setpoint.start_ned[0], rover_position_setpoint.start_ned[1]);
+	if (_surface_vehicle_position_setpoint_sub.updated()) {
+		surface_vehicle_position_setpoint_s surface_vehicle_position_setpoint;
+		_surface_vehicle_position_setpoint_sub.copy(&surface_vehicle_position_setpoint);
+		_start_ned = Vector2f(surface_vehicle_position_setpoint.start_ned[0], surface_vehicle_position_setpoint.start_ned[1]);
 		_start_ned = _start_ned.isAllFinite() ? _start_ned : _curr_pos_ned;
-		_arrival_speed = PX4_ISFINITE(rover_position_setpoint.arrival_speed) ? rover_position_setpoint.arrival_speed : 0.f;
-		_cruising_speed = PX4_ISFINITE(rover_position_setpoint.cruising_speed) ? rover_position_setpoint.cruising_speed :
-				  _param_ro_speed_limit.get();
-		_target_waypoint_ned = Vector2f(rover_position_setpoint.target_ned[0], rover_position_setpoint.target_ned[1]);
+		_arrival_speed = PX4_ISFINITE(surface_vehicle_position_setpoint.arrival_speed) ? surface_vehicle_position_setpoint.arrival_speed : 0.f;
+		_cruising_speed = PX4_ISFINITE(surface_vehicle_position_setpoint.cruising_speed) ? surface_vehicle_position_setpoint.cruising_speed :
+				  _param_ro_speed_lim.get();
+		_target_waypoint_ned = Vector2f(surface_vehicle_position_setpoint.target_ned[0], surface_vehicle_position_setpoint.target_ned[1]);
 		_course = NAN;
 		_stopped = false;
 	}
@@ -188,7 +194,7 @@ void DifferentialPosControl::updateSubscriptions()
 		_start_ned = Vector2f(NAN, NAN);
 		_arrival_speed = 0.f;
 		_cruising_speed = PX4_ISFINITE(surface_vehicle_course_setpoint.speed) ?
-				  surface_vehicle_course_setpoint.speed : _param_ro_speed_limit.get();
+				  surface_vehicle_course_setpoint.speed : _param_ro_speed_lim.get();
 		_target_waypoint_ned = Vector2f(NAN, NAN);
 		_course = surface_vehicle_course_setpoint.course;
 		_stopped = false;
@@ -199,7 +205,7 @@ bool DifferentialPosControl::runSanityChecks()
 {
 	bool ret = true;
 
-	if (_param_ro_speed_limit.get() < FLT_EPSILON) {
+	if (_param_ro_speed_lim.get() < FLT_EPSILON) {
 		ret = false;
 	}
 

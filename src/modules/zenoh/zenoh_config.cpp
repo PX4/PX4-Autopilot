@@ -62,7 +62,7 @@ Zenoh_Config::Zenoh_Config()
 {
 	bool correct_config = true;
 	DIR *dir = opendir(ZENOH_ROOT_PATH);
-	fp_mapping = NULL;
+	fp_mapping = nullptr;
 
 	if (dir) {
 		/* Directory exists. */
@@ -90,7 +90,7 @@ Zenoh_Config::Zenoh_Config()
 
 Zenoh_Config::~Zenoh_Config()
 {
-	if (fp_mapping != NULL) {
+	if (fp_mapping != nullptr) {
 		fclose(fp_mapping);
 	}
 }
@@ -120,7 +120,7 @@ int Zenoh_Config::AddPubSub(char *topic, char *datatype, int instance_no, const 
 	for (size_t i = 0; i < orb_topics_count(); i++) {
 		const struct orb_metadata *meta = get_orb_meta((ORB_ID)i);
 
-		if (meta != NULL &&
+		if (meta != nullptr &&
 		    strcmp(meta->o_name, datatype) == 0) {
 			FILE *fp = fopen(filename, "a");
 
@@ -232,7 +232,7 @@ int Zenoh_Config::SetNetworkConfig(char *mode, char *locator)
 	FILE *fp = fopen(ZENOH_NET_CONFIG_PATH, "w");
 
 	if (fp) {
-		if (locator == 0) {
+		if (locator == nullptr) {
 			fprintf(fp, "%s\n", mode);
 
 		} else {
@@ -265,7 +265,7 @@ int Zenoh_Config::cli(int argc, char *argv[])
 
 	} else if (argc == 3) {
 		if (strcmp(argv[1], "net") == 0) {
-			SetNetworkConfig(argv[2], 0);
+			SetNetworkConfig(argv[2], nullptr);
 
 		} else if (strcmp(argv[1], "delete") == 0) {
 			printf("The name of the resource to be deleted needs to be specified.\n");
@@ -427,7 +427,7 @@ int Zenoh_Config::parse_csv_line(char *line, const char **fields, int max_fields
 
 		fields[field_count] = token;
 		field_count++;
-		token = strtok(NULL, ";\n\r");
+		token = strtok(nullptr, ";\n\r");
 	}
 
 	return field_count;
@@ -512,10 +512,10 @@ int Zenoh_Config::getLineCount(const char *filename)
 
 int Zenoh_Config::closePubSubMapping()
 {
-	if (fp_mapping != NULL) {
+	if (fp_mapping != nullptr) {
 		//Close the file
 		fclose(fp_mapping);
-		fp_mapping = NULL;
+		fp_mapping = nullptr;
 		return 0;
 	}
 
@@ -647,12 +647,12 @@ int Zenoh_Config::getPubSubMapping(char *topic, char *type, int *instance, const
 
 	char buffer[MAX_LINE_SIZE];
 
-	if (fp_mapping == NULL) {
+	if (fp_mapping == nullptr) {
 		fp_mapping = fopen(filename, "r");
 	}
 
 	if (fp_mapping) {
-		while (fgets(buffer, MAX_LINE_SIZE, fp_mapping) != NULL) {
+		while (fgets(buffer, MAX_LINE_SIZE, fp_mapping) != nullptr) {
 
 			if (buffer[0] != '\n') {
 #ifdef CONFIG_ZENOH_PUB_OPTION_OVERRIDE

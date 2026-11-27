@@ -65,8 +65,8 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 		}
 
 	} else {
-		_failure_detector_status.flags.roll = false;
-		_failure_detector_status.flags.pitch = false;
+		_failure_detector_status.flags.tilt = false;
+		_tilt_failure_hysteresis.set_state_and_update(false, hrt_absolute_time());
 		_failure_detector_status.flags.alt = false;
 		_failure_detector_status.flags.ext = false;
 		// Reset altitude loss state so it reinitialises cleanly when altitude control re-engages.
@@ -86,8 +86,7 @@ void FailureDetector::publishStatus(bool esc_arm_status, uint16_t motor_failure_
 	const uint16_t injected_motor_failure_mask = _injected_motor_masks.failure_mask;
 
 	failure_detector_status_s failure_detector_status{};
-	failure_detector_status.fd_roll = _failure_detector_status.flags.roll;
-	failure_detector_status.fd_pitch = _failure_detector_status.flags.pitch;
+	failure_detector_status.fd_tilt = _failure_detector_status.flags.tilt;
 	failure_detector_status.fd_alt = _failure_detector_status.flags.alt;
 	failure_detector_status.fd_ext = _failure_detector_status.flags.ext;
 	failure_detector_status.fd_arm_escs = esc_arm_status || (motor_failure_mask != 0);
@@ -107,46 +106,53 @@ void FailureDetector::updateAttitudeStatus(const vehicle_status_s &vehicle_statu
 
 	if (_vehicle_attitude_sub.update(&attitude)) {
 
-		const matrix::Eulerf euler(matrix::Quatf(attitude.q));
-		float roll(euler.phi());
-		float pitch(euler.theta());
+		matrix::Quatf q(attitude.q);
 
-		// special handling for tailsitter
-		if (vehicle_status.is_vtol_tailsitter) {
-			if (vehicle_status.in_transition_mode) {
-				// disable attitude check during tailsitter transition
-				roll = 0.f;
-				pitch = 0.f;
-
-			} else if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-				// in FW flight rotate the attitude by 90° around pitch (level FW flight = 0° pitch)
-				const matrix::Eulerf euler_rotated = matrix::Eulerf(matrix::Quatf(attitude.q) * matrix::Quatf(matrix::Eulerf(0.f,
-								     M_PI_2_F, 0.f)));
-				roll = euler_rotated.phi();
-				pitch = euler_rotated.theta();
-			}
+		if (vehicle_status.is_vtol_tailsitter && !vehicle_status.in_transition_mode
+		    && vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+			// tailsitter FW attitude setpoints are in the FW frame, rotated by 90° around pitch
+			q = q * matrix::Quatf(matrix::Eulerf(0.f, M_PI_2_F, 0.f));
 		}
 
-		const float max_roll_deg = _param_fd_fail_r.get();
-		const float max_pitch_deg = _param_fd_fail_p.get();
-		const float max_roll(fabsf(math::radians(max_roll_deg)));
-		const float max_pitch(fabsf(math::radians(max_pitch_deg)));
+		vehicle_attitude_setpoint_s attitude_setpoint{};
+		_vehicle_attitude_setpoint_sub.copy(&attitude_setpoint);
+		// level unless there is a recent attitude setpoint, e.g. on rovers
+		matrix::Vector3f z_setpoint(0.f, 0.f, 1.f);
 
-		const bool roll_status = (max_roll > FLT_EPSILON) && (fabsf(roll) > max_roll);
-		const bool pitch_status = (max_pitch > FLT_EPSILON) && (fabsf(pitch) > max_pitch);
+		if (attitude.timestamp < attitude_setpoint.timestamp + 500_ms) {
+			z_setpoint = matrix::Quatf(attitude_setpoint.q_d).dcm_z();
+		}
 
-		hrt_abstime now = hrt_absolute_time();
+		const float max_tilt_error_deg = _param_fd_tilt_error.get();
+		const float tilt_error = acosf(math::constrain(q.dcm_z().dot(z_setpoint), -1.f, 1.f));
+		const bool vtol_skipped_back_transition = checkVtolSkippedBackTransition(attitude.timestamp);
+		const bool tilt_status = (max_tilt_error_deg > 0.f) && !vtol_skipped_back_transition
+					 && (tilt_error > math::radians(max_tilt_error_deg));
 
-		// Update hysteresis
-		_roll_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_fail_r_ttri.get()));
-		_pitch_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_fail_p_ttri.get()));
-		_roll_failure_hysteresis.set_state_and_update(roll_status, now);
-		_pitch_failure_hysteresis.set_state_and_update(pitch_status, now);
-
-		// Update status
-		_failure_detector_status.flags.roll = _roll_failure_hysteresis.get_state();
-		_failure_detector_status.flags.pitch = _pitch_failure_hysteresis.get_state();
+		_tilt_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_tilt_error_t.get()));
+		_tilt_failure_hysteresis.set_state_and_update(tilt_status, attitude.timestamp);
+		_failure_detector_status.flags.tilt = _tilt_failure_hysteresis.get_state();
 	}
+}
+
+// True for 5 s after a VTOL switched to multicopter without back-transition, i.e. a quad-chute or an aborted
+// front transition, while it recovers from fixed-wing flight with a large tilt error
+bool FailureDetector::checkVtolSkippedBackTransition(hrt_abstime now)
+{
+	vtol_vehicle_status_s vtol_vehicle_status;
+
+	if (_vtol_vehicle_status_sub.update(&vtol_vehicle_status)) {
+		const bool from_fixed_wing = (_vtol_state_prev == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW)
+					     || (_vtol_state_prev == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_FW);
+
+		if (from_fixed_wing && (vtol_vehicle_status.vehicle_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC)) {
+			_vtol_skipped_back_transition_timestamp = vtol_vehicle_status.timestamp;
+		}
+
+		_vtol_state_prev = vtol_vehicle_status.vehicle_vtol_state;
+	}
+
+	return (_vtol_skipped_back_transition_timestamp != 0) && (now < _vtol_skipped_back_transition_timestamp + 5_s);
 }
 
 void FailureDetector::updateAltitudeStatus(const vehicle_status_s &vehicle_status,
@@ -178,16 +184,48 @@ void FailureDetector::updateAltitudeStatus(const vehicle_status_s &vehicle_statu
 
 	const hrt_abstime now = hrt_absolute_time();
 
-	if (lpos.z > lpos_sp.z) {
-		// Ratcheting NED-z reference: tracks the highest altitude reached while below setpoint.
+	const float dt = (_alt_loss_timestamp_prev > 0 && lpos.timestamp > _alt_loss_timestamp_prev)
+			 ? math::min((lpos.timestamp - _alt_loss_timestamp_prev) * 1e-6f, 1.f) : 0.f;
+	_alt_loss_timestamp_prev = lpos.timestamp;
+
+	// A commanded descent lowers the reference with a margin on the descent rate, so a small velocity tracking
+	// error does not accumulate into a trigger over a long descent.
+	// A stale setpoint must not keep lowering the reference, as that could mask a real altitude loss.
+	const bool setpoint_fresh = lpos.timestamp < lpos_sp.timestamp + kAltLossSetpointTimeout;
+	const float commanded_descent_rate = (setpoint_fresh && PX4_ISFINITE(lpos_sp.vz) && lpos_sp.vz > 0.f)
+					     ? lpos_sp.vz + kAltLossDescentRateMargin : 0.f;
+
+	bool reference_valid = false;
+
+	if (PX4_ISFINITE(lpos_sp.z)) {
+		if (lpos.z > lpos_sp.z
+		    || (lpos.v_z_valid && lpos.vz > commanded_descent_rate)) {
+			// Ratcheting NED-z reference: tracks the highest altitude reached while below setpoint, or while
+			// falling faster than allowed.
+			if (!PX4_ISFINITE(_alt_loss_ref_z)) {
+				_alt_loss_ref_z = lpos.z;
+			}
+
+			// The setpoint must not drag the reference down, emergency braking keeps it on the vehicle
+			_alt_loss_ref_z = math::min(_alt_loss_ref_z + commanded_descent_rate * dt, lpos.z);
+			reference_valid = true;
+		}
+
+	} else if (PX4_ISFINITE(lpos_sp.vz)) {
+		// No height target (e.g. pilot moving the throttle stick): the reference remembers the highest
+		// altitude reached and only moves down at the commanded descent rate, so a climb or hold command
+		// keeps it fixed.
 		if (!PX4_ISFINITE(_alt_loss_ref_z)) {
 			_alt_loss_ref_z = lpos.z;
 		}
 
-		_alt_loss_ref_z = math::constrain(_alt_loss_ref_z, lpos_sp.z, lpos.z);
+		_alt_loss_ref_z = math::min(_alt_loss_ref_z + commanded_descent_rate * dt, lpos.z);
+		reference_valid = true;
+	}
 
+	if (reference_valid) {
 		const bool is_below_threshold = (lpos.z - _alt_loss_ref_z) > threshold;
-		_alt_loss_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_alt_loss_ttri.get()));
+		_alt_loss_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_alt_loss_t.get()));
 		_alt_loss_hysteresis.set_state_and_update(is_below_threshold, now);
 
 	} else {

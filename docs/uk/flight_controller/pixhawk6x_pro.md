@@ -235,11 +235,6 @@ The pinouts and connector comply with the [Pixhawk Debug Full](../debug/swd_debu
 - [Holybro GPS & RTK Systems](https://holybro.com/collections/gps-rtk-systems)
 - [Power Modules & PDBs](https://holybro.com/collections/power-modules-pdbs)
 
-## Supported Platforms/Airframes
-
-Будь-який мультикоптер / літак / наземна платформа / човен, який може керуватися звичайними RC сервоприводами або сервоприводами Futaba S-Bus.
-The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
-
 ## CAD File
 
 Download [here](https://docs.holybro.com/autopilot/pixhawk-6x-pro/download).

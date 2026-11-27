@@ -110,6 +110,14 @@ perf(mc_rate_control): reduce loop latency
 
 The PR title follows the same `type(scope): description` format. This is enforced by CI.
 
+A PR that backports a change to a release branch can put a backport tag in front of it:
+
+```
+[BACKPORT 1.18] fix(mavlink): correct BATTERY_STATUS_V2 parsing
+```
+
+CI accepts the tag only on PRs that target a `release/*` branch.
+
 ### Merge policy
 
 PRs are typically squash-merged, so the PR title becomes the commit message on `main` and the individual commits on the branch are discarded. Write them well anyway: reviewers read them to follow how the PR evolved.

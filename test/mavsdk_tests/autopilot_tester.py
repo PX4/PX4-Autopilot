@@ -8,6 +8,7 @@ swallowed. Checks done in callbacks are therefore collected with check_in_callba
 reported when the tester is closed.
 """
 
+from contextlib import contextmanager
 import datetime
 import json
 import math
@@ -16,7 +17,7 @@ import threading
 import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
 
 from mavsdk import ComponentType, Configuration, ConnectionResult, Mavsdk  # type: ignore
 from mavsdk.plugins.action import Action, ActionError  # type: ignore
@@ -45,6 +46,8 @@ MAV_CMD_NAV_LAND = 21
 MAV_CMD_NAV_TAKEOFF = 22
 MAV_CMD_NAV_VTOL_LAND = 85
 MAV_CMD_DO_JUMP = 177
+MAV_CMD_DO_SET_ACTUATOR = 187
+MAV_CMD_COMPONENT_ARM_DISARM = 400
 MAV_CMD_REQUEST_MESSAGE = 512
 MAV_FRAME_GLOBAL_INT = 5
 MAV_FRAME_GLOBAL_RELATIVE_ALT = 3
@@ -54,6 +57,16 @@ MAV_COMP_ID_AUTOPILOT1 = 1
 MAVLINK_MSG_ID_HOME_POSITION = 242
 MAV_RESULT_ACCEPTED = 0
 MAV_RESULT_IN_PROGRESS = 5
+
+# MAVLink "int32 param not used" value for the x/y fields.
+INT32_MAX = 2**31 - 1
+
+# DO_SET_ACTUATOR param5/param6 (actuator 5 and 6, -1..1) are scaled by 1e7 in the int32 x/y fields.
+ACTUATOR_SET_INT_SCALE = 1e7
+# Output function of "Peripheral via Actuator Set 1"; set N is this + N - 1.
+ACTUATOR_SET1_FUNCTION = 301
+PWM_MIN_US = 1000.0
+PWM_MAX_US = 2000.0
 
 # Like MAVSDK's command sender, but in host time with a longer timeout for sanitizer builds.
 COMMAND_ACK_TIMEOUT_S = 1.0
@@ -309,6 +322,14 @@ class AutopilotTester:
             lambda: self._telemetry.landed_state() == landed_state, timeout_s), \
             "Landed state {} not reached within {} s".format(landed_state, timeout_s)
 
+    def check_flight_mode_for(self, flight_mode: FlightMode, duration_s: float) -> None:
+        start_us = self._autopilot_time_us()
+        while (self._autopilot_time_us() - start_us) / 1e6 < duration_s:
+            current = self._telemetry.flight_mode()
+            assert current == flight_mode, \
+                "Flight mode {}, expected {}".format(current, flight_mode)
+            self.sleep_for(0.2)
+
     # ------------------------------------------------------------------
     # Parameters and settings
     # ------------------------------------------------------------------
@@ -365,6 +386,16 @@ class AutopilotTester:
     def takeoff(self) -> None:
         self._action.takeoff()
 
+    def arm_and_take_off(self, altitude_m: float) -> None:
+        """Take off and wait at altitude_m above Home."""
+        self.set_takeoff_altitude(altitude_m)
+        # The navigator reads parameter changes at most once per second.
+        self.sleep_for(1)
+        self.arm()
+        self.takeoff()
+        self.wait_until_hovering()
+        self.wait_until_altitude(altitude_m, 30)
+
     def land(self) -> None:
         self._action.land()
 
@@ -401,6 +432,36 @@ class AutopilotTester:
     def enable_actuator_output_status(self) -> None:
         self._telemetry.set_rate_actuator_output_status(20.0)
 
+    def route_actuator_set_to_output(self, actuator: int, output: int) -> None:
+        """Drive PWM output (1-based) with DO_SET_ACTUATOR actuator (1-based) of set index 0."""
+        self.set_param_int("PWM_MAIN_FUNC{}".format(output), ACTUATOR_SET1_FUNCTION + actuator - 1)
+
+    def wait_for_actuator_set_output(self, output: int, value: float, timeout_s: float) -> None:
+        """Wait until PWM output (1-based) shows actuator set value (-1..1)."""
+        pwm_us = PWM_MIN_US + (value + 1.0) / 2.0 * (PWM_MAX_US - PWM_MIN_US)
+        self.wait_for_actuator_output(output - 1, pwm_us, timeout_s)
+
+    def wait_for_actuator_output_value(self, index: int, timeout_s: float) -> float:
+        """Return output index (0-based) of ACTUATOR_OUTPUT_STATUS once one has arrived."""
+        def received() -> bool:
+            return index < len(self._telemetry.actuator_output_status().actuator)
+
+        assert self.poll_condition_with_timeout(received, timeout_s), \
+            "No ACTUATOR_OUTPUT_STATUS within {} s".format(timeout_s)
+        return float(self._telemetry.actuator_output_status().actuator[index])
+
+    def wait_for_actuator_output(self, index: int, value: float, timeout_s: float,
+                                 tolerance: float = 1.0) -> None:
+        """Wait until output index (0-based) of ACTUATOR_OUTPUT_STATUS is within tolerance."""
+        def reached() -> bool:
+            outputs = self._telemetry.actuator_output_status().actuator
+            # Empty until the first ACTUATOR_OUTPUT_STATUS arrives.
+            return index < len(outputs) and abs(float(outputs[index]) - value) <= tolerance
+
+        assert self.poll_condition_with_timeout(reached, timeout_s), \
+            "Actuator output {} not {} within {} s, last outputs {}".format(
+                index, value, timeout_s, self._telemetry.actuator_output_status().actuator)
+
     def ensure_motors_stopped(self, stopped_mask: int, num_motors: int) -> None:
         """Check that exactly the motors in stopped_mask (0-based bits) are stopped."""
         status = self._telemetry.actuator_output_status()
@@ -414,6 +475,20 @@ class AutopilotTester:
             else:
                 assert status.actuator[i] >= 999.0, \
                     "Motor {} output {}, expected running".format(i, status.actuator[i])
+
+    def record_scaled_imu(self, duration_s: float, rate_hz: float = 50.0) -> List[Any]:
+        """Record SCALED_IMU samples (vehicle_imu, so after any injected IMU failure)."""
+        samples: List[Any] = []
+        self._telemetry.set_rate_scaled_imu(rate_hz)
+        handle = self._telemetry.subscribe_scaled_imu(
+            lambda sample, _user_data: samples.append(sample))
+        try:
+            self.sleep_for(duration_s)
+        finally:
+            self._telemetry.unsubscribe_scaled_imu(handle)
+        assert len(samples) >= rate_hz * duration_s / 2, \
+            "Only {} SCALED_IMU samples in {} s".format(len(samples), duration_s)
+        return list(samples)
 
     # ------------------------------------------------------------------
     # Position and home
@@ -445,17 +520,17 @@ class AutopilotTester:
         return self._home_altitude_m
 
     def check_home_within(self, acceptance_radius_m: float) -> None:
-        distance_m = self._ground_truth_horizontal_distance_to(*self._home_or_fail())
+        distance_m = self.ground_truth_horizontal_distance_to(*self._home_or_fail())
         assert distance_m < acceptance_radius_m, \
             "Distance to home {:.2f} m, expected < {} m".format(distance_m, acceptance_radius_m)
 
     def check_home_not_within(self, min_distance_m: float) -> None:
-        distance_m = self._ground_truth_horizontal_distance_to(*self._home_or_fail())
+        distance_m = self.ground_truth_horizontal_distance_to(*self._home_or_fail())
         assert distance_m > min_distance_m, \
             "Distance to home {:.2f} m, expected > {} m".format(distance_m, min_distance_m)
 
-    def _ground_truth_horizontal_distance_to(self, latitude_deg: float,
-                                             longitude_deg: float) -> float:
+    def ground_truth_horizontal_distance_to(self, latitude_deg: float,
+                                            longitude_deg: float) -> float:
         assert math.isfinite(latitude_deg) and math.isfinite(longitude_deg)
         current = self._telemetry.ground_truth()
         assert math.isfinite(current.latitude_deg) and math.isfinite(current.longitude_deg), \
@@ -658,8 +733,7 @@ class AutopilotTester:
         land_item = self._mission_raw.download_mission()[-1]
         assert land_item.command in (MAV_CMD_NAV_LAND, MAV_CMD_NAV_VTOL_LAND), \
             "Last mission item is command {}, not a landing".format(land_item.command)
-        distance_m = self._ground_truth_horizontal_distance_to(land_item.x / 1e7,
-                                                               land_item.y / 1e7)
+        distance_m = self.ground_truth_horizontal_distance_to(land_item.x / 1e7, land_item.y / 1e7)
         assert distance_m < acceptance_radius_m, \
             "Distance to mission landing {:.2f} m, expected < {} m".format(
                 distance_m, acceptance_radius_m)
@@ -687,6 +761,9 @@ class AutopilotTester:
         self._mission_raw.upload_mission(items)
         # PX4 needs time to realize that it now has a mission available.
         self.sleep_for(1)
+
+    def download_mission_raw(self) -> List[Any]:
+        return list(self._mission_raw.download_mission())
 
     def load_qgc_mission_raw_and_move_here(self, plan_file: str) -> None:
         """Upload a QGC .plan mission, shifted so that it starts at the current position."""
@@ -777,6 +854,28 @@ class AutopilotTester:
 
     def _target_system_id(self) -> int:
         return int(self._system.get_system_id())
+
+    @contextmanager
+    def observe_event(self, *texts: str, name: Optional[str] = None) -> Iterator[threading.Event]:
+        """Watch for a PX4 event by name or by text in its message. MAVSDK appends the failing
+        health and arming checks to failsafe and arming events.
+
+        Events rather than STATUSTEXT: PX4 sends STATUSTEXT only within 2.5 s of a GCS heartbeat,
+        and MAVSDK sends one per second of host time, 10 s of autopilot time at speed factor 10.
+        """
+        received = threading.Event()
+
+        def on_event(event: Any, _user_data: Any) -> None:
+            if name is not None and (event.event_namespace != "px4" or event.event_name != name):
+                return
+            if all(text in event.message for text in texts):
+                received.set()
+
+        handle = self._events.subscribe_events(on_event)
+        try:
+            yield received
+        finally:
+            self._events.unsubscribe_events(handle)
 
     def send_mavlink_message(self, name: str, fields: Dict[str, Any]) -> None:
         # NaN is not valid JSON; MAVSDK takes null as NaN for float fields.
@@ -874,9 +973,12 @@ class AutopilotTester:
                                rate_hz: float = 10.0) -> None:
         """Run check(position_velocity_ned) on every sample for duration_s. It returns an error
         message when the check fails, which then fails the test."""
+        received = threading.Event()
+
         def on_sample(sample: Any, _user_data: Any) -> None:
             error = check(sample)
             self.check_in_callback(error is None, error or "")
+            received.set()
 
         self._telemetry.set_rate_position_velocity_ned(rate_hz)
         handle = self._telemetry.subscribe_position_velocity_ned(on_sample)
@@ -885,6 +987,7 @@ class AutopilotTester:
         finally:
             self._telemetry.unsubscribe_position_velocity_ned(handle)
         self._assert_no_callback_failures()
+        assert received.is_set(), "No position_velocity_ned samples in {} s".format(duration_s)
 
     def _assert_no_callback_failures(self) -> None:
         with self._failures_lock:
@@ -939,6 +1042,32 @@ class AutopilotTester:
     # ------------------------------------------------------------------
     # Manual control
     # ------------------------------------------------------------------
+
+    @contextmanager
+    def keep_manual_control_alive(self) -> Iterator[None]:
+        """Send centered sticks during the block.
+
+        Once sticks were sent, a gap longer than COM_RC_LOSS_T triggers the RC loss failsafe, also
+        in automatic modes. SITL scales that timeout with the speed factor, so 10 Hz in host
+        time keeps the link alive.
+        """
+        stop = threading.Event()
+
+        def send() -> None:
+            try:
+                while not stop.is_set():
+                    self._manual_control.set_manual_control_input(0.0, 0.0, 0.5, 0.0)
+                    stop.wait(0.1)
+            except Exception as error:
+                self.check_in_callback(False, "Manual-control keepalive failed: {}".format(error))
+
+        worker = threading.Thread(target=send, daemon=True)
+        worker.start()
+        try:
+            yield
+        finally:
+            stop.set()
+            worker.join()
 
     def _send_manual_control(self, duration_s: float, x: float, y: float, z: float, r: float,
                              stop_when_landed: bool = False) -> None:

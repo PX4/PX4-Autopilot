@@ -219,10 +219,14 @@ private:
 
 ### 全局位置更新
 
-First ensure that the PX4 [`EKF2_AGP_CTRLn`](../advanced_config/parameter_reference.md#EKF2_AGP0_CTRL) parameters are properly configured to fuse external global measurements, by setting the appropriate bits to `true`:
+First ensure that the PX4 [`EKF2_AGPn_CTRL`](../advanced_config/parameter_reference.md#EKF2_AGP0_CTRL) parameters are properly configured to fuse external global measurements, by setting the appropriate bits to `true`:
 
 - `0`: 水平位置数据
 - `1`：垂直位置数据
+
+Each measurement source has its own set of `EKF2_AGPn_*` parameters, which are only used when [`EKF2_AGPn_ID`](../advanced_config/parameter_reference.md#EKF2_AGP0_ID) is set to the ID that the source sends in its messages.
+The `GlobalPositionMeasurementInterface` sends the ID given to its constructor, which is `1` by default.
+Reboot the vehicle after changing `EKF2_AGPn_ID`.
 
 向PX4发送全局位置测量：
 

@@ -126,6 +126,7 @@ parameters:
           capabilities of the vehicle. Set to 0 to disable the horizontal
           time-stretch.
       type: float
+      unit: m
       default: 2.0
       min: 0
       max: 10
@@ -143,6 +144,7 @@ parameters:
           estimate is refined in flight). Set to 0 to disable the vertical
           time-stretch.
       type: float
+      unit: m
       default: 1.0
       min: 0
       max: 10

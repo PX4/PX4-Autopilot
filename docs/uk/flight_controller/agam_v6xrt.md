@@ -135,6 +135,8 @@ Notes:
 | LPUART10 | /dev/ttyS6 | TELEM3  |
 | LPUART11 | /dev/ttyS7 | EXT2    |
 
+The board has five [MAVLink instances](../peripherals/mavlink_peripherals.md#mavlink-instances) (`MAV_0_CONFIG` to `MAV_4_CONFIG`) rather than the usual three.
+
 ## Radio Control {#radio_control}
 
 Для того щоб керувати транспортним засобом _вручну_, потрібна система радіоуправління (RC) (PX4 не потребує системи радіоуправління для автономних режимів польоту).
@@ -184,6 +186,14 @@ To [build PX4](../dev_setup/building_px4.md) for this target:
 ```sh
 make agam_fmu-v6xrt_default
 ```
+
+## Secure Boot
+
+The board supports [Bootloader Secure Boot](../advanced_config/bootloader_secure_boot.md), which only runs firmware signed with a key the bootloader trusts.
+The build targets are:
+
+- `agam_fmu-v6xrt_bootloader_secureboot`: the secure bootloader.
+- `agam_fmu-v6xrt_secureboot`: PX4 firmware, signed as part of the build.
 
 ## Debug Port {#debug_port}
 

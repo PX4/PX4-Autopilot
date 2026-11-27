@@ -83,10 +83,10 @@ type_topic_count = len(datatypes_with_topics[topic_name])
 #endif
 @[end for]
 
-#define ZENOH_PUBSUB_COUNT \
+#define ZENOH_PUBSUB_COUNT ( \
 @[for idx, topic_name in enumerate(datatypes)]@
         CONFIG_ZENOH_PUBSUB_@(topic_name.upper())_COUNT + \
-@[end for]        0
+@[end for]        0)
 
 @[for topic_name, rihs01_hash in rihs01_hashes.items()]@
 const uint8_t @(topic_name)_hash[32] = @(rihs01_hash)
@@ -140,7 +140,7 @@ uORB_Zenoh_Publisher* genPublisher(const orb_metadata *meta, int instance) {
             }
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 
@@ -152,7 +152,7 @@ uORB_Zenoh_Publisher* genPublisher(const char *name, int instance) {
             }
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 
@@ -164,7 +164,7 @@ Zenoh_Subscriber* genSubscriber(const orb_metadata *meta, int instance) {
             }
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 
@@ -176,7 +176,7 @@ Zenoh_Subscriber* genSubscriber(const char *name, int instance) {
             }
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 const char* getTypeName(const char *name) {
@@ -187,7 +187,7 @@ const char* getTypeName(const char *name) {
             }
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 
@@ -199,7 +199,7 @@ const uint8_t* getRIHS01_Hash(const orb_metadata *meta) {
             }
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 const uint8_t* getRIHS01_Hash(const char *name) {
@@ -210,5 +210,5 @@ const uint8_t* getRIHS01_Hash(const char *name) {
             }
         }
     }
-    return NULL;
+    return nullptr;
 }

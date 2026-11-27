@@ -45,7 +45,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/rover_position_setpoint.h>
+#include <uORB/topics/surface_vehicle_position_setpoint.h>
 #include <uORB/topics/surface_vehicle_course_setpoint.h>
 
 /**
@@ -62,7 +62,7 @@ public:
 	~DifferentialAutoMode() = default;
 
 	/**
-	 * @brief Generate and publish roverPositionSetpoint from positionSetpointTriplet.
+	 * @brief Generate and publish surfaceVehiclePositionSetpoint from positionSetpointTriplet.
 	 */
 	void autoControl();
 
@@ -110,14 +110,14 @@ private:
 	uORB::Subscription _course_position_setpoint_triplet_sub{ORB_ID(position_setpoint_triplet)}; ///< Separate, so an update for autoControl() is not consumed
 
 	// uORB publications
-	uORB::Publication<rover_position_setpoint_s>    _rover_position_setpoint_pub{ORB_ID(rover_position_setpoint)};
+	uORB::Publication<surface_vehicle_position_setpoint_s>    _surface_vehicle_position_setpoint_pub{ORB_ID(surface_vehicle_position_setpoint)};
 	uORB::Publication<surface_vehicle_course_setpoint_s>    _surface_vehicle_course_setpoint_pub{ORB_ID(surface_vehicle_course_setpoint)};
 
 	// Variables
 	float _course_speed{NAN}; // Guided Course speed [m/s], NAN until latched from the forward speed on the first course setpoint
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
+		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_lim,
 		(ParamFloat<px4::params::RO_SPEED_RED>)     _param_ro_speed_red,
 		(ParamFloat<px4::params::RD_TRANS_DRV_TRN>) _param_rd_trans_drv_trn
 	)

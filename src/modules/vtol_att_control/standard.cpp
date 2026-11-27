@@ -60,109 +60,41 @@ Standard::parameters_update()
 
 	// make sure that pusher ramp in backtransition is smaller than back transition (max) duration
 	_param_vt_b_trans_ramp.set(math::min(_param_vt_b_trans_ramp.get(), _param_vt_b_trans_dur.get()));
+
+	// disabling the detection in flight overrides a detected pusher failure, e.g. a false positive in strong wind
+	if (!isPusherFailureDetectionEnabled()) {
+		_pusher_failed = false;
+	}
 }
 
-void Standard::update_vtol_state()
+bool Standard::isBackTransitionCompleted()
 {
-	/* After flipping the switch the vehicle will start the pusher (or tractor) motor, picking up
-	 * forward speed. After the vehicle has picked up enough speed the rotors shutdown.
-	 * For the back transition the pusher motor is immediately stopped and rotors reactivated.
-	 */
+	return can_transition_on_ground() || isBackTransitionSpeedOrTimeReached();
+}
 
-	float mc_weight = _mc_roll_weight;
-
-	if (_vtol_vehicle_status->fixed_wing_system_failure) {
-		// Failsafe event, engage mc motors immediately
-		_vtol_mode = vtol_mode::MC_MODE;
-		_pusher_throttle = 0.0f;
-
-	} else if (!_attc->is_fixed_wing_requested()) {
-
-		// the transition to fw mode switch is off
-		if (_vtol_mode == vtol_mode::MC_MODE) {
-			// in mc mode
-			_vtol_mode = vtol_mode::MC_MODE;
-			mc_weight = 1.0f;
-
-		} else if (_vtol_mode == vtol_mode::FW_MODE) {
-			// Regular backtransition
-			resetTransitionStates();
-			_vtol_mode = vtol_mode::TRANSITION_TO_MC;
-
-		} else if (_vtol_mode == vtol_mode::TRANSITION_TO_FW) {
-			// failsafe back to mc mode
-			_vtol_mode = vtol_mode::MC_MODE;
-			mc_weight = 1.0f;
-			_pusher_throttle = 0.0f;
-
-		} else if (_vtol_mode == vtol_mode::TRANSITION_TO_MC) {
-			// speed exit condition: use ground if valid, otherwise airspeed
-			bool exit_backtransition_speed_condition = false;
-
-			if (_local_pos->v_xy_valid) {
-				const Dcmf R_to_body(Quatf(_v_att->q).inversed());
-				const Vector3f vel = R_to_body * Vector3f(_local_pos->vx, _local_pos->vy, _local_pos->vz);
-				exit_backtransition_speed_condition = vel(0) < _param_mpc_xy_cruise.get();
-
-			} else if (PX4_ISFINITE(_attc->get_calibrated_airspeed())) {
-				exit_backtransition_speed_condition = _attc->get_calibrated_airspeed() < _param_mpc_xy_cruise.get();
-			}
-
-			const bool exit_backtransition_time_condition = _time_since_trans_start > _param_vt_b_trans_dur.get();
-
-			if (can_transition_on_ground() || exit_backtransition_speed_condition || exit_backtransition_time_condition) {
-				_vtol_mode = vtol_mode::MC_MODE;
-			}
-		}
-
-	} else {
-		// the transition to fw mode switch is on
-		if (_vtol_mode == vtol_mode::MC_MODE || _vtol_mode == vtol_mode::TRANSITION_TO_MC) {
-			// start transition to fw mode
-			/* NOTE: The failsafe transition to fixed-wing was removed because it can result in an
-			 * unsafe flying state. */
-			resetTransitionStates();
-			_vtol_mode = vtol_mode::TRANSITION_TO_FW;
-
-		} else if (_vtol_mode == vtol_mode::FW_MODE) {
-			// in fw mode
-			_vtol_mode = vtol_mode::FW_MODE;
-			mc_weight = 0.0f;
-
-		} else if (_vtol_mode == vtol_mode::TRANSITION_TO_FW) {
-
-			if (isFrontTransitionCompleted()) {
-				_vtol_mode = vtol_mode::FW_MODE;
-
-				// don't set pusher throttle here as it's being ramped up elsewhere
-				_trans_finished_ts = hrt_absolute_time();
-				_front_transition_pitch = Eulerf(Quatf(_v_att_sp->q_d)).theta();
-			}
-		}
+void Standard::checkTypeSpecificQuadchute()
+{
+	// without pusher a front transition would fail too, so this quad-chute stays until reboot
+	if (_pusher_failed) {
+		_attc->quadchute(QuadchuteReason::PusherFailure);
 	}
+}
 
-	_mc_roll_weight = mc_weight;
-	_mc_pitch_weight = mc_weight;
-	_mc_yaw_weight = mc_weight;
-	_mc_throttle_weight = mc_weight;
+void Standard::onFrontTransitionCompleted()
+{
+	// don't set pusher throttle here as it's being ramped up elsewhere
+	_front_transition_pitch = Eulerf(Quatf(_v_att_sp->q_d)).theta();
+}
 
-	// map specific control phases to simple control modes
-	switch (_vtol_mode) {
-	case vtol_mode::MC_MODE:
-		_common_vtol_mode = mode::ROTARY_WING;
-		break;
+void Standard::onFrontTransitionAborted()
+{
+	_pusher_throttle = 0.0f;
+}
 
-	case vtol_mode::FW_MODE:
-		_common_vtol_mode = mode::FIXED_WING;
-		break;
-
-	case vtol_mode::TRANSITION_TO_FW:
-		_common_vtol_mode = mode::TRANSITION_TO_FW;
-		break;
-
-	case vtol_mode::TRANSITION_TO_MC:
-		_common_vtol_mode = mode::TRANSITION_TO_MC;
-		break;
+void Standard::onQuadchute()
+{
+	if (_common_vtol_mode != mode::ROTARY_WING || _attc->is_fixed_wing_system_failure()) {
+		_pusher_throttle = 0.0f; // a commanded quad-chute keeps pusher assist once in multicopter mode
 	}
 }
 
@@ -172,6 +104,9 @@ void Standard::update_transition_state()
 	float mc_weight = 1.0f;
 
 	VtolType::update_transition_state();
+
+	// the pusher failure detection restarts in multicopter mode
+	_pusher_failure_hysteresis.set_state_and_update(false, now);
 
 	// we get attitude setpoint from a multirotor flighttask if climbrate is controlled.
 	// in any other case the fixed wing attitude controller publishes attitude setpoint from manual stick input.
@@ -199,7 +134,7 @@ void Standard::update_transition_state()
 	float pitch_body = attitude_setpoint_euler.theta();
 	float yaw_body = attitude_setpoint_euler.psi();
 
-	if (_vtol_mode == vtol_mode::TRANSITION_TO_FW) {
+	if (_common_vtol_mode == mode::TRANSITION_TO_FW) {
 
 		if (_v_control_mode->flag_control_climb_rate_enabled) {
 			roll_body = Eulerf(Quatf(_fw_virtual_att_sp->q_d)).phi();
@@ -245,7 +180,7 @@ void Standard::update_transition_state()
 		q_sp.copyTo(_v_att_sp->q_d);
 		mc_weight = math::constrain(mc_weight, 0.0f, 1.0f);
 
-	} else if (_vtol_mode == vtol_mode::TRANSITION_TO_MC) {
+	} else if (_common_vtol_mode == mode::TRANSITION_TO_MC) {
 
 		// continually increase mc attitude control as we transition back to mc mode
 		if (_param_vt_b_trans_ramp.get() > FLT_EPSILON) {
@@ -281,11 +216,35 @@ void Standard::update_mc_state()
 	VtolType::update_mc_state();
 
 	_pusher_throttle = VtolType::pusher_assist();
+
+	_pusher_failed = _pusher_failed || isPusherFailureDetected();
+}
+
+bool Standard::isPusherFailureDetected()
+{
+	bool pusher_ineffective = false;
+
+	if (isPusherFailureDetectionEnabled() && _pusher_throttle > _param_vt_ef_throt.get() && _local_pos->v_xy_valid) {
+		const Quatf q(_v_att->q);
+		const float forward_vel = q.rotateVectorInverse(Vector3f(_local_pos->vx, _local_pos->vy, _local_pos->vz))(0);
+		const float forward_vel_sp = q.rotateVectorInverse(Vector3f(_local_pos_sp->vx, _local_pos_sp->vy,
+					     _local_pos_sp->vz))(0);
+
+		// NAN velocities fail the comparison and never detect
+		pusher_ineffective = forward_vel_sp - forward_vel > _param_vt_ef_vel_err.get();
+	}
+
+	_pusher_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * math::max(_param_vt_ef_time.get(), 0.f)));
+	_pusher_failure_hysteresis.set_state_and_update(pusher_ineffective, hrt_absolute_time());
+
+	return _pusher_failure_hysteresis.get_state();
 }
 
 void Standard::update_fw_state()
 {
 	VtolType::update_fw_state();
+
+	_mc_throttle_weight = 0.0f;
 }
 
 /**
@@ -318,8 +277,8 @@ void Standard::fill_actuator_outputs()
 	_thrust_setpoint_1->xyz[1] = 0.f;
 	_thrust_setpoint_1->xyz[2] = 0.f;
 
-	switch (_vtol_mode) {
-	case vtol_mode::MC_MODE:
+	switch (_common_vtol_mode) {
+	case mode::ROTARY_WING:
 
 		// MC actuators:
 		_torque_setpoint_0->xyz[0] = _vehicle_torque_setpoint_virtual_mc->xyz[0];
@@ -339,10 +298,10 @@ void Standard::fill_actuator_outputs()
 
 		break;
 
-	case vtol_mode::TRANSITION_TO_FW:
+	case mode::TRANSITION_TO_FW:
 
 	// FALLTHROUGH
-	case vtol_mode::TRANSITION_TO_MC:
+	case mode::TRANSITION_TO_MC:
 		// MC actuators:
 		_torque_setpoint_0->xyz[0] = _vehicle_torque_setpoint_virtual_mc->xyz[0] * _mc_roll_weight;
 		_torque_setpoint_0->xyz[1] = _vehicle_torque_setpoint_virtual_mc->xyz[1] * _mc_pitch_weight;
@@ -357,7 +316,7 @@ void Standard::fill_actuator_outputs()
 
 		break;
 
-	case vtol_mode::FW_MODE:
+	case mode::FIXED_WING:
 
 		// FW actuators
 		_torque_setpoint_1->xyz[0] = _vehicle_torque_setpoint_virtual_fw->xyz[0];

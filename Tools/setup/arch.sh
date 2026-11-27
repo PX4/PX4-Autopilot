@@ -44,7 +44,6 @@ echo
 echo "Installing PX4 general dependencies"
 
 sudo pacman -Sy --noconfirm --needed \
-	astyle \
 	base-devel \
 	clang \
 	cmake \
@@ -95,6 +94,13 @@ fi
 if [[ $INSTALL_SIM == "true" ]]; then
 	echo
 	echo "Installing PX4 simulation dependencies"
+
+	# SIH terrain elevation (GeoTIFF DEM) support
+	sudo pacman -S --noconfirm --needed \
+		libgeotiff \
+		libtiff \
+		proj \
+		;
 
 	# Gazebo setup
 	if [[ $INSTALL_GAZEBO == "true" ]]; then

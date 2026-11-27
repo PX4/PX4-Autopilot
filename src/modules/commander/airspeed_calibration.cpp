@@ -90,7 +90,7 @@ static int collect_zero_offsets(orb_advert_t *mavlink_log_pub, const hrt_abstime
 
 	while (calibration_counter < calibration_count) {
 
-		if (calibrate_cancel_check(mavlink_log_pub, calibration_started)) {
+		if (calibrate_cancel_check(mavlink_log_pub)) {
 			return PX4_ERROR;
 		}
 
@@ -185,7 +185,7 @@ static int check_pitot_direction(orb_advert_t *mavlink_log_pub, const hrt_abstim
 
 	while (calibration_counter < maxcount) {
 
-		if (calibrate_cancel_check(mavlink_log_pub, calibration_started)) {
+		if (calibrate_cancel_check(mavlink_log_pub)) {
 			return PX4_ERROR;
 		}
 

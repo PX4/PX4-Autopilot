@@ -51,3 +51,5 @@ px4_add_module(
 		geo
 		output_functions_header
 	)
+
+px4_add_functional_gtest(SRC test_output_gimbal_manager.cpp LINKLIBS drivers__gimbal)

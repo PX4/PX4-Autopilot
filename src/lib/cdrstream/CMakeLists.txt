@@ -44,6 +44,10 @@ if(CONFIG_LIB_CDRSTREAM)
 	px4_add_git_submodule(TARGET git_cyclonedds PATH "cyclonedds")
 	px4_add_git_submodule(TARGET git_rosidl PATH "rosidl")
 	add_dependencies(cdr git_cyclonedds git_rosidl uorb_headers parameters px4_platform)
-	target_sources(cdr PRIVATE dds_serializer.c)
+	# bswap.c holds the external definitions of the inline byte-swap helpers,
+	# needed when they are not inlined (e.g. -O0 sanitizer builds)
+	target_sources(cdr PRIVATE
+		       dds_serializer.c
+		       ${CMAKE_CURRENT_LIST_DIR}/cyclonedds/src/ddsrt/src/bswap.c)
 	target_include_directories(cdr PUBLIC ${CMAKE_CURRENT_LIST_DIR})
 endif()

@@ -184,11 +184,6 @@ The [PX4 System Console](../debug/system_console.md) and [SWD Interface](../debu
 | 5 (blk) | FMU_SWCLK      | +3.3V |
 | 6 (blk) | GND            | GND   |
 
-## Supported Platforms / Airframes
-
-Any multicopter / airplane / rover or boat that can be controlled with normal RC servos or Futaba S-Bus servos.
-The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
-
 ## Further info
 
 - [CUAV Docs](https://doc.cuav.net/)

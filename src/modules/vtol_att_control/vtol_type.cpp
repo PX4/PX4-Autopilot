@@ -67,7 +67,6 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_mc_virtual_att_sp = _attc->get_mc_virtual_att_sp();
 	_fw_virtual_att_sp = _attc->get_fw_virtual_att_sp();
 	_v_control_mode = _attc->get_control_mode();
-	_vtol_vehicle_status = _attc->get_vtol_vehicle_status();
 	_vehicle_torque_setpoint_virtual_mc = _attc->get_vehicle_torque_setpoint_virtual_mc();
 	_vehicle_torque_setpoint_virtual_fw = _attc->get_vehicle_torque_setpoint_virtual_fw();
 	_vehicle_thrust_setpoint_virtual_mc = _attc->get_vehicle_thrust_setpoint_virtual_mc();
@@ -153,6 +152,103 @@ void VtolType::update_fw_state()
 	check_quadchute_condition();
 }
 
+void VtolType::update_vtol_state()
+{
+	checkTypeSpecificQuadchute();
+
+	if (_attc->is_quadchute_active()) {
+		// Failsafe event, engage mc motors immediately
+		onQuadchute();
+		_common_vtol_mode = mode::ROTARY_WING;
+
+	} else if (_attc->is_fixed_wing_requested()) {
+
+		switch (_common_vtol_mode) {
+		case mode::ROTARY_WING:
+			// start a front transition
+			resetTransitionStates();
+			onTransitionStart();
+			_common_vtol_mode = mode::TRANSITION_TO_FW;
+			break;
+
+		case mode::FIXED_WING:
+			break;
+
+		case mode::TRANSITION_TO_FW:
+			if (isFrontTransitionCompleted()) {
+				_common_vtol_mode = mode::FIXED_WING;
+				_trans_finished_ts = hrt_absolute_time();
+				onFrontTransitionCompleted();
+			}
+
+			break;
+
+		case mode::TRANSITION_TO_MC:
+
+			// fixed-wing requested again while the back transition is still running
+			if (canSwitchToFixedWingDuringBackTransition()) {
+				_common_vtol_mode = mode::FIXED_WING;
+				_trans_finished_ts = hrt_absolute_time();
+
+			} else {
+				// restart the front transition instead of switching to fixed-wing from a partially
+				// completed back transition, which can result in an unsafe flying state
+				resetTransitionStates();
+				onTransitionStart();
+				_common_vtol_mode = mode::TRANSITION_TO_FW;
+			}
+
+			break;
+		}
+
+	} else {
+
+		switch (_common_vtol_mode) {
+		case mode::ROTARY_WING:
+			break;
+
+		case mode::FIXED_WING:
+			// regular back transition
+			resetTransitionStates();
+			onTransitionStart();
+			_common_vtol_mode = mode::TRANSITION_TO_MC;
+			break;
+
+		case mode::TRANSITION_TO_FW:
+			// abort into hover
+			onFrontTransitionAborted();
+			_common_vtol_mode = mode::ROTARY_WING;
+			break;
+
+		case mode::TRANSITION_TO_MC:
+			if (isBackTransitionCompleted()) {
+				_common_vtol_mode = mode::ROTARY_WING;
+			}
+
+			break;
+		}
+	}
+}
+
+bool VtolType::isBackTransitionSpeedOrTimeReached() const
+{
+	// speed exit condition: use ground if valid, otherwise airspeed
+	bool exit_backtransition_speed_condition = false;
+
+	if (_local_pos->v_xy_valid) {
+		const Dcmf R_to_body(Quatf(_v_att->q).inversed());
+		const Vector3f vel = R_to_body * Vector3f(_local_pos->vx, _local_pos->vy, _local_pos->vz);
+		exit_backtransition_speed_condition = vel(0) < _param_mpc_xy_cruise.get();
+
+	} else if (PX4_ISFINITE(_attc->get_calibrated_airspeed())) {
+		exit_backtransition_speed_condition = _attc->get_calibrated_airspeed() < _param_mpc_xy_cruise.get();
+	}
+
+	const bool exit_backtransition_time_condition = _time_since_trans_start > _param_vt_b_trans_dur.get();
+
+	return exit_backtransition_speed_condition || exit_backtransition_time_condition;
+}
+
 void VtolType::update_transition_state()
 {
 	hrt_abstime t_now = hrt_absolute_time();
@@ -168,14 +264,7 @@ void VtolType::update_transition_state()
 	_last_thr_in_mc = _vehicle_thrust_setpoint_virtual_mc->xyz[2];
 }
 
-bool VtolType::isFrontTransitionCompleted()
-{
-	bool ret = isFrontTransitionCompletedBase();
-
-	return ret || can_transition_on_ground();
-}
-
-bool VtolType::isFrontTransitionCompletedBase()
+bool VtolType::isFrontTransitionSpeedOrTimeReached() const
 {
 	// continue the transition to fw mode while monitoring airspeed for a final switch to fw mode
 	const bool airspeed_triggers_transition = PX4_ISFINITE(_attc->get_calibrated_airspeed());
@@ -224,8 +313,8 @@ bool VtolType::isQuadchuteEnabled()
 
 	}
 
-	const bool above_quadchute_altitude_limit = _param_quadchute_max_height.get() > 0
-			&& dist_to_ground > (float)_param_quadchute_max_height.get();
+	const bool above_quadchute_altitude_limit = _param_vt_fw_qc_hmax.get() > 0
+			&& dist_to_ground > (float)_param_vt_fw_qc_hmax.get();
 
 	return _v_control_mode->flag_armed &&
 	       !_land_detected->landed && !above_quadchute_altitude_limit;
@@ -474,8 +563,8 @@ float VtolType::pusher_assist()
 		return 0.0f;
 	}
 
-	// Do not engage pusher assist during a failsafe event (could be a problem with the fixed wing drive)
-	if (_attc->get_vtol_vehicle_status()->fixed_wing_system_failure) {
+	// Do not engage pusher assist after a detected quad-chute (could be a problem with the fixed wing drive)
+	if (_attc->is_fixed_wing_system_failure()) {
 		return 0.0f;
 	}
 

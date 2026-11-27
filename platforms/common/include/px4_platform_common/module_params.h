@@ -47,10 +47,7 @@ class ModuleParams : public ListNode<ModuleParams *>
 {
 public:
 
-	ModuleParams(ModuleParams *parent)
-	{
-		setParent(parent);
-	}
+	ModuleParams(ModuleParams *parent);
 
 	/**
 	 * @brief Sets the parent module. This is typically not required,
@@ -71,14 +68,7 @@ protected:
 	 * @brief Call this method whenever the module gets a parameter change notification.
 	 *        It will automatically call updateParams() for all children, which then call updateParamsImpl().
 	 */
-	virtual void updateParams()
-	{
-		for (const auto &child : _children) {
-			child->updateParams();
-		}
-
-		updateParamsImpl();
-	}
+	virtual void updateParams();
 
 	/**
 	 * @brief The implementation for this is generated with the macro DEFINE_PARAMETERS()

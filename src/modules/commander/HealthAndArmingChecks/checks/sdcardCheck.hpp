@@ -58,6 +58,6 @@ private:
 #endif // PX4_STORAGEDIR
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
-					(ParamBool<px4::params::COM_ARM_HFLT_CHK>) _param_com_arm_hardfault_check
+					(ParamBool<px4::params::COM_ARM_HFLT_CHK>) _param_com_arm_hflt_chk
 				       )
 };

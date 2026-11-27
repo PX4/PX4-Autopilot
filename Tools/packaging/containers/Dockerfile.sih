@@ -11,6 +11,9 @@
 # Run (macOS / Windows):
 #   docker run --rm -it px4io/px4-sitl:v1.17.0
 #
+# Use Zenoh instead of uXRCE-DDS (zenoh router on the host, TCP port 7447):
+#   docker run --rm -it --network host -e PX4_ROS2_MIDDLEWARE=zenoh px4io/px4-sitl:v1.17.0
+#
 # Persist flight logs on the host (ulog files):
 #   mkdir -p ./px4-logs
 #   docker run --rm -it --network host \
@@ -48,7 +51,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     && ln -sf /opt/px4/bin/px4 /usr/bin/px4
 
 # Platform-adaptive entrypoint: detects Docker Desktop (macOS/Windows) via
-# host.docker.internal and configures MAVLink + DDS to target the host.
+# host.docker.internal and configures MAVLink, DDS and Zenoh to target the host.
 COPY px4-network.sh /usr/local/lib/px4/network.sh
 COPY px4-entrypoint.sh /opt/px4/bin/px4-entrypoint.sh
 RUN chmod +x /opt/px4/bin/px4-entrypoint.sh

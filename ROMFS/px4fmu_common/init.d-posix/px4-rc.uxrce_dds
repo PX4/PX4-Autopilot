@@ -1,0 +1,35 @@
+#!/bin/sh
+# shellcheck disable=SC2154
+
+# Start the uXRCE-DDS client with UDP transport (sourced by rcS when selected)
+uxrce_dds_ns=""
+if [ "$px4_instance" -ne "0" ]
+then
+	# for multi instances setup, add namespace prefix
+	uxrce_dds_ns="-n uav_$px4_instance"
+fi
+if [ "${PX4_UXRCE_DDS_NS+x}" ]; then
+	# Override, as variable is set (empty or not)
+	if [ -n "$PX4_UXRCE_DDS_NS" ]; then
+		# Override namespace if environment variable is non-empty
+		uxrce_dds_ns="-n $PX4_UXRCE_DDS_NS"
+	else
+		# Clear namespace if variable is empty
+		uxrce_dds_ns=""
+	fi
+fi
+if [ -n "$ROS_DOMAIN_ID" ]
+then
+	# Match UXRCE_DDS_DOM_ID with ROS_DOMAIN_ID, if defined
+	param set UXRCE_DDS_DOM_ID $ROS_DOMAIN_ID
+else
+	param set UXRCE_DDS_DOM_ID 0
+fi
+uxrce_dds_port=8888
+if [ -n "$PX4_UXRCE_DDS_PORT" ]
+then
+	# Override port if environment variable is defined
+	uxrce_dds_port="$PX4_UXRCE_DDS_PORT"
+fi
+
+uxrce_dds_client start -t udp -p $uxrce_dds_port $uxrce_dds_ns

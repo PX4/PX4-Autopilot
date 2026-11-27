@@ -46,6 +46,7 @@
 #include <math.h>
 
 #include <lib/hysteresis/hysteresis.h>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
@@ -59,6 +60,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
@@ -167,6 +169,10 @@ private:
 	hrt_abstime _total_flight_time{0};	///< total vehicle flight time in microseconds
 
 	hrt_abstime _time_last_move_detect_us{0};	// timestamp of last movement detection event in microseconds
+	hrt_abstime _time_last_acceleration_sample_us{0};
+
+	AlphaFilter<matrix::Vector3f> _specific_force_fast{0.5f};
+	AlphaFilter<matrix::Vector3f> _specific_force_slow{5.f};
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
@@ -175,6 +181,7 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
+	uORB::Subscription _sensor_combined_sub{ORB_ID(sensor_combined)};
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
@@ -189,8 +196,8 @@ private:
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		ModuleParams,
-		(ParamInt<px4::params::LND_FLIGHT_T_HI>) _param_total_flight_time_high,
-		(ParamInt<px4::params::LND_FLIGHT_T_LO>) _param_total_flight_time_low
+		(ParamInt<px4::params::LND_FLIGHT_T_HI>) _param_lnd_flight_t_hi,
+		(ParamInt<px4::params::LND_FLIGHT_T_LO>) _param_lnd_flight_t_lo
 	);
 };
 

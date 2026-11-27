@@ -339,6 +339,7 @@ In addition, the _Average Value_ column shows typical values that might reasonab
 | vpos drift rate      | <&nbsp;0.2 ([GNSS_REQ_VDRIFT](../advanced_config/parameter_reference.md#GNSS_REQ_VDRIFT)) | 0.02          | m/s   | Drift rate calculated from reported GNSS altitude (when stationary).                                                                        |
 | hspd                 | <&nbsp;0.1 ([GNSS_REQ_HDRIFT](../advanced_config/parameter_reference.md#GNSS_REQ_HDRIFT)) | 0.01          | m/s   | Filtered magnitude of reported GNSS horizontal velocity.                                                                                    |
 | vspd                 | <&nbsp;0.2 ([GNSS_REQ_VDRIFT](../advanced_config/parameter_reference.md#GNSS_REQ_VDRIFT)) | 0.02          | m/s   | Filtered magnitude of reported GNSS vertical velocity.                                                                                      |
+| hkin inconsistency   | <&nbsp;2.0 ([GNSS_REQ_HKIN](../advanced_config/parameter_reference.md#GNSS_REQ_HKIN))     | -             | m/s   | Filtered rate of change of the reported horizontal position minus the reported horizontal velocity, also in flight.                         |
 
 ::: info
 The `hpos_drift_rate`, `vpos_drift_rate` and `hspd` are calculated over a period of 10 seconds and published in the `ekf2_gps_drift` topic.
@@ -528,11 +529,13 @@ A good tuning is obtained as follows:
 [Optical flow](../sensor/optical_flow.md) data will be used if the following conditions are met:
 
 - Valid range finder data is available.
-- [EKF2_OF_CTRL](../advanced_config/parameter_reference.md#EKF2_OF_CTRL) is set.
-- The quality metric returned by the flow sensor is greater than the minimum requirement set by the [EKF2_OF_QMIN](../advanced_config/parameter_reference.md#EKF2_OF_QMIN) parameter.
+- [EKF2_OF0_CTRL](../advanced_config/parameter_reference.md#EKF2_OF0_CTRL) is set.
+- The quality metric returned by the flow sensor is greater than the minimum requirement set by the [EKF2_OF0_QMIN](../advanced_config/parameter_reference.md#EKF2_OF0_QMIN) parameter.
+- For a second flow sensor [EKF2_OF1_CTRL](../advanced_config/parameter_reference.md#EKF2_OF1_CTRL) is set and the quality metric is greater than [EKF2_OF1_QMIN](../advanced_config/parameter_reference.md#EKF2_OF1_QMIN).
 
-For better performance, set the location of the optical flow sensor as described [here](../sensor/optical_flow.md#ekf2).
+Up to two optical flow sensors can be fused at the same time, each with its own set of `EKF2_OFn_*` parameters (see [Optical Flow > Multiple Optical Flow Sensors](../sensor/optical_flow.md#multiple-flow-sensors)).
 
+For better performance, set the location of the optical flow sensor as described in [Optical Flow > EKF2](../sensor/optical_flow.md#ekf2).
 If a stable hover can be achieved at low altitude above ground (< 10m) but slow oscillations occur at higher altitude, consider adjusting the [optical flow scale factor](../sensor/optical_flow.md#scale-factor).
 
 ### External Vision System
@@ -605,8 +608,8 @@ When this has been done, the performance metadata files can be processed to prov
 
 ### States
 
-Refer to states\[24\] in [EstimatorStates](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStates.msg).
-The index map for states\[24\] is as follows:
+Refer to states\[25\] in [EstimatorStates](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStates.msg).
+The index map for states\[25\] is as follows:
 
 - \[0 ... 3\] Quaternions
 - \[4 ... 6\] Velocity NED \(m/s\)
@@ -616,20 +619,22 @@ The index map for states\[24\] is as follows:
 - \[16 ... 18\] Earth magnetic field NED \(gauss\)
 - \[19 ... 21\] Body magnetic field XYZ \(gauss\)
 - \[22 ... 23\] Wind velocity NE \(m/s\)
+- \[24\] Terrain altitude, AMSL downpositive \(m\)
 
 ### State Variances
 
 Refer to covariances\[24\] in [EstimatorStates](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStates.msg).
 The index map for covariances\[24\] is as follows:
 
-- \[0 ... 3\] Quaternions
-- \[4 ... 6\] Velocity NED \(m/s\)^2
-- \[7 ... 9\] Position NED \(m^2\)
-- \[10 ... 12\] IMU delta angle bias XYZ \(rad^2\)
-- \[13 ... 15\] IMU delta velocity bias XYZ \(m/s\)^2
-- \[16 ... 18\] Earth magnetic field NED \(gauss^2\)
-- \[19 ... 21\] Body magnetic field XYZ \(gauss^2\)
-- \[22 ... 23\] Wind velocity NE \(m/s\)^2
+- \[0 ... 2\] Quaternions
+- \[3 ... 5\] Velocity NED \(m/s\)^2
+- \[6 ... 8\] Position NED \(m^2\)
+- \[9 ... 11\] IMU delta angle bias XYZ \(rad^2\)
+- \[12 ... 14\] IMU delta velocity bias XYZ \(m/s\)^2
+- \[15 ... 17\] Earth magnetic field NED \(gauss^2\)
+- \[18 ... 20\] Body magnetic field XYZ \(gauss^2\)
+- \[21 ... 22\] Wind velocity NE \(m/s\)^2
+- \[23\] Terrain altitude \(m\)
 
 ### Observation Innovations & Innovation Variances
 

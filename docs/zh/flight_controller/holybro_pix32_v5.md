@@ -145,11 +145,6 @@ The pinout uses the standard [Pixhawk Debug Mini](../debug/swd_debug.md#pixhawk-
 - [Telemetry Radio Modules](../telemetry/index.md)
 - [Rangefinders/Distance sensors](../sensor/rangefinders.md)
 
-## 支持的平台/机身
-
-Any multicopter / airplane / rover or boat that can be controlled with normal RC servos or Futaba S-Bus servos.
-The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
-
 ## 附加信息
 
 - [Pix32 v5 Technical Data Sheet](https://cdn.shopify.com/s/files/1/0604/5905/7341/files/Holybro_PIX32-V5_technical_data_sheet_v1.1.pdf)

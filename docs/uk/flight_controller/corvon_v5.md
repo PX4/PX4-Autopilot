@@ -177,11 +177,6 @@ make corvon_v5_default
 If this target is not listed in _QGroundControl_, build and upload from source or load a custom firmware file (see [Installing PX4 Main, Beta or Custom Firmware](../config/firmware.md#installing-px4-main-beta-or-custom-firmware)).
 :::
 
-## Підтримувані платформи / Конструкції
-
-Будь-який мультикоптер / літак / наземна платформа / човен, який може керуватися звичайними RC сервоприводами або сервоприводами Futaba S-Bus.
-The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
-
 ## Зображення
 
 ![CORVON V5 front view](../../assets/flight_controller/corvon_v5/frontview.png)

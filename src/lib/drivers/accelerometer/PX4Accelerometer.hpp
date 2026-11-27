@@ -94,4 +94,5 @@ private:
 	failure_injection::Config _failure_config;
 	failure_injection::Stuck<sensor_accel_s> _stuck;
 	failure_injection::Stuck<sensor_accel_fifo_s> _stuck_fifo;
+	hrt_abstime _drift_start{0};
 };

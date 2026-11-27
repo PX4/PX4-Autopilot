@@ -76,6 +76,14 @@ public:
 
 	void RequestInstance(uint8_t instance) { _request_instance.store(instance); }
 
+protected:
+	/**
+	 * Run one selection cycle at the given time without rescheduling.
+	 *
+	 * @return false while no instance can be selected yet
+	 */
+	bool Update(const hrt_abstime now);
+
 private:
 	static constexpr uint8_t INVALID_INSTANCE{UINT8_MAX};
 
@@ -88,17 +96,17 @@ private:
 
 	void PrintInstanceChange(const uint8_t old_instance, uint8_t new_instance);
 
-	void PublishEstimatorSelectorStatus();
+	void PublishEstimatorSelectorStatus(const hrt_abstime now);
 	void PublishVehicleAttitude();
 	void PublishVehicleLocalPosition();
 	void PublishVehicleGlobalPosition();
 	void PublishVehicleOdometry();
 	void PublishWindEstimate();
 
-	bool SelectInstance(uint8_t instance);
+	bool SelectInstance(uint8_t instance, const hrt_abstime now);
 
 	// Update the error scores for all available instances
-	bool UpdateErrorScores();
+	bool UpdateErrorScores(const hrt_abstime now);
 
 	// Subscriptions (per estimator instance)
 	struct EstimatorInstance {
@@ -243,10 +251,10 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::EKF2_SEL_ERR_RED>) _param_ekf2_sel_err_red,
-		(ParamFloat<px4::params::EKF2_SEL_IMU_RAT>) _param_ekf2_sel_imu_angle_rate,
-		(ParamFloat<px4::params::EKF2_SEL_IMU_ANG>) _param_ekf2_sel_imu_angle,
-		(ParamFloat<px4::params::EKF2_SEL_IMU_ACC>) _param_ekf2_sel_imu_accel,
-		(ParamFloat<px4::params::EKF2_SEL_IMU_VEL>) _param_ekf2_sel_imu_velocity
+		(ParamFloat<px4::params::EKF2_SEL_IMU_RAT>) _param_ekf2_sel_imu_rat,
+		(ParamFloat<px4::params::EKF2_SEL_IMU_ANG>) _param_ekf2_sel_imu_ang,
+		(ParamFloat<px4::params::EKF2_SEL_IMU_ACC>) _param_ekf2_sel_imu_acc,
+		(ParamFloat<px4::params::EKF2_SEL_IMU_VEL>) _param_ekf2_sel_imu_vel
 	)
 };
 #endif // !EKF2SELECTOR_HPP

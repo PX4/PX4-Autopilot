@@ -294,43 +294,38 @@ fi
 
 navigator start
 
-# Try to start the UXRCE-DDS Client with UDP transport if module exists
-uxrce_dds_ns=""
-if [ "$px4_instance" -ne "0" ]
-then
-	# for multi instances setup, add namespace prefix
-	uxrce_dds_ns="-n uav_$px4_instance"
-fi
-if [ "${PX4_UXRCE_DDS_NS+x}" ]; then
-	# Override, as variable is set (empty or not)
-	if [ -n "$PX4_UXRCE_DDS_NS" ]; then
-		# Override namespace if environment variable is non-empty
-		uxrce_dds_ns="-n $PX4_UXRCE_DDS_NS"
-	else
-		# Clear namespace if variable is empty
-		uxrce_dds_ns=""
-	fi
-fi
-if [ -n "$ROS_DOMAIN_ID" ]
-then
-	# Match UXRCE_DDS_DOM_ID with ROS_DOMAIN_ID, if defined
-	param set UXRCE_DDS_DOM_ID $ROS_DOMAIN_ID
-else
-	param set UXRCE_DDS_DOM_ID 0
-fi
-uxrce_dds_port=8888
-if [ -n "$PX4_UXRCE_DDS_PORT" ]
-then
-	# Override port if environment variable is defined
-	uxrce_dds_port="$PX4_UXRCE_DDS_PORT"
-fi
-
-uxrce_dds_client start -t udp -p $uxrce_dds_port $uxrce_dds_ns
-
+# ROS 2 middleware: PX4_ROS2_MIDDLEWARE (uxrce_dds, zenoh or none) overrides
+# ZENOH_ENABLE. uXRCE-DDS runs unless Zenoh is enabled or none is selected.
+ros2_middleware=uxrce_dds
+case "$PX4_ROS2_MIDDLEWARE" in
+	"")
+		;;
+	uxrce_dds)
+		param set ZENOH_ENABLE 0
+		;;
+	zenoh)
+		param set ZENOH_ENABLE 1
+		;;
+	none)
+		param set ZENOH_ENABLE 0
+		ros2_middleware=none
+		;;
+	*)
+		echo "WARN [init] Unknown PX4_ROS2_MIDDLEWARE '$PX4_ROS2_MIDDLEWARE', expected uxrce_dds, zenoh or none"
+		;;
+esac
 if param greater -s ZENOH_ENABLE 0
 then
-	zenoh start
+	ros2_middleware=zenoh
 fi
+case "$ros2_middleware" in
+	uxrce_dds)
+		. px4-rc.uxrce_dds
+		;;
+	zenoh)
+		. px4-rc.zenoh
+		;;
+esac
 
 if param greater -s MNT_MODE_IN -1
 then

@@ -235,11 +235,6 @@ For information about using this port see:
 - [Holybro GPS & RTK Systems](https://holybro.com/collections/gps-rtk-systems)
 - [Power Modules & PDBs](https://holybro.com/collections/power-modules-pdbs)
 
-## Supported Platforms/Airframes
-
-Any multicopter / airplane / rover or boat that can be controlled with normal RC servos or Futaba S-Bus servos.
-The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
-
 ## CAD File
 
 Download [here](https://docs.holybro.com/autopilot/pixhawk-6x-pro/download).

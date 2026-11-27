@@ -42,21 +42,21 @@ GZMixingInterfaceServo::get_servo_angle_max(const size_t index)
 	float angle;
 
 	switch (index) {
-	case 0: {angle = _servo_max_angle_1.get(); break;}
+	case 0: {angle = _param_sim_gz_sv_maxa1.get(); break;}
 
-	case 1: {angle = _servo_max_angle_2.get(); break;}
+	case 1: {angle = _param_sim_gz_sv_maxa2.get(); break;}
 
-	case 2: {angle = _servo_max_angle_3.get(); break;}
+	case 2: {angle = _param_sim_gz_sv_maxa3.get(); break;}
 
-	case 3: {angle = _servo_max_angle_4.get(); break;}
+	case 3: {angle = _param_sim_gz_sv_maxa4.get(); break;}
 
-	case 4: {angle = _servo_max_angle_5.get(); break;}
+	case 4: {angle = _param_sim_gz_sv_maxa5.get(); break;}
 
-	case 5: {angle = _servo_max_angle_6.get(); break;}
+	case 5: {angle = _param_sim_gz_sv_maxa6.get(); break;}
 
-	case 6: {angle = _servo_max_angle_7.get(); break;}
+	case 6: {angle = _param_sim_gz_sv_maxa7.get(); break;}
 
-	case 7: {angle = _servo_max_angle_8.get(); break;}
+	case 7: {angle = _param_sim_gz_sv_maxa8.get(); break;}
 
 	default: {angle = NAN; break;}
 	}
@@ -75,21 +75,21 @@ GZMixingInterfaceServo::get_servo_angle_min(const size_t index)
 	float angle;
 
 	switch (index) {
-	case 0: {angle = _servo_min_angle_1.get(); break;}
+	case 0: {angle = _param_sim_gz_sv_mina1.get(); break;}
 
-	case 1: {angle = _servo_min_angle_2.get(); break;}
+	case 1: {angle = _param_sim_gz_sv_mina2.get(); break;}
 
-	case 2: {angle = _servo_min_angle_3.get(); break;}
+	case 2: {angle = _param_sim_gz_sv_mina3.get(); break;}
 
-	case 3: {angle = _servo_min_angle_4.get(); break;}
+	case 3: {angle = _param_sim_gz_sv_mina4.get(); break;}
 
-	case 4: {angle = _servo_min_angle_5.get(); break;}
+	case 4: {angle = _param_sim_gz_sv_mina5.get(); break;}
 
-	case 5: {angle = _servo_min_angle_6.get(); break;}
+	case 5: {angle = _param_sim_gz_sv_mina6.get(); break;}
 
-	case 6: {angle = _servo_min_angle_7.get(); break;}
+	case 6: {angle = _param_sim_gz_sv_mina7.get(); break;}
 
-	case 7: {angle = _servo_min_angle_8.get(); break;}
+	case 7: {angle = _param_sim_gz_sv_mina8.get(); break;}
 
 	default: {angle = NAN; break;}
 

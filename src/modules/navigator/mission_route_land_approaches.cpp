@@ -159,34 +159,34 @@ loiter_point_s chooseBestLandingApproach(const land_approaches_s &approaches, co
 	return best_index >= 0 ? approaches.approaches[best_index] : loiter_point_s{};
 }
 
+// One named result on every path lets GCC build it in the caller's storage (NRVO),
+// otherwise the struct is on the stack twice.
 land_approaches_s getVtolLandApproachesNearLocation(const Provider &provider,
 		const PositionYawSetpoint &rtl_position, float home_altitude_amsl)
 {
+	land_approaches_s vtol_land_approaches{};
 	int safe_point_index = -1;
 	Position safe_point_position{};
 
-	if (!findAssociatedSafePointIndex(provider, rtl_position, home_altitude_amsl, safe_point_index, safe_point_position)) {
-		return {};
+	if (findAssociatedSafePointIndex(provider, rtl_position, home_altitude_amsl, safe_point_index, safe_point_position)) {
+		vtol_land_approaches.land_location_lat_lon = matrix::Vector2d(safe_point_position.lat, safe_point_position.lon);
+		scanVtolLandApproachBlock(provider, safe_point_index, home_altitude_amsl, &vtol_land_approaches);
 	}
 
-	land_approaches_s vtol_land_approaches{};
-	vtol_land_approaches.land_location_lat_lon = matrix::Vector2d(safe_point_position.lat, safe_point_position.lon);
-	scanVtolLandApproachBlock(provider, safe_point_index, home_altitude_amsl, &vtol_land_approaches);
 	return vtol_land_approaches;
 }
 
 land_approaches_s getVtolLandApproachesAtSafePointIndex(const Provider &provider, int safe_point_index,
 		float home_altitude_amsl)
 {
+	land_approaches_s vtol_land_approaches{};
 	Position safe_point_position{};
 
-	if (!loadSafePointPosition(provider, safe_point_index, home_altitude_amsl, safe_point_position)) {
-		return {};
+	if (loadSafePointPosition(provider, safe_point_index, home_altitude_amsl, safe_point_position)) {
+		vtol_land_approaches.land_location_lat_lon = matrix::Vector2d(safe_point_position.lat, safe_point_position.lon);
+		scanVtolLandApproachBlock(provider, safe_point_index, home_altitude_amsl, &vtol_land_approaches);
 	}
 
-	land_approaches_s vtol_land_approaches{};
-	vtol_land_approaches.land_location_lat_lon = matrix::Vector2d(safe_point_position.lat, safe_point_position.lon);
-	scanVtolLandApproachBlock(provider, safe_point_index, home_altitude_amsl, &vtol_land_approaches);
 	return vtol_land_approaches;
 }
 

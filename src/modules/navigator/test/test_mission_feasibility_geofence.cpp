@@ -352,6 +352,30 @@ TEST_F(MissionFeasibilityGeofenceTest, EmptyFenceStillChecksHomeLimits)
 	EXPECT_TRUE(waypointEvent(events::ID("navigator_mis_geofence_violation"), 2));
 }
 
+// Every position keeps the contingency geofence margin to the maximum distance from Home.
+TEST_F(MissionFeasibilityGeofenceTest, PositionsMustKeepTheMarginToTheHomeDistance)
+{
+	const float maximum = 400.f;
+	const float margin = 100.f;
+	ASSERT_EQ(param_set(param_find("GF_MAX_HOR_DIST"), &maximum), PX4_OK);
+	_navigator.updateParams();
+	EXPECT_TRUE(missionFeasible({waypoint({0.f, 200.f}), waypoint({0.f, 350.f})}));
+
+	ASSERT_EQ(param_set(param_find("GF_CONT_H_MARGIN"), &margin), PX4_OK);
+	_navigator.updateParams();
+	EXPECT_TRUE(missionFeasible({waypoint({0.f, 200.f}), waypoint({0.f, 290.f})}));
+	EXPECT_FALSE(missionFeasible({waypoint({0.f, 350.f})}));
+	EXPECT_TRUE(waypointEvent(events::ID("navigator_mis_geofence_violation"), 1));
+	EXPECT_FALSE(missionFeasible({waypoint({0.f, 200.f}), waypoint({0.f, 350.f})}));
+	EXPECT_TRUE(waypointEvent(events::ID("navigator_mis_geofence_violation"), 2));
+
+	// As with GF_ACTION, an action of None does not switch the mission check off.
+	const int32_t none = geofence_result_s::GF_ACTION_NONE;
+	ASSERT_EQ(param_set(param_find("GF_CONT_ACTION"), &none), PX4_OK);
+	_navigator.updateParams();
+	EXPECT_FALSE(missionFeasible({waypoint({0.f, 350.f})}));
+}
+
 TEST_F(MissionFeasibilityGeofenceTest, EmptyFenceIgnoresStoredAltitudeBand)
 {
 	GeofenceTestPeer::setAltitudeBand(_fence, 450.f, 550.f);
@@ -437,13 +461,11 @@ TEST_F(MissionFeasibilityGeofenceTest, UnreadableMissionStorageRejectsUpload)
 class MissionGeofenceJumpTest : public MissionFeasibilityGeofenceTest
 {
 protected:
-	void expectJumpFailure(uint16_t item, bool invalid = false)
+	void expectJumpFailure(uint16_t item)
 	{
-		const std::string message = invalid ? "Mission rejected: DO_JUMP " + std::to_string(item) + " path cannot be resolved" :
-					    "Geofence breach on DO_JUMP " + std::to_string(item) + " path";
+		const std::string message = "Geofence breach on DO_JUMP " + std::to_string(item) + " path";
 		EXPECT_TRUE(logContains(message.c_str()));
-		EXPECT_TRUE(waypointEvent(invalid ? events::ID("navigator_mis_do_jump_invalid") :
-					  events::ID("navigator_mis_geofence_jump_breach"), item));
+		EXPECT_TRUE(waypointEvent(events::ID("navigator_mis_geofence_jump_breach"), item));
 	}
 };
 
@@ -498,6 +520,17 @@ INSTANTIATE_TEST_SUITE_P(MissionJumpRepeats, MissionGeofenceJumpRepeatTest, ::te
 	return test_info.param.name;
 });
 
+// The jump edge ends at the waypoint after a command at the jump target.
+TEST_F(MissionGeofenceJumpTest, JumpEdgeEndsAtTheWaypointAfterTheTargetCommand)
+{
+	ASSERT_TRUE(loadFence(exclusionSquare()));
+	EXPECT_FALSE(missionFeasible({
+		changeSpeed(), waypoint({300.f, 500.f}), waypoint({300.f, 100.f}), waypoint({-300.f, 100.f}),
+		navigator_test::makeDoJump(0, 1)
+	}));
+	expectJumpFailure(5);
+}
+
 TEST_F(MissionGeofenceJumpTest, FallthroughLegIsReportedWithItsWaypoint)
 {
 	ASSERT_TRUE(loadFence(exclusionSquare()));
@@ -508,94 +541,75 @@ TEST_F(MissionGeofenceJumpTest, FallthroughLegIsReportedWithItsWaypoint)
 	expectPathViolation(3);
 }
 
-TEST_F(MissionGeofenceJumpTest, ChecksCommandAndChainedDestination)
-{
-	ASSERT_TRUE(loadFence(exclusionSquare()));
-	// Item 6 reaches the southwest corner through an earlier command and jump.
-	EXPECT_FALSE(missionFeasible({
-		waypoint({-300.f, 100.f}), changeSpeed(), navigator_test::makeDoJump(0, 1),
-		waypoint({300.f, 100.f}), waypoint({300.f, 500.f}), navigator_test::makeDoJump(1, 1)
-	}));
-	expectJumpFailure(6);
-}
-
-class MissionGeofenceNestedJumpTest : public MissionGeofenceJumpTest,
-	public ::testing::WithParamInterface<bool> {};
-
-TEST_P(MissionGeofenceNestedJumpTest, ChecksFallthroughAfterNestedJumpExhausts)
-{
-	ASSERT_TRUE(loadFence(exclusionSquare()));
-	const bool spent_counter = GetParam();
-	// Item 2 jumps to the southeast corner while active, then falls through to the
-	// southwest corner. That second destination makes item 6's backward jump cross the square.
-	// A stored counter does not change this: the check ignores execution state.
-	EXPECT_FALSE(missionFeasible({
-		waypoint({-300.f, 500.f}), navigator_test::makeDoJump(0, 1, spent_counter ? 1 : 0),
-		waypoint({-300.f, 100.f}), waypoint({300.f, 100.f}), waypoint({300.f, 500.f}),
-		navigator_test::makeDoJump(1, 2)
-	}));
-	expectJumpFailure(6);
-}
-
-INSTANTIATE_TEST_SUITE_P(MissionNestedJumps, MissionGeofenceNestedJumpTest, ::testing::Bool(),
-			 [](const ::testing::TestParamInfo<bool> &test_info)
-{
-	return test_info.param ? "SpentCounterIgnored" : "ExhaustsOnLaterVisit";
-});
-
-struct MissionJumpChainCase {
-	const char *name;
-	unsigned jumps;
-	bool commands_between;
-	bool feasible;
+// The DO_JUMP rule needs no fence: the mission check applies it on every board.
+struct JumpTargetItem {
+	char kind; // W: waypoint, C: command, J: DO_JUMP
+	int16_t target;
+	uint16_t repeats;
 };
 
-class MissionGeofenceJumpChainTest : public MissionGeofenceJumpTest,
-	public ::testing::WithParamInterface<MissionJumpChainCase> {};
+struct JumpTargetCase {
+	const char *name;
+	std::vector<JumpTargetItem> items;
+	uint16_t rejected_jump; // mission item number, 0 when the mission is accepted
+};
 
-TEST_P(MissionGeofenceJumpChainTest, ResolvesChainsLikeTheMission)
+class MissionJumpTargetTest : public MissionFeasibilityGeofenceTest,
+	public ::testing::WithParamInterface<JumpTargetCase> {};
+
+TEST_P(MissionJumpTargetTest, RejectsTargetThatReachesAJumpBeforeAWaypoint)
 {
-	const MissionJumpChainCase &test = GetParam();
-	ASSERT_TRUE(loadFence(inclusionSquare()));
-	std::vector<mission_item_s> items{waypoint({0.f, 0.f})};
+	const JumpTargetCase &test = GetParam();
+	std::vector<mission_item_s> items;
 
-	// The final backward jump targets a chain of disabled jumps leading to a safe waypoint.
-	// Every target is earlier, and even disabled jumps count towards NAV_MAX_JUMP_ITERATION.
-	// Non-jump commands between them start a new resolution count.
-	for (unsigned i = 1; i < test.jumps; ++i) {
-		items.push_back(navigator_test::makeDoJump(0, 0));
+	for (const JumpTargetItem &item : test.items) {
+		switch (item.kind) {
+		case 'W':
+			items.push_back(waypoint({100.f * items.size(), 0.f}));
+			break;
 
-		if (test.commands_between) {
+		case 'C':
 			items.push_back(changeSpeed());
+			break;
+
+		default:
+			items.push_back(navigator_test::makeDoJump(item.target, item.repeats));
+			break;
 		}
 	}
 
-	items.push_back(waypoint({0.f, 100.f}));
-	const uint16_t jump_index = items.size();
-	items.push_back(navigator_test::makeDoJump(1, 1));
-	EXPECT_EQ(missionFeasible(items), test.feasible);
+	EXPECT_EQ(missionFeasible(items), test.rejected_jump == 0);
 
-	if (!test.feasible) {
-		expectJumpFailure(jump_index + 1, true);
+	if (test.rejected_jump != 0) {
+		const std::string message = "Mission rejected: DO_JUMP " + std::to_string(test.rejected_jump)
+					    + " target reaches a DO_JUMP before a waypoint";
+		EXPECT_TRUE(logContains(message.c_str()));
+		EXPECT_TRUE(waypointEvent(events::ID("navigator_mis_jump_no_waypoint"), test.rejected_jump));
 	}
 }
 
-INSTANTIATE_TEST_SUITE_P(MissionJumpChains, MissionGeofenceJumpChainTest, ::testing::Values(
-				 MissionJumpChainCase{"LongestResolvableChain", NAV_MAX_JUMP_ITERATION - 1, false, true},
-				 MissionJumpChainCase{"UnresolvableChain", NAV_MAX_JUMP_ITERATION, false, false},
-				 MissionJumpChainCase{"CommandsBetweenJumps", NAV_MAX_JUMP_ITERATION + 1, true, true}),
-			 [](const ::testing::TestParamInfo<MissionJumpChainCase> &test_info)
+static const JumpTargetCase kJumpTargetCases[] {
+	// The lookahead follows the active jump back to the command forever, so Navigator hangs.
+	{"CommandOnlyLoop", {{'W'}, {'C'}, {'J', 1, 5}, {'W'}}, 3},
+	{"CommandOnlyLoopAtMissionEnd", {{'W'}, {'C'}, {'J', 1, 5}}, 3},
+	// With only DO_JUMPs in between, the outer jump spins on the spent inner one and ends the mission early.
+	{"JumpRightAfterItsTarget", {{'W'}, {'J', 0, 1}, {'J', 1, 4}, {'W'}}, 3},
+	// A jump to a jump is rejected also when execution would continue, directly or through commands.
+	{"TargetIsAJump", {{'W'}, {'J', 0, 1}, {'W'}, {'J', 1, 1}}, 4},
+	{"CommandThenJump", {{'W'}, {'C'}, {'J', 0, 1}, {'W'}, {'J', 1, 1}}, 5},
+	// Rejected although execution steps over a jump without repeats.
+	{"JumpWithoutRepeatsOnTheWay", {{'W'}, {'C'}, {'J', 0, 0}, {'W'}, {'J', 1, 1}}, 5},
+	// Like the earlier-target rule, the check ignores the repeat count of the checked jump.
+	{"CheckedJumpWithoutRepeats", {{'W'}, {'C'}, {'J', 1, 0}, {'W'}}, 3},
+	{"CommandsBeforeTheWaypoint", {{'W'}, {'C'}, {'W'}, {'J', 1, 2}, {'W'}}, 0},
+	{"NestedLoops", {{'W'}, {'W'}, {'J', 1, 2}, {'W'}, {'J', 0, 1}}, 0},
+};
+
+INSTANTIATE_TEST_SUITE_P(JumpTargets, MissionJumpTargetTest, ::testing::ValuesIn(kJumpTargetCases),
+			 [](const ::testing::TestParamInfo<JumpTargetCase> &test_info)
 {
 	return test_info.param.name;
 });
-
-TEST_F(MissionGeofenceJumpTest, RejectsLoopThroughACommand)
-{
-	ASSERT_TRUE(loadFence(inclusionSquare()));
-	// The traversal limit must also stop a loop containing a non-position command.
-	EXPECT_FALSE(missionFeasible({changeSpeed(), navigator_test::makeDoJump(0, 1)}));
-	expectJumpFailure(2, true);
-}
 
 class MissionGeofenceJumpOrderTest : public MissionGeofenceJumpTest,
 	public ::testing::WithParamInterface<bool> {};
@@ -647,6 +661,16 @@ protected:
 		status.is_vtol = is_vtol;
 		*_navigator.get_vstatus() = status;
 		_status_pub.publish(status);
+		return true;
+	}
+
+	bool setMargin(float margin)
+	{
+		if (param_set(param_find("GF_CONT_H_MARGIN"), &margin) != PX4_OK) {
+			return false;
+		}
+
+		_navigator.updateParams();
 		return true;
 	}
 
@@ -737,6 +761,54 @@ TEST_F(MissionGeofenceLoiterTest, EmptyFenceStillChecksCircleDistanceFromHome)
 	EXPECT_TRUE(missionFeasible({loiter(250.f, 40.f)}));
 	EXPECT_FALSE(missionFeasible({loiter(250.f, 60.f)}));
 	expectLoiterViolation(1);
+}
+
+TEST_F(MissionGeofenceLoiterTest, CircleMustKeepTheMarginToTheHomeDistance)
+{
+	ASSERT_TRUE(configureVehicle());
+	const float maximum = 400.f;
+	ASSERT_EQ(param_set(param_find("GF_MAX_HOR_DIST"), &maximum), PX4_OK);
+	_navigator.updateParams();
+
+	// The 60 m circle fits the geofence limit, but with the margin only the 40 m circle does.
+	EXPECT_TRUE(missionFeasible({loiter(250.f, 60.f)}));
+	ASSERT_TRUE(setMargin(100.f));
+	EXPECT_TRUE(missionFeasible({loiter(250.f, 40.f)}));
+	EXPECT_FALSE(missionFeasible({loiter(250.f, 60.f)}));
+	expectLoiterViolation(1);
+}
+
+TEST_F(MissionGeofenceLoiterTest, ContGeofenceMarginAppliesToPositionsAndPaths)
+{
+	ASSERT_TRUE(configureVehicle(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING));
+	ASSERT_TRUE(loadFence(inclusionSquare()));
+
+	// The middle waypoint is 50 m inside the eastern edge.
+	const std::vector<mission_item_s> items{waypoint({0.f, 800.f}), waypoint({0.f, 950.f}), waypoint({0.f, 800.f})};
+	EXPECT_TRUE(missionFeasible(items));
+
+	ASSERT_TRUE(setMargin(40.f));
+	EXPECT_TRUE(missionFeasible(items));
+
+	ASSERT_TRUE(setMargin(60.f));
+	EXPECT_FALSE(missionFeasible(items));
+	expectPathViolation(2);
+
+	// A first position within the margin fails its path without length.
+	EXPECT_FALSE(missionFeasible({waypoint({0.f, 950.f})}));
+	expectPathViolation(1);
+}
+
+TEST_F(MissionGeofenceLoiterTest, ContGeofenceMarginAppliesToLoiterCircles)
+{
+	ASSERT_TRUE(configureVehicle());
+	ASSERT_TRUE(setMargin(60.f));
+	ASSERT_TRUE(loadFence(inclusionSquare()));
+
+	// A 40 m loiter 100 m inside the edge: the vehicle on the circle keeps 60 m.
+	EXPECT_TRUE(missionFeasible({waypoint({0.f, 800.f}), loiter(890.f, 40.f), waypoint({0.f, 800.f})}));
+	EXPECT_FALSE(missionFeasible({waypoint({0.f, 800.f}), loiter(910.f, 40.f), waypoint({0.f, 800.f})}));
+	expectLoiterViolation(2);
 }
 
 TEST_F(MissionGeofenceLoiterTest, NaNDefaultRadiusRejectsTheEndLoiter)

@@ -137,6 +137,24 @@
 #  define BOARD_ADC_OPEN_CIRCUIT_V  (1.5f)
 #endif
 
+/* Define the default ESC-reported battery voltage at or below which no battery is considered connected */
+
+#if !defined(BOARD_ESC_BATTERY_OPEN_CIRCUIT_V)
+#  define BOARD_ESC_BATTERY_OPEN_CIRCUIT_V  (0.0f)
+#endif
+
+/* Define the default avionics 5V rail limits for the preflight power check.
+ * A board can override these in case it has different thresholds.
+ */
+
+#if !defined(BOARD_AVIONICS_5V_MIN_V)
+#  define BOARD_AVIONICS_5V_MIN_V  (4.7f)
+#endif
+
+#if !defined(BOARD_AVIONICS_5V_MAX_V)
+#  define BOARD_AVIONICS_5V_MAX_V  (5.4f)
+#endif
+
 /* Define the default Under voltage Window on the LTC4417 as set by resistors on the
  * board. Default is that of the FMUv2 at 3.7V
  */
@@ -391,6 +409,7 @@ typedef enum PX4_SOC_ARCH_ID_t {
 	PX4_SOC_ARCH_ID_NXPS32K344     =  0x0008,
 	PX4_SOC_ARCH_ID_NXPIMXRT1176   =  0x0009,
 	PX4_SOC_ARCH_ID_ERBIUM         =  0x000A,
+	PX4_SOC_ARCH_ID_NXPIMX95       =  0x000B,
 
 	PX4_SOC_ARCH_ID_EAGLE          =  0x1001,
 	PX4_SOC_ARCH_ID_QURT           =  0x1002,

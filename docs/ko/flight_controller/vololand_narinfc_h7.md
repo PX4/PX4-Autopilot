@@ -198,8 +198,3 @@ To [build PX4](../dev_setup/building_px4.md) for this target:
 ```sh
 make narinfc_h7_default
 ```
-
-## 지원 플랫폼 및 기체
-
-일반 RC 서보 또는 Futaba S-Bus 서보로 제어 가능한 모든 멀티콥터/비행기/로버 또는 보트.
-The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).

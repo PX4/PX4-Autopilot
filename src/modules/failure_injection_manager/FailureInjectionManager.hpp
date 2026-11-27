@@ -103,10 +103,17 @@ private:
 		(ParamInt<px4::params::SYS_FAIL_RC_UNIT>) _param_sys_fail_rc_unit,
 		(ParamInt<px4::params::SYS_FAIL_RC_MODE>) _param_sys_fail_rc_mode,
 		(ParamInt<px4::params::SYS_FAIL_RC_INST>) _param_sys_fail_rc_inst,
-		// Consumed via param_find() in failure_injection::process_XXXX(); registered
-		// here so it is marked used and shows up in the GCS parameter list.
+		// Consumed via param_find() in failure_injection::process_XXXX() and
+		// failure_injection::imu_offset(); registered here so they are marked used
+		// and show up in the GCS parameter list.
 		(ParamInt<px4::params::SYS_FAIL_GPS_WRG>) _param_sys_fail_gps_wrg,
 		(ParamInt<px4::params::SYS_FAIL_GPS_JAM>) _param_sys_fail_gps_jam,
-		(ParamInt<px4::params::SYS_FAIL_BAT_LVL>) _param_sys_fail_bat_lvl
+		(ParamInt<px4::params::SYS_FAIL_BAT_LVL>) _param_sys_fail_bat_lvl,
+		(ParamFloat<px4::params::SYS_FAIL_G_BIAS>) _param_sys_fail_g_bias,
+		(ParamFloat<px4::params::SYS_FAIL_G_NOISE>) _param_sys_fail_g_noise,
+		(ParamFloat<px4::params::SYS_FAIL_G_DRIFT>) _param_sys_fail_g_drift,
+		(ParamFloat<px4::params::SYS_FAIL_A_BIAS>) _param_sys_fail_a_bias,
+		(ParamFloat<px4::params::SYS_FAIL_A_NOISE>) _param_sys_fail_a_noise,
+		(ParamFloat<px4::params::SYS_FAIL_A_DRIFT>) _param_sys_fail_a_drift
 	)
 };

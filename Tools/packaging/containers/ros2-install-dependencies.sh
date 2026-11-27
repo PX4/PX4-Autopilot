@@ -18,8 +18,17 @@ apt-get install -y --no-install-recommends /ros2-apt-source.deb
 rm /ros2-apt-source.deb
 apt-get update
 apt-get install -y --no-install-recommends \
-    build-essential ccache cmake git ninja-build \
-    python3-empy python3-pip ros-dev-tools "ros-${ROS_DISTRO}-ros-base"
+    astyle build-essential ccache cmake git ninja-build \
+    python3-empy python3-pip ros-dev-tools "ros-${ROS_DISTRO}-ros-base" \
+    "ros-${ROS_DISTRO}-rmw-zenoh-cpp"
+
+# astyle-py requires PyYAML 6, which conflicts with the distro PyYAML pinned
+# below (5.4.1 on jammy). Rely on the distro astyle 3.1 installed above, which
+# Tools/astyle/fix_code_style.sh accepts. /px4-setup is a read-only bind mount,
+# so filter a copy of it.
+px4_setup_dir=$(mktemp -d)
+cp -r /px4-setup/. "${px4_setup_dir}"
+sed -i '/^astyle-py/d' "${px4_setup_dir}/requirements.txt"
 
 # Keep Ubuntu/ROS Python packages while satisfying PX4's shared requirements.
 # Distro-only versions (e.g. ubuntu suffixes) cannot be pip constraints.
@@ -42,8 +51,8 @@ else
     extra_args=""
 fi
 RUNS_IN_DOCKER=true PIP_CONSTRAINT=/px4-python-constraints.txt PIP_NO_CACHE_DIR=1 \
-    bash /px4-setup/ubuntu.sh --no-nuttx ${extra_args}
-rm /px4-python-constraints.txt
+    bash "${px4_setup_dir}/ubuntu.sh" --no-nuttx ${extra_args}
+rm -rf /px4-python-constraints.txt "${px4_setup_dir}"
 
 rosdep init
 rosdep update --rosdistro "${ROS_DISTRO}"

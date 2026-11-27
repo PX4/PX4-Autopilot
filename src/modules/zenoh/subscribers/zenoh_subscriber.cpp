@@ -56,10 +56,13 @@ void Zenoh_Subscriber::data_handler(const z_loaned_sample_t *sample)
 
 Zenoh_Subscriber::Zenoh_Subscriber()
 {
+	z_internal_subscriber_null(&_sub);
+	z_internal_liveliness_token_null(&_liveliness_token);
 }
 
 Zenoh_Subscriber::~Zenoh_Subscriber()
 {
+	z_liveliness_token_drop(z_liveliness_token_move(&_liveliness_token));
 	undeclare_subscriber();
 }
 
@@ -72,14 +75,14 @@ int Zenoh_Subscriber::undeclare_subscriber()
 int Zenoh_Subscriber::declare_subscriber(z_owned_session_t s, const char *keyexpr)
 {
 	z_owned_closure_sample_t callback;
-	z_closure(&callback, data_handler_cb, NULL, this);
+	z_closure(&callback, data_handler_cb, nullptr, this);
 
 	z_view_keyexpr_t ke;
 	z_view_keyexpr_from_str(&ke, keyexpr);
 
-	if (z_declare_subscriber(z_loan(s), &_sub, z_loan(ke), z_closure_sample_move(&callback), NULL) < 0) {
-		printf("Unable to declare subscriber.\n");
-		exit(-1);
+	if (z_declare_subscriber(z_loan(s), &_sub, z_loan(ke), z_closure_sample_move(&callback), nullptr) < 0) {
+		PX4_ERR("Unable to declare subscriber for %s", keyexpr);
+		return -1;
 	}
 
 	return 0;
@@ -96,7 +99,7 @@ void Zenoh_Subscriber::print(const char *type_string, const char *topic_string)
 {
 	const z_loaned_keyexpr_t *ke = z_subscriber_keyexpr(z_loan(_sub));
 
-	if (ke == NULL) {
+	if (ke == nullptr) {
 		printf("Topic: (unavailable) -> %s %s\n", type_string, topic_string);
 		return;
 	}

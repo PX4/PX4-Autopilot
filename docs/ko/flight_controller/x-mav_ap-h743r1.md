@@ -127,11 +127,6 @@ make x-mav_ap-h743r1_default
 
 ![AP-H743-R1](../../assets/flight_controller/x-mav_ap-h743r1/ap-h743r1-size.png)
 
-## 지원 플랫폼 및 기체
-
-Any multirotor/airplane/rover or boat that can be controlled using normal RC servos or Futaba S-Bus servos.
-The complete set of supported configurations can be found in the [Airframe Reference](../airframes/airframe_reference.md).
-
 ## Debug Port {#debug_port}
 
 ### SWD

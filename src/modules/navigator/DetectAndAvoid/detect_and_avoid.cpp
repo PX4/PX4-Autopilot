@@ -431,11 +431,11 @@ void DetectAndAvoid::evaluate_and_publish_action()
 void DetectAndAvoid::refresh_ownship_ids()
 {
 	_ownship_ids = {};
-	_ownship_ids.icao = _vehicle_adsb_icao.get();
-	_ownship_ids.icao_2 = _vehicle_adsb_icao_2.get();
+	_ownship_ids.icao = _param_adsb_icao_id.get();
+	_ownship_ids.icao_2 = _param_adsb_icao_id_2.get();
 
-	_ownship_ids.callsign = DaaEncodedId::callsign_params_to_uint64(_vehicle_adsb_callsign_1.get(),
-				_vehicle_adsb_callsign_2.get());
+	_ownship_ids.callsign = DaaEncodedId::callsign_params_to_uint64(_param_adsb_callsign_1.get(),
+				_param_adsb_callsign_2.get());
 
 #ifndef BOARD_HAS_NO_UUID
 	px4_guid_t px4_guid {};

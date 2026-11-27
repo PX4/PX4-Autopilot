@@ -54,7 +54,7 @@ void Timesync::update(const uint64_t now_us, const int64_t remote_timestamp_ns, 
 		uint64_t rtt_us = now_us - (originate_timestamp_ns / 1000ULL);
 
 		// Calculate the difference of this sample from the current estimate
-		uint64_t deviation = llabs((int64_t)_time_offset - offset_us);
+		uint64_t deviation = llabs(offset() - offset_us);
 
 		if (rtt_us < MAX_RTT_SAMPLE) {	// Only use samples with low RTT
 
@@ -73,21 +73,8 @@ void Timesync::update(const uint64_t now_us, const int64_t remote_timestamp_ns, 
 
 			} else {
 
-				// Filter gain scheduling
-				if (!sync_converged()) {
-					// Interpolate with a sigmoid function
-					const float progress = (float) _sequence / (float) CONVERGENCE_WINDOW;
-					double p = (double)(1.f - expf(0.5f * (1.f - 1.f / (1.f - progress))));
-					_filter_alpha = p * ALPHA_GAIN_FINAL + (1.0 - p) * ALPHA_GAIN_INITIAL;
-					_filter_beta = p * BETA_GAIN_FINAL + (1.0 - p) * BETA_GAIN_INITIAL;
-
-				} else {
-					_filter_alpha = ALPHA_GAIN_FINAL;
-					_filter_beta = BETA_GAIN_FINAL;
-				}
-
 				// Perform filter update
-				add_sample(offset_us);
+				add_sample(offset_us, now_us);
 
 				// Increment sequence counter after filter update
 				_sequence++;
@@ -113,7 +100,7 @@ void Timesync::update(const uint64_t now_us, const int64_t remote_timestamp_ns, 
 		tsync_status.source_protocol = _source;
 		tsync_status.remote_timestamp = remote_timestamp_ns / 1000ULL;
 		tsync_status.observed_offset = offset_us;
-		tsync_status.estimated_offset = (int64_t)_time_offset;
+		tsync_status.estimated_offset = offset();
 		tsync_status.round_trip_time = rtt_us;
 		tsync_status.timestamp = hrt_absolute_time();
 
@@ -125,41 +112,91 @@ uint64_t Timesync::sync_stamp(uint64_t usec)
 {
 	// Only return synchronised stamp if we have converged to a good value
 	if (sync_converged()) {
-		return usec + (int64_t)_time_offset;
+		return usec + offset();
 
 	} else {
 		return hrt_absolute_time();
 	}
 }
 
-void Timesync::add_sample(int64_t offset_us)
+/*
+ * Hybrid Kalman filter:
+ * https://en.wikipedia.org/wiki/Kalman_filter#Hybrid_Kalman_filter
+ *
+ * State:
+ *   x = [theta; gamma]
+ *   theta = t_local - t_remote : clock offset [s]
+ *   gamma = d(theta)/dt        : clock skew [s/s], the relative rate error of the two clocks
+ *
+ * Model:
+ *   dx/dt = F x + w(t),  F = [0 1; 0 0],  w(t) ~ N(0, Q),  Q = diag(q_o, q_s)
+ *   z_k   = H x_k + v_k, H = [1 0],       v_k  ~ N(0, R)
+ * where Q is the continuous-time noise spectral density, q_o = OFFSET_RANDOM_WALK,
+ * q_s = SKEW_RANDOM_WALK, R = MEASUREMENT_NOISE_STD^2, and z_k is the offset observed
+ * from one timesync round trip.
+ *
+ * Prediction: the hybrid filter integrates, over the time dt since the last sample,
+ *   dx/dt = F x
+ *   dP/dt = F P + P F^T + Q
+ * For this F and Q both have an exact closed-form solution:
+ *   x <- A x,            A   = [1 dt; 0 1]   (offset += skew * dt, skew unchanged)
+ *   P <- A P A^T + Q_d,  Q_d = [q_o dt + q_s dt^3/3   q_s dt^2/2;
+ *                               q_s dt^2/2            q_s dt    ]
+ *
+ * Q_d is the noise added over dt. Each random walk adds q dt to its own variance.
+ * The skew noise also leaks into the offset through offset += skew * dt, which
+ * gives the dt^2/2 and dt^3/3 terms. A skew kick w at s seconds before the end of
+ * dt changes the skew by w and the offset by s w. Summing over the interval:
+ *   cov(offset, skew) += integral_0^dt q_s s   ds = q_s dt^2/2
+ *   var(offset)       += integral_0^dt q_s s^2 ds = q_s dt^3/3
+ *
+ * https://en.wikipedia.org/wiki/Discretization#Discretization_of_process_noise
+ */
+void Timesync::add_sample(int64_t offset_us, uint64_t now_us)
 {
-	// Online exponential smoothing filter. The derivative of the estimate is also
-	// estimated in order to produce an estimate without steady state lag:
-	// https://en.wikipedia.org/wiki/Exponential_smoothing#Double_exponential_smoothing
-	double time_offset_prev = _time_offset;
+	static constexpr double R = MEASUREMENT_NOISE_STD * MEASUREMENT_NOISE_STD;
+	const double offset_s = offset_us * 1e-6;
 
 	if (_sequence == 0) {
 		// First offset sample
-		_time_offset = offset_us;
+		_time_offset = offset_s;
+		_time_skew = 0.0;
+		_var_offset = R;
+		_cov_offset_skew = 0.0;
+		_var_skew = INITIAL_SKEW_STD * INITIAL_SKEW_STD;
 
 	} else {
-		// Update the clock offset estimate
-		_time_offset = _filter_alpha * offset_us + (1.0 - _filter_alpha) * (_time_offset + _time_skew);
+		const double dt = (now_us - _last_sample_us) * 1e-6;
 
-		// Update the clock skew estimate
-		_time_skew = _filter_beta * (_time_offset - time_offset_prev) + (1.0 - _filter_beta) * _time_skew;
+		// Predict: x <- A x, P <- A P A^T + Q_d, written out in Horner form.
+		_time_offset += _time_skew * dt;
+		_var_offset += dt * (OFFSET_RANDOM_WALK + 2.0 * _cov_offset_skew + dt * (_var_skew + dt * SKEW_RANDOM_WALK / 3.0));
+		_cov_offset_skew += dt * (_var_skew + dt * SKEW_RANDOM_WALK / 2.0);
+		_var_skew += dt * SKEW_RANDOM_WALK;
+
+		// Update: S = H P H^T + R, K = P H^T / S, x <- x + K (z - H x), P <- (I - K H) P
+		const double innovation = offset_s - _time_offset;
+		const double innovation_var = _var_offset + R;
+		const double k_offset = _var_offset / innovation_var;
+		const double k_skew = _cov_offset_skew / innovation_var;
+
+		_time_offset += k_offset * innovation;
+		_time_skew += k_skew * innovation;
+
+		_var_skew -= k_skew * _cov_offset_skew;
+		_var_offset *= (1.0 - k_offset);
+		_cov_offset_skew *= (1.0 - k_offset);
 	}
+
+	_last_sample_us = now_us;
 }
 
 void Timesync::reset_filter()
 {
-	// Do a full reset of all statistics and parameters
+	// The filter state is initialized by the first sample after the reset (_sequence == 0).
+	// Clear the offset because it is reported before that sample arrives.
 	_sequence = 0;
 	_time_offset = 0.0;
-	_time_skew = 0.0;
-	_filter_alpha = ALPHA_GAIN_INITIAL;
-	_filter_beta = BETA_GAIN_INITIAL;
 	_high_deviation_count = 0;
 	_high_rtt_count = 0;
 }

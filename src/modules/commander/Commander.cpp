@@ -42,6 +42,7 @@
 
 /* commander module headers */
 #include "Arming/ArmAuthorization/ArmAuthorization.h"
+#include "calibration_routines.h"
 #include "commander_helper.h"
 #include "esc_calibration.h"
 #define DEFINE_GET_PX4_CUSTOM_MODE
@@ -55,6 +56,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
 #include <lib/geo/geo.h>
+#include <lib/rover_control/RoverControl.hpp>
 #include <mathlib/mathlib.h>
 #include <px4_platform_common/events.h>
 #include <px4_platform_common/px4_config.h>
@@ -695,8 +697,26 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 				bool throttle_safe;
 
 				if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
-					// Rovers: center stick = stop, safe to arm near center
-					throttle_safe = (fabsf(_last_manual_throttle) < 0.2f);
+					// Rovers: centered sticks = stop. RO_STICK_MAP decides which sticks drive forward and sideways,
+					// it only exists if a rover module is built, otherwise the default mapping is used.
+					int32_t stick_map = 0;
+
+					if (_param_ro_stick_map != PARAM_INVALID) {
+						param_get(_param_ro_stick_map, &stick_map);
+					}
+
+					// CA_AIRFRAME: 6 = differential rover, 13 = mecanum rover. Only mecanum rovers use the lateral stick.
+					// In manual parking both drive the left and right wheels with the vertical sticks, not RO_STICK_MAP.
+					int32_t airframe = 0;
+
+					if (_param_ca_airframe != PARAM_INVALID) {
+						param_get(_param_ca_airframe, &airframe);
+					}
+
+					const bool can_drive_sideways = (airframe == 13);
+					const bool manual_parking = (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL_PARKING);
+					const bool tank_style_sticks = manual_parking && (airframe == 6 || airframe == 13);
+					throttle_safe = !RoverControl::sticksCommandMotion(_last_manual_control_setpoint, stick_map, can_drive_sideways, tank_style_sticks);
 
 				} else if (_vehicle_control_mode.flag_control_climb_rate_enabled) {
 					// Climb-rate modes (AltCtl, PosCtl, etc.): center = hover, safe at or below center
@@ -833,6 +853,8 @@ Commander::Commander() :
 	param_t param_mav_sys_id = param_find("MAV_SYS_ID");
 	_param_mav_type = param_find("MAV_TYPE");
 	_param_rc_map_fltmode = param_find("RC_MAP_FLTMODE");
+	_param_ro_stick_map = param_find("RO_STICK_MAP");
+	_param_ca_airframe = param_find("CA_AIRFRAME");
 
 	int32_t value_int32 = 0;
 
@@ -1154,8 +1176,13 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_HOME: {
-			if (_param_com_home_en.get()) {
-				bool use_current = cmd.param1 > 0.5f;
+			// COM_HOME_EN only disables setting home automatically, it can still be set manually
+			if (!(fabsf(cmd.param1) < FLT_EPSILON) && !(fabsf(cmd.param1 - 1.f) < FLT_EPSILON)) {
+				// param1 is a MAV_BOOL: 1 uses the current position, 0 the specified location
+				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
+
+			} else {
+				const bool use_current = fabsf(cmd.param1 - 1.f) < FLT_EPSILON;
 
 				if (use_current) {
 					/* use current position */
@@ -1191,10 +1218,6 @@ Commander::handle_command(const vehicle_command_s &cmd)
 						cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
 					}
 				}
-
-			} else {
-				// COM_HOME_EN disabled
-				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
 			}
 		}
 		break;
@@ -1444,7 +1467,14 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION: {
 
-			if (isArmed() || _worker_thread.isBusy()) {
+			if (_worker_thread.isBusy()
+			    && (int)(cmd.param1) == 0 && (int)(cmd.param2) == 0 && (int)(cmd.param3) == 0
+			    && (int)(cmd.param4) == 0 && (int)(cmd.param5) == 0 && (int)(cmd.param6) == 0
+			    && (int)(cmd.param7) == 0) {
+				// cancel: the running calibration acks it once it has stopped
+				calibrate_cancel_request(cmd);
+
+			} else if (isArmed() || _worker_thread.isBusy()) {
 
 				// reject if armed or shutting down
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
@@ -1744,7 +1774,6 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_MISSION_CURRENT:
 	case vehicle_command_s::VEHICLE_CMD_LOGGING_START:
 	case vehicle_command_s::VEHICLE_CMD_LOGGING_STOP:
-	case vehicle_command_s::VEHICLE_CMD_NAV_DELAY:
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI:
 	case vehicle_command_s::VEHICLE_CMD_NAV_ROI:
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_LOCATION:
@@ -2555,6 +2584,12 @@ bool Commander::handleModeIntentionAndFailsafe()
 	state.vtol_in_transition_mode = _vehicle_status.in_transition_mode;
 	state.mission_finished = _mission_result_sub.get().finished;
 	state.user_intended_mode = _user_mode_intention.get();
+
+	_position_setpoint_triplet_sub.update();
+	const position_setpoint_s &current_setpoint = _position_setpoint_triplet_sub.get().current;
+	state.fw_mission_takeoff = state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION
+				   && _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+				   && current_setpoint.valid && current_setpoint.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 	state.vehicle_type = _vehicle_status.vehicle_type;
 
 	// There might have been a mode change request without changing the user intended mode.
@@ -3169,6 +3204,7 @@ void Commander::manualControlCheck()
 	if (manual_control_updated && manual_control_setpoint.valid) {
 
 		_last_manual_throttle = manual_control_setpoint.throttle;
+		_last_manual_control_setpoint = manual_control_setpoint;
 
 		if (isArmed()) {
 			// Hand control back to the pilot when they override with the sticks (see MAN_OVERRIDE_SPD).

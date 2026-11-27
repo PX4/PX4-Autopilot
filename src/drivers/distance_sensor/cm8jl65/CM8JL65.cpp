@@ -283,7 +283,7 @@ int
 CM8JL65::open_serial_port(const speed_t speed)
 {
 	// File descriptor initialized?
-	if (_file_descriptor > 0) {
+	if (_file_descriptor >= 0) {
 		// PX4_INFO("serial port already open");
 		return PX4_OK;
 	}
@@ -315,7 +315,7 @@ CM8JL65::open_serial_port(const speed_t speed)
 
 	if (termios_state < 0) {
 		PX4_ERR("CFG: %d ISPD", termios_state);
-		::close(_file_descriptor);
+		close_serial_port();
 		return PX4_ERROR;
 	}
 
@@ -324,7 +324,7 @@ CM8JL65::open_serial_port(const speed_t speed)
 
 	if (termios_state < 0) {
 		PX4_ERR("CFG: %d OSPD", termios_state);
-		::close(_file_descriptor);
+		close_serial_port();
 		return PX4_ERROR;
 	}
 
@@ -333,7 +333,7 @@ CM8JL65::open_serial_port(const speed_t speed)
 
 	if (termios_state < 0) {
 		PX4_ERR("baud %d ATTR", termios_state);
-		::close(_file_descriptor);
+		close_serial_port();
 		return PX4_ERROR;
 	}
 
@@ -351,6 +351,13 @@ CM8JL65::print_info()
 void
 CM8JL65::Run()
 {
+	if (_stop_requested.load()) {
+		ScheduleClear();
+		close_serial_port();
+		_stopped.store(true);
+		return;
+	}
+
 	// Ensure the serial port is open.
 	open_serial_port();
 
@@ -361,6 +368,9 @@ CM8JL65::Run()
 void
 CM8JL65::start()
 {
+	_stop_requested.store(false);
+	_stopped.store(false);
+
 	// Schedule the driver at regular intervals.
 	ScheduleOnInterval(CM8JL65_MEASURE_INTERVAL);
 
@@ -370,9 +380,24 @@ CM8JL65::start()
 void
 CM8JL65::stop()
 {
-	// Clear the work queue schedule.
-	ScheduleClear();
+	// The serial port is opened in Run() on the work queue. File descriptors are
+	// per task group on NuttX, so it must also be closed there and not from the
+	// shell calling stop. Let Run() close it and wait until it has.
+	_stop_requested.store(true);
+	ScheduleNow();
 
-	// Ensure the serial port is closed.
-	::close(_file_descriptor);
+	for (int i = 0; i < 100 && !_stopped.load(); i++) {
+		px4_usleep(10000);
+	}
+
+	ScheduleClear();
+}
+
+void
+CM8JL65::close_serial_port()
+{
+	if (_file_descriptor >= 0) {
+		::close(_file_descriptor);
+		_file_descriptor = -1;
+	}
 }

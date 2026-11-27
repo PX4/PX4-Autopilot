@@ -143,7 +143,7 @@ file(RELATIVE_PATH PX4_BINARY_DIR_REL ${CMAKE_CURRENT_BINARY_DIR} ${PX4_BINARY_D
 # because even relative linker script paths are different for linux, mac and windows
 CYGPATH(NUTTX_CONFIG_DIR NUTTX_CONFIG_DIR_CYG)
 
-if((DEFINED ENV{SIGNING_TOOL}) AND (NOT NUTTX_DIR MATCHES "external"))
+if((DEFINED ENV{SIGNING_TOOL}) AND (NOT PX4_NUTTX_TREE_DIR))
 	set(PX4_BINARY_OUTPUT ${PX4_BINARY_DIR}/${PX4_CONFIG}_unsigned.bin)
 
 	add_custom_command(OUTPUT ${PX4_BINARY_DIR_REL}/${PX4_CONFIG}.bin
@@ -153,6 +153,35 @@ if((DEFINED ENV{SIGNING_TOOL}) AND (NOT NUTTX_DIR MATCHES "external"))
 	)
 else()
 	set(PX4_BINARY_OUTPUT ${PX4_BINARY_DIR_REL}/${PX4_CONFIG}.bin)
+endif()
+
+if(CONFIG_BOARD_MCUBOOT_IMGTOOL_ARGS)
+	# Build ${PX4_CONFIG}.signed.bin next to the plain .bin: the image with
+	# the MCUboot header and TLV trailer the on-target bootloader accepts.
+	execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "import imgtool"
+		RESULT_VARIABLE _imgtool_missing OUTPUT_QUIET ERROR_QUIET)
+	if(_imgtool_missing)
+		message(WARNING "imgtool is not installed, ${PX4_CONFIG}.signed.bin will not be built "
+			"(pip3 install imgtool, or re-run Tools/setup/ubuntu.sh)")
+	else()
+		set(_mcuboot_bin ${PX4_BINARY_DIR}/${PX4_CONFIG}.signed.bin)
+		separate_arguments(_imgtool_args NATIVE_COMMAND "${CONFIG_BOARD_MCUBOOT_IMGTOOL_ARGS}")
+		# The signing key stays out of the board file: BOARD_MCUBOOT_KEY in the
+		# environment at configure time adds it, relative to the repo root.
+		if(DEFINED ENV{BOARD_MCUBOOT_KEY})
+			list(APPEND _imgtool_args --key $ENV{BOARD_MCUBOOT_KEY})
+		endif()
+		add_custom_command(OUTPUT ${_mcuboot_bin}
+			COMMAND ${PYTHON_EXECUTABLE} -m imgtool.main sign
+				--version ${PX4_VERSION_MAJOR}.${PX4_VERSION_MINOR}.${PX4_VERSION_PATCH}
+				${_imgtool_args}
+				${PX4_BINARY_DIR}/${PX4_CONFIG}.bin ${_mcuboot_bin}
+			DEPENDS ${PX4_BINARY_DIR}/${PX4_CONFIG}.bin
+			COMMENT "Creating ${PX4_CONFIG}.signed.bin for MCUboot"
+			WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+		)
+		add_custom_target(px4_mcuboot_image ALL DEPENDS ${_mcuboot_bin})
+	endif()
 endif()
 
 if (NOT CONFIG_BUILD_FLAT)
@@ -251,7 +280,7 @@ else()
 
 if(CONFIG_ARCH_CHIP_ESP32)
 
-	set(PX4_STARTUP_DIR ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/arch/xtensa/src)
+	set(PX4_STARTUP_DIR ${NUTTX_DIR}/arch/xtensa/src)
 	set(WIRELESS_LIB ${PX4_STARTUP_DIR}/esp32/esp-wireless-drivers-3rdparty/libs/esp32/)
 
 	set(NUTTX_STARTUP_OBJS
@@ -358,7 +387,11 @@ else()
 	)
 
 	target_link_libraries(nuttx_c INTERFACE nuttx_drivers)
-	target_link_libraries(nuttx_drivers INTERFACE nuttx_c nuttx_fs)
+	target_link_libraries(nuttx_drivers INTERFACE nuttx_c nuttx_fs nuttx_mm)
+	if(CONFIG_OPENAMP)
+		target_link_libraries(nuttx_drivers INTERFACE nuttx_openamp)
+		target_link_libraries(nuttx_openamp INTERFACE nuttx_drivers)
+	endif()
 	target_link_libraries(nuttx_xx INTERFACE nuttx_c)
 	target_link_libraries(nuttx_fs INTERFACE nuttx_c nuttx_mm)
 
@@ -436,7 +469,7 @@ if (CONFIG_INTELHEX_BINARY)
 endif()
 
 # create .px4 with parameter and airframe metadata
-if (TARGET parameters_xml AND TARGET airframes_xml)
+if (TARGET parameters_xml AND TARGET airframes_xml AND EXISTS ${PX4_SOURCE_DIR}/boards/${PX4_BOARD_VENDOR}/${PX4_BOARD_MODEL}/firmware.prototype)
 
 	string(REPLACE ".elf" ".px4" fw_package ${PX4_BINARY_DIR}/${FW_NAME})
 
@@ -609,8 +642,8 @@ endif()
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/gdbinit.in ${PX4_BINARY_DIR}/.gdbinit)
 
 # vscode launch.json
-#  skip if built within another cmake project (eg px4_io-v2 with px4_fmu-v5)
-if(NOT NUTTX_DIR MATCHES "external")
+#  skip if built for another target's ROMFS (eg px4_io-v2 with px4_fmu-v5)
+if(NOT PX4_NUTTX_TREE_DIR)
 	if(CONFIG_ARCH_CHIP_MIMXRT1062DVL6A)
 		set(DEBUG_DEVICE "MIMXRT1062XXX6A")
 		set(DEBUG_SVD_FILE "MIMXRT1062.xml")

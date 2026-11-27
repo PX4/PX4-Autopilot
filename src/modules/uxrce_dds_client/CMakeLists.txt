@@ -75,8 +75,8 @@ else()
 		set(c_flags_with_includes "${c_flags_with_includes} -Wno-cast-align -D__PX4_NUTTX")
 	endif()
 
-	# Match UXRCE_DDS_CLIENT_UDP in uxrce_dds_client.h: NuttX targets without networking have no UDP transport
-	if(PX4_PLATFORM STREQUAL "nuttx" AND NOT CONFIG_NET)
+	# Match UXRCE_DDS_CLIENT_UDP in uxrce_dds_client.h: NuttX targets without Ethernet have no UDP transport
+	if(PX4_PLATFORM STREQUAL "nuttx" AND NOT CONFIG_NET_ETHERNET)
 		set(uclient_profile_udp OFF)
 	else()
 		set(uclient_profile_udp ON)
@@ -135,14 +135,24 @@ else()
 	target_include_directories(microxrceddsclient INTERFACE ${microxrceddsclient_build_dir}/include)
 
 
+	# PX4's topics, then those of out-of-tree messages listed in $EXTERNAL_MODULES_LOCATION/msg/dds_topics.yaml
+	set(dds_topics_files ${CMAKE_CURRENT_SOURCE_DIR}/dds_topics.yaml)
+	if(EXTERNAL_MODULES_LOCATION AND EXISTS ${EXTERNAL_MODULES_LOCATION}/msg/dds_topics.yaml)
+		list(APPEND dds_topics_files ${EXTERNAL_MODULES_LOCATION}/msg/dds_topics.yaml)
+	endif()
+	set(dds_topics_args)
+	foreach(dds_topics_file ${dds_topics_files})
+		list(APPEND dds_topics_args --dds-topics-file ${dds_topics_file})
+	endforeach()
+
 	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/dds_topics.h
 		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_dds_topics.py
 			--client-outdir ${CMAKE_CURRENT_BINARY_DIR}
-			--dds-topics-file ${CMAKE_CURRENT_SOURCE_DIR}/dds_topics.yaml
+			${dds_topics_args}
 			--template_file ${CMAKE_CURRENT_SOURCE_DIR}/dds_topics.h.em
 		DEPENDS
 			${CMAKE_CURRENT_SOURCE_DIR}/generate_dds_topics.py
-			${CMAKE_CURRENT_SOURCE_DIR}/dds_topics.yaml
+			${dds_topics_files}
 			${CMAKE_CURRENT_SOURCE_DIR}/dds_topics.h.em
 		COMMENT "Generating XRCE-DDS topic bridge"
 	)

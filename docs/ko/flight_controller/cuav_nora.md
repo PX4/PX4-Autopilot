@@ -164,11 +164,6 @@ The SWD Vref pin (1) uses 5V as Vref but the CPU is run at 3.3V!
 For direct connection to _Segger Jlink_ we recommended you use the 3.3 Volts from pin 4 of the connector marked `DSM`/`SBUS`/`RSSI` to provide `Vtref` to the JTAG (i.e. providing 3.3V and _NOT_ 5V).
 :::
 
-## 지원 플랫폼 및 기체
-
-일반 RC 서보 또는 Futaba S-Bus 서보로 제어 가능한 모든 멀티콥터/비행기/로버 또는 보트.
-The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
-
 ## 추가 정보
 
 - [Quick start](https://doc.cuav.net/en/controller/nora-plus/quick-start-nora.html)

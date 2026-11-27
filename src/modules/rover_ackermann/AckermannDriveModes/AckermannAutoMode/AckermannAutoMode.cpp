@@ -38,14 +38,14 @@ using namespace time_literals;
 AckermannAutoMode::AckermannAutoMode(ModuleParams *parent) : ModuleParams(parent)
 {
 	updateParams();
-	_rover_position_setpoint_pub.advertise();
+	_surface_vehicle_position_setpoint_pub.advertise();
 	_surface_vehicle_course_setpoint_pub.advertise();
 }
 
 void AckermannAutoMode::updateParams()
 {
 	ModuleParams::updateParams();
-	_max_yaw_rate = _param_ro_yaw_rate_limit.get() * M_DEG_TO_RAD_F;
+	_max_yaw_rate = _param_ro_yaw_rate_lim.get() * M_DEG_TO_RAD_F;
 
 	if (_param_ra_wheel_base.get() > FLT_EPSILON && _max_yaw_rate > FLT_EPSILON
 	    && _param_ra_max_str_ang.get() > FLT_EPSILON) {
@@ -71,17 +71,17 @@ void AckermannAutoMode::autoControl()
 
 		updateWaypointsAndAcceptanceRadius();
 
-		rover_position_setpoint_s rover_position_setpoint{};
-		rover_position_setpoint.timestamp = hrt_absolute_time();
-		rover_position_setpoint.target_ned[0] = _curr_wp_ned(0);
-		rover_position_setpoint.target_ned[1] = _curr_wp_ned(1);
-		rover_position_setpoint.start_ned[0] = _prev_wp_ned(0);
-		rover_position_setpoint.start_ned[1] = _prev_wp_ned(1);
-		rover_position_setpoint.arrival_speed = arrivalSpeed(_cruising_speed, _min_speed, _acceptance_radius, _curr_wp_type,
-							_waypoint_transition_angle, _max_yaw_rate);
-		rover_position_setpoint.cruising_speed = _cruising_speed;
-		rover_position_setpoint.yaw = NAN;
-		_rover_position_setpoint_pub.publish(rover_position_setpoint);
+		surface_vehicle_position_setpoint_s surface_vehicle_position_setpoint{};
+		surface_vehicle_position_setpoint.timestamp = hrt_absolute_time();
+		surface_vehicle_position_setpoint.target_ned[0] = _curr_wp_ned(0);
+		surface_vehicle_position_setpoint.target_ned[1] = _curr_wp_ned(1);
+		surface_vehicle_position_setpoint.start_ned[0] = _prev_wp_ned(0);
+		surface_vehicle_position_setpoint.start_ned[1] = _prev_wp_ned(1);
+		surface_vehicle_position_setpoint.arrival_speed = arrivalSpeed(_cruising_speed, _min_speed, _acceptance_radius, _curr_wp_type,
+				_waypoint_transition_angle, _max_yaw_rate);
+		surface_vehicle_position_setpoint.cruising_speed = _cruising_speed;
+		surface_vehicle_position_setpoint.yaw = NAN;
+		_surface_vehicle_position_setpoint_pub.publish(surface_vehicle_position_setpoint);
 	}
 
 }
@@ -108,7 +108,7 @@ void AckermannAutoMode::updateWaypointsAndAcceptanceRadius()
 
 	// Waypoint cruising speed
 	_cruising_speed = position_setpoint_triplet.current.cruising_speed > 0.f ? math::constrain(
-				  position_setpoint_triplet.current.cruising_speed, 0.f, _param_ro_speed_limit.get()) : _param_ro_speed_limit.get();
+				  position_setpoint_triplet.current.cruising_speed, 0.f, _param_ro_speed_lim.get()) : _param_ro_speed_lim.get();
 }
 
 float AckermannAutoMode::updateAcceptanceRadius(const float waypoint_transition_angle,
@@ -181,7 +181,7 @@ void AckermannAutoMode::guidedCourse()
 	surface_vehicle_course_setpoint.timestamp = hrt_absolute_time();
 	// The navigator publishes the course in [0, 2pi)
 	surface_vehicle_course_setpoint.course = matrix::wrap_pi(current.course);
-	surface_vehicle_course_setpoint.speed = math::min(_course_speed, _param_ro_speed_limit.get());
+	surface_vehicle_course_setpoint.speed = math::min(_course_speed, _param_ro_speed_lim.get());
 	surface_vehicle_course_setpoint.yaw = NAN;
 	_surface_vehicle_course_setpoint_pub.publish(surface_vehicle_course_setpoint);
 }

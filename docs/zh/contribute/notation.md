@@ -2,6 +2,8 @@
 
 本指南中的文本和图表中使用了以下术语、符号和装饰器。
 
+For navigation terms such as heading, course, track, bearing and cross-track error, see [Navigation Terminology](../concept/navigation_terminology.md).
+
 ## 符号
 
 - Bold face variables indicate vectors or matrices and non-bold face variables represent scalars.

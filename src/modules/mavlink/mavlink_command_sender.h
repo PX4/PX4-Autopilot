@@ -124,7 +124,7 @@ private:
 #endif
 	};
 
-	TimestampedList<command_item_s, 3> _commands{};
+	TimestampedList<command_item_s, 5> _commands{};
 	px4::atomic<int> _num_commands{0}; ///< number of commands in the list, written under the lock, read without it
 
 	bool _debug_enabled = false;

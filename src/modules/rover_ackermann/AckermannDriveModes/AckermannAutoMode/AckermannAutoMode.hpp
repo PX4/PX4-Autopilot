@@ -46,7 +46,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/position_controller_status.h>
-#include <uORB/topics/rover_position_setpoint.h>
+#include <uORB/topics/surface_vehicle_position_setpoint.h>
 #include <uORB/topics/surface_vehicle_course_setpoint.h>
 
 /**
@@ -63,7 +63,7 @@ public:
 	~AckermannAutoMode() = default;
 
 	/**
-	 * @brief Generate and publish roverPositionSetpoint from positionSetpointTriplet.
+	 * @brief Generate and publish surfaceVehiclePositionSetpoint from positionSetpointTriplet.
 	 */
 	void autoControl();
 
@@ -129,7 +129,7 @@ private:
 	uORB::Subscription _course_position_setpoint_triplet_sub{ORB_ID(position_setpoint_triplet)}; ///< Separate, so an update for autoControl() is not consumed
 
 	// uORB publications
-	uORB::Publication<rover_position_setpoint_s>    _rover_position_setpoint_pub{ORB_ID(rover_position_setpoint)};
+	uORB::Publication<surface_vehicle_position_setpoint_s>    _surface_vehicle_position_setpoint_pub{ORB_ID(surface_vehicle_position_setpoint)};
 	uORB::Publication<surface_vehicle_course_setpoint_s>    _surface_vehicle_course_setpoint_pub{ORB_ID(surface_vehicle_course_setpoint)};
 	uORB::Publication<position_controller_status_s>	_position_controller_status_pub{ORB_ID(position_controller_status)};
 
@@ -148,8 +148,8 @@ private:
 	float _course_speed{NAN}; // Guided Course speed [m/s], NAN until latched from the forward speed on the first course setpoint
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_limit,
-		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_limit,
+		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_lim,
+		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_lim,
 		(ParamFloat<px4::params::RA_WHEEL_BASE>)    _param_ra_wheel_base,
 		(ParamFloat<px4::params::RA_MAX_STR_ANG>)   _param_ra_max_str_ang,
 		(ParamFloat<px4::params::NAV_ACC_RAD>)      _param_nav_acc_rad,

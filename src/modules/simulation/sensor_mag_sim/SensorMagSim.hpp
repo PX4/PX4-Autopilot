@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include <mathlib/math/WhiteGaussianNoise.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/failure_injection/FailureInjection.hpp>
 #include <lib/perf/perf_counter.h>
@@ -73,12 +74,6 @@ private:
 	void Run() override;
 	void updateFailureConfig();
 
-	// generate white Gaussian noise sample with std=1
-	static float generate_wgn();
-
-	// generate white Gaussian noise sample as a 3D vector with specified std
-	matrix::Vector3f noiseGauss3f(float stdx, float stdy, float stdz) { return matrix::Vector3f(generate_wgn() * stdx, generate_wgn() * stdy, generate_wgn() * stdz); }
-
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude_groundtruth)};
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position_groundtruth)};
@@ -98,8 +93,8 @@ private:
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::SIM_MAG_OFFSET_X>) _sim_mag_offset_x,
-		(ParamFloat<px4::params::SIM_MAG_OFFSET_Y>) _sim_mag_offset_y,
-		(ParamFloat<px4::params::SIM_MAG_OFFSET_Z>) _sim_mag_offset_z
+		(ParamFloat<px4::params::SIM_MAG_OFFSET_X>) _param_sim_mag_offset_x,
+		(ParamFloat<px4::params::SIM_MAG_OFFSET_Y>) _param_sim_mag_offset_y,
+		(ParamFloat<px4::params::SIM_MAG_OFFSET_Z>) _param_sim_mag_offset_z
 	)
 };

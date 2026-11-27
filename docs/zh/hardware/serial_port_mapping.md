@@ -2,7 +2,8 @@
 
 本主题说明如何确定USART/UART串行端口（下称串口）设备名称(例如“ttyS0”)与飞行控制器上对应端口（如`TELEM1`、`TELEM2`、`GPS1`、`RC SBUS`、`调试控制台(Debug console)`）之间的映射关系。
 
-这份说明用于在飞行控制器文档中生成串行端口映射表。例如： [Pixhawk 4 > Serial Port Mapping](../flight_controller/pixhawk4.md#serial-port-mapping)。
+这份说明用于在飞行控制器文档中生成串行端口映射表。
+For example: [Pixhawk 4 > Serial Port Mapping](../flight_controller/pixhawk4.md#serial_port_mapping).
 
 :::info
 每个端口分配的功能不必与名称匹配（大多数情况下），并通过[串行端口配置](../peripherals/serial_configuration.md)。通常情况下端口功能是与名称相匹配的，因此标记为`GPS1`的端口可直接连接GPS设备。
@@ -110,17 +111,17 @@ ttyS5 CONFIG_STM32F7_UART7=y DEBUG
 ttyS6 CONFIG_STM32F7_UART8=y PX4IO
 ```
 
-在 [flight controller docs](../flight_controller/pixhawk4.md#serial-port-mapping) 最终生成的表格如下：
+In the [flight controller docs](../flight_controller/pixhawk4.md#serial_port_mapping) the resulting table is:
 
-| UART   | 设备         | Port                           |
-| ------ | ---------- | ------------------------------ |
-| UART1  | /dev/ttyS0 | GPS                            |
-| USART2 | /dev/ttyS1 | TELEM1 (流控) |
-| USART3 | /dev/ttyS2 | TELEM2 (流控) |
-| UART4  | /dev/ttyS3 | TELEM4                         |
-| USART6 | /dev/ttyS4 | RC SBUS                        |
-| UART7  | /dev/ttyS5 | 调试控制台                          |
-| UART8  | /dev/ttyS6 | PX4IO                          |
+| UART   | 设备           | Port                                         | Flow Control |
+| ------ | ------------ | -------------------------------------------- | ------------ |
+| USART1 | `/dev/ttyS0` | `GPS MODULE` (`GPS1`)     |              |
+| USART2 | `/dev/ttyS1` | `TELEM1`                                     | Yes          |
+| USART3 | `/dev/ttyS2` | `TELEM2`                                     | Yes          |
+| UART4  | `/dev/ttyS3` | `UART & I2C B` (`TELEM4`) |              |
+| USART6 | `/dev/ttyS4` | RC SBUS                                      |              |
+| UART7  | `/dev/ttyS5` | `FMU Debug` (Console)     |              |
+| UART8  | `/dev/ttyS6` | PX4IO                                        |              |
 
 ## Other Architectures
 

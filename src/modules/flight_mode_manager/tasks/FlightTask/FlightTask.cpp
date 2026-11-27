@@ -12,7 +12,6 @@ bool FlightTask::activate(const trajectory_setpoint_s &last_setpoint)
 	_resetSetpoints();
 	_setDefaultConstraints();
 	initEkfResetCounters();
-	_time_stamp_activate = hrt_absolute_time();
 	_gear = empty_landing_gear_default_keep;
 	return true;
 }
@@ -197,11 +196,9 @@ void FlightTask::_evaluateVehicleLocalPositionSetpoint()
 		// This is used to properly initialize the velocity setpoint when onpening the position loop (position unlock)
 		_velocity_setpoint_feedback = matrix::Vector3f(vehicle_local_position_setpoint.vx, vehicle_local_position_setpoint.vy,
 					      vehicle_local_position_setpoint.vz);
-		_acceleration_setpoint_feedback = matrix::Vector3f(vehicle_local_position_setpoint.acceleration);
 
 	} else {
 		_velocity_setpoint_feedback.setAll(NAN);
-		_acceleration_setpoint_feedback.setAll(NAN);
 	}
 }
 

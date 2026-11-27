@@ -230,11 +230,11 @@ void VisionTargetEst::updateParams()
 	_vte_position.setTargetValidTimeout(target_valid_timeout_us);
 	_vte_orientation.setTargetValidTimeout(target_valid_timeout_us);
 
-	const hrt_abstime meas_recent_timeout_us = static_cast<hrt_abstime>(_param_vte_mrec_tout.get() * 1_s);
+	const hrt_abstime meas_recent_timeout_us = static_cast<hrt_abstime>(_param_vte_m_rec_tout.get() * 1_s);
 	_vte_position.setMeasRecentTimeout(meas_recent_timeout_us);
 	_vte_orientation.setMeasRecentTimeout(meas_recent_timeout_us);
 
-	const hrt_abstime meas_updated_timeout_us = static_cast<hrt_abstime>(_param_vte_mupd_tout.get() * 1_s);
+	const hrt_abstime meas_updated_timeout_us = static_cast<hrt_abstime>(_param_vte_m_upd_tout.get() * 1_s);
 	_vte_position.setMeasUpdatedTimeout(meas_updated_timeout_us);
 
 	if (_vte_position_enabled && _position_estimator_running

@@ -171,6 +171,35 @@ For example:
 - `make tests TESTFILTER=sitl` only run simulation tests
 - `make tests TESTFILTER=Attitude` only run the `AttitudeControl` test
 
+## TECS Closed-Loop Tests
+
+The functional test [TECSControlClosedLoopTest](https://github.com/PX4/PX4-Autopilot/blob/main/src/lib/tecs/TECSControlClosedLoopTest.cpp) couples the TECS controller to a minimal aircraft model built from the energy model that TECS assumes internally.
+The model has perfect state knowledge and no model mismatch, so any tracking error comes from the controller itself.
+
+To log every test case to a CSV file, set `TECS_TEST_LOG_DIR` to an existing directory:
+
+```sh
+mkdir -p /tmp/tecs
+TECS_TEST_LOG_DIR=/tmp/tecs make tests TESTFILTER=TECSControlClosedLoop
+```
+
+To run all test cases and plot them in one step:
+
+```sh
+make px4_sitl_test tecs_closed_loop_plots
+```
+
+This writes the CSV files to `build/px4_sitl_test/tecs_closed_loop/csv` and one PNG per test case to `build/px4_sitl_test/tecs_closed_loop/png`.
+Each plot shows altitude, airspeed, pitch, throttle, the total energy and energy balance rates, and the altitude and airspeed rates over time.
+The directory is cleared on every run, and the plots are written even if test cases fail, so use `make tests` to check whether they pass.
+Plotting requires the Python packages `numpy` and `matplotlib`.
+
+CSV files from another directory can be plotted with the script directly (omit `-o` to show the figures in a window instead):
+
+```sh
+python3 src/lib/tecs/plot_closed_loop.py /tmp/tecs -o /tmp/tecs/png
+```
+
 ## Fuzz Testing
 
 Fuzz tests are a generalised form of unit test that ensures code is robust against any input.

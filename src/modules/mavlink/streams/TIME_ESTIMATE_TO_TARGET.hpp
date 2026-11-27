@@ -64,7 +64,8 @@ private:
 			_rtl_estimate_sub.copy(&rtl_estimate);
 
 			mavlink_time_estimate_to_target_t msg{};
-			msg.safe_return = static_cast<int32_t>(rtl_estimate.safe_time_estimate);
+			// MAVLink uses -1 when there is no estimate
+			msg.safe_return = rtl_estimate.valid ? static_cast<int32_t>(rtl_estimate.safe_time_estimate) : -1;
 
 			// Set to -1 explicitly because not supported (yet)
 			msg.land = -1;

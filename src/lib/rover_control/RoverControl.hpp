@@ -45,6 +45,7 @@
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <drivers/drv_hrt.h>
 #include <matrix/matrix/math.hpp>
+#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <lib/geo/geo.h>
@@ -52,6 +53,46 @@
 using namespace matrix;
 namespace RoverControl
 {
+/**
+ * Stick inputs assigned to the rover motion.
+ */
+struct ManualSticks {
+	float forward; ///< [-1, 1] Forwards/backwards
+	float lateral; ///< [-1, 1] Right/left, only used by rovers that can drive sideways
+	float yaw; ///< [-1, 1] Turn right/left
+};
+
+/**
+ * Stick mappings selectable with RO_STICK_MAP, following the RC transmitter modes 1-4
+ * with pitch mapped to forward, roll to lateral and yaw to yaw motion.
+ */
+enum class StickMapping : int32_t {
+	Mode1 = 1,
+	Mode2 = 2,
+	Mode3 = 3,
+	Mode4 = 4
+};
+
+/**
+ * Assigns the stick inputs to forward, lateral and yaw motion.
+ * @param manual_control_setpoint Stick inputs
+ * @param stick_map Selected mapping (RO_STICK_MAP), unknown values use StickMapping::Mode3
+ * @return Stick inputs per motion axis
+ */
+ManualSticks mapSticks(const manual_control_setpoint_s &manual_control_setpoint, int32_t stick_map);
+
+/**
+ * Checks whether the sticks command the rover to drive, used to deny arming with sticks off center.
+ * @param manual_control_setpoint Stick inputs
+ * @param stick_map Selected mapping (RO_STICK_MAP), unknown values use StickMapping::Mode3
+ * @param can_drive_sideways True for rovers that use the lateral stick (mecanum)
+ * @param tank_style_sticks True in manual parking on differential and mecanum rovers, where the left and right
+ *                    vertical sticks drive the left and right wheels instead of the stick mapping
+ * @return True if a stick that drives the wheels is deflected by 0.2 or more
+ */
+bool sticksCommandMotion(const manual_control_setpoint_s &manual_control_setpoint, int32_t stick_map, bool can_drive_sideways,
+			 bool tank_style_sticks);
+
 /**
  * Applies acceleration/deceleration slew rate to a throttle setpoint.
  * @param motor_setpoint Throttle setpoint with applied slew rate [-1, 1] (Updated by this function)

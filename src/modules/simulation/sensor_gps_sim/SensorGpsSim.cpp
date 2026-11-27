@@ -58,37 +58,6 @@ bool SensorGpsSim::init()
 	return true;
 }
 
-float SensorGpsSim::generate_wgn()
-{
-	// generate white Gaussian noise sample with std=1
-
-	// algorithm 1:
-	// float temp=((float)(rand()+1))/(((float)RAND_MAX+1.0f));
-	// return sqrtf(-2.0f*logf(temp))*cosf(2.0f*M_PI_F*rand()/RAND_MAX);
-	// algorithm 2: from BlockRandGauss.hpp
-	static float V1, V2, S;
-	static bool phase = true;
-	float X;
-
-	if (phase) {
-		do {
-			float U1 = (float)rand() / (float)RAND_MAX;
-			float U2 = (float)rand() / (float)RAND_MAX;
-			V1 = 2.0f * U1 - 1.0f;
-			V2 = 2.0f * U2 - 1.0f;
-			S = V1 * V1 + V2 * V2;
-		} while (S >= 1.0f || fabsf(S) < 1e-8f);
-
-		X = V1 * float(sqrtf(-2.0f * float(logf(S)) / S));
-
-	} else {
-		X = V2 * float(sqrtf(-2.0f * float(logf(S)) / S));
-	}
-
-	phase = !phase;
-	return X;
-}
-
 void SensorGpsSim::Run()
 {
 	if (should_exit()) {
@@ -121,26 +90,26 @@ void SensorGpsSim::Run()
 
 		// Correlated Markov process position noise (matching GZBridge model)
 		_gps_pos_noise_n = _pos_markov_time * _gps_pos_noise_n +
-				   _pos_random_walk * generate_wgn() * _pos_noise_amplitude;
+				   _pos_random_walk * math::generate_wgn() * _pos_noise_amplitude;
 
 		_gps_pos_noise_e = _pos_markov_time * _gps_pos_noise_e +
-				   _pos_random_walk * generate_wgn() * _pos_noise_amplitude;
+				   _pos_random_walk * math::generate_wgn() * _pos_noise_amplitude;
 
 		_gps_pos_noise_d = _pos_markov_time * _gps_pos_noise_d +
-				   _pos_random_walk * generate_wgn() * _pos_noise_amplitude * 1.5f;
+				   _pos_random_walk * math::generate_wgn() * _pos_noise_amplitude * 1.5f;
 
 		const double latitude = gpos.lat + math::degrees((double)_gps_pos_noise_n / CONSTANTS_RADIUS_OF_EARTH);
 		const double longitude = gpos.lon + math::degrees((double)_gps_pos_noise_e / CONSTANTS_RADIUS_OF_EARTH);
 		const double altitude = (double)(gpos.alt + _gps_pos_noise_d);
 
 		_gps_vel_noise_n = _vel_markov_time * _gps_vel_noise_n +
-				   _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
+				   _vel_noise_density * math::generate_wgn() * _vel_noise_amplitude;
 
 		_gps_vel_noise_e = _vel_markov_time * _gps_vel_noise_e +
-				   _vel_noise_density * generate_wgn() * _vel_noise_amplitude;
+				   _vel_noise_density * math::generate_wgn() * _vel_noise_amplitude;
 
 		_gps_vel_noise_d = _vel_markov_time * _gps_vel_noise_d +
-				   _vel_noise_density * generate_wgn() * _vel_noise_amplitude * 1.2f;
+				   _vel_noise_density * math::generate_wgn() * _vel_noise_amplitude * 1.2f;
 
 		const Vector3f gps_vel = Vector3f{lpos.vx + _gps_vel_noise_n, lpos.vy + _gps_vel_noise_e, lpos.vz + _gps_vel_noise_d};
 
@@ -153,7 +122,7 @@ void SensorGpsSim::Run()
 
 		sensor_gnss_s sensor_gnss{};
 
-		if (_sim_gps_used.get() >= 4) {
+		if (_param_sim_gps_used.get() >= 4) {
 			// fix: RTK fixed while corrections are flowing, 3D otherwise
 			sensor_gnss.fix_type = rtk ? sensor_gnss_s::FIX_TYPE_RTK_FIXED : sensor_gnss_s::FIX_TYPE_3D;
 			sensor_gnss.speed_accuracy = 0.4f;
@@ -194,12 +163,12 @@ void SensorGpsSim::Run()
 		sensor_gnss.jamming_state = 0;
 		sensor_gnss.spoofing_state = 0;
 		sensor_gnss.vel_ned_valid = true;
-		sensor_gnss.satellites_used = _sim_gps_used.get();
+		sensor_gnss.satellites_used = _param_sim_gps_used.get();
 
 		publishWithFailures(0, sensor_gnss, _sensor_gnss_pub);
 
-		const float gnss1_offx = _param_gnss1_offx.get();
-		const float gnss1_offy = _param_gnss1_offy.get();
+		const float gnss1_offx = _param_sens_gnss1_offx.get();
+		const float gnss1_offy = _param_sens_gnss1_offy.get();
 
 		if (fabsf(gnss1_offx) > 0.f || fabsf(gnss1_offy) > 0.f) {
 			sensor_gnss_s gnss1 = sensor_gnss;

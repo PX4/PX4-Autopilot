@@ -42,7 +42,7 @@ For use as a base station, the module has a USB-C connector
 ### 针脚定义
 
 The Freefly GPS pinout is provided below.
-For some autopilots, like the [Hex Cube](../flight_controller/pixhawk-2.md) and [PixRacer](../flight_controller/pixracer.md), all that is needed is a 1-1 8-pin JST-GH cable.
+For some autopilots, like the [CubePilot Cube](../flight_controller/pixhawk-2.md) and [PixRacer](../flight_controller/pixracer.md), all that is needed is a 1-1 8-pin JST-GH cable.
 
 | 针脚 | Freefly GPS                     |
 | -- | ------------------------------- |

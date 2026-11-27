@@ -118,19 +118,23 @@ For each incoming message, the MAVLink library checks whether a valid signature 
 If the message is unsigned or has an invalid signature, the library calls the `accept_unsigned` callback, which decides whether to accept or reject the message based on:
 
 1. **Signing not active**: If no key has been loaded, all messages are accepted.
-2. **Allowlisted message**: Certain [safety-critical messages](#unsigned-message-allowlist) are always accepted.
+2. **Allowlisted message**: Certain [safety-critical messages](#unsigned-message-allowlist) are accepted, some of them only on links configured for a traffic receiver.
 
 ## Unsigned Message Allowlist
 
-The following messages are **always** accepted unsigned, regardless of the signing state.
-These are safety-critical messages that may originate from systems that don't support signing:
+The following messages are accepted unsigned when signing is active.
+They are safety-critical messages that may originate from systems that don't support signing:
 
-| 消息                                                                                           | ID  | Reason                                                   |
-| -------------------------------------------------------------------------------------------- | --- | -------------------------------------------------------- |
-| [HEARTBEAT](https://mavlink.io/en/messages/common.html#HEARTBEAT)                            | 0   | System discovery and liveness detection                  |
-| [RADIO_STATUS](https://mavlink.io/en/messages/common.html#RADIO_STATUS) | 109 | Radio link status from SiK radios and other radio modems |
-| [ADSB_VEHICLE](https://mavlink.io/en/messages/common.html#ADSB_VEHICLE) | 246 | ADS-B traffic information for collision avoidance        |
-| [COLLISION](https://mavlink.io/en/messages/common.html#COLLISION)                            | 247 | Collision threat warnings                                |
+| 消息                                                                                           | ID  | Accepted unsigned on                     | Reason                                                   |
+| -------------------------------------------------------------------------------------------- | --- | ---------------------------------------- | -------------------------------------------------------- |
+| [HEARTBEAT](https://mavlink.io/en/messages/common.html#HEARTBEAT)                            | 0   | All links                                | System discovery and liveness detection                  |
+| [RADIO_STATUS](https://mavlink.io/en/messages/common.html#RADIO_STATUS) | 109 | All links                                | Radio link status from SiK radios and other radio modems |
+| [ADSB_VEHICLE](https://mavlink.io/en/messages/common.html#ADSB_VEHICLE) | 246 | Links in `ADS-B/Traffic (uAvionix)` mode | ADS-B traffic information for collision avoidance        |
+| [COLLISION](https://mavlink.io/en/messages/common.html#COLLISION)                            | 247 | Links in `ADS-B/Traffic (uAvionix)` mode | Collision threat warnings                                |
+
+Traffic receivers generally can't sign, but unsigned traffic accepted on any link would let anyone on a telemetry or network link inject phantom aircraft into [traffic avoidance](../peripherals/adsb_flarm.md).
+Unsigned `ADSB_VEHICLE` and `COLLISION` are therefore only accepted on a link whose [MAV_X_MODE](../advanced_config/parameter_reference.md#MAV_0_MODE) is set to `ADS-B/Traffic (uAvionix)`, which is how a traffic receiver on a serial port should be configured.
+On all other links they must be signed like any other message.
 
 ## Security Considerations
 
@@ -182,16 +186,16 @@ Physical access to the SD card or debug port is required.
 - **No encryption**: Message signing provides **authentication and integrity only**.
   Messages are still sent in plaintext.
   An eavesdropper can read all message contents (telemetry, commands, parameters, missions) but cannot forge or modify them without the key.
-- **Allowlisted messages bypass signing**: A small set of [safety-critical messages](#unsigned-message-allowlist) are always accepted unsigned.
-  An attacker can spoof these specific messages (e.g. fake `ADSB_VEHICLE` traffic) even when signing is active.
+- **Allowlisted messages bypass signing**: A small set of [safety-critical messages](#unsigned-message-allowlist) are accepted unsigned.
+  An attacker can spoof `HEARTBEAT` and `RADIO_STATUS` on any link, and `ADSB_VEHICLE` and `COLLISION` on a link configured for a traffic receiver, even when signing is active.
 
 ### What signing does NOT protect against
 
-| Attack                                                | Why                                                     |
-| ----------------------------------------------------- | ------------------------------------------------------- |
-| Eavesdropping                                         | Messages are not encrypted                              |
-| SD card extraction                                    | Key file is readable by anyone with physical access     |
-| Spoofed `HEARTBEAT`/`RADIO_STATUS`/`ADSB`/`COLLISION` | These are allowlisted unsigned                          |
-| Lost key without SD card access                       | Requires SWD reflash                                    |
-| Key rotation                                          | No automatic mechanism; manual re-provisioning required |
-| In-flight key changes                                 | `SETUP_SIGNING` rejected while armed                    |
+| Attack                                                | Why                                                                                        |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Eavesdropping                                         | Messages are not encrypted                                                                 |
+| SD card extraction                                    | Key file is readable by anyone with physical access                                        |
+| Spoofed `HEARTBEAT`/`RADIO_STATUS`/`ADSB`/`COLLISION` | These are allowlisted unsigned (traffic only on traffic receiver links) |
+| Lost key without SD card access                       | Requires SWD reflash                                                                       |
+| Key rotation                                          | No automatic mechanism; manual re-provisioning required                                    |
+| In-flight key changes                                 | `SETUP_SIGNING` rejected while armed                                                       |

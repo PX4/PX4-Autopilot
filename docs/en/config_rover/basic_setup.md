@@ -88,7 +88,7 @@ Navigate to [Parameters](../advanced_config/parameters.md) in QGroundControl and
 
    One approach to determine an appropriate value is:
    1. From a standstill, give the rover full throttle until it reaches the maximum speed.
-   2. Disarm the rover and plot the `measured_speed_body_x` from [RoverSpeedStatus](../msg_docs/RoverSpeedStatus.md).
+   2. Disarm the rover and plot the `measured_speed_body_x` from [SurfaceVehicleSpeedStatus](../msg_docs/SurfaceVehicleSpeedStatus.md).
    3. Divide the maximum speed by the time it took to reach it and set this as the value for [RO_ACCEL_LIM](#RO_ACCEL_LIM).
 
    Some RC rovers have enough torque to lift up if the maximum acceleration is not limited.
@@ -109,6 +109,9 @@ Navigate to [Parameters](../advanced_config/parameters.md) in QGroundControl and
    :::
 
 ## (Optional) Stick Input Mapping
+
+[RO_STICK_MAP](#RO_STICK_MAP) selects which sticks drive the rover forwards/backwards, turn it and, for mecanum rovers, drive it left/right.
+The available layouts are described in [Manual Modes](../flight_modes_rover/manual.md#stick-mapping).
 
 Input shaping can be used to adjust the default linear mapping from stick inputs $\in [-1, 1]$ to normalized setpoints $\in [-1, 1]$. Applying this specifically to the steering input, can provide a smoother driving experience, by enabling the user to make small adjustments when the stick is close to the center, but still send large inputs when moving them to the edges.
 We provide this input shaping through the super exponential function:
@@ -152,6 +155,7 @@ You can now continue the configuration process with [rate tuning](rate_tuning.md
 | <a id="RO_DECEL_LIM"></a>[RO_DECEL_LIM](../advanced_config/parameter_reference.md#RO_DECEL_LIM)             | (Optional) Maximum allowed deceleration    | $m/s^2$ |
 | <a id="RO_YAW_EXPO"></a>[RO_YAW_EXPO](../advanced_config/parameter_reference.md#RO_YAW_EXPO)                | (Optional) Yaw rate expo factor            | $-$     |
 | <a id="RO_YAW_SUPEXPO"></a>[RO_YAW_SUPEXPO](../advanced_config/parameter_reference.md#RO_YAW_SUPEXPO)       | (Optional) Yaw rate super expo factor      | $-$     |
+| <a id="RO_STICK_MAP"></a>[RO_STICK_MAP](../advanced_config/parameter_reference.md#RO_STICK_MAP)             | (Optional) Stick mapping for manual modes  | $-$     |
 
 ### Ackermann Specific
 

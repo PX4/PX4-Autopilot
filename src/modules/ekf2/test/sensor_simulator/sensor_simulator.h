@@ -102,6 +102,9 @@ public:
 	void startFlow() { _flow.start(); }
 	void stopFlow() { _flow.stop(); }
 
+	void startFlow1() { _flow1.start(); }
+	void stopFlow1() { _flow1.stop(); }
+
 	void startRangeFinder() { _rng.start(); }
 	void stopRangeFinder() { _rng.stop(); }
 
@@ -117,6 +120,10 @@ public:
 
 	void setImuBias(Vector3f accel_bias, Vector3f gyro_bias);
 
+	// The at-rest status is cleared as soon as the IMU data moves, ahead of the fusion time
+	// horizon. A test that provides the status with setSystemFlagData() has to disable it.
+	void setMotionClearsAtRest(bool enabled) { _motion_clears_at_rest = enabled; }
+
 	void simulateOrientation(Quatf orientation);
 	void setOrientation(const Quatf &orientation) { _R_body_to_world = Dcmf(orientation); }
 	void setOrientation(const Dcmf &orientation) { _R_body_to_world = orientation; }
@@ -126,6 +133,7 @@ public:
 	Airspeed    _airspeed;
 	Baro        _baro;
 	Flow        _flow;
+	Flow        _flow1; // second optical flow sensor (slot 1)
 	Gps         _gps;
 	GnssYaw     _gnss_yaw;
 	Imu         _imu;
@@ -134,6 +142,7 @@ public:
 	Vio         _vio;
 
 	VelocitySmoothing _trajectory[3];
+	Vector3f _trajectory_position_prev{};
 
 private:
 	void setSensorDataToDefault();
@@ -149,6 +158,7 @@ private:
 	std::vector<sensor_info> _replay_data{};
 
 	bool _has_replay_data{false};
+	bool _motion_clears_at_rest{true};
 
 	uint64_t _current_replay_data_index{0};
 	uint64_t _time{0}; // microseconds

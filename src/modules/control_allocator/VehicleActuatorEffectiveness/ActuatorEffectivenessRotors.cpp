@@ -234,7 +234,7 @@ ActuatorBitmask ActuatorEffectivenessRotors::updateAxisFromTilts(const ActuatorE
 	for (int i = 0; i < _geometry.num_rotors; ++i) {
 		int tilt_index = _geometry.rotors[i].tilt_index;
 
-		if (tilt_index == -1 || tilt_index >= tilts.count()) {
+		if (tilt_index < 0 || tilt_index >= tilts.count()) {
 			nontilted_motors |= 1u << i;
 			continue;
 		}

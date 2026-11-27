@@ -52,7 +52,7 @@ The rover tries to track the commanded course over ground.
 Ackermann and differential rovers correct their heading by the estimated drift angle so that their course over ground matches the course setpoint, the way a fixed-wing vehicle crabs into the wind.
 Mecanum rovers drive along the course setpoint directly without adjusting their heading.
 There is no desired track: after a sideways offset, the rover continues on a parallel track.
-To follow a desired track instead, use [Mission mode](#mission-mode) or send a [RoverPositionSetpoint](../msg_docs/RoverPositionSetpoint.md).
+To follow a desired track instead, use [Mission mode](#mission-mode) or send a [SurfaceVehiclePositionSetpoint](../msg_docs/SurfaceVehiclePositionSetpoint.md).
 
 Internally the mode publishes a [SurfaceVehicleCourseSetpoint](../msg_docs/SurfaceVehicleCourseSetpoint.md), which [external modes](../ros2/px4_ros2_control_interface.md) can also send directly.
 

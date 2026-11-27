@@ -87,6 +87,7 @@ int UavcanEscController::init()
 	}
 
 	param_get(param_find("UAVCAN_QUIRKS"), &_param_uavcan_quirks);
+	param_get(param_find("UAVCAN_ESC_RPMSC"), &_param_esc_rpm_scale);
 
 	_initialized = true;
 
@@ -138,7 +139,7 @@ void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<
 		esc_report.esc_current = msg.current;
 		esc_report.esc_temperature = msg.temperature + atmosphere::kAbsoluteNullCelsius; // Kelvin to Celsius
 		// esc_report.motor_temperature is filled in the extended status callback
-		esc_report.esc_rpm = msg.rpm;
+		esc_report.esc_rpm = static_cast<int32_t>(lroundf(msg.rpm * _param_esc_rpm_scale));
 		esc_report.esc_errorcount = msg.error_count;
 		esc_report.failures = get_failures(msg.getSrcNodeID().get());
 

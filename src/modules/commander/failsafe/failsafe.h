@@ -66,8 +66,10 @@ private:
 		Warning = 0, // Warning
 		Return = 1, // Return mode (deprecated)
 		Land = 2, // Land mode
-		ReturnOrLand = 3, // Return mode at critically low level, Land mode at current position if reaching dangerously low levels
-		ReturnOrTerminate = 4 // Return mode at critically low level, Terminate if reaching dangerously low levels
+		ReturnOrLand = 3, // Return mode at critically low level, Land mode at current position if reaching dangerously low levels, plus distance-aware return
+		ReturnOrTerminate = 4, // Return mode at critically low level, Terminate if reaching dangerously low levels, plus distance-aware return
+		ReturnOrLandWithoutDistanceAwareReturn = 5, // ReturnOrLand, but only warn when the remaining flight time is only just enough to return
+		ReturnOrTerminateWithoutDistanceAwareReturn = 6 // ReturnOrTerminate, but only warn when the remaining flight time is only just enough to return
 	};
 
 	enum class offboard_loss_failsafe_mode : int32_t {
@@ -146,12 +148,6 @@ private:
 		Land_mode = 5
 	};
 
-	enum class command_after_remaining_flight_time_low : int32_t {
-		None = 0,
-		Warning = 1,
-		Return_mode = 3
-	};
-
 	enum class open_drone_id_failsafe_mode : int32_t {
 		None = 0,
 		Warning = 1,
@@ -180,13 +176,13 @@ private:
 	static ActionOptions fromNavDllOrRclActParam(int param_value);
 
 	static ActionOptions fromGfActParam(int param_value);
+	static ActionOptions fromGfContActParam(int param_value);
 	static ActionOptions fromActuatorFailureActParam(int param_value);
 	static ActionOptions fromBatteryWarningActParam(int param_value, uint8_t battery_warning);
 	static ActionOptions fromQuadchuteActParam(int param_value);
 	static Action fromOffboardLossActParam(int param_value, uint8_t &user_intended_mode);
 	static ActionOptions fromHighWindLimitActParam(int param_value);
 	static ActionOptions fromPosLowActParam(int param_value);
-	static ActionOptions fromRemainingFlightTimeLowActParam(int param_value);
 	static ActionOptions fromOdidFailActParam(int param_value);
 	static ActionOptions fromParachuteActParam(int param_value);
 	static ActionOptions fromTrafficAvoidanceActParam(int param_value);
@@ -205,8 +201,6 @@ private:
 
 	const int _caller_id_mode_fallback{genCallerId()};
 	bool _last_state_mode_fallback{false};
-	const int _caller_id_mission_control_lost{genCallerId()};
-	bool _last_state_mission_control_lost{false};
 
 	const int _caller_id_battery_warning_low{genCallerId()}; ///< battery warning caller ID's: use different ID's as they have different actions
 	bool _last_state_battery_warning_low{false};
@@ -216,6 +210,8 @@ private:
 	bool _last_state_battery_warning_emergency{false};
 	const int _caller_id_fd_esc_arming{genCallerId()};
 	bool _last_state_fd_esc_arming{false};
+	const int _caller_id_fd_motor_stuck{genCallerId()};
+	bool _last_state_fd_motor_stuck{false};
 	const int _caller_id_battery_unhealthy_spoolup{genCallerId()};
 	bool _last_state_battery_unhealthy_spoolup{false};
 
@@ -231,14 +227,14 @@ private:
 					(ParamInt<px4::params::COM_DLL_EXCEPT>) _param_com_dll_except,
 					(ParamInt<px4::params::COM_RC_IN_MODE>) _param_com_rc_in_mode,
 					(ParamInt<px4::params::GF_ACTION>)  	_param_gf_action,
+					(ParamInt<px4::params::GF_CONT_ACTION>) _param_gf_cont_action,
 					(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time,
 					(ParamInt<px4::params::CBRK_FLIGHTTERM>) _param_cbrk_flightterm,
-					(ParamInt<px4::params::COM_ACT_FAIL_ACT>) _param_com_actuator_failure_act,
+					(ParamInt<px4::params::COM_ACT_FAIL_ACT>) _param_com_act_fail_act,
 					(ParamInt<px4::params::COM_LOW_BAT_ACT>) _param_com_low_bat_act,
 					(ParamInt<px4::params::COM_OBL_RC_ACT>) _param_com_obl_rc_act,
 					(ParamInt<px4::params::COM_QC_ACT>) _param_com_qc_act,
 					(ParamInt<px4::params::COM_WIND_MAX_ACT>) _param_com_wind_max_act,
-					(ParamInt<px4::params::COM_FLTT_LOW_ACT>) _param_com_fltt_low_act,
 					(ParamInt<px4::params::COM_POS_LOW_ACT>) _param_com_pos_low_act,
 					(ParamInt<px4::params::COM_ARM_ODID>) _param_com_arm_odid,
 					(ParamInt<px4::params::COM_PARACHUTE>) _param_com_parachute,

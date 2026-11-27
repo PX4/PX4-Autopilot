@@ -77,7 +77,7 @@ TFMINI::init()
 	param_get(param_find("SENS_TFMINI_HW"), &hw_model);
 
 	switch (hw_model) {
-	case 1: // TFMINI (12m, 100 Hz)
+	case 1: // TFMINI / TFMINI-S (12m, 100 Hz)
 		// Note:
 		// Sensor specification shows 0.3m as minimum, but in practice
 		// 0.3 is too close to minimum so chattering of invalid sensor decision
@@ -85,7 +85,7 @@ TFMINI::init()
 		// So we set 0.4 as valid minimum.
 		_px4_rangefinder.set_min_distance(0.4f);
 		_px4_rangefinder.set_max_distance(12.0f);
-		_px4_rangefinder.set_fov(math::radians(2.3f));
+		_px4_rangefinder.set_fov(math::radians(2.0f));
 		break;
 
 	case 2: // ISTRA24 (50m, 100 Hz)
@@ -98,6 +98,12 @@ TFMINI::init()
 		_px4_rangefinder.set_min_distance(0.3f);
 		_px4_rangefinder.set_max_distance(100.0f);
 		_px4_rangefinder.set_fov(math::radians(20));
+		break;
+
+	case 4: // TFMINI Plus (12m, 100 Hz)
+		_px4_rangefinder.set_min_distance(0.1f);
+		_px4_rangefinder.set_max_distance(12.0f);
+		_px4_rangefinder.set_fov(math::radians(3.6f));
 		break;
 
 	default:

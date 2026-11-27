@@ -49,11 +49,11 @@ The PingRX comes with connector cable that can be attached directly to the `TELE
 
 The recommended port configuration for this receiver is:
 
-| Parameter                                                                                                                                   | Recommended Value |
-| ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
-| [MAV_X_CONFIG](../advanced_config/parameter_reference.md#MAV_1_CONFIG)                            | `TELEM 2`         |
-| [MAV_X_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE)                                | uAvionix          |
-| [MAV_X_RADIO_CTL](../advanced_config/parameter_reference.md#MAV_1_RADIO_CTL) | Disabled          |
+| Parameter                                                                                                                                   | Recommended Value                           |
+| ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| [MAV_X_CONFIG](../advanced_config/parameter_reference.md#MAV_1_CONFIG)                            | `TELEM 2`                                   |
+| [MAV_X_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE)                                | ADS-B/Traffic (uAvionix) |
+| [MAV_X_RADIO_CTL](../advanced_config/parameter_reference.md#MAV_1_RADIO_CTL) | Disabled                                    |
 
 ## FLARM
 
@@ -82,11 +82,16 @@ The recommended configuration for most devices (unless they have device-specific
 | Parameter                                                                                                          | Recommended Value                                    |
 | ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
 | [MAV_X_CONFIG](../advanced_config/parameter_reference.md#MAV_1_CONFIG)   | `TELEM 2`                                            |
-| [MAV_X_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE)       | Normal                                               |
+| [MAV_X_MODE](../advanced_config/parameter_reference.md#MAV_1_MODE)       | ADS-B/Traffic (uAvionix)          |
 | [MAV_X_RATE](../advanced_config/parameter_reference.md#MAV_1_RATE)       | 0 (default sending rate for port) |
 | [MAV_X_FORWARD](../advanced_config/parameter_reference.md#MAV_1_FORWARD) | Enabled                                              |
 
 Перезавантажте пристрій.
+
+:::info
+Use the `ADS-B/Traffic (uAvionix)` mode for any traffic receiver.
+If [MAVLink message signing](../mavlink/message_signing.md) is active, unsigned `ADSB_VEHICLE` and `COLLISION` messages are only accepted on a link in this mode, so a receiver on a link in another mode is ignored.
+:::
 
 You will now find a new parameter called [SER_TEL2_BAUD](../advanced_config/parameter_reference.md#SER_TEL2_BAUD), which must be set to 57600.
 

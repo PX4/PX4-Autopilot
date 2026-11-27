@@ -112,7 +112,6 @@ void Ekf::reset()
 	_time_last_ver_vel_fuse = 0;
 	_time_last_heading_fuse = 0;
 	_time_last_terrain_fuse = 0;
-	_time_heading_fusion_start = 0;
 
 	_last_known_gpos.setZero();
 
@@ -380,11 +379,13 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 			const VectorState P_north = P.row(State::pos.idx);
 			VectorState P_east = P.row(State::pos.idx + 1);
 
+			VectorState state_correction;
+
 			{
 				const float innov_var_north = P_north(State::pos.idx) + R_small;
 				VectorState K = P_north / innov_var_north;
 				clearInhibitedStateKalmanGains(K);
-				fuse(K, innov(0));
+				state_correction -= K * innov(0);
 
 				P_east -= P_north * (P_north(State::pos.idx + 1) / innov_var_north);
 			}
@@ -392,13 +393,15 @@ bool Ekf::resetGlobalPosToExternalObservation(const double latitude, const doubl
 			// The 2nd axis needs to be fused using the state covariance that would have been
 			// obtained with this artificially low observation variance
 			{
-				// recalculate the innovation using the state updated by the North fusion
-				const float innovation = (_gpos - gpos_corrected)(1);
+				// correct the innovation for the accumulated state correction
+				const float innovation = innov(1) + state_correction(State::pos.idx + 1);
 				const float innov_var_east = P_east(State::pos.idx + 1) + R_small;
 				VectorState K = P_east / innov_var_east;
 				clearInhibitedStateKalmanGains(K);
-				fuse(K, innovation);
+				state_correction -= K * innovation;
 			}
+
+			applyStateCorrection(state_correction);
 
 			// The update of the covariance matrix is performed with the correct observation variance
 			// to not artificially reduce the state uncertainty and cross-correlations.
@@ -456,6 +459,10 @@ void Ekf::updateParameters()
 
 	_aux_global_position.paramsUpdated();
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
+
+#if defined(CONFIG_EKF2_OPTICAL_FLOW) && defined(MODULE_NAME)
+	_flow_aiding.updateParams();
+#endif // CONFIG_EKF2_OPTICAL_FLOW && MODULE_NAME
 }
 
 template<typename T>
@@ -582,7 +589,11 @@ void Ekf::print_status()
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	printRingBuffer("flow buffer", _flow_buffer);
+
+	for (uint8_t i = 0; i < MAX_OF_INSTANCES; i++) {
+		printRingBuffer("flow buffer", _flow_aiding.source(i)._buffer);
+	}
+
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)

@@ -33,10 +33,7 @@
 px4_add_module(
 	MODULE drivers__ina228
 	MAIN ina228
-	COMPILE_FLAGS
-		-Wno-cast-align # TODO: fix and enable
 	SRCS
-		ina228_main.cpp
 		ina228.cpp
 	MODULE_CONFIG
 		ina228_params.yaml

@@ -169,4 +169,9 @@ uint8_t st24_common_crc8(uint8_t *ptr, uint8_t len);
 __EXPORT int st24_decode(uint8_t byte, uint8_t *rssi, uint8_t *lost_count, uint16_t *channel_count,
 			 uint16_t *channels, uint16_t max_chan_count);
 
+/**
+ * Drop any partially received frame and wait for the next frame start.
+ */
+__EXPORT void st24_reset(void);
+
 __END_DECLS

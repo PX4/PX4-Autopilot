@@ -42,7 +42,7 @@ RTK GPS Freefly поставляється з роз'ємом JST-GH на 8 ко
 ### Схема розташування виводів
 
 Схема виводів Freefly GPS наведена нижче.
-For some autopilots, like the [Hex Cube](../flight_controller/pixhawk-2.md) and [PixRacer](../flight_controller/pixracer.md), all that is needed is a 1-1 8-pin JST-GH cable.
+For some autopilots, like the [CubePilot Cube](../flight_controller/pixhawk-2.md) and [PixRacer](../flight_controller/pixracer.md), all that is needed is a 1-1 8-pin JST-GH cable.
 
 | Pin | Freefly GPS                     |
 | --- | ------------------------------- |

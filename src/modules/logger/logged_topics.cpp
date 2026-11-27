@@ -67,6 +67,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("external_ins_attitude");
 	add_optional_topic("external_ins_global_position");
 	add_optional_topic("external_ins_local_position");
+	add_topic("esc_eeprom_read");
 	add_topic("esc_status", 100);
 	add_topic("failure_detector_status", 100);
 	add_topic("failsafe_flags");
@@ -110,15 +111,6 @@ void LoggedTopics::add_default_topics()
 	add_topic("position_setpoint_triplet", 200);
 	add_optional_topic("px4io_status");
 	add_topic("radio_status");
-	add_optional_topic("rover_attitude_setpoint", 100);
-	add_optional_topic("rover_attitude_status", 100);
-	add_optional_topic("rover_position_setpoint", 100);
-	add_optional_topic("rover_rate_setpoint", 100);
-	add_optional_topic("rover_rate_status", 100);
-	add_optional_topic("rover_speed_setpoint", 100);
-	add_optional_topic("rover_speed_status", 100);
-	add_optional_topic("rover_steering_setpoint", 100);
-	add_optional_topic("rover_throttle_setpoint", 100);
 	add_topic("rtl_time_estimate", 1000);
 	add_topic("rtl_status", 2000);
 	add_optional_topic("sensor_airflow", 100);
@@ -129,7 +121,16 @@ void LoggedTopics::add_default_topics()
 	add_topic("sensors_status_gnss", 200);
 	add_topic("sensors_status_imu", 200);
 	add_optional_topic("spoilers_setpoint", 1000);
+	add_optional_topic("surface_vehicle_attitude_setpoint", 100);
+	add_optional_topic("surface_vehicle_attitude_status", 100);
 	add_optional_topic("surface_vehicle_course_setpoint", 100);
+	add_optional_topic("surface_vehicle_position_setpoint", 100);
+	add_optional_topic("surface_vehicle_rate_setpoint", 100);
+	add_optional_topic("surface_vehicle_rate_status", 100);
+	add_optional_topic("surface_vehicle_speed_setpoint", 100);
+	add_optional_topic("surface_vehicle_speed_status", 100);
+	add_optional_topic("surface_vehicle_steering_setpoint", 100);
+	add_optional_topic("surface_vehicle_thrust_setpoint", 100);
 	add_topic("system_power", 500);
 	add_optional_topic("takeoff_status", 1000);
 	add_optional_topic("tecs_status", 200);
@@ -252,7 +253,7 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("vehicle_imu", 500, 4);
 	add_topic_multi("vehicle_imu_status", 1000, 4);
 	add_optional_topic_multi("vehicle_magnetometer", 500, 4);
-	add_topic("vehicle_optical_flow", 500);
+	add_topic_multi("vehicle_optical_flow", 500);
 	add_topic_multi("aux_global_position", 500);
 	add_optional_topic("pps_capture");
 
@@ -354,7 +355,7 @@ void LoggedTopics::add_estimator_replay_topics()
 	// current EKF2 subscriptions
 	add_topic("airspeed");
 	add_topic("airspeed_validated");
-	add_topic("vehicle_optical_flow");
+	add_topic_multi("vehicle_optical_flow");
 	add_topic("sensor_combined");
 	add_topic("sensor_selection");
 	add_topic("vehicle_air_data");
@@ -398,12 +399,20 @@ void LoggedTopics::add_vision_and_avoidance_topics()
 
 void LoggedTopics::add_raw_imu_gyro_fifo()
 {
-	add_topic("sensor_gyro_fifo");
+	const int count = _subscriptions.count;
+
+	if (add_topic("sensor_gyro_fifo") && (_subscriptions.count == count + 1)) {
+		_subscriptions.sub[count].use_selected_imu_instance = true;
+	}
 }
 
 void LoggedTopics::add_raw_imu_accel_fifo()
 {
-	add_topic("sensor_accel_fifo");
+	const int count = _subscriptions.count;
+
+	if (add_topic("sensor_accel_fifo") && (_subscriptions.count == count + 1)) {
+		_subscriptions.sub[count].use_selected_imu_instance = true;
+	}
 }
 
 void LoggedTopics::add_system_identification_topics()
@@ -427,7 +436,7 @@ void LoggedTopics::add_high_rate_sensors_topics()
 	add_topic("estimator_aid_src_baro_hgt", 10);
 	add_topic("vehicle_air_data", 10);
 	add_topic("vehicle_magnetometer", 10);
-	add_topic("vehicle_thrust_setpoint", 10);
+	add_topic("wheel_encoders", 10);
 }
 
 void LoggedTopics::add_mavlink_tunnel()
@@ -546,8 +555,9 @@ bool LoggedTopics::add_topic(const char *name, uint16_t interval_ms, uint8_t ins
 
 			// check if already added: if so, only update the interval
 			for (int j = 0; j < _subscriptions.count; ++j) {
+				// a subscription that must use the selected IMU instance stays separate from an explicitly requested instance
 				if (_subscriptions.sub[j].id == static_cast<ORB_ID>(topics[i]->o_id) &&
-				    _subscriptions.sub[j].instance == instance) {
+				    _subscriptions.sub[j].instance == instance && !_subscriptions.sub[j].use_selected_imu_instance) {
 
 					PX4_DEBUG("logging topic %s(%" PRIu8 "), interval: %" PRIu16 ", already added, only setting interval",
 						  topics[i]->o_name, instance, interval_ms);

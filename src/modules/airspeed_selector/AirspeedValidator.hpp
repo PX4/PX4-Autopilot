@@ -168,6 +168,7 @@ private:
 	bool _load_factor_check_failed{false}; ///< load_factor check has detected failure
 	float _airspeed_stall{8.0f}; ///< stall speed of aircraft used for load factor check
 	float	_load_factor_ratio{0.5f};	///< ratio of maximum load factor predicted by stall speed to measured load factor
+	static constexpr float kLoadFactorRatioRawMax = 4.f; ///< upper limit of the unfiltered load factor ratio
 
 	// first principle check
 	bool _first_principle_check_failed{false}; ///< first principle check has detected failure

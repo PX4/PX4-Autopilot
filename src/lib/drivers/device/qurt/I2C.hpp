@@ -52,7 +52,7 @@ namespace device __EXPORT
 /**
  * Abstract class for character device on I2C
  */
-class __EXPORT I2C : public CDev
+class __EXPORT I2C : public Device
 {
 
 public:

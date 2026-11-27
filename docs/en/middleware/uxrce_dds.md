@@ -437,7 +437,7 @@ Options `-p` or `-h` are used to bypass `UXRCE_DDS_PRT` and `UXRCE_DDS_AG_IP`.
 
 #### Starting the Client in Simulation
 
-The simulator [startup logic](../concept/system_startup.md) ([init.d-posix/rcS](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d-posix/rcS)) uses the client startup commands for single and [multi vehicle simulations](../ros2/multi_vehicle.md), enabling the setting of appropriate instance ids and DDS namespaces.
+The simulator [startup logic](../concept/system_startup.md) ([init.d-posix/px4-rc.uxrce_dds](https://github.com/PX4/PX4-Autopilot/blob/main/ROMFS/px4fmu_common/init.d-posix/px4-rc.uxrce_dds)) uses the client startup commands for single and [multi vehicle simulations](../ros2/multi_vehicle.md), enabling the setting of appropriate instance ids and DDS namespaces.
 By default the client is started on localhost UDP port `8888` with no additional namespace.
 
 Environment variables are provided that override some [UXRCE-DDS parameters](../advanced_config/parameter_reference.md#uxrce-dds-client).
@@ -666,6 +666,23 @@ The Zenoh bridge module does not yet support demux routing — topics listed und
 
 You can arbitrarily change the configuration.
 For example, you could use different default namespaces or use a custom package to store the message definitions.
+
+### Out-of-Tree Messages
+
+[Out-of-tree uORB messages](../advanced/out_of_tree_modules.md#out-of-tree-uorb-message-definitions) can be bridged without changing `dds_topics.yaml`.
+List them in `$EXTERNAL_MODULES_LOCATION/msg/dds_topics.yaml`, which has the same structure:
+
+```yaml
+publications:
+
+  - topic: /fmu/out/my_message
+    type: px4_msgs::msg::MyMessage
+```
+
+The build appends its `publications`, `subscriptions` and `subscriptions_multi` to those of `dds_topics.yaml`, and stops with an error if a topic appears twice in the same list.
+
+ROS 2 needs the definitions of these messages in `px4_msgs` too.
+`Tools/copy_to_ros_ws.sh <ros_ws_dir> <external_modules_location>` copies them into the workspace's `px4_msgs` along with PX4's own messages, and refuses a message with the name of a PX4 message.
 
 ## DDS (ROS 2) Services
 

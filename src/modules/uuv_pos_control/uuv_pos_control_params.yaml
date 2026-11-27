@@ -38,6 +38,7 @@ parameters:
         long: maximum Height distance controlled by manual input. Diff between actual
           and desired Height cannot be higher than that
       type: float
+      unit: m
       default: 0.3
       decimal: 2
     UUV_HGT_B_UP:

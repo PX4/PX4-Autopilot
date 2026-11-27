@@ -9,6 +9,12 @@ on:
     paths:
       - 'msg/**'
       - 'srv/**'
+  workflow_call:
+    inputs:
+      branch:
+        description: 'PX4 branch to sync (default: the ref the workflow runs on)'
+        required: false
+        type: string
   workflow_dispatch:
 
 permissions:
@@ -21,9 +27,12 @@ jobs:
     env:
       # read by gh's git credential helper at push time
       GH_TOKEN: ${{ secrets.PX4BUILTBOT_PERSONAL_ACCESS_TOKEN }}
+      BRANCH: ${{ inputs.branch || github.ref_name }}
     steps:
       - name: Checkout PX4 repo
         uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.branch }}
 
       - name: Setup git credentials
         run: |
@@ -42,10 +51,10 @@ jobs:
       - name: Check out the same branch as the PX4 repo
         run: |
           cd px4_msgs
-          if git checkout ${{ github.ref_name }}; then
+          if git checkout "$BRANCH"; then
             echo "Checked out existing branch"
           else
-            git checkout -b ${{ github.ref_name }}
+            git checkout -b "$BRANCH"
           fi
 
       - name: Copy ROS 2 messages
@@ -72,9 +81,9 @@ jobs:
           if git diff --cached --quiet; then
             echo "No message changes to commit"
           else
-            git commit -m "Update to PX4 ${{ github.sha }}"
+            git commit -m "Update to PX4 $(git -C .. rev-parse HEAD)"
           fi
           # push even without a new commit, so a bad token or a new branch never goes unnoticed
-          git push origin ${{ github.ref_name }}
+          git push origin "$BRANCH"
           cd ..
           rm -rf px4_msgs

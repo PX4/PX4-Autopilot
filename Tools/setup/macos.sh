@@ -84,7 +84,6 @@ brew tap PX4/px4
 # Package list. This replaces the px4-dev meta-formula, which is kept
 # as a deprecated no-op upstream. See PX4/homebrew-px4 for history.
 PX4_BREW_PACKAGES=(
-	astyle
 	bash-completion
 	ccache
 	cmake
@@ -140,6 +139,7 @@ if [[ $INSTALL_SIM == "--sim-tools" ]]; then
 		exiftool
 		glog
 		graphviz
+		libgeotiff # SIH terrain elevation (GeoTIFF DEM), pulls libtiff and proj
 		pixi
 	)
 

@@ -31,6 +31,8 @@ parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
                     help='Verbose Output')
 parser.add_argument('--timer-config', type=str, action='store',
                     help='board-specific timer_config.cpp file')
+parser.add_argument('--board-config', type=str, action='store',
+                    help='board Kconfig boardconfig file, evaluates the timer_config.cpp preprocessor conditionals')
 parser.add_argument('--board', type=str, action='store',
                     help='board name, e.g. ')
 parser.add_argument('--board-with-io', dest='board_with_io', action='store_true',
@@ -186,7 +188,7 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
                     timer_config_file = os.path.join(root_dir, group['timer_config_file'])
                 if timer_config_file is None:
                     raise Exception('trying to generate pwm outputs, but --timer-config not set')
-                timer_groups = get_timer_groups(timer_config_file, verbose)
+                timer_groups = get_timer_groups(timer_config_file, verbose, args.board_config)
                 timer_output_groups, timer_params = get_output_groups(timer_groups,
                     param_prefix, channel_labels,
                     standard_params, extra_function_groups, pwm_timer_param,

@@ -212,6 +212,9 @@ Tunes::Status Tunes::get_next_note(unsigned &frequency, unsigned &duration, unsi
 		int c = next_char();
 
 		if (c == 0) {
+			// A repeating tune continues with a zero-length rest, so leave nothing undefined
+			frequency = 0;
+			duration = 0;
 			silence = 0;
 			return tune_end();
 		}
@@ -324,6 +327,8 @@ Tunes::Status Tunes::get_next_note(unsigned &frequency, unsigned &duration, unsi
 
 			if (note == 0) {
 				// This is a rest - pause for the current note length.
+				frequency = 0;
+				duration = 0;
 				silence = rest_duration(_note_length, next_dots());
 				return Tunes::Status::Continue;
 			}

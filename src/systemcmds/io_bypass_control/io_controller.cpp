@@ -114,8 +114,9 @@ void IOController::Run()
 						     (1.0f / (float)(_rate * 2)) * 1000000);
 
 				up_pwm_servo_set(i, setpoint);
-				up_pwm_update(i);
 			}
+
+			up_pwm_update(_pwm_mask);
 		}
 	}
 }

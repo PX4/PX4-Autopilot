@@ -360,20 +360,16 @@ You can leave the router running in this terminal!
 
 1. 在之前安装好的 PX4 自动驾驶仪 代码仓库的根目录下，打开一个新的终端。
 
-   Start a Zenoh-enabled PX4 [Gazebo](../sim_gazebo_gz/index.md) simulation using:
+   Start a PX4 [Gazebo](../sim_gazebo_gz/index.md) simulation with Zenoh selected as the ROS 2 middleware:
 
    ```sh
-   make px4_sitl_zenoh gz_x500
+   PX4_ROS2_MIDDLEWARE=zenoh make px4_sitl gz_x500
    ```
 
-2. In the PX4 shell, enable Zenoh and reboot to apply the change:
+   The variable sets [ZENOH_ENABLE](../advanced_config/parameter_reference.md#ZENOH_ENABLE) to `1`, so Zenoh starts instead of the uXRCE-DDS client.
+   Alternatively, run `param set ZENOH_ENABLE 1` in the PX4 shell and restart the simulation.
 
-   ```sh
-   param set ZENOH_ENABLE 1
-   reboot
-   ```
-
-The default Zenoh daemon address for the `px4_sitl_zenoh` target is `localhost`, so no further network configuration is needed for simulation.
+The default Zenoh daemon address for simulation is `localhost`, so no further network configuration is needed for simulation.
 See [Zenoh > Configure Zenoh Network](../middleware/zenoh.md#configure-zenoh-network) if you need to connect to a router at a different address (such as on real hardware).
 
 Once the client and router are connected, you can inspect the available topics using standard ROS 2 CLI tools, e.g. `ros2 topic list`, just make sure you ran `export RMW_IMPLEMENTATION=rmw_zenoh_cpp` in your terminal.

@@ -49,47 +49,60 @@ public:
 
 	unsigned get_size() override
 	{
-		return _vehicle_optical_flow_sub.advertised() ? (MAVLINK_MSG_ID_OPTICAL_FLOW_RAD_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) :
-		       0;
+		unsigned size = 0;
+
+		for (auto &sub : _vehicle_optical_flow_subs) {
+			if (sub.advertised()) {
+				size += MAVLINK_MSG_ID_OPTICAL_FLOW_RAD_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+			}
+		}
+
+		return size;
 	}
 
 private:
 	explicit MavlinkStreamOpticalFlowRad(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	uORB::Subscription _vehicle_optical_flow_sub{ORB_ID(vehicle_optical_flow)};
+	uORB::Subscription _vehicle_optical_flow_subs[2] {
+		{ORB_ID(vehicle_optical_flow), 0},
+		{ORB_ID(vehicle_optical_flow), 1},
+	};
 
 	bool send() override
 	{
-		vehicle_optical_flow_s flow;
+		bool sent = false;
 
-		if (_vehicle_optical_flow_sub.update(&flow)) {
-			mavlink_optical_flow_rad_t msg{};
+		for (auto &sub : _vehicle_optical_flow_subs) {
+			vehicle_optical_flow_s flow;
 
-			msg.time_usec = flow.timestamp_sample;
-			msg.sensor_id = _vehicle_optical_flow_sub.get_instance();
-			msg.integration_time_us = flow.integration_timespan_us;
-			msg.integrated_x = flow.pixel_flow[0];
-			msg.integrated_y = flow.pixel_flow[1];
-			msg.integrated_xgyro = flow.delta_angle[0];
-			msg.integrated_ygyro = flow.delta_angle[1];
-			msg.integrated_zgyro = flow.delta_angle[2];
-			// msg.temperature = 0;
-			msg.quality = flow.quality;
-			// msg.time_delta_distance_us = 0;
+			if (sub.update(&flow)) {
+				mavlink_optical_flow_rad_t msg{};
 
-			if (PX4_ISFINITE(flow.distance_m)) {
-				msg.distance = flow.distance_m;
+				msg.time_usec = flow.timestamp_sample;
+				msg.sensor_id = sub.get_instance();
+				msg.integration_time_us = flow.integration_timespan_us;
+				msg.integrated_x = flow.pixel_flow[0];
+				msg.integrated_y = flow.pixel_flow[1];
+				msg.integrated_xgyro = flow.delta_angle[0];
+				msg.integrated_ygyro = flow.delta_angle[1];
+				msg.integrated_zgyro = flow.delta_angle[2];
+				// msg.temperature = 0;
+				msg.quality = flow.quality;
+				// msg.time_delta_distance_us = 0;
 
-			} else {
-				msg.distance = -1;
+				if (PX4_ISFINITE(flow.distance_m)) {
+					msg.distance = flow.distance_m;
+
+				} else {
+					msg.distance = -1;
+				}
+
+				mavlink_msg_optical_flow_rad_send_struct(_mavlink->get_channel(), &msg);
+				sent = true;
 			}
-
-			mavlink_msg_optical_flow_rad_send_struct(_mavlink->get_channel(), &msg);
-
-			return true;
 		}
 
-		return false;
+		return sent;
 	}
 };
 

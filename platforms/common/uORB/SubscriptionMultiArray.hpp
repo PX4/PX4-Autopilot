@@ -49,6 +49,12 @@ namespace uORB
 {
 
 /**
+ * Initialise and subscribe an array of multi-instance subscriptions.
+ * Shared by all SubscriptionMultiArray sizes so that the loop exists once.
+ */
+void subscribeMultiArray(Subscription *subscriptions, uint8_t count, ORB_ID id);
+
+/**
  * An array of uORB::Subscriptions of the same topic
  */
 template<typename T, uint8_t SIZE = ORB_MULTI_MAX_INSTANCES>
@@ -64,13 +70,7 @@ public:
 	 *
 	 * @param id The uORB ORB_ID enum for the topic.
 	 */
-	explicit SubscriptionMultiArray(ORB_ID id)
-	{
-		for (uint8_t i = 0; i < SIZE; i++) {
-			_subscriptions[i] = Subscription{id, i};
-			_subscriptions[i].subscribe();
-		}
-	}
+	explicit SubscriptionMultiArray(ORB_ID id) { subscribeMultiArray(_subscriptions, SIZE, id); }
 
 	~SubscriptionMultiArray() = default;
 

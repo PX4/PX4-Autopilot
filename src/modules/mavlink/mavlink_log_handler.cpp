@@ -118,19 +118,24 @@ void MavlinkLogHandler::handle_message(const mavlink_message_t *msg)
 void MavlinkLogHandler::state_idle()
 {
 	if (_current_entry.fp && _file_send_finished) {
-		fclose(_current_entry.fp);
-		_current_entry.fp = nullptr;
-
-		_current_entry.id = 0xffff;
-		_current_entry.time_utc = 0;
-		_current_entry.size_bytes = 0;
-		_current_entry.filepath[0] = 0;
-		_current_entry.offset = 0;
-
-		_entry_request.id = 0xffff;
-		_entry_request.start_offset = 0;
-		_entry_request.byte_count = 0;
+		close_current_entry();
 	}
+}
+
+void MavlinkLogHandler::close_files()
+{
+	close_current_entry();
+	_state = LogHandlerState::Idle;
+}
+
+void MavlinkLogHandler::close_current_entry()
+{
+	if (_current_entry.fp) {
+		fclose(_current_entry.fp);
+	}
+
+	_current_entry = LogEntry{};
+	_entry_request = LogEntryRequest{};
 }
 
 void MavlinkLogHandler::state_listing()
@@ -246,14 +251,19 @@ void MavlinkLogHandler::state_sending_data()
 
 	while (_mavlink.get_free_tx_buf() > MAVLINK_PACKET_SIZE && bytes_sent < max_bytes_to_send) {
 
+		if (!_current_entry.fp) {
+			_state = LogHandlerState::Idle;
+			return;
+		}
+
 		// Only seek if we need to
 		long int offset = _current_entry.offset - ftell(_current_entry.fp);
 
 		if (offset && fseek(_current_entry.fp, offset, SEEK_CUR)) {
-			fclose(_current_entry.fp);
-			_current_entry.fp = nullptr;
 			PX4_DEBUG("seek error");
+			close_current_entry();
 			_state = LogHandlerState::Idle;
+			return;
 		}
 
 		// Prepare mavlink message
@@ -334,11 +344,7 @@ void MavlinkLogHandler::handle_log_request_data(const mavlink_message_t *msg)
 
 	// Handle switching to new request ID
 	if (request.id != _current_entry.id) {
-		// Close the old file
-		if (_current_entry.fp) {
-			fclose(_current_entry.fp);
-			_current_entry.fp = nullptr;
-		}
+		close_current_entry();
 
 		LogEntry entry = {};
 
@@ -353,6 +359,7 @@ void MavlinkLogHandler::handle_log_request_data(const mavlink_message_t *msg)
 
 		if (!entry.fp) {
 			PX4_DEBUG("Failed to open file %s", entry.filepath);
+			_state = LogHandlerState::Idle;
 			return;
 		}
 
@@ -398,10 +405,10 @@ void MavlinkLogHandler::handle_log_erase(const mavlink_message_t *msg)
 		return;
 	}
 
-	if (_current_entry.fp) {
-		fclose(_current_entry.fp);
-		_current_entry.fp = nullptr;
-	}
+	// Forget the open entry and the listing, the files behind them are about to go.
+	close_current_entry();
+	_num_logs = 0;
+	_logs_listed = false;
 
 	_state = LogHandlerState::Idle;
 	unlink(kLogListFilePath);

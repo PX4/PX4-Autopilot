@@ -24,7 +24,9 @@ parameters:
     SENS_BAR_AUTOCAL:
       description:
         short: Barometer auto calibration
-        long: Automatically calibrate barometer based on the GNSS height
+        long: |-
+          Automatically calibrate barometer based on the GNSS height.
+          Keeps recalibrating while landed and disarmed when the baro drifts away from the GNSS height.
       category: System
       type: boolean
       default: 1

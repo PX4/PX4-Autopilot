@@ -34,6 +34,10 @@ HEADER_PATTERN = re.compile(
 
 EXEMPT_PREFIXES = ('Merge ',)
 
+# Tag a backport PR puts in front of the header, with or without the release:
+# "[BACKPORT 1.18] fix(ekf2): ...", "[backport] fix(ekf2): ..."
+BACKPORT_TAG = re.compile(r'^(\[backport(?:\s+v?\d+(?:\.\d+)+)?\])\s*', re.IGNORECASE)
+
 # Common PX4 subsystem scopes for suggestions
 KNOWN_SCOPES = [
     'ekf2', 'mavlink', 'commander', 'navigator', 'sensors',
@@ -110,13 +114,26 @@ VERB_TYPE_MAP = [
 ]
 
 
+def split_backport_tag(text: str) -> tuple[str, str]:
+    """Split a title into its leading backport tag and the header after it.
+
+    The tag is '' when the title has none.
+    """
+    text = text.strip()
+    m = BACKPORT_TAG.match(text)
+    if not m:
+        return '', text
+    return m.group(1), text[m.end():]
+
+
 def parse_header(text: str) -> dict | None:
     """Parse a conventional commit header into components.
 
-    Returns dict with keys {type, scope, breaking, subject} or None if
-    the text doesn't match conventional commits format.
+    A leading backport tag is skipped. Returns dict with keys
+    {type, scope, breaking, subject} or None if the text doesn't match
+    conventional commits format.
     """
-    text = text.strip()
+    _, text = split_backport_tag(text)
     m = HEADER_PATTERN.match(text)
     if not m:
         return None

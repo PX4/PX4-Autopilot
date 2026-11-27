@@ -35,6 +35,7 @@
 
 #include "failsafe.h"
 #include "failsafe_action_modes.h"
+#include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_status.h>
 #include "../ModeUtil/mode_requirements.hpp"
 
@@ -1059,6 +1060,76 @@ TEST_F(FailsafeTest, RoverUnsupportedDescendToDisarm)
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Disarm);
 }
 
+TEST_F(FailsafeTest, FixedWingCannotRunFollowTargetOrOrbit)
+{
+	// Follow Target and Orbit only exist as multicopter flight tasks, and both clear
+	// flag_control_auto_enabled.
+	failsafe_flags_s fw_flags{};
+	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_FIXED_WING, fw_flags);
+	EXPECT_TRUE(fw_flags.mode_not_supported & (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET));
+	EXPECT_TRUE(fw_flags.mode_not_supported & (1u << vehicle_status_s::NAVIGATION_STATE_ORBIT));
+
+	// Both stay available for multicopters, including a VTOL in hover
+	failsafe_flags_s mc_flags{};
+	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, mc_flags);
+	EXPECT_FALSE(mc_flags.mode_not_supported & (1u << vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET));
+	EXPECT_FALSE(mc_flags.mode_not_supported & (1u << vehicle_status_s::NAVIGATION_STATE_ORBIT));
+
+	// A vehicle that ends up in Follow Target as a fixed-wing gets taken out of it
+	Failsafe failsafe(nullptr);
+
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET;
+	hrt_abstime time = 5_s;
+
+	failsafe.update(time, state, false, false, fw_flags);
+
+	// Advance past the COM_FAIL_ACT_T hold delay set in SetUp()
+	time += 6_s;
+	const uint8_t updated_user_intended_mode = failsafe.update(time, state, false, false, fw_flags);
+
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+	// The user intention stays on Follow Target, but the mode actually flown is RTL
+	EXPECT_EQ(FailsafeBase::modeFromAction(failsafe.selectedAction(), updated_user_intended_mode),
+		  vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
+}
+
+TEST_F(FailsafeTest, FixedWingMissionTakeoffWithoutPosition)
+{
+	// A fixed-wing takeoff can be flown without a position estimate, in Takeoff mode as well as
+	// during the takeoff item of a mission. Only once the takeoff is done does the mission need a position.
+	failsafe_flags_s fw_flags{};
+	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_FIXED_WING, fw_flags);
+	fw_flags.local_position_invalid = true;
+	fw_flags.local_position_invalid_relaxed = true;
+	fw_flags.global_position_invalid = true;
+	fw_flags.global_position_invalid_relaxed = true;
+
+	Failsafe failsafe(nullptr);
+
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
+	state.fw_mission_takeoff = true;
+	hrt_abstime time = 5_s;
+
+	// Advance past the COM_FAIL_ACT_T hold delay set in SetUp()
+	failsafe.update(time, state, false, false, fw_flags);
+	time += 6_s;
+	failsafe.update(time, state, false, false, fw_flags);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+
+	// Takeoff item done: the mission cannot continue without a position
+	state.fw_mission_takeoff = false;
+	failsafe.update(time, state, false, false, fw_flags);
+	time += 6_s;
+	failsafe.update(time, state, false, false, fw_flags);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Descend);
+}
+
 TEST_F(FailsafeTest, GnssLostUsesGnssLossActParam)
 {
 	// Each param value is exercised on its own fresh Failsafe instance, to avoid
@@ -1092,3 +1163,420 @@ TEST_F(FailsafeTest, GnssLostUsesGnssLossActParam)
 	// "Warning, block arming" only differs from Warning on the ground, in flight both just warn
 	EXPECT_EQ(selectedActionFor(4), FailsafeBase::Action::Warn); // Warning, block arming
 }
+
+TEST_F(FailsafeTest, BatteryFailsafeUsesLowBatActParam)
+{
+	// Each param value is exercised on its own fresh Failsafe instance, to avoid
+	// action hysteresis/clear-conditions from one value leaking into the next.
+	auto selectedActionFor = [](int32_t com_low_bat_act, uint8_t battery_warning, bool remaining_flight_time_low) {
+		param_set(param_handle(px4::params::COM_LOW_BAT_ACT), &com_low_bat_act);
+
+		// Disable the generic user-takeover hold delay (set to 5s in SetUp()) so a newly
+		// triggered RTL/Land is selected immediately instead of Hold-then-RTL/Land.
+		float com_fail_act_t = 0.f;
+		param_set(param_handle(px4::params::COM_FAIL_ACT_T), &com_fail_act_t);
+
+		Failsafe failsafe(nullptr);
+
+		failsafe_flags_s failsafe_flags{};
+		mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
+
+		FailsafeBase::State state{};
+		state.armed = true;
+		state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+
+		// Arm without battery warning, a battery warning that is already present at arming only warns
+		failsafe.update(5_s, state, false, false, failsafe_flags);
+
+		failsafe_flags.battery_warning = battery_warning;
+		failsafe_flags.battery_low_remaining_time = remaining_flight_time_low;
+		failsafe.update(5_s + 10_ms, state, false, false, failsafe_flags);
+		return failsafe.selectedAction();
+	};
+
+	static constexpr uint8_t kNone = battery_status_s::WARNING_NONE;
+	static constexpr uint8_t kCritical = battery_status_s::WARNING_CRITICAL;
+	static constexpr uint8_t kEmergency = battery_status_s::WARNING_EMERGENCY;
+
+	// Remaining flight time low: only the distance-aware return options return, all others warn
+	EXPECT_EQ(selectedActionFor(0, kNone, true), FailsafeBase::Action::Warn); // Warning
+	EXPECT_EQ(selectedActionFor(2, kNone, true), FailsafeBase::Action::Warn); // Land mode
+	// Distance-aware return, Critical level return, Emergency level land
+	EXPECT_EQ(selectedActionFor(3, kNone, true), FailsafeBase::Action::RTL);
+	// Distance-aware return, Critical level return, Emergency level terminate
+	EXPECT_EQ(selectedActionFor(4, kNone, true), FailsafeBase::Action::RTL);
+	EXPECT_EQ(selectedActionFor(5, kNone, true), FailsafeBase::Action::Warn); // Critical level return, Emergency level land
+	EXPECT_EQ(selectedActionFor(6, kNone, true), FailsafeBase::Action::Warn); // Critical level return, Emergency level terminate
+
+	// Battery levels: the options without distance-aware return act like the ones with it
+	EXPECT_EQ(selectedActionFor(3, kCritical, false), FailsafeBase::Action::RTL);
+	EXPECT_EQ(selectedActionFor(5, kCritical, false), FailsafeBase::Action::RTL);
+	EXPECT_EQ(selectedActionFor(4, kCritical, false), FailsafeBase::Action::RTL);
+	EXPECT_EQ(selectedActionFor(6, kCritical, false), FailsafeBase::Action::RTL);
+	EXPECT_EQ(selectedActionFor(3, kEmergency, false), FailsafeBase::Action::Land);
+	EXPECT_EQ(selectedActionFor(5, kEmergency, false), FailsafeBase::Action::Land);
+	EXPECT_EQ(selectedActionFor(4, kEmergency, false), FailsafeBase::Action::Terminate);
+	EXPECT_EQ(selectedActionFor(6, kEmergency, false), FailsafeBase::Action::Terminate);
+}
+
+TEST_F(FailsafeTest, GnssLostRecoversDuringHoldDelay)
+{
+	int32_t com_gnssloss_act = 1; // Return
+	param_set(param_handle(px4::params::COM_GNSSLOSS_ACT), &com_gnssloss_act);
+
+	Failsafe failsafe(nullptr);
+
+	failsafe_flags_s failsafe_flags{};
+	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
+
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 5_s;
+
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+
+	// GNSS lost -> Hold
+	time += 10_ms;
+	failsafe_flags.gnss_lost = true;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
+
+	// Recovers during the Hold delay -> back to the mission
+	time += 300_ms;
+	failsafe_flags.gnss_lost = false;
+	uint8_t updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
+
+	// Lost for longer than the Hold delay -> RTL
+	time += 20_s;
+	failsafe_flags.gnss_lost = true;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
+	time += 6_s;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+
+	// Recovering now does not abort the RTL
+	time += 10_ms;
+	failsafe_flags.gnss_lost = false;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+}
+
+TEST_F(FailsafeTest, GnssRecoveryDoesNotAbortRtlWhenAnotherFailsafeStartsADelay)
+{
+	int32_t com_gnssloss_act = 1; // Return
+	param_set(param_handle(px4::params::COM_GNSSLOSS_ACT), &com_gnssloss_act);
+
+	Failsafe failsafe(nullptr);
+
+	failsafe_flags_s failsafe_flags{};
+	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
+
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 5_s;
+
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+
+	// GNSS lost for longer than the Hold delay -> RTL
+	time += 10_ms;
+	failsafe_flags.gnss_lost = true;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
+	time += 6_s;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+
+	// Let the start delay refill, so that a new failsafe starts a delay again
+	time += 8_s;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+
+	// Another failsafe starts a delay on the same update as GNSS recovers: the RTL continues
+	time += 10_ms;
+	failsafe_flags.navigator_failure = true;
+	failsafe_flags.gnss_lost = false;
+	failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+}
+
+using Action = FailsafeBase::Action;
+
+// Values of GF_ACTION and GF_CONT_ACTION.
+static constexpr int32_t kNone = 0;
+static constexpr int32_t kWarning = 1;
+static constexpr int32_t kHold = 2;
+static constexpr int32_t kReturn = 3;
+static constexpr int32_t kTerminate = 4;
+static constexpr int32_t kLand = 5;
+
+// The emergency and the contingency geofence are two failsafes: the more severe action wins.
+class GeofenceFailsafeTest : public FailsafeTest
+{
+public:
+	void SetUp() override
+	{
+		FailsafeTest::SetUp();
+
+		// No Hold delay, so that Return and Land are selected immediately.
+		const float com_fail_act_t = 0.f;
+		param_set(param_handle(px4::params::COM_FAIL_ACT_T), &com_fail_act_t);
+		reset();
+	}
+
+	void TearDown() override
+	{
+		param_reset(param_handle(px4::params::GF_CONT_ACTION));
+		param_reset(param_handle(px4::params::GF_ACTION));
+	}
+
+	// An armed multicopter in a mission, inside both fences.
+	void reset()
+	{
+		_flags = {};
+		mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, _flags);
+		_state = {};
+		_state.armed = true;
+		_state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
+		_state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	}
+
+	// Params are read when the Failsafe is constructed.
+	void setActions(int32_t gf_cont_action, int32_t gf_action)
+	{
+		param_set(param_handle(px4::params::GF_CONT_ACTION), &gf_cont_action);
+		param_set(param_handle(px4::params::GF_ACTION), &gf_action);
+	}
+
+	Action update(Failsafe &failsafe, bool mode_switch = false, bool stick_movement = false)
+	{
+		_time += 10_ms;
+		failsafe.update(_time, _state, mode_switch, stick_movement, _flags);
+		return failsafe.selectedAction();
+	}
+
+	failsafe_flags_s _flags{};
+	FailsafeBase::State _state{};
+	hrt_abstime _time{5_s};
+};
+
+// Names each case of a parameterized test after its row.
+template <typename Case>
+static const char *caseName(const ::testing::TestParamInfo<Case> &info)
+{
+	return info.param.name;
+}
+
+// One geofence with an action parameter, and the action the failsafe selects when it is breached.
+struct GeofenceActionCase {
+	const char *name;
+	bool contingency;
+	int32_t parameter;
+	Action action;
+};
+
+// Every value of GF_ACTION and GF_CONT_ACTION, and 6, which is not a valid value.
+class GeofenceParameterTest : public GeofenceFailsafeTest, public ::testing::WithParamInterface<GeofenceActionCase> {};
+
+TEST_P(GeofenceParameterTest, MapsTheActionParameter)
+{
+	const GeofenceActionCase &c = GetParam();
+	setActions(c.contingency ? c.parameter : kNone, c.contingency ? kNone : c.parameter);
+	Failsafe failsafe(nullptr);
+	ASSERT_EQ(update(failsafe), Action::None);
+	_flags.gf_cont_breach = c.contingency;
+	_flags.gf_emer_breach = !c.contingency;
+	EXPECT_EQ(update(failsafe), c.action);
+}
+
+INSTANTIATE_TEST_SUITE_P(Parameters, GeofenceParameterTest, ::testing::Values(
+				 GeofenceActionCase{"EmergencyNone", false, kNone, Action::None},
+				 GeofenceActionCase{"EmergencyWarning", false, kWarning, Action::Warn},
+				 GeofenceActionCase{"EmergencyHold", false, kHold, Action::Hold},
+				 GeofenceActionCase{"EmergencyReturn", false, kReturn, Action::RTL},
+				 GeofenceActionCase{"EmergencyTerminate", false, kTerminate, Action::Terminate},
+				 GeofenceActionCase{"EmergencyLand", false, kLand, Action::Land},
+				 GeofenceActionCase{"EmergencyUnknown", false, 6, Action::Warn},
+				 GeofenceActionCase{"ContingencyNone", true, kNone, Action::None},
+				 GeofenceActionCase{"ContingencyWarning", true, kWarning, Action::Warn},
+				 GeofenceActionCase{"ContingencyHold", true, kHold, Action::Hold},
+				 GeofenceActionCase{"ContingencyReturn", true, kReturn, Action::RTL},
+				 // Terminate is reserved for the emergency geofence.
+				 GeofenceActionCase{"ContingencyTerminate", true, kTerminate, Action::Warn},
+				 GeofenceActionCase{"ContingencyLand", true, kLand, Action::Land},
+				 GeofenceActionCase{"ContingencyUnknown", true, 6, Action::Warn}),
+			 caseName<GeofenceActionCase>);
+
+// The actions a pilot can take over from: Hold, Return and Land.
+class GeofenceActionTest : public GeofenceFailsafeTest, public ::testing::WithParamInterface<GeofenceActionCase> {};
+
+TEST_P(GeofenceActionTest, TakeoverClearsOnReentryAndANewBreachActsAgain)
+{
+	const GeofenceActionCase &c = GetParam();
+	setActions(c.contingency ? c.parameter : kNone, c.contingency ? kNone : c.parameter);
+	Failsafe failsafe(nullptr);
+	ASSERT_EQ(update(failsafe), Action::None);
+	bool &breached = c.contingency ? _flags.gf_cont_breach : _flags.gf_emer_breach;
+	breached = true;
+	ASSERT_EQ(update(failsafe), c.action);
+
+	// Without a Hold delay, stick movement does not take over.
+	EXPECT_EQ(update(failsafe, false, true), c.action);
+	EXPECT_FALSE(failsafe.userTakeoverActive());
+
+	// Clearing the breach alone must not cancel an established action.
+	breached = false;
+	EXPECT_EQ(update(failsafe), c.action);
+	EXPECT_EQ(update(failsafe), c.action);
+	breached = true;
+	ASSERT_EQ(update(failsafe), c.action);
+
+	// A GoTo requests Hold, even when the failsafe is already holding.
+	_state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+	EXPECT_EQ(update(failsafe, true), Action::Warn);
+	EXPECT_TRUE(failsafe.userTakeoverActive());
+	EXPECT_EQ(update(failsafe), Action::Warn); // still outside
+
+	breached = false;
+	update(failsafe);
+	EXPECT_EQ(update(failsafe), Action::None);
+	EXPECT_FALSE(failsafe.userTakeoverActive());
+	breached = true;
+	EXPECT_EQ(update(failsafe), c.action);
+	EXPECT_FALSE(failsafe.userTakeoverActive());
+}
+
+TEST_P(GeofenceActionTest, CannotBeDeferred)
+{
+	const GeofenceActionCase &c = GetParam();
+	setActions(c.contingency ? c.parameter : kNone, c.contingency ? kNone : c.parameter);
+	Failsafe failsafe(nullptr);
+	ASSERT_EQ(update(failsafe), Action::None);
+	ASSERT_TRUE(failsafe.deferFailsafes(true, -1));
+	_flags.gf_cont_breach = c.contingency;
+	_flags.gf_emer_breach = !c.contingency;
+	EXPECT_EQ(update(failsafe), c.action);
+}
+
+INSTANTIATE_TEST_SUITE_P(Actions, GeofenceActionTest, ::testing::Values(
+				 GeofenceActionCase{"EmergencyHold", false, kHold, Action::Hold},
+				 GeofenceActionCase{"EmergencyReturn", false, kReturn, Action::RTL},
+				 GeofenceActionCase{"EmergencyLand", false, kLand, Action::Land},
+				 GeofenceActionCase{"ContingencyHold", true, kHold, Action::Hold},
+				 GeofenceActionCase{"ContingencyReturn", true, kReturn, Action::RTL},
+				 GeofenceActionCase{"ContingencyLand", true, kLand, Action::Land}),
+			 caseName<GeofenceActionCase>);
+
+// The action of each geofence alone, and the action once both are breached.
+struct GeofenceActionPairCase {
+	const char *name;
+	int32_t gf_cont_action;
+	Action cont_action;
+	int32_t gf_action;
+	Action action;
+	Action both;
+};
+
+class GeofenceActionPairTest : public GeofenceFailsafeTest,
+	public ::testing::WithParamInterface<GeofenceActionPairCase> {};
+
+TEST_P(GeofenceActionPairTest, MoreSevereActionWinsContingencyBreachFirst)
+{
+	const GeofenceActionPairCase &c = GetParam();
+	setActions(c.gf_cont_action, c.gf_action);
+	Failsafe failsafe(nullptr);
+	ASSERT_EQ(update(failsafe), Action::None);
+	_flags.gf_cont_breach = true;
+	EXPECT_EQ(update(failsafe), c.cont_action);
+	_flags.gf_emer_breach = true;
+	EXPECT_EQ(update(failsafe), c.both);
+	EXPECT_EQ(update(failsafe), c.both);
+}
+
+TEST_P(GeofenceActionPairTest, MoreSevereActionWinsEmergencyBreachFirst)
+{
+	const GeofenceActionPairCase &c = GetParam();
+	setActions(c.gf_cont_action, c.gf_action);
+	Failsafe failsafe(nullptr);
+	ASSERT_EQ(update(failsafe), Action::None);
+	_flags.gf_emer_breach = true;
+	EXPECT_EQ(update(failsafe), c.action);
+	_flags.gf_cont_breach = true;
+	EXPECT_EQ(update(failsafe), c.both);
+	EXPECT_EQ(update(failsafe), c.both);
+}
+
+TEST_P(GeofenceActionPairTest, MoreSevereActionWinsBothBreachesTogether)
+{
+	const GeofenceActionPairCase &c = GetParam();
+	setActions(c.gf_cont_action, c.gf_action);
+	Failsafe failsafe(nullptr);
+	ASSERT_EQ(update(failsafe), Action::None);
+	_flags.gf_cont_breach = true;
+	_flags.gf_emer_breach = true;
+	EXPECT_EQ(update(failsafe), c.both);
+	EXPECT_EQ(update(failsafe), c.both);
+}
+
+INSTANTIATE_TEST_SUITE_P(ActionPairs, GeofenceActionPairTest, ::testing::Values(
+				 GeofenceActionPairCase{"ContingencyHoldEmergencyLand",
+						 kHold, Action::Hold, kLand, Action::Land, Action::Land},
+				 GeofenceActionPairCase{"ContingencyReturnEmergencyTerminate",
+						 kReturn, Action::RTL, kTerminate, Action::Terminate, Action::Terminate},
+				 // A Land in progress is not downgraded.
+				 GeofenceActionPairCase{"ContingencyLandEmergencyHold",
+						 kLand, Action::Land, kHold, Action::Hold, Action::Land},
+				 // An emergency Warning keeps the Hold.
+				 GeofenceActionPairCase{"ContingencyHoldEmergencyWarning",
+						 kHold, Action::Hold, kWarning, Action::Warn, Action::Hold},
+				 GeofenceActionPairCase{"ContingencyHoldEmergencyNone",
+						 kHold, Action::Hold, kNone, Action::None, Action::Hold}),
+			 caseName<GeofenceActionPairCase>);
+
+// An emergency geofence action, and whether a takeover after the contingency geofence Hold survives its breach.
+struct ContGeofenceTakeoverCase {
+	const char *name;
+	int32_t gf_action;
+	Action action;
+	bool takeover;
+};
+
+class ContGeofenceTakeoverTest : public GeofenceFailsafeTest,
+	public ::testing::WithParamInterface<ContGeofenceTakeoverCase> {};
+
+// Taking over after the contingency geofence action must not disable the emergency geofence action.
+TEST_P(ContGeofenceTakeoverTest, EmergencyBreachStillActs)
+{
+	const ContGeofenceTakeoverCase &c = GetParam();
+	setActions(kHold, c.gf_action);
+	Failsafe failsafe(nullptr);
+	ASSERT_EQ(update(failsafe), Action::None);
+
+	_flags.gf_cont_breach = true;
+	ASSERT_EQ(update(failsafe), Action::Hold);
+
+	// Mode switch -> user takeover
+	_state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+	ASSERT_EQ(update(failsafe, true), Action::Warn);
+	ASSERT_TRUE(failsafe.userTakeoverActive());
+
+	// The pilot flies on and breaches the emergency geofence
+	_flags.gf_emer_breach = true;
+	EXPECT_EQ(update(failsafe), c.action);
+	EXPECT_EQ(failsafe.userTakeoverActive(), c.takeover);
+}
+
+INSTANTIATE_TEST_SUITE_P(EmergencyActions, ContGeofenceTakeoverTest, ::testing::Values(
+				 ContGeofenceTakeoverCase{"EmergencyLand", kLand, Action::Land, false},
+				 // Also for the same action as the contingency geofence.
+				 ContGeofenceTakeoverCase{"EmergencyHold", kHold, Action::Hold, false},
+				 ContGeofenceTakeoverCase{"EmergencyWarning", kWarning, Action::Warn, true}),
+			 caseName<ContGeofenceTakeoverCase>);

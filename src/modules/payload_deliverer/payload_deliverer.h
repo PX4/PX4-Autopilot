@@ -160,7 +160,7 @@ private:
 	uORB::Publication<vehicle_command_s> _vehicle_command_pub{ORB_ID(vehicle_command)};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::PD_GRIPPER_TO>)	_param_gripper_timeout_s,
-		(ParamInt<px4::params::PD_GRIPPER_TYPE>)	_param_gripper_type
+		(ParamFloat<px4::params::PD_GRIPPER_TO>)	_param_pd_gripper_to,
+		(ParamInt<px4::params::PD_GRIPPER_TYPE>)	_param_pd_gripper_type
 	)
 };

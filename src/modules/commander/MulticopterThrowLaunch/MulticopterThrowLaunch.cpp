@@ -64,7 +64,7 @@ void MulticopterThrowLaunch::update(const bool armed)
 			break;
 
 		case ThrowLaunchState::ARMED:
-			if (_last_velocity.longerThan(_param_com_throw_min_speed.get())) {
+			if (_last_velocity.longerThan(_param_com_throw_speed.get())) {
 				PX4_INFO("Throw detected, motors will start once falling");
 				_throw_launch_state = ThrowLaunchState::UNSAFE;
 			}

@@ -274,11 +274,6 @@ For information about using this port see:
 - [Holybro GPS & RTK Systems](https://holybro.com/collections/gps-rtk-systems)
 - [Power Modules & PDBs](https://holybro.com/collections/power-modules-pdbs)
 
-## 支持的平台/机身
-
-Any multicopter / airplane / rover or boat that can be controlled with normal RC servos or Futaba S-Bus servos.
-The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
-
 ## 更多信息
 
 - [Holybro Docs](https://docs.holybro.com/) (Holybro)

@@ -24,7 +24,7 @@ PX4 支持与 CAN 设备通信的两个软件协议：
 DroneCAN 和 Cyphal 都是早先一个叫做UAVCAN的项目。在2022年，该项目分为两个部分：原始版本的 UAVCAN (UAVCAN v0) 更名为 DroneCAN，较新的 UAVCAN v1 更名为 Cyphal。这两项协议之间的差异在[Cyphal vs. DroneCAN](https://forum.opencyphal.org/t/cyphal-vs-dronecan/1814)中作了概述。
 :::
 
-PX4不支持KDECAN等无人驾驶飞机的其他CAN软件协议(撰写时)。
+PX4不支持 KDECAN 等无人驾驶飞机的其他CAN软件协议(撰写时)。
 
 ## 布线
 

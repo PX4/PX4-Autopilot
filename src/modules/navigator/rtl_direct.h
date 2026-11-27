@@ -107,10 +107,25 @@ public:
 	 */
 	rtl_time_estimate_s calc_rtl_time_estimate();
 
+	/** Where a direct Return lands, the loiter before landing and the transit altitude. */
+	struct Target {
+		PositionYawSetpoint destination;
+		loiter_point_s approach; ///< NaN fields default to the destination, RTL_DESCEND_ALT and RTL_LOITER_RAD
+		float return_alt; ///< [m] AMSL
+		bool destination_is_current_position{false};
+	};
+
+	/**
+	 * Time a direct Return to target would take if it started now, without configuring RtlDirect.
+	 * Like calc_rtl_time_estimate(), it adds the geofence avoidance path the planner holds.
+	 */
+	rtl_time_estimate_s estimateReturnTo(const Target &target);
+
 	void setReturnAltMin(bool min) { _enforce_rtl_alt = min; }
 	void setRtlAlt(float alt) {_rtl_alt = alt;};
 
-	void setRtlPosition(const PositionYawSetpoint &position, const loiter_point_s &loiter_pos);
+	void setRtlPosition(const PositionYawSetpoint &position, const loiter_point_s &loiter_pos,
+			    bool destination_is_current_position = false);
 
 	bool isLanding() { return (_rtl_state != RTLState::IDLE) && (_rtl_state >= RTLState::LOITER_DOWN);};
 
@@ -149,7 +164,7 @@ private:
 	 * @brief sanitize land_approach
 	 *
 	 */
-	loiter_point_s sanitizeLandApproach(const loiter_point_s &land_approach) const;
+	loiter_point_s sanitizeLandApproach(const loiter_point_s &land_approach, const PositionYawSetpoint &destination) const;
 
 	/**
 	 * Check for parameter changes and update them if needed.
@@ -162,7 +177,10 @@ private:
 	 */
 	void publish_rtl_direct_navigator_mission_item();
 
-	RTLState getActivationState();
+	RTLState getActivationState(const float return_alt);
+
+	/** Time of a direct Return to target that starts in start_state_for_estimate. */
+	rtl_time_estimate_s estimateReturnFromState(const Target &target, const RTLState start_state_for_estimate);
 
 	/**
 	 * @brief Whether the geofence-avoidance planner currently has a path to fly.
@@ -170,10 +188,14 @@ private:
 	 */
 	bool geofenceAvoidanceActive() const;
 
+	/** RTL_LAND_DELAY, or indefinite where a pure fixed-wing cannot land. */
+	float landDelay(const bool destination_is_current_position) const;
+
 	void setLoiterPosition();
 
 	bool _enforce_rtl_alt{false};
 	bool _force_heading{false};
+	bool _destination_is_current_position{false}; ///< No landing altitude is known for a stop at the current position.
 	position_setpoint_s _setpoint_on_activation{}; ///< snapshot of the current setpoint taken before reset on activation, used to continue an established loiter through the climb
 	RtlTimeEstimator _rtl_time_estimator;
 

@@ -98,6 +98,9 @@ void RtlMissionFastReverse::on_activation()
 		}
 	}
 
+	// Used once: an activation without an inactive cycle before it starts at the closest item.
+	_mission_index_prior_rtl = INT32_C(-1);
+
 	if (_land_detected_sub.get().landed) {
 		// already landed, no need to do anything, invalidate the position mission item.
 		_is_current_planned_mission_item_valid = false;
@@ -293,7 +296,7 @@ void RtlMissionFastReverse::handleLanding(WorkItemType &new_work_item_type)
 
 rtl_time_estimate_s RtlMissionFastReverse::calc_rtl_time_estimate()
 {
-	rtl_time_estimate_s time_estimate;
+	rtl_time_estimate_s time_estimate{};
 	time_estimate.valid = false;
 	time_estimate.timestamp = hrt_absolute_time();
 

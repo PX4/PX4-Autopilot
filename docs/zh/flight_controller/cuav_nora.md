@@ -164,11 +164,6 @@ Some JTAG adapters (SEGGER J-Link) will use the Vref voltage to set the voltage 
 For direct connection to _Segger Jlink_ we recommended you use the 3.3 Volts from pin 4 of the connector marked `DSM`/`SBUS`/`RSSI` to provide `Vtref` to the JTAG (i.e. providing 3.3V and _NOT_ 5V).
 :::
 
-## 支持的平台/机身
-
-Any multicopter / airplane / rover or boat that can be controlled with normal RC servos or Futaba S-Bus servos.
-The complete set of supported configurations can be seen in the [Airframes Reference](../airframes/airframe_reference.md).
-
 ## 更多信息
 
 - [Quick start](https://doc.cuav.net/en/controller/nora-plus/quick-start-nora.html)

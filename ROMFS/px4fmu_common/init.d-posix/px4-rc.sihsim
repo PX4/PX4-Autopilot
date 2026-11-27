@@ -20,7 +20,13 @@ if [ -n "${PX4_SIM_GPS_USED}" ]; then
 	param set SIM_GPS_USED ${PX4_SIM_GPS_USED}
 fi
 
-if simulator_sih start; then
+sih_args=""
+if [ -n "${PX4_SIH_TERRAIN}" ]; then
+	# terrain elevation GeoTIFF (DEM)
+	sih_args="-t ${PX4_SIH_TERRAIN}"
+fi
+
+if simulator_sih start ${sih_args}; then
 
 	if param compare -s SENS_EN_BAROSIM 1
 	then

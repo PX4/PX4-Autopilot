@@ -47,7 +47,8 @@
 #include <lib/perf/perf_counter.h>
 #include <systemlib/system_time_source.h>
 
-#if defined(CONFIG_NET) || defined(__PX4_POSIX)
+// The NuttX UDP MTU is taken from ETH_UDP_MSS(), which NuttX only defines with Ethernet
+#if defined(CONFIG_NET_ETHERNET) || defined(__PX4_POSIX)
 # define UXRCE_DDS_CLIENT_UDP 1
 #endif
 
@@ -252,7 +253,7 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::UXRCE_DDS_DOM_ID>) _param_uxrce_dds_dom_id,
-		(ParamInt<px4::params::UXRCE_DDS_KEY>) _param_uxrce_key,
+		(ParamInt<px4::params::UXRCE_DDS_KEY>) _param_uxrce_dds_key,
 		(ParamInt<px4::params::UXRCE_DDS_PTCFG>) _param_uxrce_dds_ptcfg,
 		(ParamInt<px4::params::UXRCE_DDS_SYNCC>) _param_uxrce_dds_syncc,
 		(ParamInt<px4::params::UXRCE_DDS_SYNCT>) _param_uxrce_dds_synct,

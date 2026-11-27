@@ -32,6 +32,7 @@ PX4 runs some basic sanity checks to determine if a mission is feasible.
 For example, whether the mission is close enough to the vehicle, if the mission will conflict with a geofence, or if a mission landing pattern is required but is not present.
 
 The checks are run when the mission is uploaded and immediately before it is run.
+They are run again after arming, before takeoff, if the Home position was set since the last check.
 If any of the checks fail, the user is notified and it is not possible to start the mission.
 
 For more detail on the checks and possible actions, see: [Mission Mode (FW) > Mission Feasibility Checks](../flight_modes_fw/mission.md#mission-feasibility-checks) and [Mission Mode (MC) > Mission Feasibility Checks](../flight_modes_mc/mission.md#mission-feasibility-checks).

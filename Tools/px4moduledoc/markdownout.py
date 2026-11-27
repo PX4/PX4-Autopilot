@@ -7,6 +7,15 @@ from xml.sax.saxutils import escape
 import codecs
 import os
 
+# Shown at the top of every category/subcategory page so readers know these
+# files are generated and must be fixed in the module source, not in docs/.
+AUTOGEN_NOTE = """
+::: info
+**This page is [auto-generated](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/px4moduledoc/markdownout.py) from the source code** using the build command: `make module_documentation`.
+Do not edit it directly; fix the module documentation in the [PX4-Autopilot](https://github.com/PX4/PX4-Autopilot) source instead.
+:::
+"""
+
 class MarkdownOutput():
     def __init__(self, module_groups):
 
@@ -45,7 +54,8 @@ The generated files will be written to the `modules` directory.
         self._outputs['main'] = result
 
         for category in sorted(module_groups):
-            result = f"# Modules Reference: {category.capitalize()}\n\n"
+            result = f"# Modules Reference: {category.capitalize()}\n"
+            result += AUTOGEN_NOTE + '\n'
             subcategories = module_groups[category]
 
             if len(subcategories) > 1:
@@ -59,6 +69,7 @@ The generated files will be written to the `modules` directory.
 
                     # add a sub-page for the subcategory
                     result_subpage = f'# Modules Reference: {subcategory_label} ({category.capitalize()})\n'
+                    result_subpage += AUTOGEN_NOTE
                     result_subpage += self._ProcessModules(subcategories[subcategory])
                     self._outputs[subcategory_file_name] = result_subpage
 

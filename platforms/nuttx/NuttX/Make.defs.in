@@ -84,6 +84,17 @@ NM = ${CMAKE_NM}
 OBJCOPY = ${CMAKE_OBJCOPY}
 OBJDUMP = ${CMAKE_OBJDUMP}
 
+# Config.mk defines these as exported recursive variables that run a shell
+# script on every expansion. Because they are exported, make expands them for
+# every recipe it spawns, serially in its main process, which caps the NuttX
+# library builds at a few compiles per second regardless of -j. The toplevel
+# NuttX make avoids this by passing the expanded values down to its sub-makes
+# through the environment; PX4 invokes the sub-makes directly, so evaluate them
+# once here now that CC is known.
+DEFINE_PREFIX := $(DEFINE_PREFIX)
+INCDIR_PREFIX := $(INCDIR_PREFIX)
+INCSYSDIR_PREFIX := $(INCSYSDIR_PREFIX)
+
 CINCPATH := $(INCSYSDIR_PREFIX)$(TOPDIR)$(DELIM)include
 CXXINCPATH := $(INCSYSDIR_PREFIX)$(TOPDIR)$(DELIM)include$(DELIM)cxx
 

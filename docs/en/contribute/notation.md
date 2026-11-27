@@ -2,6 +2,8 @@
 
 The following terms, symbols, and decorators are used in text and diagrams throughout this guide.
 
+For navigation terms such as heading, course, track, bearing and cross-track error, see [Navigation Terminology](../concept/navigation_terminology.md).
+
 ## Notation
 
 - Bold face variables indicate vectors or matrices and non-bold face variables represent scalars.
