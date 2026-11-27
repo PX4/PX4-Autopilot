@@ -2363,6 +2363,11 @@ FixedWingModeManager::Run()
 
 		switch (_control_mode_current) {
 		case FW_POSCTRL_MODE_AUTO: {
+				if (_pos_sp_triplet.current.valid && PX4_ISFINITE(_pos_sp_triplet.current.agl_alt)) {
+					_ctrl_configuration_handler.setClimbRateTarget(_param_fw_t_clmb_max.get());
+					_ctrl_configuration_handler.setSinkRateTarget(_param_fw_t_sink_max.get());
+				}
+
 				control_auto(control_interval, curr_pos, ground_speed, _pos_sp_triplet.previous, _pos_sp_triplet.current,
 					     _pos_sp_triplet.next);
 				break;
