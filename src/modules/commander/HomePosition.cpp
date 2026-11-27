@@ -69,7 +69,7 @@ bool HomePosition::hasMovedFromCurrentHomeLocation()
 
 	} else if (_home_position_pub.get().valid_hpos && _home_position_pub.get().valid_alt) {
 		// Same source order as setHomePosition()
-		if (!_failsafe_flags.global_position_invalid) {
+		if (!_failsafe_flags.global_pos_bad) {
 			const vehicle_global_position_s &gpos = _global_position_sub.get();
 
 			get_distance_to_point_global_wgs84(_home_position_pub.get().lat, _home_position_pub.get().lon,
@@ -111,7 +111,7 @@ bool HomePosition::setHomePosition(bool force)
 	home.pitch = NAN;
 	home.yaw = NAN;
 
-	if (!_failsafe_flags.local_position_invalid) {
+	if (!_failsafe_flags.local_pos_bad) {
 		// Set home position in local coordinates
 		const vehicle_local_position_s &lpos = _local_position_sub.get();
 		_heading_reset_counter = lpos.heading_reset_counter; // TODO: should not be here
@@ -120,7 +120,7 @@ bool HomePosition::setHomePosition(bool force)
 		updated = true;
 	}
 
-	if (!_failsafe_flags.attitude_invalid && _vehicle_land_detected_sub.get().landed) {
+	if (!_failsafe_flags.attitude_bad && _vehicle_land_detected_sub.get().landed) {
 		// Capture orientation only on the ground, where it is the orientation at the home point.
 		fillAttitude(home, _attitude_sub.get());
 		updated = true;
@@ -132,7 +132,7 @@ bool HomePosition::setHomePosition(bool force)
 		home.valid_attitude = _home_position_pub.get().valid_attitude;
 	}
 
-	if (!_failsafe_flags.global_position_invalid) {
+	if (!_failsafe_flags.global_pos_bad) {
 		// Set home using the global position estimate (fused INS/GNSS)
 		const vehicle_global_position_s &gpos = _global_position_sub.get();
 		fillGlobalHomePos(home, gpos);
@@ -213,7 +213,7 @@ void HomePosition::setInAirHomePosition()
 	const bool local_home_valid = home.valid_lpos;
 
 	if (local_home_valid && !global_home_valid) {
-		if (!_failsafe_flags.local_position_invalid && !_failsafe_flags.global_position_invalid) {
+		if (!_failsafe_flags.local_pos_bad && !_failsafe_flags.global_pos_bad) {
 			// Back-compute lon, lat and alt of home position given the local home position
 			// and current positions in local and global (GNSS fused) frames
 			const vehicle_local_position_s &lpos = _local_position_sub.get();
@@ -234,7 +234,7 @@ void HomePosition::setInAirHomePosition()
 			home.update_count++;
 			_home_position_pub.update();
 
-		} else if (!_failsafe_flags.local_position_invalid && _gps_position_for_home_valid) {
+		} else if (!_failsafe_flags.local_pos_bad && _gps_position_for_home_valid) {
 			// Back-compute lon, lat and alt of home position given the local home position
 			// and current positions in local and global (GNSS raw) frames
 			const vehicle_local_position_s &lpos = _local_position_sub.get();
@@ -258,7 +258,7 @@ void HomePosition::setInAirHomePosition()
 	} else if (!local_home_valid && global_home_valid) {
 		const vehicle_local_position_s &lpos = _local_position_sub.get();
 
-		if (!_failsafe_flags.local_position_invalid && lpos.xy_global && lpos.z_global) {
+		if (!_failsafe_flags.local_pos_bad && lpos.xy_global && lpos.z_global) {
 			// Back-compute x, y and z of home position given the global home position
 			// and the global reference of the local frame
 			MapProjection ref_pos{lpos.ref_lat, lpos.ref_lon};
@@ -456,10 +456,10 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 	}
 
 	if (check_if_changed && set_automatically) {
-		const bool can_set_home_lpos_first_time = !home.valid_lpos && !_failsafe_flags.local_position_invalid;
+		const bool can_set_home_lpos_first_time = !home.valid_lpos && !_failsafe_flags.local_pos_bad;
 		const bool can_set_home_attitude_first_time = !home.valid_attitude;
 		const bool can_set_home_gpos_first_time = ((!home.valid_hpos || !home.valid_alt)
-				&& (!_failsafe_flags.global_position_invalid || _gps_position_for_home_valid));
+				&& (!_failsafe_flags.global_pos_bad || _gps_position_for_home_valid));
 		const bool can_set_home_alt_first_time = (!home.valid_alt && lpos.z_global);
 
 		if (can_set_home_lpos_first_time

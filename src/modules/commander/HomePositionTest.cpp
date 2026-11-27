@@ -83,7 +83,7 @@ protected:
 		ASSERT_EQ(buzzer_init(), 0);
 		_helpers_initialized = true;
 
-		_flags.attitude_invalid = true;
+		_flags.attitude_bad = true;
 		_home = std::make_unique<HomePosition>(_flags);
 
 		publishPosition(0.f, kRefAlt, true, true);
@@ -109,8 +109,8 @@ protected:
 	// Publish the local and global position estimates and let HomePosition consume them
 	void publishPosition(float z, float alt, bool global_valid, bool global_reference)
 	{
-		_flags.local_position_invalid = false;
-		_flags.global_position_invalid = !global_valid;
+		_flags.local_pos_bad = false;
+		_flags.global_pos_bad = !global_valid;
 		const hrt_abstime now = hrt_absolute_time();
 
 		vehicle_local_position_s lpos{};
@@ -343,9 +343,9 @@ TEST_F(HomePositionTest, KeepsManualHomeDuringGnssAltitudeDrift)
 // Comparing it against the invalid global position estimate sets it again on every update.
 TEST_F(HomePositionTest, KeepsGnssHomeWhileGlobalPositionIsInvalid)
 {
-	_flags.local_position_invalid = true;
-	_flags.global_position_invalid = true;
-	_flags.attitude_invalid = false;
+	_flags.local_pos_bad = true;
+	_flags.global_pos_bad = true;
+	_flags.attitude_bad = false;
 
 	vehicle_land_detected_s land{};
 	land.timestamp = hrt_absolute_time();

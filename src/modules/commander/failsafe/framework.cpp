@@ -722,19 +722,19 @@ uint8_t FailsafeBase::modeFromAction(const Action &action, uint8_t user_intended
 bool FailsafeBase::modeCanRun(const failsafe_flags_s &status_flags, uint8_t mode)
 {
 	uint32_t mode_mask = 1u << mode;
-	// mode_req_wind_and_flight_time_compliance: does not need to be handled here (these are separate failsafe triggers)
+	// mode_req_wind_flight_time: does not need to be handled here (these are separate failsafe triggers)
 	// mode_req_manual_control: is handled separately
 	return
-		(!status_flags.angular_velocity_invalid || ((status_flags.mode_req_angular_velocity & mode_mask) == 0)) &&
-		(!status_flags.attitude_invalid || ((status_flags.mode_req_attitude & mode_mask) == 0)) &&
-		(!status_flags.local_position_invalid || ((status_flags.mode_req_local_position & mode_mask) == 0)) &&
-		(!status_flags.local_position_invalid_relaxed || ((status_flags.mode_req_local_position_relaxed & mode_mask) == 0)) &&
-		(!status_flags.global_position_invalid || ((status_flags.mode_req_global_position & mode_mask) == 0)) &&
-		(!status_flags.global_position_invalid_relaxed || ((status_flags.mode_req_global_position_relaxed & mode_mask) == 0)) &&
-		(!status_flags.local_altitude_invalid || ((status_flags.mode_req_local_alt & mode_mask) == 0)) &&
+		(!status_flags.ang_vel_bad || ((status_flags.mode_req_ang_vel & mode_mask) == 0)) &&
+		(!status_flags.attitude_bad || ((status_flags.mode_req_attitude & mode_mask) == 0)) &&
+		(!status_flags.local_pos_bad || ((status_flags.mode_req_local_pos & mode_mask) == 0)) &&
+		(!status_flags.local_pos_bad_relaxed || ((status_flags.mode_req_local_pos_relaxed & mode_mask) == 0)) &&
+		(!status_flags.global_pos_bad || ((status_flags.mode_req_global_pos & mode_mask) == 0)) &&
+		(!status_flags.global_pos_bad_relaxed || ((status_flags.mode_req_global_pos_relaxed & mode_mask) == 0)) &&
+		(!status_flags.local_alt_bad || ((status_flags.mode_req_local_alt & mode_mask) == 0)) &&
 		(!status_flags.auto_mission_missing || ((status_flags.mode_req_mission & mode_mask) == 0)) &&
-		(!status_flags.offboard_control_signal_lost || ((status_flags.mode_req_offboard_signal & mode_mask) == 0)) &&
-		(!status_flags.home_position_invalid || ((status_flags.mode_req_home_position & mode_mask) == 0)) &&
+		(!status_flags.offboard_signal_lost || ((status_flags.mode_req_offboard_signal & mode_mask) == 0)) &&
+		(!status_flags.home_pos_bad || ((status_flags.mode_req_home_pos & mode_mask) == 0)) &&
 		((status_flags.mode_req_other & mode_mask) == 0) &&
 		((status_flags.mode_not_supported & mode_mask) == 0);
 }

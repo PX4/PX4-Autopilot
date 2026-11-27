@@ -144,7 +144,7 @@ TEST_F(BatteryChecksTest, ChargingDoesNotOutrankAnEmergency)
 	publish(0, battery_status_s::WARNING_CHARGING);
 	publish(1, battery_status_s::WARNING_EMERGENCY);
 	runCheck(true);
-	EXPECT_EQ(_failsafe_flags.battery_warning, battery_status_s::WARNING_EMERGENCY);
+	EXPECT_EQ(_failsafe_flags.bat_warning, battery_status_s::WARNING_EMERGENCY);
 }
 
 // charging when the vehicle arms, on a dock for example, must not latch and block a later low battery
@@ -153,15 +153,15 @@ TEST_F(BatteryChecksTest, ChargingAtArmingDoesNotLatchOverALaterWarning)
 	publish(0, battery_status_s::WARNING_CHARGING);
 	runCheck(false);
 	runCheck(true);
-	EXPECT_EQ(_failsafe_flags.battery_warning, battery_status_s::WARNING_NONE);
+	EXPECT_EQ(_failsafe_flags.bat_warning, battery_status_s::WARNING_NONE);
 
 	publish(0, battery_status_s::WARNING_LOW);
 	runCheck(true);
-	EXPECT_EQ(_failsafe_flags.battery_warning, battery_status_s::WARNING_LOW);
+	EXPECT_EQ(_failsafe_flags.bat_warning, battery_status_s::WARNING_LOW);
 
 	publish(0, battery_status_s::WARNING_CRITICAL);
 	runCheck(true);
-	EXPECT_EQ(_failsafe_flags.battery_warning, battery_status_s::WARNING_CRITICAL);
+	EXPECT_EQ(_failsafe_flags.bat_warning, battery_status_s::WARNING_CRITICAL);
 }
 
 // a charging pack on its own is no warning and doesn't stop arming
@@ -169,7 +169,7 @@ TEST_F(BatteryChecksTest, ChargingAloneIsNoWarning)
 {
 	publish(0, battery_status_s::WARNING_CHARGING);
 	runCheck(false);
-	EXPECT_EQ(_failsafe_flags.battery_warning, battery_status_s::WARNING_NONE);
+	EXPECT_EQ(_failsafe_flags.bat_warning, battery_status_s::WARNING_NONE);
 	EXPECT_TRUE(_can_arm);
 }
 
@@ -183,11 +183,11 @@ TEST_F(BatteryChecksTest, DisconnectedPackIsCriticalAndDoesNotHoldBackALaterEmer
 	publish(0, battery_status_s::WARNING_LOW);
 	publish(1, battery_status_s::WARNING_NONE, false);
 	runCheck(true);
-	EXPECT_EQ(_failsafe_flags.battery_warning, battery_status_s::WARNING_CRITICAL);
+	EXPECT_EQ(_failsafe_flags.bat_warning, battery_status_s::WARNING_CRITICAL);
 
 	publish(0, battery_status_s::WARNING_EMERGENCY);
 	runCheck(true);
-	EXPECT_EQ(_failsafe_flags.battery_warning, battery_status_s::WARNING_EMERGENCY);
+	EXPECT_EQ(_failsafe_flags.bat_warning, battery_status_s::WARNING_EMERGENCY);
 }
 
 // a pack that disconnects in flight must not hide another pack's emergency
@@ -199,7 +199,7 @@ TEST_F(BatteryChecksTest, DisconnectedPackDoesNotHideAnotherPacksEmergency)
 	publish(0, battery_status_s::WARNING_EMERGENCY);
 	publish(1, battery_status_s::WARNING_NONE, false);
 	runCheck(true);
-	EXPECT_EQ(_failsafe_flags.battery_warning, battery_status_s::WARNING_EMERGENCY);
+	EXPECT_EQ(_failsafe_flags.bat_warning, battery_status_s::WARNING_EMERGENCY);
 }
 
 // a battery without a configured cell count has an unknown state of charge, which still counts as an emergency,
@@ -208,7 +208,7 @@ TEST_F(BatteryChecksTest, UnknownChargeWithoutCellCountNamesTheParameter)
 {
 	publish(0, battery_status_s::WARNING_EMERGENCY, true, -1.f, 0, battery_status_s::SOURCE_POWER_MODULE, 2);
 	runCheck(false);
-	EXPECT_EQ(_failsafe_flags.battery_warning, battery_status_s::WARNING_EMERGENCY);
+	EXPECT_EQ(_failsafe_flags.bat_warning, battery_status_s::WARNING_EMERGENCY);
 	EXPECT_FALSE(_can_arm);
 	EXPECT_TRUE(reported(events::ID("check_battery_cell_count_unknown"), 2));
 	EXPECT_FALSE(reported(events::ID("check_battery_charge_unknown")));
@@ -225,7 +225,7 @@ TEST_F(BatteryChecksTest, ExternalBatteryWithoutChargeBlocksArming)
 {
 	publish(1, battery_status_s::WARNING_NONE, true, -1.f, 1, battery_status_s::SOURCE_EXTERNAL, 0);
 	runCheck(false);
-	EXPECT_EQ(_failsafe_flags.battery_warning, battery_status_s::WARNING_NONE);
+	EXPECT_EQ(_failsafe_flags.bat_warning, battery_status_s::WARNING_NONE);
 	EXPECT_FALSE(_can_arm);
 	EXPECT_TRUE(reported(events::ID("check_battery_charge_unknown"), 2));
 	EXPECT_FALSE(reported(events::ID("check_battery_cell_count_unknown")));
@@ -254,5 +254,5 @@ TEST_F(BatteryChecksTest, UnknownChargeIsNotReportedWhileArmed)
 	publish(1, battery_status_s::WARNING_NONE, true, -1.f, 1, battery_status_s::SOURCE_EXTERNAL, 0);
 	runCheck(true);
 	EXPECT_FALSE(reported(events::ID("check_battery_charge_unknown")));
-	EXPECT_EQ(_failsafe_flags.battery_warning, battery_status_s::WARNING_NONE);
+	EXPECT_EQ(_failsafe_flags.bat_warning, battery_status_s::WARNING_NONE);
 }

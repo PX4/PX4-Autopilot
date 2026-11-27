@@ -286,7 +286,7 @@ private:
 
 	float _last_manual_throttle{-1.f};
 	manual_control_setpoint_s _last_manual_control_setpoint{};
-	bool _manual_control_lost_prev{false}; ///< previous manual_control_signal_lost state, for edge detection
+	bool _manual_control_lost_prev{false}; ///< previous rc_conn_lost state, for edge detection
 
 	bool _arm_tune_played{false};
 	bool _have_taken_off_since_arming{false};

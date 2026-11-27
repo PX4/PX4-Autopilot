@@ -461,15 +461,15 @@ private:
 		failsafe_flags_s failsafe_flags;
 
 		if (_failsafe_flags_sub.update(&failsafe_flags)) {
-			if (failsafe_flags.offboard_control_signal_lost) {
+			if (failsafe_flags.offboard_signal_lost) {
 				msg->failure_flags |= HL_FAILURE_FLAG_OFFBOARD_LINK;
 			}
 
-			if (failsafe_flags.mission_failure) {
+			if (failsafe_flags.mission_fail) {
 				msg->failure_flags |= HL_FAILURE_FLAG_MISSION;
 			}
 
-			if (failsafe_flags.manual_control_signal_lost) {
+			if (failsafe_flags.rc_conn_lost) {
 				msg->failure_flags |= HL_FAILURE_FLAG_RC_RECEIVER;
 			}
 

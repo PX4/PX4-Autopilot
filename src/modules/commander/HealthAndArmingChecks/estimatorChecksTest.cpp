@@ -84,8 +84,8 @@ public:
 		_failsafe_flags = {};
 		// every mode requires attitude and a local and global position, so a failed check shows on every mode
 		_failsafe_flags.mode_req_attitude = ~0u;
-		_failsafe_flags.mode_req_local_position = ~0u;
-		_failsafe_flags.mode_req_global_position = ~0u;
+		_failsafe_flags.mode_req_local_pos = ~0u;
+		_failsafe_flags.mode_req_global_pos = ~0u;
 
 		// the topics keep their last sample across cases, so each case starts from the same clean state
 		publishEstimatorStatus(false, 0);
@@ -238,7 +238,7 @@ public:
 		publishLocalPosition(true);
 		runCheck(true);
 		runCheck(true);
-		ASSERT_FALSE(_failsafe_flags.local_position_invalid);
+		ASSERT_FALSE(_failsafe_flags.local_pos_bad);
 		drainEvents();
 	}
 
@@ -279,7 +279,7 @@ TEST_F(EstimatorChecksTest, NamesTheFailingCheckWhenPositionIsLostInFlight)
 	publishLocalPosition(false);
 	runCheck(true);
 
-	ASSERT_TRUE(_failsafe_flags.local_position_invalid);
+	ASSERT_TRUE(_failsafe_flags.local_pos_bad);
 
 	event_s event{};
 	EXPECT_EQ(countEvents(kReasonEvent, &event), 1);
@@ -304,7 +304,7 @@ TEST_F(EstimatorChecksTest, NamesACheckThatFailedShortlyBeforePositionWasLost)
 	publishReceiver(0);
 	publishLocalPosition(true);
 	runCheck(true);
-	ASSERT_FALSE(_failsafe_flags.local_position_invalid);
+	ASSERT_FALSE(_failsafe_flags.local_pos_bad);
 	drainEvents();
 
 	publishEstimatorStatus(true, 0);
@@ -312,7 +312,7 @@ TEST_F(EstimatorChecksTest, NamesACheckThatFailedShortlyBeforePositionWasLost)
 	publishLocalPosition(false);
 	runCheck(true);
 
-	ASSERT_TRUE(_failsafe_flags.local_position_invalid);
+	ASSERT_TRUE(_failsafe_flags.local_pos_bad);
 	event_s event{};
 	ASSERT_EQ(countEvents(kReasonEvent, &event), 1) << "the check that kept GNSS out is the reason";
 	uint16_t reported_flags = 0;
@@ -328,7 +328,7 @@ TEST_F(EstimatorChecksTest, ForgetsACheckThatStoppedFailingLongBefore)
 	// check expires on its own, so the speed accuracy failing doesn't keep the spoofing in the reason.
 	publishEstimatorStatus(true, kSpoofed, 15_s);
 	runCheck(true);
-	ASSERT_FALSE(_failsafe_flags.local_position_invalid);
+	ASSERT_FALSE(_failsafe_flags.local_pos_bad);
 	drainEvents();
 
 	publishEstimatorStatus(true, kSpeedAccuracy);
@@ -336,7 +336,7 @@ TEST_F(EstimatorChecksTest, ForgetsACheckThatStoppedFailingLongBefore)
 	publishLocalPosition(false);
 	runCheck(true);
 
-	ASSERT_TRUE(_failsafe_flags.local_position_invalid);
+	ASSERT_TRUE(_failsafe_flags.local_pos_bad);
 	event_s event{};
 	ASSERT_EQ(countEvents(kReasonEvent, &event), 1);
 	uint16_t reported_flags = 0;
@@ -388,7 +388,7 @@ TEST_F(EstimatorChecksTest, NothingWhenNoCheckIsFailing)
 	publishLocalPosition(false);
 	runCheck(true);
 
-	ASSERT_TRUE(_failsafe_flags.local_position_invalid);
+	ASSERT_TRUE(_failsafe_flags.local_pos_bad);
 	EXPECT_EQ(countEvents(kReasonEvent), 0);
 	EXPECT_EQ(countEvents(kNoDataEvent), 0);
 }
@@ -403,7 +403,7 @@ TEST_F(EstimatorChecksTest, NamesTheReceiverThatStoppedSending)
 	publishLocalPosition(false);
 	runCheck(true);
 
-	ASSERT_TRUE(_failsafe_flags.local_position_invalid);
+	ASSERT_TRUE(_failsafe_flags.local_pos_bad);
 	EXPECT_EQ(countEvents(kNoDataEvent), 1);
 	EXPECT_EQ(countEvents(kReasonEvent), 0) << "a silent receiver is not a failing check";
 }
@@ -419,7 +419,7 @@ TEST_F(EstimatorChecksTest, NamesTheReceiverThatStoppedAfterAFailingSample)
 	publishLocalPosition(false);
 	runCheck(true);
 
-	ASSERT_TRUE(_failsafe_flags.local_position_invalid);
+	ASSERT_TRUE(_failsafe_flags.local_pos_bad);
 	EXPECT_EQ(countEvents(kNoDataEvent), 1);
 	EXPECT_EQ(countEvents(kReasonEvent), 0) << "flags left by the last sample do not outrank the silence";
 }
@@ -432,13 +432,13 @@ TEST_F(EstimatorChecksTest, NothingWhenGnssWasNotInUse)
 	publishLocalPosition(true);
 	runCheck(true);
 	runCheck(true);
-	ASSERT_FALSE(_failsafe_flags.local_position_invalid);
+	ASSERT_FALSE(_failsafe_flags.local_pos_bad);
 	drainEvents();
 
 	publishLocalPosition(false);
 	runCheck(true);
 
-	ASSERT_TRUE(_failsafe_flags.local_position_invalid);
+	ASSERT_TRUE(_failsafe_flags.local_pos_bad);
 	EXPECT_EQ(countEvents(kReasonEvent), 0) << "a failing receiver check explains nothing when GNSS was not fused";
 	EXPECT_EQ(countEvents(kNoDataEvent), 0) << "nor does a silent receiver";
 }
@@ -456,7 +456,7 @@ TEST_F(EstimatorChecksTest, NothingWithoutGnssConfigured)
 	publishLocalPosition(false);
 	runCheck(true);
 
-	ASSERT_TRUE(_failsafe_flags.local_position_invalid);
+	ASSERT_TRUE(_failsafe_flags.local_pos_bad);
 	EXPECT_EQ(countEvents(kReasonEvent), 0);
 	EXPECT_EQ(countEvents(kNoDataEvent), 0);
 }
@@ -468,7 +468,7 @@ TEST_F(EstimatorChecksTest, NothingWhileDisarmed)
 	publishLocalPosition(true);
 	runCheck(false);
 	runCheck(false);
-	ASSERT_FALSE(_failsafe_flags.local_position_invalid);
+	ASSERT_FALSE(_failsafe_flags.local_pos_bad);
 	drainEvents();
 
 	// on the ground the preflight checks already name the failing check
@@ -476,7 +476,7 @@ TEST_F(EstimatorChecksTest, NothingWhileDisarmed)
 	publishLocalPosition(false);
 	runCheck(false);
 
-	ASSERT_TRUE(_failsafe_flags.local_position_invalid);
+	ASSERT_TRUE(_failsafe_flags.local_pos_bad);
 	EXPECT_EQ(countEvents(kReasonEvent), 0);
 }
 
@@ -564,7 +564,7 @@ TEST_F(EstimatorChecksTest, GnssFusionStopIsOnlyInformationOncePositionIsLost)
 
 	publishLocalPosition(false);
 	runCheck(true);
-	ASSERT_TRUE(_failsafe_flags.local_position_invalid);
+	ASSERT_TRUE(_failsafe_flags.local_pos_bad);
 	drainEvents();
 
 	event_s event{};
@@ -737,7 +737,7 @@ TEST_F(EstimatorChecksTest, PositionFailureImminentIsWarnedOnceWhileDeadReckonin
 	publishStatusFlags(flags);
 
 	runCheck(true);
-	ASSERT_FALSE(_failsafe_flags.global_position_invalid);
+	ASSERT_FALSE(_failsafe_flags.global_pos_bad);
 	EXPECT_EQ(countEvents(kFailureImminentEvent), 1);
 
 	runCheck(true);
@@ -760,17 +760,17 @@ TEST_F(EstimatorChecksTest, LowPositionAccuracyIsFlaggedAndReportedInFlight)
 
 	publishLocalPosition(true, 2.f);
 	runCheck(true);
-	ASSERT_FALSE(_failsafe_flags.local_position_invalid);
-	EXPECT_TRUE(_failsafe_flags.position_accuracy_low);
+	ASSERT_FALSE(_failsafe_flags.local_pos_bad);
+	EXPECT_TRUE(_failsafe_flags.pos_accur_low);
 	EXPECT_TRUE(armingError(health_component_t::local_position_estimate));
 
 	runCheck(false);
-	EXPECT_TRUE(_failsafe_flags.position_accuracy_low);
+	EXPECT_TRUE(_failsafe_flags.pos_accur_low);
 	EXPECT_FALSE(armingError(health_component_t::local_position_estimate)) << "flagged but not reported on the ground";
 
 	publishLocalPosition(true, 0.5f);
 	runCheck(true);
-	EXPECT_FALSE(_failsafe_flags.position_accuracy_low);
+	EXPECT_FALSE(_failsafe_flags.pos_accur_low);
 }
 
 TEST_F(EstimatorChecksTest, AttitudeValidityFollowsTheQuaternion)
@@ -780,18 +780,18 @@ TEST_F(EstimatorChecksTest, AttitudeValidityFollowsTheQuaternion)
 	attitude.q[0] = 1.f;
 	publishAttitude(attitude);
 	runCheck(true);
-	EXPECT_FALSE(_failsafe_flags.attitude_invalid);
+	EXPECT_FALSE(_failsafe_flags.attitude_bad);
 
 	attitude.q[0] = 1.1f;
 	publishAttitude(attitude);
 	runCheck(true);
-	EXPECT_TRUE(_failsafe_flags.attitude_invalid) << "not a unit quaternion";
+	EXPECT_TRUE(_failsafe_flags.attitude_bad) << "not a unit quaternion";
 
 	attitude.q[0] = 1.f;
 	attitude.timestamp = hrt_absolute_time() - 2_s;
 	publishAttitude(attitude);
 	runCheck(true);
-	EXPECT_TRUE(_failsafe_flags.attitude_invalid) << "stale";
+	EXPECT_TRUE(_failsafe_flags.attitude_bad) << "stale";
 }
 
 TEST_F(EstimatorChecksTest, AngularVelocityValidityFollowsTheSamples)
@@ -800,25 +800,25 @@ TEST_F(EstimatorChecksTest, AngularVelocityValidityFollowsTheSamples)
 	rates.timestamp = hrt_absolute_time();
 	publishAngularVelocity(rates);
 	runCheck(true);
-	EXPECT_FALSE(_failsafe_flags.angular_velocity_invalid);
+	EXPECT_FALSE(_failsafe_flags.ang_vel_bad);
 
 	rates.xyz[0] = NAN;
 	publishAngularVelocity(rates);
 	runCheck(true);
-	EXPECT_TRUE(_failsafe_flags.angular_velocity_invalid) << "not finite";
+	EXPECT_TRUE(_failsafe_flags.ang_vel_bad) << "not finite";
 
 	rates.xyz[0] = 0.f;
 	rates.timestamp = hrt_absolute_time() - 2_s;
 	publishAngularVelocity(rates);
 	runCheck(true);
-	EXPECT_TRUE(_failsafe_flags.angular_velocity_invalid) << "stale";
+	EXPECT_TRUE(_failsafe_flags.ang_vel_bad) << "stale";
 }
 
 TEST_F(EstimatorChecksTest, LocalAltitudeIsInvalidWithoutAValidHeight)
 {
 	publishLocalPosition(true);
 	runCheck(true);
-	EXPECT_FALSE(_failsafe_flags.local_altitude_invalid);
+	EXPECT_FALSE(_failsafe_flags.local_alt_bad);
 
 	vehicle_local_position_s lpos{};
 	lpos.timestamp = hrt_absolute_time();
@@ -827,5 +827,5 @@ TEST_F(EstimatorChecksTest, LocalAltitudeIsInvalidWithoutAValidHeight)
 	lpos.z_valid = false;
 	_local_position_pub.publish(lpos);
 	runCheck(true);
-	EXPECT_TRUE(_failsafe_flags.local_altitude_invalid);
+	EXPECT_TRUE(_failsafe_flags.local_alt_bad);
 }

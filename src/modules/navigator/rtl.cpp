@@ -424,7 +424,7 @@ void RTL::applyReturn(const ReturnSelection &selection)
 float RTL::worstBatteryTimeRemaining()
 {
 	// Take the worst (smallest) remaining time across all connected batteries, matching the
-	// battery_low_remaining_time failsafe check in BatteryChecks::rtlEstimateCheck()
+	// bat_low_time failsafe check in BatteryChecks::rtlEstimateCheck()
 	float worst_battery_time_s{NAN};
 
 	for (auto &battery_sub : _battery_status_subs) {

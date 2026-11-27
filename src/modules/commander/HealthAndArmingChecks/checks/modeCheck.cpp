@@ -50,18 +50,18 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 	// Failing mode requirements generally also clear the can_run bits which prevents mode switching and
 	// might trigger a failsafe if already in that mode.
 
-	if (reporter.failsafeFlags().angular_velocity_invalid && reporter.failsafeFlags().mode_req_angular_velocity != 0) {
+	if (reporter.failsafeFlags().ang_vel_bad && reporter.failsafeFlags().mode_req_ang_vel != 0) {
 		/* EVENT
 		 * @description
 		 * Make sure the gyroscope is providing valid data.
 		 */
-		reporter.armingCheckFailure((NavModes)reporter.failsafeFlags().mode_req_angular_velocity, health_component_t::system,
+		reporter.armingCheckFailure((NavModes)reporter.failsafeFlags().mode_req_ang_vel, health_component_t::system,
 					    events::ID("check_modes_angular_velocity"),
 					    events::Log::Critical, "Angular velocity not valid");
-		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_angular_velocity);
+		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_ang_vel);
 	}
 
-	if (reporter.failsafeFlags().attitude_invalid && reporter.failsafeFlags().mode_req_attitude != 0) {
+	if (reporter.failsafeFlags().attitude_bad && reporter.failsafeFlags().mode_req_attitude != 0) {
 		/* EVENT
 		 * @description
 		 * Wait until the estimator initialized
@@ -74,13 +74,13 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 
 	NavModes local_position_modes = NavModes::None;
 
-	if (reporter.failsafeFlags().local_position_invalid && reporter.failsafeFlags().mode_req_local_position != 0) {
-		local_position_modes = (NavModes)reporter.failsafeFlags().mode_req_local_position;
+	if (reporter.failsafeFlags().local_pos_bad && reporter.failsafeFlags().mode_req_local_pos != 0) {
+		local_position_modes = (NavModes)reporter.failsafeFlags().mode_req_local_pos;
 	}
 
-	if (reporter.failsafeFlags().local_position_invalid_relaxed
-	    && reporter.failsafeFlags().mode_req_local_position_relaxed != 0) {
-		local_position_modes = local_position_modes | (NavModes)reporter.failsafeFlags().mode_req_local_position_relaxed;
+	if (reporter.failsafeFlags().local_pos_bad_relaxed
+	    && reporter.failsafeFlags().mode_req_local_pos_relaxed != 0) {
+		local_position_modes = local_position_modes | (NavModes)reporter.failsafeFlags().mode_req_local_pos_relaxed;
 	}
 
 	if (local_position_modes != NavModes::None) {
@@ -96,13 +96,13 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 
 	NavModes global_position_modes = NavModes::None;
 
-	if (reporter.failsafeFlags().global_position_invalid && reporter.failsafeFlags().mode_req_global_position != 0) {
-		global_position_modes = (NavModes)reporter.failsafeFlags().mode_req_global_position;
+	if (reporter.failsafeFlags().global_pos_bad && reporter.failsafeFlags().mode_req_global_pos != 0) {
+		global_position_modes = (NavModes)reporter.failsafeFlags().mode_req_global_pos;
 	}
 
-	if (reporter.failsafeFlags().global_position_invalid_relaxed
-	    && reporter.failsafeFlags().mode_req_global_position_relaxed != 0) {
-		global_position_modes = global_position_modes | (NavModes)reporter.failsafeFlags().mode_req_global_position_relaxed;
+	if (reporter.failsafeFlags().global_pos_bad_relaxed
+	    && reporter.failsafeFlags().mode_req_global_pos_relaxed != 0) {
+		global_position_modes = global_position_modes | (NavModes)reporter.failsafeFlags().mode_req_global_pos_relaxed;
 	}
 
 	if (global_position_modes != NavModes::None) {
@@ -117,7 +117,7 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.clearCanRunBits(global_position_modes);
 	}
 
-	if (reporter.failsafeFlags().local_altitude_invalid && reporter.failsafeFlags().mode_req_local_alt != 0) {
+	if (reporter.failsafeFlags().local_alt_bad && reporter.failsafeFlags().mode_req_local_alt != 0) {
 		/* EVENT
 		 * @description
 		 * The available positioning data is not sufficient to execute the selected mode.
@@ -149,16 +149,16 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_mission);
 	}
 
-	if (reporter.failsafeFlags().home_position_invalid && reporter.failsafeFlags().mode_req_home_position != 0) {
+	if (reporter.failsafeFlags().home_pos_bad && reporter.failsafeFlags().mode_req_home_pos != 0) {
 		/* EVENT
 		 */
-		reporter.armingCheckFailure((NavModes)reporter.failsafeFlags().mode_req_home_position, health_component_t::system,
+		reporter.armingCheckFailure((NavModes)reporter.failsafeFlags().mode_req_home_pos, health_component_t::system,
 					    events::ID("check_modes_home_position"),
 					    events::Log::Info, "Home position not set");
-		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_home_position);
+		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_home_pos);
 	}
 
-	if (reporter.failsafeFlags().manual_control_signal_lost && reporter.failsafeFlags().mode_req_manual_control != 0) {
+	if (reporter.failsafeFlags().rc_conn_lost && reporter.failsafeFlags().mode_req_manual_control != 0) {
 		const bool rc_disabled = (_param_com_rc_in_mode.get() == 4);
 		NavModes nav_modes = rc_disabled ? (NavModes)reporter.failsafeFlags().mode_req_manual_control : NavModes::None;
 		events::LogLevel log_level = rc_disabled ? events::Log::Error : events::Log::Warning;
@@ -194,9 +194,9 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_other);
 	}
 
-	if ((reporter.failsafeFlags().flight_time_limit_exceeded || reporter.failsafeFlags().wind_limit_exceeded)
-	    && reporter.failsafeFlags().mode_req_wind_and_flight_time_compliance != 0) {
+	if ((reporter.failsafeFlags().flight_time_exceeded || reporter.failsafeFlags().wind_limit_exceeded)
+	    && reporter.failsafeFlags().mode_req_wind_flight_time != 0) {
 		// Already reported
-		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_wind_and_flight_time_compliance);
+		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_wind_flight_time);
 	}
 }

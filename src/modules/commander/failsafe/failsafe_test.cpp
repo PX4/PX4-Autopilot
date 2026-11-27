@@ -53,23 +53,23 @@ protected:
 	void checkStateAndMode(const hrt_abstime &time_us, const State &state,
 			       const failsafe_flags_s &status_flags) override
 	{
-		CHECK_FAILSAFE(status_flags, manual_control_signal_lost, ActionOptions(Action::RTL).clearOn(ClearCondition::OnModeChangeOrDisarm));
-		CHECK_FAILSAFE(status_flags, gcs_connection_lost, Action::Descend);
+		CHECK_FAILSAFE(status_flags, rc_conn_lost, ActionOptions(Action::RTL).clearOn(ClearCondition::OnModeChangeOrDisarm));
+		CHECK_FAILSAFE(status_flags, gcs_conn_lost, Action::Descend);
 
 		if (state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
-			CHECK_FAILSAFE(status_flags, mission_failure, Action::Descend);
+			CHECK_FAILSAFE(status_flags, mission_fail, Action::Descend);
 		}
 
 		CHECK_FAILSAFE(status_flags, wind_limit_exceeded, ActionOptions(Action::RTL).allowUserTakeover(UserTakeoverAllowed::Never));
-		CHECK_FAILSAFE(status_flags, battery_low_remaining_time, ActionOptions(Action::RTL).causedBy(Cause::RemainingFlightTimeLow));
-		CHECK_FAILSAFE(status_flags, offboard_control_signal_lost, ActionOptions(Action::Hold));
+		CHECK_FAILSAFE(status_flags, bat_low_time, ActionOptions(Action::RTL).causedBy(Cause::RemainingFlightTimeLow));
+		CHECK_FAILSAFE(status_flags, offboard_signal_lost, ActionOptions(Action::Hold));
 
-		CHECK_FAILSAFE(status_flags, navigator_failure, ActionOptions(Action::Warn));
+		CHECK_FAILSAFE(status_flags, navigator_fail, ActionOptions(Action::Warn));
 		CHECK_FAILSAFE(status_flags, fd_imbalanced_prop,
 			       ActionOptions(Action::None).allowUserTakeover(UserTakeoverAllowed::AlwaysModeSwitchOnly));
 
-		_last_state_test = checkFailsafe(_caller_id_test, _last_state_test, status_flags.fd_motor_failure
-						 && status_flags.fd_critical_failure, ActionOptions(Action::Terminate).cannotBeDeferred());
+		_last_state_test = checkFailsafe(_caller_id_test, _last_state_test, status_flags.fd_motor_fail
+						 && status_flags.fd_critical_fail, ActionOptions(Action::Terminate).cannotBeDeferred());
 	}
 
 	Action checkModeFallback(const failsafe_flags_s &status_flags, uint8_t user_intended_mode) const override
@@ -124,7 +124,7 @@ TEST_F(FailsafeTest, General)
 
 	// manual control lost -> Hold, then Return
 	time += 10_ms;
-	failsafe_flags.manual_control_signal_lost = true;
+	failsafe_flags.rc_conn_lost = true;
 	updated_user_intented_mode = failsafe.update(time, state, false, stick_override_request, failsafe_flags);
 	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
@@ -135,21 +135,21 @@ TEST_F(FailsafeTest, General)
 
 	// DL link lost -> Descend
 	time += 10_ms;
-	failsafe_flags.gcs_connection_lost = true;
+	failsafe_flags.gcs_conn_lost = true;
 	updated_user_intented_mode = failsafe.update(time, state, false, stick_override_request, failsafe_flags);
 	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Descend);
 
 	// DL link regained -> Return (manual control still lost)
 	time += 10_ms;
-	failsafe_flags.gcs_connection_lost = false;
+	failsafe_flags.gcs_conn_lost = false;
 	updated_user_intented_mode = failsafe.update(time, state, false, stick_override_request, failsafe_flags);
 	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
 
 	// Manual control lost cleared -> keep Return
 	time += 10_ms;
-	failsafe_flags.manual_control_signal_lost = false;
+	failsafe_flags.rc_conn_lost = false;
 	updated_user_intented_mode = failsafe.update(time, state, false, stick_override_request, failsafe_flags);
 	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
@@ -178,7 +178,7 @@ TEST_F(FailsafeTest, Takeover)
 
 	// Mission failure -> no failsafe
 	time += 10_ms;
-	failsafe_flags.mission_failure = true;
+	failsafe_flags.mission_fail = true;
 	updated_user_intented_mode = failsafe.update(time, state, false, stick_override_request, failsafe_flags);
 	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
@@ -249,8 +249,8 @@ TEST_F(FailsafeTest, TakeoverDenied)
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
 
 	// Test termination
-	failsafe_flags.fd_motor_failure = true;
-	failsafe_flags.fd_critical_failure = true;
+	failsafe_flags.fd_motor_fail = true;
+	failsafe_flags.fd_critical_fail = true;
 	time += 10_ms;
 	stick_override_request = true;
 	updated_user_intented_mode = failsafe.update(time, state, false, stick_override_request, failsafe_flags);
@@ -260,8 +260,8 @@ TEST_F(FailsafeTest, TakeoverDenied)
 
 	// Termination is final
 	failsafe_flags.wind_limit_exceeded = false;
-	failsafe_flags.fd_motor_failure = false;
-	failsafe_flags.fd_critical_failure = false;
+	failsafe_flags.fd_motor_fail = false;
+	failsafe_flags.fd_critical_fail = false;
 	state.armed = false;
 	time += 10_ms;
 	stick_override_request = true;
@@ -288,21 +288,21 @@ TEST_F(FailsafeTest, CanTakeoverDegradedFailsafe)
 
 	// Battery time low -> Hold for the delay
 	time += 10_ms;
-	failsafe_flags.battery_low_remaining_time = true;
+	failsafe_flags.bat_low_time = true;
 	updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
 	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
 
 	// Delay over -> Return
 	time += 5_s;
-	failsafe_flags.battery_low_remaining_time = true;
+	failsafe_flags.bat_low_time = true;
 	updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
 	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
 
 	// Global position gets invalid -> Land
 	time += 10_ms;
-	failsafe_flags.global_position_invalid = true;
+	failsafe_flags.global_pos_bad = true;
 	updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
 	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Land);
@@ -334,7 +334,7 @@ TEST_F(FailsafeTest, NoDelayForWarn)
 
 	// Navigator failure -> Warn
 	time += 10_ms;
-	failsafe_flags.navigator_failure = true;
+	failsafe_flags.navigator_fail = true;
 	updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
 	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Warn);
@@ -367,7 +367,7 @@ TEST_F(FailsafeTest, NoneActionDoesNotRestrictUserTakeover)
 
 	// Battery time low -> Hold for the delay
 	time += 10_ms;
-	failsafe_flags.battery_low_remaining_time = true;
+	failsafe_flags.bat_low_time = true;
 	updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
 	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
@@ -404,7 +404,7 @@ TEST_F(FailsafeTest, NoImmediateTakeoverWhenFailsafeOnModeSwitch)
 	time += 10_ms;
 	user_intended_mode_updated = true;
 	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
-	failsafe_flags.offboard_control_signal_lost = true;
+	failsafe_flags.offboard_signal_lost = true;
 	updated_user_intented_mode = failsafe.update(time, state, user_intended_mode_updated, false, failsafe_flags);
 	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
@@ -493,7 +493,7 @@ TEST_F(FailsafeTest, Defer)
 	ASSERT_FALSE(failsafe.failsafeDeferred());
 	// GCS connection lost -> deferred
 	time += 10_ms;
-	failsafe_flags.gcs_connection_lost = true;
+	failsafe_flags.gcs_conn_lost = true;
 	updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
 	ASSERT_TRUE(failsafe.getDeferFailsafes());
@@ -532,7 +532,7 @@ TEST_F(FailsafeTest, Defer)
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Descend);
 
 	// Clear failsafe
-	failsafe_flags.gcs_connection_lost = false;
+	failsafe_flags.gcs_conn_lost = false;
 	time += 10_ms;
 	updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
@@ -579,8 +579,8 @@ TEST_F(FailsafeTest, Defer)
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
 	ASSERT_TRUE(failsafe.failsafeDeferred());
 	time += 10_ms;
-	failsafe_flags.fd_motor_failure = true;
-	failsafe_flags.fd_critical_failure = true;
+	failsafe_flags.fd_motor_fail = true;
+	failsafe_flags.fd_critical_fail = true;
 	updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Terminate);
 	ASSERT_FALSE(failsafe.failsafeDeferred());
@@ -604,13 +604,13 @@ TEST_F(FailsafeTest, DeferAndClear)
 	ASSERT_FALSE(failsafe.failsafeDeferred());
 	// Manual control lost -> deferred
 	time += 10_ms;
-	failsafe_flags.manual_control_signal_lost = true;
+	failsafe_flags.rc_conn_lost = true;
 	updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
 	ASSERT_TRUE(failsafe.failsafeDeferred());
 
 	// Clear flag (the failsafe action only clears on mode switch, but we still expect it to clear as it's being deferred)
-	failsafe_flags.manual_control_signal_lost = false;
+	failsafe_flags.rc_conn_lost = false;
 	time += 5_s;
 	updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
@@ -642,7 +642,7 @@ TEST_F(FailsafeTest, SkipFailsafe)
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
 
 	// Manual control lost while in Return -> stay in Return and only warn
-	failsafe_flags.manual_control_signal_lost = true;
+	failsafe_flags.rc_conn_lost = true;
 
 	updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
 	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
@@ -666,8 +666,8 @@ TEST_F(FailsafeTest, UserTermination)
 	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Terminate);
 
 	// Links lost during termination -> stay in termination
-	failsafe_flags.gcs_connection_lost = true;
-	failsafe_flags.manual_control_signal_lost = true;
+	failsafe_flags.gcs_conn_lost = true;
+	failsafe_flags.rc_conn_lost = true;
 
 	updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
 	EXPECT_EQ(updated_user_intented_mode, state.user_intended_mode);
@@ -683,7 +683,7 @@ TEST_F(FailsafeTest, FallbackAltitudeRequiresManualControl)
 
 	failsafe_flags_s failsafe_flags{};
 	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
-	failsafe_flags.manual_control_signal_lost = true;
+	failsafe_flags.rc_conn_lost = true;
 
 	FailsafeBase::State state{};
 	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_POSCTL;
@@ -699,7 +699,7 @@ TEST_F(FailsafeTest, FallbackAltitudeRequiresManualControl)
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
 
 	// Losing position in PosCtl would normally fall back to AltCtl, but AltCtl needs manual control.
-	failsafe_flags.local_position_invalid_relaxed = true;
+	failsafe_flags.local_pos_bad_relaxed = true;
 	time += 10_ms;
 	failsafe.update(time, state, false, false, failsafe_flags);
 	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
@@ -714,7 +714,7 @@ TEST_F(FailsafeTest, FallbackAltitudeUsesNavRclActParam)
 
 	failsafe_flags_s failsafe_flags{};
 	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
-	failsafe_flags.manual_control_signal_lost = true;
+	failsafe_flags.rc_conn_lost = true;
 
 	FailsafeBase::State state{};
 	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_POSCTL;
@@ -730,7 +730,7 @@ TEST_F(FailsafeTest, FallbackAltitudeUsesNavRclActParam)
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
 
 	// Losing position in PosCtl triggers the manual-control fallback, which should use NAV_RCL_ACT.
-	failsafe_flags.local_position_invalid_relaxed = true;
+	failsafe_flags.local_pos_bad_relaxed = true;
 	time += 10_ms;
 	failsafe.update(time, state, false, false, failsafe_flags);
 	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Terminate);
@@ -747,7 +747,7 @@ TEST_F(FailsafeTest, OffboardLossWithoutManualControlHoldsForHoldNoFailsafe)
 
 	failsafe_flags_s failsafe_flags{};
 	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
-	failsafe_flags.manual_control_signal_lost = true;
+	failsafe_flags.rc_conn_lost = true;
 
 	FailsafeBase::State state{};
 	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
@@ -763,7 +763,7 @@ TEST_F(FailsafeTest, OffboardLossWithoutManualControlHoldsForHoldNoFailsafe)
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
 
 	// The companion computer stops. Position mode cannot be flown without manual control, so Hold it is.
-	failsafe_flags.offboard_control_signal_lost = true;
+	failsafe_flags.offboard_signal_lost = true;
 	time += 10_ms;
 	failsafe.update(time, state, false, false, failsafe_flags);
 	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
@@ -779,7 +779,7 @@ TEST_F(FailsafeTest, OffboardLossWithoutManualControlHoldsForUnlistedNavRclAct)
 
 	failsafe_flags_s failsafe_flags{};
 	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
-	failsafe_flags.manual_control_signal_lost = true;
+	failsafe_flags.rc_conn_lost = true;
 
 	FailsafeBase::State state{};
 	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
@@ -793,7 +793,7 @@ TEST_F(FailsafeTest, OffboardLossWithoutManualControlHoldsForUnlistedNavRclAct)
 	failsafe.update(time, state, false, false, failsafe_flags);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
 
-	failsafe_flags.offboard_control_signal_lost = true;
+	failsafe_flags.offboard_signal_lost = true;
 	time += 10_ms;
 	failsafe.update(time, state, false, false, failsafe_flags);
 	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
@@ -822,7 +822,7 @@ TEST_F(FailsafeTest, OffboardLossWithManualControlFallsBackToPosition)
 	failsafe.update(time, state, false, false, failsafe_flags);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
 
-	failsafe_flags.offboard_control_signal_lost = true;
+	failsafe_flags.offboard_signal_lost = true;
 	time += 10_ms;
 	failsafe.update(time, state, false, false, failsafe_flags);
 	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::FallbackPosCtrl);
@@ -845,7 +845,7 @@ TEST_F(FailsafeTest, TrafficAvoidanceUnhealthyUsesTrafficAvoidActParam)
 
 		failsafe_flags_s failsafe_flags{};
 		mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
-		failsafe_flags.traffic_avoidance_unhealthy = true;
+		failsafe_flags.traff_avoid_unhealthy = true;
 
 		FailsafeBase::State state{};
 		state.armed = true;
@@ -871,7 +871,7 @@ TEST_F(FailsafeTest, FallbackStabilizedRequiresManualControl)
 
 	failsafe_flags_s failsafe_flags{};
 	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, failsafe_flags);
-	failsafe_flags.manual_control_signal_lost = true;
+	failsafe_flags.rc_conn_lost = true;
 
 	FailsafeBase::State state{};
 	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
@@ -887,7 +887,7 @@ TEST_F(FailsafeTest, FallbackStabilizedRequiresManualControl)
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
 
 	// Losing altitude in AltCtl would normally fall back to Stabilized, but Stabilized needs manual control.
-	failsafe_flags.local_altitude_invalid = true;
+	failsafe_flags.local_alt_bad = true;
 	time += 10_ms;
 	failsafe.update(time, state, false, false, failsafe_flags);
 	// checkModeFallback returns Return from NAV_RCL_ACT. The framework then cascades Return -> Land -> Descend
@@ -918,11 +918,11 @@ TEST_F(FailsafeTest, NoNotificationWhileDisarmed)
 	const int notifications_before = notifications;
 
 	// Position estimate lost while sitting on the bench
-	failsafe_flags.local_position_invalid = true;
-	failsafe_flags.local_position_invalid_relaxed = true;
-	failsafe_flags.local_velocity_invalid = true;
-	failsafe_flags.global_position_invalid = true;
-	failsafe_flags.global_position_invalid_relaxed = true;
+	failsafe_flags.local_pos_bad = true;
+	failsafe_flags.local_pos_bad_relaxed = true;
+	failsafe_flags.local_vel_bad = true;
+	failsafe_flags.global_pos_bad = true;
+	failsafe_flags.global_pos_bad_relaxed = true;
 	time += 10_ms;
 	failsafe.update(time, state, false, false, failsafe_flags);
 
@@ -959,13 +959,13 @@ TEST_F(FailsafeTest, NoNotificationAfterTermination)
 	const int notifications_before = notifications;
 
 	// Links dropping out during termination
-	failsafe_flags.gcs_connection_lost = true;
+	failsafe_flags.gcs_conn_lost = true;
 	time += 10_ms;
 	failsafe.update(time, state, false, false, failsafe_flags);
 	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Terminate);
 	EXPECT_EQ(notifications, notifications_before);
 
-	failsafe_flags.manual_control_signal_lost = true;
+	failsafe_flags.rc_conn_lost = true;
 	time += 10_ms;
 	failsafe.update(time, state, false, false, failsafe_flags);
 	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Terminate);
@@ -990,14 +990,14 @@ TEST_F(FailsafeTest, NotifiesAboutSubsumedCondition)
 	failsafe.update(time, state, false, false, failsafe_flags);
 
 	// Offboard signal lost -> Hold (not delayed)
-	failsafe_flags.offboard_control_signal_lost = true;
+	failsafe_flags.offboard_signal_lost = true;
 	time += 10_ms;
 	failsafe.update(time, state, false, false, failsafe_flags);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
 	const int notifications_before = notifications;
 
 	// Warn is subsumed by the active Hold, so the action does not escalate, but the user is informed
-	failsafe_flags.navigator_failure = true;
+	failsafe_flags.navigator_fail = true;
 	time += 10_ms;
 	failsafe.update(time, state, false, false, failsafe_flags);
 	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
@@ -1046,7 +1046,7 @@ TEST_F(FailsafeTest, RoverUnsupportedDescendToDisarm)
 	failsafe_flags.mode_not_supported |= (1u << vehicle_status_s::NAVIGATION_STATE_DESCEND);
 
 	// 2. Trigger a failure that normally cascades to Hold, then Descend
-	failsafe_flags.mission_failure = true;
+	failsafe_flags.mission_fail = true;
 	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
 
 	time += 10_ms;
@@ -1102,10 +1102,10 @@ TEST_F(FailsafeTest, FixedWingMissionTakeoffWithoutPosition)
 	// during the takeoff item of a mission. Only once the takeoff is done does the mission need a position.
 	failsafe_flags_s fw_flags{};
 	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_FIXED_WING, fw_flags);
-	fw_flags.local_position_invalid = true;
-	fw_flags.local_position_invalid_relaxed = true;
-	fw_flags.global_position_invalid = true;
-	fw_flags.global_position_invalid_relaxed = true;
+	fw_flags.local_pos_bad = true;
+	fw_flags.local_pos_bad_relaxed = true;
+	fw_flags.global_pos_bad = true;
+	fw_flags.global_pos_bad_relaxed = true;
 
 	Failsafe failsafe(nullptr);
 
@@ -1188,8 +1188,8 @@ TEST_F(FailsafeTest, BatteryFailsafeUsesLowBatActParam)
 		// Arm without battery warning, a battery warning that is already present at arming only warns
 		failsafe.update(5_s, state, false, false, failsafe_flags);
 
-		failsafe_flags.battery_warning = battery_warning;
-		failsafe_flags.battery_low_remaining_time = remaining_flight_time_low;
+		failsafe_flags.bat_warning = battery_warning;
+		failsafe_flags.bat_low_time = remaining_flight_time_low;
 		failsafe.update(5_s + 10_ms, state, false, false, failsafe_flags);
 		return failsafe.selectedAction();
 	};
@@ -1302,7 +1302,7 @@ TEST_F(FailsafeTest, GnssRecoveryDoesNotAbortRtlWhenAnotherFailsafeStartsADelay)
 
 	// Another failsafe starts a delay on the same update as GNSS recovers: the RTL continues
 	time += 10_ms;
-	failsafe_flags.navigator_failure = true;
+	failsafe_flags.navigator_fail = true;
 	failsafe_flags.gnss_lost = false;
 	failsafe.update(time, state, false, false, failsafe_flags);
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);

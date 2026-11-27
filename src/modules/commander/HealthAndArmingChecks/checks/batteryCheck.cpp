@@ -76,9 +76,9 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 {
 	if (circuit_breaker_enabled_by_val(_param_cbrk_supply_chk.get(), CBRK_SUPPLY_CHK_KEY)) {
 		// Reset related failsafe flags otherwise failures from before disabling the check cause failsafes without reported reason
-		reporter.failsafeFlags().battery_unhealthy = false;
-		reporter.failsafeFlags().battery_low_remaining_time = false;
-		reporter.failsafeFlags().battery_warning = battery_status_s::WARNING_NONE;
+		reporter.failsafeFlags().bat_bad = false;
+		reporter.failsafeFlags().bat_low_time = false;
+		reporter.failsafeFlags().bat_warning = battery_status_s::WARNING_NONE;
 		return;
 	}
 
@@ -199,25 +199,25 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 
 	if (context.isArmed()) {
 		// if armed, only allow increase of battery warning severity
-		if (worst_warning > reporter.failsafeFlags().battery_warning) {
-			reporter.failsafeFlags().battery_warning = worst_warning;
+		if (worst_warning > reporter.failsafeFlags().bat_warning) {
+			reporter.failsafeFlags().bat_warning = worst_warning;
 		}
 
 	} else {
-		reporter.failsafeFlags().battery_warning = worst_warning;
+		reporter.failsafeFlags().bat_warning = worst_warning;
 	}
 
-	const bool battery_warning = reporter.failsafeFlags().battery_warning > battery_status_s::WARNING_NONE
-				     && reporter.failsafeFlags().battery_warning < battery_status_s::WARNING_FAILED;
+	const bool battery_warning = reporter.failsafeFlags().bat_warning > battery_status_s::WARNING_NONE
+				     && reporter.failsafeFlags().bat_warning < battery_status_s::WARNING_FAILED;
 	const bool configured_arm_threshold_in_use = !context.isArmed() && (_param_com_arm_bat_min.get() >= -FLT_EPSILON);
 	const bool below_configured_arm_threshold = (worst_battery_remaining < _param_com_arm_bat_min.get());
 
 	if (battery_warning || (configured_arm_threshold_in_use && below_configured_arm_threshold)) {
-		const bool critical_or_higher = reporter.failsafeFlags().battery_warning >= battery_status_s::WARNING_CRITICAL;
+		const bool critical_or_higher = reporter.failsafeFlags().bat_warning >= battery_status_s::WARNING_CRITICAL;
 		NavModes affected_modes = (!configured_arm_threshold_in_use && critical_or_higher)
 					  || (configured_arm_threshold_in_use && below_configured_arm_threshold) ? NavModes::All : NavModes::None;
 
-		switch (reporter.failsafeFlags().battery_warning) {
+		switch (reporter.failsafeFlags().bat_warning) {
 		default:
 		case battery_status_s::WARNING_LOW:
 			// This is declared critical so QGC displays a yellow box and reads "low battery" out loud making the user aware
@@ -280,16 +280,16 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 
 	rtlEstimateCheck(context, reporter, worst_battery_time_s);
 
-	reporter.failsafeFlags().battery_unhealthy =
+	reporter.failsafeFlags().bat_bad =
 		// All connected batteries are regularly being published
 		hrt_elapsed_time(&oldest_update) > 5_s
 		// There is a required battery that's missing
 		|| is_required_battery_missing
 		// No currently-connected batteries have any fault
 		|| battery_has_fault
-		|| reporter.failsafeFlags().battery_warning == battery_status_s::WARNING_FAILED;
+		|| reporter.failsafeFlags().bat_warning == battery_status_s::WARNING_FAILED;
 
-	if (reporter.failsafeFlags().battery_unhealthy
+	if (reporter.failsafeFlags().bat_bad
 	    && !is_required_battery_missing && !battery_has_fault) { // missing batteries and faults are reported above already
 		/* EVENT
 		 * @description
@@ -361,18 +361,18 @@ void BatteryChecks::rtlEstimateCheck(const Context &context, Report &reporter, f
 
 	// Compare estimate of return time to estimate of remaining flight time
 	// add hysteresis: if already in the condition, only get out of it if the remaining flight time is significantly higher again
-	const float hysteresis_factor = reporter.failsafeFlags().battery_low_remaining_time ? 1.1f : 1.0f;
+	const float hysteresis_factor = reporter.failsafeFlags().bat_low_time ? 1.1f : 1.0f;
 
-	reporter.failsafeFlags().battery_low_remaining_time = _rtl_time_estimate_sub.copy(&rtl_time_estimate)
-			&& (hrt_absolute_time() - rtl_time_estimate.timestamp) < 3_s
-			&& rtl_time_estimate.valid
-			&& context.isArmed()
-			&& PX4_ISFINITE(worst_battery_time_s)
-			&& rtl_time_estimate.safe_time_estimate * hysteresis_factor >= worst_battery_time_s;
+	reporter.failsafeFlags().bat_low_time = _rtl_time_estimate_sub.copy(&rtl_time_estimate)
+						&& (hrt_absolute_time() - rtl_time_estimate.timestamp) < 3_s
+						&& rtl_time_estimate.valid
+						&& context.isArmed()
+						&& PX4_ISFINITE(worst_battery_time_s)
+						&& rtl_time_estimate.safe_time_estimate * hysteresis_factor >= worst_battery_time_s;
 
 
 	// Every COM_LOW_BAT_ACT option at least warns on low remaining flight time (distance-aware return options return)
-	if (reporter.failsafeFlags().battery_low_remaining_time) {
+	if (reporter.failsafeFlags().bat_low_time) {
 		/* EVENT
 		 * @description
 		 * <profile name="dev">

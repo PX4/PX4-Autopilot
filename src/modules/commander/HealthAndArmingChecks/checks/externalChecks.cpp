@@ -185,23 +185,23 @@ void ExternalChecks::checkAndReport(const Context &context, Report &reporter)
 				// Mode requirements
 				// A replacement mode will also replace the mode requirements of the internal/replaced mode
 				setOrClearRequirementBits(reply.mode_req_angular_velocity, nav_mode_id, replaces_nav_state,
-							  reporter.failsafeFlags().mode_req_angular_velocity);
+							  reporter.failsafeFlags().mode_req_ang_vel);
 				setOrClearRequirementBits(reply.mode_req_attitude, nav_mode_id, replaces_nav_state,
 							  reporter.failsafeFlags().mode_req_attitude);
 				setOrClearRequirementBits(reply.mode_req_local_alt, nav_mode_id, replaces_nav_state,
 							  reporter.failsafeFlags().mode_req_local_alt);
 				setOrClearRequirementBits(reply.mode_req_local_position, nav_mode_id, replaces_nav_state,
-							  reporter.failsafeFlags().mode_req_local_position);
+							  reporter.failsafeFlags().mode_req_local_pos);
 				setOrClearRequirementBits(reply.mode_req_local_position_relaxed, nav_mode_id, replaces_nav_state,
-							  reporter.failsafeFlags().mode_req_local_position_relaxed);
+							  reporter.failsafeFlags().mode_req_local_pos_relaxed);
 				setOrClearRequirementBits(reply.mode_req_global_position, nav_mode_id, replaces_nav_state,
-							  reporter.failsafeFlags().mode_req_global_position);
+							  reporter.failsafeFlags().mode_req_global_pos);
 				setOrClearRequirementBits(reply.mode_req_global_position_relaxed, nav_mode_id, replaces_nav_state,
-							  reporter.failsafeFlags().mode_req_global_position_relaxed);
+							  reporter.failsafeFlags().mode_req_global_pos_relaxed);
 				setOrClearRequirementBits(reply.mode_req_mission, nav_mode_id, replaces_nav_state,
 							  reporter.failsafeFlags().mode_req_mission);
 				setOrClearRequirementBits(reply.mode_req_home_position, nav_mode_id, replaces_nav_state,
-							  reporter.failsafeFlags().mode_req_home_position);
+							  reporter.failsafeFlags().mode_req_home_pos);
 				setOrClearRequirementBits(reply.mode_req_prevent_arming, nav_mode_id, replaces_nav_state,
 							  reporter.failsafeFlags().mode_req_prevent_arming);
 				setOrClearRequirementBits(reply.mode_req_manual_control, nav_mode_id, replaces_nav_state,

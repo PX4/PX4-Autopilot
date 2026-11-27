@@ -43,7 +43,7 @@ void NavigatorChecks::checkAndReport(const Context &context, Report &reporter)
 
 	if (context.status().nav_state == status.nav_state) {
 
-		reporter.failsafeFlags().navigator_failure = (status.failure != navigator_status_s::FAILURE_NONE);
+		reporter.failsafeFlags().navigator_fail = (status.failure != navigator_status_s::FAILURE_NONE);
 
 		if (status.failure == navigator_status_s::FAILURE_HAGL) {
 			/* EVENT

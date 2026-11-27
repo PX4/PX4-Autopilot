@@ -111,7 +111,7 @@ if __name__ == "__main__":
     '''.format(field_name, comment)
 
             elif field_type == 'uint8':
-                assert field_name == 'battery_warning', "only battery_warning supported for uint8 type"
+                assert field_name == 'bat_warning', "only bat_warning supported for uint8 type"
                 js_code += "    state.{0} = document.querySelector('select[id=\"{0}\"]').value;\n".format(field_name)
                 html_conditions += '''
                             <div>

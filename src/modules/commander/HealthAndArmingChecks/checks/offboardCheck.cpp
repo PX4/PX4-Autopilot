@@ -37,7 +37,7 @@ using namespace time_literals;
 
 void OffboardChecks::checkAndReport(const Context &context, Report &reporter)
 {
-	reporter.failsafeFlags().offboard_control_signal_lost = true;
+	reporter.failsafeFlags().offboard_signal_lost = true;
 
 	offboard_control_mode_s offboard_control_mode;
 	const NavModes affected_modes = (NavModes)reporter.failsafeFlags().mode_req_offboard_signal;
@@ -53,7 +53,7 @@ void OffboardChecks::checkAndReport(const Context &context, Report &reporter)
 					   || offboard_control_mode.acceleration || offboard_control_mode.attitude || offboard_control_mode.body_rate
 					   || offboard_control_mode.thrust_and_torque || offboard_control_mode.direct_actuator) && data_is_recent;
 
-		if (offboard_control_mode.position && reporter.failsafeFlags().local_position_invalid) {
+		if (offboard_control_mode.position && reporter.failsafeFlags().local_pos_bad) {
 			offboard_available = false;
 			has_specific_reason = true;
 
@@ -68,7 +68,7 @@ void OffboardChecks::checkAndReport(const Context &context, Report &reporter)
 				reporter.clearCanRunBits(affected_modes);
 			}
 
-		} else if (offboard_control_mode.velocity && reporter.failsafeFlags().local_velocity_invalid) {
+		} else if (offboard_control_mode.velocity && reporter.failsafeFlags().local_vel_bad) {
 			offboard_available = false;
 			has_specific_reason = true;
 
@@ -84,7 +84,7 @@ void OffboardChecks::checkAndReport(const Context &context, Report &reporter)
 			}
 
 		} else if ((offboard_control_mode.acceleration || offboard_control_mode.attitude)
-			   && reporter.failsafeFlags().attitude_invalid) {
+			   && reporter.failsafeFlags().attitude_bad) {
 			offboard_available = false;
 			has_specific_reason = true;
 
@@ -101,10 +101,10 @@ void OffboardChecks::checkAndReport(const Context &context, Report &reporter)
 		}
 
 		// This is a mode requirement, no need to report
-		reporter.failsafeFlags().offboard_control_signal_lost = !offboard_available;
+		reporter.failsafeFlags().offboard_signal_lost = !offboard_available;
 	}
 
-	if (reporter.failsafeFlags().offboard_control_signal_lost && !has_specific_reason && has_affected_modes) {
+	if (reporter.failsafeFlags().offboard_signal_lost && !has_specific_reason && has_affected_modes) {
 		/* EVENT
 		 * @description
 		 * The offboard component is not sending recent setpoints.
