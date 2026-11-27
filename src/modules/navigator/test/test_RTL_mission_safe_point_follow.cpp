@@ -198,22 +198,29 @@ protected:
 		fence_stats.dataman_id = DM_KEY_FENCE_POINTS_0;
 		ASSERT_TRUE(_dataman_client.writeSync(DM_KEY_FENCE_POINTS_STATE, 0, reinterpret_cast<uint8_t *>(&fence_stats),
 						      sizeof(fence_stats)));
-		Geofence &fence = _navigator.get_geofence();
-		fence.updateFence();
-		const hrt_abstime start = hrt_absolute_time();
-
-		while (!fence.isReadyForPathChecks() && hrt_elapsed_time(&start) < 1_s) {
-			fence.run();
-			px4_usleep(1000);
-		}
-
-		ASSERT_TRUE(fence.isReadyForPathChecks());
+		_navigator.get_geofence().updateFence();
+		loadFence();
 	}
 
 	void TearDown() override
 	{
 		param_reset_all();
 		param_control_autosave(true);
+	}
+
+	// Waits until the fence is loaded, at most as long as the route cache loads: each lost Dataman request costs 100 ms.
+	void loadFence()
+	{
+		Geofence &fence = _navigator.get_geofence();
+		const hrt_abstime timeout = MissionRouteCacheTestPeer::kDefaultCacheTestTimeoutUs;
+		const hrt_abstime start_time = hrt_absolute_time();
+
+		while (!fence.isReadyForPathChecks() && hrt_elapsed_time(&start_time) < timeout) {
+			fence.run();
+			px4_usleep(1000);
+		}
+
+		ASSERT_TRUE(fence.isReadyForPathChecks());
 	}
 
 	void setParam(const char *name, float value)
@@ -310,11 +317,13 @@ protected:
 						      sizeof(stats)));
 	}
 
+	// Also the landing item, which has its own Dataman read: until it is in, rtl_status reports a pending evaluation.
 	void loadRouteCache(const mission_s &mission)
 	{
 		MissionRouteCache &route_cache = _navigator.get_mission_route_cache();
 		EXPECT_TRUE(MissionRouteCacheTestPeer::runCacheUntil(route_cache, mission, [&] {
-			return route_cache.missionItemsReady(mission) && route_cache.safePointsReady();
+			const bool route_inputs_ready = route_cache.missionItemsReady(mission) && route_cache.safePointsReady();
+			return route_inputs_ready && !route_cache.missionLandItemUpdatePending();
 		})) << "the route cache did not load";
 	}
 
@@ -1064,19 +1073,6 @@ protected:
 		return _rtl_status_sub.get();
 	}
 
-	void loadFence()
-	{
-		Geofence &fence = _navigator.get_geofence();
-		const hrt_abstime start_time = hrt_absolute_time();
-
-		while (!fence.isReadyForPathChecks() && hrt_elapsed_time(&start_time) < 1_s) {
-			fence.run();
-			px4_usleep(1000);
-		}
-
-		ASSERT_TRUE(fence.isReadyForPathChecks());
-	}
-
 	// The same items in a Dataman slot, published as a new upload.
 	mission_s uploadCopy(const mission_s &mission, uint32_t mission_id, dm_item_t dataman_id)
 	{
@@ -1528,8 +1524,8 @@ TEST_F(RtlRouteReturnTest, RouteIsNotReplannedWithoutAnUpload)
 	ASSERT_EQ(FollowerPeer::workItem(_rtl.follower()), WorkItemType::WORK_ITEM_TYPE_DEFAULT);
 	moveTo(220.f, 100.f, kRouteAlt);
 
-	const hrt_abstime last_status = status().timestamp;
-	px4_usleep(1000);
+	// Only a status published after this one counts below.
+	(void)status();
 
 	_rtl.expireRetryIntervalForTest();
 	_rtl.run(true);
@@ -1538,7 +1534,7 @@ TEST_F(RtlRouteReturnTest, RouteIsNotReplannedWithoutAnUpload)
 	EXPECT_EQ(FollowerPeer::index(_rtl.follower()), 2);
 
 	// The route status is published again every 2 s, so the arming check finds it fresh right after Return ends.
-	EXPECT_GT(status().timestamp, last_status);
+	EXPECT_TRUE(_rtl_status_sub.updated());
 	EXPECT_EQ(status().rtl_type, rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_SAFE_POINT);
 }
 
