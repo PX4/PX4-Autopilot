@@ -169,7 +169,11 @@ private:
 	float _airspeed_stall{8.0f}; ///< stall speed of aircraft used for load factor check
 	float	_load_factor_ratio{0.5f};	///< ratio of maximum load factor predicted by stall speed to measured load factor
 	static constexpr float kLoadFactorRatioRawMax = 4.f; ///< upper limit of the unfiltered load factor ratio
-	static constexpr float kGroundImpactAccel = 4.f * 9.81f; ///< body z acceleration magnitude regarded as ground impact [m/s^2]
+	static constexpr float kGroundImpactAccelJump = 3.f *
+			9.81f; ///< jump of body z acceleration magnitude above its baseline regarded as ground impact [m/s^2]
+	static constexpr float kAccelBaselineTimeConstant = 0.5f; ///< time constant of the acceleration baseline [s]
+	AlphaFilter<float> _accel_baseline; ///< low-pass filtered body z acceleration magnitude [m/s^2]
+	hrt_abstime _time_last_load_factor_update{0}; ///< time of last load factor check update (uSec)
 	static constexpr hrt_abstime kGroundImpactCheckDisableTime = 3_s; ///< duration the load factor check is disabled after an impact
 	static constexpr hrt_abstime kImpactDetectorArmTime = 5_s; ///< continuous fixed-wing flight required before impacts are detected
 	hrt_abstime _time_fixed_wing_flight_start{0}; ///< start of current continuous fixed-wing flight (uSec), 0 if not flying

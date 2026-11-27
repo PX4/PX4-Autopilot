@@ -181,3 +181,33 @@ TEST_F(AirspeedValidatorLoadFactorTest, launchAccelerationDoesNotDisableCheck)
 	// THEN: the launch spike did not disable the check and the blockage is detected
 	EXPECT_FALSE(_validator.get_airspeed_valid());
 }
+
+TEST_F(AirspeedValidatorLoadFactorTest, sustainedHighLoadFactorIsNoGroundImpact)
+{
+	// GIVEN: sustained flight at high airspeed
+	for (int i = 0; i < 80; i++) {
+		update(40.f, 1.f, true);
+	}
+
+	// WHEN: the load factor ramps up to 5 g like in aerobatic flight
+	for (int i = 0; i < 20; i++) {
+		update(40.f, 1.f + 0.2f * i, true);
+	}
+
+	for (int i = 0; i < 10; i++) {
+		update(40.f, 5.f, true);
+	}
+
+	ASSERT_TRUE(_validator.get_airspeed_valid());
+
+	// AND: the airspeed sensor gets blocked
+	const uint64_t time_blocked = _timestamp;
+
+	while (_validator.get_airspeed_valid() && (_timestamp - time_blocked) < 5_s) {
+		update(0.f, 1.f, true);
+	}
+
+	// THEN: the check was not suspended and the blockage is detected promptly
+	EXPECT_FALSE(_validator.get_airspeed_valid());
+	EXPECT_LE(_timestamp - time_blocked, static_cast<uint64_t>(kChecksFailDelay * 1_s) + 500_ms);
+}

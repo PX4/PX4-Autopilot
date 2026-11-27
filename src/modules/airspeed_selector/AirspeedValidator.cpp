@@ -281,10 +281,27 @@ AirspeedValidator::check_load_factor(const uint64_t timestamp, float accel_z)
 	const bool impact_detector_armed = _time_fixed_wing_flight_start != 0
 					   && (timestamp - _time_fixed_wing_flight_start) > kImpactDetectorArmTime;
 
+	// Baseline of the acceleration magnitude. A sustained high load factor (e.g. aerobatic flight) is tracked by this
+	// baseline, whereas a ground impact is a sudden jump far above it.
+	const float accel_abs = fabsf(accel_z);
+	const float dt = (_time_last_load_factor_update != 0) ? (timestamp - _time_last_load_factor_update) * 1e-6f : 0.f;
+	_time_last_load_factor_update = timestamp;
+
+	if (!_in_fixed_wing_flight || dt <= 0.f || dt > 0.5f) {
+		_accel_baseline.reset(accel_abs);
+	}
+
+	const bool accel_spike = (accel_abs - _accel_baseline.getState()) > kGroundImpactAccelJump;
+
+	if (dt > 0.f && dt <= 0.5f) {
+		_accel_baseline.setParameters(dt, kAccelBaselineTimeConstant);
+		_accel_baseline.update(accel_abs);
+	}
+
 	// A ground impact (e.g. landing in Stabilized mode, where the land detector may not have triggered yet)
 	// produces a large acceleration spike while the airspeed collapses. Suspend the check for a while to avoid
 	// a false failure before the vehicle disarms.
-	if (impact_detector_armed && fabsf(accel_z) > kGroundImpactAccel) {
+	if (impact_detector_armed && accel_spike) {
 		_time_ground_impact = timestamp;
 	}
 
