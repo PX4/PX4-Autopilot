@@ -412,9 +412,6 @@ protected:
 	/** Publish or advance an active route-join work item. */
 	bool handleJoinRouteWorkItems();
 
-	/** True if the camera was triggering where the mission was paused, so on_activation() retraces that leg. */
-	bool cameraWasTriggeringAtPause();
-
 	/** Onboard waypoint at a route position. */
 	void setWaypointMissionItem(mission_item_s &mission_item, const mission_route::Position &position) const;
 

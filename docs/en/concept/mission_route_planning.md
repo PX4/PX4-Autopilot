@@ -46,8 +46,9 @@ The projection search margin is set by [MIS_MC_SEG_DIST](../advanced_config/para
 The leg from the vehicle to the branch-in point must pass the [Geofence Checks](#geofence-checks) when the join is planned.
 If a rejoin cannot be planned, Mission mode resumes without smart rejoin and reports a warning.
 This can happen while the mission is still loading into the route cache, or while the geofence is loading.
-Camera-trigger survey resume takes precedence over smart rejoin.
-Mission returns to the previous survey waypoint without a branch-in, also when the paused item is selected again.
+A camera survey paused while triggering is joined too: the vehicle does not fly back to the previous survey waypoint, as it does without smart rejoin.
+The camera restarts only when the vehicle reaches the joined mission item, so the rest of the paused survey leg has no images.
+Keep smart rejoin off for camera surveys.
 A finished mission is not rejoined: Mission mode holds, as it does without smart rejoin.
 
 With smart rejoin enabled, starting or continuing Mission while airborne attempts to join the route, including the first start after an upload or reboot and a new flight after disarming.

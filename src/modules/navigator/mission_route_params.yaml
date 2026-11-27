@@ -10,6 +10,9 @@ parameters:
           at a projected branch-in point, also on the first start after an upload and
           after a landing. If disabled, Mission resumes as without the join. Only
           multicopters join; other vehicles resume as without the join.
+          A camera survey paused while triggering is joined too: it is not flown
+          back to its previous waypoint and misses images, so keep this off for
+          camera surveys.
       type: boolean
       default: 0
     MIS_MC_SEG_DIST:

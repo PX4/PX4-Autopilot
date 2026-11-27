@@ -67,8 +67,7 @@ bool Mission::trySetRouteJoinOnActivation()
 	    || !_is_current_planned_mission_item_valid
 	    || _land_detected_sub.get().landed
 	    || (_mission.count < 2)
-	    || (_mission.current_seq < 0)
-	    || cameraWasTriggeringAtPause()) {
+	    || (_mission.current_seq < 0)) {
 		return false;
 	}
 
@@ -109,7 +108,7 @@ bool Mission::trySetRouteJoinOnActivation()
 
 	_active_jump_anchor = join_plan.active_jump_anchor;
 	setMissionIndex(join_plan.first_mission_item_index);
-	// As for a user-selected index, MissionBase::on_activation() must not rewind to the paused leg.
+	// The join replaces the resume at the paused item, also the survey rewind of MissionBase::on_activation().
 	_inactivation_index = -1;
 
 	// The selected landing is within the acceptance radius: land directly instead of flying a join waypoint.

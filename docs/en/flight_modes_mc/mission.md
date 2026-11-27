@@ -98,6 +98,8 @@ For more information about mission planning, see:
 
 Enable [MIS_ROUTE_JOIN](../advanced_config/parameter_reference.md#MIS_ROUTE_JOIN) to rejoin the uploaded route when Mission mode resumes a mission while airborne, for example after a GoTo.
 It applies to multicopters only, and the parameter only exists in firmware built with the mission route cache.
+A camera survey paused while triggering is joined too: the vehicle does not fly back to the previous waypoint as described above, so the rest of the paused leg has no images.
+Keep smart rejoin off for camera surveys.
 See [Mission Route Planning](../concept/mission_route_planning.md) for behaviour and requirements.
 
 ## Mission Feasibility Checks

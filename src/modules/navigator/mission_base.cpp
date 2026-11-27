@@ -240,10 +240,6 @@ MissionBase::on_activation()
 			// we restart the mission at the previous position item.
 			// We will replay the cached commands once we reach the previous position item and have yaw aligned.
 			setMissionIndex(resume_index);
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-			// The rewound leg is never a jump edge.
-			_active_jump_anchor = {};
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 			_align_heading_necessary = true;
 			resume_mission_on_previous = true;
@@ -824,22 +820,6 @@ void MissionBase::resetJoinRouteState()
 	if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE) {
 		_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
 	}
-}
-
-bool MissionBase::cameraWasTriggeringAtPause()
-{
-	if (_inactivation_index <= 0) {
-		return false;
-	}
-
-	resetItemCache();
-	updateCachedItemsUpToIndex(_inactivation_index - 1);
-	const bool camera_was_triggering = cameraWasTriggering();
-
-	// Leave the action cache empty (resetItemCache() keeps the speed item); on_activation() refills it past item 0.
-	resetItemCache();
-	_last_speed_change_item = {};
-	return camera_was_triggering;
 }
 
 bool MissionBase::handleJoinRouteWorkItems()

@@ -658,8 +658,7 @@ TEST_F(MissionRouteJoinTest, LeavingTheLoopEndsItsJumpEdge)
 	EXPECT_NEAR(east, 20.f, 1.f);
 }
 
-// The jump edge lasts through the commands at the jump target until its position. The camera survey rewind
-// ends it.
+// The jump edge lasts through the commands at the jump target until its position.
 TEST_F(MissionRouteJoinTest, JumpEdgeLastsUntilTheTargetPosition)
 {
 	setIntParam("MIS_ROUTE_JOIN", 1);
@@ -687,16 +686,6 @@ TEST_F(MissionRouteJoinTest, JumpEdgeLastsUntilTheTargetPosition)
 
 	ASSERT_EQ(mission.currentSequenceForTest(), 2);
 	EXPECT_EQ(mission.jumpAnchorForTest().jump_item_index, 4);
-
-	// A pause on the jump edge with the camera on: the resume rewinds to item 0, off the edge.
-	mission.on_inactivation();
-	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 50.f, kAlt));
-	primeNavigatorState();
-	mission.on_inactive();
-	markMissionResultValid();
-	mission.on_activation();
-	ASSERT_EQ(mission.currentSequenceForTest(), 0);
-	EXPECT_TRUE(mission.jumpAnchorForTest().empty());
 }
 
 // Smart rejoin is off by default: an airborne resume flies to the current item.
@@ -1099,8 +1088,9 @@ TEST_F(MissionRouteJoinTest, ResumeAfterReturnAlongTheMissionRejoins)
 	EXPECT_TRUE(mission.joinPositionForTest().valid());
 }
 
-// A survey paused while the camera triggers retraces its last leg, even from beside a leg before the survey.
-TEST_F(MissionRouteJoinTest, CameraTriggerResumeTakesPrecedenceOverJoin)
+// With the join, a survey paused while the camera triggers is joined like any mission, not flown back to the previous
+// survey waypoint. The camera trigger restarts once the joined item is reached.
+TEST_F(MissionRouteJoinTest, PausedCameraSurveyIsJoined)
 {
 	setIntParam("MIS_ROUTE_JOIN", 1);
 	MissionTestPeer mission(&_navigator);
@@ -1113,83 +1103,41 @@ TEST_F(MissionRouteJoinTest, CameraTriggerResumeTakesPrecedenceOverJoin)
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt),
 	};
 
-	// Pause on leg 3-4, resume beside leg 0-1.
-	pauseMission(mission, items, 4, makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 40.f, kAlt));
-	navigator_test::EventRecorder events;
-
-	mission.on_activation();
-
-	EXPECT_EQ(mission.currentSequenceForTest(), 3);
-	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
-	EXPECT_FALSE(mission.joinPositionForTest().valid());
-	EXPECT_FALSE(events.sent(events::ID("mission_route_rejoin")));
-}
-
-// Selecting the paused item again keeps the camera survey rewind, as without the join.
-TEST_F(MissionRouteJoinTest, ReselectedPausedCameraSurveyRewinds)
-{
-	setIntParam("MIS_ROUTE_JOIN", 1);
-	MissionTestPeer mission(&_navigator);
-	const std::vector<mission_item_s> items{
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
-		makeCameraTriggerItem(10.f),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt),
-	};
-
-	// Pause on leg 3-4 while the camera triggers, select item 4 again and resume beside leg 0-1.
-	pauseMission(mission, items, 4, makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 40.f, kAlt));
-	ASSERT_TRUE(mission.set_current_mission_index(4));
-	mission.on_inactive();
-	mission.on_activation();
-
-	EXPECT_EQ(mission.currentSequenceForTest(), 3);
-	EXPECT_FALSE(mission.joinPositionForTest().valid());
-}
-
-// A join back into a finished survey keeps its target: the camera was not triggering at the pause.
-TEST_F(MissionRouteJoinTest, JoinIntoFinishedCameraSurveyKeepsTarget)
-{
-	setIntParam("MIS_ROUTE_JOIN", 1);
-	MissionTestPeer mission(&_navigator);
-	mission_item_s speed{};
-	speed.nav_cmd = NAV_CMD_DO_CHANGE_SPEED;
-	speed.params[1] = 8.f;
-	speed.autocontinue = true;
-	const std::vector<mission_item_s> items{
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
-		makeCameraTriggerItem(10.f),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt),
-		makeCameraTriggerItem(0.f),
-		speed,
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 500.f, 0.f, kAlt),
-	};
-
-	// Pause on leg 7-8 after the survey and a speed change, resume beside survey leg 3-4.
-	pauseMission(mission, items, 8, makePositionFromOffset(kBaseLat, kBaseLon, 250.f, 40.f, kAlt));
-	uORB::Subscription command_sub{ORB_ID(vehicle_command)};
+	// Paused on the survey leg 3-4 while the camera triggers, resumed beside that leg.
+	pauseMission(mission, items, 4, makePositionFromOffset(kBaseLat, kBaseLon, 250.f, 10.f, kAlt));
+	uORB::Subscription commands{ORB_ID(vehicle_command)};
 	vehicle_command_s command{};
+	const auto trigger_sent = [&]() {
+		bool sent = false;
 
-	while (command_sub.update(&command)) {}
+		while (commands.update(&command)) {
+			sent |= command.command == NAV_CMD_DO_SET_CAM_TRIGG_DIST;
+		}
 
-	navigator_test::EventRecorder events;
+		return sent;
+	};
+
+	while (commands.update(&command)) {}
 
 	mission.on_activation();
 
+	// Not rewound to item 3: the join flies its branch-in point on leg 3-4.
 	EXPECT_EQ(mission.currentSequenceForTest(), 4);
-	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
-	EXPECT_TRUE(mission.joinPositionForTest().valid());
-	EXPECT_TRUE(events.sent(events::ID("mission_route_rejoin")));
+	ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
 
-	// The speed change after the join target is not replayed.
-	while (command_sub.update(&command)) {
-		EXPECT_NE(command.command, NAV_CMD_DO_CHANGE_SPEED);
-	}
+	// No heading alignment of a rewind is pending: facing east, one cycle at the branch-in point flies on to item 4.
+	publishGlobalPosition(mission.joinPositionForTest());
+	publishLocalPosition(1.5f);
+	primeNavigatorState();
+	mission.on_active();
+	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
+
+	// The camera trigger restarts once item 4 is reached, not before.
+	publishLocalPosition();
+	reachCurrentItem(mission);
+	EXPECT_FALSE(trigger_sent());
+	mission.on_active();
+	EXPECT_TRUE(trigger_sent());
 }
 
 TEST_F(MissionRouteJoinTest, PausedLandingResumeUsesCurrentPosition)
