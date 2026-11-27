@@ -36,17 +36,18 @@
 #include "GroundImpactDetector.hpp"
 
 using namespace land_detector;
+using namespace time_literals;
 
 class GroundImpactDetectorTest : public ::testing::Test
 {
 public:
-	bool update(float load_factor, bool in_air = true, bool speed_indicates_flight = false)
+	bool update(float load_factor, bool in_air = kInAir, bool speed_indicates_flight = kSpeedLow)
 	{
 		_now += kUpdateInterval;
 		return _detector.update(_now, load_factor * CONSTANTS_ONE_G, in_air, speed_indicates_flight);
 	}
 
-	bool updateFor(hrt_abstime duration, float load_factor, bool in_air = true, bool speed_indicates_flight = false)
+	bool updateFor(hrt_abstime duration, float load_factor, bool in_air = kInAir, bool speed_indicates_flight = kSpeedLow)
 	{
 		bool ground_contact = false;
 
@@ -60,13 +61,18 @@ public:
 	void cruise()
 	{
 		// level flight for longer than the arm time
-		ASSERT_FALSE(updateFor(10'000'000, 1.f, true, true));
+		ASSERT_FALSE(updateFor(10_s, 1.f, kInAir, kSpeedHigh));
 	}
 
-	static constexpr hrt_abstime kUpdateInterval = 50'000; // slowest rate the land detector runs at
+	static constexpr bool kInAir = true;
+	static constexpr bool kLanded = false;
+	static constexpr bool kSpeedHigh = true;
+	static constexpr bool kSpeedLow = false;
+
+	static constexpr hrt_abstime kUpdateInterval = 50_ms; // slowest rate the land detector runs at
 
 	GroundImpactDetector _detector;
-	hrt_abstime _now{1'000'000};
+	hrt_abstime _now{1_s};
 };
 
 TEST_F(GroundImpactDetectorTest, noGroundContactInLevelFlight)
@@ -83,12 +89,12 @@ TEST_F(GroundImpactDetectorTest, impactHeldUntilLanded)
 	EXPECT_TRUE(update(6.f));
 
 	// THEN: ground contact is held while the vehicle is not landed
-	for (hrt_abstime t = 0; t < GroundImpactDetector::kTimeout - 2 * kUpdateInterval; t += kUpdateInterval) {
+	for (hrt_abstime t = 0; t < GroundImpactDetector::kGroundContactTimeout - 2 * kUpdateInterval; t += kUpdateInterval) {
 		EXPECT_TRUE(update(1.f));
 	}
 
 	// AND: it ends once the vehicle is landed
-	EXPECT_FALSE(update(1.f, false));
+	EXPECT_FALSE(update(1.f, kLanded));
 }
 
 TEST_F(GroundImpactDetectorTest, impactTimesOutWithoutLanding)
@@ -98,7 +104,7 @@ TEST_F(GroundImpactDetectorTest, impactTimesOutWithoutLanding)
 	EXPECT_TRUE(update(6.f));
 
 	// WHEN: the vehicle is never detected as landed
-	EXPECT_TRUE(updateFor(GroundImpactDetector::kTimeout - 2 * kUpdateInterval, 1.f));
+	EXPECT_TRUE(updateFor(GroundImpactDetector::kGroundContactTimeout - 2 * kUpdateInterval, 1.f));
 
 	// THEN: ground contact ends after the timeout
 	EXPECT_FALSE(updateFor(4 * kUpdateInterval, 1.f));
@@ -112,10 +118,10 @@ TEST_F(GroundImpactDetectorTest, fastPullUpIsNoImpact)
 	// WHEN: the load factor rises to 5 g within 0.3 s
 	for (int i = 1; i <= 6; i++) {
 		// THEN: no impact is detected
-		EXPECT_FALSE(update(1.f + 4.f * i / 6.f, true, true));
+		EXPECT_FALSE(update(1.f + 4.f * i / 6.f, kInAir, kSpeedHigh));
 	}
 
-	EXPECT_FALSE(updateFor(1'000'000, 5.f, true, true));
+	EXPECT_FALSE(updateFor(1_s, 5.f, kInAir, kSpeedHigh));
 }
 
 TEST_F(GroundImpactDetectorTest, jumpInFlightIsRejectedBySpeed)
@@ -124,24 +130,24 @@ TEST_F(GroundImpactDetectorTest, jumpInFlightIsRejectedBySpeed)
 	cruise();
 
 	// WHEN: the specific force jumps like in an impact but the vehicle keeps flying
-	EXPECT_TRUE(update(6.f, true, true));
+	EXPECT_TRUE(update(6.f, kInAir, kSpeedHigh));
 
 	// THEN: it is rejected after the confirmation time because the speed still indicates flight
-	EXPECT_TRUE(updateFor(GroundImpactDetector::kConfirmTime - 2 * kUpdateInterval, 1.f, true, true));
-	EXPECT_FALSE(updateFor(4 * kUpdateInterval, 1.f, true, true));
+	EXPECT_TRUE(updateFor(GroundImpactDetector::kSpeedRejectDelay - 2 * kUpdateInterval, 1.f, kInAir, kSpeedHigh));
+	EXPECT_FALSE(updateFor(4 * kUpdateInterval, 1.f, kInAir, kSpeedHigh));
 }
 
 TEST_F(GroundImpactDetectorTest, impactKeptIfSpeedDropsBeforeConfirmation)
 {
 	// GIVEN: an impact after cruise flight
 	cruise();
-	EXPECT_TRUE(update(6.f, true, true));
+	EXPECT_TRUE(update(6.f, kInAir, kSpeedHigh));
 
 	// WHEN: the vehicle is still fast for a moment and then comes to a stop
-	EXPECT_TRUE(updateFor(1'000'000, 1.f, true, true));
+	EXPECT_TRUE(updateFor(1_s, 1.f, kInAir, kSpeedHigh));
 
 	// THEN: ground contact is kept beyond the confirmation time
-	EXPECT_TRUE(updateFor(GroundImpactDetector::kConfirmTime - 500'000, 1.f, true, false));
+	EXPECT_TRUE(updateFor(GroundImpactDetector::kSpeedRejectDelay - 500_ms, 1.f, kInAir, kSpeedLow));
 }
 
 TEST_F(GroundImpactDetectorTest, slowLoadFactorRampIsNoImpact)
@@ -151,24 +157,24 @@ TEST_F(GroundImpactDetectorTest, slowLoadFactorRampIsNoImpact)
 
 	// WHEN: the load factor ramps up to 5 g over 2 s and stays there
 	for (int i = 1; i <= 40; i++) {
-		EXPECT_FALSE(update(1.f + 0.1f * i, true, true));
+		EXPECT_FALSE(update(1.f + 0.1f * i, kInAir, kSpeedHigh));
 	}
 
 	// THEN: no impact is detected
-	EXPECT_FALSE(updateFor(2'000'000, 5.f, true, true));
+	EXPECT_FALSE(updateFor(2_s, 5.f, kInAir, kSpeedHigh));
 }
 
 TEST_F(GroundImpactDetectorTest, launchAccelerationIsNoImpact)
 {
 	// GIVEN: the vehicle just left the ground
-	EXPECT_FALSE(updateFor(1'000'000, 1.f, false));
+	EXPECT_FALSE(updateFor(1_s, 1.f, kLanded));
 	EXPECT_FALSE(update(1.f));
 
 	// WHEN: there is a large acceleration before the arm time has passed
 	EXPECT_FALSE(update(10.f));
 
 	// THEN: no impact is detected
-	EXPECT_FALSE(updateFor(GroundImpactDetector::kArmTime - 1'000'000, 1.f));
+	EXPECT_FALSE(updateFor(GroundImpactDetector::kArmTime - 1_s, 1.f));
 }
 
 TEST_F(GroundImpactDetectorTest, secondImpactRestartsTimeout)
@@ -178,9 +184,9 @@ TEST_F(GroundImpactDetectorTest, secondImpactRestartsTimeout)
 	EXPECT_TRUE(update(6.f));
 
 	// WHEN: the vehicle bounces and hits the ground again shortly before the timeout
-	EXPECT_TRUE(updateFor(GroundImpactDetector::kTimeout - 1'000'000, 1.f));
+	EXPECT_TRUE(updateFor(GroundImpactDetector::kGroundContactTimeout - 1_s, 1.f));
 	EXPECT_TRUE(update(6.f));
 
 	// THEN: ground contact is held beyond the timeout of the first impact
-	EXPECT_TRUE(updateFor(2'000'000, 1.f));
+	EXPECT_TRUE(updateFor(2_s, 1.f));
 }

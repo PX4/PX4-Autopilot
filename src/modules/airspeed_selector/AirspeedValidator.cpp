@@ -261,15 +261,9 @@ AirspeedValidator::check_load_factor(float accel_z, bool ground_contact)
 {
 	// Check if the airspeed reading is lower than physically possible given the load factor
 
-	if (!_load_factor_check_enabled) {
-		_load_factor_ratio = 0.5f;
-		_load_factor_check_failed = false;
-		return;
-	}
-
-	// After touchdown the airspeed collapses while the vehicle is not yet detected as landed (e.g. landing in
-	// Stabilized mode). Suspend the check while the land detector reports ground contact to avoid a false failure.
-	if (ground_contact) {
+	// The check is also suspended while the land detector reports ground contact. After touchdown the airspeed
+	// collapses while the vehicle is not yet detected as landed (e.g. landing in Stabilized mode).
+	if (!_load_factor_check_enabled || ground_contact) {
 		_load_factor_ratio = 0.5f;
 		_load_factor_check_failed = false;
 		return;

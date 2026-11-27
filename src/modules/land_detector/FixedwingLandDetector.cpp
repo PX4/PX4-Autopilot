@@ -50,22 +50,24 @@ FixedwingLandDetector::FixedwingLandDetector()
 {
 	// Use Trigger time when transitioning from in-air (false) to landed (true) / ground contact (true).
 	_landed_hysteresis.set_hysteresis_time_from(false, _param_lndfw_trig_time.get() * 1_s);
-
 }
 
 bool FixedwingLandDetector::_get_ground_contact_state()
 {
-	// A vehicle that is still flying after an acceleration jump (e.g. a fast pull-up) keeps its speed. Require all
-	// available speed sources to agree, and never reject the impact without any of them.
+	// A vehicle that is still flying after an acceleration jump (e.g. a fast pull-up) keeps its speed. The speed
+	// indicates flight if every available source is high. Without any source it cannot reject an impact.
+	// The airspeed states are from the previous cycle, as they are updated in _get_landed_state().
 	const bool ground_speed_valid = _vehicle_local_position.v_xy_valid
 					&& hrt_elapsed_time(&_vehicle_local_position.timestamp) < 1_s;
-	const bool ground_speed_high = matrix::Vector2f(_vehicle_local_position.vx,
-				       _vehicle_local_position.vy).norm() > _param_lndfw_vel_xy_max.get();
+	const float ground_speed = matrix::Vector2f(_vehicle_local_position.vx, _vehicle_local_position.vy).norm();
+	const bool airspeed_valid = !_airspeed_invalid;
+
+	const bool ground_speed_high = ground_speed > _param_lndfw_vel_xy_max.get();
 	const bool airspeed_high = _airspeed_filtered > _param_lndfw_airspd_max.get();
 
-	const bool speed_indicates_flight = (ground_speed_valid || !_airspeed_invalid)
-					    && (!ground_speed_valid || ground_speed_high)
-					    && (_airspeed_invalid || airspeed_high);
+	const bool speed_indicates_flight = (ground_speed_valid || airspeed_valid)
+					    && (ground_speed_high || !ground_speed_valid)
+					    && (airspeed_high || !airspeed_valid);
 
 	return _ground_impact_detector.update(hrt_absolute_time(), _acceleration.norm(),
 					      _armed && !_landed_hysteresis.get_state(), speed_indicates_flight);
