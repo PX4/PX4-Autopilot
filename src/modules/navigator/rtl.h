@@ -206,7 +206,10 @@ private:
 	/** RTL_TYPE 7: a multicopter follows the mission route, other vehicles return as for type 0. */
 	void selectRoute(ReturnSelection &selection);
 
-	/** While Return follows the route: plan again after a mission, rally point or fence upload, or retry without a route. */
+	/**
+	 * While Return follows the route: plan again after a mission, rally point or fence upload, or retry without a route.
+	 * @param evaluation_due the 2 s interval of the evaluation has passed: without a route, plan again now
+	 */
 	void updateRoute(bool evaluation_due);
 
 	/** rtl_status of the route: its rally point, or no Return type without a route. */

@@ -58,6 +58,9 @@ public:
 	/** From the move to the landing point on. */
 	bool isLanding() override;
 
+	/** Idle on the ground: Return started there or touched down. */
+	bool isIdle() const { return _mission_item.nav_cmd == NAV_CMD_IDLE; }
+
 	rtl_time_estimate_s calc_rtl_time_estimate() override;
 
 	/**

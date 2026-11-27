@@ -77,12 +77,14 @@ void RTL::updateRoute(bool evaluation_due)
 	RtlMissionSafePointFollow &follower = *static_cast<RtlMissionSafePointFollow *>(_rtl_mission_type_handle);
 	const mission_s &mission = _mission_sub.get();
 	const bool had_route = follower.plan().valid();
-	const bool landed = _navigator->get_land_detected()->landed;
+	// Idle on the ground, Return stays there, also if the land detector then reports a takeoff. Example: a vehicle
+	// lifted by hand.
+	const bool on_ground = _navigator->get_land_detected()->landed || follower.isIdle();
 
 	// In the air, an upload replans at once, unless the landing has started, and without a route Return plans at
 	// each evaluation. Example: new rally points while data still loads stop the vehicle until a replan finds a route.
-	const bool replan = had_route && !landed && !follower.isLanding() && !follower.plannedOn(mission);
-	const bool retry = !had_route && !landed && evaluation_due;
+	const bool replan = had_route && !on_ground && !follower.isLanding() && !follower.plannedOn(mission);
+	const bool retry = !had_route && !on_ground && evaluation_due;
 
 	if (!replan && !retry) {
 		return;

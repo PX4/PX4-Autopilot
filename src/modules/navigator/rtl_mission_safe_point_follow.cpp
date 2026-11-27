@@ -106,22 +106,22 @@ void RtlMissionSafePointFollow::on_activation()
 	const bool landed = _land_detected_sub.get().landed;
 
 	if (landed || !_plan.valid()) {
-		// Stay on the ground, or hold in the air until RTL finds a route. Neither completes Return.
-		if (!landed) {
+		// Idle on the ground, or a hold in the air until RTL finds a route.
+		setEndOfMissionItems();
+
+		if (landed) {
+			// On the ground Return is done at once, as the other Return types report it.
+			_navigator->mode_completed(getNavigatorStateId());
+
+		} else {
+			// The hold does not complete Return.
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Return: no mission route, holding\t");
 			events::send(events::ID("rtl_route_unavailable"), {events::Log::Critical, events::LogInternal::Warning},
 				     "Return: no mission route, holding");
-
 			// A FailureReason number: the names would cost flash for one console line.
-			if (_plan_failure == mission_route::FailureReason::kNone) {
-				PX4_WARN("Return route unavailable: inputs not ready");
-
-			} else {
-				PX4_WARN("Return route unavailable: planner failure %d", static_cast<int>(_plan_failure));
-			}
+			PX4_WARN("Return route unavailable: planner failure %d (0: inputs not ready)", static_cast<int>(_plan_failure));
 		}
 
-		setEndOfMissionItems();
 		return;
 	}
 

@@ -1573,34 +1573,96 @@ TEST_F(RtlRouteReturnTest, UploadAfterTouchdownDoesNotReplan)
 	EXPECT_FALSE(events.sent(events::ID("rtl_route_unavailable")));
 }
 
-// WHY: Return never takes off. On the ground it stays idle, as the direct Return types do, without an alarm.
-// WHAT: Return started on the ground, without a route and with one: idle, no message, Return not completed.
-TEST_F(RtlRouteReturnTest, ReturnOnTheGroundStaysThere)
+namespace
 {
-	publishVehicle(true);
-	moveTo(0.f, 0.f, kHomeAlt);
-	mission_s no_mission{};
-	no_mission.timestamp = hrt_absolute_time();
-	publishMission(no_mission);
+
+enum class Idle : uint8_t { StartedWithoutRoute, StartedWithRoute, AfterTouchdown };
+
+struct GroundCase {
+	const char *test_name;
+	Idle idle;
+};
+
+} // namespace
+
+class RtlRouteGroundTest : public RtlRouteReturnTest, public ::testing::WithParamInterface<GroundCase> {};
+
+// WHY: Return never takes off. On the ground it reports itself complete, as the other Return types do, and stays idle,
+// also when the land detector then reports a takeoff. Example: a vehicle lifted by hand, a moving deck.
+// WHAT: started on the ground without and with a route, and after touchdown at the goal: idle, completed once, no
+// message; then a takeoff report with a new route or upload and the retry due: still idle.
+TEST_P(RtlRouteGroundTest, IdleOnTheGroundStaysThere)
+{
+	setParam("RTL_LAND_DELAY", 0.f);
 	uORB::SubscriptionData<mode_completed_s> mode_completed_sub{ORB_ID(mode_completed)};
 	(void)mode_completed_sub.update();
 	navigator_test::EventRecorder events;
+	mission_s mission{};
 
+	switch (GetParam().idle) {
+	case Idle::StartedWithoutRoute:
+		publishVehicle(true);
+		moveTo(0.f, 0.f, kHomeAlt);
+		mission.timestamp = hrt_absolute_time();
+		publishMission(mission);
+		_rtl.run(true);
+		break;
+
+	case Idle::StartedWithRoute:
+		publishVehicle(true);
+		moveTo(0.f, 0.f, kHomeAlt);
+		mission = loadRoute(squareMission(), {rallyPoint(100.f, 230.f)}, 0);
+		_rtl.run(true);
+		EXPECT_TRUE(_rtl.follower().plan().valid());
+		break;
+
+	case Idle::AfterTouchdown:
+		moveTo(101.f, 226.f, kRouteAlt);
+		mission = loadRoute(squareMission(), {rallyPoint(100.f, 230.f)}, 3);
+		_rtl.run(true);
+		reachStep();
+		break;
+	}
+
+	// THEN: idle, Return completed once, without a message
+	ASSERT_EQ(FollowerPeer::missionItem(_rtl.follower()).nav_cmd, NAV_CMD_IDLE);
+	ASSERT_TRUE(mode_completed_sub.update());
+	EXPECT_EQ(mode_completed_sub.get().nav_state, vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
+	EXPECT_FALSE(events.sent(events::ID("mission_not_valid_refuse")));
+
+	// WHEN: the land detector reports a takeoff, a route becomes available or a new mission arrives, and the retry is due
+	publishVehicle(false);
+
+	if (mission.count == 0) {
+		loadRoute(squareMission(), {rallyPoint(100.f, 230.f)}, 0);
+
+	} else {
+		mission = uploadCopy(mission, 32, DM_KEY_WAYPOINTS_OFFBOARD_1);
+		loadRouteCache(mission);
+		markMissionChecked(mission);
+	}
+
+	_rtl.expireRetryIntervalForTest();
+	_rtl.run(true);
 	_rtl.run(true);
 
+	// THEN: Return stays idle
 	EXPECT_EQ(FollowerPeer::missionItem(_rtl.follower()).nav_cmd, NAV_CMD_IDLE);
 	EXPECT_FALSE(events.sent(events::ID("rtl_route_unavailable")));
-
-	// With a route
-	_rtl.run(false);
-	loadRoute(squareMission(), {rallyPoint(100.f, 230.f)}, 0);
-	_rtl.run(true);
-
-	EXPECT_TRUE(_rtl.follower().plan().valid());
-	EXPECT_EQ(FollowerPeer::missionItem(_rtl.follower()).nav_cmd, NAV_CMD_IDLE);
-	EXPECT_FALSE(events.sent(events::ID("mission_not_valid_refuse")));
 	EXPECT_FALSE(mode_completed_sub.update());
 }
+
+INSTANTIATE_TEST_SUITE_P(
+	RTL,
+	RtlRouteGroundTest,
+	::testing::Values(
+		GroundCase{"StartedWithoutRoute", Idle::StartedWithoutRoute},
+		GroundCase{"StartedWithRoute", Idle::StartedWithRoute},
+		GroundCase{"AfterTouchdown", Idle::AfterTouchdown}),
+	[](const ::testing::TestParamInfo<GroundCase> &param_info)
+{
+	return std::string(param_info.param.test_name);
+});
 
 // WHY: the branch-off point is still on the route, so an upload there replans at once, as on the route.
 // WHAT: a new mission during the branch-off step restarts Return on it.
