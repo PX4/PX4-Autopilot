@@ -42,6 +42,7 @@
 
 #pragma once
 
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <matrix/math.hpp>
 #include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/fixed_wing_runway_control.h>
@@ -64,6 +65,7 @@ public:
 protected:
 
 	bool _get_landed_state() override;
+	bool _get_ground_contact_state() override;
 
 private:
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
@@ -76,6 +78,17 @@ private:
 	float _velocity_z_filtered{0.0f};
 	float _xy_accel_filtered{0.0f};
 	float _velocity_rot_filtered{0.0f};
+
+	// Ground impact detection: a sudden jump of the specific force magnitude above its slow baseline. A sustained high
+	// load factor (e.g. aerobatic flight) is tracked by the baseline, whereas an impact is a jump far above it.
+	static constexpr float kImpactAccelJump = 3.f * CONSTANTS_ONE_G; ///< jump above the baseline regarded as impact [m/s^2]
+	static constexpr float kAccelBaselineTimeConstant = 0.5f; ///< time constant of the acceleration baseline [s]
+	static constexpr hrt_abstime kImpactArmTime = 5_s; ///< continuous flight required before impacts are detected
+	static constexpr hrt_abstime kGroundContactHoldTime = 3_s; ///< duration ground_contact is held after an impact
+
+	AlphaFilter<float> _accel_baseline; ///< low-pass filtered specific force magnitude [m/s^2]
+	hrt_abstime _time_last_impact_update{0};
+	hrt_abstime _time_in_air_start{0}; ///< start of the current continuous flight, 0 if not flying
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		LandDetector,

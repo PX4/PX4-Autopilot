@@ -57,7 +57,7 @@ public:
 		ASSERT_TRUE(_validator.get_airspeed_valid());
 	}
 
-	void update(float indicated_airspeed, float load_factor, bool in_fixed_wing_flight)
+	void update(float indicated_airspeed, float load_factor, bool in_fixed_wing_flight, bool ground_contact = false)
 	{
 		_timestamp += kSampleInterval;
 
@@ -71,6 +71,7 @@ public:
 		input_data.air_temperature_celsius = 15.f;
 		input_data.accel_z = -load_factor * CONSTANTS_ONE_G;
 		input_data.in_fixed_wing_flight = in_fixed_wing_flight;
+		input_data.ground_contact = ground_contact;
 
 		_validator.update_airspeed_validator(input_data);
 	}
@@ -119,7 +120,7 @@ TEST_F(AirspeedValidatorLoadFactorTest, blockedSensorInCruise)
 	EXPECT_LE(_timestamp - time_blocked, static_cast<uint64_t>(kChecksFailDelay * 1_s) + 500_ms);
 }
 
-TEST_F(AirspeedValidatorLoadFactorTest, groundImpactDisablesCheck)
+TEST_F(AirspeedValidatorLoadFactorTest, groundContactDisablesCheck)
 {
 	// GIVEN: level cruise flight with a healthy sensor
 	for (int i = 0; i < 80; i++) {
@@ -128,86 +129,37 @@ TEST_F(AirspeedValidatorLoadFactorTest, groundImpactDisablesCheck)
 
 	ASSERT_TRUE(_validator.get_airspeed_valid());
 
-	// WHEN: the vehicle hits the ground, the airspeed collapses and the vehicle is still considered flying
-	update(kCruiseAirspeed, 6.f, true);
-	const uint64_t time_impact = _timestamp;
+	// WHEN: the land detector reports ground contact, the airspeed collapses and the vehicle is still considered flying
+	const uint64_t time_contact = _timestamp;
 
-	while ((_timestamp - time_impact) < 2900_ms) {
-		update(0.f, 1.5f, true);
+	while ((_timestamp - time_contact) < 5_s) {
+		update(0.f, 1.5f, true, true);
 
-		// THEN: the load factor check does not invalidate the airspeed within the disable window
+		// THEN: the load factor check does not invalidate the airspeed
 		EXPECT_TRUE(_validator.get_airspeed_valid());
 	}
 }
 
-TEST_F(AirspeedValidatorLoadFactorTest, checkResumesAfterGroundImpactWindow)
+TEST_F(AirspeedValidatorLoadFactorTest, checkResumesAfterGroundContact)
 {
-	// GIVEN: a ground impact was detected in flight
+	// GIVEN: ground contact was reported in flight
 	for (int i = 0; i < 80; i++) {
 		update(kCruiseAirspeed, 1.f, true);
 	}
 
-	update(kCruiseAirspeed, 6.f, true);
-	const uint64_t time_impact = _timestamp;
+	for (int i = 0; i < 30; i++) {
+		update(0.f, 1.f, true, true);
+	}
 
-	// WHEN: the airspeed stays at zero long after the disable window
-	while ((_timestamp - time_impact) < 6_s) {
+	ASSERT_TRUE(_validator.get_airspeed_valid());
+
+	// WHEN: ground contact is no longer reported and the airspeed stays at zero
+	const uint64_t time_cleared = _timestamp;
+
+	while ((_timestamp - time_cleared) < 6_s) {
 		update(0.f, 1.f, true);
 	}
 
 	// THEN: the load factor check is active again and invalidates the airspeed
 	EXPECT_FALSE(_validator.get_airspeed_valid());
-}
-
-TEST_F(AirspeedValidatorLoadFactorTest, launchAccelerationDoesNotDisableCheck)
-{
-	// GIVEN: a launch with a large acceleration spike right after the flight started
-	update(kCruiseAirspeed, 1.f, true);
-	update(kCruiseAirspeed, 6.f, true);
-
-	for (int i = 0; i < 50; i++) {
-		update(kCruiseAirspeed, 1.f, true);
-	}
-
-	ASSERT_TRUE(_validator.get_airspeed_valid());
-
-	// WHEN: the airspeed sensor gets blocked
-	const uint64_t time_blocked = _timestamp;
-
-	while (_validator.get_airspeed_valid() && (_timestamp - time_blocked) < 5_s) {
-		update(0.f, 1.f, true);
-	}
-
-	// THEN: the launch spike did not disable the check and the blockage is detected
-	EXPECT_FALSE(_validator.get_airspeed_valid());
-}
-
-TEST_F(AirspeedValidatorLoadFactorTest, sustainedHighLoadFactorIsNoGroundImpact)
-{
-	// GIVEN: sustained flight at high airspeed
-	for (int i = 0; i < 80; i++) {
-		update(40.f, 1.f, true);
-	}
-
-	// WHEN: the load factor ramps up to 5 g like in aerobatic flight
-	for (int i = 0; i < 20; i++) {
-		update(40.f, 1.f + 0.2f * i, true);
-	}
-
-	for (int i = 0; i < 10; i++) {
-		update(40.f, 5.f, true);
-	}
-
-	ASSERT_TRUE(_validator.get_airspeed_valid());
-
-	// AND: the airspeed sensor gets blocked
-	const uint64_t time_blocked = _timestamp;
-
-	while (_validator.get_airspeed_valid() && (_timestamp - time_blocked) < 5_s) {
-		update(0.f, 1.f, true);
-	}
-
-	// THEN: the check was not suspended and the blockage is detected promptly
-	EXPECT_FALSE(_validator.get_airspeed_valid());
-	EXPECT_LE(_timestamp - time_blocked, static_cast<uint64_t>(kChecksFailDelay * 1_s) + 500_ms);
 }
