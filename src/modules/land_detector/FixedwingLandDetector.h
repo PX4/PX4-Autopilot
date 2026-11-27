@@ -79,7 +79,7 @@ private:
 	float _xy_accel_filtered{0.0f};
 	float _velocity_rot_filtered{0.0f};
 
-	static constexpr hrt_abstime kGroundContactHoldTime = 3_s; ///< duration ground_contact is held after an impact
+	bool _airspeed_invalid{true}; ///< airspeed is not usable for the land detection
 
 	GroundImpactDetector _ground_impact_detector;
 

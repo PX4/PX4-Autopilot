@@ -267,9 +267,8 @@ AirspeedValidator::check_load_factor(float accel_z, bool ground_contact)
 		return;
 	}
 
-	// A ground impact (e.g. landing in Stabilized mode, where the land detector may not have triggered landed yet)
-	// causes a large acceleration spike while the airspeed collapses. Suspend the check while the land detector
-	// reports ground contact to avoid a false failure before the vehicle disarms.
+	// After touchdown the airspeed collapses while the vehicle is not yet detected as landed (e.g. landing in
+	// Stabilized mode). Suspend the check while the land detector reports ground contact to avoid a false failure.
 	if (ground_contact) {
 		_load_factor_ratio = 0.5f;
 		_load_factor_check_failed = false;

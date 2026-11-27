@@ -51,14 +51,24 @@ FixedwingLandDetector::FixedwingLandDetector()
 	// Use Trigger time when transitioning from in-air (false) to landed (true) / ground contact (true).
 	_landed_hysteresis.set_hysteresis_time_from(false, _param_lndfw_trig_time.get() * 1_s);
 
-	// Hold ground contact after an impact so that consumers sampling slower than the impact itself still see it.
-	_ground_contact_hysteresis.set_hysteresis_time_from(true, kGroundContactHoldTime);
 }
 
 bool FixedwingLandDetector::_get_ground_contact_state()
 {
+	// A vehicle that is still flying after an acceleration jump (e.g. a fast pull-up) keeps its speed. Require all
+	// available speed sources to agree, and never reject the impact without any of them.
+	const bool ground_speed_valid = _vehicle_local_position.v_xy_valid
+					&& hrt_elapsed_time(&_vehicle_local_position.timestamp) < 1_s;
+	const bool ground_speed_high = matrix::Vector2f(_vehicle_local_position.vx,
+				       _vehicle_local_position.vy).norm() > _param_lndfw_vel_xy_max.get();
+	const bool airspeed_high = _airspeed_filtered > _param_lndfw_airspd_max.get();
+
+	const bool speed_indicates_flight = (ground_speed_valid || !_airspeed_invalid)
+					    && (!ground_speed_valid || ground_speed_high)
+					    && (_airspeed_invalid || airspeed_high);
+
 	return _ground_impact_detector.update(hrt_absolute_time(), _acceleration.norm(),
-					      _armed && !_landed_hysteresis.get_state());
+					      _armed && !_landed_hysteresis.get_state(), speed_indicates_flight);
 }
 
 bool FixedwingLandDetector::_get_landed_state()
@@ -132,15 +142,14 @@ bool FixedwingLandDetector::_get_landed_state()
 						  || airspeed_validated.airspeed_source == airspeed_validated_s::SOURCE_SENSOR_2
 						  || airspeed_validated.airspeed_source == airspeed_validated_s::SOURCE_SENSOR_3;
 
-		bool airspeed_invalid = false;
-
 		// set _airspeed_filtered to 0 if airspeed data is invalid or not from an actual airspeed sensor
 		if (!airspeed_from_sensor || !PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)
 		    || hrt_elapsed_time(&airspeed_validated.timestamp) > 1_s) {
 			_airspeed_filtered = 0.0f;
-			airspeed_invalid = true;
+			_airspeed_invalid = true;
 
 		} else {
+			_airspeed_invalid = false;
 			_airspeed_filtered = 0.95f * _airspeed_filtered + 0.05f * airspeed_validated.true_airspeed_m_s;
 		}
 
@@ -167,12 +176,12 @@ bool FixedwingLandDetector::_get_landed_state()
 		}
 
 		// make groundspeed threshold tighter if airspeed is invalid
-		const float vel_xy_max_threshold   = airspeed_invalid ? 0.7f * _param_lndfw_vel_xy_max.get() :
+		const float vel_xy_max_threshold   = _airspeed_invalid ? 0.7f * _param_lndfw_vel_xy_max.get() :
 						     _param_lndfw_vel_xy_max.get();
 
 		// only use the max rotational threshold if neither airspeed nor groundspeed can be used for landing detection
 		const float max_rotation_threshold = (!_vehicle_local_position.v_xy_valid
-						      && airspeed_invalid) ? math::radians(_param_lndfw_rot_max.get()) : INFINITY;
+						      && _airspeed_invalid) ? math::radians(_param_lndfw_rot_max.get()) : INFINITY;
 
 		// Crude land detector for fixedwing.
 		landDetected = _airspeed_filtered         < _param_lndfw_airspd_max.get()

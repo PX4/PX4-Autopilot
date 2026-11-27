@@ -33,7 +33,7 @@
 
 /**
  * @file GroundImpactDetector.hpp
- * Detects a ground impact of a fixed-wing vehicle.
+ * Detects a ground impact of a fixed-wing vehicle and holds ground contact until the vehicle is landed.
  */
 
 #pragma once
@@ -55,9 +55,11 @@ public:
 	 * @param now current time
 	 * @param specific_force_norm magnitude of the measured specific force [m/s^2]
 	 * @param in_air vehicle is armed and not landed
-	 * @return true if a ground impact is detected in this update
+	 * @param speed_indicates_flight ground speed and airspeed (where available) are too high for a vehicle on the ground
+	 * @return true from a detected ground impact until the vehicle is landed, flies on or the timeout expires
 	 */
-	bool update(const hrt_abstime now, const float specific_force_norm, const bool in_air)
+	bool update(const hrt_abstime now, const float specific_force_norm, const bool in_air,
+		    const bool speed_indicates_flight)
 	{
 		const float dt = (_time_last_update != 0) ? (now - _time_last_update) * 1e-6f : 0.f;
 		const bool dt_valid = dt > 0.f && dt <= kUpdateIntervalMax;
@@ -65,6 +67,7 @@ public:
 
 		if (!in_air) {
 			_time_in_air_start = 0;
+			_time_impact = 0;
 
 		} else if (_time_in_air_start == 0) {
 			_time_in_air_start = now;
@@ -78,25 +81,41 @@ public:
 		}
 
 		// An impact is a jump far above the slow baseline. A sustained high load factor is tracked by the baseline.
-		const bool impact = armed && (specific_force_norm - _baseline.getState()) > kImpactJump;
+		if (armed && (specific_force_norm - _baseline.getState()) > kImpactJump) {
+			_time_impact = now;
+		}
 
 		if (dt_valid) {
 			_baseline.setParameters(dt, kBaselineTimeConstant);
 			_baseline.update(specific_force_norm);
 		}
 
-		return impact;
+		if (_time_impact != 0) {
+			const hrt_abstime time_since_impact = now - _time_impact;
+
+			// A fast pull-up also jumps above the baseline, but the vehicle keeps its speed afterwards.
+			const bool flying_on = time_since_impact > kConfirmTime && speed_indicates_flight;
+
+			if (flying_on || time_since_impact > kTimeout) {
+				_time_impact = 0;
+			}
+		}
+
+		return _time_impact != 0;
 	}
 
-	static constexpr float kImpactJump = 3.f * CONSTANTS_ONE_G; ///< jump above the baseline regarded as impact [m/s^2]
+	static constexpr float kImpactJump = 4.f * CONSTANTS_ONE_G; ///< jump above the baseline regarded as impact [m/s^2]
 	static constexpr float kBaselineTimeConstant = 0.5f; ///< time constant of the specific force baseline [s]
 	static constexpr float kUpdateIntervalMax = 0.5f; ///< the baseline is reset after a longer gap between updates [s]
 	static constexpr hrt_abstime kArmTime = 5'000'000; ///< continuous flight required before impacts are detected [us]
+	static constexpr hrt_abstime kConfirmTime = 2'000'000; ///< time after an impact before the speed can reject it [us]
+	static constexpr hrt_abstime kTimeout = 3'000'000; ///< maximum time ground contact is held without landing [us]
 
 private:
 	AlphaFilter<float> _baseline; ///< low-pass filtered specific force magnitude [m/s^2]
 	hrt_abstime _time_last_update{0};
 	hrt_abstime _time_in_air_start{0}; ///< start of the current continuous flight, 0 if not flying
+	hrt_abstime _time_impact{0}; ///< time of the last impact, 0 if there is no ground contact from an impact
 };
 
 } // namespace land_detector
