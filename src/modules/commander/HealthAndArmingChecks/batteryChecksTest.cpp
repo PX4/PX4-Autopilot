@@ -39,11 +39,14 @@
 #include "checks/batteryCheck.hpp"
 
 #include <drivers/drv_hrt.h>
+#include <lib/circuit_breaker/circuit_breaker.h>
 #include <px4_platform_common/param.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/event.h>
+
+using namespace time_literals;
 
 // to run: make tests TESTFILTER=batteryChecks
 
@@ -71,16 +74,18 @@ public:
 	void SetUp() override
 	{
 		param_control_autosave(false);
+		param_reset(param_find("SYS_HAS_NUM_BAT"));
+		param_reset(param_find("CBRK_SUPPLY_CHK"));
 		_failsafe_flags = {};
 		publish(0, battery_status_s::WARNING_NONE);
 		publish(1, battery_status_s::WARNING_NONE);
 	}
 
 	static void publish(int index, uint8_t warning, bool connected = true, float remaining = 0.5f, uint8_t cell_count = 0,
-			    uint8_t source = battery_status_s::SOURCE_POWER_MODULE, uint8_t id = 1)
+			    uint8_t source = battery_status_s::SOURCE_POWER_MODULE, uint8_t id = 1, hrt_abstime age = 0)
 	{
 		battery_status_s battery{};
-		battery.timestamp = hrt_absolute_time();
+		battery.timestamp = hrt_absolute_time() - age;
 		battery.connected = connected;
 		battery.remaining = remaining;
 		battery.cell_count = cell_count;
@@ -255,4 +260,71 @@ TEST_F(BatteryChecksTest, UnknownChargeIsNotReportedWhileArmed)
 	runCheck(true);
 	EXPECT_FALSE(reported(events::ID("check_battery_charge_unknown")));
 	EXPECT_EQ(_failsafe_flags.battery_warning, battery_status_s::WARNING_NONE);
+}
+
+// a battery that never reports, like a silent DroneCAN power module, doesn't count towards SYS_HAS_NUM_BAT
+TEST_F(BatteryChecksTest, FewerBatteriesThanRequiredBlocksArming)
+{
+	int32_t required = kBatteryCount + 1;
+	param_set(param_find("SYS_HAS_NUM_BAT"), &required);
+	runCheck(false);
+	EXPECT_FALSE(_can_arm);
+	EXPECT_TRUE(reported(events::ID("check_battery_count_low")));
+
+	required = kBatteryCount;
+	param_set(param_find("SYS_HAS_NUM_BAT"), &required);
+	runCheck(false);
+	EXPECT_TRUE(_can_arm);
+	EXPECT_FALSE(reported(events::ID("check_battery_count_low")));
+
+	publish(1, battery_status_s::WARNING_NONE, false);
+	runCheck(false);
+	EXPECT_FALSE(_can_arm);
+	EXPECT_TRUE(reported(events::ID("check_battery_count_low")));
+}
+
+// the required battery count is an arming check only and isn't reported in flight
+TEST_F(BatteryChecksTest, FewerBatteriesThanRequiredIsNotReportedWhileArmed)
+{
+	runCheck(false);
+	runCheck(true);
+
+	int32_t required = kBatteryCount + 1;
+	param_set(param_find("SYS_HAS_NUM_BAT"), &required);
+	runCheck(true);
+	EXPECT_FALSE(reported(events::ID("check_battery_count_low")));
+}
+
+// disabled by default
+TEST_F(BatteryChecksTest, RequiredBatteryCountDisabledByDefault)
+{
+	publish(1, battery_status_s::WARNING_NONE, false);
+	runCheck(false);
+	EXPECT_FALSE(reported(events::ID("check_battery_count_low")));
+}
+
+// CBRK_SUPPLY_CHK disables all battery checks, the required battery count included
+TEST_F(BatteryChecksTest, SupplyCheckCircuitBreakerSkipsRequiredBatteryCount)
+{
+	int32_t required = kBatteryCount + 1;
+	param_set(param_find("SYS_HAS_NUM_BAT"), &required);
+	const int32_t cbrk_supply_chk = CBRK_SUPPLY_CHK_KEY;
+	param_set(param_find("CBRK_SUPPLY_CHK"), &cbrk_supply_chk);
+	runCheck(false);
+	EXPECT_TRUE(_can_arm);
+	EXPECT_FALSE(reported(events::ID("check_battery_count_low")));
+}
+
+// a battery that reported once and then went silent keeps its last connected state and counts towards
+// SYS_HAS_NUM_BAT, so arming must still be blocked by the stale data check
+TEST_F(BatteryChecksTest, StaleBatteryStillBlocksArming)
+{
+	int32_t required = kBatteryCount;
+	param_set(param_find("SYS_HAS_NUM_BAT"), &required);
+	publish(1, battery_status_s::WARNING_NONE, true, 0.5f, 0, battery_status_s::SOURCE_POWER_MODULE, 1, 6_s);
+	runCheck(false);
+	EXPECT_FALSE(_can_arm);
+	EXPECT_TRUE(_failsafe_flags.battery_unhealthy);
+	EXPECT_TRUE(reported(events::ID("check_battery_unhealthy")));
+	EXPECT_FALSE(reported(events::ID("check_battery_count_low")));
 }
