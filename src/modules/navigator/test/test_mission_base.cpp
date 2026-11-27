@@ -1337,8 +1337,8 @@ protected:
 		while (_mavlink_log_sub.update(&report)) {}
 	}
 
-	// [WP0, WP1, DO_JUMP->0 with two repeats left, WP3]
-	void loadJumpMission()
+	// [WP0, WP1, DO_JUMP->0 with two repeats, WP3], the jump taken current_count times
+	void loadJumpMission(uint16_t current_count = 0)
 	{
 		mission_s mission{};
 		mission.timestamp = hrt_absolute_time();
@@ -1349,7 +1349,7 @@ protected:
 		mission_base.loadTestMission({
 			makePositionItem(kBaseLat, kBaseLon, kAlt), // idx 0
 			makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt), // idx 1
-			makeDoJump(0, 2, 0), // idx 2
+			makeDoJump(0, 2, current_count), // idx 2
 			makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt), // idx 3
 		}, mission);
 	}
@@ -1968,27 +1968,31 @@ TEST_F(MissionBaseRouteTest, MissionUpdateClearsJoin)
 	}
 }
 
-// An advance records the jump it takes as the edge the vehicle flies, but not a jump it steps over.
-TEST_F(MissionBaseRouteTest, AdvanceRecordsTheJumpItTakes)
+// An advance records the jump it takes as the edge the vehicle flies. It does not record a jump it steps over:
+// one without repeats left, or one whose counter cannot be stored.
+TEST_F(MissionBaseJumpCounterWriteTest, AdvanceRecordsTheJumpItTakes)
 {
-	for (const uint16_t current_count : {uint16_t{1}, uint16_t{3}}) {
-		SCOPED_TRACE(current_count);
-		// Taking the jump reports its counter through the Navigator.
-		Navigator navigator{};
-		MissionBaseTestPeer mission_base_with_nav{&navigator};
-		mission_base_with_nav.loadTestMission({
-			makePositionItem(kBaseLat, kBaseLon, kAlt),
-			makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
-			makeDoJump(0, 3, current_count),
-			makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt),
-		});
-		mission_base_with_nav.setCurrentSequence(1);
+	struct Row {
+		uint16_t current_count;
+		bool write_fails;
+		bool taken;
+	};
 
-		ASSERT_EQ(mission_base_with_nav.goToNextItem(), PX4_OK);
+	for (const Row &row : {Row{0, false, true}, Row{2, false, false}, Row{0, true, false}}) {
+		SCOPED_TRACE(::testing::Message() << "current_count=" << row.current_count << ", write_fails=" << row.write_fails);
+		loadJumpMission(row.current_count);
+		mission_base.setJumpAnchor({});
 
-		const bool taken = current_count < 3;
-		EXPECT_EQ(mission_base_with_nav.currentSequence(), taken ? 0 : 3);
-		EXPECT_EQ(mission_base_with_nav.jumpAnchor().jump_item_index, taken ? 2 : -1);
+		if (row.write_fails) {
+			mission_base.setWriteFailureIndices({2});
+		}
+
+		mission_base.setCurrentSequence(1);
+
+		ASSERT_EQ(mission_base.goToNextItem(), PX4_OK);
+
+		EXPECT_EQ(mission_base.currentSequence(), row.taken ? 0 : 3);
+		EXPECT_EQ(mission_base.jumpAnchor().jump_item_index, row.taken ? 2 : -1);
 	}
 }
 
