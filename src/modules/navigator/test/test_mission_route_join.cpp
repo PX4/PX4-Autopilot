@@ -394,7 +394,7 @@ protected:
 		return items;
 	}
 
-	// An airborne multicopter at position, flying north.
+	// An airborne multicopter at position.
 	void publishAirborneMulticopter(const mission_route::Position &position,
 					const mission_route::Position &home = makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kAlt))
 	{
@@ -485,23 +485,25 @@ protected:
 	home_position_s _home_position{};
 };
 
-// A rejoin skipped while the cache loads is reported; once the cache is ready the vehicle joins the
-// leg it is next to.
-TEST_F(MissionRouteJoinTest, FallsBackUntilTheRouteCacheIsReady)
+// A join that cannot be planned falls back with a warning: Mission flies to its current item. This happens while
+// the route cache loads, while it still holds a previous mission, and while the geofence reloads.
+TEST_F(MissionRouteJoinTest, FallsBackWhileTheJoinCannotBePlanned)
 {
 	setIntParam("MIS_ROUTE_JOIN", 1);
 	MissionTestPeer mission(&_navigator);
 
-	// A 3-waypoint DO_JUMP loop plus a landing item, vehicle near WP2.
-	std::vector<mission_item_s> mission_items = {
-		makePositionItemFromOffset(kBaseLat, kBaseLon,   0.f,   0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f,   0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 300.f, kAlt),
-		makeDoJump(0, 2, 2),
-		makeLandItemFromOffset(kBaseLat, kBaseLon, 200.f,   0.f, kAlt - 10.f),
+	// A 3-waypoint DO_JUMP loop plus a landing item, moved east_m to the east.
+	const auto loop_mission = [](float east_m) {
+		return std::vector<mission_item_s> {
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, east_m, kAlt),
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, east_m, kAlt),
+			makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 300.f + east_m, kAlt),
+			makeDoJump(0, 2, 2),
+			makeLandItemFromOffset(kBaseLat, kBaseLon, 200.f, east_m, kAlt - 10.f),
+		};
 	};
 
-	const mission_s mission_state = publishMissionItems(mission_items, 21, 0, 4);
+	const mission_s mission_state = publishMissionItems(loop_mission(0.f), 21, 0, 4);
 	const mission_route::Position near_wp2 = makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 290.f, kAlt);
 	publishAirborneMulticopter(near_wp2, makePositionFromOffset(kBaseLat, kBaseLon, -200.f, 0.f, kAlt));
 	mission.on_inactive();
@@ -529,6 +531,29 @@ TEST_F(MissionRouteJoinTest, FallsBackUntilTheRouteCacheIsReady)
 	EXPECT_EQ(mission.currentSequenceForTest(), 2);
 	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
 	EXPECT_TRUE(mission.joinPositionForTest().valid());
+
+	// A new mission, 50 m to the east, that Mission reads before the route cache does: no join on the old route.
+	mission.on_inactivation();
+	const mission_s moved_state = publishMissionItems(loop_mission(50.f), 22, 1, 4);
+	mission.on_inactive();
+	markMissionResultValid();
+
+	// The geofence reloads after the cache holds the new mission: the join cannot check its legs.
+	for (const bool fence_reloading : {false, true}) {
+		SCOPED_TRACE(fence_reloading ? "geofence reloading" : "cache with the previous mission");
+
+		if (fence_reloading) {
+			mission.on_inactivation();
+			updateRouteCacheUntilReady(moved_state);
+			_navigator.get_geofence().updateFence();
+		}
+
+		mission.on_activation();
+		EXPECT_EQ(mission.currentSequenceForTest(), 1);
+		EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
+		EXPECT_FALSE(mission.joinPositionForTest().valid());
+		EXPECT_TRUE(events.sent(events::ID("mission_route_rejoin_unavailable")));
+	}
 }
 
 // Leaving a loop ends its jump edge, so a later join does not go back to the loop.
@@ -623,10 +648,10 @@ TEST_F(MissionRouteJoinTest, FinishedMissionHoldsWithoutJoin)
 	EXPECT_FALSE(mission.plannedItemValidForTest());
 }
 
-// Below the branch-in point the join climbs in place first, as Mission does before a higher item. It climbs only to
-// the branch-in altitude, on this ascending leg 10 m: the rest is climbed along the leg. From above, it flies straight
-// to the branch-in point, without a descent in place. The joined item is the next setpoint of the branch-in waypoint,
-// so a multicopter does not stop there.
+// More than NAV_MC_ALT_RAD below the branch-in point, the join climbs in place first, as Mission does before a higher
+// item. It climbs only to the branch-in altitude, on this ascending leg 10 m: the rest is climbed along the leg. Less
+// far below or from above, it flies straight to the branch-in point, without a descent in place. The joined item is
+// the next setpoint of the branch-in waypoint, so a multicopter does not stop there.
 TEST_F(MissionRouteJoinTest, JoinClimbsInPlaceToTheBranchInAltitude)
 {
 	setIntParam("MIS_ROUTE_JOIN", 1);
@@ -639,11 +664,17 @@ TEST_F(MissionRouteJoinTest, JoinClimbsInPlaceToTheBranchInAltitude)
 	const position_setpoint_triplet_s &triplet = *_navigator.get_position_setpoint_triplet();
 	uint32_t mission_id = 61;
 
-	for (const bool below : {true, false}) {
-		SCOPED_TRACE(below ? "below the branch-in point" : "above the branch-in point");
+	struct Row {
+		float above_branch_in_m;
+		bool climbs;
+	};
+
+	// 5 m below, 0.5 m below (inside NAV_MC_ALT_RAD, 0.8 m) and 20 m above the branch-in point.
+	for (const Row &row : {Row{-5.f, true}, Row{-0.5f, false}, Row{20.f, false}}) {
+		SCOPED_TRACE(row.above_branch_in_m);
 		MissionTestPeer mission(&_navigator);
 		const mission_route::Position beside_leg = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 10.f,
-				below ? kAlt - 20.f : kAlt + 30.f);
+				kAlt + 10.f + row.above_branch_in_m);
 		publishAirborneMulticopter(beside_leg);
 		loadMission(mission, items, ++mission_id, 1);
 		startReachAndPause(mission, beside_leg);
@@ -655,7 +686,7 @@ TEST_F(MissionRouteJoinTest, JoinClimbsInPlaceToTheBranchInAltitude)
 		ASSERT_TRUE(join.valid());
 		EXPECT_NEAR(join.alt, kAlt + 10.f, 1.f);
 
-		if (below) {
+		if (row.climbs) {
 			// 1. Climb at the current position, with the branch-in waypoint next.
 			ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_CLIMB);
 			const mission_item_s &climb = mission.currentMissionItemForTest();
@@ -695,14 +726,14 @@ TEST_F(MissionRouteJoinTest, JoinClimbsInPlaceToTheBranchInAltitude)
 
 // Every airborne start joins: the first one after an upload, also from a later leg, and one after a pause before
 // any item was reached. A start on the ground keeps the current item. After a landing and a disarm, the airborne
-// start of the next flight restarts the mission and joins it again, without a second restart after the join.
+// start of the next flight restarts the finished mission and joins it again, without a second restart after the join.
 TEST_F(MissionRouteJoinTest, EveryAirborneStartJoinsButNotAGroundStart)
 {
 	setIntParam("MIS_ROUTE_JOIN", 1);
 	MissionTestPeer mission(&_navigator);
 	// Taken off in Position mode, 5 m beside the last leg.
-	publishAirborneMulticopter(makePositionFromOffset(kBaseLat, kBaseLon, 5.f, 150.f, kAlt),
-				   makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt));
+	const mission_route::Position beside_last_leg = makePositionFromOffset(kBaseLat, kBaseLon, 5.f, 150.f, kAlt);
+	publishAirborneMulticopter(beside_last_leg, makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt));
 	loadMission(mission, loopAroundHome(), 54, 0);
 	navigator_test::EventRecorder events;
 
@@ -730,14 +761,20 @@ TEST_F(MissionRouteJoinTest, EveryAirborneStartJoinsButNotAGroundStart)
 	EXPECT_EQ(mission.currentSequenceForTest(), 3);
 	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
 
-	// Landed and disarmed while Mission is inactive, then armed, taken off and Mission again. The restart goes back
-	// to item 0, the join to the last leg.
+	// The last item is reached: the mission is finished.
+	reachWorkItem(mission);
+	reachCurrentItem(mission);
+	ASSERT_FALSE(mission.plannedItemValidForTest());
+
+	// Landed and disarmed while Mission is inactive, then armed and taken off beside the last leg again. Only the
+	// restart to item 0 lets the finished mission join, here the last leg again.
 	mission.on_inactivation();
 	publishLandDetected(true);
 	publishArmed(false);
 	mission.on_inactive();
 	publishArmed(true);
 	publishLandDetected(false);
+	publishGlobalPosition(beside_last_leg);
 	primeNavigatorState();
 	mission.on_inactive();
 	mission.on_activation();
@@ -826,7 +863,7 @@ TEST_F(MissionRouteJoinTest, SelectionInTheActivationCycleIsJoined)
 
 // A selection while Mission is active flies to the item directly: it cancels a pending join and ends the jump edge.
 // So does a jump counter reset, which keeps the current item.
-TEST_F(MissionRouteJoinTest, SelectionInFlightCancelsJoinAndJumpEdge)
+TEST_F(MissionRouteJoinTest, SelectionOrCounterResetInFlightCancelsJoin)
 {
 	const std::vector<mission_item_s> items = outAndBackLanes(true);
 	// The joined item, given as its index.
@@ -933,7 +970,8 @@ TEST_F(MissionRouteJoinTest, PausedCameraSurveyIsJoined)
 }
 
 // A resume within the acceptance radius of the landing lands there directly, also when the landing is not the
-// paused item. Farther away, the vehicle climbs in place back to the approach altitude and rejoins the route.
+// paused item. Farther away, the vehicle climbs in place back to the approach altitude and rejoins the route. From a
+// branch-in point on the landing leg, it then moves to the landing at that altitude, as after any waypoint.
 TEST_F(MissionRouteJoinTest, PausedLandingLandsNearbyOrClimbsBackToTheApproach)
 {
 	setIntParam("MIS_ROUTE_JOIN", 1);
@@ -944,11 +982,26 @@ TEST_F(MissionRouteJoinTest, PausedLandingLandsNearbyOrClimbsBackToTheApproach)
 	const float approach_altitude = kAlt + 50.f;
 	uint32_t mission_id = 431;
 
-	// Paused descending: resume at LAND, inside its radius, just outside it, or after a GoTo near an earlier leg.
-	// Paused before the approach waypoint: resume inside the radius of LAND.
-	for (int resume_location = 0; resume_location < 5; ++resume_location) {
-		SCOPED_TRACE(::testing::Message() << "resume_location=" << resume_location);
-		const bool paused_descending = resume_location < 4;
+	struct Row {
+		const char *name;
+		bool paused_descending;
+		float before_land_m; // NAN: after a GoTo near the first leg
+		bool lands_directly;
+		int32_t target_index;
+	};
+
+	// NAV_ACC_RAD is 10 m and MIS_MC_SEG_DIST 30 m.
+	const Row rows[] {
+		{"0 m before LAND", true, 0.f, true, 2},
+		{"5 m before LAND", true, 5.f, true, 2},
+		{"15 m before LAND", true, 15.f, false, 2},
+		{"GoTo near the first leg", true, NAN, false, 1},
+		{"50 m before LAND", true, 50.f, false, 2},
+		{"5 m before LAND, paused before the approach waypoint", false, 5.f, true, 2},
+	};
+
+	for (const Row &row : rows) {
+		SCOPED_TRACE(row.name);
 		auto takeoff = makeTakeoffItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, approach_altitude);
 		auto land = makeLandItemFromOffset(kBaseLat, kBaseLon, 200.f, 0.f, kAlt);
 		land.yaw = NAN;
@@ -963,7 +1016,7 @@ TEST_F(MissionRouteJoinTest, PausedLandingLandsNearbyOrClimbsBackToTheApproach)
 		activateWithoutJoin(mission);
 		auto &sp = _navigator.get_position_setpoint_triplet()->current;
 
-		if (paused_descending) {
+		if (row.paused_descending) {
 			// Fly the approach waypoint and the move to the landing point, then descend.
 			reachCurrentItem(mission);
 			reachCurrentItem(mission);
@@ -972,21 +1025,17 @@ TEST_F(MissionRouteJoinTest, PausedLandingLandsNearbyOrClimbsBackToTheApproach)
 			ASSERT_EQ(sp.type, position_setpoint_s::SETPOINT_TYPE_LAND);
 		}
 
-		const float radius_fraction = (resume_location == 0) ? 0.f : ((resume_location == 2) ? 1.5f : 0.5f);
-		pauseAt(mission, (resume_location == 3)
-			? makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 50.f, descent_altitude)
-			: makePositionFromOffset(land.lat, land.lon, -radius_fraction * _navigator.get_acceptance_radius(), 0.f,
-						 descent_altitude));
+		pauseAt(mission, PX4_ISFINITE(row.before_land_m)
+			? makePositionFromOffset(land.lat, land.lon, -row.before_land_m, 0.f, descent_altitude)
+			: makePositionFromOffset(kBaseLat, kBaseLon, 50.f, 50.f, descent_altitude));
 
 		while (commands.update(&command)) {}
 
 		mission.on_activation();
 		// After the GoTo the nearest leg is the earlier one, and Mission continues from there.
-		const bool near_land = (resume_location != 2) && (resume_location != 3);
-		const int32_t target_index = resume_location == 3 ? 1 : 2;
-		EXPECT_EQ(mission.currentSequenceForTest(), target_index);
+		EXPECT_EQ(mission.currentSequenceForTest(), row.target_index);
 
-		if (near_land) {
+		if (row.lands_directly) {
 			EXPECT_FALSE(mission.joinPositionForTest().valid());
 			EXPECT_EQ(sp.type, position_setpoint_s::SETPOINT_TYPE_LAND);
 			EXPECT_DOUBLE_EQ(sp.lat, land.lat);
@@ -1003,18 +1052,25 @@ TEST_F(MissionRouteJoinTest, PausedLandingLandsNearbyOrClimbsBackToTheApproach)
 		// At the paused descent altitude the vehicle keeps landing, or keeps climbing.
 		for (int i = 0; i < 3; ++i) {
 			mission.on_active();
-			EXPECT_EQ(mission.workItemTypeForTest(), near_land ? MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT
+			EXPECT_EQ(mission.workItemTypeForTest(), row.lands_directly ? MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT
 				  : MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_CLIMB);
-			EXPECT_EQ(sp.type, near_land ? position_setpoint_s::SETPOINT_TYPE_LAND : position_setpoint_s::SETPOINT_TYPE_LOITER);
-			EXPECT_EQ(mission.currentSequenceForTest(), target_index);
+			EXPECT_EQ(sp.type, row.lands_directly ? position_setpoint_s::SETPOINT_TYPE_LAND
+				  : position_setpoint_s::SETPOINT_TYPE_LOITER);
+			EXPECT_EQ(mission.currentSequenceForTest(), row.target_index);
 		}
 
-		if (!near_land) {
+		if (!row.lands_directly) {
 			// Then it flies to the branch-in point at the approach altitude.
 			reachWorkItem(mission);
 			EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
 			EXPECT_EQ(sp.type, position_setpoint_s::SETPOINT_TYPE_POSITION);
 			EXPECT_FLOAT_EQ(sp.alt, approach_altitude);
+
+			if (row.target_index == 2) {
+				reachWorkItem(mission);
+				EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND);
+				EXPECT_FLOAT_EQ(sp.alt, approach_altitude);
+			}
 		}
 
 		while (commands.update(&command)) {
@@ -1087,6 +1143,17 @@ TEST_F(MissionRouteJoinTest, ExhaustedJumpRejoinResumesNominalExecutionWithoutAn
 	const mission_route::Position on_loop_edge = makePositionFromOffset(kBaseLat, kBaseLon, 100.f, 100.f, kAlt);
 	publishAirborneMulticopter(on_loop_edge, makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kAlt - 20.f));
 	loadMission(mission, items, 41, 2, 5);
+
+	// Paused before reaching waypoint 2, the vehicle has not taken the jump. A resume on the loop edge joins it with
+	// the jump edge from the plan, and flies the repeat that is left from the jump target.
+	activateWithoutJoin(mission);
+	pauseAt(mission, on_loop_edge);
+	mission.on_activation();
+	EXPECT_EQ(mission.currentSequenceForTest(), 0);
+	EXPECT_EQ(mission.jumpAnchorForTest().jump_item_index, 3);
+	mission.on_inactivation();
+	ASSERT_TRUE(mission.set_current_mission_index(2));
+
 	// Reaching waypoint 2 follows the last repeat back to item 0; paused on that loop edge.
 	startReachAndPause(mission, on_loop_edge);
 	ASSERT_EQ(mission.currentSequenceForTest(), 0);

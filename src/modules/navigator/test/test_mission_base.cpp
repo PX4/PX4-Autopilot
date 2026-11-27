@@ -1937,7 +1937,7 @@ TEST_F(IgnoreDoJumpMissionBaseTraversalTest, ConfiguredTraversalSkipsDoJumpForGo
 class MissionBaseRouteTest : public NavigatorDatamanTestBase
 {
 protected:
-	// Reset the vehicle_status and landed state left by a previous test.
+	// Publishes a multicopter in the air for every test, whatever a previous test left on these topics.
 	void SetUp() override
 	{
 		mission_base.setMulticopterStatus();
