@@ -63,8 +63,7 @@ void Mission::trySetRouteJoinOnActivation()
 	if (!isMissionValid()
 	    || !_is_current_planned_mission_item_valid
 	    || _land_detected_sub.get().landed
-	    || (_mission.count < 2)
-	    || (_mission.current_seq < 0)) {
+	    || (_mission.count < 2)) {
 		return;
 	}
 

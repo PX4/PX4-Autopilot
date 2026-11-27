@@ -111,16 +111,6 @@ void MissionBase::updateMavlinkMission()
 
 	_mission = new_mission;
 
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-
-	if (mission_data_changed) {
-		// A replacement mission or an external sequence change invalidates the join and the flown jump edge.
-		resetJoinRouteState();
-		_active_jump_anchor = {};
-	}
-
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
-
 	if (mission_items_changed) {
 		_dataman_cache.invalidate();
 		_load_mission_index = -1;
@@ -136,6 +126,12 @@ void MissionBase::updateMavlinkMission()
 
 	/* Relevant mission items updated externally*/
 	if (mission_data_changed) {
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+		// A replacement mission or an external sequence change invalidates the join and the flown jump edge.
+		resetJoinRouteState();
+		_active_jump_anchor = {};
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 		if (isActive()) {
 			_mission_has_been_activated = true;
 			_navigator->reset_triplets();
