@@ -31,7 +31,8 @@ When Mission mode resumes a mission in flight with smart rejoin enabled, the veh
    From above, it descends on the way.
 4. Continues towards the mission end in the mission direction, accounting for any active loop as described below.
 
-Mission then continues from the first mission item after the branch-in point.
+Mission then continues with the waypoint at the end of the joined leg.
+If the current item is a command inside that leg, for example a gripper release, the vehicle flies back to the waypoint at the start of the leg instead, so the command runs where it was planned.
 As when you select a mission item, skipped items are not executed, but the speed, camera and gimbal settings up to that item are restored.
 A branch-in point before the paused item flies the legs from there again and runs their commands again, for example a payload release.
 
@@ -62,7 +63,7 @@ Selecting a mission item while Mission mode is paused makes it the current item 
 This includes `MAV_CMD_MISSION_START` with a first item, sent while Mission mode is not active.
 The rejoin then flies the leg to that item if the leg is within the search margin; otherwise it may branch in before or after the item.
 Selecting another item while Mission mode is active flies to it directly, as without smart rejoin.
-Resetting the jump counters while Mission mode is active also ends a join in progress: the vehicle flies to the current item directly.
+Resetting the jump counters while Mission mode is active also ends a join in progress: the vehicle flies to the current item.
 
 An upload while Mission is active replaces the mission using normal mission handling; it does not immediately plan a join.
 Smart rejoin is attempted on the next airborne Mission activation, subject to route-cache availability.
