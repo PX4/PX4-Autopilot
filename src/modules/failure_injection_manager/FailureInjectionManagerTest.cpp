@@ -298,6 +298,54 @@ TEST(FailureTable, InjectMaskUnsupportedIsRejected)
 	EXPECT_EQ(table.count(), 0);
 }
 
+TEST(FailureTable, ClearAllEmptiesTable)
+{
+	FailureTable table;
+	table.inject(GYRO, OFF, 1);
+	table.inject(GPS, WRONG, 0);
+	table.inject(MOTOR, OFF, 3);
+	ASSERT_EQ(table.count(), 3);
+	table.clearChanged();
+
+	table.clearAll();
+	EXPECT_TRUE(table.changed());
+	EXPECT_EQ(table.count(), 0);
+
+	failure_injection_s msg{};
+	memset(&msg, 0xAB, sizeof(msg));
+	table.fill(msg);
+	EXPECT_EQ(msg.count, 0);
+
+	for (uint8_t i = 0; i < failure_injection_s::MAX_FAILURES; i++) {
+		EXPECT_EQ(msg.unit[i], 0);
+		EXPECT_EQ(msg.instance_mask[i], 0);
+		EXPECT_EQ(msg.failure_type[i], 0);
+	}
+}
+
+TEST(FailureTable, ClearAllFreesTheFullCapacity)
+{
+	FailureTable table;
+	table.inject(GYRO, OFF, 1);
+	table.inject(failure_injection_s::FAILURE_UNIT_SENSOR_ACCEL, OFF, 1);
+	table.inject(failure_injection_s::FAILURE_UNIT_SENSOR_MAG, OFF, 1);
+	table.inject(failure_injection_s::FAILURE_UNIT_SENSOR_BARO, OFF, 1);
+	ASSERT_EQ(table.inject(GPS, OFF, 1), AckResult::Rejected);
+
+	table.clearAll();
+
+	EXPECT_EQ(table.inject(GPS, OFF, 1), AckResult::Accepted);
+	EXPECT_EQ(table.inject(MOTOR, OFF, 2), AckResult::Accepted);
+	EXPECT_EQ(table.inject(ESC, OFF, 1), AckResult::Accepted);
+	EXPECT_EQ(table.inject(CAN, OFF, 0), AckResult::Accepted);
+	EXPECT_EQ(table.count(), 4);
+
+	failure_injection_s msg{};
+	table.fill(msg);
+	EXPECT_EQ(msg.unit[0], GPS);
+	EXPECT_EQ(msg.instance_mask[0], 0x1);
+}
+
 TEST(FailureStrings, UnitAndTypeNames)
 {
 	EXPECT_STREQ(unitName(GYRO), "gyro");

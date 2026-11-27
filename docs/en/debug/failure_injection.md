@@ -137,6 +137,17 @@ The injection goes through the same path as the console/MAVLink commands, so for
 A `SYS_FAIL_RC_INST` mask addressing several motors only takes effect for `wrong`, the undetected failure.
 In SIH, `SYS_FAIL_RC_MODE` = `2` injects `motor stuck`, which does not need `CA_FAILURE_MODE`.
 
+Losing the RC link clears the switch-injected failure.
+
+### Reset Switch
+
+[SYS_FAIL_RC_RST](../advanced_config/parameter_reference.md#SYS_FAIL_RC_RST) selects an aux input (`1`–`6` = AUX1–AUX6, `0` = disabled) whose every position change clears all active failures, including those injected over MAVLink or the console.
+Any 2- or 3-position switch or momentary button works; each reset reports `Cleared: all failures`.
+
+- Changes while the RC link is lost, or a switch already on at boot, do not reset.
+- A `SYS_FAIL_RC_SRC` switch still on after a reset must be cycled to inject again.
+- It works alongside the `SYS_FAIL_RC_SRC` switch but must use a different aux input; if both are set to the same input, the reset switch is disabled.
+
 ## MAVSDK Failure Plugin
 
 The [MAVSDK failure plugin](https://mavsdk.mavlink.io/main/en/cpp/api_reference/classmavsdk_1_1_failure.html) can be used to programmatically inject failures.
