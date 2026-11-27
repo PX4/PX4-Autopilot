@@ -208,6 +208,15 @@ parameters:
       default: 0
       min: 0
       max: 1
+    SYS_HAS_NUM_BAT:
+      description:
+        short: Number of batteries required to be connected
+        long: Arming is blocked while fewer than this number of batteries report as
+          connected. Not checked while CBRK_SUPPLY_CHK is set. Set to 0 to disable.
+      type: int32
+      default: 0
+      min: 0
+      max: 3
     SYS_FAC_CAL_MODE:
       description:
         short: Enable factory calibration mode

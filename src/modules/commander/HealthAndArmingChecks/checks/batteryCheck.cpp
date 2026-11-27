@@ -307,6 +307,27 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.setIsPresent(health_component_t::battery);
 	}
 
+	const int required_batteries = _param_sys_has_num_bat.get();
+
+	if (!context.isArmed() && (num_connected_batteries < required_batteries)) {
+		/* EVENT
+		 * @description
+		 * Fewer batteries are connected than the vehicle is configured to have.
+		 *
+		 * <profile name="dev">
+		 * This check can be configured via <param>SYS_HAS_NUM_BAT</param> parameter.
+		 * </profile>
+		 */
+		reporter.armingCheckFailure<uint8_t, uint8_t>(NavModes::All, health_component_t::battery,
+				events::ID("check_battery_count_low"),
+				events::Log::Error, "{1} of {2} batteries connected", num_connected_batteries, required_batteries);
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: %i of %i batteries connected\t",
+					     num_connected_batteries, required_batteries);
+		}
+	}
+
 	_last_armed = context.isArmed();
 }
 
