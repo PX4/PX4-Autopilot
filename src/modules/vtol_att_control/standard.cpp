@@ -165,11 +165,7 @@ void Standard::update_transition_state()
 	} else if (_common_vtol_mode == mode::TRANSITION_TO_MC) {
 
 		// continually increase mc attitude control as we transition back to mc mode
-		if (_param_vt_b_trans_ramp.get() > FLT_EPSILON) {
-			mc_weight = _time_since_trans_start / _param_vt_b_trans_ramp.get();
-		}
-
-		mc_weight = math::constrain(mc_weight, 0.0f, 1.0f);
+		mc_weight = math::interpolate(_time_since_trans_start, 0.f, _param_vt_b_trans_ramp.get(), 0.f, 1.f);
 
 		if (_v_control_mode->flag_control_climb_rate_enabled) {
 			// control backtransition deceleration using pitch.
