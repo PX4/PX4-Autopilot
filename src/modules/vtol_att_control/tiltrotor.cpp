@@ -142,14 +142,13 @@ void Tiltrotor::update_transition_state()
 		// for the first part of the transition all rotors are enabled
 
 		// tilt rotors forward up to certain angle
-		if (_tilt_control <= _param_vt_tilt_trans.get()) {
-			const float ramped_up_tilt = _param_vt_tilt_mc.get() +
-						     fabsf(_param_vt_tilt_trans.get() - _param_vt_tilt_mc.get()) *
-						     _time_since_trans_start / _param_vt_f_trans_dur.get() ;
+		const float ramped_up_tilt = math::interpolate(_time_since_trans_start,
+					     0.f, _param_vt_f_trans_dur.get(),
+					     _param_vt_tilt_mc.get(), _param_vt_tilt_trans.get()
+							      );
 
-			// only allow increasing tilt (tilt in hover can already be non-zero)
-			_tilt_control = math::max(_tilt_control, ramped_up_tilt);
-		}
+		// only allow increasing tilt (tilt in hover can already be non-zero)
+		_tilt_control = math::max(_tilt_control, ramped_up_tilt);
 
 		// A back transition zeroes the pitch and throttle weights while the rotors rotate,
 		// so a restarted front transition sets pitch and ramps the throttle back
