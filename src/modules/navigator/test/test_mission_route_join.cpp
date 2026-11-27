@@ -439,6 +439,21 @@ protected:
 		ASSERT_EQ(_navigator.get_mission_result()->seq_reached, index);
 	}
 
+	// Flies the vehicle onto the published setpoint until Mission leaves the current work item.
+	void reachWorkItem(MissionTestPeer &mission)
+	{
+		const MissionTestPeer::WorkItemType work_item = mission.workItemTypeForTest();
+
+		for (int cycle = 0; (cycle < 10) && (mission.workItemTypeForTest() == work_item); ++cycle) {
+			const position_setpoint_s &setpoint = _navigator.get_position_setpoint_triplet()->current;
+			publishGlobalPosition({setpoint.lat, setpoint.lon, setpoint.alt});
+			primeNavigatorState();
+			mission.on_active();
+		}
+
+		ASSERT_NE(mission.workItemTypeForTest(), work_item);
+	}
+
 	// Activates Mission at its current item without a join, as a setup step. MIS_ROUTE_JOIN is restored after.
 	void activateWithoutJoin(MissionTestPeer &mission)
 	{
@@ -758,54 +773,73 @@ TEST_F(MissionRouteJoinTest, FinishedMissionHoldsWithoutJoin)
 	EXPECT_FALSE(mission.plannedItemValidForTest());
 }
 
-TEST_F(MissionRouteJoinTest, JoinOnAscendingSegmentFollowsRouteWithoutVerticalClimb)
+// Below the branch-in point the join climbs in place first, as Mission does before a higher item. It climbs only to
+// the branch-in altitude, on this ascending leg 10 m: the rest is climbed along the leg. From above, it flies straight
+// to the branch-in point, without a descent in place.
+TEST_F(MissionRouteJoinTest, JoinClimbsInPlaceToTheBranchInAltitude)
 {
-	// The branch-in carries the interpolated route altitude; the target altitude is reached along the segment.
 	setIntParam("MIS_ROUTE_JOIN", 1);
-	MissionTestPeer mission(&_navigator);
 	const std::vector<mission_item_s> items{
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt + 40.f),
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt + 40.f),
 	};
-	const mission_route::Position beside_leg = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 10.f, kAlt);
-	const mission_s mission_state = publishMissionItems(items, 61, 1);
-	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-	publishLandDetected(false);
-	publishGlobalPosition(beside_leg);
-	publishLocalPosition();
-	publishHomePosition(makePositionFromOffset(kBaseLat, kBaseLon, -50.f, 0.f, kAlt));
-	primeNavigatorState();
-	updateRouteCacheUntilReady(mission_state);
-	mission.on_inactive();
-	markMissionResultValid();
-	startReachAndPause(mission, beside_leg);
+	const position_setpoint_triplet_s &triplet = *_navigator.get_position_setpoint_triplet();
+	uint32_t mission_id = 61;
 
-	mission.on_activation();
-	ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
-	ASSERT_EQ(mission.currentSequenceForTest(), 2);
-	const mission_route::Position join = mission.joinPositionForTest();
-	EXPECT_GT(join.alt, kAlt + 1.f);
-	EXPECT_LT(join.alt, kAlt + 39.f);
-	const auto &join_setpoint = _navigator.get_position_setpoint_triplet()->current;
-	ASSERT_TRUE(join_setpoint.valid);
-	EXPECT_DOUBLE_EQ(join_setpoint.lat, join.lat);
-	EXPECT_DOUBLE_EQ(join_setpoint.lon, join.lon);
-	EXPECT_FLOAT_EQ(join_setpoint.alt, join.alt);
+	for (const bool below : {true, false}) {
+		SCOPED_TRACE(below ? "below the branch-in point" : "above the branch-in point");
+		MissionTestPeer mission(&_navigator);
+		const mission_route::Position beside_leg = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 10.f,
+				below ? kAlt - 20.f : kAlt + 30.f);
+		const mission_s mission_state = publishMissionItems(items, ++mission_id, 1);
+		publishAirborneMulticopter(beside_leg);
+		updateRouteCacheUntilReady(mission_state);
+		mission.on_inactive();
+		markMissionResultValid();
+		startReachAndPause(mission, beside_leg);
 
-	publishGlobalPosition(join);
-	primeNavigatorState();
-	mission.on_active();
+		mission.on_activation();
 
-	const auto &triplet = *_navigator.get_position_setpoint_triplet();
-	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
-	EXPECT_FALSE(mission.joinPositionForTest().valid());
-	EXPECT_EQ(mission.currentMissionItemForTest().nav_cmd, NAV_CMD_WAYPOINT);
-	EXPECT_DOUBLE_EQ(triplet.current.lat, items[2].lat);
-	EXPECT_DOUBLE_EQ(triplet.current.lon, items[2].lon);
-	EXPECT_FLOAT_EQ(triplet.current.alt, items[2].altitude);
-	EXPECT_EQ(triplet.current.type, position_setpoint_s::SETPOINT_TYPE_POSITION);
+		ASSERT_EQ(mission.currentSequenceForTest(), 2);
+		const mission_route::Position join = mission.joinPositionForTest();
+		ASSERT_TRUE(join.valid());
+		EXPECT_NEAR(join.alt, kAlt + 10.f, 1.f);
+
+		if (below) {
+			// 1. Climb at the current position, with the branch-in waypoint next.
+			ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_CLIMB);
+			const mission_item_s &climb = mission.currentMissionItemForTest();
+			EXPECT_EQ(climb.nav_cmd, NAV_CMD_LOITER_TO_ALT);
+			EXPECT_DOUBLE_EQ(climb.lat, beside_leg.lat);
+			EXPECT_DOUBLE_EQ(climb.lon, beside_leg.lon);
+			EXPECT_FLOAT_EQ(climb.altitude, join.alt);
+			EXPECT_DOUBLE_EQ(triplet.current.lat, beside_leg.lat);
+			ASSERT_TRUE(triplet.next.valid);
+			EXPECT_DOUBLE_EQ(triplet.next.lat, join.lat);
+			EXPECT_DOUBLE_EQ(triplet.next.lon, join.lon);
+			EXPECT_FLOAT_EQ(triplet.next.alt, join.alt);
+			reachWorkItem(mission);
+		}
+
+		// 2. The branch-in waypoint, with the joined item next.
+		ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
+		EXPECT_DOUBLE_EQ(triplet.current.lat, join.lat);
+		EXPECT_DOUBLE_EQ(triplet.current.lon, join.lon);
+		EXPECT_FLOAT_EQ(triplet.current.alt, join.alt);
+		EXPECT_DOUBLE_EQ(triplet.next.lat, items[2].lat);
+		reachWorkItem(mission);
+
+		// 3. The joined item at its own altitude. Neither the climb nor the branch-in point reports an item reached.
+		EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
+		EXPECT_FALSE(mission.joinPositionForTest().valid());
+		EXPECT_EQ(mission.currentSequenceForTest(), 2);
+		EXPECT_DOUBLE_EQ(triplet.current.lat, items[2].lat);
+		EXPECT_FLOAT_EQ(triplet.current.alt, items[2].altitude);
+		EXPECT_EQ(triplet.current.type, position_setpoint_s::SETPOINT_TYPE_POSITION);
+		EXPECT_EQ(_navigator.get_mission_result()->seq_reached, -1);
+	}
 }
 
 // The joined item is the next setpoint of the branch-in waypoint, so a multicopter does not stop there.
@@ -1240,21 +1274,28 @@ TEST_F(MissionRouteJoinTest, PausedLandingResumeUsesCurrentPosition)
 			EXPECT_DOUBLE_EQ(sp.lon, land.lon);
 
 		} else {
+			// Climbs in place back to the approach altitude first.
 			ASSERT_TRUE(mission.joinPositionForTest().valid());
-			EXPECT_EQ(sp.type, position_setpoint_s::SETPOINT_TYPE_POSITION);
-			EXPECT_FLOAT_EQ(sp.alt, approach_altitude);
 			EXPECT_FLOAT_EQ(mission.joinPositionForTest().alt, approach_altitude);
-			// Reach the join horizontally while remaining at the paused descent altitude.
-			const auto &join = mission.joinPositionForTest();
-			publishGlobalPosition({join.lat, join.lon, descent_altitude});
-			primeNavigatorState();
+			EXPECT_EQ(mission.currentMissionItemForTest().nav_cmd, NAV_CMD_LOITER_TO_ALT);
+			EXPECT_FLOAT_EQ(mission.currentMissionItemForTest().altitude, approach_altitude);
 		}
 
+		// At the paused descent altitude the vehicle keeps landing, or keeps climbing.
 		for (int i = 0; i < 3; ++i) {
 			mission.on_active();
-			EXPECT_EQ(mission.workItemTypeForTest() == MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE, !near_land);
-			EXPECT_EQ(sp.type, near_land ? position_setpoint_s::SETPOINT_TYPE_LAND : position_setpoint_s::SETPOINT_TYPE_POSITION);
+			EXPECT_EQ(mission.workItemTypeForTest(), near_land ? MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT
+				  : MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_CLIMB);
+			EXPECT_EQ(sp.type, near_land ? position_setpoint_s::SETPOINT_TYPE_LAND : position_setpoint_s::SETPOINT_TYPE_LOITER);
 			EXPECT_EQ(mission.currentSequenceForTest(), target_index);
+		}
+
+		if (!near_land) {
+			// Then it flies to the branch-in point at the approach altitude.
+			reachWorkItem(mission);
+			EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
+			EXPECT_EQ(sp.type, position_setpoint_s::SETPOINT_TYPE_POSITION);
+			EXPECT_FLOAT_EQ(sp.alt, approach_altitude);
 		}
 
 		while (commands.update(&command)) {
@@ -1301,21 +1342,24 @@ TEST_F(MissionRouteJoinTest, NearbyLandingIsSelectedWithoutJoin)
 	EXPECT_DOUBLE_EQ(setpoint.lon, items[3].lon);
 }
 
-// A feasibility check while the join waypoint is flown, for example after a fence upload, keeps the join.
+// A feasibility check during the join, for example after a fence upload, keeps the join. A check during the climb
+// before the branch-in point still climbs to the branch-in altitude, not to the altitude of the item.
 TEST_F(MissionRouteJoinTest, FeasibilityRefreshKeepsJoin)
 {
 	setIntParam("MIS_ROUTE_JOIN", 1);
+	// The leg to item 2 climbs 40 m, so its branch-in point beside the vehicle lies 10 m above item 1.
 	const std::vector<mission_item_s> items{
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt),
-		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt),
+		makePositionItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt + 40.f),
 	};
-	const mission_route::Position beside_leg = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 40.f, kAlt);
 	uint32_t mission_id = 301;
 
-	for (const bool refresh : {false, true}) {
-		SCOPED_TRACE(refresh);
+	for (const bool climbing : {false, true}) {
+		SCOPED_TRACE(climbing ? "during the climb" : "during the branch-in waypoint");
 		MissionTestPeer mission(&_navigator);
+		const mission_route::Position beside_leg = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 40.f,
+				climbing ? kAlt - 20.f : kAlt + 10.f);
 		const mission_s mission_state = publishMissionItems(items, ++mission_id, 0);
 		publishAirborneMulticopter(beside_leg);
 		updateRouteCacheUntilReady(mission_state);
@@ -1325,9 +1369,11 @@ TEST_F(MissionRouteJoinTest, FeasibilityRefreshKeepsJoin)
 
 		// run() makes isActive() true, as for the feasibility refresh in flight.
 		mission.run(true);
-		ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
+		const MissionTestPeer::WorkItemType work_item = climbing ? MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_CLIMB
+				: MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE;
+		ASSERT_EQ(mission.workItemTypeForTest(), work_item);
 		ASSERT_EQ(mission.currentSequenceForTest(), 2);
-		const mission_route::Position join = mission.joinPositionForTest();
+		const mission_item_s flown = mission.currentMissionItemForTest();
 
 		geofence_status_s fence_status{};
 		fence_status.timestamp = hrt_absolute_time();
@@ -1335,17 +1381,16 @@ TEST_F(MissionRouteJoinTest, FeasibilityRefreshKeepsJoin)
 		fence_status.status = geofence_status_s::GF_STATUS_READY;
 		uORB::Publication<geofence_status_s> fence_status_pub{ORB_ID(geofence_status)};
 		fence_status_pub.publish(fence_status);
-
-		if (refresh) {
-			mission.requestFeasibilityCheckForTest();
-		}
+		mission.requestFeasibilityCheckForTest();
 
 		mission.run(true);
 
-		EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
+		EXPECT_EQ(mission.workItemTypeForTest(), work_item);
 		EXPECT_EQ(mission.currentSequenceForTest(), 2);
-		EXPECT_DOUBLE_EQ(_navigator.get_position_setpoint_triplet()->current.lat, join.lat);
-		EXPECT_DOUBLE_EQ(_navigator.get_position_setpoint_triplet()->current.lon, join.lon);
+		EXPECT_DOUBLE_EQ(mission.currentMissionItemForTest().lat, flown.lat);
+		EXPECT_DOUBLE_EQ(mission.currentMissionItemForTest().lon, flown.lon);
+		EXPECT_FLOAT_EQ(mission.currentMissionItemForTest().altitude, flown.altitude);
+		EXPECT_NEAR(flown.altitude, kAlt + 10.f, 1.f);
 	}
 }
 

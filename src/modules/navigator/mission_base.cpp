@@ -253,16 +253,6 @@ MissionBase::on_activation()
 	}
 
 	checkClimbRequired(_mission.current_seq);
-
-#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-
-	// The join waypoint already flies to the route altitude, the rest is climbed along the route.
-	if (_route_join_position.valid()) {
-		_mission_init_climb_altitude_amsl = NAN;
-	}
-
-#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
-
 	set_mission_items();
 
 	_mission_activation_index = _mission.current_seq;
@@ -1641,6 +1631,19 @@ void MissionBase::parameters_update()
 
 void MissionBase::checkClimbRequired(int32_t mission_item_index)
 {
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+	// Below the branch-in point of a join, climb in place to its altitude first, as before a higher item.
+	// Not to the item's altitude: the leg to the item starts at the branch-in point.
+	if (_route_join_position.valid()) {
+		const float below_branch_in_m = _route_join_position.alt - _navigator->get_global_position()->alt;
+		_mission_init_climb_altitude_amsl = (below_branch_in_m > _navigator->get_altitude_acceptance_radius())
+						    ? _route_join_position.alt : NAN;
+		return;
+	}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 	int32_t next_mission_item_index;
 	size_t num_found_items{0U};
 	getNextPositionItems(mission_item_index, &next_mission_item_index, num_found_items, 1U);

@@ -25,9 +25,11 @@ These checks do not cover obstacles.
 When Mission mode resumes a mission in flight with smart rejoin enabled, the vehicle:
 
 1. Selects a branch-in point and altitude on the route using [Vehicle Projection](#vehicle-projection).
-2. Flies straight to that point, changing altitude on the way.
-   Unlike a resume without smart rejoin, it does not first climb in place to the mission altitude.
-3. Continues towards the mission end in the mission direction, accounting for any active loop as described below.
+2. Climbs in place to the branch-in altitude if it is more than [NAV_MC_ALT_RAD](../advanced_config/parameter_reference.md#NAV_MC_ALT_RAD) below it, as Mission does before a higher mission item.
+   It climbs only to the branch-in altitude: a higher mission item after it is climbed to along the route.
+3. Flies straight to the branch-in point.
+   From above, it descends on the way.
+4. Continues towards the mission end in the mission direction, accounting for any active loop as described below.
 
 Mission then continues from the first mission item after the branch-in point.
 As when you select a mission item, skipped items are not executed, but the speed, camera and gimbal settings up to that item are restored.
@@ -68,7 +70,7 @@ A `MAV_CMD_DO_LAND_START` sent while Mission mode is not active can therefore fl
 
 When smart rejoin is eligible, the selected route target is a landing item and the vehicle is within its horizontal acceptance radius, Mission executes the landing directly.
 This lets a paused descent continue without first climbing back to the approach altitude.
-After moving outside that radius, for example with GoTo during a paused descent, resuming Mission uses normal smart rejoin and flies to the branch-in point at the route altitude.
+After moving outside that radius, for example with GoTo during a paused descent, resuming Mission uses normal smart rejoin: the vehicle climbs in place back to the route altitude, then flies to the branch-in point.
 
 ## Point Projection
 
