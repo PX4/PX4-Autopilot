@@ -626,6 +626,17 @@ static const RouteCase kRouteCases[] = {
 			{Step::Land, 100.f, 230.f, kRouteAlt + 20.f, 3, true},
 		}
 	},
+	// A route far above its rally point keeps its altitude to above the rally point: no early descent.
+	{
+		"RouteFarAboveItsRallyPoint", 200.f, 60.f, kRouteAlt, 2, {rallyPoint(100.f, 230.f)}, 5.f, 10.f, {
+			{Step::Join, 200.f, 60.f, kRouteAlt, 2, false},
+			{Step::Route, 200.f, 200.f, kRouteAlt, 2, true},
+			{Step::BranchOff, 100.f, 200.f, kRouteAlt, 3, false},
+			{Step::MoveToLand, 100.f, 230.f, kRouteAlt, 3, true},
+			{Step::Wait, 100.f, 230.f, kHomeAlt + 10.f, 3, false},
+			{Step::Land, 100.f, 230.f, kHomeAlt, 3, true},
+		}
+	},
 	// A route only 10 m above its rally point: it climbs to RTL_DESCEND_ALT above the rally point on its last leg.
 	{
 		"RouteLowAboveItsRallyPoint", 200.f, 60.f, kRouteAlt, 2, {rallyPoint(100.f, 230.f, kRouteAlt - 10.f)}, 5.f, 30.f, {

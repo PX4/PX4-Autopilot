@@ -219,8 +219,11 @@ The vehicle:
   Above the route, it descends on the way to it.
 - Follows the route, forwards or backwards, to the point where it leaves the route for the rally point it reaches with the shortest flight along the route and then off it.
   Without a usable rally point it follows the route to the mission landing, or back to the takeoff point, whichever is closer along the route.
-- Flies level from the route to the rally point, at the route altitude where it leaves the route, or [RTL_DESCEND_ALT](#RTL_DESCEND_ALT) above the rally point if that is higher: it climbs to that height on the last part of the route.
-  A rally point the vehicle cannot reach that high inside the geofence is not used.
+- Leaves the route at the route altitude and flies level to the rally point.
+  Only if the route there is less than [RTL_DESCEND_ALT](#RTL_DESCEND_ALT) above the rally point does it climb on its last route leg, to `RTL_DESCEND_ALT` above the rally point.
+  It never descends before it is above the rally point.
+  Example with `RTL_DESCEND_ALT` 30 m and a rally point at 20 m: a route at 30 m climbs to 50 m before it leaves the route, a route at 100 m stays at 100 m until the vehicle is above the rally point.
+  A rally point the vehicle cannot reach `RTL_DESCEND_ALT` above it inside the geofence is not used.
   It flies to the takeoff point at the altitude it had on the route.
   Then it [lands or waits](#loiter-landing-at-destination) as the other return types do.
   A mission landing is flown as in Mission mode, without the landing delay.

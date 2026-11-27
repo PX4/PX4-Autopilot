@@ -88,8 +88,10 @@ With `RTL_TYPE=7`, Return uses the mission route as its return path:
    Without a usable rally point, the goal is the mission landing or the takeoff point, whichever is closer along the route.
 2. It climbs in place if it is more than [NAV_MC_ALT_RAD](../advanced_config/parameter_reference.md#NAV_MC_ALT_RAD) below the branch-in point, then flies to it.
 3. It follows the route, forwards or backwards, to the branch-off point where it leaves the route for the rally point, or to the landing or takeoff item.
-4. It flies level from the branch-off point to the rally point, at the route altitude there, or [RTL_DESCEND_ALT](../advanced_config/parameter_reference.md#RTL_DESCEND_ALT) above the rally point if that is higher: it climbs to that height on the way to the branch-off point.
-   A rally point that the vehicle cannot reach that high inside the geofence (its altitude limit included) is not used.
+4. It leaves the route at the route altitude and flies level to the rally point.
+   Only if the route at the branch-off point is less than [RTL_DESCEND_ALT](../advanced_config/parameter_reference.md#RTL_DESCEND_ALT) above the rally point does it climb on its last route leg, to `RTL_DESCEND_ALT` above the rally point; it never descends before it is above the rally point.
+   Example with `RTL_DESCEND_ALT` 30 m and a rally point at 20 m: a route at 30 m climbs to 50 m before it leaves the route, a route at 100 m stays at 100 m until the vehicle is above the rally point.
+   A rally point that the vehicle cannot reach `RTL_DESCEND_ALT` above it inside the geofence (its altitude limit included) is not used.
    It flies to the takeoff point at the altitude it had on the route.
    Above a rally point or the takeoff point it waits [RTL_LAND_DELAY](../advanced_config/parameter_reference.md#RTL_LAND_DELAY), at most [RTL_DESCEND_ALT](../advanced_config/parameter_reference.md#RTL_DESCEND_ALT) above the goal, and lands.
    A negative delay holds above the goal without landing.
