@@ -33,6 +33,7 @@ When Mission mode resumes a mission in flight with smart rejoin enabled, the veh
 
 Mission then continues from the first mission item after the branch-in point.
 As when you select a mission item, skipped items are not executed, but the speed, camera and gimbal settings up to that item are restored.
+A branch-in point before the paused item flies the legs from there again and runs their commands again, for example a payload release.
 
 If the branch-in lands on an active [`DO_JUMP` loop segment](#vehicle-projection), the loop's repeat count is preserved:
 
@@ -61,6 +62,7 @@ Selecting a mission item while Mission mode is paused makes it the current item 
 This includes `MAV_CMD_MISSION_START` with a first item, sent while Mission mode is not active.
 The rejoin then flies the leg to that item if the leg is within the search margin; otherwise it may branch in before or after the item.
 Selecting another item while Mission mode is active flies to it directly, as without smart rejoin.
+Resetting the jump counters while Mission mode is active also ends a join in progress: the vehicle flies to the current item directly.
 
 An upload while Mission is active replaces the mission using normal mission handling; it does not immediately plan a join.
 Smart rejoin is attempted on the next airborne Mission activation, subject to route-cache availability.
@@ -207,7 +209,7 @@ The other candidate, projected onto the south segment, wins because its total di
 - Special case (vertical segments): if both waypoints of the segment share the same latitude and longitude ([stacked waypoints](#stacked-waypoints)), the segment end waypoint altitude is used.
 - Special case (landing): when the first item to fly is `LAND` and the vehicle is already inside its horizontal acceptance radius, the join keeps the vehicle's current altitude.
   `LAND` sits at ground level, and without this rule a vehicle already descending onto it would first be sent back up to the approach altitude.
-  Outside the acceptance radius the rules above apply as usual: a vehicle 30 m from a stacked takeoff with a 10 m acceptance radius rejoins at the stack's end altitude.
+  Outside the acceptance radius the rules above apply as usual.
 
 **`DO_JUMP` loop segments:** the vehicle can also branch-in on a loop edge.
 A loop edge is projected and scored like any other segment, so it competes as an ordinary candidate.
@@ -220,7 +222,7 @@ What happens after joining a loop is described in [Smart Mission Rejoin](#smart-
 | Setting           | Purpose                                                       | Default |
 | ----------------- | ------------------------------------------------------------- | ------- |
 | [MIS_ROUTE_JOIN]  | Enable smart rejoin when Mission resumes a mission in flight. | `0`     |
-| [MIS_MC_SEG_DIST] | Extra cross-track search margin for vehicle projections.      | 30 m    |
+| [MIS_MC_SEG_DIST] | Search margin for the leg to rejoin.                          | 30 m    |
 
 [MIS_ROUTE_JOIN]: ../advanced_config/parameter_reference.md#MIS_ROUTE_JOIN
 [MIS_MC_SEG_DIST]: ../advanced_config/parameter_reference.md#MIS_MC_SEG_DIST
@@ -229,7 +231,7 @@ What happens after joining a loop is described in [Smart Mission Rejoin](#smart-
 The parameters above only exist in firmware built with a non-zero cache size.
 POSIX builds (SITL and Linux boards) default to 500 mission items and other boards to 0; `px4_fmu-v6c_visionTargetEstStatic` sets 300.
 To use smart rejoin on a NuttX board, set the cache size in the board configuration and check that the RAM fits; see the [mission route cache](../advanced/mission_route_cache.md) for its memory use.
-Builds with the cache also raise the Navigator task stack from 3584 to 6000 bytes, and the route planner reserves 312 bytes of static RAM per slot of `CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE` (16 by default):
+Builds with the cache also raise the Navigator task stack from 3584 to 6000 bytes, and the route planner reserves 312 bytes of static RAM per slot of `CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE` (16 by default; `px4_fmu-v6c_visionTargetEstStatic` sets 32, about 10 KB, of which smart rejoin uses one):
 
 ```ini
 CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE=300

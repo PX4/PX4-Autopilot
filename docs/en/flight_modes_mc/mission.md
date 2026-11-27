@@ -97,6 +97,7 @@ For more information about mission planning, see:
 <Badge type="tip" text="main (PX4 v2.0)" />
 
 Enable [MIS_ROUTE_JOIN](../advanced_config/parameter_reference.md#MIS_ROUTE_JOIN) to rejoin the uploaded route when Mission mode resumes a mission while airborne, for example after a GoTo.
+The first start in the air joins the route too, so a vehicle that took off next to a later leg can skip most of the mission.
 It applies to multicopters only, and the parameter only exists in firmware built with the mission route cache.
 A camera survey paused while triggering is joined too: the vehicle does not fly back to the previous waypoint as described above, so the rest of the paused leg has no images.
 Keep smart rejoin off for camera surveys.

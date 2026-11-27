@@ -72,7 +72,9 @@ config NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	---help---
 		Maximum number of mission items kept in RAM for route planning (the Mission
 		route join): 56 bytes per item, allocated at Navigator start.
-		A non-zero size also raises the Navigator stack from 3584 to 6000 bytes.
+		A non-zero size also links the route planner with its static RAM (see
+		NAVIGATOR_SAFE_POINT_BATCH_SIZE) and raises the Navigator stack from 3584
+		to 6000 bytes.
 		0 disables route planning. Longer missions are not cached. The cache refills
 		in the background after an upload or reboot.
 
