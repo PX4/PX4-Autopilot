@@ -110,4 +110,24 @@ private:
 				  size_t &num_found_items);
 
 	bool _need_mission_save{false};
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	friend class MissionTestPeer;
+
+	/** MIS_ROUTE_JOIN is set and the airframe joins. */
+	bool routeJoinEnabled() const;
+
+	/**
+	 * Plan a smart rejoin onto the uploaded route and arm the virtual branch-in waypoint.
+	 *
+	 * @return true if a join route was armed, false to fly directly to the current item.
+	 */
+	bool trySetRouteJoinOnActivation();
+
+	DEFINE_PARAMETERS_CUSTOM_PARENT(
+		MissionBase,
+		(ParamInt<px4::params::MIS_ROUTE_JOIN>)    _param_mis_route_join,
+		(ParamFloat<px4::params::MIS_MC_SEG_DIST>) _param_mis_mc_seg_dist
+	)
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 };

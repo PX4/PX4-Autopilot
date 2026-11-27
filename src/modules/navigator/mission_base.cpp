@@ -111,6 +111,16 @@ void MissionBase::updateMavlinkMission()
 
 	_mission = new_mission;
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+	if (mission_data_changed) {
+		// A replacement mission or an external sequence change invalidates the join and the flown jump edge.
+		resetJoinRouteState();
+		_active_jump_anchor = {};
+	}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 	if (mission_items_changed) {
 		_dataman_cache.invalidate();
 		_load_mission_index = -1;
@@ -182,6 +192,9 @@ MissionBase::on_inactivation()
 
 	/* reset so current mission item gets restarted if mission was paused */
 	_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	resetJoinRouteState();
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	/* reset so MISSION_ITEM_REACHED isn't published */
 	_navigator->get_mission_result()->seq_reached = -1;
@@ -227,6 +240,10 @@ MissionBase::on_activation()
 			// we restart the mission at the previous position item.
 			// We will replay the cached commands once we reach the previous position item and have yaw aligned.
 			setMissionIndex(resume_index);
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+			// The rewound leg is never a jump edge.
+			_active_jump_anchor = {};
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 			_align_heading_necessary = true;
 			resume_mission_on_previous = true;
@@ -240,6 +257,16 @@ MissionBase::on_activation()
 	}
 
 	checkClimbRequired(_mission.current_seq);
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+	// The join waypoint already flies to the route altitude, the rest is climbed along the route.
+	if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE) {
+		_mission_init_climb_altitude_amsl = NAN;
+	}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 	set_mission_items();
 
 	_mission_activation_index = _mission.current_seq;
@@ -320,9 +347,7 @@ MissionBase::on_active()
 
 	/* lets check if we reached the current mission item */
 	if (_mission_type != MissionType::MISSION_TYPE_NONE && is_mission_item_reached_or_completed()) {
-		/* If we just completed a takeoff which was inserted before the right waypoint,
-		   there is no need to report that we reached it because we didn't. */
-		if (_work_item_type != WorkItemType::WORK_ITEM_TYPE_CLIMB) {
+		if (shouldReportMissionItemReached()) {
 			set_mission_item_reached();
 		}
 
@@ -445,7 +470,15 @@ void MissionBase::update_mission()
 		}
 
 		/* reset work item if new mission has been accepted */
-		_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
+		bool keep_work_item = false;
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+		// The join is armed before activation reaches update_mission(); updateMavlinkMission() clears it on a real change.
+		keep_work_item = _work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE;
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
+		if (!keep_work_item) {
+			_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
+		}
 
 		/* reset mission failure if we have an updated valid mission */
 		_navigator->get_mission_result()->failure = false;
@@ -593,6 +626,20 @@ MissionBase::set_mission_item_reached()
 	_navigator->set_mission_result_updated();
 
 	reset_mission_item_reached();
+}
+
+bool MissionBase::shouldReportMissionItemReached() const
+{
+	switch (_work_item_type) {
+	case WorkItemType::WORK_ITEM_TYPE_CLIMB:
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	case WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE:
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+		return false;
+
+	default:
+		return true;
+	}
 }
 
 void
@@ -762,6 +809,91 @@ bool MissionBase::position_setpoint_equal(const position_setpoint_s *p1, const p
 
 }
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+void MissionBase::setupJoinRoute(const mission_route::Position &join_position)
+{
+	_route_join_position = join_position;
+	_work_item_type = WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE;
+	reset_mission_item_reached();
+}
+
+void MissionBase::resetJoinRouteState()
+{
+	_route_join_position = {};
+
+	if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE) {
+		_work_item_type = WorkItemType::WORK_ITEM_TYPE_DEFAULT;
+	}
+}
+
+bool MissionBase::cameraWasTriggeringAtPause()
+{
+	if (_inactivation_index <= 0) {
+		return false;
+	}
+
+	resetItemCache();
+	updateCachedItemsUpToIndex(_inactivation_index - 1);
+	const bool camera_was_triggering = cameraWasTriggering();
+
+	// Leave the action cache empty (resetItemCache() keeps the speed item); on_activation() refills it past item 0.
+	resetItemCache();
+	_last_speed_change_item = {};
+	return camera_was_triggering;
+}
+
+bool MissionBase::handleJoinRouteWorkItems()
+{
+	if (_work_item_type != WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE) {
+		return false;
+	}
+
+	if (_waypoint_position_reached && _waypoint_yaw_reached) {
+		resetJoinRouteState();
+		return false;
+	}
+
+	const position_setpoint_s current_setpoint_copy = _navigator->get_position_setpoint_triplet()->current;
+	mission_item_s join_item;
+	setWaypointMissionItem(join_item, _route_join_position);
+	publishPositionItem(join_item, current_setpoint_copy);
+	return true;
+}
+
+void MissionBase::publishPositionItem(const mission_item_s &item, const position_setpoint_s &current_setpoint_copy)
+{
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	mission_item_to_position_setpoint(item, &pos_sp_triplet->current);
+	_navigator->reset_position_setpoint(pos_sp_triplet->next);
+
+	if (!position_setpoint_equal(&pos_sp_triplet->current, &current_setpoint_copy)) {
+		pos_sp_triplet->previous = current_setpoint_copy;
+	}
+
+	// Reach checks use the published target, which may be a virtual waypoint.
+	_mission_item = item;
+	reset_mission_item_reached();
+
+	set_mission_result();
+	publish_navigator_mission_item();
+	_navigator->set_position_setpoint_triplet_updated();
+}
+
+void MissionBase::setWaypointMissionItem(mission_item_s &mission_item, const mission_route::Position &position) const
+{
+	mission_item = {};
+	mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+	mission_item.lat = position.lat;
+	mission_item.lon = position.lon;
+	mission_item.altitude = position.alt;
+	mission_item.altitude_is_relative = false;
+	mission_item.acceptance_radius = _navigator->get_acceptance_radius();
+	mission_item.yaw = NAN;
+	mission_item.autocontinue = true;
+	mission_item.origin = ORIGIN_ONBOARD;
+}
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 void
 MissionBase::report_do_jump_mission_changed(int index, int do_jumps_remaining)
 {
@@ -784,6 +916,10 @@ MissionBase::checkMissionRestart()
 		resetMissionJumpCounter();
 		_navigator->reset_cruising_speed();
 		_navigator->reset_vroi();
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+		// The restarted mission no longer flies the jump edge of the join.
+		_active_jump_anchor = {};
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	}
 }
 
@@ -1104,6 +1240,14 @@ int MissionBase::getNonJumpItem(int32_t &mission_index, mission_item_s &mission,
 			}
 
 			if (follow_jump) {
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+				// A counted repeat starts the jump edge, flown until the position item the jump leads to.
+				if (write_jumps) {
+					_active_jump_anchor = {new_mission_index};
+				}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 				new_mission_index = new_mission.do_jump_mission_index;
 
 			} else if (mission_direction_backward) {

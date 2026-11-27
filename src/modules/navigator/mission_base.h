@@ -59,6 +59,10 @@
 #include "mission_feasibility_checker.h"
 #include "navigation.h"
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+#include "mission_route_types.h"
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 using namespace time_literals;
 
 class Navigator;
@@ -88,6 +92,9 @@ protected:
 	enum class WorkItemType {
 		WORK_ITEM_TYPE_DEFAULT,		/**< default mission item */
 		WORK_ITEM_TYPE_CLIMB,		/**< takeoff before moving to waypoint */
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+		WORK_ITEM_TYPE_JOIN_ROUTE,	/**< fly a virtual branch-in waypoint before resuming the route */
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 		WORK_ITEM_TYPE_MOVE_TO_LAND,	/**< move to land waypoint before descent */
 		WORK_ITEM_TYPE_ALIGN_TO_LAND,
 		WORK_ITEM_TYPE_ALIGN_HEADING,		/**< align for next waypoint */
@@ -105,6 +112,17 @@ protected:
 		FollowMissionControlFlow = 0,
 		IgnoreDoJump,
 	};
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	/** Branch-in point of the route join, flown while the work item is WORK_ITEM_TYPE_JOIN_ROUTE. */
+	mission_route::Position _route_join_position{};
+
+	/** DO_JUMP edge being flown, so a rejoin stays on an active loop. */
+	mission_route::ActiveJumpAnchor _active_jump_anchor{};
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
+	/** Synthetic helper work items must not report an uploaded item reached. */
+	bool shouldReportMissionItemReached() const;
 
 	/**
 	 * @brief Get the previous mission position items using this mode's traversal policy.
@@ -289,6 +307,11 @@ protected:
 	void check_mission_valid(bool forced = false);
 
 	/**
+	 * Reset the mission to the start sequence if it was finished and the system disarmed meanwhile.
+	 */
+	void checkMissionRestart();
+
+	/**
 	 * Update mission topic
 	 */
 	void update_mission();
@@ -378,6 +401,26 @@ protected:
 	 * @return false otherwise
 	 */
 	bool position_setpoint_equal(const position_setpoint_s *p1, const position_setpoint_s *p2) const;
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	/** Arm the virtual route-join waypoint. */
+	void setupJoinRoute(const mission_route::Position &join_position);
+
+	/** Clear a pending route-join work item. */
+	void resetJoinRouteState();
+
+	/** Publish or advance an active route-join work item. */
+	bool handleJoinRouteWorkItems();
+
+	/** True if the camera was triggering where the mission was paused, so on_activation() retraces that leg. */
+	bool cameraWasTriggeringAtPause();
+
+	/** Onboard waypoint at a route position. */
+	void setWaypointMissionItem(mission_item_s &mission_item, const mission_route::Position &position) const;
+
+	/** Publish an onboard position item as the active mission item, without a next item. */
+	void publishPositionItem(const mission_item_s &item, const position_setpoint_s &current_setpoint_copy);
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	/**
 	 * @brief Traversal mode used by this navigation mode when walking position items.
@@ -487,11 +530,6 @@ private:
 	 */
 	bool loadTraversalItem(int32_t &mission_index, mission_item_s &mission_item,
 			       MissionTraversalType traversal_type, bool direction_backward);
-
-	/**
-	 * Reset mission
-	 */
-	void checkMissionRestart();
 
 	/**
 	 * Set a mission item as reached

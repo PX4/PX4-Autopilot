@@ -90,7 +90,31 @@ Mission::on_activation()
 {
 	_need_mission_save = true;
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	// Without the join, Mission activates exactly as it does without the mission cache.
+	const bool route_join_enabled = routeJoinEnabled();
+
+	if (route_join_enabled) {
+		_global_pos_sub.update();
+		_vehicle_status_sub.update();
+		_land_detected_sub.update();
+		updateMavlinkMission();
+	}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 	check_mission_valid(true);
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+	if (route_join_enabled) {
+		// Restart before choosing where to join. MissionBase must not restart again after we pick a target.
+		checkMissionRestart();
+		_system_disarmed_while_inactive = false;
+		trySetRouteJoinOnActivation();
+	}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	MissionBase::on_activation();
 }
@@ -138,6 +162,10 @@ Mission::set_current_mission_index(int32_t index, bool reset_jump_counters)
 	if ((index == -1) || (index == _mission.current_seq)) {
 		// Keep the current mission item unchanged.
 		if (reset_jump_counters) {
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+			resetJoinRouteState();
+			_active_jump_anchor = {};
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 			resetMissionJumpCounter();
 
 			// A reset can bring a finished mission back to a resumable state (mirrors
@@ -162,6 +190,12 @@ Mission::set_current_mission_index(int32_t index, bool reset_jump_counters)
 		resetMissionJumpCounter();
 	}
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	// A new selection cancels the pending join and the current DO_JUMP leg.
+	resetJoinRouteState();
+	_active_jump_anchor = {};
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 	_is_current_planned_mission_item_valid = true;
 
 	// we start from the first item so can reset the cache
@@ -185,6 +219,15 @@ Mission::set_current_mission_index(int32_t index, bool reset_jump_counters)
 
 bool Mission::setNextMissionItem()
 {
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+	// A reached position ends the jump edge. goToNextItem() records the next one.
+	if (mission_item_contains_position(_mission_item)) {
+		_active_jump_anchor = {};
+	}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 	return (goToNextItem() == PX4_OK);
 }
 
@@ -205,6 +248,15 @@ Mission::do_need_move_to_takeoff()
 
 void Mission::setActiveMissionItems()
 {
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+	// The join flies a synthetic waypoint; loading the target item would replace it.
+	if (handleJoinRouteWorkItems()) {
+		return;
+	}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 	/* Get mission item that comes after current if available */
 	static constexpr size_t max_num_next_items{2u};
 	int32_t next_mission_items_index[max_num_next_items];

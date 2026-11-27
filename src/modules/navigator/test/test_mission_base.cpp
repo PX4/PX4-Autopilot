@@ -55,6 +55,7 @@
 #include <vector>
 
 #include <cstring>
+#include <drivers/drv_hrt.h>
 #include <px4_platform_common/posix.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
@@ -63,6 +64,7 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 
 class MissionBaseTestPeer : public MissionBase
@@ -138,18 +140,69 @@ public:
 
 	bool missionChecked() const { return _mission_check_state == MissionCheckState::Complete; }
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	void setMulticopterStatus()
+	{
+		vehicle_status_s status{};
+		status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+		status.timestamp = hrt_absolute_time();
+		_vehicle_status_pub.publish(status);
+		_vehicle_status_sub.update();
+
+		if (_navigator) {
+			*_navigator->get_vstatus() = status;
+		}
+	}
+
+	const mission_route::ActiveJumpAnchor &jumpAnchor() const { return _active_jump_anchor; }
+
+	// Publish the mission again with new contents or a new current item, as MAVLink does, and read it.
+	void processMissionSourceChange(bool items_changed = true)
+	{
+		mission_s mission = _mission;
+		mission.timestamp = hrt_absolute_time();
+
+		if (items_changed) {
+			++mission.mission_id;
+
+		} else {
+			++mission.current_seq;
+		}
+
+		_mission_pub.publish(mission);
+		updateMavlinkMission();
+	}
+
+	bool joinWorkItemActive() const
+	{
+		return _work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE;
+	}
+
+	const mission_route::Position &joinPosition() const
+	{
+		return _route_join_position;
+	}
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 	using MissionBase::findNextPositionIndex;
 	using MissionBase::findPreviousPositionIndex;
 	using MissionBase::getNonJumpItem;
 	using MissionBase::getNextPositionItems;
 	using MissionBase::getPreviousPositionItems;
+	using MissionBase::goToNextItem;
 	using MissionBase::goToNextPositionItem;
 	using MissionBase::goToPreviousPositionItem;
 	using MissionBase::MissionTraversalType;
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	using MissionBase::setupJoinRoute;
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	using MissionBase::resetMissionJumpCounter;
 
 private:
 	navigator_test::VectorMissionItemStore _mission_store{};
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	uORB::Publication<vehicle_status_s> _vehicle_status_pub {ORB_ID(vehicle_status)};
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 };
 
 class IgnoreDoJumpMissionBaseTestPeer : public MissionBaseTestPeer
@@ -1865,3 +1918,64 @@ TEST_F(IgnoreDoJumpMissionBaseTraversalTest, ConfiguredTraversalSkipsDoJumpForGo
 	EXPECT_EQ(ret, PX4_OK);
 	EXPECT_EQ(mission_base.currentSequence(), 1);
 }
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+// MissionBase logic of the route join.
+class MissionBaseRouteTest : public NavigatorDatamanTestBase
+{
+protected:
+	// Reset the vehicle_status and landed state left by a previous test.
+	void SetUp() override
+	{
+		mission_base.setMulticopterStatus();
+		vehicle_land_detected_s land_detected{};
+		land_detected.timestamp = hrt_absolute_time();
+		_land_detected_pub.publish(land_detected);
+	}
+
+	MissionBaseTestPeer mission_base{};
+	uORB::Publication<vehicle_land_detected_s> _land_detected_pub{ORB_ID(vehicle_land_detected)};
+};
+
+// A replacement mission and an external sequence change both drop the join.
+TEST_F(MissionBaseRouteTest, MissionUpdateClearsJoin)
+{
+	for (const bool items_changed : {true, false}) {
+		SCOPED_TRACE(items_changed);
+		Navigator navigator{};
+		MissionBaseTestPeer mission_base_with_nav{&navigator};
+		mission_base_with_nav.loadTestMission({makePositionItem(kBaseLat, kBaseLon, kAlt)});
+		mission_base_with_nav.setupJoinRoute({kBaseLat, kBaseLon, kAlt});
+		ASSERT_TRUE(mission_base_with_nav.joinWorkItemActive());
+
+		mission_base_with_nav.processMissionSourceChange(items_changed);
+
+		EXPECT_FALSE(mission_base_with_nav.joinWorkItemActive());
+		EXPECT_FALSE(mission_base_with_nav.joinPosition().valid());
+	}
+}
+
+// An advance records the jump it takes as the edge the vehicle flies, but not a jump it steps over.
+TEST_F(MissionBaseRouteTest, AdvanceRecordsTheJumpItTakes)
+{
+	for (const uint16_t current_count : {uint16_t{1}, uint16_t{3}}) {
+		SCOPED_TRACE(current_count);
+		// Taking the jump reports its counter through the Navigator.
+		Navigator navigator{};
+		MissionBaseTestPeer mission_base_with_nav{&navigator};
+		mission_base_with_nav.loadTestMission({
+			makePositionItem(kBaseLat, kBaseLon, kAlt),
+			makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
+			makeDoJump(0, 3, current_count),
+			makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt),
+		});
+		mission_base_with_nav.setCurrentSequence(1);
+
+		ASSERT_EQ(mission_base_with_nav.goToNextItem(), PX4_OK);
+
+		const bool taken = current_count < 3;
+		EXPECT_EQ(mission_base_with_nav.currentSequence(), taken ? 0 : 3);
+		EXPECT_EQ(mission_base_with_nav.jumpAnchor().jump_item_index, taken ? 2 : -1);
+	}
+}
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
