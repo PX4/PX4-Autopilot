@@ -90,7 +90,10 @@ It is also important that you pick an airspeed that is comfortably above your ai
 Parameter: [VT_F_TR_OL_TM](../advanced_config/parameter_reference.md#VT_F_TR_OL_TM)
 
 This specifies the duration of the front transition in seconds when no airspeed feedback is available (e.g. no airspeed sensor present).
-It should be set to a value which ensures that the vehicle reaches a high enough airspeed to complete the transition, e.g. airspeed should exceed [VT_ARSP_TRANS](../advanced_config/parameter_reference.md#VT_ARSP_TRANS).
+It should be set to the time needed to reach [VT_ARSP_TRANS](../advanced_config/parameter_reference.md#VT_ARSP_TRANS).
+Depending on your tolerance for overspeed and underspeed you may choose to set it a bit higher or lower.
+
+When airspeed is measured, the transition will be aborted by a quadchute if by this time the airspeed is below [VT_ARSP_BLEND](../advanced_config/parameter_reference.md#VT_ARSP_BLEND).
 
 #### Transition Timeout
 
