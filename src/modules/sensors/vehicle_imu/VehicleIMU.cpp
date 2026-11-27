@@ -264,8 +264,7 @@ void VehicleIMU::Run()
 		}
 	}
 
-	// SENS_IMU_MODE 2: EKF2 estimates the bias of the IMU median, not of this IMU
-	if (_param_sens_imu_autocal.get() && (_param_sens_imu_mode.get() != 2) && !parameters_updated) {
+	if (_param_sens_imu_autocal.get() && !parameters_updated) {
 		if ((_armed || !_accel_calibration.calibrated() || !_gyro_calibration.calibrated())
 		    && (now_us > _in_flight_calibration_check_timestamp_last + 1_s)) {
 

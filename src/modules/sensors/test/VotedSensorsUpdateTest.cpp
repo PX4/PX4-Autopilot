@@ -631,7 +631,7 @@ TEST_F(VotedSensorsUpdateTest, ReEnablingAnImuWhileArmedWaitsForDisarm)
 	EXPECT_EQ(status.accel_device_ids[0], kAccelIds[0]);
 }
 
-TEST_F(VotedSensorsUpdateTest, ImuMode2FliesOnTheMedianFromTheStart)
+TEST_F(VotedSensorsUpdateTest, ImuMode2KeepsTheSelectedImuForTheEstimator)
 {
 	setParam("SENS_IMU_MODE", 2);
 	setPriority(0, 75, 75);
@@ -641,36 +641,11 @@ TEST_F(VotedSensorsUpdateTest, ImuMode2FliesOnTheMedianFromTheStart)
 	ImuSubscriptionOwner owner;
 	VotedSensorsUpdate voter(false, owner.subs);
 
-	// the primary gyro reads 1 rad/s off from the start, the two healthy gyros differ a little
-	// so that only the median gives 0.05
+	// the primary gyro reads 1 rad/s off, the two others agree: only the rate controller outvotes it
 	auto feed = [&]() {
 		publishImu(0, 9.8f, 1.f);
 		publishImu(1, 9.8f);
-		publishImu(3, 9.8f, 0.05f);
-	};
-
-	start(voter, feed);
-	const sensor_combined_s raw = pollFor(voter, 300_ms, feed);
-
-	sensor_selection_s selection{};
-	ASSERT_TRUE(readSelection(selection));
-	EXPECT_EQ(selection.gyro_device_id, kGyroIds[0]) << "the median does not change the selected IMU";
-	EXPECT_NEAR(raw.gyro_rad[0], 0.05f, 0.01f) << "the median, not the selected IMU (1) nor the mean (0.35)";
-	EXPECT_EQ(Peer::gyroFailoverCount(voter), 0u);
-}
-
-TEST_F(VotedSensorsUpdateTest, WithTwoImusTheMedianKeepsThePrimary)
-{
-	setParam("SENS_IMU_MODE", 2);
-	setPriority(0, 75, 75);
-	setPriority(1, 50, 50);
-
-	ImuSubscriptionOwner owner;
-	VotedSensorsUpdate voter(false, owner.subs);
-
-	auto feed = [&]() {
-		publishImu(0, 9.8f, 1.f);
-		publishImu(1, 9.8f);
+		publishImu(3, 9.8f);
 	};
 
 	start(voter, feed);
@@ -679,5 +654,6 @@ TEST_F(VotedSensorsUpdateTest, WithTwoImusTheMedianKeepsThePrimary)
 	sensor_selection_s selection{};
 	ASSERT_TRUE(readSelection(selection));
 	EXPECT_EQ(selection.gyro_device_id, kGyroIds[0]);
-	EXPECT_NEAR(raw.gyro_rad[0], 1.f, 0.01f) << "two IMUs have no median, the primary is used";
+	EXPECT_NEAR(raw.gyro_rad[0], 1.f, 0.01f) << "EKF2 gets the selected IMU, not the median";
+	EXPECT_EQ(Peer::gyroFailoverCount(voter), 0u);
 }

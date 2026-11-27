@@ -208,6 +208,30 @@ void VehicleAngularVelocity::ResetFilters(const hrt_abstime &time_now_us)
 
 void VehicleAngularVelocity::SensorBiasUpdate(bool force)
 {
+	if (_imu_instance >= 0) {
+		// every gyro removes its own estimated bias before the median: EKF2 estimates the bias of the selected IMU,
+		// with EKF2_MULTI_IMU of every IMU (instances 0 to 3 run on the first magnetometer, one per IMU)
+		if (_estimator_sensor_bias_subs.updated() || force) {
+			bool found = false;
+
+			// copy every instance so that updated() only fires again on new data
+			for (auto &estimator_sensor_bias_sub : _estimator_sensor_bias_subs) {
+				estimator_sensor_bias_s bias;
+
+				if (estimator_sensor_bias_sub.copy(&bias) && !found && (bias.gyro_device_id == _selected_sensor_device_id)) {
+					_bias = Vector3f{bias.gyro_bias};
+					found = true;
+				}
+			}
+
+			if (!found) {
+				_bias.zero();
+			}
+		}
+
+		return;
+	}
+
 	// find corresponding estimated sensor bias
 	if (_estimator_selector_status_sub.updated()) {
 		estimator_selector_status_s estimator_selector_status;
@@ -951,17 +975,17 @@ bool VehicleAngularVelocity::CalibrateAndPublish(const hrt_abstime &timestamp_sa
 		vehicle_angular_velocity_s angular_velocity;
 		angular_velocity.timestamp_sample = timestamp_sample;
 
-		// Angular velocity: rotate sensor frame to board, scale raw data to SI, apply calibration
-		Vector3f xyz{_calibration.Correct(angular_velocity_uncalibrated)};
+		// Angular velocity: rotate sensor frame to board, scale raw data to SI, apply calibration, and remove in-run estimated bias
+		_angular_velocity = _calibration.Correct(angular_velocity_uncalibrated) - _bias;
+		_angular_velocity.copyTo(angular_velocity.xyz);
 
 		// Angular acceleration: rotate sensor frame to board, scale raw data to SI, apply any additional configured rotation
-		Vector3f xyz_derivative = _calibration.rotation() * angular_acceleration_uncalibrated;
+		_angular_acceleration = _calibration.rotation() * angular_acceleration_uncalibrated;
+		_angular_acceleration.copyTo(angular_velocity.xyz_derivative);
 
 		bool publish = true;
 
 		if (_imu_instance >= 0) {
-			xyz.copyTo(angular_velocity.xyz);
-			xyz_derivative.copyTo(angular_velocity.xyz_derivative);
 			angular_velocity.timestamp = hrt_absolute_time();
 			_vehicle_angular_velocity_imu_pub.publish(angular_velocity);
 
@@ -969,17 +993,11 @@ bool VehicleAngularVelocity::CalibrateAndPublish(const hrt_abstime &timestamp_sa
 			publish = (_selected_sensor_device_id == _sensor_selection_gyro_device_id);
 
 			if (publish) {
-				ApplyImuMedian(timestamp_sample, xyz, xyz_derivative);
+				ApplyImuMedian(angular_velocity);
 			}
 		}
 
-		// remove in-run estimated bias
-		_angular_velocity = xyz - _bias;
-		_angular_acceleration = xyz_derivative;
-
 		if (publish) {
-			_angular_velocity.copyTo(angular_velocity.xyz);
-			_angular_acceleration.copyTo(angular_velocity.xyz_derivative);
 			angular_velocity.timestamp = hrt_absolute_time();
 			_vehicle_angular_velocity_pub.publish(angular_velocity);
 		}
@@ -994,7 +1012,7 @@ bool VehicleAngularVelocity::CalibrateAndPublish(const hrt_abstime &timestamp_sa
 	return false;
 }
 
-void VehicleAngularVelocity::ApplyImuMedian(const hrt_abstime &timestamp_sample, Vector3f &xyz, Vector3f &xyz_derivative)
+void VehicleAngularVelocity::ApplyImuMedian(vehicle_angular_velocity_s &angular_velocity)
 {
 	// latest output of two other recent IMUs
 	vehicle_angular_velocity_s imu[2];
@@ -1002,14 +1020,18 @@ void VehicleAngularVelocity::ApplyImuMedian(const hrt_abstime &timestamp_sample,
 
 	for (int i = 0; (i < MAX_SENSOR_COUNT) && (count < 2); i++) {
 		if ((i != _vehicle_angular_velocity_imu_pub.get_instance()) && _vehicle_angular_velocity_imu_subs[i].copy(&imu[count])
-		    && (timestamp_sample < imu[count].timestamp_sample + IMU_MEDIAN_SAMPLE_TIMEOUT_US)) {
+		    && (angular_velocity.timestamp_sample < imu[count].timestamp_sample + IMU_MEDIAN_SAMPLE_TIMEOUT_US)) {
 			count++;
 		}
 	}
 
 	if (count == 2) {
-		xyz = median3(xyz, Vector3f{imu[0].xyz}, Vector3f{imu[1].xyz});
-		xyz_derivative = median3(xyz_derivative, Vector3f{imu[0].xyz_derivative}, Vector3f{imu[1].xyz_derivative});
+		// per-axis median of three
+		for (int axis = 0; axis < 3; axis++) {
+			angular_velocity.xyz[axis] = median3(angular_velocity.xyz[axis], imu[0].xyz[axis], imu[1].xyz[axis]);
+			angular_velocity.xyz_derivative[axis] = median3(angular_velocity.xyz_derivative[axis], imu[0].xyz_derivative[axis],
+								imu[1].xyz_derivative[axis]);
+		}
 	}
 }
 

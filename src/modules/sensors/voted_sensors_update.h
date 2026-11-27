@@ -41,7 +41,6 @@
 
 #include "data_validator/DataValidator.hpp"
 #include "data_validator/DataValidatorGroup.hpp"
-#include "SensorMedian.hpp"
 
 #include <px4_platform_common/events.h>
 #include <px4_platform_common/module_params.h>
@@ -109,8 +108,7 @@ private:
 
 	static constexpr uint8_t DEFAULT_PRIORITY = 50;
 
-	// loose on purpose, the median already bounds the fault: several times the preflight limits (COM_ARM_IMU_xxx)
-	static constexpr float ACCEL_OUTLIER_LIMIT = 2.f; // m/s^2
+	// loose on purpose, the median already bounds the fault: several times the preflight limit (COM_ARM_IMU_GYR)
 	static constexpr float GYRO_OUTLIER_LIMIT = 0.5f; // rad/s
 
 	struct SensorData {
@@ -120,7 +118,6 @@ private:
 		uORB::Subscription subscription[MAX_SENSOR_COUNT]; /**< raw sensor data subscription */
 		DataValidatorGroup voter{1};
 		unsigned int last_failover_count{0};
-		uint8_t outlier_reported{0}; /**< bitmask of the IMUs already reported as the outlier */
 		int32_t priority[MAX_SENSOR_COUNT] {};
 		int32_t priority_configured[MAX_SENSOR_COUNT] {};
 		uint8_t last_best_vote{0}; /**< index of the latest best vote */
@@ -154,9 +151,8 @@ private:
 	 */
 	bool checkFailover(SensorData &sensor, const char *sensor_name, events::px4::enums::sensor_type_t sensor_type);
 
-	// SENS_IMU_MODE 2 outvotes a faulty IMU silently: report once the IMU furthest from the others
-	void checkOutlier(SensorData &sensor, const uint32_t device_ids[MAX_SENSOR_COUNT],
-			  const float inconsistency[MAX_SENSOR_COUNT], float limit, events::px4::enums::sensor_type_t sensor_type);
+	// SENS_IMU_MODE 2 outvotes a faulty gyro silently in the rate controller: report once the gyro furthest from the others
+	void checkGyroOutlier(const sensors_status_imu_s &status);
 
 	// VehicleIMU publishes an IMU only while both of its sensors are enabled, so disabling
 	// either one takes the whole IMU out of the vote
@@ -201,6 +197,8 @@ private:
 	uint32_t _gyro_device_id[MAX_SENSOR_COUNT] {};	/**< gyro driver device id for each uorb instance */
 
 	uint64_t _last_accel_timestamp[MAX_SENSOR_COUNT] {};	/**< latest full timestamp */
+
+	uint8_t _gyro_outlier_reported{0};		/**< bitmask of the gyros already reported as the outlier */
 
 	sensor_selection_s _selection {};		/**< struct containing the sensor selection to be published to the uORB */
 

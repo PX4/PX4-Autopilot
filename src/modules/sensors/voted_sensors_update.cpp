@@ -271,25 +271,6 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 		raw.gyro_clipping             = _last_sensor_data[gyro_best_index].gyro_clipping;
 		raw.gyro_calibration_count    = _last_sensor_data[gyro_best_index].gyro_calibration_count;
 
-		if (_param_sens_imu_mode.get() == 2) {
-			// EKF2 gets the median of the same IMUs the rate controller flies on
-			const sensor_combined_s *imu[3];
-			int count = 0;
-
-			for (int i = 0; (i < MAX_SENSOR_COUNT) && (count < 3); i++) {
-				if (imuEnabled(i) && (_accel_device_id[i] != 0)
-				    && (raw.timestamp < _last_sensor_data[i].timestamp + IMU_MEDIAN_SAMPLE_TIMEOUT_US)) {
-					imu[count++] = &_last_sensor_data[i];
-				}
-			}
-
-			if (count == 3) {
-				median3(Vector3f{imu[0]->accelerometer_m_s2}, Vector3f{imu[1]->accelerometer_m_s2},
-					Vector3f{imu[2]->accelerometer_m_s2}).copyTo(raw.accelerometer_m_s2);
-				median3(Vector3f{imu[0]->gyro_rad}, Vector3f{imu[1]->gyro_rad}, Vector3f{imu[2]->gyro_rad}).copyTo(raw.gyro_rad);
-			}
-		}
-
 		if ((accel_best_index != _accel.last_best_vote) || (_selection.accel_device_id != _accel_device_id[accel_best_index])) {
 			_accel.last_best_vote = (uint8_t)accel_best_index;
 			_selection.accel_device_id = _accel_device_id[accel_best_index];
@@ -402,34 +383,34 @@ bool VotedSensorsUpdate::checkFailover(SensorData &sensor, const char *sensor_na
 	return false;
 }
 
-void VotedSensorsUpdate::checkOutlier(SensorData &sensor, const uint32_t device_ids[MAX_SENSOR_COUNT],
-				      const float inconsistency[MAX_SENSOR_COUNT], float limit, events::px4::enums::sensor_type_t sensor_type)
+void VotedSensorsUpdate::checkGyroOutlier(const sensors_status_imu_s &status)
 {
 	int count = 0;
 	uint8_t worst = 0;
 
 	for (uint8_t i = 0; i < MAX_SENSOR_COUNT; i++) {
-		if (device_ids[i] != 0) {
+		if (status.gyro_device_ids[i] != 0) {
 			count++;
 
-			if (inconsistency[i] > inconsistency[worst]) {
+			if (status.gyro_inconsistency_rad_s[i] > status.gyro_inconsistency_rad_s[worst]) {
 				worst = i;
 			}
 		}
 	}
 
-	// two IMUs are equally far from their mean, which names neither
-	if ((count >= 3) && (inconsistency[worst] > limit) && !(sensor.outlier_reported & (1u << worst))) {
-		sensor.outlier_reported |= (1u << worst);
+	// two gyros are equally far from their mean, which names neither
+	if ((count >= 3) && (status.gyro_inconsistency_rad_s[worst] > GYRO_OUTLIER_LIMIT)
+	    && !(_gyro_outlier_reported & (1u << worst))) {
+		_gyro_outlier_reported |= (1u << worst);
 
 		/* EVENT
 		 * @description
-		 * The sensor disagrees with the other IMUs and is outvoted by their median.
-		 * A fault of a second IMU can no longer be outvoted: land and check the system.
+		 * The gyro disagrees with the other gyros and the rate controller outvotes it with their median.
+		 * The estimator keeps using it while it is the selected IMU.
+		 * A fault of a second gyro can no longer be outvoted: land and check the system.
 		 */
-		events::send<events::px4::enums::sensor_type_t, uint8_t>(
-			events::ID("sensor_imu_outlier"), events::Log::Warning, "{1} sensor #{2} outvoted by the other IMUs", sensor_type,
-			worst);
+		events::send<uint8_t>(events::ID("sensor_imu_gyro_outlier"), events::Log::Warning,
+				      "Gyro #{1} outvoted by the other gyros", worst);
 	}
 }
 
@@ -513,10 +494,7 @@ void VotedSensorsUpdate::sensorsPoll(sensor_combined_s &raw)
 	}
 
 	if (_param_sens_imu_mode.get() == 2) {
-		checkOutlier(_accel, status.accel_device_ids, status.accel_inconsistency_m_s_s, ACCEL_OUTLIER_LIMIT,
-			     events::px4::enums::sensor_type_t::accel);
-		checkOutlier(_gyro, status.gyro_device_ids, status.gyro_inconsistency_rad_s, GYRO_OUTLIER_LIMIT,
-			     events::px4::enums::sensor_type_t::gyro);
+		checkGyroOutlier(status);
 	}
 
 	status.timestamp = hrt_absolute_time();
