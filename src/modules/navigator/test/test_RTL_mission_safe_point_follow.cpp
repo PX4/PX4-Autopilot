@@ -1175,13 +1175,15 @@ INSTANTIATE_TEST_SUITE_P(
 
 // WHY: without a route Return holds and goes on once one is found. It neither flies direct, nor tells an external mode
 // executor or a ground station that Return or the mission is done.
-// WHAT: without a mission, Return holds where the vehicle is, at its altitude also below NAV_MIN_LTR_ALT, and reports
-// why, without the mission alarm, without completing Return or the mission.
+// WHAT: without a mission, Return brakes and holds where the vehicle stops, at its altitude also below
+// NAV_MIN_LTR_ALT, and reports why, without the mission alarm, without completing Return or the mission.
 TEST_F(RtlRouteReturnTest, WithoutARouteHoldsWithoutCompletingReturn)
 {
 	setParam("NAV_MIN_LTR_ALT", 100.f);
 	_navigator.updateParams();
 	moveTo(200.f, 60.f, kRouteAlt);
+	// Flying east at 5 m/s: with the default MPC limits it stops about 7 m further.
+	_navigator.get_local_position()->vy = 5.f;
 	mission_s no_mission{};
 	no_mission.timestamp = hrt_absolute_time();
 	publishMission(no_mission);
@@ -1199,7 +1201,8 @@ TEST_F(RtlRouteReturnTest, WithoutARouteHoldsWithoutCompletingReturn)
 	offsetOf(hold.lat, hold.lon, north_m, east_m);
 	EXPECT_TRUE(hold.valid);
 	EXPECT_NEAR(north_m, 200.f, 0.1f);
-	EXPECT_NEAR(east_m, 60.f, 0.1f);
+	EXPECT_GT(east_m, 65.f);
+	EXPECT_LT(east_m, 70.f);
 	EXPECT_NEAR(hold.alt, kRouteAlt, 0.1f);
 	EXPECT_TRUE(route_events.sent(events::ID("rtl_route_unavailable")));
 	EXPECT_FALSE(mission_events.sent(events::ID("mission_not_valid_loiter")));
