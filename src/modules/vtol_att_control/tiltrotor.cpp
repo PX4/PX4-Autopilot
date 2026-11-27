@@ -181,7 +181,7 @@ void Tiltrotor::update_transition_state()
 
 		// tilt rotors back once motors are idle
 		_tilt_control = math::interpolate(_time_since_trans_start,
-						  BACKTRANS_THROTTLE_DOWNRAMP_DUR_S, BACKTRANS_THROTTLE_DOWNRAMP_DUR_S + math::max(_param_vt_bt_tilt_dur.get(), 0.1f),
+						  BACKTRANS_THROTTLE_DOWNRAMP_DUR_S, timeUntilMotorsAreUp(),
 						  _param_vt_tilt_fw.get(), _param_vt_tilt_mc.get()
 						 );
 
