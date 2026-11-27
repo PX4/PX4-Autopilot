@@ -96,17 +96,39 @@ Sih::~Sih()
 {
 	perf_free(_loop_perf);
 	perf_free(_loop_interval_perf);
+
+	for (uint8_t i = 0; i < IMU_COUNT_MAX; i++) {
+		delete _px4_accel[i];
+		delete _px4_gyro[i];
+	}
+
 	_terrain = Terrain{}; // free the DEM
 }
 
 void Sih::run()
 {
-	_imu_count = static_cast<uint8_t>(constrain(_param_sih_imu_count.get(), static_cast<int32_t>(1),
-					  static_cast<int32_t>(IMU_COUNT_MAX)));
+	// construct only the configured IMUs: each advertises on construction, and sensors starts a pipeline per advertised IMU
+	static constexpr uint32_t imu_device_ids[IMU_COUNT_MAX] {
+		1310988, // DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+		1310996, // DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
+		1311004, // DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
+	};
 
-	for (uint8_t i = 0; i < _imu_count; i++) {
-		_px4_accel[i].set_temperature(T1_C);
-		_px4_gyro[i].set_temperature(T1_C);
+	const int32_t imu_count = constrain(_param_sih_imu_count.get(), static_cast<int32_t>(1),
+					    static_cast<int32_t>(IMU_COUNT_MAX));
+
+	for (int32_t i = 0; i < imu_count; i++) {
+		_px4_accel[i] = new PX4Accelerometer(imu_device_ids[i]);
+		_px4_gyro[i] = new PX4Gyroscope(imu_device_ids[i]);
+
+		if ((_px4_accel[i] == nullptr) || (_px4_gyro[i] == nullptr)) {
+			PX4_ERR("IMU %" PRId32 " allocation failed", i + 1);
+			break;
+		}
+
+		_px4_accel[i]->set_temperature(T1_C);
+		_px4_gyro[i]->set_temperature(T1_C);
+		_imu_count++;
 	}
 
 	// the vehicle type is needed by parameters_updated() to place the vehicle on the terrain
@@ -1050,8 +1072,8 @@ void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
 		const Vector3f accel = specific_force_B + accel_noise;
 		const Vector3f gyro = _w_B + earth_spin_rate_B + gyro_noise;
 
-		_px4_accel[i].update(time_now_us, accel(0), accel(1), accel(2));
-		_px4_gyro[i].update(time_now_us, gyro(0), gyro(1), gyro(2));
+		_px4_accel[i]->update(time_now_us, accel(0), accel(1), accel(2));
+		_px4_gyro[i]->update(time_now_us, gyro(0), gyro(1), gyro(2));
 	}
 }
 

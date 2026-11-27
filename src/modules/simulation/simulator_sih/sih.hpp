@@ -137,17 +137,9 @@ private:
 
 	// simulated sensors
 	static constexpr uint8_t IMU_COUNT_MAX = 3;
-	PX4Accelerometer _px4_accel[IMU_COUNT_MAX] {
-		{1310988}, // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-		{1310996}, // 1310996: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
-		{1311004}, // 1311004: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
-	};
-	PX4Gyroscope _px4_gyro[IMU_COUNT_MAX] {
-		{1310988}, // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
-		{1310996}, // 1310996: DRV_IMU_DEVTYPE_SIM, BUS: 2, ADDR: 1, TYPE: SIMULATION
-		{1311004}, // 1311004: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
-	};
-	uint8_t _imu_count{1};
+	PX4Accelerometer *_px4_accel[IMU_COUNT_MAX] {}; // only SIH_IMU_COUNT constructed, see run()
+	PX4Gyroscope     *_px4_gyro[IMU_COUNT_MAX] {};
+	uint8_t _imu_count{0};
 	PX4Rangefinder   _px4_rangefinder{10092548}; // 10092548: DRV_DIST_DEVTYPE_SIM, BUS: 0, ADDR: 0, TYPE: SIMULATION
 	uORB::Publication<airspeed_s>            _airspeed_pub{ORB_ID(airspeed)};
 	uORB::Publication<ranging_beacon_s>      _ranging_beacon_pub{ORB_ID(ranging_beacon)};
