@@ -121,6 +121,12 @@ PX4_SIM_SPEED_FACTOR=10 make px4_sitl_sih sihsim_quadx
 
 SIH supports setting a wind velocity with the PX4 parameters [`SIH_WIND_N`](../advanced_config/parameter_reference.md#SIH_WIND_E) and [`SIH_WIND_E`](../advanced_config/parameter_reference.md#SIH_WIND_E) [m/s]. The parameters can also be changed during flight to simulate changing wind.
 
+#### IMU Noise
+
+By default the simulated accelerometer and gyroscope use the same low noise levels on the ground and in flight.
+Set [`SIH_IMU_VIB_EN`](../advanced_config/parameter_reference.md#SIH_IMU_VIB_EN) to use higher noise levels while the vehicle produces thrust.
+The estimator and the controllers then see a noticeably noisier IMU, for example a multicopter drifts more while it holds a zero velocity setpoint.
+
 #### Optical Flow
 
 SIH can simulate a downward facing optical flow sensor, so that flow aided navigation can be exercised without a rendered camera image.
