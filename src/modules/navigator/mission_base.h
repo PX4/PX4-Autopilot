@@ -59,6 +59,10 @@
 #include "mission_feasibility_checker.h"
 #include "navigation.h"
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+#include "mission_route_types.h"
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 using namespace time_literals;
 
 class Navigator;
@@ -88,6 +92,9 @@ protected:
 	enum class WorkItemType {
 		WORK_ITEM_TYPE_DEFAULT,		/**< default mission item */
 		WORK_ITEM_TYPE_CLIMB,		/**< takeoff before moving to waypoint */
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+		WORK_ITEM_TYPE_JOIN_ROUTE,	/**< fly a virtual branch-in waypoint before resuming the route */
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 		WORK_ITEM_TYPE_MOVE_TO_LAND,	/**< move to land waypoint before descent */
 		WORK_ITEM_TYPE_ALIGN_TO_LAND,
 		WORK_ITEM_TYPE_ALIGN_HEADING,		/**< align for next waypoint */
@@ -105,6 +112,20 @@ protected:
 		FollowMissionControlFlow = 0,
 		IgnoreDoJump,
 	};
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	/**
+	 * Branch-in point of a pending route join, valid until the waypoint is reached or the join is cancelled.
+	 * In MissionBase so that other mission modes, such as a Return along the route, can join the route too.
+	 */
+	mission_route::Position _route_join_position{};
+
+	/** DO_JUMP edge being flown, so a rejoin stays on an active loop. */
+	mission_route::ActiveJumpAnchor _active_jump_anchor{};
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
+	/** The climb and the branch-in waypoint do not report a mission item reached. */
+	bool shouldReportMissionItemReached() const;
 
 	/**
 	 * @brief Get the previous mission position items using this mode's traversal policy.
@@ -289,6 +310,11 @@ protected:
 	void check_mission_valid(bool forced = false);
 
 	/**
+	 * Reset the mission to the start sequence if it was finished and the system disarmed meanwhile.
+	 */
+	void checkMissionRestart();
+
+	/**
 	 * Update mission topic
 	 */
 	void update_mission();
@@ -378,6 +404,24 @@ protected:
 	 * @return false otherwise
 	 */
 	bool position_setpoint_equal(const position_setpoint_s *p1, const position_setpoint_s *p2) const;
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	/** Cancel a pending route join and end its branch-in work item. */
+	void resetJoinRouteState();
+
+	/**
+	 * @brief Handle a pending route join: fly the branch-in waypoint before the loaded item
+	 *
+	 * @param new_work_item_type new work item type state machine to be set
+	 * @param next_mission_items the next mission items after the current mission item
+	 * @param num_found_items number of found next mission items
+	 */
+	void handleJoinRoute(WorkItemType &new_work_item_type, mission_item_s next_mission_items[],
+			     size_t &num_found_items);
+
+	/** Onboard waypoint at a route position. */
+	void setWaypointMissionItem(mission_item_s &mission_item, const mission_route::Position &position) const;
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	/**
 	 * @brief Traversal mode used by this navigation mode when walking position items.
@@ -487,11 +531,6 @@ private:
 	 */
 	bool loadTraversalItem(int32_t &mission_index, mission_item_s &mission_item,
 			       MissionTraversalType traversal_type, bool direction_backward);
-
-	/**
-	 * Reset mission
-	 */
-	void checkMissionRestart();
 
 	/**
 	 * Set a mission item as reached

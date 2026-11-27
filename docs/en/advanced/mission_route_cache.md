@@ -14,6 +14,7 @@ MissionRouteCache
 
 The cache is infrastructure for Navigator features.
 It does not change normal mission execution by itself.
+[Smart mission rejoin](../concept/mission_route_planning.md#smart-mission-rejoin) is the first feature that uses it.
 
 ## Availability
 

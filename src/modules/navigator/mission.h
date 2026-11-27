@@ -110,4 +110,21 @@ private:
 				  size_t &num_found_items);
 
 	bool _need_mission_save{false};
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	/** MIS_ROUTE_JOIN is set and the airframe joins. */
+	bool routeJoinEnabled() const;
+
+	/**
+	 * Plan a join onto the route and store its branch-in point. Within the acceptance radius of the landing it would
+	 * join, it only makes that landing the current item. Only called with routeJoinEnabled().
+	 */
+	void trySetRouteJoinOnActivation();
+
+	DEFINE_PARAMETERS_CUSTOM_PARENT(
+		MissionBase,
+		(ParamInt<px4::params::MIS_ROUTE_JOIN>)    _param_mis_route_join,
+		(ParamFloat<px4::params::MIS_MC_SEG_DIST>) _param_mis_mc_seg_dist
+	)
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 };
