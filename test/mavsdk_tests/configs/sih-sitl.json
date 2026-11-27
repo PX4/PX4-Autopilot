@@ -56,6 +56,11 @@
             "timeout_min": 15
         },
         {
+            "model": "quadx",
+            "test_filter": "sih_imu_noise",
+            "timeout_min": 5
+        },
+        {
             "model": "quadx_flow",
             "test_filter": "optical_flow",
             "timeout_min": 10
