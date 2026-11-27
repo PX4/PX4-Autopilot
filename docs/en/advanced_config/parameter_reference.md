@@ -35884,7 +35884,7 @@ Reboot | minValue | maxValue | increment | default | unit | Read-Only
 
 ## Failure Injection
 
-<div class="param-group" style="--param-count: 14">
+<div class="param-group" style="--param-count: 15">
 
 <div class="param">
 
@@ -36140,6 +36140,32 @@ unsupported (unit, type) pairs are ignored.
 Reboot | minValue | maxValue | increment | default | unit | Read-Only
 --- | --- | --- | --- | --- | --- | ---
 &check; |  |  |  | 0 |  | &nbsp;
+
+</div>
+
+<div class="param">
+
+### SYS_FAIL_RC_RST (`INT32`) {#SYS_FAIL_RC_RST}
+
+RC aux input that clears all failures.
+
+Every switch position change clears all active failures, including those injected over MAVLink or the console. The SYS_FAIL_RC_SRC switch must be cycled to inject again. Mapped via RC_MAP_AUXn, gated by SYS_FAILURE_EN, and disabled if equal to SYS_FAIL_RC_SRC.
+
+
+**Values:**
+
+- `0`: Disabled
+- `1`: AUX1
+- `2`: AUX2
+- `3`: AUX3
+- `4`: AUX4
+- `5`: AUX5
+- `6`: AUX6
+
+
+Reboot | minValue | maxValue | increment | default | unit | Read-Only
+--- | --- | --- | --- | --- | --- | ---
+&check; | 0 | 6 |  | 0 |  | &nbsp;
 
 </div>
 

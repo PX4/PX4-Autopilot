@@ -283,6 +283,8 @@ Failures can be triggered through:
 - an RC switch: `SYS_FAIL_RC_SRC` selects the aux input, and `SYS_FAIL_RC_UNIT` /
   `SYS_FAIL_RC_MODE` / `SYS_FAIL_RC_INST` define the failure applied while it is on
 
+Any change of the RC switch selected by `SYS_FAIL_RC_RST` clears all active failures.
+
 Requires `SYS_FAILURE_EN` to be set; the startup script only starts this module when it is.
 
 Failures can be applied both in simulation and on real hardware, where the apply-sites are
