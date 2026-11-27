@@ -16,6 +16,7 @@ pageClass: is-wide-page
 | <a id="fld_channel_count"></a>channel_count               | `uint8`       |              |            | Number of valid channels                                           |
 | <a id="fld_rssi"></a>rssi                                 | `uint8`       |              |            | Receive signal strength index                                      |
 | <a id="fld_signal_lost"></a>signal_lost                   | `bool`        |              |            | Control signal lost, should be checked together with topic timeout |
+| <a id="fld_calibrated"></a>calibrated                     | `bool`        |              |            | RC is calibrated (RC_CHAN_CNT and at least one stick mapping set)  |
 | <a id="fld_frame_drop_count"></a>frame_drop_count         | `uint32`      |              |            | Number of dropped frames                                           |
 
 ## Source Message
@@ -32,6 +33,7 @@ float32[18] channels						# Scaled to -1..1 (throttle: 0..1)
 uint8 channel_count						# Number of valid channels
 uint8 rssi							# Receive signal strength index
 bool signal_lost						# Control signal lost, should be checked together with topic timeout
+bool calibrated							# RC is calibrated (RC_CHAN_CNT and at least one stick mapping set)
 uint32 frame_drop_count						# Number of dropped frames
 ```
 
