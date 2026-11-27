@@ -69,7 +69,8 @@ public:
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 	/**
 	 * @brief Destination the geofence-avoidance planner should route to: the start of the mission
-	 * landing sequence (first position item after DO_LAND_START). (NaN, NaN) if not yet known.
+	 * landing sequence (first position item after DO_LAND_START, or the landing item when the
+	 * mission has no DO_LAND_START). (NaN, NaN) if not yet known.
 	 */
 	matrix::Vector2d getRtlPlannerDestination() override;
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
@@ -84,6 +85,10 @@ private:
 	bool _enforce_rtl_alt{false};
 	float _rtl_alt{0.0f};	///< AMSL altitude at which the vehicle should return to the land position
 	position_setpoint_s _setpoint_on_activation{}; ///< snapshot of the current setpoint taken before reset on activation, used to continue an established loiter through the climb
+
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+	bool _geofence_avoidance_leg_active {false}; ///< the active item is a geofence-avoidance leg, flown in place of the current mission item
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 	RtlTimeEstimator _rtl_time_estimator;
 };
