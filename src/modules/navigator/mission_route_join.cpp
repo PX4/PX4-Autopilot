@@ -62,8 +62,7 @@ bool Mission::trySetRouteJoinOnActivation()
 	resetJoinRouteState();
 
 	// A finished mission holds as without the join, so the planned item must still be valid.
-	if (!routeJoinEnabled()
-	    || !isMissionValid()
+	if (!isMissionValid()
 	    || !_is_current_planned_mission_item_valid
 	    || _land_detected_sub.get().landed
 	    || (_mission.count < 2)

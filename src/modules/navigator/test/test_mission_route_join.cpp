@@ -794,6 +794,36 @@ TEST_F(MissionRouteJoinTest, ItemSelectedWhilePausedJoins)
 	}
 }
 
+// A selection that arrives in the cycle Mission starts is read before the join is planned. Otherwise the mission
+// publish of the join would replace it: the mission topic keeps only its last message.
+TEST_F(MissionRouteJoinTest, SelectionInTheActivationCycleIsJoined)
+{
+	setIntParam("MIS_ROUTE_JOIN", 1);
+	MissionTestPeer mission(&_navigator);
+	const mission_route::Position between_lanes = makePositionFromOffset(kBaseLat, kBaseLon, 150.f, 12.f, kAlt);
+	publishAirborneMulticopter(between_lanes);
+	const mission_s state = loadMission(mission, outAndBackLanes(), 85, 4);
+
+	// Item 4 reached on the way back, then paused between the lanes. A resume would join the way back at item 4.
+	startReachAndPause(mission, between_lanes);
+	ASSERT_EQ(mission.currentSequenceForTest(), 5);
+
+	// MISSION_SET_CURRENT(2) arrives in the cycle Mission starts.
+	mission_s selected = state;
+	selected.timestamp = hrt_absolute_time();
+	selected.current_seq = 2;
+	publishMission(selected);
+
+	mission.on_activation();
+	EXPECT_EQ(mission.currentSequenceForTest(), 2);
+	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
+
+	// Still the selected item one cycle later.
+	mission.on_active();
+	EXPECT_EQ(mission.currentSequenceForTest(), 2);
+	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE);
+}
+
 // A selection while Mission is active flies to the item directly: it cancels a pending join and ends the jump edge.
 // So does a jump counter reset, which keeps the current item.
 TEST_F(MissionRouteJoinTest, SelectionInFlightCancelsJoinAndJumpEdge)

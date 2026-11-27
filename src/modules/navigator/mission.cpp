@@ -98,6 +98,8 @@ Mission::on_activation()
 		_global_pos_sub.update();
 		_vehicle_status_sub.update();
 		_land_detected_sub.update();
+		// Read an upload or a selection before the join: its own mission publish would replace them, as the
+		// mission topic keeps only its last message.
 		updateMavlinkMission();
 	}
 

@@ -119,6 +119,7 @@ private:
 
 	/**
 	 * Plan a smart rejoin onto the uploaded route and store its branch-in waypoint as a pending join.
+	 * Only called with routeJoinEnabled().
 	 *
 	 * @return true if a join is pending, false to fly directly to the current item.
 	 */
