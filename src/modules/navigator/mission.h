@@ -119,11 +119,10 @@ private:
 
 	/**
 	 * Plan a smart rejoin onto the uploaded route and store its branch-in waypoint as a pending join.
-	 * Only called with routeJoinEnabled().
-	 *
-	 * @return true if a join is pending, false to fly directly to the current item.
+	 * Without a join, Mission flies to its current item. Next to the landing it would join, that landing becomes
+	 * the current item instead. Only called with routeJoinEnabled().
 	 */
-	bool trySetRouteJoinOnActivation();
+	void trySetRouteJoinOnActivation();
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		MissionBase,

@@ -57,7 +57,7 @@ bool Mission::routeJoinEnabled() const
 	       && status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && !status.is_vtol;
 }
 
-bool Mission::trySetRouteJoinOnActivation()
+void Mission::trySetRouteJoinOnActivation()
 {
 	resetJoinRouteState();
 
@@ -67,7 +67,7 @@ bool Mission::trySetRouteJoinOnActivation()
 	    || _land_detected_sub.get().landed
 	    || (_mission.count < 2)
 	    || (_mission.current_seq < 0)) {
-		return false;
+		return;
 	}
 
 	// Mission continues as without MIS_ROUTE_JOIN; tell the operator the join was skipped.
@@ -76,13 +76,13 @@ bool Mission::trySetRouteJoinOnActivation()
 		mavlink_log_warning(_navigator->get_mavlink_log_pub(), "Route rejoin unavailable, flying to current item\t");
 		events::send(events::ID("mission_route_rejoin_unavailable"), events::Log::Warning,
 			     "Route rejoin unavailable, flying to current item");
-		return false;
 	};
 
 	const MissionRouteCache &mission_route_cache = _navigator->get_mission_route_cache();
 
 	if (!mission_route_cache.missionItemsReady(_mission)) {
-		return fall_back("route cache not ready");
+		fall_back("route cache not ready");
+		return;
 	}
 
 	const vehicle_global_position_s &global_position = _global_pos_sub.get();
@@ -102,7 +102,8 @@ bool Mission::trySetRouteJoinOnActivation()
 	const mission_route::FailureReason failure_reason = planner.planMissionResumeJoin(request, join_plan);
 
 	if (failure_reason != mission_route::FailureReason::kNone) {
-		return fall_back(mission_route::failureReasonString(failure_reason));
+		fall_back(mission_route::failureReasonString(failure_reason));
+		return;
 	}
 
 	_active_jump_anchor = join_plan.active_jump_anchor;
@@ -112,7 +113,7 @@ bool Mission::trySetRouteJoinOnActivation()
 
 	// The selected landing is within the acceptance radius: land directly instead of flying a join waypoint.
 	if (join_plan.use_current_altitude) {
-		return false;
+		return;
 	}
 
 	// Pending until setActiveMissionItems() flies it as a work item.
@@ -122,5 +123,4 @@ bool Mission::trySetRouteJoinOnActivation()
 
 	mavlink_log_info(_navigator->get_mavlink_log_pub(), "Rejoining mission route\t");
 	events::send(events::ID("mission_route_rejoin"), events::Log::Info, "Rejoining mission route");
-	return true;
 }
