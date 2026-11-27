@@ -124,7 +124,7 @@ protected:
 	mission_route::ActiveJumpAnchor _active_jump_anchor{};
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
-	/** Synthetic helper work items must not report an uploaded item reached. */
+	/** The climb and the branch-in waypoint do not report a mission item reached. */
 	bool shouldReportMissionItemReached() const;
 
 	/**

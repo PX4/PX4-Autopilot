@@ -112,15 +112,12 @@ private:
 	bool _need_mission_save{false};
 
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	friend class MissionTestPeer;
-
 	/** MIS_ROUTE_JOIN is set and the airframe joins. */
 	bool routeJoinEnabled() const;
 
 	/**
-	 * Plan a smart rejoin onto the uploaded route and store its branch-in waypoint as a pending join.
-	 * Without a join, Mission flies to its current item. Next to the landing it would join, that landing becomes
-	 * the current item instead. Only called with routeJoinEnabled().
+	 * Plan a join onto the route and store its branch-in point. Within the acceptance radius of the landing it would
+	 * join, it only makes that landing the current item. Only called with routeJoinEnabled().
 	 */
 	void trySetRouteJoinOnActivation();
 

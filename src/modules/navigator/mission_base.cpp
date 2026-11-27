@@ -853,7 +853,7 @@ MissionBase::checkMissionRestart()
 		_navigator->reset_cruising_speed();
 		_navigator->reset_vroi();
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-		// The restarted mission no longer flies the jump edge of the join.
+		// A restarted mission is not on a jump edge.
 		_active_jump_anchor = {};
 #endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	}

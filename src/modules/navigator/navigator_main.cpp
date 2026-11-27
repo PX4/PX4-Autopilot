@@ -1390,7 +1390,7 @@ int Navigator::run_trampoline(int argc, char *argv[])
 int Navigator::task_spawn(int argc, char *argv[])
 {
 #if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
-	// Route planning runs on this task. Not yet measured for the join alone.
+	// Route planning runs on this task.
 	static constexpr int kStackSize = 6000;
 #else
 	static constexpr int kStackSize = 3584;

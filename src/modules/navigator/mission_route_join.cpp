@@ -69,9 +69,8 @@ void Mission::trySetRouteJoinOnActivation()
 
 	// Mission continues as without MIS_ROUTE_JOIN; tell the operator the join was skipped.
 	const auto report_unavailable = [this]() {
-		mavlink_log_warning(_navigator->get_mavlink_log_pub(), "Route rejoin unavailable, flying to current item\t");
-		events::send(events::ID("mission_route_rejoin_unavailable"), events::Log::Warning,
-			     "Route rejoin unavailable, flying to current item");
+		mavlink_log_warning(_navigator->get_mavlink_log_pub(), "Route rejoin unavailable\t");
+		events::send(events::ID("mission_route_rejoin_unavailable"), events::Log::Warning, "Route rejoin unavailable");
 	};
 
 	const MissionRouteCache &mission_route_cache = _navigator->get_mission_route_cache();
