@@ -68,8 +68,7 @@ void Mission::trySetRouteJoinOnActivation()
 	}
 
 	// Mission continues as without MIS_ROUTE_JOIN; tell the operator the join was skipped.
-	const auto fall_back = [this](const char *reason) {
-		PX4_WARN("Mission route rejoin unavailable: %s", reason);
+	const auto report_unavailable = [this]() {
 		mavlink_log_warning(_navigator->get_mavlink_log_pub(), "Route rejoin unavailable, flying to current item\t");
 		events::send(events::ID("mission_route_rejoin_unavailable"), events::Log::Warning,
 			     "Route rejoin unavailable, flying to current item");
@@ -78,7 +77,8 @@ void Mission::trySetRouteJoinOnActivation()
 	const MissionRouteCache &mission_route_cache = _navigator->get_mission_route_cache();
 
 	if (!mission_route_cache.missionItemsReady(_mission)) {
-		fall_back("route cache not ready");
+		PX4_WARN("Mission route rejoin unavailable: route cache not ready");
+		report_unavailable();
 		return;
 	}
 
@@ -99,7 +99,9 @@ void Mission::trySetRouteJoinOnActivation()
 	const mission_route::FailureReason failure_reason = planner.planMissionResumeJoin(request, join_plan);
 
 	if (failure_reason != mission_route::FailureReason::kNone) {
-		fall_back(mission_route::failureReasonString(failure_reason));
+		// A FailureReason number: the names would cost flash for one console line.
+		PX4_WARN("Mission route rejoin unavailable: planner failure %d", static_cast<int>(failure_reason));
+		report_unavailable();
 		return;
 	}
 
