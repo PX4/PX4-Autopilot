@@ -79,6 +79,7 @@ public:
 		RTL_DIRECT_MISSION_LAND = rtl_status_s::RTL_STATUS_TYPE_DIRECT_MISSION_LAND,
 		RTL_MISSION_FAST = rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION,
 		RTL_MISSION_FAST_REVERSE = rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_REVERSE,
+		RTL_MISSION_SAFE_POINT_FOLLOW = rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_SAFE_POINT,
 	};
 
 	void on_inactive() override;
@@ -200,6 +201,17 @@ private:
 
 	/** Runs the selected executor active, then the other one inactive. */
 	void runExecutors();
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	/** RTL_TYPE 7: a multicopter follows the mission route, other vehicles return as for type 0. */
+	void selectRoute(ReturnSelection &selection);
+
+	/** While Return follows the route: plan again after a mission, rally point or fence upload, or retry without a route. */
+	void updateRoute(bool evaluation_due);
+
+	/** rtl_status of the route: its rally point, or no Return type without a route. */
+	void publishRouteStatus();
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	/**
 	 * @brief Update parameters

@@ -47,6 +47,10 @@
 #include "mission_route_land_approaches.h"
 #include "mission_route_types.h"
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+#include "rtl_mission_safe_point_follow.h"
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/events.h>
 
@@ -64,6 +68,9 @@ static constexpr int RTL_TYPE_MISSION_FAST_OR_REVERSE = 4;
 static constexpr int RTL_TYPE_SAFE_POINT_DIRECT = 5;
 static constexpr int RTL_TYPE_HOME_OR_SAFE_POINT_DIRECT = 6;
 static constexpr hrt_abstime RTL_REPLAN_INTERVAL{2_s};
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+static constexpr int RTL_TYPE_ROUTE_SAFE_POINT = 7;
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 
 RTL::RTL(Navigator *navigator) :
@@ -178,6 +185,11 @@ void RTL::on_active()
 	_home_pos_sub.update();
 	_wind_sub.update();
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	// The retry rides on the estimate interval below: it must run before that block restarts the interval.
+	updateRoute(hrt_elapsed_time(&_destination_check_time) > RTL_REPLAN_INTERVAL);
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 	runExecutors();
 
 	// Keep publishing remaining time estimates every 2 seconds
@@ -242,6 +254,13 @@ RTL::ReturnSelection RTL::selectReturn()
 	case RTL_TYPE_HOME_OR_SAFE_POINT_DIRECT:
 		selectHomeIfReachable(selection);
 		break;
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+	case RTL_TYPE_ROUTE_SAFE_POINT:
+		selectRoute(selection);
+		break;
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	default:
 		// 0, 1 and 3, and any other value
@@ -341,6 +360,9 @@ void RTL::applyReturn(const ReturnSelection &selection)
 
 	const bool new_type_is_mission_based = (new_rtl_type == RtlType::RTL_MISSION_FAST)
 					       || (new_rtl_type == RtlType::RTL_MISSION_FAST_REVERSE)
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+					       || (new_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW)
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 					       || (new_rtl_type == RtlType::RTL_DIRECT_MISSION_LAND);
 
 	const bool should_init_mission_type = new_type_is_mission_based && (_rtl_type != new_rtl_type);
@@ -363,6 +385,15 @@ void RTL::applyReturn(const ReturnSelection &selection)
 	if (new_type_is_mission_based && _rtl_mission_type_handle && !_rtl_mission_type_handle->isActive()) {
 		// A new or kept executor takes the latest altitude at every evaluation until Return starts it.
 		_rtl_mission_type_handle->setRtlAlt(rtl_alt);
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+		// The route follower plans at every evaluation too, on the latest mission, from the current position.
+		if (new_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW) {
+			static_cast<RtlMissionSafePointFollow *>(_rtl_mission_type_handle)->planRoute(_mission_sub.get());
+		}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 	}
 
 	// Only RtlDirect flies it
@@ -406,6 +437,15 @@ void RTL::applyReturn(const ReturnSelection &selection)
 	}
 
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+	if (_rtl_type == RtlType::RTL_MISSION_SAFE_POINT_FOLLOW) {
+		publishRouteStatus();
+		return;
+	}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	// Publish rtl status
 	rtl_status_s rtl_status{};
@@ -719,6 +759,19 @@ bool RTL::initRtlMissionType(RtlType new_rtl_type)
 		}
 
 		break;
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+
+	case RtlType::RTL_MISSION_SAFE_POINT_FOLLOW:
+		// It takes its mission when it plans.
+		_rtl_mission_type_handle = new RtlMissionSafePointFollow(_navigator);
+
+		if (_rtl_mission_type_handle) {
+			_rtl_mission_type_handle->initialize();
+		}
+
+		break;
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 
 	default:
 		break;
