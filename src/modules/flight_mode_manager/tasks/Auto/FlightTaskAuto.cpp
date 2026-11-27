@@ -865,7 +865,8 @@ void FlightTaskAuto::_updateTrajConstraints()
 
 	} else if (_unsmoothed_velocity_setpoint(2) < 0.f) { // up
 		float z_accel_constraint = _param_mpc_acc_up_max.get();
-		float z_vel_constraint = _param_mpc_z_v_auto_up.get();
+		// Following the terrain: allow the maximum vertical speed to keep up with it, instead of the auto default
+		float z_vel_constraint = _terrain_relative_target ? _param_mpc_z_vel_max_up.get() : _param_mpc_z_v_auto_up.get();
 
 		// The constraints are broken because they are used as hard limits by the position controller, so put this here
 		// until the constraints don't do things like cause controller integrators to saturate. Once the controller
@@ -886,7 +887,8 @@ void FlightTaskAuto::_updateTrajConstraints()
 
 	} else { // down
 		_position_smoothing.setMaxAccelerationZ(_param_mpc_acc_down_max.get());
-		_position_smoothing.setMaxVelocityZ(_param_mpc_z_v_auto_dn.get());
+		_position_smoothing.setMaxVelocityZ(_terrain_relative_target ? _param_mpc_z_vel_max_dn.get() :
+						    _param_mpc_z_v_auto_dn.get());
 	}
 
 	// Stretch the constraints of the velocity controller to leave some room for an additional
