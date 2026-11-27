@@ -227,7 +227,7 @@ What happens after joining a loop is described in [Smart Mission Rejoin](#smart-
 The parameters above only exist in firmware built with a non-zero cache size.
 POSIX builds (SITL and Linux boards) default to 500 mission items and other boards to 0; `px4_fmu-v6c_visionTargetEstStatic` sets 300.
 To use smart rejoin on a NuttX board, set the cache size in the board configuration and check that the RAM fits; see the [mission route cache](../advanced/mission_route_cache.md) for its memory use.
-Builds with the cache also raise the Navigator task stack from 2230 to 6000 bytes, and the route planner reserves 312 bytes of static RAM per slot of `CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE` (16 by default):
+Builds with the cache also raise the Navigator task stack from 3584 to 6000 bytes, and the route planner reserves 312 bytes of static RAM per slot of `CONFIG_NAVIGATOR_SAFE_POINT_BATCH_SIZE` (16 by default):
 
 ```ini
 CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE=300
