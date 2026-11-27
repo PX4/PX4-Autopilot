@@ -130,7 +130,8 @@ Return has no route when:
 - The mission has no landing, its first position item is not a `TAKEOFF`, and no rally point is usable.
 - Next to the landing or takeoff point, the straight leg to it crosses the geofence.
 
-Without a route, Return brakes and holds where the vehicle stops, at its altitude, and reports `Return: no mission route, holding`.
+Without a route the preflight checks show `No mission route for Return`: a switch to Return is denied, and a failsafe that would return lands instead.
+A Return that is already flying brakes and holds where the vehicle stops, at its altitude, and reports `Return: no mission route, holding`.
 The mission is not marked finished.
 It does not land there on its own, so configure a [battery failsafe](../config/safety.md#battery-level-failsafe) that lands.
 While airborne, Return plans again every two seconds and continues along the route once one is found, reporting `Return: mission route found`.

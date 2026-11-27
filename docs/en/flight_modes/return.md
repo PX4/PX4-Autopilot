@@ -231,11 +231,11 @@ It flies at the default cruise speed ([MPC_XY_CRUISE](../advanced_config/paramet
 ::: warning
 
 - This type needs firmware built with the [mission route cache](../advanced/mission_route_cache.md): SITL builds include it, most flight controller builds do not.
-  Other vehicles, and multicopters on firmware without the cache, return to the closest rally point or Home, as with `RTL_TYPE=0`.
+  Other vehicles, and multicopters on firmware without the cache, return to the closest rally point or Home, as with `RTL_TYPE=0`, and the preflight checks warn `RTL_TYPE 7 not available, Return goes to the closest rally point or Home`.
   One exception: a VTOL in fixed-wing flight that must use a land approach ([RTL_APPR_FORCE](#RTL_APPR_FORCE)), while Home has none, goes to the mission landing if that is closer than every rally point.
-- Without a route, for example without a mission or while an upload is still loading, Return holds where the vehicle stops and reports `Return: no mission route, holding`, then goes on once a route is found.
+- Without a route, for example without a mission or while an upload is still loading, the checks show `No mission route for Return`: a switch to Return is denied, and a failsafe that would return, such as RC or data link loss, lands instead.
+- A Return that is already flying when its route goes missing holds where the vehicle stops and reports `Return: no mission route, holding`, then goes on once a route is found.
   It does not land on its own there: configure a [battery failsafe](../config/safety.md#battery-level-failsafe) that lands.
-  This also applies when a failsafe starts Return, such as RC or data link loss.
 
 :::
 

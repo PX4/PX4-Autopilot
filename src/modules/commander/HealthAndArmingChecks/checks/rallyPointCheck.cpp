@@ -41,6 +41,28 @@ void RallyPointChecks::checkAndReport(const Context &context, Report &reporter)
 {
 	int32_t rtl_type = 0;
 
+	// RTL_TYPE 7, the Return along the mission route
+	if ((param_get(_param_rtl_type_handle, &rtl_type) == 0) && (rtl_type == 7)) {
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+		const vehicle_status_s &status = context.status();
+
+		if ((status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) && !status.is_vtol) {
+			checkRouteReturn(context, reporter);
+			return;
+		}
+
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
+		/* EVENT
+		 * @description
+		 * The Return along the mission route needs a multicopter and firmware built with the mission route cache.
+		 * Return goes to the closest rally point or Home instead.
+		 */
+		reporter.armingCheckFailure(NavModes::None, health_component_t::system, events::ID("check_rtl_type_7_unavailable"),
+					    events::Log::Warning, "RTL_TYPE 7 not available, Return goes to the closest rally point or Home");
+		return;
+	}
+
 	if (param_get(_param_rtl_type_handle, &rtl_type) != 0 || rtl_type != 5) {
 		// Only enforce rally point requirement when RTL_TYPE == 5 (safe points only)
 		return;

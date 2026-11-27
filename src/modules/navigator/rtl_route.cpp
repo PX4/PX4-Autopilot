@@ -87,6 +87,11 @@ void RTL::updateRoute(bool evaluation_due)
 	const bool retry = !had_route && !on_ground && evaluation_due;
 
 	if (!replan && !retry) {
+		// The status every 2 s also during Return, so the arming check finds it fresh right after Return ends.
+		if (evaluation_due) {
+			publishRouteStatus();
+		}
+
 		return;
 	}
 

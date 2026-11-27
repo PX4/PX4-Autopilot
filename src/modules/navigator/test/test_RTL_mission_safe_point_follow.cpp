@@ -1507,7 +1507,7 @@ INSTANTIATE_TEST_SUITE_P(
 });
 
 // WHY: a Return that has its route keeps it. Replanning it every 2 s would start each time with a new join.
-// WHAT: without an upload, the retry interval passing does not restart the route.
+// WHAT: without an upload, the retry interval passing does not restart the route; it publishes the route status again.
 TEST_F(RtlRouteReturnTest, RouteIsNotReplannedWithoutAnUpload)
 {
 	moveTo(220.f, 60.f, kRouteAlt);
@@ -1517,11 +1517,18 @@ TEST_F(RtlRouteReturnTest, RouteIsNotReplannedWithoutAnUpload)
 	ASSERT_EQ(FollowerPeer::workItem(_rtl.follower()), WorkItemType::WORK_ITEM_TYPE_DEFAULT);
 	moveTo(220.f, 100.f, kRouteAlt);
 
+	const hrt_abstime last_status = status().timestamp;
+	px4_usleep(1000);
+
 	_rtl.expireRetryIntervalForTest();
 	_rtl.run(true);
 
 	EXPECT_EQ(FollowerPeer::workItem(_rtl.follower()), WorkItemType::WORK_ITEM_TYPE_DEFAULT);
 	EXPECT_EQ(FollowerPeer::index(_rtl.follower()), 2);
+
+	// The route status is published again every 2 s, so the arming check finds it fresh right after Return ends.
+	EXPECT_GT(status().timestamp, last_status);
+	EXPECT_EQ(status().rtl_type, rtl_status_s::RTL_STATUS_TYPE_FOLLOW_MISSION_SAFE_POINT);
 }
 
 namespace

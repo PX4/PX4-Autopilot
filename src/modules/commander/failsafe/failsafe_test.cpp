@@ -162,6 +162,31 @@ TEST_F(FailsafeTest, General)
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
 }
 
+// WHY: RTL_TYPE 7 without a mission route marks Return unavailable (a mode requirement). A failsafe that would
+// return must then land, and return again once a route exists.
+TEST_F(FailsafeTest, UnavailableReturnFallsBackToLand)
+{
+	FailsafeTester failsafe(nullptr);
+	failsafe_flags_s flags{};
+	mode_util::getModeRequirements(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, flags);
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	failsafe.update(5_s, state, false, false, flags);
+
+	flags.mode_req_other |= 1u << vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+	flags.manual_control_signal_lost = true;
+	failsafe.update(6_s, state, false, false, flags);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
+	failsafe.update(12_s, state, false, false, flags);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Land);
+
+	flags.mode_req_other = 0;
+	failsafe.update(13_s, state, false, false, flags);
+	EXPECT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+}
+
 TEST_F(FailsafeTest, Takeover)
 {
 	FailsafeTester failsafe(nullptr);
