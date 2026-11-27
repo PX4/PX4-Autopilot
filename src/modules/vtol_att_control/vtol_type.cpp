@@ -90,8 +90,8 @@ void VtolType::parameters_update()
 {
 	updateParams();
 
-	// make sure that transition speed is above blending speed
-	_param_vt_arsp_trans.set(math::max(_param_vt_arsp_trans.get(), _param_vt_arsp_blend.get()));
+	// blending ends at the transition airspeed, a higher blending airspeed disables blending
+	_param_vt_arsp_blend.set(math::min(_param_vt_arsp_blend.get(), _param_vt_arsp_trans.get()));
 	// make sure that openloop transition time is above minimum time
 	_param_vt_f_tr_ol_tm.set(math::max(_param_vt_f_tr_ol_tm.get(), _param_vt_trans_min_tm.get()));
 }

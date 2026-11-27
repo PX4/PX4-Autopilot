@@ -72,7 +72,7 @@ parameters:
         short: Transition blending airspeed
         long: Calibrated airspeed at which we start blending down MC control in the transition to FW (FW control is always fully applied).
           Scaled by the square root of the weight ratio (WEIGHT_GROSS / WEIGHT_BASE), like VT_ARSP_TRANS.
-          Set to VT_ARSP_TRANS to keep MC control fully active in entire transition.
+          Set to VT_ARSP_TRANS or higher to keep MC control fully active in entire transition.
           If airspeed is not measured, we assume constant acceleration from 0 m/s (start of transition) to VT_ARSP_TRANS (after VT_F_TR_OL_TM).
       type: float
       default: 8.0
