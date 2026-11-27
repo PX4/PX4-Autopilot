@@ -611,6 +611,23 @@ static const RouteCase kRouteCases[] = {
 			{Step::Land, 100.f, 230.f, kRouteAlt + 20.f, 3, true},
 		}
 	},
+	// On the leg to a rally point 20 m above the route, at the route altitude: no shortcut, it joins the route and climbs
+	// to the rally point altitude at the branch-off point.
+	{
+		"BranchOffLegBelowARallyPointAboveTheRoute", 101.f, 215.f, kRouteAlt, 3, {rallyPoint(100.f, 230.f, kRouteAlt + 20.f)}, 0.f, 30.f, {
+			{Step::Join, 101.f, 200.f, kRouteAlt, 3, false},
+			{Step::BranchOff, 100.f, 200.f, kRouteAlt + 20.f, 3, false},
+			{Step::MoveToLand, 100.f, 230.f, kRouteAlt + 20.f, 3, true},
+			{Step::Land, 100.f, 230.f, kRouteAlt + 20.f, 3, true},
+		}
+	},
+	// The same leg at the rally point altitude: straight to it.
+	{
+		"BranchOffLegAtARallyPointAboveTheRoute", 101.f, 215.f, kRouteAlt + 20.f, 3, {rallyPoint(100.f, 230.f, kRouteAlt + 20.f)}, 0.f, 30.f, {
+			{Step::MoveToLand, 100.f, 230.f, kRouteAlt + 20.f, 3, true},
+			{Step::Land, 100.f, 230.f, kRouteAlt + 20.f, 3, true},
+		}
+	},
 	// Joined on the leg where Return leaves the route: from the branch-in point on toward the branch-off point.
 	{
 		"JoinOnTheBranchOffLeg", 180.f, 190.f, kRouteAlt, 3, {rallyPoint(100.f, 230.f)}, 0.f, 30.f, {
@@ -1090,6 +1107,8 @@ INSTANTIATE_TEST_SUITE_P(
 		ActivationCase{"RouteToMissionLanding", 50.f, 210.f, 3, {}, {Step::Join, 50.f, 200.f, kRouteAlt, 3, false}, UINT8_MAX},
 		// 30 m beside the first leg, which Mission flew, and 20 m beside the second: the first is within MIS_MC_SEG_DIST.
 		ActivationCase{"VehicleMarginKeepsTheCurrentLeg", 180.f, 30.f, 1, {rallyPoint(100.f, 230.f)}, {Step::Join, 180.f, 0.f, kRouteAlt, 1, false}, 0, 50.f, 0.f},
+		// With 5 m only the nearer second leg is within the margin.
+		ActivationCase{"VehicleMarginBelowTheLegGap", 180.f, 30.f, 1, {rallyPoint(100.f, 230.f)}, {Step::Join, 200.f, 30.f, kRouteAlt, 2, false}, 0, 5.f, 0.f},
 		// The same place while Mission flew the second leg: it joins that one.
 		ActivationCase{"CurrentItemPicksTheLeg", 180.f, 30.f, 2, {rallyPoint(100.f, 230.f)}, {Step::Join, 200.f, 30.f, kRouteAlt, 2, false}, 0, 50.f, 0.f},
 		// A rally point 80 m from the third leg and 120 m from the first, next to the vehicle: within RTL_RP_SEG_DIST it
@@ -1459,10 +1478,15 @@ TEST_F(RtlRouteReturnTest, RouteIsNotReplannedWithoutAnUpload)
 namespace
 {
 
-enum class MissionChange : uint8_t { Upload, Clear };
+enum class MissionChange : uint8_t { Upload, Clear, FenceRejectsMission };
 
 struct GoalStepCase {
 	const char *test_name;
+	float vehicle_north_m;
+	float vehicle_east_m;
+	int32_t current_seq;
+	std::vector<mission_item_s> rally_points;
+	float landing_yaw;
 	float land_delay;
 	FollowerPeer::WorkItemType step;
 	MissionChange change;
@@ -1475,30 +1499,40 @@ struct GoalStepCase {
 class RtlRouteGoalStepTest : public RtlRouteReturnTest, public ::testing::WithParamInterface<GoalStepCase> {};
 
 // WHY: from the move above the goal on, Return does not replan, but a new or cleared mission makes the planned one
-// invalid. Return ends the step, reports itself complete, then plans on the new mission (a documented limit).
-// WHAT: a mission upload during the move or the wait, a mission clear during the wait: the step ends, Return reports
-// completion once, then flies the new route from above the goal or holds without one.
-TEST_P(RtlRouteGoalStepTest, MissionChangeEndsTheStepThenReplans)
+// invalid. Return finishes the step, reports itself complete, then plans on the new mission (a documented limit).
+// WHAT: a mission upload during the move, the turn or the wait, a mission clear and a fence that makes Mission reject
+// the mission during the wait: the step finishes, Return reports completion once, then flies the new route from
+// above the goal or holds without one.
+TEST_P(RtlRouteGoalStepTest, MissionChangeFinishesTheStepThenReplans)
 {
 	const GoalStepCase &c = GetParam();
 	setParam("RTL_LAND_DELAY", c.land_delay);
-	moveTo(101.f, 215.f, kRouteAlt);
-	mission_s mission = loadRoute(squareMission(), {rallyPoint(100.f, 230.f)}, 3);
+	std::vector<mission_item_s> items = squareMission();
+	items[4].yaw = c.landing_yaw;
+	moveTo(c.vehicle_north_m, c.vehicle_east_m, kRouteAlt);
+	mission_s mission = loadRoute(items, c.rally_points, c.current_seq);
 	uORB::SubscriptionData<mode_completed_s> mode_completed_sub{ORB_ID(mode_completed)};
 	(void)mode_completed_sub.update();
 	_rtl.run(true);
 
-	for (int step = 0; (step < 5) && (FollowerPeer::workItem(_rtl.follower()) != c.step); ++step) {
+	for (int step = 0; (step < 6) && (FollowerPeer::workItem(_rtl.follower()) != c.step); ++step) {
 		reachStep();
 	}
 
 	ASSERT_EQ(FollowerPeer::workItem(_rtl.follower()), c.step);
 
-	// GIVEN: a new mission, loaded and checked, or a cleared one
+	// GIVEN: a new mission, loaded and checked, a cleared one, or a new fence that Mission rejects the mission with
 	if (c.change == MissionChange::Upload) {
 		mission = uploadCopy(mission, 32, DM_KEY_WAYPOINTS_OFFBOARD_1);
 		loadRouteCache(mission);
 		markMissionChecked(mission);
+
+	} else if (c.change == MissionChange::FenceRejectsMission) {
+		mission.geofence_id = 5;
+		mission.timestamp = hrt_absolute_time();
+		publishMission(mission);
+		markMissionChecked(mission);
+		_navigator.get_mission_result()->valid = false;
 
 	} else {
 		mission_s cleared{};
@@ -1515,7 +1549,11 @@ TEST_P(RtlRouteGoalStepTest, MissionChangeEndsTheStepThenReplans)
 	ASSERT_EQ(FollowerPeer::workItem(_rtl.follower()), c.step);
 	ASSERT_EQ(FollowerPeer::missionId(_rtl.follower()), 31u);
 
-	// WHEN: the step ends
+	// WHEN: the step ends, the turn once the vehicle faces the landing heading
+	if (PX4_ISFINITE(c.landing_yaw)) {
+		_navigator.get_local_position()->heading = c.landing_yaw;
+	}
+
 	reachStep();
 
 	// THEN: Return reports itself complete
@@ -1543,9 +1581,12 @@ INSTANTIATE_TEST_SUITE_P(
 	RTL,
 	RtlRouteGoalStepTest,
 	::testing::Values(
-		GoalStepCase{"MissionUploadDuringTheMove", 0.f, FollowerPeer::WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND, MissionChange::Upload, {Step::Land, 100.f, 230.f, kHomeAlt, 3, true}, false},
-		GoalStepCase{"MissionUploadDuringTheWait", 5.f, FollowerPeer::WorkItemType::WORK_ITEM_TYPE_LAND_DELAY, MissionChange::Upload, {Step::Wait, 100.f, 230.f, kHomeAlt + 30.f, 3, false}, false},
-		GoalStepCase{"MissionClearDuringTheWait", 5.f, FollowerPeer::WorkItemType::WORK_ITEM_TYPE_LAND_DELAY, MissionChange::Clear, {}, true}),
+		GoalStepCase{"MissionUploadDuringTheMove", 101.f, 215.f, 3, {rallyPoint(100.f, 230.f)}, NAN, 0.f, FollowerPeer::WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND, MissionChange::Upload, {Step::Land, 100.f, 230.f, kHomeAlt, 3, true}, false},
+		// The turn to the heading of a mission landing; the uploaded landing has none.
+		GoalStepCase{"MissionUploadDuringTheTurn", 50.f, 210.f, 3, {}, 1.5f, 0.f, FollowerPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_TO_LAND, MissionChange::Upload, {Step::Land, 0.f, 100.f, kHomeAlt, 4, true}, false},
+		GoalStepCase{"MissionUploadDuringTheWait", 101.f, 215.f, 3, {rallyPoint(100.f, 230.f)}, NAN, 5.f, FollowerPeer::WorkItemType::WORK_ITEM_TYPE_LAND_DELAY, MissionChange::Upload, {Step::Wait, 100.f, 230.f, kHomeAlt + 30.f, 3, false}, false},
+		GoalStepCase{"MissionClearDuringTheWait", 101.f, 215.f, 3, {rallyPoint(100.f, 230.f)}, NAN, 5.f, FollowerPeer::WorkItemType::WORK_ITEM_TYPE_LAND_DELAY, MissionChange::Clear, {}, true},
+		GoalStepCase{"FenceRejectsTheMissionDuringTheWait", 101.f, 215.f, 3, {rallyPoint(100.f, 230.f)}, NAN, 5.f, FollowerPeer::WorkItemType::WORK_ITEM_TYPE_LAND_DELAY, MissionChange::FenceRejectsMission, {}, true}),
 	[](const ::testing::TestParamInfo<GoalStepCase> &param_info)
 {
 	return std::string(param_info.param.test_name);
