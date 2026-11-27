@@ -169,6 +169,11 @@ private:
 	float _airspeed_stall{8.0f}; ///< stall speed of aircraft used for load factor check
 	float	_load_factor_ratio{0.5f};	///< ratio of maximum load factor predicted by stall speed to measured load factor
 	static constexpr float kLoadFactorRatioRawMax = 4.f; ///< upper limit of the unfiltered load factor ratio
+	static constexpr float kGroundImpactAccel = 4.f * 9.81f; ///< body z acceleration magnitude regarded as ground impact [m/s^2]
+	static constexpr hrt_abstime kGroundImpactCheckDisableTime = 3_s; ///< duration the load factor check is disabled after an impact
+	static constexpr hrt_abstime kImpactDetectorArmTime = 5_s; ///< continuous fixed-wing flight required before impacts are detected
+	hrt_abstime _time_fixed_wing_flight_start{0}; ///< start of current continuous fixed-wing flight (uSec), 0 if not flying
+	hrt_abstime _time_ground_impact{0}; ///< time of last detected ground impact (uSec)
 
 	// first principle check
 	bool _first_principle_check_failed{false}; ///< first principle check has detected failure
@@ -206,7 +211,7 @@ private:
 	void check_airspeed_data_stuck(uint64_t timestamp);
 	void check_airspeed_innovation(uint64_t timestamp, float estimator_status_vel_test_ratio,
 				       float estimator_status_hdg_test_ratio, const matrix::Vector3f &vI, bool gnss_valid);
-	void check_load_factor(float accel_z);
+	void check_load_factor(const uint64_t timestamp, float accel_z);
 	void check_first_principle(const uint64_t timestamp, const float throttle, const float throttle_trim,
 				   const uint64_t tecs_timestamp, const Quatf &att_q);
 	void update_airspeed_valid_status(const uint64_t timestamp);

@@ -118,3 +118,66 @@ TEST_F(AirspeedValidatorLoadFactorTest, blockedSensorInCruise)
 	EXPECT_FALSE(_validator.get_airspeed_valid());
 	EXPECT_LE(_timestamp - time_blocked, static_cast<uint64_t>(kChecksFailDelay * 1_s) + 500_ms);
 }
+
+TEST_F(AirspeedValidatorLoadFactorTest, groundImpactDisablesCheck)
+{
+	// GIVEN: level cruise flight with a healthy sensor
+	for (int i = 0; i < 80; i++) {
+		update(kCruiseAirspeed, 1.f, true);
+	}
+
+	ASSERT_TRUE(_validator.get_airspeed_valid());
+
+	// WHEN: the vehicle hits the ground, the airspeed collapses and the vehicle is still considered flying
+	update(kCruiseAirspeed, 6.f, true);
+	const uint64_t time_impact = _timestamp;
+
+	while ((_timestamp - time_impact) < 2900_ms) {
+		update(0.f, 1.5f, true);
+
+		// THEN: the load factor check does not invalidate the airspeed within the disable window
+		EXPECT_TRUE(_validator.get_airspeed_valid());
+	}
+}
+
+TEST_F(AirspeedValidatorLoadFactorTest, checkResumesAfterGroundImpactWindow)
+{
+	// GIVEN: a ground impact was detected in flight
+	for (int i = 0; i < 80; i++) {
+		update(kCruiseAirspeed, 1.f, true);
+	}
+
+	update(kCruiseAirspeed, 6.f, true);
+	const uint64_t time_impact = _timestamp;
+
+	// WHEN: the airspeed stays at zero long after the disable window
+	while ((_timestamp - time_impact) < 6_s) {
+		update(0.f, 1.f, true);
+	}
+
+	// THEN: the load factor check is active again and invalidates the airspeed
+	EXPECT_FALSE(_validator.get_airspeed_valid());
+}
+
+TEST_F(AirspeedValidatorLoadFactorTest, launchAccelerationDoesNotDisableCheck)
+{
+	// GIVEN: a launch with a large acceleration spike right after the flight started
+	update(kCruiseAirspeed, 1.f, true);
+	update(kCruiseAirspeed, 6.f, true);
+
+	for (int i = 0; i < 50; i++) {
+		update(kCruiseAirspeed, 1.f, true);
+	}
+
+	ASSERT_TRUE(_validator.get_airspeed_valid());
+
+	// WHEN: the airspeed sensor gets blocked
+	const uint64_t time_blocked = _timestamp;
+
+	while (_validator.get_airspeed_valid() && (_timestamp - time_blocked) < 5_s) {
+		update(0.f, 1.f, true);
+	}
+
+	// THEN: the launch spike did not disable the check and the blockage is detected
+	EXPECT_FALSE(_validator.get_airspeed_valid());
+}

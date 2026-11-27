@@ -57,7 +57,7 @@ AirspeedValidator::update_airspeed_validator(const airspeed_validator_update_dat
 			      input_data.ground_velocity, input_data.lpos_evh, input_data.lpos_evv, input_data.q_att);
 	update_in_fixed_wing_flight(input_data.in_fixed_wing_flight);
 	check_airspeed_data_stuck(input_data.timestamp);
-	check_load_factor(input_data.accel_z);
+	check_load_factor(input_data.timestamp, input_data.accel_z);
 	check_airspeed_innovation(input_data.timestamp, input_data.vel_test_ratio, input_data.hdg_test_ratio,
 				  input_data.ground_velocity, input_data.gnss_valid);
 	check_first_principle(input_data.timestamp, input_data.fixed_wing_throttle_filtered,
@@ -257,11 +257,38 @@ AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_
 
 
 void
-AirspeedValidator::check_load_factor(float accel_z)
+AirspeedValidator::check_load_factor(const uint64_t timestamp, float accel_z)
 {
 	// Check if the airspeed reading is lower than physically possible given the load factor
 
 	if (!_load_factor_check_enabled) {
+		_load_factor_ratio = 0.5f;
+		_load_factor_check_failed = false;
+		return;
+	}
+
+	// Track how long the vehicle has been continuously in fixed-wing flight. The impact detector is only armed after
+	// sustained flight, such that acceleration spikes during launch are not mistaken for a ground impact.
+	if (_in_fixed_wing_flight) {
+		if (_time_fixed_wing_flight_start == 0) {
+			_time_fixed_wing_flight_start = timestamp;
+		}
+
+	} else {
+		_time_fixed_wing_flight_start = 0;
+	}
+
+	const bool impact_detector_armed = _time_fixed_wing_flight_start != 0
+					   && (timestamp - _time_fixed_wing_flight_start) > kImpactDetectorArmTime;
+
+	// A ground impact (e.g. landing in Stabilized mode, where the land detector may not have triggered yet)
+	// produces a large acceleration spike while the airspeed collapses. Suspend the check for a while to avoid
+	// a false failure before the vehicle disarms.
+	if (impact_detector_armed && fabsf(accel_z) > kGroundImpactAccel) {
+		_time_ground_impact = timestamp;
+	}
+
+	if (_time_ground_impact != 0 && (timestamp - _time_ground_impact) < kGroundImpactCheckDisableTime) {
 		_load_factor_ratio = 0.5f;
 		_load_factor_check_failed = false;
 		return;
