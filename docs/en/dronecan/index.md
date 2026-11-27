@@ -378,7 +378,8 @@ Another tool then checks which files were already uploaded using a local databas
 A MAVLink client can reach the DroneCAN bus through the flight controller's MAVLink link, without a separate CAN adapter.
 PX4 forwards CAN frames between one CAN bus and the requesting client using the MAVLink [MAV_CMD_CAN_FORWARD](https://mavlink.io/en/messages/common.html#MAV_CMD_CAN_FORWARD), [CAN_FRAME](https://mavlink.io/en/messages/common.html#CAN_FRAME) and [CAN_FILTER_MODIFY](https://mavlink.io/en/messages/common.html#CAN_FILTER_MODIFY) messages.
 
-Forwarding is disabled by default: set [UAVCAN_CAN_FWD](../advanced_config/parameter_reference.md#UAVCAN_CAN_FWD) to use it (reboot required).
+Forwarding is disabled by default: set [UAVCAN_CAN_FWD](../advanced_config/parameter_reference.md#UAVCAN_CAN_FWD) and reboot to use it.
+The setting applies to that boot only.
 With `Configuration only` (`1`) the client can configure and update nodes (read node info, read and write parameters, restart nodes, update firmware), but no ESC, actuator or other commands reach the bus.
 The client uses one DroneCAN node ID for the whole session: the first one it sends from, which must not be the flight controller's or that of another node online on the bus.
 `Unrestricted` (`2`) allows any frame.

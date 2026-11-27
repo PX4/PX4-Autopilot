@@ -43,8 +43,20 @@ void CanForwarder::init(uavcan::Dispatcher &dispatcher, const uavcan::NodeStatus
 {
 	_dispatcher = &dispatcher;
 	_node_status_monitor = &node_status_monitor;
-	(void)param_get(param_find("UAVCAN_CAN_FWD"), &_mode);
+
+	// UAVCAN_CAN_FWD applies to one boot only: take it, then reset it so the next boot returns to normal operation
+	const param_t param_can_fwd = param_find("UAVCAN_CAN_FWD");
+	(void)param_get(param_can_fwd, &_mode);
 	_config_only = (_mode != 2);
+
+	if (!param_value_is_default(param_can_fwd)) {
+		(void)param_reset(param_can_fwd);
+	}
+
+	if (_mode != 0) {
+		PX4_INFO("CAN forwarding over MAVLink enabled for this boot%s", _config_only ? " (configuration only)" : "");
+	}
+
 	_tx_sub.registerCallback();
 }
 
@@ -285,7 +297,8 @@ void CanForwarder::printStatus() const
 		       unsigned(_source_pin.nodeId()));
 
 	} else {
-		printf("CAN forwarding over MAVLink: idle\n");
+		printf("CAN forwarding over MAVLink: idle (%s)\n",
+		       _mode == 0 ? "disabled" : (_config_only ? "configuration only" : "unrestricted"));
 	}
 
 	printf("\tto client: %" PRIu32 ", from client: %" PRIu32 ", dropped from client: %" PRIu32 ", lost batches from client: %" PRIu32

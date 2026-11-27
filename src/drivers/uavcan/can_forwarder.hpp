@@ -93,7 +93,7 @@ private:
 
 	uavcan::Dispatcher *_dispatcher{nullptr};
 	const uavcan::NodeStatusMonitor *_node_status_monitor{nullptr};
-	int32_t _mode{0}; ///< UAVCAN_CAN_FWD, read at startup
+	int32_t _mode{0}; ///< UAVCAN_CAN_FWD, read at startup, then the parameter is reset
 
 	can_forward::Session _session;
 	can_forward_status_s _status{};
