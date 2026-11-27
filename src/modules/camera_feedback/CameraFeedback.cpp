@@ -46,6 +46,12 @@ CameraFeedback::CameraFeedback() :
 	if (_p_cam_cap_fback != PARAM_INVALID) {
 		param_get(_p_cam_cap_fback, (int32_t *)&_cam_cap_fback);
 	}
+
+	_p_cam_cap_report = param_find("CAM_CAP_REPORT");
+
+	if (_p_cam_cap_report != PARAM_INVALID) {
+		param_get(_p_cam_cap_report, &_cam_cap_report);
+	}
 }
 
 bool
@@ -68,6 +74,17 @@ CameraFeedback::Run()
 		_trigger_sub.unregisterCallback();
 		exit_and_cleanup(desc);
 		return;
+	}
+
+	// Apply CAM_CAP_REPORT changes live (it only gates a MAVLink message, so no
+	// reboot needed). Checked here because it is only used when publishing below.
+	if (_parameter_update_sub.updated()) {
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
+
+		if (_p_cam_cap_report != PARAM_INVALID) {
+			param_get(_p_cam_cap_report, &_cam_cap_report);
+		}
 	}
 
 	camera_trigger_s trig{};
@@ -151,6 +168,12 @@ CameraFeedback::Run()
 
 		capture.result = 1;
 
+		// Cameras that report captures themselves (e.g. implementing the MAVLink
+		// Camera Protocol) set CAM_CAP_REPORT to 0 so we don't emit a duplicate
+		// CAMERA_IMAGE_CAPTURED.
+		// The capture is still published and logged for geotagging regardless.
+		capture.report = (_cam_cap_report != 0);
+
 		_capture_pub.publish(capture);
 	}
 }
@@ -202,8 +225,10 @@ If camera capture is enabled, then trigger information from the camera capture p
 otherwise trigger information at the point the camera was commanded to trigger is published
 (from the `camera_trigger` module).
 
-The `CAMERA_IMAGE_CAPTURED` message is then emitted (by streaming code) following `CameraCapture` updates.
-`CameraCapture` topics are also logged and can be used for geotagging.
+The `CAMERA_IMAGE_CAPTURED` message is then emitted (by streaming code) following `CameraCapture` updates,
+unless `CAM_CAP_REPORT` is disabled (for cameras that report captures themselves, e.g. cameras
+implementing the MAVLink Camera Protocol). `CameraCapture` topics are always logged and can be used
+for geotagging regardless.
 
 ### Implementation
 
