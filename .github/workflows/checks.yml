@@ -31,6 +31,7 @@ jobs:
         check: [
           "check_format",
           "validate_module_configs",
+          "check_param_sources",
           "shellcheck_all",
           "module_documentation",
         ]
