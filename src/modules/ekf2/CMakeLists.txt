@@ -297,4 +297,5 @@ if(BUILD_TESTING)
 	add_subdirectory(test)
 
 	px4_add_functional_gtest(SRC EKF2SelectorTest.cpp LINKLIBS modules__ekf2)
+	px4_add_unit_gtest(SRC SensorInconsistencyCusumTest.cpp)
 endif()
