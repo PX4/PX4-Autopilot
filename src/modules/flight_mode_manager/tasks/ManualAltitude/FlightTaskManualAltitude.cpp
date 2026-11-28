@@ -86,6 +86,11 @@ void FlightTaskManualAltitude::_updateConstraintsFromEstimator()
 	if (!PX4_ISFINITE(_max_distance_to_ground) && PX4_ISFINITE(_sub_vehicle_local_position.get().hagl_max_z)) {
 		_max_distance_to_ground = _sub_vehicle_local_position.get().hagl_max_z;
 	}
+
+	// User ceiling: _respectMaxAltitude() then caps the climb rate and descends above it
+	if (_param_mpc_hagl_max.get() > FLT_EPSILON) {
+		_max_distance_to_ground = fminf(_max_distance_to_ground, _param_mpc_hagl_max.get());
+	}
 }
 
 void FlightTaskManualAltitude::_scaleSticks()
