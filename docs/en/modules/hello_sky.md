@@ -3,8 +3,11 @@
 This topic explains how to create and run your first onboard application.
 It covers all the basic concepts and APIs required for app development on PX4.
 
+The application is a _module_ that runs on a _work queue_, subscribes to a uORB topic and publishes to another one.
+This is the pattern most PX4 modules follow.
+
 ::: info
-For simplicity, more advanced features like start/stop functionality and command-line arguments are omitted.
+For simplicity, more advanced features like parameters and command-line arguments are omitted.
 These are covered in [Application/Module Template](../modules/module_template.md).
 :::
 
@@ -25,14 +28,14 @@ Rename (or delete) the **px4_simple_app** directory.
 ## Minimal Application
 
 In this section we create a _minimal application_ that just prints out `Hello Sky!`.
-This consists of a single _C_ file and a _cmake_ definition (which tells the toolchain how to build the application).
+This consists of a single _C++_ file, a _cmake_ definition (which tells the toolchain how to build the application) and a _Kconfig_ definition (which allows the application to be enabled in a build).
 
 1. Create a new directory **PX4-Autopilot/src/examples/px4_simple_app**.
-2. Create a new C file in that directory named **px4_simple_app.c**:
+2. Create a new C++ file in that directory named **px4_simple_app.cpp**:
    - Copy in the default header to the top of the page.
      This should be present in all contributed files!
 
-     ```c
+     ```cpp
      /****************************************************************************
       *
       *   Copyright (c) 2012-2026 PX4 Development Team. All rights reserved.
@@ -68,26 +71,86 @@ This consists of a single _C_ file and a _cmake_ definition (which tells the too
      ```
 
    - Copy the following code below the default header.
-     Similar code should be present in all contributed files!
 
-     ```c
+     ```cpp
      /**
-      * @file px4_simple_app.c
-      * Minimal application example for PX4 autopilot
+      * @file px4_simple_app.cpp
+      * Minimal module example for PX4 autopilot
       *
       * @author Example User <mail@example.com>
       */
 
      #include <px4_platform_common/log.h>
+     #include <px4_platform_common/module.h>
+     #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 
-     __EXPORT int px4_simple_app_main(int argc, char *argv[]);
+     class PX4SimpleApp : public ModuleBase, public px4::WorkItem
+     {
+     public:
+     	static Descriptor desc;
 
-     int px4_simple_app_main(int argc, char *argv[])
+     	PX4SimpleApp() : WorkItem(MODULE_NAME, px4::wq_configurations::lp_default) {}
+
+     	static int task_spawn(int argc, char *argv[]);
+     	static int custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
+     	static int print_usage(const char *reason = nullptr);
+
+     private:
+     	void Run() override;
+     };
+
+     ModuleBase::Descriptor PX4SimpleApp::desc{task_spawn, custom_command, print_usage};
+
+     void PX4SimpleApp::Run()
      {
      	PX4_INFO("Hello Sky!");
-     	return OK;
+     	exit_and_cleanup(desc);
+     }
+
+     int PX4SimpleApp::task_spawn(int argc, char *argv[])
+     {
+     	PX4SimpleApp *instance = new PX4SimpleApp();
+
+     	if (instance == nullptr) {
+     		PX4_ERR("alloc failed");
+     		return PX4_ERROR;
+     	}
+
+     	desc.object.store(instance);
+     	desc.task_id = task_id_is_work_queue;
+
+     	instance->ScheduleNow();
+     	return PX4_OK;
+     }
+
+     int PX4SimpleApp::print_usage(const char *reason)
+     {
+     	if (reason) {
+     		PX4_WARN("%s\n", reason);
+     	}
+
+     	PRINT_MODULE_USAGE_NAME("px4_simple_app", "template");
+     	PRINT_MODULE_USAGE_COMMAND("start");
+     	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+     	return 0;
+     }
+
+     extern "C" __EXPORT int px4_simple_app_main(int argc, char *argv[])
+     {
+     	return ModuleBase::main(PX4SimpleApp::desc, argc, argv);
      }
      ```
+
+     The parts of the code are:
+     - `ModuleBase` provides the `start`, `stop` and `status` commands, and ensures that only one instance of the module runs.
+       `px4_simple_app_main()` is the entry point of the command, and `ModuleBase::main()` dispatches to `task_spawn()`, `custom_command()` or `print_usage()` through the `desc` descriptor.
+     - `px4::WorkItem` makes the module run on a work queue: a thread shared with other modules.
+       PX4 calls `Run()` on that thread whenever the module is scheduled, so the module doesn't need a thread and stack of its own.
+       The constructor selects the work queue, here the low-priority `lp_default`.
+     - `task_spawn()` creates the module object, registers it with `ModuleBase` and schedules it.
+       For now we schedule `Run()` just once with `ScheduleNow()`.
+     - `Run()` prints the message and then removes the module again with `exit_and_cleanup()`.
 
      :::tip
 
@@ -142,10 +205,10 @@ This consists of a single _C_ file and a _cmake_ definition (which tells the too
    px4_add_module(
    	MODULE examples__px4_simple_app
    	MAIN px4_simple_app
-   	STACK_MAIN 2000
    	SRCS
-   		px4_simple_app.c
+   		px4_simple_app.cpp
    	DEPENDS
+   		px4_work_queue
    	)
    ```
 
@@ -155,6 +218,7 @@ This consists of a single _C_ file and a _cmake_ definition (which tells the too
    The `px4_add_module()` method builds a static library from a module description.
    - The `MODULE` block is the Firmware-unique name of the module (by convention the module name is prefixed by parent directories back to `src`).
    - The `MAIN` block lists the entry point of the module, which registers the command with NuttX so that it can be called from the PX4 shell or SITL console.
+   - The `DEPENDS` block lists the libraries the module uses, here the work queue library.
 
    :::tip
    The `px4_add_module()` format is documented in [PX4-Autopilot/cmake/px4_add_module.cmake](https://github.com/PX4/PX4-Autopilot/blob/main/cmake/px4_add_module.cmake). <!-- NEED px4_version -->
@@ -272,11 +336,11 @@ Builtin Apps:
 ```
 
 Note that `px4_simple_app` is now part of the available commands.
-Start it by typing `px4_simple_app` and ENTER:
+Start it by typing `px4_simple_app start` and ENTER:
 
 ```sh
-nsh> px4_simple_app
-Hello Sky!
+nsh> px4_simple_app start
+INFO  [px4_simple_app] Hello Sky!
 ```
 
 The application is now correctly registered with the system and can be extended to actually perform useful tasks.
@@ -286,10 +350,10 @@ The application is now correctly registered with the system and can be extended 
 If you're using SITL the _PX4 console_ is automatically started (see [Building the Code > First Build (Using a Simulator)](../dev_setup/building_px4.md#first-build-using-a-simulator)).
 As with the _nsh console_ (see previous section) you can type `help` to see the list of built-in apps.
 
-Enter `px4_simple_app` to run the minimal app.
+Enter `px4_simple_app start` to run the minimal app.
 
 ```sh
-pxh> px4_simple_app
+pxh> px4_simple_app start
 INFO  [px4_simple_app] Hello Sky!
 ```
 
@@ -304,49 +368,74 @@ The benefits of the PX4 hardware abstraction comes into play here!
 There is no need to interact in any way with sensor drivers and no need to update your app if the board or sensors are updated.
 :::
 
-Individual message channels between applications are called [topics](../middleware/uorb.md). For this tutorial, we are interested in the [VehicleAcceleration](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleAcceleration.msg) topic, which holds the filtered vehicle acceleration data.
+Individual message channels between applications are called [topics](../middleware/uorb.md).
+For this tutorial, we are interested in the [VehicleAcceleration](https://github.com/PX4/PX4-Autopilot/blob/main/msg/VehicleAcceleration.msg) topic, which holds the filtered vehicle acceleration data.
 
-Subscribing to a topic is straightforward:
+A work queue module doesn't wait for data itself.
+Instead, it subscribes with a `uORB::SubscriptionCallbackWorkItem`, which schedules `Run()` every time the topic is published.
+Between updates the module doesn't run at all and doesn't use any CPU time.
 
-```cpp
-#include <uORB/topics/vehicle_acceleration.h>
-..
-orb_sub_t sensor_sub_fd = orb_subscribe(ORB_ID(vehicle_acceleration));
-```
-
-The `sensor_sub_fd` is a topic handle and can be used to very efficiently perform a blocking wait for new data.
-The current thread goes to sleep and is woken up automatically by the scheduler once new data is available, not consuming any CPU cycles while waiting.
-To do this, we use the [poll()](https://pubs.opengroup.org/onlinepubs/007908799/xsh/poll.html) POSIX system call.
-
-Adding `poll()` to the subscription looks like (_pseudocode, look for the full implementation below_):
+Add the subscription as a member of the class, and limit how often it schedules `Run()` in the constructor:
 
 ```cpp
-#include <poll.h>
+#include <drivers/drv_hrt.h>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/vehicle_acceleration.h>
-..
-orb_sub_t sensor_sub_fd = orb_subscribe(ORB_ID(vehicle_acceleration));
 
-/* one could wait for multiple topics with this technique, just using one here */
-px4_pollfd_struct_t fds[] = {
-    { .fd = sensor_sub_fd,   .events = POLLIN },
-};
-
-while (true) {
-/* wait for sensor update of 1 file descriptor for 1000 ms (1 second) */
-int poll_ret = px4_poll(fds, 1, 1000);
+using namespace time_literals;
 ..
-if (fds[0].revents & POLLIN) {
-	/* obtained data for the first file descriptor */
-	struct vehicle_acceleration_s accel;
-	/* copy sensors raw data into local buffer */
-	orb_copy(ORB_ID(vehicle_acceleration), sensor_sub_fd, &accel);
-	PX4_INFO("Accelerometer:\t%8.4f\t%8.4f\t%8.4f",
-		(double)accel.xyz[0],
-		(double)accel.xyz[1],
-		(double)accel.xyz[2]);
-}
+	PX4SimpleApp() : WorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
+	{
+		// Run() at most every 200 ms (5 Hz), not on every vehicle_acceleration update
+		_vehicle_acceleration_sub.set_interval_us(200_ms);
+	}
+..
+private:
+	// Schedules Run() whenever vehicle_acceleration is published
+	uORB::SubscriptionCallbackWorkItem _vehicle_acceleration_sub{this, ORB_ID(vehicle_acceleration)};
+```
+
+In `task_spawn()`, register the callback instead of scheduling `Run()` once.
+We also move the greeting here, because `Run()` now runs repeatedly:
+
+```cpp
+	desc.object.store(instance);
+	desc.task_id = task_id_is_work_queue;
+
+	if (!instance->_vehicle_acceleration_sub.registerCallback()) {
+		PX4_ERR("callback registration failed");
+		delete instance;
+		desc.object.store(nullptr);
+		desc.task_id = -1;
+		return PX4_ERROR;
+	}
+
+	PX4_INFO("Hello Sky!");
+	return PX4_OK;
+```
+
+`Run()` now handles a `stop` request, and otherwise copies the new data with `update()` and prints it:
+
+```cpp
+void PX4SimpleApp::Run()
+{
+	if (should_exit()) {
+		_vehicle_acceleration_sub.unregisterCallback();
+		exit_and_cleanup(desc);
+		return;
+	}
+
+	vehicle_acceleration_s accel;
+
+	if (_vehicle_acceleration_sub.update(&accel)) {
+		PX4_INFO("Accelerometer: %8.4f %8.4f %8.4f",
+			 (double)accel.xyz[0], (double)accel.xyz[1], (double)accel.xyz[2]);
+	}
 }
 ```
+
+`update()` returns `true` and copies the data only if there is a new sample since the last call.
+For data that a module only needs to read now and then, without being scheduled by it, use a plain `uORB::Subscription` and call `update()` on it from `Run()` in the same way.
 
 Compile the app again by entering:
 
@@ -356,58 +445,72 @@ make px4_sitl_default
 
 ### Testing the uORB Subscription
 
-The final step is to start your application as a background process/task by typing the following in the nsh shell:
+Start the module:
 
 ```sh
-px4_simple_app &
+px4_simple_app start
 ```
 
-Your app will display 5 sensor values in the console and then exit:
+Your app will greet you and then display the acceleration five times per second:
 
 ```sh
-[px4_simple_app] Accelerometer:   0.0483          0.0821          0.0332
-[px4_simple_app] Accelerometer:   0.0486          0.0820          0.0336
-[px4_simple_app] Accelerometer:   0.0487          0.0819          0.0327
-[px4_simple_app] Accelerometer:   0.0482          0.0818          0.0323
-[px4_simple_app] Accelerometer:   0.0482          0.0827          0.0331
-[px4_simple_app] Accelerometer:   0.0489          0.0804          0.0328
+INFO  [px4_simple_app] Hello Sky!
+INFO  [px4_simple_app] Accelerometer:   0.0176  -0.0252  -9.7370
+INFO  [px4_simple_app] Accelerometer:  -0.0061  -0.0286  -9.7450
+INFO  [px4_simple_app] Accelerometer:   0.0085  -0.0317  -9.8414
+INFO  [px4_simple_app] Accelerometer:   0.0786  -0.0497  -9.7997
+INFO  [px4_simple_app] Accelerometer:   0.0087  -0.0534  -9.7937
 ```
 
-:::tip
-The [Module Template for Full Applications](../modules/module_template.md) can be used to write background process that can be controlled from the command line.
-:::
+Stop it again with:
+
+```sh
+px4_simple_app stop
+```
+
+You can see the module on its work queue with `work_queue status`.
 
 ## Publishing Data
 
 To use the calculated outputs, the next step is to _publish_ the results.
-Below we show how to publish the attitude topic.
+Below we publish the acceleration to the [DebugVect](https://github.com/PX4/PX4-Autopilot/blob/main/msg/DebugVect.msg) topic.
 
 ::: info
-We've chosen `attitude` because we know that the _mavlink_ app forwards it to the ground control station - providing an easy way to look at the results.
+We've chosen `debug_vect` because the _mavlink_ module forwards it to the ground station as the `DEBUG_VECT` message - providing an easy way to look at the results.
+Don't publish example data to topics that other modules use, like `vehicle_attitude`: the vehicle would act on it.
 :::
 
-The interface is pretty simple: initialize the `struct` of the topic to be published and advertise the topic:
+Add the publication as a member of the class:
 
-```c
-#include <uORB/topics/vehicle_attitude.h>
+```cpp
+#include <string.h>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/debug_vect.h>
 ..
-/* advertise attitude topic */
-struct vehicle_attitude_s att;
-memset(&att, 0, sizeof(att));
-orb_advert_t att_pub_fd = orb_advertise(ORB_ID(vehicle_attitude), &att);
+	uORB::Publication<debug_vect_s> _debug_vect_pub{ORB_ID(debug_vect)};
 ```
 
-In the main loop, publish the information whenever its ready:
+Then fill in the message and publish it in `Run()` whenever there is new data:
 
-```c
-orb_publish(ORB_ID(vehicle_attitude), att_pub_fd, &att);
+```cpp
+		// Publish the values, MAVLink forwards debug_vect to the ground station as DEBUG_VECT
+		debug_vect_s debug_vect{};
+		strncpy(debug_vect.name, "accel", sizeof(debug_vect.name));
+		debug_vect.x = accel.xyz[0];
+		debug_vect.y = accel.xyz[1];
+		debug_vect.z = accel.xyz[2];
+		debug_vect.timestamp = hrt_absolute_time();
+		_debug_vect_pub.publish(debug_vect);
 ```
+
+The topic is advertised automatically the first time it is published.
+Every message needs its `timestamp` set to the time of publication.
 
 ## Full Example Code
 
-The [complete example code](https://github.com/PX4/PX4-Autopilot/blob/main/src/examples/px4_simple_app/px4_simple_app.c) is now:
+The [complete example code](https://github.com/PX4/PX4-Autopilot/blob/main/src/examples/px4_simple_app/px4_simple_app.cpp) is now:
 
-```c
+```cpp
 /****************************************************************************
  *
  *   Copyright (c) 2012-2026 PX4 Development Team. All rights reserved.
@@ -442,100 +545,123 @@ The [complete example code](https://github.com/PX4/PX4-Autopilot/blob/main/src/e
  ****************************************************************************/
 
 /**
- * @file px4_simple_app.c
- * Minimal application example for PX4 autopilot
+ * @file px4_simple_app.cpp
+ * Minimal module example for PX4 autopilot
  *
  * @author Example User <mail@example.com>
  */
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/log.h>
-#include <px4_platform_common/tasks.h>
-#include <px4_platform_common/posix.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <poll.h>
 #include <string.h>
-#include <math.h>
 
-#include <uORB/uORB.h>
+#include <drivers/drv_hrt.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/debug_vect.h>
 #include <uORB/topics/vehicle_acceleration.h>
-#include <uORB/topics/vehicle_attitude.h>
 
-__EXPORT int px4_simple_app_main(int argc, char *argv[]);
+using namespace time_literals;
 
-int px4_simple_app_main(int argc, char *argv[])
+class PX4SimpleApp : public ModuleBase, public px4::WorkItem
 {
-	PX4_INFO("Hello Sky!");
+public:
+	static Descriptor desc;
 
-	/* subscribe to vehicle_acceleration topic */
-	orb_sub_t sensor_sub_fd = orb_subscribe(ORB_ID(vehicle_acceleration));
-	/* limit the update rate to 5 Hz */
-	orb_set_interval(sensor_sub_fd, 200);
-
-	/* advertise attitude topic */
-	struct vehicle_attitude_s att;
-	memset(&att, 0, sizeof(att));
-	orb_advert_t att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);
-
-	/* one could wait for multiple topics with this technique, just using one here */
-	px4_pollfd_struct_t fds[] = {
-		{ .fd = sensor_sub_fd,   .events = POLLIN },
-		/* there could be more file descriptors here, in the form like:
-		 * { .fd = other_sub_fd,   .events = POLLIN },
-		 */
-	};
-
-	int error_counter = 0;
-
-	for (int i = 0; i < 5; i++) {
-		/* wait for sensor update of 1 file descriptor for 1000 ms (1 second) */
-		int poll_ret = px4_poll(fds, 1, 1000);
-
-		/* handle the poll result */
-		if (poll_ret == 0) {
-			/* this means none of our providers is giving us data */
-			PX4_ERR("Got no data within a second");
-
-		} else if (poll_ret < 0) {
-			/* this is seriously bad - should be an emergency */
-			if (error_counter < 10 || error_counter % 50 == 0) {
-				/* use a counter to prevent flooding (and slowing us down) */
-				PX4_ERR("ERROR return value from poll(): %d", poll_ret);
-			}
-
-			error_counter++;
-
-		} else {
-
-			if (fds[0].revents & POLLIN) {
-				/* obtained data for the first file descriptor */
-				struct vehicle_acceleration_s accel;
-				/* copy sensors raw data into local buffer */
-				orb_copy(ORB_ID(vehicle_acceleration), sensor_sub_fd, &accel);
-				PX4_INFO("Accelerometer:\t%8.4f\t%8.4f\t%8.4f",
-					 (double)accel.xyz[0],
-					 (double)accel.xyz[1],
-					 (double)accel.xyz[2]);
-
-				/* set att and publish this information for other apps
-				 the following does not have any meaning, it's just an example
-				*/
-				att.q[0] = accel.xyz[0];
-				att.q[1] = accel.xyz[1];
-				att.q[2] = accel.xyz[2];
-
-				orb_publish(ORB_ID(vehicle_attitude), att_pub, &att);
-			}
-
-			/* there could be more file descriptors here, in the form like:
-			 * if (fds[1..n].revents & POLLIN) {}
-			 */
-		}
+	PX4SimpleApp() : WorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
+	{
+		// Run() at most every 200 ms (5 Hz), not on every vehicle_acceleration update
+		_vehicle_acceleration_sub.set_interval_us(200_ms);
 	}
 
-	PX4_INFO("exiting");
+	static int task_spawn(int argc, char *argv[]);
+	static int custom_command(int argc, char *argv[]) { return print_usage("unknown command"); }
+	static int print_usage(const char *reason = nullptr);
+
+private:
+	void Run() override;
+
+	// Schedules Run() whenever vehicle_acceleration is published
+	uORB::SubscriptionCallbackWorkItem _vehicle_acceleration_sub{this, ORB_ID(vehicle_acceleration)};
+
+	uORB::Publication<debug_vect_s> _debug_vect_pub{ORB_ID(debug_vect)};
+};
+
+ModuleBase::Descriptor PX4SimpleApp::desc{task_spawn, custom_command, print_usage};
+
+void PX4SimpleApp::Run()
+{
+	if (should_exit()) {
+		_vehicle_acceleration_sub.unregisterCallback();
+		exit_and_cleanup(desc);
+		return;
+	}
+
+	vehicle_acceleration_s accel;
+
+	if (_vehicle_acceleration_sub.update(&accel)) {
+		PX4_INFO("Accelerometer: %8.4f %8.4f %8.4f",
+			 (double)accel.xyz[0], (double)accel.xyz[1], (double)accel.xyz[2]);
+
+		// Publish the values, MAVLink forwards debug_vect to the ground station as DEBUG_VECT
+		debug_vect_s debug_vect{};
+		strncpy(debug_vect.name, "accel", sizeof(debug_vect.name));
+		debug_vect.x = accel.xyz[0];
+		debug_vect.y = accel.xyz[1];
+		debug_vect.z = accel.xyz[2];
+		debug_vect.timestamp = hrt_absolute_time();
+		_debug_vect_pub.publish(debug_vect);
+	}
+}
+
+int PX4SimpleApp::task_spawn(int argc, char *argv[])
+{
+	PX4SimpleApp *instance = new PX4SimpleApp();
+
+	if (instance == nullptr) {
+		PX4_ERR("alloc failed");
+		return PX4_ERROR;
+	}
+
+	desc.object.store(instance);
+	desc.task_id = task_id_is_work_queue;
+
+	if (!instance->_vehicle_acceleration_sub.registerCallback()) {
+		PX4_ERR("callback registration failed");
+		delete instance;
+		desc.object.store(nullptr);
+		desc.task_id = -1;
+		return PX4_ERROR;
+	}
+
+	PX4_INFO("Hello Sky!");
+	return PX4_OK;
+}
+
+int PX4SimpleApp::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Minimal example module: prints vehicle_acceleration at 5 Hz and publishes it as debug_vect.
+
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("px4_simple_app", "template");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
 	return 0;
+}
+
+extern "C" __EXPORT int px4_simple_app_main(int argc, char *argv[])
+{
+	return ModuleBase::main(PX4SimpleApp::desc, argc, argv);
 }
 ```
 
@@ -544,10 +670,11 @@ int px4_simple_app_main(int argc, char *argv[])
 And finally run your app:
 
 ```sh
-px4_simple_app
+px4_simple_app start
 ```
 
-If you start _QGroundControl_, you can check the sensor values in the real time plot ([Analyze > MAVLink Inspector](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/mavlink_inspector.html)).
+You can check the published values on the console with `listener debug_vect`.
+If you start _QGroundControl_, you can also look at the `DEBUG_VECT` message in the [MAVLink Inspector](https://docs.qgroundcontrol.com/master/en/qgc-user-guide/analyze_view/mavlink_inspector.html).
 
 ## Wrap-Up
 
@@ -556,4 +683,4 @@ Keep in mind that the full list of uORB messages/topics is [available here](http
 
 Further information and troubleshooting/common pitfalls can be found here: [uORB](../middleware/uorb.md).
 
-The next page presents a template for writing a full application with start and stop functionality.
+The next page presents a template for a full application with parameters, periodic scheduling and performance counters.

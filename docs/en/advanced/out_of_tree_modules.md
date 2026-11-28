@@ -36,11 +36,10 @@ To create an external module:
   px4_add_module(
   	MODULE modules__test_app
   	MAIN test_app
-  	STACK_MAIN 2000
   	SRCS
-  		px4_simple_app.c
+  		px4_simple_app.cpp
   	DEPENDS
-  		platforms__common
+  		px4_work_queue
   	EXTERNAL
   	)
   ```
