@@ -76,7 +76,9 @@ private:
 	static constexpr uint8_t ID_088 = 0x1E;
 	static constexpr uint8_t ID_090L = 0x1A;
 
-	static constexpr int32_t FIFO_MAX_SAMPLES{math::min(FIFO::SIZE / sizeof(FIFO::Data), sizeof(sensor_accel_fifo_s::x) / sizeof(sensor_accel_fifo_s::x[0]))};
+	static constexpr int32_t FIFO_MAX_SAMPLES{math::min(FIFO::SIZE / FIFO::COMBINED_FRAME_SIZE, sizeof(sensor_accel_fifo_s::x) / sizeof(sensor_accel_fifo_s::x[0]))};
+	static constexpr size_t FIFO_CONTROL_HEADROOM_BYTES{32};
+	static constexpr size_t FIFO_MAX_BYTES{FIFO_MAX_SAMPLES *FIFO::COMBINED_FRAME_SIZE + FIFO_CONTROL_HEADROOM_BYTES};
 
 
 	hrt_abstime _temperature_update_timestamp{0};
@@ -91,11 +93,11 @@ private:
 	struct FIFOReadBuffer {
 		uint8_t cmd{static_cast<uint8_t>(Register::FIFO_DATA) | DIR_READ};
 		uint8_t dummy{0};
-		FIFO::Data f[FIFO_MAX_SAMPLES] {};
+		uint8_t f[FIFO_MAX_BYTES] {};
 	};
 
 	// ensure no struct padding
-	static_assert(sizeof(FIFOReadBuffer) == (2 + FIFO_MAX_SAMPLES *sizeof(FIFO::Data)));
+	static_assert(sizeof(FIFOReadBuffer) == (2 + FIFO_MAX_BYTES));
 
 	struct register_config_t {
 		Register reg;
@@ -138,7 +140,7 @@ private:
 
 	uint16_t FIFOReadCount();
 	//bool FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples);
-	bool FIFORead(const hrt_abstime &timestamp_sample, uint16_t fifo_bytes);
+	bool FIFORead(const hrt_abstime &timestamp_sample, const hrt_abstime &now, uint16_t fifo_bytes);
 	void FIFOReset();
 
 	void UpdateTemperature();
