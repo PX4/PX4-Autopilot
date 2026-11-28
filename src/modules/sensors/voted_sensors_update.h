@@ -108,6 +108,9 @@ private:
 
 	static constexpr uint8_t DEFAULT_PRIORITY = 50;
 
+	// loose on purpose, the median already bounds the fault: several times the preflight limit (COM_ARM_IMU_GYR)
+	static constexpr float GYRO_OUTLIER_LIMIT = 0.5f; // rad/s
+
 	struct SensorData {
 		SensorData() = delete;
 		explicit SensorData(ORB_ID meta) : subscription{{meta, 0}, {meta, 1}, {meta, 2}, {meta, 3}} {}
@@ -147,6 +150,9 @@ private:
 	 * @return true if a switch occured (could be for a non-critical reason)
 	 */
 	bool checkFailover(SensorData &sensor, const char *sensor_name, events::px4::enums::sensor_type_t sensor_type);
+
+	// SENS_IMU_MODE 2 outvotes a faulty gyro silently in the rate controller: report once the gyro furthest from the others
+	void checkGyroOutlier(const sensors_status_imu_s &status);
 
 	// VehicleIMU publishes an IMU only while both of its sensors are enabled, so disabling
 	// either one takes the whole IMU out of the vote
@@ -192,12 +198,14 @@ private:
 
 	uint64_t _last_accel_timestamp[MAX_SENSOR_COUNT] {};	/**< latest full timestamp */
 
+	uint8_t _gyro_outlier_reported{0};		/**< bitmask of the gyros already reported as the outlier */
+
 	sensor_selection_s _selection {};		/**< struct containing the sensor selection to be published to the uORB */
 
 	bool _parameter_update{false};
 
 	DEFINE_PARAMETERS(
-		(ParamBool<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode
+		(ParamInt<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode
 	)
 };
 

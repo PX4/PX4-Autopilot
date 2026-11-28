@@ -383,6 +383,37 @@ bool VotedSensorsUpdate::checkFailover(SensorData &sensor, const char *sensor_na
 	return false;
 }
 
+void VotedSensorsUpdate::checkGyroOutlier(const sensors_status_imu_s &status)
+{
+	int count = 0;
+	uint8_t worst = 0;
+
+	for (uint8_t i = 0; i < MAX_SENSOR_COUNT; i++) {
+		if (status.gyro_device_ids[i] != 0) {
+			count++;
+
+			if (status.gyro_inconsistency_rad_s[i] > status.gyro_inconsistency_rad_s[worst]) {
+				worst = i;
+			}
+		}
+	}
+
+	// two gyros are equally far from their mean, which names neither
+	if ((count >= 3) && (status.gyro_inconsistency_rad_s[worst] > GYRO_OUTLIER_LIMIT)
+	    && !(_gyro_outlier_reported & (1u << worst))) {
+		_gyro_outlier_reported |= (1u << worst);
+
+		/* EVENT
+		 * @description
+		 * The gyro disagrees with the other gyros and the rate controller outvotes it with their median.
+		 * The estimator keeps using it while it is the selected IMU.
+		 * A fault of a second gyro can no longer be outvoted: land and check the system.
+		 */
+		events::send<uint8_t>(events::ID("sensor_imu_gyro_outlier"), events::Log::Warning,
+				      "Gyro #{1} outvoted by the other gyros", worst);
+	}
+}
+
 void VotedSensorsUpdate::initSensorClass(SensorData &sensor_data, uint8_t sensor_count_max)
 {
 	bool added = false;
@@ -462,6 +493,9 @@ void VotedSensorsUpdate::sensorsPoll(sensor_combined_s &raw)
 		}
 	}
 
+	if (_param_sens_imu_mode.get() == 2) {
+		checkGyroOutlier(status);
+	}
 
 	status.timestamp = hrt_absolute_time();
 	_sensors_status_imu_pub.publish(status);

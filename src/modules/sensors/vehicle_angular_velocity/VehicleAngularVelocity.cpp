@@ -42,11 +42,16 @@ using namespace matrix;
 namespace sensors
 {
 
-VehicleAngularVelocity::VehicleAngularVelocity() :
+VehicleAngularVelocity::VehicleAngularVelocity(int8_t imu_instance) :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
+	_imu_instance(imu_instance)
 {
 	_vehicle_angular_velocity_pub.advertise();
+
+	if (_imu_instance >= 0) {
+		_vehicle_angular_velocity_imu_pub.advertise();
+	}
 }
 
 VehicleAngularVelocity::~VehicleAngularVelocity()
@@ -203,6 +208,30 @@ void VehicleAngularVelocity::ResetFilters(const hrt_abstime &time_now_us)
 
 void VehicleAngularVelocity::SensorBiasUpdate(bool force)
 {
+	if (_imu_instance >= 0) {
+		// every gyro removes its own estimated bias before the median: EKF2 estimates the bias of the selected IMU,
+		// with EKF2_MULTI_IMU of every IMU (instances 0 to 3 run on the first magnetometer, one per IMU)
+		if (_estimator_sensor_bias_subs.updated() || force) {
+			bool found = false;
+
+			// copy every instance so that updated() only fires again on new data
+			for (auto &estimator_sensor_bias_sub : _estimator_sensor_bias_subs) {
+				estimator_sensor_bias_s bias;
+
+				if (estimator_sensor_bias_sub.copy(&bias) && !found && (bias.gyro_device_id == _selected_sensor_device_id)) {
+					_bias = Vector3f{bias.gyro_bias};
+					found = true;
+				}
+			}
+
+			if (!found) {
+				_bias.zero();
+			}
+		}
+
+		return;
+	}
+
 	// find corresponding estimated sensor bias
 	if (_estimator_selector_status_sub.updated()) {
 		estimator_selector_status_s estimator_selector_status;
@@ -257,6 +286,20 @@ bool VehicleAngularVelocity::SensorSelectionUpdate(const hrt_abstime &time_now_u
 		// if no gyro selected or healthy then use fallback
 		if ((device_id == 0) || !selected_device_id_valid) {
 			device_id = device_id_first_valid_imu;
+		}
+
+		_sensor_selection_gyro_device_id = sensor_selection.gyro_device_id;
+
+		if (_imu_instance >= 0) {
+			// always filter the same gyro, the selection only decides which instance publishes the median
+			const sensor_gyro_s gyro = uORB::SubscriptionData<sensor_gyro_s> {ORB_ID(sensor_gyro), (uint8_t)_imu_instance} .get();
+
+			// wait quietly while this gyro is missing instead of reporting it on every retry
+			if ((gyro.device_id == 0) || (time_now_us > gyro.timestamp + 1_s)) {
+				return false;
+			}
+
+			device_id = gyro.device_id;
 		}
 
 		if ((_selected_sensor_device_id != device_id) || force) {
@@ -686,7 +729,7 @@ void VehicleAngularVelocity::UpdateDynamicNotchFFT(const hrt_abstime &time_now_u
 		sensor_gyro_fft_s sensor_gyro_fft;
 
 		if (_sensor_gyro_fft_sub.copy(&sensor_gyro_fft)
-		    && (sensor_gyro_fft.device_id == _selected_sensor_device_id)
+		    && ((sensor_gyro_fft.device_id == _selected_sensor_device_id) || (_imu_instance >= 0)) // FFT of the selected gyro
 		    && (time_now_us < sensor_gyro_fft.timestamp + DYNAMIC_NOTCH_FITLER_TIMEOUT)
 		    && ((fabsf(sensor_gyro_fft.sensor_sample_rate_hz - _filter_sample_rate_hz) / _filter_sample_rate_hz) < 0.02f)) {
 
@@ -929,7 +972,6 @@ bool VehicleAngularVelocity::CalibrateAndPublish(const hrt_abstime &timestamp_sa
 {
 	if (timestamp_sample >= _last_publish + _publish_interval_min_us) {
 
-		// Publish vehicle_angular_velocity
 		vehicle_angular_velocity_s angular_velocity;
 		angular_velocity.timestamp_sample = timestamp_sample;
 
@@ -941,8 +983,24 @@ bool VehicleAngularVelocity::CalibrateAndPublish(const hrt_abstime &timestamp_sa
 		_angular_acceleration = _calibration.rotation() * angular_acceleration_uncalibrated;
 		_angular_acceleration.copyTo(angular_velocity.xyz_derivative);
 
-		angular_velocity.timestamp = hrt_absolute_time();
-		_vehicle_angular_velocity_pub.publish(angular_velocity);
+		bool publish = true;
+
+		if (_imu_instance >= 0) {
+			angular_velocity.timestamp = hrt_absolute_time();
+			_vehicle_angular_velocity_imu_pub.publish(angular_velocity);
+
+			// only the instance of the selected gyro publishes, the median of all IMUs
+			publish = (_selected_sensor_device_id == _sensor_selection_gyro_device_id);
+
+			if (publish) {
+				ApplyImuMedian(angular_velocity);
+			}
+		}
+
+		if (publish) {
+			angular_velocity.timestamp = hrt_absolute_time();
+			_vehicle_angular_velocity_pub.publish(angular_velocity);
+		}
 
 		// shift last publish time forward, but don't let it get further behind than the interval
 		_last_publish = math::constrain(_last_publish + _publish_interval_min_us,
@@ -952,6 +1010,29 @@ bool VehicleAngularVelocity::CalibrateAndPublish(const hrt_abstime &timestamp_sa
 	}
 
 	return false;
+}
+
+void VehicleAngularVelocity::ApplyImuMedian(vehicle_angular_velocity_s &angular_velocity)
+{
+	// latest output of two other recent IMUs
+	vehicle_angular_velocity_s imu[2];
+	int count = 0;
+
+	for (int i = 0; (i < MAX_SENSOR_COUNT) && (count < 2); i++) {
+		if ((i != _vehicle_angular_velocity_imu_pub.get_instance()) && _vehicle_angular_velocity_imu_subs[i].copy(&imu[count])
+		    && (angular_velocity.timestamp_sample < imu[count].timestamp_sample + IMU_MEDIAN_SAMPLE_TIMEOUT_US)) {
+			count++;
+		}
+	}
+
+	if (count == 2) {
+		// per-axis median of three
+		for (int axis = 0; axis < 3; axis++) {
+			angular_velocity.xyz[axis] = median3(angular_velocity.xyz[axis], imu[0].xyz[axis], imu[1].xyz[axis]);
+			angular_velocity.xyz_derivative[axis] = median3(angular_velocity.xyz_derivative[axis], imu[0].xyz_derivative[axis],
+								imu[1].xyz_derivative[axis]);
+		}
+	}
 }
 
 void VehicleAngularVelocity::PrintStatus()
