@@ -220,6 +220,9 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - The neural network controller (`mc_nn_control`) now rejects at load a model whose input or output shape does not match what the controller expects, checks the position, attitude and angular velocity observations each cycle for validity, age and finiteness, and reports a fault on a bad observation or a non-finite output instead of stopping one motor. ([PX4-Autopilot#28504](https://github.com/PX4/PX4-Autopilot/pull/28504))
 - The multicopter position controller now moves its stored fallback setpoint along with the current setpoint when the estimator resets its position, velocity or heading, so when the setpoint is unusable at the moment of a reset the controller no longer flies a fallback setpoint that is offset by the amount of the reset. ([PX4-Autopilot#28810](https://github.com/PX4/PX4-Autopilot/pull/28810))
 - [Follow Me](../flight_modes_mc/follow_me.md) no longer treats an [EKF2 instance switch](../advanced_config/tuning_the_ecl_ekf.md#running-multiple-ekf-instances) or a change of the local origin as a jump of the target while the mode is active. The vehicle holds its position until the next target position message and keeps its altitude instead of climbing or descending by the change in reference altitude. ([PX4-Autopilot#29029](https://github.com/PX4/PX4-Autopilot/pull/29029))
+- Added smart mission rejoin for multicopters ([MIS_ROUTE_JOIN](../advanced_config/parameter_reference.md#MIS_ROUTE_JOIN), off by default): starting or resuming Mission in flight joins the uploaded route near the vehicle instead of flying back to the current mission item.
+  It needs firmware built with the mission route cache; SITL builds include it.
+  See [Smart Mission Rejoin](../flight_modes_mc/mission.md#smart-mission-rejoin).
 
 ### VTOL
 

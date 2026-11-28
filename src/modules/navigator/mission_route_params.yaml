@@ -1,0 +1,32 @@
+module_name: navigator
+parameters:
+- group: Mission
+  definitions:
+    MIS_ROUTE_JOIN:
+      description:
+        short: Rejoin the mission route when Mission starts or resumes in flight
+        long: |-
+          A multicopter that starts or resumes Mission in flight joins the route
+          near it instead of flying to the current item, also on the first start
+          after an upload. Skipped items do not run, but their speed, camera and
+          gimbal settings are restored. Legs before the paused item may be flown
+          again, with their commands. A finished mission holds.
+          A camera survey paused while triggering is joined too: it is not flown
+          back to its previous waypoint and misses images, so keep this off for
+          camera surveys.
+      type: boolean
+      default: 0
+    MIS_MC_SEG_DIST:
+      description:
+        short: Leg search margin of the multicopter mission rejoin
+        long: |-
+          Mission legs up to this much farther from the vehicle than the nearest leg
+          are also considered for the rejoin (MIS_ROUTE_JOIN). Example: with the
+          nearest leg 10 m away and the current leg 35 m away, 30 m rejoins the
+          current leg.
+      type: float
+      default: 30.0
+      unit: m
+      min: 0
+      decimal: 1
+      increment: 1

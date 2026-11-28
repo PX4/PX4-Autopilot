@@ -55,6 +55,7 @@
 #include <vector>
 
 #include <cstring>
+#include <drivers/drv_hrt.h>
 #include <px4_platform_common/posix.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
@@ -63,6 +64,7 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 
 class MissionBaseTestPeer : public MissionBase
@@ -138,11 +140,72 @@ public:
 
 	bool missionChecked() const { return _mission_check_state == MissionCheckState::Complete; }
 
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	void setMulticopterStatus()
+	{
+		vehicle_status_s status{};
+		status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+		status.timestamp = hrt_absolute_time();
+		_vehicle_status_pub.publish(status);
+		_vehicle_status_sub.update();
+
+		if (_navigator) {
+			*_navigator->get_vstatus() = status;
+		}
+	}
+
+	const mission_route::ActiveJumpAnchor &jumpAnchor() const { return _active_jump_anchor; }
+	void setJumpAnchor(const mission_route::ActiveJumpAnchor &anchor) { _active_jump_anchor = anchor; }
+
+	void setDisarmedSinceActivation()
+	{
+		_mission_has_been_activated = true;
+		_system_disarmed_while_inactive = true;
+	}
+
+	// Publish the mission again with new contents or a new current item, as MAVLink does, and read it.
+	void processMissionSourceChange(bool items_changed = true)
+	{
+		mission_s mission = _mission;
+		mission.timestamp = hrt_absolute_time();
+
+		if (items_changed) {
+			++mission.mission_id;
+
+		} else {
+			++mission.current_seq;
+		}
+
+		_mission_pub.publish(mission);
+		updateMavlinkMission();
+	}
+
+	// A pending join whose branch-in waypoint is being flown.
+	void flyJoinRoute(const mission_route::Position &join_position)
+	{
+		_route_join_position = join_position;
+		_work_item_type = WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE;
+	}
+
+	bool joinWorkItemActive() const
+	{
+		return _work_item_type == WorkItemType::WORK_ITEM_TYPE_JOIN_ROUTE;
+	}
+
+	const mission_route::Position &joinPosition() const
+	{
+		return _route_join_position;
+	}
+
+	using MissionBase::checkMissionRestart;
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
+
 	using MissionBase::findNextPositionIndex;
 	using MissionBase::findPreviousPositionIndex;
 	using MissionBase::getNonJumpItem;
 	using MissionBase::getNextPositionItems;
 	using MissionBase::getPreviousPositionItems;
+	using MissionBase::goToNextItem;
 	using MissionBase::goToNextPositionItem;
 	using MissionBase::goToPreviousPositionItem;
 	using MissionBase::MissionTraversalType;
@@ -150,6 +213,9 @@ public:
 
 private:
 	navigator_test::VectorMissionItemStore _mission_store{};
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+	uORB::Publication<vehicle_status_s> _vehicle_status_pub {ORB_ID(vehicle_status)};
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
 };
 
 class IgnoreDoJumpMissionBaseTestPeer : public MissionBaseTestPeer
@@ -1271,8 +1337,8 @@ protected:
 		while (_mavlink_log_sub.update(&report)) {}
 	}
 
-	// [WP0, WP1, DO_JUMP->0 with two repeats left, WP3]
-	void loadJumpMission()
+	// [WP0, WP1, DO_JUMP->0 with two repeats, WP3], the jump taken current_count times
+	void loadJumpMission(uint16_t current_count = 0)
 	{
 		mission_s mission{};
 		mission.timestamp = hrt_absolute_time();
@@ -1283,7 +1349,7 @@ protected:
 		mission_base.loadTestMission({
 			makePositionItem(kBaseLat, kBaseLon, kAlt), // idx 0
 			makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt), // idx 1
-			makeDoJump(0, 2, 0), // idx 2
+			makeDoJump(0, 2, current_count), // idx 2
 			makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt), // idx 3
 		}, mission);
 	}
@@ -1865,3 +1931,89 @@ TEST_F(IgnoreDoJumpMissionBaseTraversalTest, ConfiguredTraversalSkipsDoJumpForGo
 	EXPECT_EQ(ret, PX4_OK);
 	EXPECT_EQ(mission_base.currentSequence(), 1);
 }
+
+#if CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE > 0
+// MissionBase logic of the route join.
+class MissionBaseRouteTest : public NavigatorDatamanTestBase
+{
+protected:
+	// Publishes a multicopter in the air for every test, whatever a previous test left on these topics.
+	void SetUp() override
+	{
+		mission_base.setMulticopterStatus();
+		vehicle_land_detected_s land_detected{};
+		land_detected.timestamp = hrt_absolute_time();
+		_land_detected_pub.publish(land_detected);
+	}
+
+	MissionBaseTestPeer mission_base{};
+	uORB::Publication<vehicle_land_detected_s> _land_detected_pub{ORB_ID(vehicle_land_detected)};
+};
+
+// A replacement mission and an external sequence change both drop the join.
+TEST_F(MissionBaseRouteTest, MissionUpdateClearsJoin)
+{
+	for (const bool items_changed : {true, false}) {
+		SCOPED_TRACE(items_changed);
+		Navigator navigator{};
+		MissionBaseTestPeer mission_base_with_nav{&navigator};
+		mission_base_with_nav.loadTestMission({makePositionItem(kBaseLat, kBaseLon, kAlt)});
+		mission_base_with_nav.flyJoinRoute({kBaseLat, kBaseLon, kAlt});
+		ASSERT_TRUE(mission_base_with_nav.joinWorkItemActive());
+
+		mission_base_with_nav.processMissionSourceChange(items_changed);
+
+		EXPECT_FALSE(mission_base_with_nav.joinWorkItemActive());
+		EXPECT_FALSE(mission_base_with_nav.joinPosition().valid());
+	}
+}
+
+// An advance records the jump it takes as the edge the vehicle flies. It does not record a jump it steps over:
+// one without repeats left, or one whose counter cannot be stored.
+TEST_F(MissionBaseJumpCounterWriteTest, AdvanceRecordsTheJumpItTakes)
+{
+	struct Row {
+		uint16_t current_count;
+		bool write_fails;
+		bool taken;
+	};
+
+	for (const Row &row : {Row{0, false, true}, Row{2, false, false}, Row{0, true, false}}) {
+		SCOPED_TRACE(::testing::Message() << "current_count=" << row.current_count << ", write_fails=" << row.write_fails);
+		loadJumpMission(row.current_count);
+		mission_base.setJumpAnchor({});
+
+		if (row.write_fails) {
+			mission_base.setWriteFailureIndices({2});
+		}
+
+		mission_base.setCurrentSequence(1);
+
+		ASSERT_EQ(mission_base.goToNextItem(), PX4_OK);
+
+		EXPECT_EQ(mission_base.currentSequence(), row.taken ? 0 : 3);
+		EXPECT_EQ(mission_base.jumpAnchor().jump_item_index, row.taken ? 2 : -1);
+	}
+}
+
+// A restart after a disarm also leaves the jump edge, so a join plans the restarted mission from its start.
+TEST_F(MissionBaseRouteTest, RestartLeavesTheJumpEdge)
+{
+	Navigator navigator{};
+	MissionBaseTestPeer mission_base_with_nav{&navigator};
+	mission_base_with_nav.loadTestMission({
+		makePositionItem(kBaseLat, kBaseLon, kAlt),
+		makePositionItem(kBaseLat + 0.001, kBaseLon, kAlt),
+		makeDoJump(0, 3, 1),
+		makePositionItem(kBaseLat + 0.002, kBaseLon, kAlt),
+	});
+	mission_base_with_nav.setCurrentSequence(3);
+	mission_base_with_nav.setJumpAnchor({2});
+	mission_base_with_nav.setDisarmedSinceActivation();
+
+	mission_base_with_nav.checkMissionRestart();
+
+	EXPECT_EQ(mission_base_with_nav.currentSequence(), 0);
+	EXPECT_TRUE(mission_base_with_nav.jumpAnchor().empty());
+}
+#endif // CONFIG_NAVIGATOR_FULL_MISSION_CACHE_SIZE
