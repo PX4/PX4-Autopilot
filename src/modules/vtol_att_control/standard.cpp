@@ -165,11 +165,7 @@ void Standard::update_transition_state()
 	} else if (_common_vtol_mode == mode::TRANSITION_TO_MC) {
 
 		// continually increase mc attitude control as we transition back to mc mode
-		if (_param_vt_b_trans_ramp.get() > FLT_EPSILON) {
-			mc_weight = _time_since_trans_start / _param_vt_b_trans_ramp.get();
-		}
-
-		mc_weight = math::constrain(mc_weight, 0.0f, 1.0f);
+		mc_weight = math::interpolate(_time_since_trans_start, 0.f, _param_vt_b_trans_ramp.get(), 0.f, 1.f);
 
 		if (_v_control_mode->flag_control_climb_rate_enabled) {
 			// control backtransition deceleration using pitch.
@@ -177,7 +173,7 @@ void Standard::update_transition_state()
 
 			// blend roll setpoint between FW and MC
 			const float roll_body_fw = Eulerf(Quatf(_fw_virtual_att_sp->q_d)).phi();
-			roll_body = mc_weight * roll_body + (1.0f - mc_weight) * roll_body_fw;
+			roll_body = math::lerp(roll_body_fw, roll_body, mc_weight);
 		}
 
 		Quatf(Eulerf(roll_body, pitch_body, yaw_body)).copyTo(_v_att_sp->q_d);
@@ -318,7 +314,7 @@ Standard::waiting_on_tecs()
 void Standard::blendThrottleAfterFrontTransition(float scale)
 {
 	const float tecs_throttle = _v_att_sp->thrust_body[0];
-	_v_att_sp->thrust_body[0] = scale * tecs_throttle + (1.0f - scale) * _pusher_throttle;
+	_v_att_sp->thrust_body[0] = math::lerp(_pusher_throttle, tecs_throttle, scale);
 }
 
 void Standard::blendPitchAfterFrontTransition(float scale)
@@ -328,7 +324,7 @@ void Standard::blendPitchAfterFrontTransition(float scale)
 	}
 
 	const Eulerf fw_attitude_setpoint(Quatf(_v_att_sp->q_d));
-	const float pitch_body = scale * fw_attitude_setpoint.theta() + (1.0f - scale) * _front_transition_pitch;
+	const float pitch_body = math::lerp(_front_transition_pitch, fw_attitude_setpoint.theta(), scale);
 	const Quatf q_sp(Eulerf(fw_attitude_setpoint.phi(), pitch_body, fw_attitude_setpoint.psi()));
 	q_sp.copyTo(_v_att_sp->q_d);
 }
