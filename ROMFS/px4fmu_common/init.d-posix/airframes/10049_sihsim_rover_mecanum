@@ -1,0 +1,56 @@
+#!/bin/sh
+# @name Rover Mecanum
+# @type Rover
+# @class Rover
+
+. ${R}etc/init.d/rc.rover_mecanum_defaults
+
+PX4_SIMULATOR=${PX4_SIMULATOR:=sihsim}
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=rover_mecanum}
+
+param set-default SIH_VEHICLE_TYPE 7 # sih as rover mecanum
+
+param set-default PWM_MAIN_FUNC1 101 # Right front wheel
+param set-default PWM_MAIN_FUNC2 102 # Left front wheel
+param set-default PWM_MAIN_FUNC3 103 # Right back wheel
+param set-default PWM_MAIN_FUNC4 104 # Left back wheel
+param set-default SIH_MASS 20
+param set-default SIH_IXX 0.75
+param set-default SIH_IYY 1.2167
+param set-default SIH_IZZ 1.6667
+param set-default SIH_IXZ 0
+param set-default SIH_KDW 1
+
+param set-default SENS_EN_GPSSIM 1
+param set-default SENS_EN_BAROSIM 1
+param set-default SENS_EN_MAGSIM 1
+
+# Mecanum Parameters
+param set-default RM_WHEEL_TRACK 0.6
+param set-default RM_YAW_STK_GAIN 0.6
+
+# Rate Control Parameters
+param set-default RO_YAW_RATE_I 0.01
+param set-default RO_YAW_RATE_P 0.25
+param set-default RO_YAW_RATE_LIM 180
+param set-default RO_YAW_ACCEL_LIM 400
+param set-default RO_YAW_DECEL_LIM 800
+param set-default RO_YAW_RATE_CORR 1
+
+# Attitude Control Parameters
+param set-default RO_YAW_P 5
+
+# Velocity Control Parameters
+param set-default RO_ACCEL_LIM 3
+param set-default RO_DECEL_LIM 4
+param set-default RO_JERK_LIM 10
+param set-default RO_MAX_THR_SPEED 2
+param set-default RO_SPEED_LIM 1.8
+param set-default RO_SPEED_I 0.01
+param set-default RO_SPEED_P 0.01
+param set-default RO_SPEED_RED 1
+
+# Pure Pursuit parameters
+param set-default PP_LOOKAHD_GAIN 1
+param set-default PP_LOOKAHD_MAX 10
+param set-default PP_LOOKAHD_MIN 1
