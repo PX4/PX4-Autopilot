@@ -70,6 +70,7 @@ static constexpr uint32_t SPI_STALL_PERIOD = 5;
 static constexpr uint32_t SW_RESET_MS        = 350;
 static constexpr uint32_t RST_PULSE_US       = 100;
 static constexpr uint32_t DEC_RATE_UPDATE_US = 30;
+static constexpr uint32_t FIFO_CTRL_UPDATE_US = 30;
 static constexpr uint32_t FILT_UPDATE_US     = 30;
 static constexpr uint32_t MSC_CTRL_UPDATE_US = 200;
 static constexpr uint32_t RETRY_DELAY_US     = 100'000;
@@ -91,6 +92,7 @@ static constexpr uint16_t ADIS16577_PROD_ID = 0x40C1;
 
 enum class Register : uint8_t {
 	DIAG_STAT  = 0x02,
+	FIFO_CTRL  = 0x5A,
 	FILT_CTRL  = 0x5C,
 	RNG_MDL    = 0x5E,
 	MSC_CTRL   = 0x60,

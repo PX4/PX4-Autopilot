@@ -109,7 +109,6 @@ private:
 	uint16_t _prod_id{0};
 	uint16_t _last_data_cntr{0};
 	px4::atomic<hrt_abstime> _drdy_timestamp_sample{0};
-	int32_t _drdy_count{0};
 	bool _data_ready_interrupt_enabled{false};
 
 	int _failure_count{0};
@@ -123,9 +122,9 @@ private:
 	} _state{STATE::RESET};
 
 	// SPI register access
-	uint16_t	read_reg16(Register reg);
+	bool		read_reg16(Register reg, uint16_t &val);
 	bool		write_reg16(Register reg, uint16_t val);
-	bool		write_reg16_verified(Register reg, uint16_t val, int retries = 3);
+	bool		write_reg16_verified(Register reg, uint16_t val, uint32_t settle_us = 0, int retries = 3);
 
 	// Burst read
 	bool		read_burst32(adis1657x_burst &burst);

@@ -129,9 +129,9 @@ private:
 	STATE _state{STATE::RESET};
 
 	// SPI register access
-	uint16_t read_reg16(Register reg);
+	bool     read_reg16(Register reg, uint16_t &val);
 	bool     write_reg16(Register reg, uint16_t val);
-	bool     write_reg16_verified(Register reg, uint16_t val, int retries = 3);
+	bool     write_reg16_verified(Register reg, uint16_t val, uint32_t settle_us = 0, int retries = 3);
 
 	// Burst read
 	bool read_burst32(adis1650x_burst &burst);

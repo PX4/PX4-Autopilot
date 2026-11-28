@@ -45,7 +45,7 @@ namespace Analog_Devices_ADIS1650x
 {
 
 
-static constexpr uint32_t SPI_SPEED          = 1'100'000;
+static constexpr uint32_t SPI_SPEED          = 1'000'000;
 static constexpr uint32_t SPI_STALL_US       = 16;
 
 // Timing constants
@@ -93,32 +93,33 @@ static constexpr uint16_t MSC_CTRL_BURST_32 = (1 << 9);  // 32-bit burst mode
 static constexpr uint16_t GLOB_CMD_SW_RESET        = (1 << 7);
 static constexpr uint16_t GLOB_CMD_SENSOR_SELF_TEST = (1 << 2);
 
-// Self-test duration (datasheet t_ST)
-static constexpr uint32_t SELF_TEST_TIME_MS = 24;
+// Self-test duration (datasheet t_ST; ADIS16501 is 29 ms typ)
+static constexpr uint32_t SELF_TEST_TIME_MS       = 24;
+static constexpr uint32_t SELF_TEST_TIME_16501_MS = 35;
 
-// DIAG_STAT register bits
+// DIAG_STAT register bits (Table 11 on ADIS16500/16505/16507; bits 10:8 reserved on ADIS16501)
 enum DIAG_STAT_BIT : uint16_t {
-	DIAG_STAT_Z_ACCEL_FAILURE      = (1 << 13),
-	DIAG_STAT_Y_ACCEL_FAILURE      = (1 << 12),
-	DIAG_STAT_X_ACCEL_FAILURE      = (1 << 11),
-	DIAG_STAT_Z_GYRO_FAILURE       = (1 << 10),
-	DIAG_STAT_Y_GYRO_FAILURE       = (1 <<  9),
-	DIAG_STAT_X_GYRO_FAILURE       = (1 <<  8),
+	DIAG_STAT_ACCEL_FAILURE        = (1 << 10),
+	DIAG_STAT_GYRO_2_FAILURE       = (1 <<  9),
+	DIAG_STAT_GYRO_1_FAILURE       = (1 <<  8),
+	DIAG_STAT_CLOCK_ERROR          = (1 <<  7),
+	DIAG_STAT_MEMORY_FAILURE       = (1 <<  6),
 	DIAG_STAT_SELF_TEST_ERR        = (1 <<  5),
-	DIAG_STAT_POWER_SUPPLY         = (1 <<  4),
+	DIAG_STAT_STANDBY_MODE         = (1 <<  4),
 	DIAG_STAT_SPI_COMM_ERROR       = (1 <<  3),
 	DIAG_STAT_FLASH_UPDATE_FAILURE = (1 <<  2),
 	DIAG_STAT_DATAPATH_OVERRUN     = (1 <<  1),
-	DIAG_STAT_SENSOR_INIT_FAILURE  = (1 <<  0),
 };
 
 // Filter flush delay: >= 1/(2000 Hz) to allow one output cycle between bursts
 static constexpr uint32_t FILT_FLUSH_DELAY_US = 1100;
 
 // Group delay base values (no filtering, no decimation) from datasheet Table 8
-static constexpr float GROUP_DELAY_ACCEL_BASE_US = 1570.0f;
-static constexpr float GROUP_DELAY_GYRO_BASE_US  = 1437.0f;  // average of X=1510, Y=1510, Z=1290
-static constexpr float SAMPLE_PERIOD_US          = 500.0f;    // 1/2000 Hz = 500 us
+static constexpr float GROUP_DELAY_ACCEL_BASE_US       = 1570.0f;
+static constexpr float GROUP_DELAY_GYRO_BASE_US        = 1437.0f; // average of X=1510, Y=1510, Z=1290
+static constexpr float GROUP_DELAY_ACCEL_16501_BASE_US = 1370.0f;
+static constexpr float GROUP_DELAY_GYRO_16501_BASE_US  = 1487.0f; // average of X=1560, Y=1560, Z=1340 (MSC_CTRL bit 4 = 0)
+static constexpr float SAMPLE_PERIOD_US                = 500.0f;  // 1/2000 Hz = 500 us
 
 // RNG_MDL gyro range bits [3:2]
 static constexpr uint16_t RNG_MDL_GYRO_MASK  = 0x0C;

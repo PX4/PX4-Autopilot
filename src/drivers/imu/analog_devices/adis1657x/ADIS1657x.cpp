@@ -75,25 +75,26 @@ ADIS1657x::~ADIS1657x()
 
 // --- SPI register access ---
 
-uint16_t ADIS1657x::read_reg16(Register reg)
+bool ADIS1657x::read_reg16(Register reg, uint16_t &val)
 {
 	uint8_t addr = static_cast<uint8_t>(reg);
 	uint8_t cmd[2] = {addr, 0x00};
 	uint8_t reply[2] = {};
 
 	if (SPI::transfer(cmd, nullptr, sizeof(cmd)) != PX4_OK) {
-		return 0;
+		return false;
 	}
 
 	px4_udelay(SPI_STALL_PERIOD);
 
 	if (SPI::transfer(nullptr, reply, sizeof(reply)) != PX4_OK) {
-		return 0;
+		return false;
 	}
 
 	px4_udelay(SPI_STALL_PERIOD);
 
-	return static_cast<uint16_t>(reply[0] << 8 | reply[1]);
+	val = static_cast<uint16_t>(reply[0] << 8 | reply[1]);
+	return true;
 }
 
 bool ADIS1657x::write_reg16(Register reg, uint16_t val)
@@ -122,12 +123,20 @@ bool ADIS1657x::write_reg16(Register reg, uint16_t val)
 	return true;
 }
 
-bool ADIS1657x::write_reg16_verified(Register reg, uint16_t val, int retries)
+bool ADIS1657x::write_reg16_verified(Register reg, uint16_t val, uint32_t settle_us, int retries)
 {
 	for (int i = 0; i < retries; i++) {
-		write_reg16(reg, val);
+		if (!write_reg16(reg, val)) {
+			continue;
+		}
 
-		if (read_reg16(reg) == val) {
+		if (settle_us > 0) {
+			px4_udelay(settle_us);
+		}
+
+		uint16_t readback = 0;
+
+		if (read_reg16(reg, readback) && readback == val) {
 			return true;
 		}
 	}
@@ -175,10 +184,17 @@ bool ADIS1657x::validate_checksum(const adis1657x_burst &burst)
 bool ADIS1657x::self_test()
 {
 	// DIN sequence: 0xE804, 0xE900 — sets GLOB_CMD bit 2 (sensor self test)
-	write_reg16(Register::GLOB_CMD, GLOB_CMD_SENSOR_SELF_TEST);
+	if (!write_reg16(Register::GLOB_CMD, GLOB_CMD_SENSOR_SELF_TEST)) {
+		return false;
+	}
+
 	px4_usleep(SELF_TEST_TIME_MS * 1000);
 
-	const uint16_t diag_stat = read_reg16(Register::DIAG_STAT);
+	uint16_t diag_stat = 0;
+
+	if (!read_reg16(Register::DIAG_STAT, diag_stat)) {
+		return false;
+	}
 
 	if (diag_stat & DIAG_STAT_SELF_TEST_ERR) {
 		PX4_ERR("self test failed, DIAG_STAT=0x%04X", diag_stat);
@@ -190,7 +206,13 @@ bool ADIS1657x::self_test()
 
 int ADIS1657x::probe()
 {
-	_prod_id = read_reg16(Register::PROD_ID);
+	uint16_t prod_id = 0;
+
+	if (!read_reg16(Register::PROD_ID, prod_id)) {
+		return -EIO;
+	}
+
+	_prod_id = prod_id;
 
 	if (_prod_id != ADIS16575_PROD_ID
 	    && _prod_id != ADIS16576_PROD_ID
@@ -254,6 +276,10 @@ bool ADIS1657x::Configure()
 		break;
 
 	case ADIS16576_PROD_ID:
+		_accel_scale = CONSTANTS_ONE_G / 52428800.0f;
+		_px4_accel.set_range(14.0f * CONSTANTS_ONE_G);
+		break;
+
 	case ADIS16577_PROD_ID:
 		_accel_scale = CONSTANTS_ONE_G / 52428800.0f;
 		_px4_accel.set_range(40.0f * CONSTANTS_ONE_G);
@@ -265,7 +291,12 @@ bool ADIS1657x::Configure()
 	}
 
 	// Determine gyro scale and range from RNG_MDL register
-	uint16_t rng_mdl = read_reg16(Register::RNG_MDL);
+	uint16_t rng_mdl = 0;
+
+	if (!read_reg16(Register::RNG_MDL, rng_mdl)) {
+		return false;
+	}
+
 	uint8_t gyro_range = rng_mdl & RNG_MDL_GYRO_MASK;
 
 	switch (gyro_range) {
@@ -292,33 +323,33 @@ bool ADIS1657x::Configure()
 	PX4_DEBUG("Accel scale: %.6e m/s^2/LSB", (double)_accel_scale);
 	PX4_DEBUG("Gyro scale: %.6e rad/s/LSB", (double)_gyro_scale);
 
-	// Enable 32-bit burst mode; OUT_SEL=0 (gyro/accel); POP_EN and GSEN_EN use factory calibration
-	if (!write_reg16_verified(Register::MSC_CTRL, MSC_CTRL_DEFAULT | MSC_CTRL_BURST_32)) {
+	// Disable FIFO mode (direct output mode) so saved flash settings cannot stall burst reads
+	if (!write_reg16_verified(Register::FIFO_CTRL, 0x0000, FIFO_CTRL_UPDATE_US)) {
 		return false;
 	}
 
-	px4_udelay(MSC_CTRL_UPDATE_US);
+	// Enable 32-bit burst mode; OUT_SEL=0 (gyro/accel); POP_EN and GSEN_EN use factory calibration
+	if (!write_reg16_verified(Register::MSC_CTRL, MSC_CTRL_DEFAULT | MSC_CTRL_BURST_32, MSC_CTRL_UPDATE_US)) {
+		return false;
+	}
 
 	PX4_DEBUG("Setting DEC_RATE=%d (sample_rate=%.0f Hz)", _dec_rate,
 		  (double)(INT_CLK_HZ / (_dec_rate + 1)));
 
-	if (!write_reg16_verified(Register::DEC_RATE, static_cast<uint16_t>(_dec_rate))) {
+	if (!write_reg16_verified(Register::DEC_RATE, static_cast<uint16_t>(_dec_rate), DEC_RATE_UPDATE_US)) {
 		return false;
 	}
 
-	px4_udelay(DEC_RATE_UPDATE_US);
-
 	_sample_rate_hz = static_cast<float>(INT_CLK_HZ) / static_cast<float>(_dec_rate + 1);
+
+	// Always explicitly configure FILT_CTRL so flash-restored settings cannot persist
+	if (!write_reg16_verified(Register::FILT_CTRL, static_cast<uint16_t>(_filt_size), FILT_UPDATE_US)) {
+		return false;
+	}
 
 	// Set hardware Bartlett FIR filter
 	if (_filt_size > 0) {
 		PX4_DEBUG("Setting FILT_CTRL=%d", _filt_size);
-
-		if (!write_reg16_verified(Register::FILT_CTRL, static_cast<uint16_t>(_filt_size))) {
-			return false;
-		}
-
-		px4_udelay(FILT_UPDATE_US);
 
 		// Flush filter pipeline
 		const int flush_cycles = (1 << _filt_size) + 4;
@@ -348,11 +379,9 @@ int ADIS1657x::DataReadyInterruptCallback(int irq, void *context, void *arg)
 
 void ADIS1657x::DataReady()
 {
-	if (++_drdy_count >= (_dec_rate + 1)) {
-		_drdy_timestamp_sample.store(hrt_absolute_time());
-		_drdy_count = 0;
-		ScheduleNow();
-	}
+	// DR already pulses at the decimated output rate configured by DEC_RATE
+	_drdy_timestamp_sample.store(hrt_absolute_time());
+	ScheduleNow();
 }
 
 bool ADIS1657x::DataReadyInterruptConfigure()
@@ -376,7 +405,6 @@ bool ADIS1657x::DataReadyInterruptDisable()
 void ADIS1657x::start()
 {
 	_last_data_cntr = 0;
-	_drdy_count = 0;
 	_drdy_timestamp_sample.store(0);
 
 	if (DataReadyInterruptConfigure()) {
@@ -416,34 +444,51 @@ void ADIS1657x::RunImpl()
 		ScheduleDelayed(SW_RESET_MS * 1000);
 		break;
 
-	case STATE::WAIT_FOR_RESET:
-		PX4_DEBUG("STATE::WAIT_FOR_RESET");
-		_prod_id = read_reg16(Register::PROD_ID);
+	case STATE::WAIT_FOR_RESET: {
+			PX4_DEBUG("STATE::WAIT_FOR_RESET");
+			uint16_t prod_id = 0;
 
-		if (_prod_id == ADIS16575_PROD_ID
-		    || _prod_id == ADIS16576_PROD_ID
-		    || _prod_id == ADIS16577_PROD_ID) {
-			PX4_INFO("Detected PROD_ID=0x%04X", _prod_id);
-
-			const uint16_t diag_stat = read_reg16(Register::DIAG_STAT);
-
-			if (diag_stat != 0) {
-				PX4_WARN("DIAG_STAT=0x%04X after reset, retrying", diag_stat);
+			if (!read_reg16(Register::PROD_ID, prod_id)) {
+				PX4_ERR("PROD_ID read failed, retrying reset");
 				_state = STATE::RESET;
 				ScheduleDelayed(RETRY_DELAY_US);
 				break;
 			}
 
-			_state = STATE::CONFIGURE;
-			ScheduleNow();
+			_prod_id = prod_id;
 
-		} else {
-			PX4_ERR("Invalid PROD_ID: 0x%04X, retrying reset", _prod_id);
-			_state = STATE::RESET;
-			ScheduleDelayed(RETRY_DELAY_US);
+			if (_prod_id == ADIS16575_PROD_ID
+			    || _prod_id == ADIS16576_PROD_ID
+			    || _prod_id == ADIS16577_PROD_ID) {
+				PX4_INFO("Detected PROD_ID=0x%04X", _prod_id);
+
+				uint16_t diag_stat = 0;
+
+				if (!read_reg16(Register::DIAG_STAT, diag_stat)) {
+					PX4_WARN("DIAG_STAT read failed after reset, retrying");
+					_state = STATE::RESET;
+					ScheduleDelayed(RETRY_DELAY_US);
+					break;
+				}
+
+				if (diag_stat != 0) {
+					PX4_WARN("DIAG_STAT=0x%04X after reset, retrying", diag_stat);
+					_state = STATE::RESET;
+					ScheduleDelayed(RETRY_DELAY_US);
+					break;
+				}
+
+				_state = STATE::CONFIGURE;
+				ScheduleNow();
+
+			} else {
+				PX4_ERR("Invalid PROD_ID: 0x%04X, retrying reset", _prod_id);
+				_state = STATE::RESET;
+				ScheduleDelayed(RETRY_DELAY_US);
+			}
+
+			break;
 		}
-
-		break;
 
 	case STATE::CONFIGURE:
 		PX4_DEBUG("STATE::CONFIGURE");
