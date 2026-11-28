@@ -660,7 +660,16 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 			       ActionOptions(Action::Hold).clearOn(ClearCondition::OnModeChangeOrDisarm));
 	}
 
-	CHECK_FAILSAFE(status_flags, gf_emer_breach, fromGfActParam(_param_gf_action.get()).cannotBeDeferred());
+	ActionOptions geofence_options = fromGfActParam(_param_gf_action.get());
+
+	// GF_ACT_FORCE: no stick or mode-switch takeover of the emergency geofence action, only disarming ends it
+	if (_param_gf_act_force.get() && geofence_options.action >= Action::Hold
+	    && geofence_options.action != Action::Terminate) {
+		geofence_options.allow_user_takeover = UserTakeoverAllowed::Never;
+		geofence_options.clear_condition = ClearCondition::OnDisarm;
+	}
+
+	CHECK_FAILSAFE(status_flags, gf_emer_breach, geofence_options.cannotBeDeferred());
 	CHECK_FAILSAFE(status_flags, gf_cont_breach,
 		       fromGfContActParam(_param_gf_cont_action.get()).cannotBeDeferred());
 
