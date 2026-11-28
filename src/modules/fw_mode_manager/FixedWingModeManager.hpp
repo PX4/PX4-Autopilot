@@ -346,6 +346,7 @@ private:
 
 	// [m] relative height above land point
 	float _landing_approach_entrance_rel_alt{0.0f};
+	float _landing_hold_altitude{NAN}; // [m] AMSL, held while far below the glide slope (NAN: tracking the slope)
 
 	uint8_t _landing_abort_status{position_controller_landing_status_s::NOT_ABORTED};
 
@@ -922,7 +923,8 @@ private:
 		(ParamFloat<px4::params::FW_AIRSPD_MAX>) _param_fw_airspd_max,
 		(ParamFloat<px4::params::FW_AIRSPD_MIN>) _param_fw_airspd_min,
 		(ParamFloat<px4::params::FW_AIRSPD_TRIM>) _param_fw_airspd_trim,
-		(ParamFloat<px4::params::FW_T_CLMB_MAX>) _param_fw_t_clmb_max
+		(ParamFloat<px4::params::FW_T_CLMB_MAX>) _param_fw_t_clmb_max,
+		(ParamFloat<px4::params::FW_LND_GS_MARG>) _param_fw_lnd_gs_marg
 	)
 };
 

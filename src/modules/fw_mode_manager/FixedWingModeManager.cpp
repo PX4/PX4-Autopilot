@@ -1532,16 +1532,20 @@ FixedWingModeManager::control_auto_landing_straight(const hrt_abstime &now, cons
 				    _param_fw_lnd_para_sink.get());
 	}
 
-	float altitude_setpoint;
+	// Track the glide slope. Once more than FW_LND_GS_MARG below it, hold the altitude where that happened instead of
+	// climbing back, and rejoin the slope when it has come down to that altitude: altitude setpoints only, continuous
+	// at the switch back.
+	const float glide_slope_altitude = glide_slope_reference_alt + glide_slope_rel_alt;
 
-	if (_current_altitude > glide_slope_reference_alt + glide_slope_rel_alt) {
-		// descend to the glide slope
-		altitude_setpoint = glide_slope_reference_alt + glide_slope_rel_alt;
+	if (!PX4_ISFINITE(_landing_hold_altitude)
+	    && (_current_altitude < glide_slope_altitude - _param_fw_lnd_gs_marg.get())) {
+		_landing_hold_altitude = _current_altitude;
 
-	} else {
-		// continue horizontally
-		altitude_setpoint = _current_altitude;
+	} else if (PX4_ISFINITE(_landing_hold_altitude) && (glide_slope_altitude <= _landing_hold_altitude)) {
+		_landing_hold_altitude = NAN;
 	}
+
+	float altitude_setpoint = PX4_ISFINITE(_landing_hold_altitude) ? _landing_hold_altitude : glide_slope_altitude;
 
 	if (parachute_landing_active) {
 		// follow the normal landing approach down to the release altitude, then continue level
@@ -2539,6 +2543,8 @@ FixedWingModeManager::reset_landing_state()
 	_lateral_touchdown_position_offset = 0.0f;
 
 	_parachute_release_commanded = false;
+
+	_landing_hold_altitude = NAN;
 
 	_last_time_terrain_alt_was_valid = 0;
 
