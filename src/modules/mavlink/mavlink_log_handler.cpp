@@ -31,6 +31,7 @@
  *
  ****************************************************************************/
 
+#include "mavlink_dirent.h"
 #include "mavlink_log_handler.h"
 #include "mavlink_main.h"
 #include <dirent.h>
@@ -451,7 +452,7 @@ bool MavlinkLogHandler::create_log_list_file()
 			break;
 		}
 
-		if (result->d_type != PX4LOG_DIRECTORY) {
+		if (mavlink_dirent_type(kLogDir, result) != PX4LOG_DIRECTORY) {
 			// Skip stray files
 			continue;
 		}
@@ -503,7 +504,7 @@ void MavlinkLogHandler::write_entries_to_file(FILE *fp, const char *dir)
 			break;
 		}
 
-		if (result->d_type != PX4LOG_REGULAR_FILE) {
+		if (mavlink_dirent_type(dir, result) != PX4LOG_REGULAR_FILE) {
 			// Skip non files
 			continue;
 		}
@@ -612,7 +613,7 @@ void MavlinkLogHandler::delete_all_logs(const char *dir, unsigned depth)
 			continue;
 		}
 
-		if (result->d_type == PX4LOG_DIRECTORY) {
+		if (mavlink_dirent_type(dir, result) == PX4LOG_DIRECTORY) {
 			delete_all_logs(filepath, depth + 1);
 
 			if (rmdir(filepath)) {

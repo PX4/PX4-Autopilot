@@ -76,7 +76,11 @@ typedef pollevent_t px4_pollevent_t;
 
 #elif defined(__PX4_POSIX)
 
+#if defined(__PX4_ZEPHYR)
+#define	 PX4_STACK_OVERHEAD	CONFIG_PX4_STACK_OVERHEAD
+#else
 #define	 PX4_STACK_OVERHEAD	(1024 * 24)
+#endif
 
 #define px4_cache_aligned_data()
 #define px4_cache_aligned_alloc malloc

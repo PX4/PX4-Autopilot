@@ -233,8 +233,8 @@ define colorecho
 +@echo -e '${COLOR_BLUE}${1} ${NO_COLOR}'
 endef
 
-# Get a list of all config targets boards/*/*.px4board
-ALL_CONFIG_TARGETS := $(shell find boards -maxdepth 3 -mindepth 3 -name '*.px4board' -print | sed -e 's|boards\/||' | sed -e 's|\.px4board||' | sed -e 's|\/|_|g' | sort)
+# Get a list of all config targets boards/*/*.px4board (Zephyr boards are built with west)
+ALL_CONFIG_TARGETS := $(shell find boards -maxdepth 3 -mindepth 3 -name '*.px4board' -not -path 'boards/zephyr/*' -print | sed -e 's|boards\/||' | sed -e 's|\.px4board||' | sed -e 's|\/|_|g' | sort)
 
 # ADD CONFIGS HERE
 # --------------------------------------------------------------------
@@ -267,6 +267,25 @@ all_default_targets: $(CONFIG_TARGETS_DEFAULT)
 
 updateconfig:
 	@./Tools/kconfig/updateconfig.py
+
+# Zephyr targets, built with west in a Zephyr workspace (see platforms/zephyr)
+# --------------------------------------------------------------------
+.PHONY: zephyr zephyr_qemu zephyr_sih zephyr_tests
+
+ZEPHYR_BOARD ?= mps2/an386
+ZEPHYR_BUILD_DIR = $(SRC_DIR)/build/zephyr_$(subst /,_,$(ZEPHYR_BOARD))
+
+zephyr:
+	@west build -b $(ZEPHYR_BOARD) -d "$(ZEPHYR_BUILD_DIR)" "$(SRC_DIR)/platforms/zephyr/app"
+
+zephyr_qemu:
+	@west build -b mps2/an386 -d "$(SRC_DIR)/build/zephyr_mps2_an386" "$(SRC_DIR)/platforms/zephyr/app" -t run
+
+zephyr_sih:
+	@west build -b mps2/an386 -d "$(SRC_DIR)/build/zephyr_mps2_an386_sih" "$(SRC_DIR)/platforms/zephyr/app" -t run -- -DFILE_SUFFIX=sih
+
+zephyr_tests:
+	@west twister -T "$(SRC_DIR)/platforms/zephyr" -p mps2/an386 -O "$(SRC_DIR)/build/zephyr_twister"
 
 # board reorganization deprecation warnings (2018-11-22)
 define deprecation_warning

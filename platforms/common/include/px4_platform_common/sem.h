@@ -41,6 +41,10 @@
 
 #include <semaphore.h>
 
+#if defined(__PX4_ZEPHYR)
+#include <zephyr/kernel.h>
+#endif
+
 #if !defined(__PX4_NUTTX)
 /* Values for protocol attribute */
 
@@ -54,11 +58,16 @@
 
 __BEGIN_DECLS
 
+#if defined(__PX4_ZEPHYR)
+// k_sem, so that it can be posted from interrupt context
+typedef struct k_sem px4_sem_t;
+#else
 typedef struct {
 	pthread_mutex_t lock;
 	pthread_cond_t wait;
 	int value;
 } px4_sem_t;
+#endif
 
 __EXPORT int		px4_sem_init(px4_sem_t *s, int pshared, unsigned value);
 __EXPORT int		px4_sem_setprotocol(px4_sem_t *s, int protocol);

@@ -74,7 +74,9 @@
 #if defined(__PX4_NUTTX)
 # include <nuttx/config.h>
 # include <nuttx/irq.h>
-#endif // __PX4_NUTTX
+#elif defined(__PX4_ZEPHYR)
+# include <zephyr/irq.h>
+#endif
 
 // On a single-core NuttX build the hardware memory barrier (`dmb`) a seq_cst atomic
 // emits is unnecessary for inter-thread ordering; a compiler-only fence is sufficient
@@ -93,7 +95,7 @@ class atomic
 {
 public:
 
-#if defined(__PX4_POSIX)
+#if defined(__PX4_POSIX) && !defined(__PX4_ZEPHYR)
 	// Ensure that all operations are lock-free, so that 'atomic' can be used from
 	// IRQ handlers. This might not be required everywhere though.
 	static_assert(__atomic_always_lock_free(sizeof(T), 0), "atomic is not lock-free for the given type T");
@@ -107,18 +109,18 @@ public:
 	 */
 	inline T load() const
 	{
-#if defined(__PX4_NUTTX)
+#if defined(__PX4_NUTTX) || defined(__PX4_ZEPHYR)
 
 		if (!__atomic_always_lock_free(sizeof(T), 0)) {
 			// Not lock-free (e.g. 64-bit on a 32-bit core): a critical section
 			// provides both atomicity and full ordering.
-			irqstate_t flags = enter_critical_section();
+			const auto flags = lock();
 			T val = _value;
-			leave_critical_section(flags);
+			unlock(flags);
 			return val;
 		}
 
-#endif // __PX4_NUTTX
+#endif // __PX4_NUTTX || __PX4_ZEPHYR
 
 #if PX4_ATOMIC_SINGLE_CORE
 		// Single core: a relaxed load (a plain, non-tearing ldr) plus a
@@ -139,16 +141,16 @@ public:
 	 */
 	inline void store(T value)
 	{
-#if defined(__PX4_NUTTX)
+#if defined(__PX4_NUTTX) || defined(__PX4_ZEPHYR)
 
 		if (!__atomic_always_lock_free(sizeof(T), 0)) {
-			irqstate_t flags = enter_critical_section();
+			const auto flags = lock();
 			_value = value;
-			leave_critical_section(flags);
+			unlock(flags);
 			return;
 		}
 
-#endif // __PX4_NUTTX
+#endif // __PX4_NUTTX || __PX4_ZEPHYR
 
 #if PX4_ATOMIC_SINGLE_CORE
 		__atomic_signal_fence(__ATOMIC_SEQ_CST);
@@ -164,17 +166,17 @@ public:
 	 */
 	inline T fetch_add(T num)
 	{
-#if defined(__PX4_NUTTX)
+#if defined(__PX4_NUTTX) || defined(__PX4_ZEPHYR)
 
 		if (!__atomic_always_lock_free(sizeof(T), 0)) {
-			irqstate_t flags = enter_critical_section();
+			const auto flags = lock();
 			T ret = _value;
 			_value += num;
-			leave_critical_section(flags);
+			unlock(flags);
 			return ret;
 		}
 
-#endif // __PX4_NUTTX
+#endif // __PX4_NUTTX || __PX4_ZEPHYR
 
 #if PX4_ATOMIC_SINGLE_CORE
 		__atomic_signal_fence(__ATOMIC_SEQ_CST);
@@ -192,17 +194,17 @@ public:
 	 */
 	inline T fetch_sub(T num)
 	{
-#if defined(__PX4_NUTTX)
+#if defined(__PX4_NUTTX) || defined(__PX4_ZEPHYR)
 
 		if (!__atomic_always_lock_free(sizeof(T), 0)) {
-			irqstate_t flags = enter_critical_section();
+			const auto flags = lock();
 			T ret = _value;
 			_value -= num;
-			leave_critical_section(flags);
+			unlock(flags);
 			return ret;
 		}
 
-#endif // __PX4_NUTTX
+#endif // __PX4_NUTTX || __PX4_ZEPHYR
 
 #if PX4_ATOMIC_SINGLE_CORE
 		__atomic_signal_fence(__ATOMIC_SEQ_CST);
@@ -220,17 +222,17 @@ public:
 	 */
 	inline T fetch_and(T num)
 	{
-#if defined(__PX4_NUTTX)
+#if defined(__PX4_NUTTX) || defined(__PX4_ZEPHYR)
 
 		if (!__atomic_always_lock_free(sizeof(T), 0)) {
-			irqstate_t flags = enter_critical_section();
+			const auto flags = lock();
 			T val = _value;
 			_value &= num;
-			leave_critical_section(flags);
+			unlock(flags);
 			return val;
 		}
 
-#endif // __PX4_NUTTX
+#endif // __PX4_NUTTX || __PX4_ZEPHYR
 
 #if PX4_ATOMIC_SINGLE_CORE
 		__atomic_signal_fence(__ATOMIC_SEQ_CST);
@@ -248,17 +250,17 @@ public:
 	 */
 	inline T fetch_xor(T num)
 	{
-#if defined(__PX4_NUTTX)
+#if defined(__PX4_NUTTX) || defined(__PX4_ZEPHYR)
 
 		if (!__atomic_always_lock_free(sizeof(T), 0)) {
-			irqstate_t flags = enter_critical_section();
+			const auto flags = lock();
 			T val = _value;
 			_value ^= num;
-			leave_critical_section(flags);
+			unlock(flags);
 			return val;
 		}
 
-#endif // __PX4_NUTTX
+#endif // __PX4_NUTTX || __PX4_ZEPHYR
 
 #if PX4_ATOMIC_SINGLE_CORE
 		__atomic_signal_fence(__ATOMIC_SEQ_CST);
@@ -276,17 +278,17 @@ public:
 	 */
 	inline T fetch_or(T num)
 	{
-#if defined(__PX4_NUTTX)
+#if defined(__PX4_NUTTX) || defined(__PX4_ZEPHYR)
 
 		if (!__atomic_always_lock_free(sizeof(T), 0)) {
-			irqstate_t flags = enter_critical_section();
+			const auto flags = lock();
 			T val = _value;
 			_value |= num;
-			leave_critical_section(flags);
+			unlock(flags);
 			return val;
 		}
 
-#endif // __PX4_NUTTX
+#endif // __PX4_NUTTX || __PX4_ZEPHYR
 
 #if PX4_ATOMIC_SINGLE_CORE
 		__atomic_signal_fence(__ATOMIC_SEQ_CST);
@@ -304,17 +306,17 @@ public:
 	 */
 	inline T fetch_nand(T num)
 	{
-#if defined(__PX4_NUTTX)
+#if defined(__PX4_NUTTX) || defined(__PX4_ZEPHYR)
 
 		if (!__atomic_always_lock_free(sizeof(T), 0)) {
-			irqstate_t flags = enter_critical_section();
+			const auto flags = lock();
 			T ret = _value;
 			_value = ~(_value & num);
-			leave_critical_section(flags);
+			unlock(flags);
 			return ret;
 		}
 
-#endif // __PX4_NUTTX
+#endif // __PX4_NUTTX || __PX4_ZEPHYR
 
 #if PX4_ATOMIC_SINGLE_CORE
 		__atomic_signal_fence(__ATOMIC_SEQ_CST);
@@ -336,24 +338,24 @@ public:
 	 */
 	inline bool compare_exchange(T *expected, T desired)
 	{
-#if defined(__PX4_NUTTX)
+#if defined(__PX4_NUTTX) || defined(__PX4_ZEPHYR)
 
 		if (!__atomic_always_lock_free(sizeof(T), 0)) {
-			irqstate_t flags = enter_critical_section();
+			const auto flags = lock();
 
 			if (_value == *expected) {
 				_value = desired;
-				leave_critical_section(flags);
+				unlock(flags);
 				return true;
 
 			} else {
 				*expected = _value;
-				leave_critical_section(flags);
+				unlock(flags);
 				return false;
 			}
 		}
 
-#endif // __PX4_NUTTX
+#endif // __PX4_NUTTX || __PX4_ZEPHYR
 
 #if PX4_ATOMIC_SINGLE_CORE
 		__atomic_signal_fence(__ATOMIC_SEQ_CST);
@@ -366,6 +368,14 @@ public:
 	}
 
 private:
+
+#if defined(__PX4_NUTTX)
+	static irqstate_t lock() { return enter_critical_section(); }
+	static void unlock(irqstate_t flags) { leave_critical_section(flags); }
+#elif defined(__PX4_ZEPHYR)
+	static unsigned int lock() { return irq_lock(); }
+	static void unlock(unsigned int key) { irq_unlock(key); }
+#endif
 
 	T _value {};
 };
