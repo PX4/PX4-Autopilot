@@ -197,6 +197,9 @@ To fail a motor mid-flight:
 
 ## Example: Battery
 
+For MAVLink batteries, `-i` is the allocated `battery_status` uORB instance plus one, not the MAVLink battery ID.
+With an onboard battery at instance 0 and a MAVLink battery at instance 1, use `failure battery off -i 2` for the MAVLink battery.
+
 To trigger the battery failsafe by reporting a depleted pack:
 
 1. Enable the [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN) parameter.
