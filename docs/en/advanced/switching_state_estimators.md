@@ -40,7 +40,6 @@ If none are enabled then the topics are not published.
 :::
 
 ::: info
-For FMU-v2 (only) you will also need to build PX4 to specifically include required estimator (e.g. EKF2: `make px4_fmu-v2`, LPE: `make px4_fmu-v2_lpe`).
-This is required because FMU-v2 is too resource constrained to include both estimators.
-Other Pixhawk FMU versions include both.
+LPE is not included in the default firmware of many boards, including FMU-v2, FMU-v5 and FMU-v6X.
+To use it on such a board, add `CONFIG_MODULES_LOCAL_POSITION_ESTIMATOR=y` to the board's `default.px4board` file, or enable it in [boardconfig](../hardware/porting_guide_config.md#px4-menuconfig-setup), and then [build and upload the firmware](../dev_setup/building_px4.md).
 :::
