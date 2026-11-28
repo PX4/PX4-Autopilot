@@ -170,7 +170,7 @@ __EXPORT void px4_log_modulename_va(int level, const char *module_name, const ch
 		g_log_history.write(buf);
 #endif // BOARD_ENABLE_LOG_HISTORY
 
-#if defined(CONFIG_ARCH_BOARD_PX4_SITL)
+#if defined(CONFIG_ARCH_BOARD_PX4_SITL) || defined(CONFIG_ARCH_BOARD_QNX_SITL)
 		// Without flushing it's tricky to see stdout output when PX4 is started by
 		// a script like for the MAVSDK tests.
 		fflush(out);

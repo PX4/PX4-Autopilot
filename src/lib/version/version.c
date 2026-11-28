@@ -41,7 +41,7 @@
 # define CONFIG_CDCACM_PRODUCTID 0
 #endif
 
-#if defined(__PX4_LINUX)
+#if defined(__PX4_LINUX) || defined(__PX4_QNX)
 #include <sys/utsname.h>
 #endif
 
@@ -302,7 +302,7 @@ uint32_t px4_os_version(void)
 {
 #if defined(__PX4_DARWIN) || defined(__PX4_CYGWIN) || defined(__PX4_QURT)
 	return 0; //TODO: implement version for Darwin, Cygwin, QuRT
-#elif defined(__PX4_LINUX)
+#elif defined(__PX4_LINUX) || defined(__PX4_QNX)
 	struct utsname name;
 
 	if (uname(&name) == 0) {
@@ -348,6 +348,8 @@ const char *px4_os_name(void)
 	return "NuttX";
 #elif defined(__PX4_CYGWIN)
 	return "Cygwin";
+#elif defined(__PX4_QNX)
+	return "QNX";
 #else
 # error "px4_os_name not implemented for current OS"
 #endif

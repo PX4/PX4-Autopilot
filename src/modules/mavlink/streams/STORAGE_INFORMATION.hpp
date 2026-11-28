@@ -34,12 +34,7 @@
 #ifndef STORAGE_INFORMATION_HPP
 #define STORAGE_INFORMATION_HPP
 
-#ifdef __PX4_DARWIN
-#include <sys/param.h>
-#include <sys/mount.h>
-#else
-#include <sys/statfs.h>
-#endif
+#include <px4_platform_common/statfs.h>
 
 #include <math.h>
 
@@ -78,11 +73,11 @@ private:
 		if (_storage_id == 0 || _storage_id == 1) { // request is for all or the first storage
 			storage_info.storage_id = 1;
 
-			struct statfs statfs_buf;
+			px4_statfs_t statfs_buf;
 			uint64_t total_bytes = 0;
 			uint64_t avail_bytes = 0;
 
-			if (statfs(microsd_dir, &statfs_buf) == 0) {
+			if (px4_statfs(microsd_dir, &statfs_buf) == 0) {
 				total_bytes = (uint64_t)statfs_buf.f_blocks * statfs_buf.f_bsize;
 				avail_bytes = (uint64_t)statfs_buf.f_bavail * statfs_buf.f_bsize;
 			}

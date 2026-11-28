@@ -10,6 +10,13 @@ udp_onboard_gimbal_port_local=$((13030+px4_instance))
 udp_onboard_gimbal_port_remote=$((13280+px4_instance))
 udp_gcs_port_local=$((18570+px4_instance))
 
+# Optional partner IP for the GCS and offboard links (e.g. 10.0.2.2, the host
+# seen from a QEMU guest with user-mode networking). Default: localhost.
+mavlink_partner=""
+if [ -n "$PX4_MAVLINK_PARTNER_IP" ]; then
+	mavlink_partner="-t $PX4_MAVLINK_PARTNER_IP"
+fi
+
 # GCS link
 mavlink_network_interface_arg=""
 if [ -n "$PX4_NET_INTERFACE" ]; then
@@ -17,7 +24,7 @@ if [ -n "$PX4_NET_INTERFACE" ]; then
 	# And -p to enable broadcasting on that interface, and not be in localhost mode only.
 	mavlink_network_interface_arg="-n $PX4_NET_INTERFACE -p"
 fi
-mavlink start -x -u $udp_gcs_port_local -r 4000000 -f $mavlink_network_interface_arg
+mavlink start -x -u $udp_gcs_port_local -r 4000000 -f $mavlink_network_interface_arg $mavlink_partner
 mavlink stream -r 50 -s POSITION_TARGET_LOCAL_NED -u $udp_gcs_port_local
 mavlink stream -r 50 -s LOCAL_POSITION_NED -u $udp_gcs_port_local
 mavlink stream -r 50 -s GLOBAL_POSITION_INT -u $udp_gcs_port_local
@@ -29,7 +36,7 @@ mavlink stream -r 20 -s RC_CHANNELS -u $udp_gcs_port_local
 mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u $udp_gcs_port_local
 
 # API/Offboard link
-mavlink start -x -u $udp_offboard_port_local -r 4000000 -f -m onboard -o $udp_offboard_port_remote $mavlink_network_interface_arg
+mavlink start -x -u $udp_offboard_port_local -r 4000000 -f -m onboard -o $udp_offboard_port_remote $mavlink_network_interface_arg $mavlink_partner
 
 # Onboard link to camera
 mavlink start -x -u $udp_onboard_payload_port_local -r 4000 -f -m onboard -o $udp_onboard_payload_port_remote $mavlink_network_interface_arg
