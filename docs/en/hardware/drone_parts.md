@@ -13,6 +13,7 @@ This section contains information the components that might be used in a drone, 
 - [I2C Peripherals](../sensor_bus/i2c_general.md)
 - [CAN Peripherals](../can/index.md)
 - [DroneCAN Peripherals](../dronecan/index.md)
+- [T1 Peripherals](../ethernet_t1/index.md)
 - [Cable Wiring](../assembly/cable_wiring.md)
 - [Companion Computers](../companion_computer/index.md) — Setup, peripherals, computer vision, etc.
 - [Serial Port Configuration](../peripherals/serial_configuration.md)
