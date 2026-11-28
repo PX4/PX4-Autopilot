@@ -43,6 +43,7 @@
 #include <cstdlib>
 
 #include <matrix/math.hpp>
+#include <mathlib/math/Limits.hpp>
 
 #include <dataman/dataman.h>
 
@@ -232,13 +233,14 @@ public:
 	// Number of nodes needed to hold the largest geofence storable in dataman.
 	// Worst case:
 	//  - kMaxPolygons-1 circles (most nodes per dataman item)
-	//  - one remaining polygon using all remaining fence points, with max amount of split vertices
+	//  - one remaining polygon using all remaining fence points, with max amount of split vertices,
+	//    or one more circle if that needs more nodes (fewer than 20 fence points)
 	//  - 1 destination slot
 	// If the allocated node capacity >= kMaxNodesForAnyStorableFence, we always have enough space.
 	// Otherwise we may fail with AddResult::BudgetExceeded.
 	static constexpr int kMaxNodesForAnyStorableFence =
 		(kMaxPolygons - 1) * kCircleApproxVertices
-		+ maxVerticesAfterSplitting(DM_KEY_FENCE_POINTS_MAX - (kMaxPolygons - 1))
+		+ math::max(kCircleApproxVertices, maxVerticesAfterSplitting(DM_KEY_FENCE_POINTS_MAX - (kMaxPolygons - 1)))
 		+ 1;
 
 	// Return code specifying why a polygon was not added.

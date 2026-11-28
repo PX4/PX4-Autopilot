@@ -125,6 +125,7 @@ static constexpr Entry SupportedCommandParams[] = {
 	{ 5002, 0x31, 0x01 }, // NAV_FENCE_POLYGON_VERTEX_EXCLUSION: p1:vertex_count; mission:p5-6:lat/lon
 	{ 5003, 0x31, 0x01 }, // NAV_FENCE_CIRCLE_INCLUSION:  p1:radius; mission:p5-6:lat/lon
 	{ 5004, 0x31, 0x01 }, // NAV_FENCE_CIRCLE_EXCLUSION:  p1:radius; mission:p5-6:lat/lon
+	{ 5006, 0x01, 0x00 }, // NAV_FENCE_LEVEL:             mission:p1:level of the next fence area (mavlink#2681); cmd:none
 	{ 5100, 0x70, 0x00 }, // NAV_RALLY_POINT:             mission:p5-7:lat/lon/alt; cmd:none
 	{42600, 0x0F, 0x0F }, // DO_WINCH:                    p1-p4 all used
 };

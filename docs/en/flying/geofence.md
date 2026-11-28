@@ -57,6 +57,7 @@ To act before that, set up a [Contingency Geofence](../config/safety.md#continge
 ::: info
 Any geofence that does not include the Home position will be rejected by the flight controller and not uploaded.
 If the vehicle is flying, also any geofence that would immediately get breached after the upload is rejected.
+The areas of a [contingency geofence](../config/safety.md#contingency-geofence) are not rejected for these reasons: its action is triggered instead.
 :::
 
 ::: info

@@ -155,6 +155,8 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   The margin applies to the maximum distance from Home and to the Geofence Plan.
   Outside the contingency geofence missions are rejected, arming is denied unless its action is None, and _Go to location_ targets are refused unless its action is None or Warning.
   Return mode plans its route with the margin added.
+  The contingency geofence of the plan can also have its own areas (polygons and circles), which needs a ground station that supports them.
+  Both levels share the 64 items of the Geofence Plan, level items included (board option `CONFIG_NUM_FENCE_ITEMS_SUPPORTED`).
 - [Flight termination](../advanced_config/flight_termination.md) can now be used instead of a Descent mode as a fallback failsafe mode, allowing safer landing for unpiloted vehicles that carry a parachute.
   See [Battery level failsafe](../config/safety.md#battery-level-failsafe) ([COM_LOW_BAT_ACT](../advanced_config/parameter_reference.md#COM_LOW_BAT_ACT)) and [Position Loss Failsafe Action](../config/safety.md#position-loss-failsafe-action) (new [COM_POS_FS_ACT](../advanced_config/parameter_reference.md#COM_POS_FS_ACT)). ([PX4-Autopilot#28064: feat(commander): add terminate options for critical battery and lost position failsafes](https://github.com/PX4/PX4-Autopilot/pull/28064)).
 - [Failure injection](../debug/failure_injection.md) ( [SYS_FAILURE_EN](../advanced_config/parameter_reference.md#SYS_FAILURE_EN)) has been significantly extended. (PX4-Autopilot#27572, PX4-Autopilot#27832, PX4-Autopilot#27950)

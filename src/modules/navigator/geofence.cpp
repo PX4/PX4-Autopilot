@@ -454,6 +454,7 @@ void Geofence::_clearFence()
 	delete[](_polygons);
 	_polygons = nullptr;
 	_num_polygons = 0;
+	_has_cont_geofence_areas = false;
 }
 
 void Geofence::_reportFenceLoadFailure()
@@ -484,7 +485,10 @@ Geofence::LoadResult Geofence::_updateFence()
 
 	// iterate over all polygons and store their starting vertices
 	_num_polygons = 0;
+	_has_cont_geofence_areas = false;
 	int current_seq = 0;
+	// A fence level item sets the level of the next area only.
+	FenceLevel next_level = FenceLevel::Emergency;
 
 	while (current_seq < _dataman_cache.size()) {
 
@@ -503,6 +507,19 @@ Geofence::LoadResult Geofence::_updateFence()
 		switch (mission_fence_point.nav_cmd) {
 		case NAV_CMD_FENCE_RETURN_POINT:
 			// TODO: do we need to store this?
+			++current_seq;
+			break;
+
+		case NAV_CMD_FENCE_LEVEL:
+
+			// Unknown levels are rejected: an area of an unknown level would be checked by neither geofence.
+			if (mission_fence_point.fence_level > FenceLevel::Contingency) {
+				_reportInvalidFence(current_seq);
+				_clearFence();
+				return LoadResult::Invalid;
+			}
+
+			next_level = mission_fence_point.fence_level;
 			++current_seq;
 			break;
 
@@ -542,6 +559,8 @@ Geofence::LoadResult Geofence::_updateFence()
 				PolygonInfo &polygon = _polygons[_num_polygons];
 				polygon.dataman_index = current_seq;
 				polygon.fence_type = mission_fence_point.nav_cmd;
+				polygon.fence_level = next_level;
+				next_level = FenceLevel::Emergency;
 
 				if (is_circle_area) {
 					polygon.circle_radius = mission_fence_point.circle_radius;
@@ -552,16 +571,22 @@ Geofence::LoadResult Geofence::_updateFence()
 					current_seq += polygon.vertex_count;
 				}
 
+				// An emergency geofence area that Home or the flying vehicle breaches is dropped below. A contingency
+				// geofence area is loaded anyway: GF_CONT_ACTION cannot terminate, a breach on the ground only denies
+				// arming, and without the area the vehicle would reach the emergency geofence first.
+				const bool cont_geofence = polygon.fence_level == FenceLevel::Contingency;
+
 				// check if requiremetns for Home location are met
-				const bool home_check_okay = checkHomeRequirementsForGeofence(polygon);
+				const bool home_check_okay = cont_geofence || checkHomeRequirementsForGeofence(polygon);
 
 				// check if current position is inside the fence and vehicle is armed
-				const bool current_position_check_okay = checkCurrentPositionRequirementsForGeofence(polygon);
+				const bool current_position_check_okay = cont_geofence
+						|| checkCurrentPositionRequirementsForGeofence(polygon);
 
 				// discard the polygon if at least one check fails by not incrementing the counter in that case
 				if (home_check_okay && current_position_check_okay) {
 					++_num_polygons;
-
+					_has_cont_geofence_areas |= cont_geofence;
 				}
 			}
 
@@ -698,13 +723,13 @@ bool Geofence::checkPointAgainstAllGeofences(double lat, double lon, float altit
 	return inside_fence;
 }
 
-bool Geofence::checkPathBatch(const PathCheck *paths, size_t num_paths, bool *results)
+bool Geofence::checkPathBatch(const PathCheck *paths, size_t num_paths, bool *results, bool emergency_only)
 {
 	if (num_paths == 0 || num_paths > MAX_PATH_CHECKS) {
 		return false;
 	}
 
-	const bool success = _path_check_ready && checkPaths(paths, num_paths, results);
+	const bool success = _path_check_ready && checkPaths(paths, num_paths, results, emergency_only);
 
 	if (!success) {
 		memset(results, 0, num_paths * sizeof(bool));
@@ -713,7 +738,7 @@ bool Geofence::checkPathBatch(const PathCheck *paths, size_t num_paths, bool *re
 	return success;
 }
 
-bool Geofence::checkPaths(const PathCheck *paths, size_t num_paths, bool *results)
+bool Geofence::checkPaths(const PathCheck *paths, size_t num_paths, bool *results, bool emergency_only)
 {
 	bool pieces_calculated = false;
 	const float max_home_distance = _navigator->home_global_position_valid() ? _param_gf_max_hor_dist.get() : 0.f;
@@ -744,6 +769,10 @@ bool Geofence::checkPaths(const PathCheck *paths, size_t num_paths, bool *result
 
 	for (int p = 0; p < _num_polygons; ++p) {
 		const PolygonInfo &polygon = _polygons[p];
+
+		if (emergency_only && polygon.fence_level == FenceLevel::Contingency) {
+			continue;
+		}
 
 		switch (polygon.fence_type) {
 		case NAV_CMD_FENCE_CIRCLE_INCLUSION:
@@ -935,14 +964,25 @@ bool Geofence::isInsidePolygonOrCircle(double lat, double lon, float altitude)
 		return false;
 	}
 
-	/* Horizontal check: iterate all polygons & circles */
-	bool checksPass = true;
+	/* Horizontal check: the emergency geofence polygons & circles, the contingency geofence has its own check */
+	return isInsideFenceLevel(lat, lon, altitude, FenceLevel::Emergency);
+}
 
-	for (int polygon_index = 0; polygon_index < _num_polygons; ++polygon_index) {
-		checksPass &= checkPointAgainstPolygonCircle(_polygons[polygon_index], lat, lon, altitude);
+bool Geofence::isInsideFenceLevel(double lat, double lon, float altitude, FenceLevel level)
+{
+	if (isEmpty()) {
+		return true;
 	}
 
-	return checksPass;
+	bool inside = true;
+
+	for (int polygon_index = 0; polygon_index < _num_polygons; ++polygon_index) {
+		if (_polygons[polygon_index].fence_level == level) {
+			inside &= checkPointAgainstPolygonCircle(_polygons[polygon_index], lat, lon, altitude);
+		}
+	}
+
+	return inside;
 }
 
 bool Geofence::isInsideHorizontalFences(double lat, double lon, float altitude)
@@ -974,9 +1014,13 @@ bool Geofence::isCircleInside(double lat, double lon, float radius)
 	return checkPaths(&path, 1, &clear) && clear;
 }
 
-#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
 bool Geofence::isInsideContGeofence(double lat, double lon)
 {
+	if (_has_cont_geofence_areas) {
+		return isInsideContGeofenceAreas(lat, lon);
+	}
+
+#if defined(CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS)
 	const float margin = getContGeofencePlanMargin();
 
 	if (margin <= FLT_EPSILON) {
@@ -987,8 +1031,10 @@ bool Geofence::isInsideContGeofence(double lat, double lon)
 	const bool inside = isCircleInside(lat, lon, margin);
 	perf_end(_cont_check_perf);
 	return inside;
-}
+#else
+	return true;
 #endif // CONFIG_NAVIGATOR_GEOFENCE_PATH_CHECKS
+}
 
 bool Geofence::checkPointAgainstPolygonCircle(const PolygonInfo &polygon, double lat, double lon, float altitude)
 {

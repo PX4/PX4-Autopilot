@@ -32,6 +32,14 @@ These services are known to be supported in some form:
 - [MAVLink Id Assignment (sysid, compid)](https://mavlink.io/en/services/mavlink_id_assignment.html)
 - [Message Signing](../mavlink/message_signing.md) ([MAVLink spec](https://mavlink.io/en/guide/message_signing.html))
 - [Mission Protocol](https://mavlink.io/en/services/mission.html)
+  - <a id="contingency_geofence"></a>Fence items (`MAV_MISSION_TYPE_FENCE`) can be marked as [contingency geofence](../config/safety.md#contingency-geofence) areas.
+    A fence level item in front of a polygon or circle sets its level: `MAV_CMD_NAV_FENCE_LEVEL` (`5006`, proposed in [mavlink/mavlink#2681](https://github.com/mavlink/mavlink/pull/2681)) in `MAV_FRAME_MISSION`, with `param1` `0` for the emergency geofence and `1` for the contingency geofence.
+    It applies to the next area only, and an area without one is an emergency geofence area.
+    Other `param1` values, NaN included, are rejected with `MAV_MISSION_INVALID_PARAM1`.
+    A level item in another frame is rejected too, and one between the vertices of a polygon makes the fence invalid.
+    Put the emergency geofence areas first: a ground station without support stops reading a downloaded plan at the first level item.
+    The plan holds up to 64 items, level items included (board option `CONFIG_NUM_FENCE_ITEMS_SUPPORTED`).
+    Level items are returned when the fence is downloaded.
 - [Offboard Control Protocol](https://mavlink.io/en/services/offboard_control.html)
 - [Remote ID](../peripherals/remote_id.md) ([Open Drone ID Protocol](https://mavlink.io/en/services/opendroneid.html))
 - [Parameter Protocol](https://mavlink.io/en/services/parameter.html)

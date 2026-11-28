@@ -147,9 +147,26 @@ protected:
 		return {position(start(0), start(1)), position(end(0), end(1))};
 	}
 
-	FencePoints polygon(bool inclusion, std::initializer_list<matrix::Vector2f> vertices) const
+	// The fence level item that sets the level of the area after it.
+	static mission_fence_point_s levelItem(FenceLevel fence_level)
 	{
-		FencePoints points;
+		mission_fence_point_s item{};
+		item.nav_cmd = NAV_CMD_FENCE_LEVEL;
+		item.frame = NAV_FRAME_MISSION;
+		item.fence_level = fence_level;
+		return item;
+	}
+
+	// An area of the contingency geofence starts with its level item, like a MAVLink upload.
+	static FencePoints levelItems(FenceLevel fence_level)
+	{
+		return fence_level == FenceLevel::Emergency ? FencePoints{} : FencePoints{levelItem(fence_level)};
+	}
+
+	FencePoints polygon(bool inclusion, std::initializer_list<matrix::Vector2f> vertices,
+			    FenceLevel fence_level = FenceLevel::Emergency) const
+	{
+		FencePoints points = levelItems(fence_level);
 
 		for (const matrix::Vector2f &vertex : vertices) {
 			const auto coordinate = position(vertex(0), vertex(1));
@@ -165,13 +182,14 @@ protected:
 		return points;
 	}
 
-	FencePoints exclusionSquare() const
+	FencePoints exclusionSquare(FenceLevel fence_level = FenceLevel::Emergency) const
 	{
 		// A 100 m square centred 300 m east of Home.
-		return polygon(false, {{-50.f, 250.f}, {50.f, 250.f}, {50.f, 350.f}, {-50.f, 350.f}});
+		return polygon(false, {{-50.f, 250.f}, {50.f, 250.f}, {50.f, 350.f}, {-50.f, 350.f}}, fence_level);
 	}
 
-	FencePoints circle(bool inclusion, const matrix::Vector2f &centre, float radius) const
+	FencePoints circle(bool inclusion, const matrix::Vector2f &centre, float radius,
+			   FenceLevel fence_level = FenceLevel::Emergency) const
 	{
 		const auto coordinate = position(centre(0), centre(1));
 		mission_fence_point_s point{};
@@ -180,7 +198,9 @@ protected:
 		point.lat = coordinate(0);
 		point.lon = coordinate(1);
 		point.circle_radius = radius;
-		return {point};
+		FencePoints points = levelItems(fence_level);
+		points.push_back(point);
+		return points;
 	}
 
 	::testing::AssertionResult waitForFence(uint8_t expected_status = geofence_status_s::GF_STATUS_READY)
