@@ -79,14 +79,11 @@ void CanIface::socketClose()
 	}
 }
 
-uavcan::uint32_t CanIface::socketInit(uint32_t index)
+uavcan::uint32_t CanIface::socketInit(uint32_t index, bool can_fd)
 {
 
 	struct sockaddr_can addr;
 	struct ifreq ifr;
-
-	//FIXME Change this when we update to DroneCAN with CAN FD support
-	bool can_fd = 0;
 
 	_can_fd = can_fd;
 	_index = index;
@@ -201,8 +198,9 @@ uavcan::int16_t CanIface::send(const uavcan::CanFrame &frame, uavcan::MonotonicT
 	/* Copy CanardFrame to can_frame/canfd_frame */
 	if (_can_fd) {
 		_send_frame.can_id = frame.id | CAN_EFF_FLAG;
-		_send_frame.len = frame.dlc;
-		memcpy(&_send_frame.data, frame.data, frame.dlc);
+		_send_frame.len = uavcan::CanFrame::dlcToDataLength(frame.dlc);
+		_send_frame.flags = frame.canfd ? CANFD_BRS : 0;
+		memcpy(&_send_frame.data, frame.data, _send_frame.len);
 
 	} else {
 		struct can_frame *net_frame = (struct can_frame *)&_send_frame;
@@ -295,7 +293,9 @@ uavcan::int16_t CanIface::receive(uavcan::CanFrame &out_frame, uavcan::Monotonic
 			return -EFAULT;
 		}
 
-		out_frame.dlc = recv_frame->len;
+		out_frame.dlc = uavcan::CanFrame::dataLengthToDlc(recv_frame->len);
+		out_frame.canfd = (recv_frame->len > 8) || (recv_frame->flags & CANFD_BRS) ||
+				  (result == static_cast<int32_t>(CANFD_MTU));
 		memcpy(out_frame.data, &recv_frame->data, recv_frame->len);
 
 	} else {
@@ -307,6 +307,7 @@ uavcan::int16_t CanIface::receive(uavcan::CanFrame &out_frame, uavcan::Monotonic
 		}
 
 		out_frame.dlc = recv_frame->can_dlc;
+		out_frame.canfd = false;
 		memcpy(out_frame.data, &recv_frame->data, recv_frame->can_dlc);
 	}
 
@@ -386,6 +387,12 @@ int CanIface::setBitRate(uint32_t bitrate)
 		return -1;
 	}
 
+	/* A port opened for CAN FD runs 1 Mbit/s arbitration with bitrate as its data
+	 * phase (UAVCAN_BAUDn above 1 Mbit/s); a classic port runs bitrate as its only rate.
+	 */
+	static constexpr uint32_t CanFdArbitrationBitRate = 1000000;
+	const uint32_t nominal = _can_fd ? CanFdArbitrationBitRate : bitrate;
+
 	struct ifreq ifr {};
 
 	snprintf(ifr.ifr_name, IFNAMSIZ, "can%" PRIu32, _index);
@@ -397,7 +404,7 @@ int CanIface::setBitRate(uint32_t bitrate)
 
 	const uint32_t configured = ifr.ifr_ifru.ifru_can_data.arbi_bitrate;
 
-	if (configured == bitrate) {
+	if (configured == nominal && (!_can_fd || ifr.ifr_ifru.ifru_can_data.data_bitrate == bitrate)) {
 		return 0;
 	}
 
@@ -406,16 +413,21 @@ int CanIface::setBitRate(uint32_t bitrate)
 	 * restarted a running controller from inside the driver, which on FlexCAN
 	 * with ECC RAM initialisation is a bus fault. Keep the configured rate.
 	 */
-	PX4_WARN("can%" PRIu32 ": UAVCAN_BITRATE %" PRIu32 " bit/s needs a newer NuttX, staying at %" PRIu32 " bit/s",
-		 _index, bitrate, configured);
+	PX4_WARN("can%" PRIu32 ": UAVCAN_BAUD%" PRIu32 " %" PRIu32 " bit/s needs a newer NuttX, staying at %" PRIu32 " bit/s",
+		 _index, _index + 1, bitrate, configured);
 	return 0;
 #else
-	/* Only the nominal rate changes; the data phase keeps the driver's
-	 * settings so an FD-capable controller is never told data_bitrate 0.
+	/* A classic port changes only the nominal rate; the data phase keeps the
+	 * driver's settings so an FD-capable controller is never told data_bitrate 0.
+	 * A CAN FD port also sets its data phase.
 	 * The driver applies the timing at the next ifup, so the interface is
 	 * taken down around the request and brought back up whatever happens.
 	 */
-	ifr.ifr_ifru.ifru_can_data.arbi_bitrate = bitrate;
+	ifr.ifr_ifru.ifru_can_data.arbi_bitrate = nominal;
+
+	if (_can_fd) {
+		ifr.ifr_ifru.ifru_can_data.data_bitrate = bitrate;
+	}
 
 	struct ifreq flags {};
 
@@ -486,11 +498,13 @@ uavcan::uint32_t CanDriver::detectBitRate(void (*idle_callback)())
 	return 1;
 }
 
-int CanDriver::init(uavcan::uint32_t bitrate)
+int CanDriver::init(const uavcan::uint32_t *bitrates, unsigned num_bitrates)
 {
 	for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
 		pfds[i].fd     = if_[i].getFD();
 		pfds[i].events = POLLIN | POLLOUT;
+
+		const uavcan::uint32_t bitrate = (static_cast<unsigned>(i) < num_bitrates) ? bitrates[i] : bitrates[0];
 
 		if (if_[i].getFD() >= 0 && if_[i].setBitRate(bitrate) < 0) {
 			return -1;

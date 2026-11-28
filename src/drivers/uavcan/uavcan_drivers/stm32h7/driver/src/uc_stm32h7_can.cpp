@@ -59,54 +59,49 @@
 #endif
 
 #define WORD_LENGTH 4U
-#define FIFO_ELEMENT_SIZE 4U // size in words of a FIFO element in message RAM
 
-// Rx FIFO element definition for classic CAN frame
-// RM0433 page 2536
+// Rx FIFO header (data payload follows at word 2)
 typedef struct __attribute__((__packed__))
 {
-	// word R0
 	uint32_t id : 29;
 	uint32_t RTR : 1;
 	uint32_t XTD : 1;
 	uint32_t ESI : 1;
 
-	// word R1
 	uint16_t RXTS;
-	uint8_t DLC : 4;  // Data Length Code
-	uint8_t BRS : 1;  // Bit Rate Switching
-	uint8_t FDF : 1;  // CAN-FD Flag
-	uint8_t RES : 2;  // Reserved
-	uint8_t FIDX : 7; // Filter Index
-	uint8_t ANMF : 1; // Accepted non-matching frame
-
-	// words R2, R3
-	uint8_t data[8];
-
-} RxFifoElement;
-
-// Tx FIFO element definition for classic CAN frame
-// RM0433 page 2538
-typedef struct {
-	// word T0
-	uint32_t id : 29;
-	uint32_t RTR : 1;
-	uint32_t XTD : 1;
-	uint32_t ESI : 1;
-
-	// word T1
-	uint16_t _reserved;
 	uint8_t DLC : 4;
 	uint8_t BRS : 1;
 	uint8_t FDF : 1;
-	uint8_t RES : 1;
-	uint8_t EFC : 1;
-	uint8_t MM;
+	uint8_t RES : 2;
+	uint8_t FIDX : 7;
+	uint8_t ANMF : 1;
+} RxFifoHeader;
 
-	// words T2, T3
-	uint8_t data[8];
+static void copyToMessageRam(volatile uint32_t *dst, const uint8_t *src, uint8_t nbytes)
+{
+	const uint8_t nwords = static_cast<uint8_t>((nbytes + 3) / 4);
 
-} TxFifoElement;
+	for (uint8_t w = 0; w < nwords; w++) {
+		uint32_t word = 0;
+
+		for (uint8_t b = 0; b < 4; b++) {
+			const uint8_t i = static_cast<uint8_t>(w * 4 + b);
+
+			if (i < nbytes) {
+				word |= static_cast<uint32_t>(src[i]) << (8 * b);
+			}
+		}
+
+		dst[w] = word;
+	}
+}
+
+static void copyFromMessageRam(uint8_t *dst, const volatile uint32_t *src, uint8_t nbytes)
+{
+	for (uint8_t i = 0; i < nbytes; i++) {
+		dst[i] = static_cast<uint8_t>((src[i / 4] >>(8 * (i % 4))) & 0xFF);
+	}
+}
 
 extern "C"
 {
@@ -265,7 +260,8 @@ void CanIface::RxQueue::reset()
  * CanIface
  */
 
-int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings &out_timings)
+int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings &out_timings,
+			     uint32_t max_prescaler, bool fd_data_phase)
 {
 	if (target_bitrate < 1) {
 		return -ErrInvalidBitRate;
@@ -280,8 +276,10 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings &out
 	const uavcan::uint32_t pclk = STM32_HSE_FREQUENCY;
 #endif
 
-	static const int MaxBS1 = 16;
-	static const int MaxBS2 = 8;
+	// FDCAN DBTP maxima (DTSEG1 1..32, DTSEG2 1..16). Nominal still uses a
+	// 10-tq cap below; FD data targets 75% sample point like ARK32.
+	static const int MaxBS1 = 32;
+	static const int MaxBS2 = 16;
 
 	/*
 	 * Ref. "Automatic Baudrate Detection in CANopen Networks", U. Koppe, MicroControl GmbH & Co. KG
@@ -294,11 +292,12 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings &out
 	 *   250  kbps      16      17
 	 *   125  kbps      16      17
 	 */
-	const int max_quanta_per_bit = (target_bitrate >= 1000000) ? 10 : 17;
+	const int max_quanta_per_bit = fd_data_phase ? (MaxBS1 + MaxBS2) :
+				       ((target_bitrate >= 1000000) ? 10 : 17);
 
 	UAVCAN_ASSERT(max_quanta_per_bit <= (MaxBS1 + MaxBS2));
 
-	static const int MaxSamplePointLocation = 900;
+	const int MaxSamplePointLocation = fd_data_phase ? 800 : 900;
 
 	/*
 	 * Computing (prescaler * BS):
@@ -327,7 +326,7 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings &out
 
 	const uavcan::uint32_t prescaler = prescaler_bs / (1 + bs1_bs2_sum);
 
-	if ((prescaler < 1U) || (prescaler > 1024U)) {
+	if ((prescaler < 1U) || (prescaler > max_prescaler)) {
 		return -ErrInvalidBitRate;              // No solution
 	}
 
@@ -371,12 +370,17 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings &out
 		bool isValid() const { return (bs1 >= 1) && (bs1 <= MaxBS1) && (bs2 >= 1) && (bs2 <= MaxBS2); }
 	};
 
-	// First attempt with rounding to nearest
-	BsPair solution(bs1_bs2_sum, uavcan::uint8_t(((7 * bs1_bs2_sum - 1) + 4) / 8));
+	// First attempt with rounding to nearest. Nominal targets 7/8, FD data 3/4.
+	const uavcan::uint8_t bs1_near = fd_data_phase ?
+					 uavcan::uint8_t(((3 * bs1_bs2_sum - 1) + 2) / 4) :
+					 uavcan::uint8_t(((7 * bs1_bs2_sum - 1) + 4) / 8);
+	BsPair solution(bs1_bs2_sum, bs1_near);
 
-	if (solution.sample_point_permill > MaxSamplePointLocation) {
-		// Second attempt with rounding to zero
-		solution = BsPair(bs1_bs2_sum, uavcan::uint8_t((7 * bs1_bs2_sum - 1) / 8));
+	if (solution.sample_point_permill > MaxSamplePointLocation || !solution.isValid()) {
+		const uavcan::uint8_t bs1_down = fd_data_phase ?
+						 uavcan::uint8_t((3 * bs1_bs2_sum - 1) / 4) :
+						 uavcan::uint8_t((7 * bs1_bs2_sum - 1) / 8);
+		solution = BsPair(bs1_bs2_sum, bs1_down);
 	}
 
 	/*
@@ -397,7 +401,19 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings &out
 			   int(1 + solution.bs1 + solution.bs2), double(solution.sample_point_permill) / 10.);
 
 	out_timings.prescaler = uavcan::uint16_t(prescaler - 1U);
-	out_timings.sjw = 0;                                        // Which means one
+	{
+		uavcan::uint8_t sjw = fd_data_phase ? solution.bs2 : 1;
+
+		if (sjw < 1) {
+			sjw = 1;
+		}
+
+		if (sjw > solution.bs2) {
+			sjw = solution.bs2;
+		}
+
+		out_timings.sjw = uavcan::uint8_t(sjw - 1);
+	}
 	out_timings.bs1 = uavcan::uint8_t(solution.bs1 - 1);
 	out_timings.bs2 = uavcan::uint8_t(solution.bs2 - 1);
 	return 0;
@@ -406,7 +422,10 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings &out
 uavcan::int16_t CanIface::send(const uavcan::CanFrame &frame, uavcan::MonotonicTime tx_deadline,
 			       uavcan::CanIOFlags flags)
 {
-	if (frame.isErrorFrame() || frame.dlc > 8) {
+	const uint8_t data_len = uavcan::CanFrame::dlcToDataLength(frame.dlc);
+
+	if (frame.isErrorFrame() || data_len > uavcan::CanFrame::MaxDataLen ||
+	    (frame.canfd && !canfd_)) {
 		return -ErrUnsupportedFrame;
 	}
 
@@ -437,7 +456,7 @@ uavcan::int16_t CanIface::send(const uavcan::CanFrame &frame, uavcan::MonotonicT
 	const uint8_t index = (can_->TXFQS & FDCAN_TXFQS_TFQPI) >> FDCAN_TXFQS_TFQPI_Pos;
 
 	// Now, we can copy the CAN frame to the FIFO (in message RAM)
-	uint32_t *txbuf  = (uint32_t *)(message_ram_.TxFIFOSA + (index * FIFO_ELEMENT_SIZE * WORD_LENGTH));
+	uint32_t *txbuf  = (uint32_t *)(message_ram_.TxFIFOSA + (index * fifo_element_words_ * WORD_LENGTH));
 
 	// Copy the ID; special case for standard ID frames
 	if (frame.isExtended()) {
@@ -457,21 +476,19 @@ uavcan::int16_t CanIface::send(const uavcan::CanFrame &frame, uavcan::MonotonicT
 	}
 
 	txbuf[1] = (frame.dlc << fdcan::T1_DLC_Pos);
-
-	txbuf[1] &= ~(1 << fdcan::T1_FDF_Pos);   // Classic CAN frame, not CAN-FD
-	txbuf[1] &= ~(1 << fdcan::T1_BRS_Pos);   // No bitrate switching
 	txbuf[1] &= ~(1 << fdcan::T1_EFC_Pos);   // Don't store Tx events
 	txbuf[1] |= (index << fdcan::T1_MM_Pos); // Marker for our use; just give it the FIFO index
 
-	// Store the data bytes
-	txbuf[2] = (uavcan::uint32_t(frame.data[3]) << 24) |
-		   (uavcan::uint32_t(frame.data[2]) << 16) |
-		   (uavcan::uint32_t(frame.data[1]) << 8)  |
-		   (uavcan::uint32_t(frame.data[0]) << 0);
-	txbuf[3] = (uavcan::uint32_t(frame.data[7]) << 24) |
-		   (uavcan::uint32_t(frame.data[6]) << 16) |
-		   (uavcan::uint32_t(frame.data[5]) << 8)  |
-		   (uavcan::uint32_t(frame.data[4]) << 0);
+	if (frame.canfd) {
+		txbuf[1] |= (1 << fdcan::T1_FDF_Pos);
+		txbuf[1] |= (1 << fdcan::T1_BRS_Pos);
+
+	} else {
+		txbuf[1] &= ~(1 << fdcan::T1_FDF_Pos);
+		txbuf[1] &= ~(1 << fdcan::T1_BRS_Pos);
+	}
+
+	copyToMessageRam(&txbuf[2], frame.data, data_len);
 
 	// Submit the transmission request for this element
 	can_->TXBAR = 1 << index;
@@ -665,7 +682,8 @@ bool CanIface::waitCCCRBitStateChange(uint32_t mask, bool target_state)
 	return false;
 }
 
-int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
+int CanIface::init(const uavcan::uint32_t nominal_bitrate, const uavcan::uint32_t data_bitrate,
+		   const OperatingMode mode, bool canfd)
 {
 	/*
 	 * Wake up the device and enable configuration changes
@@ -709,12 +727,15 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
 	uavcan::fill_n(pending_tx_, NumTxMailboxes, TxItem());
 	peak_tx_mailbox_index_ = 0;
 	had_activity_ = false;
+	canfd_ = canfd;
+	fifo_element_words_ = canfd_ ? 18 : 4;
+	(void)mode;
 
 	/*
 	 * CAN timings for this bitrate
 	 */
 	Timings timings;
-	const int timings_res = computeTimings(bitrate, timings);
+	const int timings_res = computeTimings(nominal_bitrate, timings);
 
 	if (timings_res < 0) {
 		can_->CCCR &= ~FDCAN_CCCR_INIT;
@@ -724,27 +745,64 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
 	UAVCAN_STM32H7_LOG("Timings: presc=%u sjw=%u bs1=%u bs2=%u",
 			   unsigned(timings.prescaler), unsigned(timings.sjw), unsigned(timings.bs1), unsigned(timings.bs2));
 
+	Timings data_timings = timings;
+
+	if (canfd_ && (data_bitrate != nominal_bitrate)) {
+		const int data_res = computeTimings(data_bitrate, data_timings, 32, true);
+
+		if (data_res < 0) {
+			can_->CCCR &= ~FDCAN_CCCR_INIT;
+			UAVCAN_STM32H7_LOG("CAN FD data bitrate %lu not achievable",
+					   static_cast<unsigned long>(data_bitrate));
+			return data_res;
+		}
+	}
+
 	/*
 	 * Set bit timings and prescalers (Nominal and Data bitrates)
 	 */
-
-	//  We're not using CAN-FD, so set same timings for both
 	can_->NBTP = ((timings.sjw << FDCAN_NBTP_NSJW_Pos)   |
 		      (timings.bs1 << FDCAN_NBTP_NTSEG1_Pos) |
 		      (timings.bs2 << FDCAN_NBTP_TSEG2_Pos)  |
 		      (timings.prescaler << FDCAN_NBTP_NBRP_Pos));
 
-	can_->DBTP = ((timings.sjw << FDCAN_DBTP_DSJW_Pos)   |
-		      (timings.bs1 << FDCAN_DBTP_DTSEG1_Pos) |
-		      (timings.bs2 << FDCAN_DBTP_DTSEG2_Pos)  |
-		      (timings.prescaler << FDCAN_DBTP_DBRP_Pos));
+	can_->DBTP = ((data_timings.sjw << FDCAN_DBTP_DSJW_Pos)   |
+		      (data_timings.bs1 << FDCAN_DBTP_DTSEG1_Pos) |
+		      (data_timings.bs2 << FDCAN_DBTP_DTSEG2_Pos)  |
+		      (data_timings.prescaler << FDCAN_DBTP_DBRP_Pos));
 
 	/*
 	 * Operation Configuration
 	 */
+	if (canfd_) {
+		can_->CCCR |= FDCAN_CCCR_FDOE | FDCAN_CCCR_BRSE;
+		can_->CCCR &= ~FDCAN_CCCR_NISO;
 
-	// Disable CAN-FD communications ("classic" CAN only)
-	can_->CCCR &= ~FDCAN_CCCR_FDOE;
+		if (data_bitrate > nominal_bitrate) {
+			can_->DBTP |= FDCAN_DBTP_TDC;
+#ifdef STM32_FDCANCLK
+			const uavcan::uint32_t canclk = STM32_FDCANCLK;
+#else
+			const uavcan::uint32_t canclk = STM32_HSE_FREQUENCY;
+#endif
+			// TDCO is in kernel clocks (mtq), not data tq. 125 ns matches
+			// ARK32 (10 ticks at 80 MHz) and typical transceiver delay.
+			uint32_t tdco = (canclk + 4000000U) / 8000000U;
+
+			if (tdco < 1U) {
+				tdco = 1U;
+			}
+
+			if (tdco > 0x7FU) {
+				tdco = 0x7FU;
+			}
+
+			can_->TDCR = tdco << FDCAN_TDCR_TDCO_Pos;
+		}
+
+	} else {
+		can_->CCCR &= ~(FDCAN_CCCR_FDOE | FDCAN_CCCR_BRSE);
+	}
 
 	// Disable Time Triggered (TT) operation -- TODO (must use TTCAN_TypeDef)
 	//ttcan_->TTOCF &= ~FDCAN_TTOCF_OM
@@ -822,19 +880,29 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
 	ram_offset += 2 * n_extid;
 
 	// Set size of each element in the Rx/Tx buffers and FIFOs
-	can_->RXESC = 0; // 8 byte space for every element (Rx buffer, FIFO1, FIFO0)
-	can_->TXESC = 0; // 8 byte space for every element (Tx buffer)
+	if (canfd_) {
+		// 64-byte data field (code 7) for FIFO0, FIFO1, Rx buffers, and Tx
+		can_->RXESC = (7U << FDCAN_RXESC_F0DS_Pos) |
+			      (7U << FDCAN_RXESC_F1DS_Pos) |
+			      (7U << FDCAN_RXESC_RBDS_Pos);
+		can_->TXESC = 7U << FDCAN_TXESC_TBDS_Pos;
 
-	// Rx FIFO0 (64 elements max)
-	const uint8_t n_fifo0 = 64;
+	} else {
+		can_->RXESC = 0; // 8 byte space for every element
+		can_->TXESC = 0;
+	}
+
+	// Rx FIFO0. Classic: 64 x 4-word elements. CAN FD: 32 x 18-word elements.
+	const uint8_t n_fifo0 = canfd_ ? 32 : 64;
 	message_ram_.RxFIFO0SA = gl_ram_base + ram_offset * WORD_LENGTH;
 	can_->RXF0C = ram_offset << FDCAN_RXF0C_F0SA_Pos;
 	can_->RXF0C |= n_fifo0 << FDCAN_RXF0C_F0S_Pos;
-	ram_offset += n_fifo0 * FIFO_ELEMENT_SIZE;
+	ram_offset += n_fifo0 * fifo_element_words_;
 
-	// Set Tx FIFO size (32 elements max)
+	// Tx FIFO. Classic: 32 x 4-word elements. CAN FD: 16 x 18-word elements.
+	const uint8_t n_tx = canfd_ ? 16 : 32;
 	message_ram_.TxFIFOSA = gl_ram_base + ram_offset * WORD_LENGTH;
-	can_->TXBC = 32U << FDCAN_TXBC_TFQS_Pos;
+	can_->TXBC = n_tx << FDCAN_TXBC_TFQS_Pos;
 	can_->TXBC &= ~FDCAN_TXBC_TFQM; // Use FIFO
 	can_->TXBC |= ram_offset << FDCAN_TXBC_TBSA_Pos;
 
@@ -956,7 +1024,8 @@ void CanIface::handleRxInterrupt(uavcan::uint8_t fifo_index)
 
 		const uint8_t index = (*RXFnS & FDCAN_RXFnS_FnGI) >> FDCAN_RXFnS_FnGI_Pos;
 
-		RxFifoElement *rx = (RxFifoElement *)(message_ram_.RxFIFO0SA + (index * FIFO_ELEMENT_SIZE * WORD_LENGTH));
+		uint32_t *raw = (uint32_t *)(message_ram_.RxFIFO0SA + (index * fifo_element_words_ * WORD_LENGTH));
+		RxFifoHeader *rx = (RxFifoHeader *)raw;
 
 		// Note that we must shift Standard IDs to the lowest bit range of ID
 		if (rx->XTD) {
@@ -976,10 +1045,15 @@ void CanIface::handleRxInterrupt(uavcan::uint8_t fifo_index)
 		}
 
 		frame.dlc = rx->DLC;
+		frame.canfd = rx->FDF != 0;
 
-		for (uint8_t i = 0; i < 8; i++) {
-			frame.data[i] = rx->data[i];
+		uint8_t nbytes = uavcan::CanFrame::dlcToDataLength(frame.dlc);
+
+		if (nbytes > uavcan::CanFrame::MaxDataLen) {
+			nbytes = uavcan::CanFrame::MaxDataLen;
 		}
+
+		copyFromMessageRam(frame.data, &raw[2], nbytes);
 
 		// Acknowledge receipt of this FIFO element
 		*RXFnA = index;
@@ -1182,14 +1256,112 @@ void CanDriver::initOnce()
 #endif
 }
 
-int CanDriver::init(const uavcan::uint32_t bitrate, const CanIface::OperatingMode mode,
-		    const uavcan::uint32_t enabledInterfaces)
+static uavcan::uint32_t bitrateForIface(const uavcan::uint32_t *bitrates, uint8_t num_bitrates, uint8_t iface)
+{
+	if (bitrates == UAVCAN_NULLPTR || num_bitrates == 0) {
+		return 1000000U;
+	}
+
+	return bitrates[(iface < num_bitrates) ? iface : 0];
+}
+
+static void splitBitrate(uavcan::uint32_t bitrate, uavcan::uint32_t &nominal, uavcan::uint32_t &data, bool &canfd)
+{
+#if UAVCAN_SUPPORT_CANFD
+	canfd = bitrate > 1000000U;
+#else
+	canfd = false;
+#endif
+	nominal = canfd ? 1000000U : bitrate;
+	data = bitrate;
+}
+
+int CanDriver::init(const uavcan::uint32_t *bitrates, uint8_t num_bitrates,
+		    const CanIface::OperatingMode mode, const uavcan::uint32_t enabledInterfaces)
 {
 	int res = 0;
 
 	enabledInterfaces_ = enabledInterfaces;
 
-	UAVCAN_STM32H7_LOG("Bitrate %lu mode %d", static_cast<unsigned long>(bitrate), static_cast<int>(mode));
+	static bool initialized_once = false;
+
+	if (!initialized_once) {
+		initialized_once = true;
+		UAVCAN_STM32H7_LOG("First initialization");
+		initOnce();
+	}
+
+	/*
+	 * FDCAN1
+	 */
+	if (enabledInterfaces_ & 1) {
+		uavcan::uint32_t nominal = 0;
+		uavcan::uint32_t data = 0;
+		bool canfd = false;
+		splitBitrate(bitrateForIface(bitrates, num_bitrates, 0), nominal, data, canfd);
+
+		num_ifaces_ = 1;
+		UAVCAN_STM32H7_LOG("Initing iface 0 bitrate %lu/%lu CAN-FD %d",
+				   static_cast<unsigned long>(nominal),
+				   static_cast<unsigned long>(data), int(canfd));
+		ifaces[0] = &if0_;
+		res = if0_.init(nominal, data, mode, canfd);
+
+		if (res < 0) {
+			UAVCAN_STM32H7_LOG("Iface 0 init failed %i", res);
+			ifaces[0] = UAVCAN_NULLPTR;
+			goto fail;
+		}
+	}
+
+	/*
+	 * FDCAN2
+	 */
+#if UAVCAN_STM32H7_NUM_IFACES > 1
+
+	if (enabledInterfaces_ & 2) {
+		uavcan::uint32_t nominal = 0;
+		uavcan::uint32_t data = 0;
+		bool canfd = false;
+		splitBitrate(bitrateForIface(bitrates, num_bitrates, 1), nominal, data, canfd);
+
+		num_ifaces_ = 2;
+		UAVCAN_STM32H7_LOG("Initing iface 1 bitrate %lu/%lu CAN-FD %d",
+				   static_cast<unsigned long>(nominal),
+				   static_cast<unsigned long>(data), int(canfd));
+		ifaces[1] = &if1_;
+		res = if1_.init(nominal, data, mode, canfd);
+
+		if (res < 0) {
+			UAVCAN_STM32H7_LOG("Iface 1 init failed %i", res);
+			ifaces[1] = UAVCAN_NULLPTR;
+			goto fail;
+		}
+	}
+
+#endif
+
+	UAVCAN_STM32H7_LOG("CAN drv init OK");
+	UAVCAN_ASSERT(res >= 0);
+	return res;
+
+fail:
+	UAVCAN_STM32H7_LOG("CAN drv init failed %i", res);
+	UAVCAN_ASSERT(res < 0);
+	return res;
+}
+
+int CanDriver::init(const uavcan::uint32_t nominal_bitrate, const uavcan::uint32_t data_bitrate,
+		    const CanIface::OperatingMode mode, const uavcan::uint32_t enabledInterfaces, bool canfd)
+{
+	int res = 0;
+
+	enabledInterfaces_ = enabledInterfaces;
+
+	UAVCAN_STM32H7_LOG("Bitrate %lu/%lu CAN-FD %d mode %d",
+			   static_cast<unsigned long>(nominal_bitrate),
+			   static_cast<unsigned long>(data_bitrate),
+			   int(canfd), static_cast<int>(mode));
 
 	static bool initialized_once = false;
 
@@ -1206,7 +1378,7 @@ int CanDriver::init(const uavcan::uint32_t bitrate, const CanIface::OperatingMod
 		num_ifaces_ = 1;
 		UAVCAN_STM32H7_LOG("Initing iface 0...");
 		ifaces[0] = &if0_;                          // This link must be initialized first,
-		res = if0_.init(bitrate, mode);             // otherwise an IRQ may fire while the interface is not linked yet;
+		res = if0_.init(nominal_bitrate, data_bitrate, mode, canfd); // otherwise an IRQ may fire while the interface is not linked yet;
 
 		if (res < 0) {                              // a typical race condition.
 			UAVCAN_STM32H7_LOG("Iface 0 init failed %i", res);
@@ -1224,7 +1396,7 @@ int CanDriver::init(const uavcan::uint32_t bitrate, const CanIface::OperatingMod
 		num_ifaces_ = 2;
 		UAVCAN_STM32H7_LOG("Initing iface 1...");
 		ifaces[1] = &if1_;                          // Same thing here.
-		res = if1_.init(bitrate, mode);
+		res = if1_.init(nominal_bitrate, data_bitrate, mode, canfd);
 
 		if (res < 0) {
 			UAVCAN_STM32H7_LOG("Iface 1 init failed %i", res);

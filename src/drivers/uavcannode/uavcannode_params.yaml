@@ -16,10 +16,12 @@ parameters:
     CANNODE_BITRATE:
       description:
         short: UAVCAN CAN bus bitrate
-      type: int32
+        long: Rates above 1 Mbps run the bus as CAN FD with 1 Mbps arbitration, and this value is the data phase rate. Every node on the bus must then use CAN FD.
+      type: enum
+      can_bitrate: true
       default: 1000000
-      min: 20000
-      max: 1000000
+      unit: bit/s
+      reboot_required: true
     CANNODE_TERM:
       description:
         short: CAN built-in bus termination

@@ -67,6 +67,9 @@ add_custom_target(metadata_parameters
 		--timer-config ${PX4_SOURCE_DIR}/boards/px4/fmu-v5/src/timer_config.cpp # select a typical board
 		--board-with-io
 		--ethernet
+		--uavcan-num-ifaces 2
+		--uavcan-canfd
+		--board-dir ${PX4_SOURCE_DIR}/boards/px4/fmu-v6x
 		--config-files ${yaml_config_files} #--verbose
 
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/src/lib/parameters/px_process_params.py

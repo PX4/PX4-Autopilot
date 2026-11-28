@@ -34,6 +34,7 @@
 #include "param_translation.h"
 
 
+#include <cstdio>
 #include <inttypes.h>
 #include <px4_platform_common/log.h>
 #include <lib/drivers/device/Device.hpp>
@@ -524,6 +525,28 @@ param_modify_on_import_ret param_modify_on_import(bson_node_t node)
 			}
 
 			return param_modify_on_import_ret::PARAM_SKIP_IMPORT;
+		}
+	}
+
+	// 2026-11-23: UAVCAN_BITRATE replaced by per-port UAVCAN_BAUDn
+	{
+		if ((node->type == bson_type_t::BSON_INT32) && (strcmp("UAVCAN_BITRATE", node->name) == 0)) {
+			strcpy(node->name, "UAVCAN_BAUD1");
+			PX4_INFO("copying UAVCAN_BITRATE -> UAVCAN_BAUD1");
+
+			for (int i = 2; i <= 8; i++) {
+				char name[16];
+				snprintf(name, sizeof(name), "UAVCAN_BAUD%d", i);
+				param_t p = param_find(name);
+
+				if (p == PARAM_INVALID) {
+					break;
+				}
+
+				param_set(p, &node->i32);
+			}
+
+			return param_modify_on_import_ret::PARAM_MODIFIED;
 		}
 	}
 

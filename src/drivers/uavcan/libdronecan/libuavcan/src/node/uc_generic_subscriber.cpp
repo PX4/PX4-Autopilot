@@ -25,7 +25,8 @@ int GenericSubscriberBase::genericStart(TransferListener* listener,
 }
 
 bool GenericSubscriberBase::decodeTransfer(IncomingTransfer& transfer, void* rx_struct,
-                                           int (*decode_fn)(void* rx_struct, ScalarCodec& codec))
+                                           int (*decode_fn)(void* rx_struct, ScalarCodec& codec,
+                                                            TailArrayOptimizationMode tao_mode))
 {
     /*
      * Decoding into the temporary storage
@@ -33,7 +34,14 @@ bool GenericSubscriberBase::decodeTransfer(IncomingTransfer& transfer, void* rx_
     BitStream bitstream(transfer);
     ScalarCodec codec(bitstream);
 
-    const int decode_res = decode_fn(rx_struct, codec);
+#if UAVCAN_SUPPORT_CANFD
+    // Tail array optimization follows the received frame: CAN FD transfers are encoded
+    // without it, classic ones (DNA, NodeStatus, services) with it.
+    const TailArrayOptimizationMode tao_mode = transfer.isCanFD() ? TailArrayOptDisabled : TailArrayOptEnabled;
+#else
+    const TailArrayOptimizationMode tao_mode = TailArrayOptEnabled;
+#endif
+    const int decode_res = decode_fn(rx_struct, codec, tao_mode);
 
     // We don't need the data anymore, the memory can be reused from the callback:
     transfer.release();

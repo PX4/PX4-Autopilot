@@ -167,7 +167,14 @@ int GenericPublisher<DataSpec, DataStruct>::doEncode(const DataStruct& message, 
 {
     BitStream bitstream(buffer);
     ScalarCodec codec(bitstream);
+#if UAVCAN_SUPPORT_CANFD
+    const bool canfd = getTransferSender().useCanFd();
+    const TailArrayOptimizationMode tao = canfd ?
+                                          TailArrayOptDisabled : TailArrayOptEnabled;
+    const int encode_res = DataStruct::encode(message, codec, tao);
+#else
     const int encode_res = DataStruct::encode(message, codec);
+#endif
     if (encode_res <= 0)
     {
         UAVCAN_ASSERT(0);   // Impossible, internal error
