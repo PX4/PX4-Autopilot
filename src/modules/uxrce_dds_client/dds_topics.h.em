@@ -99,6 +99,14 @@ struct SendTopicsSubs {
 
 	uint32_t num_payload_sent{};
 
+	SendTopicsSubs()
+	{
+		// fd 0 is a valid handle, so mark every slot as not subscribed until init() runs
+		for (auto &pfd : fds) {
+			pfd.fd = ORB_SUB_INVALID;
+		}
+	}
+
 	bool init(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId reliable_in_stream_id, uxrObjectId participant_id, const char *client_namespace);
 	void update(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId best_effort_stream_id, uxrObjectId participant_id, const char *client_namespace);
 	void reset();
@@ -108,8 +116,11 @@ bool SendTopicsSubs::init(uxrSession *session, uxrStreamId reliable_out_stream_i
 	for (unsigned idx = 0; idx < sizeof(send_subscriptions)/sizeof(send_subscriptions[0]); ++idx) {
 		if (fds[idx].events == 0) {
 			fds[idx].fd = orb_subscribe_multi(send_subscriptions[idx].orb_meta, send_subscriptions[idx].orb_instance);
-			fds[idx].events = POLLIN;
-			orb_set_interval(fds[idx].fd, send_subscriptions[idx].publish_interval_ms);
+
+			if (orb_sub_valid(fds[idx].fd)) {
+				fds[idx].events = POLLIN;
+				orb_set_interval(fds[idx].fd, send_subscriptions[idx].publish_interval_ms);
+			}
 		}
 
 		if (!create_data_writer(session, reliable_out_stream_id, participant_id, static_cast<ORB_ID>(send_subscriptions[idx].orb_meta->o_id), client_namespace, send_subscriptions[idx].topic,
@@ -125,7 +136,12 @@ void SendTopicsSubs::reset() {
 	num_payload_sent = 0;
 	for (unsigned idx = 0; idx < sizeof(send_subscriptions)/sizeof(send_subscriptions[0]); ++idx) {
 		send_subscriptions[idx].data_writer = uxr_object_id(0, UXR_INVALID_ID);
-		orb_unsubscribe(fds[idx].fd);
+
+		// only release handles this client owns: on POSIX the fd table is shared by all modules
+		if (orb_sub_valid(fds[idx].fd)) {
+			orb_unsubscribe(fds[idx].fd);
+		}
+
 		fds[idx].fd = ORB_SUB_INVALID;
 		fds[idx].events = 0;  // force re-subscribe on reconnect (init() skips when events != 0)
 	}
