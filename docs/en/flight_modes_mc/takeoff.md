@@ -21,6 +21,9 @@ The _Takeoff_ flight mode causes the vehicle to take off to a specified height a
 
 A multi rotor ascends vertically to the altitude defined in [MIS_TAKEOFF_ALT](../advanced_config/parameter_reference.md#MIS_TAKEOFF_ALT) and holds position.
 
+If the mode is started with [MAV_CMD_NAV_TAKEOFF](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_TAKEOFF) and an altitude, the vehicle climbs to that AMSL altitude instead.
+In a `COMMAND_INT` with frame `MAV_FRAME_LOCAL_OFFSET_NED`, `z` is the height to climb from the current altitude (negative up, so `-20` climbs 20 m), and `x`/`y` are ignored. <Badge type="tip" text="main (PX4 v2.0)" />
+
 Stick movement will change the vehicle to [Position mode](../flight_modes_mc/position.md) (by [default](#MAN_OVERRIDE_SPD)).
 
 <!-- AUTO-GENERATED: mode_requirements_rotary_wing_auto_takeoff -->
