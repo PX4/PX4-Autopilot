@@ -47,10 +47,8 @@
 // uORB includes
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/surface_vehicle_position_setpoint.h>
 #include <uORB/topics/surface_vehicle_course_setpoint.h>
-#include <uORB/topics/surface_vehicle_speed_setpoint.h>
-#include <uORB/topics/surface_vehicle_attitude_setpoint.h>
+#include <uORB/topics/surface_vehicle_position_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/position_controller_status.h>
@@ -72,7 +70,7 @@ public:
 	~AckermannPosControl() = default;
 
 	/**
-	 * @brief Generate and publish surfaceVehicleSpeedSetpoint and surfaceVehicleAttitudeSetpoint from surfaceVehiclePositionSetpoint or surfaceVehicleCourseSetpoint.
+	 * @brief Generate and publish surfaceVehicleCourseSetpoint (course and speed) from surfaceVehiclePositionSetpoint.
 	 */
 	void updatePosControl();
 
@@ -85,7 +83,7 @@ public:
 	/**
 	 * @brief Reset position controller.
 	 */
-	void reset() {_start_ned = Vector2f{NAN, NAN}; _target_waypoint_ned = Vector2f{NAN, NAN}; _course = NAN; _arrival_speed = 0.f; _cruising_speed = _param_ro_speed_lim.get(); _stopped = false; _drift_angle_estimator.reset();};
+	void reset() {_start_ned = Vector2f{NAN, NAN}; _target_waypoint_ned = Vector2f{NAN, NAN}; _arrival_speed = 0.f; _cruising_speed = _param_ro_speed_lim.get(); _stopped = false; _stop_course_control = false;};
 
 protected:
 	/**
@@ -105,12 +103,10 @@ private:
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _surface_vehicle_position_setpoint_sub{ORB_ID(surface_vehicle_position_setpoint)};
-	uORB::Subscription _surface_vehicle_course_setpoint_sub{ORB_ID(surface_vehicle_course_setpoint)};
 	uORB::Subscription _position_controller_status_sub{ORB_ID(position_controller_status)};
 
 	// uORB publications
-	uORB::Publication<surface_vehicle_speed_setpoint_s> _surface_vehicle_speed_setpoint_pub{ORB_ID(surface_vehicle_speed_setpoint)};
-	uORB::Publication<surface_vehicle_attitude_setpoint_s> _surface_vehicle_attitude_setpoint_pub{ORB_ID(surface_vehicle_attitude_setpoint)};
+	uORB::Publication<surface_vehicle_course_setpoint_s> _surface_vehicle_course_setpoint_pub{ORB_ID(surface_vehicle_course_setpoint)};
 	uORB::Publication<pure_pursuit_status_s>     _pure_pursuit_status_pub{ORB_ID(pure_pursuit_status)};
 
 	// Variables
@@ -118,31 +114,22 @@ private:
 	Vector2f _curr_pos_ned{};
 	Vector2f _start_ned{};
 	Vector2f _target_waypoint_ned{};
-	float _course{NAN};
-	RoverControl::DriftAngleEstimator _drift_angle_estimator{};
 	float _arrival_speed{0.f};
-	float _vehicle_yaw{0.f};
-	float _max_yaw_rate{0.f};
 	float _acceptance_radius{0.f}; // Acceptance radius for the waypoint.
-	float _min_speed{NAN};
 	float _vehicle_speed{0.f};
 	float _cruising_speed{NAN};
 	bool _stopped{false};
+	bool _stop_course_control{false}; // Publish a NaN course setpoint once, on a position setpoint without target
 	uint8_t _reset_counter{0}; /**< counter for estimator resets in xy-direction */
 	uint8_t _updated_reset_counter{0}; /**< counter for estimator resets in xy-direction */
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RO_MAX_THR_SPEED>) _param_ro_max_thr_speed,
-		(ParamFloat<px4::params::RO_SPEED_RED>)     _param_ro_speed_red,
 		(ParamFloat<px4::params::RO_DECEL_LIM>)     _param_ro_decel_lim,
 		(ParamFloat<px4::params::RO_JERK_LIM>)      _param_ro_jerk_lim,
 		(ParamFloat<px4::params::RO_SPEED_LIM>)     _param_ro_speed_lim,
 		(ParamFloat<px4::params::PP_LOOKAHD_GAIN>)  _param_pp_lookahd_gain,
 		(ParamFloat<px4::params::PP_LOOKAHD_MAX>)   _param_pp_lookahd_max,
 		(ParamFloat<px4::params::PP_LOOKAHD_MIN>)   _param_pp_lookahd_min,
-		(ParamFloat<px4::params::RO_YAW_RATE_LIM>)  _param_ro_yaw_rate_lim,
-		(ParamFloat<px4::params::RA_WHEEL_BASE>)    _param_ra_wheel_base,
-		(ParamFloat<px4::params::RA_MAX_STR_ANG>)   _param_ra_max_str_ang,
 		(ParamFloat<px4::params::RO_SPEED_TH>)      _param_ro_speed_th
 	)
 };

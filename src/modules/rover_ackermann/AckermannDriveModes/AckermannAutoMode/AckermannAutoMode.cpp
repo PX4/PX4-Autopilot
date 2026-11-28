@@ -176,7 +176,7 @@ void AckermannAutoMode::guidedCourse()
 					heading) + vehicle_local_position.vy * sinf(heading), 0.f) : 0.f;
 	}
 
-	// Streamed, so the course is held again after the position controller was reset on a control mode change
+	// Streamed straight to the course controller, so the course is held again after it was reset on a mode change
 	surface_vehicle_course_setpoint_s surface_vehicle_course_setpoint{};
 	surface_vehicle_course_setpoint.timestamp = hrt_absolute_time();
 	// The navigator publishes the course in [0, 2pi)

@@ -57,6 +57,7 @@
 #include "MecanumRateControl/MecanumRateControl.hpp"
 #include "MecanumAttControl/MecanumAttControl.hpp"
 #include "MecanumSpeedControl/MecanumSpeedControl.hpp"
+#include "MecanumCourseControl/MecanumCourseControl.hpp"
 #include "MecanumPosControl/MecanumPosControl.hpp"
 #include "MecanumDriveModes/MecanumAutoMode/MecanumAutoMode.hpp"
 #include "MecanumDriveModes/MecanumManualMode/MecanumManualMode.hpp"
@@ -136,6 +137,7 @@ private:
 	MecanumRateControl  _mecanum_rate_control{this};
 	MecanumAttControl   _mecanum_att_control{this};
 	MecanumSpeedControl   _mecanum_speed_control{this};
+	MecanumCourseControl   _mecanum_course_control{this};
 	MecanumPosControl   _mecanum_pos_control{this};
 	MecanumAutoMode	    _auto_mode{this};
 	MecanumManualMode   _manual_mode{this};

@@ -202,6 +202,9 @@ The rover modules use a hierarchical structure to propagate setpoints:
 
 ![Rover Control Structure](../../assets/middleware/ros2/px4_ros2_interface_lib/rover_control_structure.svg)
 
+The position controller turns a position setpoint into a [course setpoint](../concept/navigation_terminology.md#course-setpoint) and speed ([SurfaceVehicleCourseSetpoint](../msg_docs/SurfaceVehicleCourseSetpoint.md)).
+The course controller turns these into speed and attitude setpoints.
+
 The "highest" setpoint that is provided will be used within the PX4 rover modules to generate the setpoints that are below it (overriding them!).
 With this hierarchy there are clear rules for providing a valid control input:
 

@@ -39,7 +39,7 @@ All parameters will be mandatory for all subsequent modes, except those tagged a
 
 First, we set up the geometric parameters of the rover:
 
-![Geometric parameters](../../assets/config/rover/geometric_parameters.png)
+![Geometric parameters](../../assets/config/rover/geometric_parameters.svg)
 
 Navigate to [Parameters](../advanced_config/parameters.md) in QGroundControl and set the parameters in the group for your frame type.
 

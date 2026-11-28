@@ -35,6 +35,7 @@ add_subdirectory(DifferentialActControl)
 add_subdirectory(DifferentialRateControl)
 add_subdirectory(DifferentialAttControl)
 add_subdirectory(DifferentialSpeedControl)
+add_subdirectory(DifferentialCourseControl)
 add_subdirectory(DifferentialPosControl)
 add_subdirectory(DifferentialDriveModes)
 
@@ -49,6 +50,7 @@ px4_add_module(
 		DifferentialRateControl
 		DifferentialAttControl
 		DifferentialSpeedControl
+		DifferentialCourseControl
 		DifferentialPosControl
 		DifferentialAutoMode
 		DifferentialManualMode

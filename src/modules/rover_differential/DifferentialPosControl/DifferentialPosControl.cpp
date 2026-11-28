@@ -40,8 +40,7 @@ DifferentialPosControl::DifferentialPosControl(ModuleParams *parent) :
 	RoverControllerWorkItem("rover_differential_pos_control", ORB_ID(vehicle_local_position))
 {
 	_pure_pursuit_status_pub.advertise();
-	_surface_vehicle_speed_setpoint_pub.advertise();
-	_surface_vehicle_attitude_setpoint_pub.advertise();
+	_surface_vehicle_course_setpoint_pub.advertise();
 
 	updateParams();
 }
@@ -55,101 +54,70 @@ void DifferentialPosControl::updatePosControl()
 {
 	updateSubscriptions();
 
-	hrt_abstime timestamp = hrt_absolute_time();
+	const hrt_abstime timestamp = hrt_absolute_time();
 
-
-	// Course control: like the fixed wing course hold, only the course over ground is controlled, there is no desired track to return to after a sideways offset
-	const bool course_control = PX4_ISFINITE(_course);
-
-	if (course_control || _target_waypoint_ned.isAllFinite()) {
-		float distance_to_target = course_control ? 0.f : (_target_waypoint_ned - _curr_pos_ned).norm();
-
-		if (_arrival_speed > FLT_EPSILON) {
-			distance_to_target -=
-				_param_nav_acc_rad.get(); // shift target to the edge of the acceptance radius if arrival speed not zero
+	if (!_target_waypoint_ned.isAllFinite()) {
+		// Idle. Only stop the course controller when a position setpoint without target was received (e.g. Position
+		// mode while steering), not on every cycle, so a mode commanding the course controller directly (Guided Course)
+		// is not overridden.
+		if (_stop_course_control) {
+			surface_vehicle_course_setpoint_s surface_vehicle_course_setpoint{};
+			surface_vehicle_course_setpoint.timestamp = timestamp;
+			surface_vehicle_course_setpoint.course = NAN;
+			surface_vehicle_course_setpoint.speed = NAN;
+			surface_vehicle_course_setpoint.yaw = NAN;
+			_surface_vehicle_course_setpoint_pub.publish(surface_vehicle_course_setpoint);
+			_stop_course_control = false;
 		}
 
-		if (course_control || distance_to_target > _param_nav_acc_rad.get() || _arrival_speed > FLT_EPSILON) {
-			float speed_setpoint{_cruising_speed};
+		return;
+	}
 
-			if (!course_control && _param_ro_decel_lim.get() > FLT_EPSILON && _param_ro_jerk_lim.get() > FLT_EPSILON) {
-				speed_setpoint = math::min(math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_lim.get(),
-							   _param_ro_decel_lim.get(), distance_to_target, fabsf(_arrival_speed)), _cruising_speed);
-			}
+	float distance_to_target = (_target_waypoint_ned - _curr_pos_ned).norm();
 
-			float yaw_setpoint{NAN};
+	if (_arrival_speed > FLT_EPSILON) {
+		distance_to_target -= _param_nav_acc_rad.get(); // shift target to the edge of the acceptance radius if arrival speed not zero
+	}
 
-			if (course_control) {
-				// Driving forwards, the heading setpoint is the course setpoint corrected by the drift angle, like the fixed wing crabs into the wind
-				yaw_setpoint = speed_setpoint > -FLT_EPSILON ? matrix::wrap_pi(_course - _drift_angle_estimator.getDriftAngle()) :
-					       _course;
+	surface_vehicle_course_setpoint_s surface_vehicle_course_setpoint{};
+	surface_vehicle_course_setpoint.timestamp = timestamp;
+	surface_vehicle_course_setpoint.yaw = NAN;
 
-			} else {
-				pure_pursuit_status_s pure_pursuit_status{};
-				pure_pursuit_status.timestamp = timestamp;
+	if (distance_to_target > _param_nav_acc_rad.get() || _arrival_speed > FLT_EPSILON) {
+		float speed_setpoint{_cruising_speed};
 
-				yaw_setpoint = PurePursuit::calcTargetBearing(pure_pursuit_status, _param_pp_lookahd_gain.get(),
-						_param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), _target_waypoint_ned, _start_ned,
-						_curr_pos_ned, fabsf(speed_setpoint));
-				_pure_pursuit_status_pub.publish(pure_pursuit_status);
-			}
+		if (_param_ro_decel_lim.get() > FLT_EPSILON && _param_ro_jerk_lim.get() > FLT_EPSILON) {
+			speed_setpoint = math::min(math::trajectory::computeMaxSpeedFromDistance(_param_ro_jerk_lim.get(),
+						   _param_ro_decel_lim.get(), distance_to_target, fabsf(_arrival_speed)), _cruising_speed);
+		}
 
-			// Driving in reverse, the rover points away from its direction of travel
-			if (speed_setpoint < -FLT_EPSILON) {
-				yaw_setpoint = matrix::wrap_pi(yaw_setpoint + M_PI_F);
-			}
+		pure_pursuit_status_s pure_pursuit_status{};
+		pure_pursuit_status.timestamp = timestamp;
 
-			const float heading_error = matrix::wrap_pi(yaw_setpoint - _vehicle_yaw);
+		// Pure pursuit returns the direction of travel towards the lookahead point, which is the course setpoint
+		surface_vehicle_course_setpoint.course = PurePursuit::calcTargetBearing(pure_pursuit_status,
+				_param_pp_lookahd_gain.get(), _param_pp_lookahd_max.get(), _param_pp_lookahd_min.get(), _target_waypoint_ned,
+				_start_ned, _curr_pos_ned, fabsf(speed_setpoint));
+		surface_vehicle_course_setpoint.speed = speed_setpoint;
+		_pure_pursuit_status_pub.publish(pure_pursuit_status);
 
-			if (_current_state == DrivingState::DRIVING && fabsf(heading_error) > _param_rd_trans_drv_trn.get()) {
-				_current_state = DrivingState::SPOT_TURNING;
+	} else {
+		// Stop: no course to control anymore, only the speed
+		surface_vehicle_course_setpoint.course = NAN;
+		surface_vehicle_course_setpoint.speed = 0.f;
 
-			} else if (_current_state == DrivingState::SPOT_TURNING && fabsf(heading_error) < _param_rd_trans_trn_drv.get()) {
-				_current_state = DrivingState::DRIVING;
-			}
+		if (!_stopped && fabsf(_vehicle_speed) < FLT_EPSILON) {
+			_stopped = true;
+			_target_waypoint_ned = _curr_pos_ned;
+		}
 
-			if (_current_state == DrivingState::SPOT_TURNING) {
-				speed_setpoint = 0.f; // stop during spot turning
-
-			} else if (_param_ro_speed_red.get() > FLT_EPSILON) {
-				const float speed_reduction = math::constrain(_param_ro_speed_red.get() * math::interpolate(fabsf(heading_error),
-							      0.f, M_PI_F, 0.f, 1.f), 0.f, 1.f);
-				const float max_speed = math::constrain(_param_ro_max_thr_speed.get() * (1.f - speed_reduction), 0.f,
-									_param_ro_max_thr_speed.get());
-				speed_setpoint = math::constrain(speed_setpoint, -max_speed, max_speed);
-			}
-
-			surface_vehicle_speed_setpoint_s surface_vehicle_speed_setpoint{};
-			surface_vehicle_speed_setpoint.timestamp = timestamp;
-			surface_vehicle_speed_setpoint.x = speed_setpoint;
-			_surface_vehicle_speed_setpoint_pub.publish(surface_vehicle_speed_setpoint);
-			surface_vehicle_attitude_setpoint_s surface_vehicle_attitude_setpoint{};
-			surface_vehicle_attitude_setpoint.timestamp = timestamp;
-			surface_vehicle_attitude_setpoint.yaw_setpoint = yaw_setpoint;
-			_surface_vehicle_attitude_setpoint_pub.publish(surface_vehicle_attitude_setpoint);
-
-		}  else {
-			surface_vehicle_speed_setpoint_s surface_vehicle_speed_setpoint{};
-			surface_vehicle_speed_setpoint.timestamp = timestamp;
-			surface_vehicle_speed_setpoint.x = 0.f;
-			_surface_vehicle_speed_setpoint_pub.publish(surface_vehicle_speed_setpoint);
-			surface_vehicle_attitude_setpoint_s surface_vehicle_attitude_setpoint{};
-			surface_vehicle_attitude_setpoint.timestamp = timestamp;
-			surface_vehicle_attitude_setpoint.yaw_setpoint = _vehicle_yaw;
-			_surface_vehicle_attitude_setpoint_pub.publish(surface_vehicle_attitude_setpoint);
-
-			if (!_stopped && fabsf(_vehicle_speed) < FLT_EPSILON) {
-				_stopped = true;
-				_target_waypoint_ned = _curr_pos_ned;
-			}
-
-			if (_stopped && _updated_reset_counter != _reset_counter) {
-				_target_waypoint_ned = _curr_pos_ned;
-				_reset_counter = _updated_reset_counter;
-			}
+		if (_stopped && _updated_reset_counter != _reset_counter) {
+			_target_waypoint_ned = _curr_pos_ned;
+			_reset_counter = _updated_reset_counter;
 		}
 	}
 
+	_surface_vehicle_course_setpoint_pub.publish(surface_vehicle_course_setpoint);
 }
 
 void DifferentialPosControl::updateSubscriptions()
@@ -158,14 +126,12 @@ void DifferentialPosControl::updateSubscriptions()
 		vehicle_attitude_s vehicle_attitude{};
 		_vehicle_attitude_sub.copy(&vehicle_attitude);
 		_vehicle_attitude_quaternion = matrix::Quatf(vehicle_attitude.q);
-		_vehicle_yaw = matrix::Eulerf(_vehicle_attitude_quaternion).psi();
 	}
 
 	if (_vehicle_local_position_sub.updated()) {
 		vehicle_local_position_s vehicle_local_position{};
 		_vehicle_local_position_sub.copy(&vehicle_local_position);
 		_updated_reset_counter = vehicle_local_position.xy_reset_counter;
-		_drift_angle_estimator.update(vehicle_local_position);
 
 		_curr_pos_ned = Vector2f(vehicle_local_position.x, vehicle_local_position.y);
 
@@ -184,19 +150,7 @@ void DifferentialPosControl::updateSubscriptions()
 		_cruising_speed = PX4_ISFINITE(surface_vehicle_position_setpoint.cruising_speed) ? surface_vehicle_position_setpoint.cruising_speed :
 				  _param_ro_speed_lim.get();
 		_target_waypoint_ned = Vector2f(surface_vehicle_position_setpoint.target_ned[0], surface_vehicle_position_setpoint.target_ned[1]);
-		_course = NAN;
-		_stopped = false;
-	}
-
-	if (_surface_vehicle_course_setpoint_sub.updated()) {
-		surface_vehicle_course_setpoint_s surface_vehicle_course_setpoint;
-		_surface_vehicle_course_setpoint_sub.copy(&surface_vehicle_course_setpoint);
-		_start_ned = Vector2f(NAN, NAN);
-		_arrival_speed = 0.f;
-		_cruising_speed = PX4_ISFINITE(surface_vehicle_course_setpoint.speed) ?
-				  surface_vehicle_course_setpoint.speed : _param_ro_speed_lim.get();
-		_target_waypoint_ned = Vector2f(NAN, NAN);
-		_course = surface_vehicle_course_setpoint.course;
+		_stop_course_control = !_target_waypoint_ned.isAllFinite();
 		_stopped = false;
 	}
 }

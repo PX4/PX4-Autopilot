@@ -50,6 +50,7 @@ bool RoverDifferential::init()
 	// The controllers only check their trigger here, they register it while enabled, see enableControllers().
 	if (!_vehicle_angular_velocity_sub.registerCallback()
 	    || !_differential_pos_control.init()
+	    || !_differential_course_control.init()
 	    || !_differential_speed_control.init()
 	    || !_differential_att_control.init()
 	    || !_differential_rate_control.init()
@@ -130,10 +131,14 @@ void RoverDifferential::generateSetpoints()
 	vehicle_status_s vehicle_status{};
 	_vehicle_status_sub.copy(&vehicle_status);
 
-	// Each entry into Guided Course takes the speed the rover is driving at
+	// Every mode starts from scratch
 	if (vehicle_status.nav_state != _nav_state) {
 		_nav_state = vehicle_status.nav_state;
+		// Each entry into Guided Course takes the speed the rover is driving at
 		_auto_mode.reset();
+		// The position and course controllers hold their last target and course until a new setpoint or a reset
+		_differential_pos_control.reset();
+		_differential_course_control.reset();
 	}
 
 	// Navigator stores and acks the speed, Guided Course applies it right away
@@ -193,20 +198,31 @@ void RoverDifferential::generateSetpoints()
 void RoverDifferential::enableControllers(const bool enabled)
 {
 	const bool pos_was_enabled = _differential_pos_control.enabled();
+	const bool course_was_enabled = _differential_course_control.enabled();
 	const bool speed_was_enabled = _differential_speed_control.enabled();
 	const bool rate_was_enabled = _differential_rate_control.enabled();
 	const bool act_was_enabled = _differential_act_control.enabled();
 
 	// Enable top-down, so newly enabled controllers run in cascade order in this cycle
 	bool registered = _differential_pos_control.setEnabled(enabled && _vehicle_control_mode.flag_control_position_enabled);
+	registered = _differential_course_control.setEnabled(enabled && _vehicle_control_mode.flag_control_position_enabled)
+		     && registered;
 	registered = _differential_speed_control.setEnabled(enabled && _vehicle_control_mode.flag_control_velocity_enabled) && registered;
 	registered = _differential_att_control.setEnabled(enabled && _vehicle_control_mode.flag_control_attitude_enabled) && registered;
 	registered = _differential_rate_control.setEnabled(enabled && _vehicle_control_mode.flag_control_rates_enabled) && registered;
 	registered = _differential_act_control.setEnabled(enabled && _vehicle_control_mode.flag_control_allocation_enabled) && registered;
 
-	// Callbacks sharing a trigger topic run in registration order: keep the position controller ahead of the speed
-	// controller (vehicle_local_position) and the rate controller ahead of the actuator controller (vehicle_angular_velocity)
-	if (!pos_was_enabled && _differential_pos_control.enabled() && speed_was_enabled && _differential_speed_control.enabled()) {
+	// Callbacks sharing a trigger topic run in registration order: keep position -> course -> speed controller
+	// (vehicle_local_position) and the rate controller ahead of the actuator controller (vehicle_angular_velocity).
+	// A controller enabled after one below it moves all already enabled controllers below it behind itself.
+	const bool pos_newly_enabled = !pos_was_enabled && _differential_pos_control.enabled();
+	const bool course_newly_enabled = !course_was_enabled && _differential_course_control.enabled();
+
+	if (pos_newly_enabled && course_was_enabled && _differential_course_control.enabled()) {
+		registered = _differential_course_control.reregisterTrigger() && registered;
+	}
+
+	if ((pos_newly_enabled || course_newly_enabled) && speed_was_enabled && _differential_speed_control.enabled()) {
 		registered = _differential_speed_control.reregisterTrigger() && registered;
 	}
 
@@ -239,7 +255,8 @@ void RoverDifferential::runSanityChecks()
 		return;
 	}
 
-	if (_vehicle_control_mode.flag_control_position_enabled && !_differential_pos_control.runSanityChecks()) {
+	if (_vehicle_control_mode.flag_control_position_enabled && (!_differential_course_control.runSanityChecks()
+			|| !_differential_pos_control.runSanityChecks())) {
 		_sanity_checks_passed = false;
 		return;
 	}
@@ -250,6 +267,7 @@ void RoverDifferential::runSanityChecks()
 void RoverDifferential::reset()
 {
 	_differential_pos_control.reset();
+	_differential_course_control.reset();
 	_differential_speed_control.reset();
 	_differential_att_control.reset();
 	_differential_rate_control.reset();

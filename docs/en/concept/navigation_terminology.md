@@ -90,6 +90,7 @@ PX4 represents the course setpoint using:
 
 - [`position_setpoint.course`](../msg_docs/PositionSetpoint.md#fld_course) (course to hold, set by the navigator).
 - [`fixed_wing_lateral_setpoint.course`](../msg_docs/FixedWingLateralSetpoint.md#fld_course) (course commanded by the fixed-wing guidance).
+- [`surface_vehicle_course_setpoint.course`](../msg_docs/SurfaceVehicleCourseSetpoint.md#fld_course) (course commanded to the rover course controllers).
 
 ::: warning PX4 differs from aviation and marine navigation
 In aviation and marine navigation, bare _course_ means the _intended_ direction, and the actual direction is the _course over ground_ or _track angle_.

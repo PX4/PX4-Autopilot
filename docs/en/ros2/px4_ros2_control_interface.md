@@ -564,6 +564,9 @@ The rover modules use a hierarchical structure to propagate setpoints:
 
 ![Rover Control Structure](../../assets/middleware/ros2/px4_ros2_interface_lib/rover_control_structure.svg)
 
+The position controller turns a position setpoint into a [course setpoint](../concept/navigation_terminology.md#course-setpoint) and speed ([SurfaceVehicleCourseSetpoint](../msg_docs/SurfaceVehicleCourseSetpoint.md)).
+The course controller turns these into speed and attitude setpoints.
+
 ::: info
 The "highest" setpoint that is provided will be used within the PX4 rover modules to generate the setpoints that are below it (Overriding them!).
 With this hierarchy there are clear rules for providing a valid control input:
@@ -576,15 +579,15 @@ For ease of use we expose these valid combinations as new SetpointTypes.
 
 The SetpointTypes exposed through the control interface are combinations of these setpoints that lead to a valid control input:
 
-| SetpointType                                                                                                                                      | Position | Speed     | Thrust    | Attitude  | Rate      | Steering  | Control Flags                                          |
-| ------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | --------- | --------- | --------- | --------- | --------- | ------------------------------------------------------ |
-| [SurfaceVehiclePosition](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1SurfaceVehiclePositionSetpointType.html#details)     | &check;  | (&check;) | (&check;) | (&check;) | (&check;) | (&check;) | Position, Velocity, Attitude, Rate, Control Allocation |
-| [SurfaceVehicleSpeedAttitude](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1SurfaceVehicleSpeedAttitudeSetpointType.html)   |          | &check;   | (&check;) | &check;   | (&check;) | (&check;) | Velocity, Attitude, Rate, Control Allocation           |
-| [SurfaceVehicleSpeedRate](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1SurfaceVehicleSpeedRateSetpointType.html)           |          | &check;   | (&check;) |           | &check;   | (&check;) | Velocity, Rate, Control Allocation                     |
-| [SurfaceVehicleSpeedSteering](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1SurfaceVehicleSpeedSteeringSetpointType.html)   |          | &check;   | (&check;) |           |           | &check;   | Velocity, Control Allocation                           |
-| [SurfaceVehicleThrustAttitude](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1SurfaceVehicleThrustAttitudeSetpointType.html) |          |           | &check;   | &check;   | (&check;) | (&check;) | Attitude, Rate, Control Allocation                     |
-| [SurfaceVehicleThrustRate](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1SurfaceVehicleThrustRateSetpointType.html)         |          |           | &check;   |           | &check;   | (&check;) | Rate, Control Allocation                               |
-| [SurfaceVehicleThrustSteering](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1SurfaceVehicleThrustSteeringSetpointType.html) |          |           | &check;   |           |           | &check;   | Control Allocation                                     |
+| SetpointType                                                                                                                                      | Position | Course    | Speed     | Thrust    | Attitude  | Rate      | Steering  | Control Flags                                          |
+| ------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | --------- | --------- | --------- | --------- | --------- | --------- | ------------------------------------------------------ |
+| [SurfaceVehiclePosition](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1SurfaceVehiclePositionSetpointType.html#details)     | &check;  | (&check;) | (&check;) | (&check;) | (&check;) | (&check;) | (&check;) | Position, Velocity, Attitude, Rate, Control Allocation |
+| [SurfaceVehicleSpeedAttitude](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1SurfaceVehicleSpeedAttitudeSetpointType.html)   |          |           | &check;   | (&check;) | &check;   | (&check;) | (&check;) | Velocity, Attitude, Rate, Control Allocation           |
+| [SurfaceVehicleSpeedRate](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1SurfaceVehicleSpeedRateSetpointType.html)           |          |           | &check;   | (&check;) |           | &check;   | (&check;) | Velocity, Rate, Control Allocation                     |
+| [SurfaceVehicleSpeedSteering](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1SurfaceVehicleSpeedSteeringSetpointType.html)   |          |           | &check;   | (&check;) |           |           | &check;   | Velocity, Control Allocation                           |
+| [SurfaceVehicleThrustAttitude](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1SurfaceVehicleThrustAttitudeSetpointType.html) |          |           |           | &check;   | &check;   | (&check;) | (&check;) | Attitude, Rate, Control Allocation                     |
+| [SurfaceVehicleThrustRate](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1SurfaceVehicleThrustRateSetpointType.html)         |          |           |           | &check;   |           | &check;   | (&check;) | Rate, Control Allocation                               |
+| [SurfaceVehicleThrustSteering](https://auterion.github.io/px4-ros2-interface-lib/classpx4__ros2_1_1SurfaceVehicleThrustSteeringSetpointType.html) |          |           |           | &check;   |           |           | &check;   | Control Allocation                                     |
 
 &check; are the setpoints we publish, and (&check;) are generated internally by the PX4 rover modules according to the hierarchy above.
 

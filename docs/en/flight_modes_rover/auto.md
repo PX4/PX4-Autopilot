@@ -54,7 +54,8 @@ Mecanum rovers drive along the course setpoint directly without adjusting their 
 There is no desired track: after a sideways offset, the rover continues on a parallel track.
 To follow a desired track instead, use [Mission mode](#mission-mode) or send a [SurfaceVehiclePositionSetpoint](../msg_docs/SurfaceVehiclePositionSetpoint.md).
 
-Internally the mode publishes a [SurfaceVehicleCourseSetpoint](../msg_docs/SurfaceVehicleCourseSetpoint.md), which [external modes](../ros2/px4_ros2_control_interface.md) can also send directly.
+Internally the mode publishes a [SurfaceVehicleCourseSetpoint](../msg_docs/SurfaceVehicleCourseSetpoint.md) to the course controller, the same setpoint the position controller publishes in the other auto modes.
+[External modes](../ros2/px4_ros2_control_interface.md) can also send it directly.
 
 ## Return Mode
 

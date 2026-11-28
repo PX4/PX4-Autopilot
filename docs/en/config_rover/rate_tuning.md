@@ -78,7 +78,7 @@ This section provides additional information for developers and people with expe
 
 The rate controller uses the following structure:
 
-![Rover Rate Controller](../../assets/config/rover/rover_rate_controller.png)
+![Rover Rate Controller](../../assets/config/rover/rover_rate_controller.svg)
 
 ::: info
 For ackermann rovers the yaw rate is only close loop controlled when driving forwards.
