@@ -35,6 +35,15 @@ if DRIVERS_UAVCAN
         bool "Include rgb controller"
         default y
 
+    config UAVCAN_CAN_FORWARD
+        bool "Include CAN forwarding over MAVLink"
+        default n
+        depends on !BOARD_CONSTRAINED_FLASH
+        ---help---
+            Forward CAN frames between a CAN bus and a MAVLink client
+            (MAV_CMD_CAN_FORWARD, CAN_FRAME, CAN_FILTER_MODIFY), as used by
+            dronecan_gui_tool and companion apps.
+
     config UAVCAN_SENSOR_ACCEL
         bool "Subscribe to IMU:                         uavcan::equipment::ahrs::RawIMU"
         default y

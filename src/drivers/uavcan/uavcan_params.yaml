@@ -124,6 +124,22 @@ parameters:
       type: boolean
       default: 0
       reboot_required: true
+    UAVCAN_CAN_FWD:
+      description:
+        short: CAN forwarding over MAVLink
+        long: |-
+          Lets a MAVLink client reach the CAN bus while disarmed. Arming is not possible while forwarding is active. Applies to the next boot only: the parameter is reset to its default at startup.
+          Configuration only: read node info, read and write node parameters, restart nodes and update their firmware, from a single DroneCAN node ID that is not in use on the bus.
+          Unrestricted: any frame, including actuator commands.
+      type: enum
+      values:
+        0: Disabled
+        1: Configuration only
+        2: Unrestricted
+      default: 0
+      min: 0
+      max: 2
+      reboot_required: true
     UAVCAN_PUB_RTCM:
       description:
         short: publish RTCM stream

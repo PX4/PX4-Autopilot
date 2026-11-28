@@ -72,6 +72,20 @@ public:
      */
     virtual void handleRxFrame(const CanRxFrame& frame, CanIOFlags flags) = 0;
 };
+
+/**
+ * Implement this interface to receive notifications about all CAN frames sent by the local node.
+ */
+class UAVCAN_EXPORT ITxFrameListener
+{
+public:
+    virtual ~ITxFrameListener() { }
+
+    /**
+     * Invoked when a frame of the local node is sent or queued for transmission.
+     */
+    virtual void handleTxFrame(const CanFrame& frame, uint8_t iface_mask) = 0;
+};
 #endif
 
 /**
@@ -121,6 +135,7 @@ class UAVCAN_EXPORT Dispatcher : Noncopyable
 #if !UAVCAN_TINY
     LoopbackFrameListenerRegistry loopback_listeners_;
     IRxFrameListener* rx_listener_;
+    ITxFrameListener* tx_listener_;
 #endif
 
     NodeID self_node_id_;
@@ -139,6 +154,7 @@ public:
         , outgoing_transfer_reg_(allocator)
 #if !UAVCAN_TINY
         , rx_listener_(UAVCAN_NULLPTR)
+        , tx_listener_(UAVCAN_NULLPTR)
 #endif
         , self_node_id_(NodeID::Broadcast)  // Default
         , self_node_id_is_set_(false)
@@ -212,6 +228,13 @@ public:
     {
         UAVCAN_ASSERT(listener != UAVCAN_NULLPTR);
         rx_listener_ = listener;
+    }
+
+    void removeTxFrameListener() { tx_listener_ = UAVCAN_NULLPTR; }
+    void installTxFrameListener(ITxFrameListener* listener)
+    {
+        UAVCAN_ASSERT(listener != UAVCAN_NULLPTR);
+        tx_listener_ = listener;
     }
 #endif
 

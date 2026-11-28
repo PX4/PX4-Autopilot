@@ -640,6 +640,16 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 		return;
 	}
 
+#if defined(CONFIG_UAVCAN_CAN_FORWARD)
+
+	if ((msg->msgid == MAVLINK_MSG_ID_CAN_FRAME || msg->msgid == MAVLINK_MSG_ID_CANFD_FRAME
+	     || msg->msgid == MAVLINK_MSG_ID_CAN_FILTER_MODIFY)
+	    && target_is_us_or_broadcast(target_system_id, target_component_id)) {
+		return;
+	}
+
+#endif
+
 	// Avoid locking/iteration when there is no instance to forward to.
 	if (mavlink_instance_count.load() <= 1) {
 		return;
@@ -3024,6 +3034,9 @@ Mavlink::task_main(int argc, char *argv[])
 			}
 		}
 
+		// last, so a busy bus cannot starve the rest
+		handleCanForwardOutput(t);
+
 		unlock_send();
 
 		/* update TX/RX rates*/
@@ -3150,6 +3163,51 @@ void Mavlink::handleSerialPassthroughOutput()
 			msg.device = device;
 			mavlink_msg_serial_control_send_struct(get_channel(), &msg);
 		}
+	}
+
+#endif
+}
+
+void Mavlink::handleCanForwardOutput(const hrt_abstime &t)
+{
+#if defined(CONFIG_UAVCAN_CAN_FORWARD)
+	const bool active = _can_forward.update();
+	_can_forward_active.store(active);
+
+	const float dt = (t - _can_forward_last_update) * 1e-6f;
+	_can_forward_last_update = t;
+
+	if (!active) {
+		return;
+	}
+
+	unsigned message_size = MAVLINK_MSG_ID_CAN_FRAME_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+
+	if (mavlink_get_channel_status(get_channel())->signing != nullptr) {
+		message_size += MAVLINK_SIGNATURE_BLOCK_LEN;
+	}
+
+	unsigned budget = get_free_tx_buf();
+
+#if defined(__PX4_NUTTX)
+	// always leave room for one packet of another sender (elsewhere the free space of a serial port is not known)
+	budget = (budget > MAVLINK_MAX_PACKET_LEN) ? budget - MAVLINK_MAX_PACKET_LEN : 0;
+#endif
+
+	const bool paced = radio_status_available() && get_data_rate() > 0;
+
+	if (paced) {
+		// behind a radio the UART buffer says nothing about the air link: pace like FTP and log download
+		const float rate = (float)get_data_rate() * bulk_bandwidth_share() * radio_status_mult();
+		_can_forward_credit = math::min(_can_forward_credit + dt * rate, 3.f * message_size);
+		budget = math::min(budget, (unsigned)_can_forward_credit);
+	}
+
+	const unsigned available = budget;
+	_can_forward.sendToClient(get_channel(), message_size, budget);
+
+	if (paced) {
+		_can_forward_credit -= (float)(available - budget);
 	}
 
 #endif
@@ -3672,6 +3730,14 @@ Mavlink::display_status()
 	}
 
 	printf("\tForwarding: %s\n", get_forwarding_on() ? "On" : "Off");
+
+#if defined(CONFIG_UAVCAN_CAN_FORWARD)
+
+	if (_can_forward_active.load()) {
+		printf("\tCAN forwarding to GCS, lost batches: %" PRIu32 "\n", _can_forward.lostBatches());
+	}
+
+#endif
 	printf("\tMAVLink version: %" PRId8 "\n", _protocol_version.load());
 
 	printf("\ttransport protocol: ");

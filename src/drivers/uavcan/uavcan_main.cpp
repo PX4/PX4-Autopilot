@@ -449,6 +449,10 @@ UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 		return -1;
 	}
 
+#if defined(CONFIG_UAVCAN_CAN_FORWARD)
+	_instance->_can_forwarder.init(_instance->_node.getDispatcher(), _instance->_node_status_monitor);
+#endif
+
 	_instance->ScheduleOnInterval(ScheduleIntervalMs * 1000);
 
 #if defined(CONFIG_UAVCAN_OUTPUTS_CONTROLLER)
@@ -812,6 +816,14 @@ UavcanNode::Run()
 		_servers->setArmed(actuator_armed.armed || actuator_armed.prearmed);
 	}
 
+#if defined(CONFIG_UAVCAN_CAN_FORWARD)
+
+	if (_node.isStarted()) {
+		_can_forwarder.update(hrt_absolute_time());
+	}
+
+#endif
+
 	if (_servers != nullptr) {
 		_servers->warn_if_node_id_allocation_table_full();
 	}
@@ -825,6 +837,10 @@ UavcanNode::Run()
 #endif
 
 	_node.spinOnce(); // expected to be non-blocking
+
+#if defined(CONFIG_UAVCAN_CAN_FORWARD)
+	_can_forwarder.publish(hrt_absolute_time());
+#endif
 
 	apply_can_failure_injection();
 
@@ -1065,6 +1081,10 @@ UavcanNode::Run()
 	pthread_mutex_unlock(&_node_mutex);
 
 	if (_task_should_exit.load()) {
+
+#if defined(CONFIG_UAVCAN_CAN_FORWARD)
+		_can_forwarder.deinit();
+#endif
 
 #if defined(UAVCAN_SOCKETCAN_NUTTX)
 		// Left bound, the sockets keep queueing received frames into the IOB pool the IP stack
@@ -1397,6 +1417,11 @@ UavcanNode::print_info()
 		br->print_status();
 		printf("\n");
 	}
+
+#if defined(CONFIG_UAVCAN_CAN_FORWARD)
+	_can_forwarder.printStatus();
+	printf("\n");
+#endif
 
 	// Printing all nodes that are online
 	printf("Online nodes (Node ID, Health, Mode):\n");

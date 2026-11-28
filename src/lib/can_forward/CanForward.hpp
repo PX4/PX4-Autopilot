@@ -1,0 +1,289 @@
+/****************************************************************************
+ *
+ *   Copyright (C) 2026 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/**
+ * @file CanForward.hpp
+ *
+ * Helpers for DroneCAN over MAVLink. CAN IDs carry the extended frame flag in bit 31.
+ */
+
+#pragma once
+
+#include <stdint.h>
+
+namespace can_forward
+{
+
+static constexpr uint32_t CanFlagEff = 1U << 31;
+static constexpr uint32_t CanFlagRtr = 1U << 30;
+static constexpr uint32_t CanFlagErr = 1U << 29;
+static constexpr uint32_t CanMaskStdId = 0x7FFU;
+static constexpr uint32_t CanMaskExtId = 0x1FFFFFFFU;
+static constexpr uint8_t CanMaxDataLen = 8;
+
+/// classic CAN data frame with a valid ID
+static inline bool isValidFrame(uint32_t id, uint8_t len)
+{
+	return len <= CanMaxDataLen
+	       && (id & (CanFlagRtr | CanFlagErr)) == 0
+	       && ((id & CanFlagEff) || (id & ~CanMaskStdId) == 0);
+}
+
+/// DroneCAN data type ID as used by CAN_FILTER_MODIFY (same as ArduPilot), 0 for anonymous frames
+static inline uint16_t dronecanTypeId(uint32_t can_id)
+{
+	const uint32_t id = can_id & CanMaskExtId;
+
+	if ((id & 0xFFU) == 0) {
+		return 0;
+	}
+
+	if (id & 0x80U) {
+		return static_cast<uint8_t>(id >> 16);
+	}
+
+	return static_cast<uint16_t>(id >> 8);
+}
+
+// DroneCAN data type IDs allowed in configuration only mode
+static constexpr uint16_t GetNodeInfoId = 1;
+static constexpr uint16_t RestartNodeId = 5;
+static constexpr uint16_t ParamExecuteOpcodeId = 10;
+static constexpr uint16_t ParamGetSetId = 11;
+static constexpr uint16_t FileBeginFirmwareUpdateId = 40;
+static constexpr uint16_t FileGetInfoId = 45;
+static constexpr uint16_t FileReadId = 48;
+static constexpr uint16_t NodeStatusId = 341;
+
+/// frames a client may send in configuration only mode (node info, parameters, restart, firmware update): no commands
+static inline bool isConfigurationFrame(uint32_t can_id)
+{
+	const uint32_t id = can_id & CanMaskExtId;
+
+	if (!(can_id & CanFlagEff) || (id & 0x7FU) == 0) {
+		return false;
+	}
+
+	if (id & 0x80U) {
+		switch (static_cast<uint8_t>(id >> 16)) {
+		case GetNodeInfoId:
+		case RestartNodeId:
+		case ParamExecuteOpcodeId:
+		case ParamGetSetId:
+		case FileBeginFirmwareUpdateId:
+		case FileGetInfoId:
+		case FileReadId:
+			return true;
+
+		default:
+			return false;
+		}
+	}
+
+	return static_cast<uint16_t>(id >> 8) == NodeStatusId;
+}
+
+/// CAN_FILTER_MODIFY data type filter, empty forwards everything
+class Filter
+{
+public:
+	static constexpr uint8_t Capacity = 32;
+
+	/// CAN_FILTER_OP
+	enum Op : uint8_t {
+		Replace = 0,
+		Add = 1,
+		Remove = 2,
+	};
+
+	bool apply(uint8_t op, const uint16_t *ids, uint8_t num_ids)
+	{
+		switch (op) {
+		case Replace:
+			_size = 0;
+			return add(ids, num_ids);
+
+		case Add:
+			return add(ids, num_ids);
+
+		case Remove:
+			for (uint8_t i = 0; i < num_ids; i++) {
+				for (uint8_t j = 0; j < _size; j++) {
+					if (_ids[j] == ids[i]) {
+						_ids[j] = _ids[--_size];
+						break;
+					}
+				}
+			}
+
+			return true;
+
+		default:
+			return false;
+		}
+	}
+
+	bool matches(uint32_t can_id) const
+	{
+		if (_size == 0) {
+			return true;
+		}
+
+		return (can_id & CanFlagEff) && contains(dronecanTypeId(can_id));
+	}
+
+	void clear() { _size = 0; }
+	uint8_t size() const { return _size; }
+
+private:
+	bool contains(uint16_t id) const
+	{
+		for (uint8_t i = 0; i < _size; i++) {
+			if (_ids[i] == id) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	bool add(const uint16_t *ids, uint8_t num_ids)
+	{
+		for (uint8_t i = 0; i < num_ids; i++) {
+			if (!contains(ids[i])) {
+				if (_size >= Capacity) {
+					return false;
+				}
+
+				_ids[_size++] = ids[i];
+			}
+		}
+
+		return true;
+	}
+
+	uint16_t _ids[Capacity] {};
+	uint8_t _size{0};
+};
+
+/// DroneCAN source node ID, 0 for anonymous frames
+static inline uint8_t dronecanSourceNodeId(uint32_t can_id)
+{
+	return can_id & 0x7FU;
+}
+
+/// Pins a session to the DroneCAN node ID of the first frame its client sends
+class SourcePin
+{
+public:
+	/// @param local_node_id node ID of the flight controller, which the client may not use
+	/// @param online another node with this ID is online on the bus, which the client may not use either
+	bool accept(uint8_t node_id, uint8_t local_node_id, bool online)
+	{
+		if (node_id == 0 || node_id == local_node_id || online) {
+			return false;
+		}
+
+		if (_node_id == 0) {
+			_node_id = node_id;
+		}
+
+		return node_id == _node_id;
+	}
+
+	void clear() { _node_id = 0; }
+	uint8_t nodeId() const { return _node_id; } ///< 0 until pinned
+
+private:
+	uint8_t _node_id{0};
+};
+
+/// MAV_CMD_CAN_FORWARD session: one client at a time, ended by the client, a keepalive timeout or arming
+class Session
+{
+public:
+	static constexpr uint64_t KeepaliveTimeout = 5'000'000;
+
+	/// call before handleCommand()
+	void update(uint64_t now, bool armed)
+	{
+		_armed = armed;
+
+		if (armed || now > _last_keepalive + KeepaliveTimeout) {
+			_bus = -1;
+		}
+	}
+
+	/// @param bus 1-based, 0 stops forwarding
+	/// @param allowed forwarding is enabled and the bus exists
+	/// @return true if the command is accepted
+	bool handleCommand(int bus, uint32_t system, uint16_t component, bool allowed, uint64_t now)
+	{
+		if (active() && (system != _system || component != _component)) {
+			// the session belongs to another client until it stops it or its keepalive times out
+			return false;
+		}
+
+		_bus = -1;
+
+		if (bus == 0) {
+			return true;
+		}
+
+		if (_armed || !allowed) {
+			return false;
+		}
+
+		_bus = static_cast<int8_t>(bus - 1);
+		_system = system;
+		_component = component;
+		_last_keepalive = now;
+		return true;
+	}
+
+	void stop() { _bus = -1; }
+
+	bool active() const { return _bus >= 0; }
+	int8_t bus() const { return _bus; } ///< 0-based, -1 without a session
+	uint32_t system() const { return _system; }
+	uint16_t component() const { return _component; }
+
+private:
+	int8_t _bus{-1};
+	uint32_t _system{0};
+	uint16_t _component{0};
+	uint64_t _last_keepalive{0};
+	bool _armed{false};
+};
+
+} // namespace can_forward
