@@ -201,6 +201,8 @@ struct mission_stats_entry_s {
 	uint8_t padding[1];
 };
 
+static constexpr uint16_t kMinFencePolygonVertices = 3;
+
 /**
  * Geofence vertex point.
  * Corresponds to the DM_KEY_FENCE_POINTS_0 dataman item

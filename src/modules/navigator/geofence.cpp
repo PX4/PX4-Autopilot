@@ -585,7 +585,8 @@ Geofence::LoadResult Geofence::_validateFenceArea(unsigned index, const mission_
 
 	if (!_fencePointValid(first)
 	    || (is_circle && !(PX4_ISFINITE(first.circle_radius) && first.circle_radius > 0.f))
-	    || (!is_circle && (vertex_count < 3 || index + vertex_count > static_cast<unsigned>(_dataman_cache.size())))) {
+	    || (!is_circle && (vertex_count < kMinFencePolygonVertices
+			       || index + vertex_count > static_cast<unsigned>(_dataman_cache.size())))) {
 		_reportInvalidFence(index);
 		return LoadResult::Invalid;
 	}
@@ -1224,7 +1225,7 @@ Geofence::loadFromFile(const char *filename)
 
 
 	/* Check if import was successful */
-	if (gotVertical && pointCounter > 2) {
+	if (gotVertical && pointCounter >= kMinFencePolygonVertices) {
 		ret_val = PX4_ERROR;
 		uint32_t crc32{0U};
 

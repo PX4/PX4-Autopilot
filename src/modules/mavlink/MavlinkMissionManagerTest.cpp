@@ -40,11 +40,14 @@
  * check_active_mission(). If an instance can copy a publication that is older
  * than the shared state (e.g. while another instance has stored a new upload
  * but not yet published it), it rolls the new mission back to the previous one.
+ *
+ * MavlinkMissionFenceUploadTest checks the items of a geofence upload before they are stored.
  */
 
 #include <gtest/gtest.h>
 
 #include <atomic>
+#include <cmath>
 #include <thread>
 
 #include <drivers/drv_hrt.h>
@@ -136,12 +139,42 @@ protected:
 		return mission;
 	}
 
+	// Helpers for MavlinkMissionFenceUploadTest. They are here because only this class is a friend.
+
+	// Start a fence upload of `count` items, as handle_mission_count() does.
+	static void startFenceUpload(uint16_t count)
+	{
+		_fence_instance->_transfer_count = count;
+		_fence_instance->_fence_polygon = {};
+	}
+
+	// Check item `seq` of the fence upload, as handle_mission_item() does before storing it.
+	static uint8_t checkFenceItem(uint16_t nav_cmd, uint16_t seq, uint16_t vertex_count = 0)
+	{
+		mission_item_s item{};
+		item.nav_cmd = nav_cmd;
+		item.vertex_count = vertex_count;
+		return _fence_instance->check_fence_item(item, seq);
+	}
+
+	// Parse a polygon vertex whose param1 says the polygon has `vertex_count` vertices.
+	static int parseFenceVertex(float vertex_count, mission_item_s &item)
+	{
+		mavlink_mission_item_int_t mavlink_item{};
+		mavlink_item.frame = MAV_FRAME_GLOBAL;
+		mavlink_item.command = MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION;
+		mavlink_item.param1 = vertex_count;
+		return _fence_instance->parse_mavlink_mission_item(&mavlink_item, &item);
+	}
+
 	static Mavlink *_mavlink;
+	static MavlinkMissionManager *_fence_instance;
 	MavlinkMissionManager *_instance_a{nullptr};
 	MavlinkMissionManager *_instance_b{nullptr};
 };
 
 Mavlink *MavlinkMissionManagerTest::_mavlink = nullptr;
+MavlinkMissionManager *MavlinkMissionManagerTest::_fence_instance = nullptr;
 
 TEST_F(MavlinkMissionManagerTest, ConcurrentCheckDoesNotRollBackStoredMission)
 {
@@ -189,4 +222,116 @@ TEST_F(MavlinkMissionManagerTest, MissionPublishedByAnotherModuleIsAdopted)
 	// THEN: it is adopted
 	EXPECT_EQ(sharedMissionId(), NEW_MISSION_ID);
 	EXPECT_EQ(sharedMissionCount(), 1);
+}
+
+// The tests share one instance: a new one waits 1 s for dataman, which does not run here.
+class MavlinkMissionFenceUploadTest : public MavlinkMissionManagerTest
+{
+protected:
+	static void SetUpTestSuite()
+	{
+		MavlinkMissionManagerTest::SetUpTestSuite();
+		_fence_instance = new MavlinkMissionManager(*_mavlink);
+	}
+
+	static void TearDownTestSuite()
+	{
+		delete _fence_instance;
+		_fence_instance = nullptr;
+		MavlinkMissionManagerTest::TearDownTestSuite();
+	}
+
+	// No per-test instances.
+	void SetUp() override {}
+	void TearDown() override {}
+};
+
+TEST_F(MavlinkMissionFenceUploadTest, AcceptsCirclesReturnPointAndPolygons)
+{
+	// GIVEN: an upload of two circles, a return point and two triangles, the second one ending the upload
+	startFenceUpload(9);
+
+	// THEN: every item is accepted
+	EXPECT_EQ(checkFenceItem(NAV_CMD_FENCE_CIRCLE_INCLUSION, 0), MAV_MISSION_ACCEPTED);
+	EXPECT_EQ(checkFenceItem(NAV_CMD_FENCE_CIRCLE_EXCLUSION, 1), MAV_MISSION_ACCEPTED);
+	EXPECT_EQ(checkFenceItem(NAV_CMD_FENCE_RETURN_POINT, 2), MAV_MISSION_ACCEPTED);
+
+	for (uint16_t seq = 3; seq < 6; seq++) {
+		EXPECT_EQ(checkFenceItem(NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION, seq, 3), MAV_MISSION_ACCEPTED);
+	}
+
+	for (uint16_t seq = 6; seq < 9; seq++) {
+		EXPECT_EQ(checkFenceItem(NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION, seq, 3), MAV_MISSION_ACCEPTED);
+	}
+}
+
+TEST_F(MavlinkMissionFenceUploadTest, RejectsMissionItems)
+{
+	// GIVEN: an upload of one item
+	startFenceUpload(1);
+
+	// THEN: a waypoint is rejected
+	EXPECT_EQ(checkFenceItem(NAV_CMD_WAYPOINT, 0), MAV_MISSION_UNSUPPORTED);
+}
+
+TEST_F(MavlinkMissionFenceUploadTest, RejectsVertexOfAnotherPolygonType)
+{
+	// GIVEN: an upload that starts with an inclusion triangle
+	startFenceUpload(3);
+	ASSERT_EQ(checkFenceItem(NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION, 0, 3), MAV_MISSION_ACCEPTED);
+
+	// THEN: an exclusion vertex before the triangle ends is rejected
+	EXPECT_EQ(checkFenceItem(NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION, 1, 3), MAV_MISSION_INVALID);
+}
+
+TEST_F(MavlinkMissionFenceUploadTest, RejectsCircleInsideAPolygon)
+{
+	// GIVEN: an upload that starts with a triangle
+	startFenceUpload(3);
+	ASSERT_EQ(checkFenceItem(NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION, 0, 3), MAV_MISSION_ACCEPTED);
+
+	// THEN: a circle before the triangle ends is rejected
+	EXPECT_EQ(checkFenceItem(NAV_CMD_FENCE_CIRCLE_INCLUSION, 1), MAV_MISSION_INVALID);
+}
+
+TEST_F(MavlinkMissionFenceUploadTest, RejectsVertexWithAnotherVertexCount)
+{
+	// GIVEN: an upload of 5 items that starts with a triangle
+	startFenceUpload(5);
+	ASSERT_EQ(checkFenceItem(NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION, 0, 3), MAV_MISSION_ACCEPTED);
+
+	// THEN: a vertex that says 4 vertices before the triangle ends is rejected
+	EXPECT_EQ(checkFenceItem(NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION, 1, 4), MAV_MISSION_INVALID_PARAM1);
+}
+
+TEST_F(MavlinkMissionFenceUploadTest, RejectsPolygonLongerThanTheRestOfTheUpload)
+{
+	// GIVEN: an upload of 3 items that starts with a circle
+	startFenceUpload(3);
+	ASSERT_EQ(checkFenceItem(NAV_CMD_FENCE_CIRCLE_INCLUSION, 0), MAV_MISSION_ACCEPTED);
+
+	// THEN: a triangle that starts at the second item is rejected
+	EXPECT_EQ(checkFenceItem(NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION, 1, 3), MAV_MISSION_INVALID_PARAM1);
+}
+
+TEST_F(MavlinkMissionFenceUploadTest, VertexCountInRangeIsRounded)
+{
+	mission_item_s item{};
+
+	// THEN: the smallest and the largest count are accepted: 3 vertices and the size of the fence storage
+	ASSERT_EQ(parseFenceVertex(2.5f, item), MAV_MISSION_ACCEPTED);
+	EXPECT_EQ(item.vertex_count, 3);
+
+	ASSERT_EQ(parseFenceVertex(static_cast<float>(DM_KEY_FENCE_POINTS_MAX) + 0.4f, item), MAV_MISSION_ACCEPTED);
+	EXPECT_EQ(item.vertex_count, DM_KEY_FENCE_POINTS_MAX);
+}
+
+TEST_F(MavlinkMissionFenceUploadTest, VertexCountOutOfRangeIsRejected)
+{
+	mission_item_s item{};
+
+	// THEN: a count below 3 or above the size of the fence storage after rounding is rejected, and so is NaN
+	for (const float vertex_count : {2.4f, static_cast<float>(DM_KEY_FENCE_POINTS_MAX) + 0.5f, NAN}) {
+		EXPECT_EQ(parseFenceVertex(vertex_count, item), MAV_MISSION_INVALID_PARAM1) << vertex_count;
+	}
 }

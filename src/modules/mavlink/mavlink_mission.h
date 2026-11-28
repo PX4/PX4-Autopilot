@@ -146,6 +146,13 @@ private:
 	uint32_t		_transfer_current_crc32{0};		///< Current CRC32 checksum of current transmission
 	uint16_t		_transfer_seq{0};			///< Item sequence in current transmission
 
+	/** Polygon of the fence upload in progress, see check_fence_item(). */
+	struct {
+		uint16_t remaining; ///< vertices still to come
+		uint16_t vertex_count;
+		uint16_t command;
+	} _fence_polygon{};
+
 	int32_t			_transfer_current_seq{-1};		///< Current item ID for current transmission (-1 means not initialized)
 
 	uint32_t		_transfer_partner_sysid{0};		///< Partner system ID for current transmission
@@ -256,6 +263,14 @@ private:
 
 	void handle_mission_item_float(const mavlink_message_t *msg);
 	void handle_mission_item(const mavlink_message_t *msg);
+
+	/**
+	 * Check an item of a fence upload before it is stored. A polygon arrives one vertex at a time, so a
+	 * malformed one is rejected here, before the upload replaces the active fence.
+	 *
+	 * @return MAV_MISSION_ACCEPTED, or the result for the NACK
+	 */
+	uint8_t check_fence_item(const mission_item_s &mission_item, uint16_t seq);
 
 	void handle_mission_clear_all(const mavlink_message_t *msg);
 
