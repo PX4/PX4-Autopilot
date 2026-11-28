@@ -362,3 +362,64 @@ TEST(TrajectoryConstraintsClamp, clampToZNormVecZeroToZero)
 	// THEN: it should be 0 still
 	EXPECT_TRUE(vec == Vector3f(0.f, 0.f, 0.f));
 }
+
+TEST(TrajectoryConstraintsControlAuthority, disabledOrFullAuthorityKeepsSpeed)
+{
+	EXPECT_FLOAT_EQ(reduceSpeedForControlAuthority(8.f, 0.2f, 0.f, 3.f), 8.f);
+	EXPECT_FLOAT_EQ(reduceSpeedForControlAuthority(8.f, 1.f, 1.f, 3.f), 8.f);
+}
+
+TEST(TrajectoryConstraintsControlAuthority, scalesWithLostAuthority)
+{
+	EXPECT_FLOAT_EQ(reduceSpeedForControlAuthority(8.f, 0.75f, 1.f, 3.f), 6.f);
+	EXPECT_FLOAT_EQ(reduceSpeedForControlAuthority(8.f, 0.75f, 2.f, 3.f), 4.f);
+	EXPECT_FLOAT_EQ(reduceSpeedForControlAuthority(8.f, 0.75f, 0.5f, 3.f), 7.f);
+}
+
+TEST(TrajectoryConstraintsControlAuthority, doesNotGoBelowMinimum)
+{
+	EXPECT_FLOAT_EQ(reduceSpeedForControlAuthority(8.f, 0.f, 1.f, 3.f), 3.f);
+	EXPECT_FLOAT_EQ(reduceSpeedForControlAuthority(8.f, 0.5f, 3.f, 3.f), 3.f);
+	EXPECT_FLOAT_EQ(reduceSpeedForControlAuthority(8.f, -0.5f, 1.f, 3.f), 3.f);
+}
+
+TEST(TrajectoryConstraintsControlAuthority, minimumDoesNotRaiseCommandedSpeed)
+{
+	EXPECT_FLOAT_EQ(reduceSpeedForControlAuthority(2.f, 0.f, 1.f, 3.f), 2.f);
+	EXPECT_FLOAT_EQ(reduceSpeedForControlAuthority(5.f, 0.5f, 1.f, 6.f), 5.f);
+}
+
+TEST(TrajectoryConstraintsControlAuthority, invalidInputsKeepSpeed)
+{
+	EXPECT_FLOAT_EQ(reduceSpeedForControlAuthority(8.f, NAN, 1.f, 3.f), 8.f);
+	EXPECT_FLOAT_EQ(reduceSpeedForControlAuthority(8.f, 0.5f, NAN, 3.f), 8.f);
+	EXPECT_FLOAT_EQ(reduceSpeedForControlAuthority(8.f, 0.5f, 1.f, NAN), 8.f);
+	EXPECT_TRUE(std::isnan(reduceSpeedForControlAuthority(NAN, 0.5f, 1.f, 3.f)));
+}
+
+TEST(TrajectoryConstraintsControlAuthority, ratioFollowsOutsideReturn)
+{
+	ReturnHeldAuthorityRatio held;
+	EXPECT_FLOAT_EQ(held.update(0.8f, false), 0.8f);
+	EXPECT_FLOAT_EQ(held.update(0.6f, false), 0.6f);
+	EXPECT_FLOAT_EQ(held.update(0.9f, false), 0.9f);
+}
+
+TEST(TrajectoryConstraintsControlAuthority, ratioIsKeptDuringReturn)
+{
+	ReturnHeldAuthorityRatio held;
+	EXPECT_FLOAT_EQ(held.update(0.8f, false), 0.8f);
+	EXPECT_FLOAT_EQ(held.update(0.7f, true), 0.7f); // taken when Return starts
+	EXPECT_FLOAT_EQ(held.update(0.5f, true), 0.7f);
+	EXPECT_FLOAT_EQ(held.update(1.f, true), 0.7f);
+	EXPECT_FLOAT_EQ(held.update(0.5f, false), 0.5f); // follows again after Return
+}
+
+TEST(TrajectoryConstraintsControlAuthority, failureDuringReturnIsTakenOnce)
+{
+	ReturnHeldAuthorityRatio held;
+	EXPECT_FLOAT_EQ(held.update(1.f, true), 1.f);
+	EXPECT_FLOAT_EQ(held.update(1.f, true), 1.f);
+	EXPECT_FLOAT_EQ(held.update(0.75f, true), 0.75f);
+	EXPECT_FLOAT_EQ(held.update(0.6f, true), 0.75f);
+}

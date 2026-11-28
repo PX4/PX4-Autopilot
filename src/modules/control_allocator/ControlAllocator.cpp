@@ -459,6 +459,8 @@ ControlAllocator::Run()
 
 			check_allocation_health(i);
 		}
+
+		update_roll_pitch_authority_ratio();
 	}
 
 	// Publish actuator setpoint and allocator status
@@ -712,8 +714,24 @@ ControlAllocator::publish_control_allocator_status(int matrix_index)
 	// Handled motor failures
 	control_allocator_status.handled_motor_failure_mask = _handled_motor_failure_bitmask;
 	control_allocator_status.motor_stop_mask = _motor_stop_mask;
+	control_allocator_status.roll_pitch_authority_ratio = (matrix_index == 0) ? _roll_pitch_authority_ratio : 1.f;
 
 	_control_allocator_status_pub[matrix_index].publish(control_allocator_status);
+}
+
+void
+ControlAllocator::update_roll_pitch_authority_ratio()
+{
+	hover_thrust_estimate_s hover_thrust_estimate;
+
+	if (_handled_motor_failure_bitmask != 0 && _hover_thrust_estimate_sub.update(&hover_thrust_estimate)
+	    && PX4_ISFINITE(hover_thrust_estimate.hover_thrust)) {
+		// The hover thrust rises after the failure and with battery sag.
+		// NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+		auto *allocation = static_cast<ControlAllocationPseudoInverse *>(_control_allocation[0]);
+		_roll_pitch_authority_ratio = ControlAllocationPseudoInverse::rollPitchAuthorityRatio(
+						      allocation->rollPitchMargin(-hover_thrust_estimate.hover_thrust), _roll_pitch_margin_before_failure);
+	}
 }
 
 float
@@ -875,17 +893,37 @@ ControlAllocator::check_for_motor_failures()
 				PX4_WARN("Handling motor %d failure (mode %d, mask 0x%x)", failed,
 					 (int)failure_mode, _handled_motor_failure_bitmask);
 
+				// Roll and pitch margin around hover before and after removing the motor for the authority ratio.
+				// NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+				auto *allocation = static_cast<ControlAllocationPseudoInverse *>(_control_allocation[0]);
+				hover_thrust_estimate_s hover_thrust_estimate;
+				const bool compute_authority_ratio = (_effectiveness_source_id == EffectivenessSource::MULTIROTOR)
+								     && _hover_thrust_estimate_sub.copy(&hover_thrust_estimate)
+								     && PX4_ISFINITE(hover_thrust_estimate.hover_thrust);
+
+				if (compute_authority_ratio) {
+					// thrust z control is negative upwards
+					_roll_pitch_margin_before_failure = allocation->rollPitchMargin(-hover_thrust_estimate.hover_thrust);
+				}
+
 				for (int i = 0; i < _num_control_allocation; ++i) {
 					_control_allocation[i]->setHadActuatorFailure(true);
 				}
 
 				update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::MOTOR_ACTIVATION_UPDATE);
+
+				if (compute_authority_ratio) {
+					_roll_pitch_authority_ratio = ControlAllocationPseudoInverse::rollPitchAuthorityRatio(
+									      allocation->rollPitchMargin(-hover_thrust_estimate.hover_thrust), _roll_pitch_margin_before_failure);
+				}
 			}
 
 		} else if (_handled_motor_failure_bitmask != 0) {
 			PX4_INFO("Restoring all motors");
 			_handled_motor_failure_bitmask = 0;
 			_runtime_reversible_bitmask = 0;
+			_roll_pitch_authority_ratio = 1.f;
+			_roll_pitch_margin_before_failure.zero();
 
 			for (int i = 0; i < _num_control_allocation; ++i) {
 				_control_allocation[i]->setHadActuatorFailure(false);

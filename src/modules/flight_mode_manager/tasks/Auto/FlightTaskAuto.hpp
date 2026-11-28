@@ -40,6 +40,7 @@
 #pragma once
 
 #include "FlightTask.hpp"
+#include <uORB/topics/control_allocator_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/position_setpoint.h>
 #include <uORB/topics/home_position.h>
@@ -53,6 +54,7 @@
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/motion_planning/HeadingSmoothing.hpp>
 #include <lib/motion_planning/PositionSmoothing.hpp>
+#include <lib/motion_planning/TrajectoryConstraints.hpp>
 #include <lib/sticks/Sticks.hpp>
 #include <lib/stick_yaw/StickYaw.hpp>
 #include <lib/weather_vane/WeatherVane.hpp>
@@ -124,10 +126,13 @@ protected:
 	bool _prev_was_valid{false};
 	bool _next_was_valid{false};
 	float _mc_cruise_speed{NAN}; /**< Requested cruise speed. If not valid, default cruise speed is used. */
+	float _mc_cruise_speed_derated{NAN}; /**< Requested cruise speed reduced for lost control authority */
+	math::trajectory::ReturnHeldAuthorityRatio _authority_ratio;
 	WaypointType _type{WaypointType::idle}; /**< Type of current target triplet. */
 
 	uORB::SubscriptionData<position_setpoint_triplet_s> _position_setpoint_triplet_sub{ORB_ID(position_setpoint_triplet)};
 	uORB::SubscriptionData<home_position_s> _sub_home_position{ORB_ID(home_position)};
+	uORB::Subscription _control_allocator_status_sub{ORB_ID(control_allocator_status)};
 	uORB::SubscriptionData<vehicle_status_s> _sub_vehicle_status{ORB_ID(vehicle_status)};
 	uORB::SubscriptionData<takeoff_status_s> _takeoff_status_sub{ORB_ID(takeoff_status)};
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
@@ -157,6 +162,8 @@ protected:
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
 					(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise,
+					(ParamFloat<px4::params::MPC_DERATE_GAIN>) _param_mpc_derate_gain,
+					(ParamFloat<px4::params::MPC_DERATE_VMIN>) _param_mpc_derate_vmin,
 					(ParamFloat<px4::params::NAV_MC_ALT_RAD>)
 					_param_nav_mc_alt_rad, //vertical acceptance radius at which waypoints are updated
 					(ParamInt<px4::params::MPC_YAW_MODE>) _param_mpc_yaw_mode, // defines how heading is executed,
