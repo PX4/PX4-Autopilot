@@ -45,6 +45,7 @@
 #include <gtest/gtest.h>
 
 #include <atomic>
+#include <cmath>
 #include <thread>
 
 #include <drivers/drv_hrt.h>
@@ -136,6 +137,25 @@ protected:
 		return mission;
 	}
 
+	// parse_mavlink_mission_item() is private; friendship does not extend to the TEST_F bodies.
+	static int parseItem(MavlinkMissionManager &instance, const mavlink_mission_item_int_t &item)
+	{
+		mission_item_s mission_item{};
+		return instance.parse_mavlink_mission_item(&item, &mission_item);
+	}
+
+	static mavlink_mission_item_int_t globalItem(uint16_t command, float z,
+			uint8_t frame = MAV_FRAME_GLOBAL_RELATIVE_ALT_INT)
+	{
+		mavlink_mission_item_int_t item{};
+		item.frame = frame;
+		item.command = command;
+		item.x = 473977420; // 47.397742 deg
+		item.y = 85455940;  //  8.545594 deg
+		item.z = z;
+		return item;
+	}
+
 	static Mavlink *_mavlink;
 	MavlinkMissionManager *_instance_a{nullptr};
 	MavlinkMissionManager *_instance_b{nullptr};
@@ -189,4 +209,69 @@ TEST_F(MavlinkMissionManagerTest, MissionPublishedByAnotherModuleIsAdopted)
 	// THEN: it is adopted
 	EXPECT_EQ(sharedMissionId(), NEW_MISSION_ID);
 	EXPECT_EQ(sharedMissionCount(), 1);
+}
+
+// Every command that Navigator treats as a position (mission_item_contains_position()).
+static constexpr uint16_t kPositionCommands[] {
+	MAV_CMD_NAV_WAYPOINT, MAV_CMD_NAV_LOITER_UNLIM, MAV_CMD_NAV_LOITER_TIME, MAV_CMD_NAV_LAND,
+	MAV_CMD_NAV_TAKEOFF, MAV_CMD_NAV_LOITER_TO_ALT, MAV_CMD_NAV_VTOL_TAKEOFF, MAV_CMD_NAV_VTOL_LAND,
+};
+
+static constexpr uint8_t kGlobalFrames[] {
+	MAV_FRAME_GLOBAL, MAV_FRAME_GLOBAL_INT, MAV_FRAME_GLOBAL_RELATIVE_ALT, MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
+};
+
+TEST_F(MavlinkMissionManagerTest, PositionItemWithNonFiniteAltitudeIsRejected)
+{
+	for (const uint8_t frame : kGlobalFrames) {
+		for (const uint16_t command : kPositionCommands) {
+			for (const float z : {NAN, INFINITY, -INFINITY}) {
+				// WHEN: a position item has a non-finite altitude
+				// THEN: the upload rejects it and names param7
+				EXPECT_EQ(parseItem(*_instance_a, globalItem(command, z, frame)), MAV_MISSION_INVALID_PARAM7)
+						<< "frame " << +frame << ", command " << command << ", z " << z;
+			}
+
+			for (const float z : {10.f, 0.f, -50.f}) {
+				// WHEN: the same item has a finite altitude, including zero and negative
+				// THEN: it is accepted
+				EXPECT_EQ(parseItem(*_instance_a, globalItem(command, z, frame)), PX4_OK)
+						<< "frame " << +frame << ", command " << command << ", z " << z;
+			}
+		}
+	}
+}
+
+TEST_F(MavlinkMissionManagerTest, NonPositionItemsKeepAcceptingNanParam7)
+{
+	// GIVEN: global-frame items that Navigator does not fly to as a position
+	const uint16_t commands[] {
+		MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION, MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION,
+		MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION, MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION,
+		MAV_CMD_NAV_FENCE_RETURN_POINT, MAV_CMD_NAV_RALLY_POINT,
+		MAV_CMD_DO_SET_ROI_LOCATION,
+	};
+
+	for (const uint16_t command : commands) {
+		mavlink_mission_item_int_t item = globalItem(command, NAN);
+
+		if (command >= MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION && command <= MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION) {
+			item.param1 = 4.f; // vertex count or radius
+		}
+
+		// THEN: NaN in param7 is handled as before this check existed
+		EXPECT_EQ(parseItem(*_instance_a, item), PX4_OK) << "command " << command;
+	}
+
+	// GIVEN: a command item without coordinates
+	mavlink_mission_item_int_t change_speed{};
+	change_speed.frame = MAV_FRAME_MISSION;
+	change_speed.command = MAV_CMD_DO_CHANGE_SPEED;
+	change_speed.param2 = 5.f;
+	change_speed.x = INT32_MAX;
+	change_speed.y = INT32_MAX;
+	change_speed.z = NAN;
+
+	// THEN: it is not affected either
+	EXPECT_EQ(parseItem(*_instance_a, change_speed), PX4_OK);
 }

@@ -53,6 +53,7 @@
 #include <matrix/math.hpp>
 #include <cstring>
 #include <navigator/navigation.h>
+#include <navigator/mission_item_utils.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 #if defined(__PX4_NUTTX)
@@ -1609,6 +1610,13 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_int
 		}
 
 		mission_item->frame = mavlink_mission_item->frame;
+
+		// Navigator needs a finite altitude for every item that carries a position (see
+		// MissionFeasibilityChecker::checkMissionAgainstGeofence()). Reject it here so the GCS
+		// learns which item and field are bad, instead of a later "geofence breach".
+		if (mission_item_contains_position(*mission_item) && !PX4_ISFINITE(mission_item->altitude)) {
+			return MAV_MISSION_INVALID_PARAM7;
+		}
 
 	} else if (mavlink_mission_item->frame == MAV_FRAME_MISSION) {
 
