@@ -947,6 +947,7 @@
         - [FlightGear Vehicles](sim_flightgear/vehicles.md)
         - [Multi-Vehicle Sim with FlightGear](sim_flightgear/multi_vehicle.md)
       - [JSBSim Simulation](sim_jsbsim/index.md)
+      - [Nexus Simulation](sim_nexus/index.md)
       - [PteroSim Simulation](sim_pterosim/index.md)
       - [RotorPy Simulation](sim_rotorpy/index.md)
       - [X-Plane Simulation](sim_xplane/index.md)
