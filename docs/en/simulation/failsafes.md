@@ -49,6 +49,15 @@ By changing [SIM_BAT_MIN_PCT](../advanced_config/parameter_reference.md#SIM_BAT_
 
 The simulated battery can be completely disabled by setting [SIM_BAT_DRAIN](../advanced_config/parameter_reference.md#SIM_BAT_DRAIN) to 0. This is useful, for example, if you provide an external battery simulation via MAVLink.
 
+### Battery Current
+
+By default the simulated battery reports no current.
+With [SIM_BAT_I_MOT](../advanced_config/parameter_reference.md#SIM_BAT_I_MOT) set, simulators that model the ESC current report it in the ESC status, and the simulated batteries share the sum plus [SIM_BAT_I_IDLE](../advanced_config/parameter_reference.md#SIM_BAT_I_IDLE) evenly.
+[SIH](../sim_sih/index.md) models each ESC current as `SIM_BAT_I_MOT` times the motor output to the power of 1.5.
+Simulators without an ESC current model keep reporting no current.
+
+Since the current comes from the ESC status, motor failures injected in the simulator (for example `failure motor wrong` in SIH) lower it.
+
 ### Multiple Batteries
 
 By default only one battery is simulated.
