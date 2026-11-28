@@ -131,7 +131,10 @@ REMOVED = {
     'ASPD_BETA_GATE': '', 'ASPD_BETA_NOISE': '', 'ASPD_SCALE_NSD': '',
     'ASPD_TAS_GATE': '',
     'BAT1_I_CHANNEL': '', 'BAT2_I_CHANNEL': '', 'BAT_ADC_CHANNEL': '',
-    'COM_ARM_SDCARD': '', 'COM_DISARM_MAN': '', 'COM_FLT_PROFILE': '',
+    'COM_ARM_SDCARD': '', 'COM_DISARM_MAN': '',
+    'COM_FLTT_LOW_ACT': 'see COM_LOW_BAT_ACT (3 has the distance-aware'
+                        ' return, 5 does not)',
+    'COM_FLT_PROFILE': '',
     'COM_HLDL_REG_T': '', 'COM_IMB_PROP_ACT': 'see FD_IMB_PROP_THR',
     'COM_KILL_DISARM': '', 'COM_LKDOWN_TKO': '', 'COM_MOT_TEST_EN': '',
     'COM_OBC_LOSS_T': '', 'COM_RC_ARM_HYST': '',

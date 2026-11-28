@@ -114,12 +114,15 @@ class MigrateParamFileTest(unittest.TestCase):
 
     def test_removed_dropped_and_listed(self):
         _, values, log = migrate((1, 'COM_RC_STICK_OV', '30.0', 9),
-                                 (1, 'FW_AT_START', '0', 6))
+                                 (1, 'FW_AT_START', '0', 6),
+                                 (1, 'COM_FLTT_LOW_ACT', '3', 6))
         self.assertEqual(values, {})
         self.assertEqual(log, [
             'removed: COM_RC_STICK_OV 30: see MAN_OVERRIDE_SPD'
             ' (stick speed in 1/s)',
-            'removed: FW_AT_START 0'])
+            'removed: FW_AT_START 0',
+            'removed: COM_FLTT_LOW_ACT 3: see COM_LOW_BAT_ACT'
+            ' (3 has the distance-aware return, 5 does not)'])
 
     def test_old_default_kept_and_listed(self):
         _, values, log = migrate((1, 'FD_ACT_EN', '1', 6),
