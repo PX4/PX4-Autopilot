@@ -85,10 +85,9 @@ private:
 		int16_t		accel_x;
 		int16_t		accel_y;
 		int16_t		accel_z;
-		uint16_t	temp;
+		int16_t		temp;
 		uint16_t	DATA_CNTR;
-		uint8_t		checksum;
-		uint8_t		_padding; // 16 bit SPI mode
+		uint16_t	checksum;
 	};
 #pragma pack(pop)
 
