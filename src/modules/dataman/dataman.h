@@ -119,7 +119,7 @@ static constexpr size_t g_per_item_size[DM_KEY_NUM_KEYS] = {
 };
 
 /* increment this define whenever a binary incompatible change is performed */
-#define DM_COMPAT_VERSION	5ULL
+#define DM_COMPAT_VERSION	6ULL
 
 #define DM_COMPAT_KEY ((DM_COMPAT_VERSION << 32) + (sizeof(struct mission_item_s) << 24) + \
 		       (sizeof(struct mission_s) << 16) + (sizeof(struct mission_stats_entry_s) << 12) + \

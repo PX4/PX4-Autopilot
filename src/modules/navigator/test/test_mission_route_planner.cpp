@@ -796,7 +796,6 @@ TEST_F(MissionRoutePlannerTest, RequiredVtolApproachScansTheWholeRallyBlock)
 
 	mission_item_s invalid_relative_approach = makeVtolApproachFromOffset(45.f, 15.f, 20.f);
 	invalid_relative_approach.frame = NAV_FRAME_GLOBAL_RELATIVE_ALT;
-	invalid_relative_approach.altitude_is_relative = true;
 	std::vector<mission_item_s> safe_points{
 		makeSafePointFromOffset(kBaseLat, kBaseLon, 30.f, 15.f, kAlt),
 		invalid_relative_approach,

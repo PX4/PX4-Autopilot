@@ -957,7 +957,7 @@ TEST_F(MissionRouteProjectionCandidateSelectionTest, BatchedPointsShareMissionIt
 TEST_F(MissionRouteProjectionLocalSegmentTest, RelativeAltitudeRequiresFiniteHomeAltitude)
 {
 	mission_item_s relative_item = makePositionItemFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, 50.f);
-	relative_item.altitude_is_relative = true;
+	relative_item.frame = NAV_FRAME_GLOBAL_RELATIVE_ALT;
 	const std::vector<mission_item_s> relative_mission = {
 		makePositionItemFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt),
 		relative_item,
