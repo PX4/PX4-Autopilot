@@ -65,19 +65,13 @@ public:
 	void handle_message(const mavlink_message_t *msg);
 
 	/// True while a burst download is streaming out.
-	bool burst_active() const { return _session_info.stream_download; }
+	bool burst_active() const;
 
 	/// Framing overhead of one FTP reply, signature block included.
 	unsigned packet_overhead() const;
 
 	/// Reduce a requested payload to what the link carries in one piece.
 	unsigned radio_clamped_length(unsigned requested) const;
-
-	/// Burst payload to use for this link.
-	unsigned burst_data_length() const;
-
-	/// On-wire size of one burst packet on this link.
-	unsigned burst_wire_size() const;
 
 	/// @brief This is the payload which is in mavlink_file_transfer_protocol_t.payload.
 	/// This needs to be packed, because it's typecasted from mavlink_file_transfer_protocol_t.payload, which starts
@@ -135,7 +129,34 @@ public:
 
 	unsigned get_size();
 
+	/**
+	 * Sessions open at the same time on one MAVLink instance.
+	 *
+	 * Each one embeds a ParamPckFile, which holds more than 512 bytes for
+	 * @PARAM/param.pck whether or not it is in use, and the server exists
+	 * once per MAVLink instance. Three cover a GCS and a companion each
+	 * transferring a file next to a parameter download or upload.
+	 */
+	static constexpr unsigned kMaxSessions = 3;
+
 private:
+	struct SessionInfo {
+		int		fd{-1};
+		uint8_t		id{0};			///< session field on the wire
+		uint32_t	owner_system_id{0};	///< only the client that opened it may use it
+		uint8_t		owner_component_id{0};
+		uint32_t	file_size{0};
+		bool		stream_download{false};
+		uint32_t	stream_offset{0};
+		uint16_t	stream_seq_number{0};
+		unsigned	stream_chunk_transmitted{0};
+		uint8_t		stream_size{0};		///< payload size the client asked for, 0 = as much as fits
+		hrt_abstime	last_activity{0};	///< last request for it or burst packet from it
+		ParamPckFile	param;			///< virtual parameter file, open instead of fd
+
+		bool is_open() const { return (fd >= 0) || param.is_open(); }
+	};
+
 	char		*_data_as_cstring(PayloadHeader *payload);
 
 	void		_process_request(mavlink_file_transfer_protocol_t *ftp_req, uint32_t target_system_id, uint8_t target_comp_id);
@@ -144,11 +165,11 @@ private:
 
 	ErrorCode	_workList(PayloadHeader *payload, bool include_time = false);
 	void		_statDirent(const char *name, uint32_t &size, uint32_t &mtime);
-	ErrorCode	_workOpen(PayloadHeader *payload, int oflag);
-	ErrorCode	_workRead(PayloadHeader *payload);
-	ErrorCode	_workBurst(PayloadHeader *payload, uint32_t target_system_id, uint8_t target_component_id);
-	ErrorCode	_workWrite(PayloadHeader *payload);
-	ErrorCode	_workTerminate(PayloadHeader *payload);
+	ErrorCode	_workOpen(PayloadHeader *payload, int oflag, uint32_t owner_system_id, uint8_t owner_component_id);
+	ErrorCode	_workRead(PayloadHeader *payload, SessionInfo *session);
+	ErrorCode	_workBurst(PayloadHeader *payload, SessionInfo *session);
+	ErrorCode	_workWrite(PayloadHeader *payload, SessionInfo *session);
+	ErrorCode	_workTerminate(PayloadHeader *payload, SessionInfo *session);
 	ErrorCode	_workReset(PayloadHeader *payload);
 	ErrorCode	_workRemoveDirectory(PayloadHeader *payload);
 	ErrorCode	_workCreateDirectory(PayloadHeader *payload);
@@ -161,11 +182,41 @@ private:
 	uint8_t _getServerComponentId(void);
 	uint8_t _getServerChannel(void);
 
-	bool _session_open() const;
-	void _close_session();
+	/// The open session with this id, if it belongs to the requesting client.
+	SessionInfo *_find_session(uint8_t id, uint32_t system_id, uint8_t component_id);
 
-	/// Read from the open session. Returns bytes read, 0 at EOF, -1 on error with _our_errno set.
-	int _read_session(uint32_t offset, uint8_t *buf, uint16_t count);
+	/// A closed slot to open a session in, nullptr if all are in use.
+	SessionInfo *_free_session();
+
+	/// The next id no open session uses, so a stale request for a closed session does not reach a new one.
+	uint8_t _allocate_session_id();
+
+	void _close_session(SessionInfo &session);
+	void _close_all_sessions();
+
+	static uint32_t _request_crc(const PayloadHeader *payload);
+
+	struct ReplyEntry;
+	const ReplyEntry *_find_reply(uint32_t system_id, uint8_t component_id, uint16_t request_seq,
+				      uint32_t request_crc) const;
+
+	/// Keep a small reply for retries, under the session it belongs to or kNoSession.
+	void _remember_reply(const mavlink_file_transfer_protocol_t *ftp_reply, uint32_t system_id, uint8_t component_id,
+			     uint16_t request_seq, uint32_t request_crc, int session);
+
+	void _forget_replies(const SessionInfo &session);
+
+	/// Read from an open session. Returns bytes read, 0 at EOF, -1 on error with _our_errno set.
+	int _read_session(SessionInfo &session, uint32_t offset, uint8_t *buf, uint16_t count);
+
+	/// Burst payload to use for this session on this link.
+	unsigned _burst_data_length(const SessionInfo &session) const;
+
+	/// On-wire size of one burst packet of this session on this link.
+	unsigned _burst_wire_size(const SessionInfo &session) const;
+
+	/// The session the next burst packet comes from, nullptr if none is streaming.
+	SessionInfo *_next_burst_session();
 
 	/**
 	 * Construct local path by appending `path` to `_root_dir` and storing the result in `dst`.
@@ -174,9 +225,6 @@ private:
 
 	bool _validatePath(const char *path);
 	bool _validatePathIsWritable(const char *path);
-
-	/// Stamp last request time; drives the 30 s idle session close.
-	void _ensure_buffers_exist();
 
 	static const char	kDirentFile = 'F';	///< Identifies File returned from List command
 	static const char	kDirentDir = 'D';	///< Identifies Directory returned from List command
@@ -198,19 +246,8 @@ private:
 	 */
 	static const unsigned	kRadioMaxPacketLength = 118;
 
-	struct SessionInfo {
-		int		fd;
-		uint32_t	file_size;
-		bool		stream_download;
-		uint32_t	stream_offset;
-		uint16_t	stream_seq_number;
-		uint32_t	stream_target_system_id;
-		uint8_t         stream_target_component_id;
-		unsigned	stream_chunk_transmitted;
-		uint8_t		stream_size;            ///< payload size the client asked for, 0 = as much as fits
-		ParamPckFile	param;			///< virtual parameter file, open instead of fd
-	};
-	struct SessionInfo _session_info {};	///< Session info, fd=-1 for no active session
+	SessionInfo _sessions[kMaxSessions] {};
+	uint8_t _next_session_id{0};
 
 	Mavlink &_mavlink;
 
@@ -222,10 +259,12 @@ private:
 	static constexpr int _work_buffer2_len = 256;
 	char _work_buffer1[_work_buffer1_len];
 	char _work_buffer2[_work_buffer2_len];
-	hrt_abstime _last_work_buffer_access{0};
 
-	/// Paces the burst against the link budget.
+	/// Paces all bursts together against the one link budget.
 	hrt_abstime _last_burst_send{0};
+
+	/// Slot the next burst packet is taken from first.
+	unsigned _burst_cursor{0};
 
 	// prepend a root directory to each file/dir access to avoid enumerating the full FS tree (e.g. on Linux).
 	// Path traversal via ".." is rejected by _validatePath().
@@ -239,10 +278,38 @@ private:
 	static constexpr const char _mav_log_dir[] = PX4_STORAGEDIR "/log";
 	static constexpr const int _mav_log_dir_len = sizeof(_mav_log_dir) - 1;
 
-	bool _last_reply_valid = false;
-	uint32_t _last_reply_target_system{0}; ///< _last_reply only holds the 8-bit payload field
-	uint8_t _last_reply[MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL_LEN - MAVLINK_MSG_FILE_TRANSFER_PROTOCOL_FIELD_PAYLOAD_LEN
-								      + sizeof(PayloadHeader) + sizeof(uint32_t)];
+	/**
+	 * Small replies kept to answer a retried request without executing it again.
+	 *
+	 * A retry is the same request from the same client: system and component
+	 * id, sequence number and a checksum of the rest. Each client keeps its
+	 * latest reply per session, and one for requests outside of a session,
+	 * so a reply stays until that client moves on, its session is closed
+	 * without a Terminate, or kReplayEntries newer replies of other clients
+	 * or sessions have taken every entry.
+	 *
+	 * Only the sequence number tells a retry from the same request sent anew,
+	 * so everything sending as one MAVLink identity has to share one counter.
+	 * Even then a lost reply outside of a session, such as to ResetSessions,
+	 * is gone once the identity sends its next request outside of a session,
+	 * and the retry is executed again.
+	 */
+	static constexpr unsigned kReplayEntries = 2 * kMaxSessions;
+	static constexpr int kNoSession = -1;
+
+	struct ReplyEntry {
+		bool		valid{false};
+		uint32_t	system_id{0};		///< reply only holds the 8-bit payload field
+		uint8_t		component_id{0};
+		int		session{kNoSession};
+		uint16_t	request_seq{0};
+		uint32_t	request_crc{0};
+		uint64_t	stored{0};		///< _replies_stored when it was, a clock can stand still between two
+		uint8_t		reply[MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL_LEN - MAVLINK_MSG_FILE_TRANSFER_PROTOCOL_FIELD_PAYLOAD_LEN
+										+ sizeof(PayloadHeader) + sizeof(uint32_t)];
+	};
+	ReplyEntry _replies[kReplayEntries] {};
+	uint64_t _replies_stored{0};
 
 	int _our_errno {0};
 };
