@@ -27,6 +27,19 @@ If you update an existing file you are not required to make the whole file compl
 
 :::
 
+### Automatic Checks
+
+Formatting (with [astyle](https://astyle.sourceforge.net/)) and other file checks are [pre-commit](https://pre-commit.com/) hooks configured in [.pre-commit-config.yaml](https://github.com/PX4/PX4-Autopilot/blob/main/.pre-commit-config.yaml).
+They are run with [prek](https://prek.j178.dev), a faster drop-in replacement for `pre-commit` that runs independent checks concurrently.
+CI runs all of them on every pull request.
+
+- `make check_format` runs all checks on all files, as CI does. Checks never modify files.
+- `prek install` runs the checks on the staged files whenever you commit.
+- `make format` applies all automatic fixes, `make format_changed` only to files changed since the last commit.
+
+`prek` is installed with the [Python requirements](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/setup/requirements.txt) of the development environment.
+On the first run it sets up the hook tools in `~/.cache/prek`, which needs internet access.
+
 ### Tabs
 
 - Tabs are used for indentation (equivalent to 8 spaces).

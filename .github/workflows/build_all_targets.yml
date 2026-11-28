@@ -66,6 +66,7 @@ on:
       - '!CITATION.cff'
       - '!codecov.yml'
       - '!.editorconfig'
+      - '!.pre-commit-config.yaml'
       - '!.clang-tidy'
       - '!.dockerignore'
       - '!.agents/**'

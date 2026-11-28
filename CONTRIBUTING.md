@@ -20,7 +20,7 @@ The [developer guide](https://docs.px4.io/main/en/development/development.html) 
 
 ### Coding standards
 
-All C/C++ code must follow the [PX4 coding style](https://docs.px4.io/main/en/contribute/code.html). Formatting is enforced by [astyle](http://astyle.sourceforge.net/) in CI (`make check_format`, ``make format`, `make format_changed`). Code quality checks run via [clang-tidy](https://clang.llvm.org/extra/clang-tidy/). Pull requests that fail either check will not be merged.
+All C/C++ code must follow the [PX4 coding style](https://docs.px4.io/main/en/contribute/code.html). Formatting is enforced by [astyle](http://astyle.sourceforge.net/) in CI, together with the other file checks configured as [pre-commit](https://pre-commit.com/) hooks in `.pre-commit-config.yaml`, run with [prek](https://prek.j178.dev) (`make check_format`, `make format`, `make format_changed`; `prek install` runs them on every commit). Code quality checks run via [clang-tidy](https://clang.llvm.org/extra/clang-tidy/). Pull requests that fail either check will not be merged.
 
 Python code is checked with [mypy](https://mypy-lang.org/) and [flake8](https://flake8.pycqa.org/).
 

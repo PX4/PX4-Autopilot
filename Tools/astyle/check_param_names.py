@@ -6,8 +6,10 @@ convention _param_<lower case parameter name>, e.g.
     (ParamFloat<px4::params::MPC_XY_VEL_MAX>) _param_mpc_xy_vel_max
 
 Usage:
-    check_param_names.py          report violations, exit 1 if there are any
-    check_param_names.py --fix    rename violating members
+    check_param_names.py FILE...          report violations, exit 1 if there are any
+    check_param_names.py --fix FILE...    rename violating members
+
+Runs as pre-commit hook on the files astyle checks, see .pre-commit-config.yaml.
 
 --fix renames the member in the declaring file and its implementation file
 (same stem, optionally with _main suffix). If the old name also appears in any
@@ -153,18 +155,10 @@ def fix(violations):
 def main():
     parser = argparse.ArgumentParser(description='Check parameter member naming')
     parser.add_argument('--fix', action='store_true', help='rename violating members')
-    parser.add_argument('files', nargs='*', help='files to check (default: all checked by astyle)')
+    parser.add_argument('files', nargs='+', help='files to check')
     args = parser.parse_args()
 
-    files = args.files
-
-    if not files:
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        os.chdir(os.path.join(script_dir, '..', '..'))
-        files = subprocess.run([os.path.join(script_dir, 'files_to_check_code_style.sh')],
-                               capture_output=True, text=True, check=True).stdout.split()
-
-    violations = find_violations(files)
+    violations = find_violations(args.files)
 
     if args.fix:
         return 0 if fix(violations) else 1
