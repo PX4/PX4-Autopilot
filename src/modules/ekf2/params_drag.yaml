@@ -26,7 +26,7 @@ parameters:
         short: X-axis ballistic coefficient used for multi-rotor wind estimation
         long: Bluff body drag along the forward/reverse axis, which scales with speed squared.
           Rotor drag is set by EKF2_MCOEF. Only used when EKF2_DRAG_CTRL is enabled.
-          Set to 0 to disable for this axis.
+          Set to 1 or less to disable for this axis.
       type: float
       default: 100.0
       min: 0.0
@@ -38,7 +38,7 @@ parameters:
         short: Y-axis ballistic coefficient used for multi-rotor wind estimation
         long: Bluff body drag along the right/left axis, which scales with speed squared.
           Rotor drag is set by EKF2_MCOEF. Only used when EKF2_DRAG_CTRL is enabled.
-          Set to 0 to disable for this axis.
+          Set to 1 or less to disable for this axis.
       type: float
       default: 100.0
       min: 0.0

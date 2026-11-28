@@ -7,10 +7,10 @@ parameters:
         short: Range sensor height aiding
         long: 'WARNING: range finders are less reliable and can have unexpected errors.
           For accurate height above ground, use MPC_ALT_MODE instead, unless baro errors
-          cause problems at takeoff and landing. Fuses range as an additional height
-          source. Conditional mode only fuses it below EKF2_RNG_A_VMAX speed and
-          EKF2_RNG_A_HMAX height, where rotor wash corrupts the baro; for vertical
-          takeoff and landing with no horizontal flight below EKF2_RNG_A_HMAX.'
+          cause problems at takeoff and landing. Range is fused in addition to other
+          height sources. Conditional mode fuses it only below EKF2_RNG_A_VMAX speed and
+          EKF2_RNG_A_HMAX height, where rotor wash corrupts the baro; it is intended for
+          vertical takeoff and landing with no horizontal flight below EKF2_RNG_A_HMAX.'
       type: enum
       values:
         0: Disable range fusion

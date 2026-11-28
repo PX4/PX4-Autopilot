@@ -68,11 +68,11 @@ parameters:
       bit:
         0: Default set (general log analysis)
         1: Estimator replay (EKF2, full rate)
-        2: Thermal calibration (high-rate raw IMU and baro)
+        2: Thermal calibration (raw IMU, baro and magnetometer)
         3: System identification (high-rate actuator and IMU)
         4: High rate (RC, attitude, rates and actuators)
         5: Debug (debug_*.msg topics)
-        6: Sensor comparison (low-rate raw IMU, baro and mag)
+        6: Sensor comparison (raw IMU, baro and magnetometer)
         7: Computer Vision and Avoidance
         8: Raw FIFO high-rate IMU (Gyro)
         9: Raw FIFO high-rate IMU (Accel)
@@ -100,9 +100,9 @@ parameters:
     SDLOG_ROTATE:
       description:
         short: Maximum disk usage percentage
-        long: The limit includes the log being written. Oldest logs are deleted at log start
-          (not boot), leaving room for a file of up to SDLOG_MAX_SIZE, so logs can
-          be downloaded before deletion. 100 lets logs fill the disk. Set to 0 to disable.
+        long: The limit includes the log being written. The oldest logs are deleted at log
+          start, not boot, so logs can be downloaded first; room is left for a file of
+          up to SDLOG_MAX_SIZE. 100 lets logs fill the disk. Set to 0 to disable.
       type: int32
       default: 90
       min: 0
@@ -111,8 +111,9 @@ parameters:
     SDLOG_DIRS_MAX:
       description:
         short: Maximum number of log directories to keep
-        long: At log start, oldest log directories are deleted to stay within this count.
-          Independent of SDLOG_ROTATE and SDLOG_MAX_SIZE, e.g. to cap logs by count in SITL.
+        long: At log start, the oldest log directories are deleted to stay within this count.
+          This cleanup is independent of SDLOG_ROTATE and SDLOG_MAX_SIZE, e.g. to cap logs
+          by count in SITL.
           Set to 0 to disable.
       type: int32
       default: 0
