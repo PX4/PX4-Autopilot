@@ -7,35 +7,27 @@ PX4 does not manufacture this (or any) autopilot.
 Contact the [manufacturer](https://www.nxp.com) for hardware support or compliance issues.
 :::
 
-The [MR-NavQ95](https://github.com/NXP-Robotics/MR-NAVQ95) is a vehicle computer reference design from NXP Mobile Robotics, built around the NXP i.MX 95.
+The [MR-NavQ95](https://www.nxp.com/design/design-center/development-boards-and-designs/MR-NAVQ95) is a vehicle computer reference design from NXP Mobile Robotics, built around the NXP i.MX 95.
 Linux runs on the Cortex-A55 cores, and PX4 runs on the Cortex-M7 real-time core, started by MCUboot from the on-board octal NOR flash.
-The two sides talk over RPMsg: PX4 keeps its parameters, dataman and logs on a filesystem served by Linux, and exposes its shell and two MAVLink links as virtual ttys on the Linux side.
 The main board carries the i.MX 95 and the ICM-45686, BMM350 and BMP581 sensors.
 The NAVQ95-IO expansion board (the "IO board") carries the BMI088, the USB console, and the CAN, PWM, GPS, TELEM and I2C connectors.
 
-![MR-NavQ95 Overview](../../assets/flight_controller/nxp_mr_navq95/mr_navq95b_overview.png)
+![MR-NavQ95](../../assets/flight_controller/nxp_mr_navq95/navq95.webp)
 
-Because the i.MX 95 is an applications processor, the Linux side is a full companion computer rather than just a storage and telemetry bridge.
-It brings the parts of a mobile robotics stack that do not belong on a flight controller:
-
-- Up to 6x Arm Cortex-A55 application cores running Linux, next to the Cortex-M7 real-time core used by PX4 and a Cortex-M33 for boot and system control
-- eIQ Neutron NPU for on-device machine learning, for example object detection, segmentation or visual navigation, without an external accelerator
-- Image Signal Processor with multiple MIPI-CSI inputs, so several cameras (for example a stereo pair plus an RGB camera) can be attached at once
-- Arm Mali GPU and hardware H.264/H.265 encode and decode for video streaming and recording
-- Audio subsystem (SAI, microphone array support) for voice interaction and acoustic sensing
-- Networking: a gigabit RJ45 port on the main board straight off the SoC, plus a second SoC Ethernet port brought out as a SerDes lane (SGMII, USXGMII or XFI) on the Hirose board-to-board header `J17 B2B_ETH` for one networking expansion board:
-  - NAVQ95-T1SW: an NXP SJA1110 TSN switch on the SGMII link, with two 1000BASE-T1 and six 100BASE-T1 automotive Ethernet ports for multi-drop vehicle networks
-  - X-MR-NAVQ95E-T1P: a single NXP TJA1103 100BASE-T1 PHY
-  - An SFP+ cage board (to be released): the lane runs as XFI into the SFP+ cage, so the 10 Gbit link can be fibre with an optical module or copper with a direct-attach (DAC) cable
-- PCIe, USB and an on-board Wi-Fi/Bluetooth module for links to the ground station and to other vehicles
-
-::: info
-Only the Cortex-M7 side is PX4.
-All of the above is available to the application running on Linux, which talks to PX4 over the RPMsg MAVLink link described below.
+::: tip
+The MR-NavQ95 is a reference design and not an end product.
+NXP provides the complete open-source [hardware design package](https://github.com/NXP-Robotics/MR-NAVQ95) and sells small quantities through NXP.com and electronics distributors worldwide.
+The intention is to provide a complete, tested, validated and flown reference set of hardware that a manufacturer can copy or modify as they wish and have manufactured at their preferred contract manufacturer.
+Contact your local NXP representative for more information.
 :::
 
 ::: info
 This flight controller is [manufacturer supported](../flight_controller/autopilot_manufacturer_supported.md).
+:::
+
+::: warning
+Support for this board in PX4 `main` is under development.
+For a stable version, use NXP's tested image based on PX4 v1.17 (see [Building Firmware](#building_firmware)).
 :::
 
 ## Specifications {#specifications}
@@ -43,10 +35,10 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 ### Processor {#processor}
 
 - **Main FMU processor:** [NXP i.MX 95](https://www.nxp.com/products/i.MX95).
-  PX4 runs on its Arm® Cortex®-M7 core (800 MHz).
+  PX4 runs on its Arm® Cortex®-M7 core (800MHz).
   The Cortex®-A55 cores run Linux and the Cortex®-M33 core runs the NXP System Manager.
 - **Code store:** on-board octal NOR flash.
-  MCUboot starts PX4 from slot0 (7 MB), the primary image slot in the NOR flash (see [Flash Layout](#flash_layout)).
+  MCUboot starts PX4 from slot0 (7MB), the primary image slot in the NOR flash (see [Flash Layout](#flash_layout)).
   The `ddr` build runs from SDRAM and is loaded by Linux.
 
 ### Sensors {#sensors}
@@ -58,8 +50,8 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 ### Interfaces {#interfaces}
 
 - **PWM outputs:** 8 FMU outputs (7 when `GPIO_IO23` is configured as the buzzer or left unused), all [DShot](../peripherals/dshot.md) capable, including bidirectional DShot 300 and 600
-- **Serial ports:** 3 (`GPS1`, `TELEM1` with flow control, RC on the main board `J2 CONSOLE`), plus RPMsg virtual ports to Linux (shell, two MAVLink links)
-- **I2C buses:** 2 (I2C1 internal, I2C6 external)
+- **Serial ports:** 3 (`GPS1` on IO board `J8 GPS`, `TELEM1` on IO board `J6 TELEM` with flow control, RC on the main board `J2 CONSOLE`), plus RPMsg virtual ports to Linux (shell, two MAVLink links)
+- **I2C buses:** 2 (I2C1 internal, I2C6 external on IO board `J7 I2C`)
 - **SPI buses:** 2, both internal
 - **CAN buses:** 2 CAN FD buses for PX4, DroneCAN capable (IO board `J4 CAN2` and `J3 CAN3`).
   A third (IO board `J5 CAN1`) belongs to Linux.
@@ -71,67 +63,70 @@ This flight controller is [manufacturer supported](../flight_controller/autopilo
 
 ### Electrical Data {#electrical_data}
 
-- **Input voltage:** 9 V to 52 V (3S to 12S battery), 60 V absolute maximum
-- **Input power:** 60 W between 9 V and 20 V, 125 W between 20 V and 52 V
+- **Input voltage:** 9V to 52V (3S to 12S battery), 60V absolute maximum
+- **Input power:** 60W between 9V and 20V, 125W between 20V and 52V
 - **Power monitoring:** 1 analog input, voltage only (`ADC_IN0` measures VIN/64, hence the `BAT1_V_DIV` default of 64.4)
 
 ### Mechanical Data {#mechanical_data}
 
-- **Dimensions:** main board 137 x 112 mm, IO board 120 x 79 mm (PCB outline; height and weight are not specified)
-- **Memory for PX4:** 256 KB ITCM, 256 KB DTCM and 256 KB OCRAM on the Cortex-M7, and a 7 MB flash slot
-- **Operating temperature:** the SoC (`MIMX9596AVZXNMC`, automotive grade) is rated -40 °C to 105 °C ambient (125 °C junction) in the i.MX 95 data sheet.
+- **Dimensions:** main board 137 x 112mm, IO board 120 x 79mm (PCB outline; height and weight are not specified)
+- **Memory for PX4:** 256KB ITCM, 256KB DTCM and 256KB OCRAM on the Cortex-M7, and a 7MB flash slot
+- **Operating temperature:** the SoC (`MIMX9596AVZXNMC`, automotive grade) is rated -40°C to 105°C ambient (125°C junction) in the i.MX 95 data sheet.
   The board-level operating temperature is not specified.
 
 ## Where to Buy {#store}
 
-The board is not yet released.
-Its release will be announced in the [MR-NAVQ95 repository](https://github.com/NXP-Robotics/MR-NAVQ95).
+The board can be bought from NXP as [MR-NAVQ95-KIT](https://www.nxp.com/design/design-center/development-boards-and-designs/MR-NAVQ95).
 
 ## Pinouts {#pinouts}
 
-![MR-NavQ95 top view with connectors labelled](../../assets/flight_controller/nxp_mr_navq95/overview_top.svg)
+![MR-NavQ95 top view with connectors labelled](../../assets/flight_controller/nxp_mr_navq95/overview_top.webp)
 
-![MR-NavQ95 side view with connectors labelled](../../assets/flight_controller/nxp_mr_navq95/overview_side.svg)
+![MR-NavQ95 side view with connectors labelled](../../assets/flight_controller/nxp_mr_navq95/overview_side.webp)
 
-![MR-NavQ95 bottom view with connectors labelled](../../assets/flight_controller/nxp_mr_navq95/overview_bottom.svg)
+![MR-NavQ95 bottom view with connectors labelled](../../assets/flight_controller/nxp_mr_navq95/overview_bottom.webp)
 
-Hardware details, schematics and the pinout of every connector are in the [MR-NAVQ95 repository](https://github.com/NXP-Robotics/MR-NAVQ95).
-The [connector index](https://github.com/NXP-Robotics/MR-NAVQ95#connector-index) has a drawing and a pin table for each connector.
+Hardware details, schematics and the pinout of every connector are in the [MR-NAVQ95 hardware reference](https://nxp-robotics.github.io/robotics-docs/platforms/mr-navq95/user-manual/hardware.html#mr-navq95-hardware-reference).
+The [connector index](https://nxp-robotics.github.io/robotics-docs/platforms/mr-navq95/user-manual/hardware.html#connector-index) has a pinout drawing for each connector.
 
 The TELEM, GPS, I2C and CAN connectors follow the [Dronecode DS-009 connector standard](https://github.com/pixhawk/Pixhawk-Standards/blob/master/DS-009%20Pixhawk%20Connector%20Standard.pdf).
 The main board `J2 CONSOLE` header has its own pin order: pins 4 and 5 carry the RC UART (see [Radio Control](#radio_control)).
 The PWM header (IO board `J9 PWM`) has its own pin order.
 
+## Block Diagram {#block_diagram}
+
+![MR-NavQ95 block diagram](../../assets/flight_controller/nxp_mr_navq95/mr_navq95_block_diagram.svg)
+
 ## Power {#power}
 
-The board is powered through the main board `J9 PWR_IN` connector (Molex Micro-Fit 3.0, 2-pin) from 9 V to 52 V.
+The board is powered through the main board `J9 PWR_IN` connector (Molex Micro-Fit 3.0, 2-pin) from 9V to 52V.
 
 Battery monitoring is analog and voltage only, with [BAT1_V_DIV](../advanced_config/parameter_reference.md#BAT1_V_DIV) set to 64.4 by default.
 For battery and power module configuration see [Battery and Power Module Setup](../config/battery.md).
 
 The PWM output rail is not powered by the board's power input (main board `J9 PWR_IN`).
 The output rail must be [separately powered](../peripherals/pwm_escs_and_servo.md) if it needs to power servos or other hardware.
-The rail (IO board `J9 PWM` pin 1, `VDD_CON_PWM`) can only be linked to the board 5 V by fitting R60 (0 ohm), which is not fitted by default.
-Do not put more than 5 V on the servo rail while R60 is fitted.
+The rail (IO board `J9 PWM` pin 1, `VDD_CON_PWM`) can only be linked to the board 5V by fitting R60 (0Ω), which is not fitted by default.
+Do not put more than 5V on the servo rail while R60 is fitted.
 
 ::: warning
-Never feed power into the 5 V pins of the JST-GH connectors; they are outputs.
+Never feed power into the 5V pins of the JST-GH connectors; they are outputs.
 :::
 
 ## Voltage Ratings {#voltage_ratings}
 
 ### Normal Operation Maximum Ratings
 
-1. `PWR_IN` (main board `J9`): 9 V to 52 V
+1. `PWR_IN` (main board `J9`): 9V to 52V
 
 ### Absolute Maximum Ratings
 
-1. `PWR_IN` (main board `J9`): 60 V
-2. Servo rail (`VDD_CON_PWM`, IO board `J9` pin 1): 12 V with R60 not fitted (the rail is only sensed, through `ADC_IN6`), 5 V with R60 fitted
+1. `PWR_IN` (main board `J9`): 60V
+2. Servo rail (`VDD_CON_PWM`, IO board `J9` pin 1): 12V with R60 not fitted (the rail is only sensed, through `ADC_IN6`), 5V with R60 fitted
 
 ## PWM Outputs {#pwm_outputs}
 
-The 8 outputs are on the IO board `J9 PWM` connector (3.3 V logic), in 4 groups:
+The 8 outputs are on the IO board `J9 PWM` connector (3.3V logic), in 4 groups:
 
 - Outputs 1-3 in group 1 (TPM3)
 - Outputs 4-5 in group 2 (TPM4)
@@ -176,7 +171,7 @@ The receiver (for example CRSF, ELRS or SBUS) connects to the main board `J2 CON
 
 | Pin | Signal   | Connection                                                                  |
 | --- | -------- | --------------------------------------------------------------------------- |
-| 1   | 5 V      | Receiver power                                                              |
+| 1   | 5V       | Receiver power                                                              |
 | 2   | UART1 TX | Linux console                                                               |
 | 3   | UART1 RX | Linux console                                                               |
 | 4   | UART2 RX | Receiver TX                                                                 |
@@ -222,12 +217,31 @@ PX4 uses two of the three CAN FD buses:
 - `can1` is FlexCAN3 on the IO board `J3 CAN3` connector
 
 The IO board `J5 CAN1` connector belongs to Linux.
-Each port has 120 ohm split termination, so each port is a bus end.
+Each port has 120Ω split termination, so each port is a bus end.
 
 [DroneCAN](../dronecan/index.md) is off by default.
 The board brings up `can0` and `can1` only when [UAVCAN_ENABLE](../advanced_config/parameter_reference.md#UAVCAN_ENABLE) is above 0.
 
 ## Linux Side {#linux_side}
+
+Because the i.MX 95 is an applications processor, the Linux side is a full companion computer rather than just a storage and telemetry bridge.
+It brings the parts of a mobile robotics stack that do not belong on a flight controller:
+
+- Up to 6x Arm Cortex-A55 application cores running Linux, next to the Cortex-M7 real-time core used by PX4 and a Cortex-M33 for boot and system control
+- eIQ Neutron NPU for on-device machine learning, for example object detection, segmentation or visual navigation, without an external accelerator
+- Image Signal Processor with multiple MIPI-CSI inputs, so several cameras (for example a stereo pair plus an RGB camera) can be attached at once
+- Arm Mali GPU and hardware H.264/H.265 encode and decode for video streaming and recording
+- Audio subsystem (SAI, microphone array support) for voice interaction and acoustic sensing
+- Networking: a gigabit RJ45 port on the main board straight off the SoC, plus a second SoC Ethernet port brought out as a SerDes lane (SGMII, USXGMII or XFI) on the Hirose board-to-board header `J17 B2B_ETH` for one networking expansion board:
+  - NAVQ95-T1SW: an NXP SJA1110 TSN switch on the SGMII link, with two 1000BASE-T1 and six 100BASE-T1 automotive Ethernet ports for multi-drop vehicle networks
+  - X-MR-NAVQ95E-T1P: a single NXP TJA1103 100BASE-T1 PHY
+  - An SFP+ cage board (to be released): the lane runs as XFI into the SFP+ cage, so the 10 Gbit link can be fibre with an optical module or copper with a direct-attach (DAC) cable
+- PCIe, USB and an on-board Wi-Fi/Bluetooth module for links to the ground station and to other vehicles
+
+::: info
+Only the Cortex-M7 side is PX4.
+All of the above is available to the application running on Linux, which talks to PX4 over the RPMsg MAVLink link described below.
+:::
 
 The Linux side must run the NavQ95 BSP built from [imx-manifest-navq95](https://github.com/NXP-Robotics/imx-manifest-navq95).
 It provides the RPMsg links PX4 depends on:
@@ -288,6 +302,12 @@ The PX4 topics then appear in ROS 2 on the board, as described in the [ROS 2 Use
 
 ## Building Firmware {#building_firmware}
 
+::: warning
+Instead of building `main`, you can flash NXP's tested image based on PX4 v1.17, following [Installing and configuring software tools](https://nxp-robotics.github.io/robotics-docs/platforms/mr-navq95/user-manual/installing-software-tools.html#installing-and-configuring-software-tools).
+Flash it with the Linux image from the same page (built from `robotics-linux-manifest`).
+A Linux image built from [imx-manifest-navq95](https://github.com/NXP-Robotics/imx-manifest-navq95) is for PX4 `main` only.
+:::
+
 To [build PX4](../dev_setup/building_px4.md) for this target:
 
 ```sh
@@ -332,12 +352,12 @@ A convenient field update (image upload through Linux into slot1 and an MCUboot 
 The octal NOR flash is mapped at `0x28000000` in the Cortex-M7 address space.
 MCUboot, built from Zephyr in the [NavQ95 BSP](https://github.com/NXP-Robotics/meta-nxp-mr) (board `mr_navq95b`), defines the partitions, and the PX4 linker script and `imgtool` arguments match slot0:
 
-| Address      | Size    | Partition         | Use                                                                                         |
-| ------------ | ------- | ----------------- | ------------------------------------------------------------------------------------------- |
-| `0x28000000` | 128 KB  | `mcuboot`         | MCUboot bootloader                                                                          |
-| `0x28020000` | 7 MB    | slot0 (`image-0`) | Primary slot, PX4 runs from here (execute in place)                                         |
-| `0x28720000` | 7 MB    | slot1 (`image-1`) | Secondary slot for an uploaded update, swapped into slot0 by MCUboot                        |
-| `0x28E20000` | 1920 KB | `storage`         | Reserved for the planned on-flash parameter storage (see [Current Status](#current_status)) |
+| Address      | Size   | Partition         | Use                                                                                         |
+| ------------ | ------ | ----------------- | ------------------------------------------------------------------------------------------- |
+| `0x28000000` | 128KB  | `mcuboot`         | MCUboot bootloader                                                                          |
+| `0x28020000` | 7MB    | slot0 (`image-0`) | Primary slot, PX4 runs from here (execute in place)                                         |
+| `0x28720000` | 7MB    | slot1 (`image-1`) | Secondary slot for an uploaded update, swapped into slot0 by MCUboot                        |
+| `0x28E20000` | 1920KB | `storage`         | Reserved for the planned on-flash parameter storage (see [Current Status](#current_status)) |
 
 The rest of the flash is unused.
 
@@ -370,15 +390,15 @@ pyocd reset -t mimx95_cm33 -f 20M
 The PX4 [system console](../debug/system_console.md) is `/dev/ttynsh` on the Linux side.
 An NSH shell that does not need Linux can run on LPUART2 (IO board `J1 CONSOLE` or main board `J2 CONSOLE`) instead of the RC input; see [Serial Port Mapping](#serial_port_mapping).
 
-The [SWD interface](../debug/swd_debug.md) is on the main board `J7 DEBUG` connector, a standard Arm Cortex 10-pin header (2x5, 1.27 mm), for an external debug probe (J-Link, CMSIS-DAP or any probe _pyOCD_ supports; see the `J7` card in the [MR-NAVQ95 repository](https://github.com/NXP-Robotics/MR-NAVQ95#connector-index)).
+The [SWD interface](../debug/swd_debug.md) is on the main board `J7 DEBUG` connector, a standard Arm Cortex 10-pin header (2x5, 1.27mm), for an external debug probe (J-Link, CMSIS-DAP or any probe _pyOCD_ supports; see the [`J7` pinout](https://nxp-robotics.github.io/robotics-docs/platforms/mr-navq95/user-manual/hardware.html#main-j7-debug)).
 It is not a Pixhawk Debug Full or Debug Mini connector.
-VTref is 1.8 V, so the probe must support 1.8 V targets.
+VTref is 1.8V, so the probe must support 1.8V targets.
 nRESET is connected through a diode, so the probe can only pull it low.
 With _pyOCD_, the M7 core is reached with `pyocd gdb -t mimx95_cm7_mx25um`.
 
 ## Current Status {#current_status}
 
-The MR-NavQ95 is a reference design under active development, and the PX4 port is not feature complete.
+The MR-NavQ95 is a reference design under active software development, and the PX4 port is not feature complete.
 Known gaps at the time of writing:
 
 - Firmware update:
@@ -396,7 +416,7 @@ Known gaps at the time of writing:
   The `reboot` command, `MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN` and the reboot that _QGroundControl_ requests after calibration or airframe selection do not restart the M7 yet; power-cycle the board instead.
   An M7 reset through the i.MX 95 System Manager is planned.
 - PWM timing and input capture:
-  Output group 1 (TPM3) runs from a 133 MHz clock root.
+  Output group 1 (TPM3) runs from a 133MHz clock root.
   OneShot is not supported yet on any output, and neither is bidirectional DShot 150.
   The PWM timing code is being reworked, and PWM input capture is not available.
 - Defaults may change:
@@ -404,6 +424,7 @@ Known gaps at the time of writing:
 
 ## Further Information {#further_information}
 
+- [MR-NavQ95 Documentation](https://nxp-robotics.github.io/robotics-docs/platforms/mr-navq95/index.html)
 - [MR-NAVQ95 hardware repository](https://github.com/NXP-Robotics/MR-NAVQ95)
 - [NavQ95 Linux BSP manifest](https://github.com/NXP-Robotics/imx-manifest-navq95)
 - [NXP community forum](https://community.nxp.com/)
