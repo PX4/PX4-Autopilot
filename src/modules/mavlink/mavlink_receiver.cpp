@@ -746,6 +746,24 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 		}
 	}
 
+	// Navigator takes the takeoff altitude as AMSL. In MAV_FRAME_LOCAL_OFFSET_NED z is the offset
+	// (down) from the current altitude, and x/y are ignored.
+	if (cmd_mavlink.command == MAV_CMD_NAV_TAKEOFF && cmd_mavlink.frame == MAV_FRAME_LOCAL_OFFSET_NED
+	    && evaluate_target_ok(vcmd.command, vcmd.target_system, vcmd.target_component)) {
+		vehicle_global_position_s vehicle_global_position{};
+		_vehicle_global_position_sub.copy(&vehicle_global_position);
+
+		if (!vehicle_global_position.alt_valid) {
+			acknowledge(msg->sysid, msg->compid, cmd_mavlink.command,
+				    vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
+			return;
+		}
+
+		vcmd.param5 = (double)NAN;
+		vcmd.param6 = (double)NAN;
+		vcmd.param7 = vehicle_global_position.alt - cmd_mavlink.z;
+	}
+
 	handle_message_command_both(msg, vcmd);
 }
 
