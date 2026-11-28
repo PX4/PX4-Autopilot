@@ -139,6 +139,18 @@ make px4_sitl_sih sihsim_quadx_flow
 make px4_sitl_sih sihsim_standard_vtol_flow
 ```
 
+#### Multiple IMUs
+
+SIH simulates one IMU by default.
+Set [`SIH_IMU_COUNT`](../advanced_config/parameter_reference.md#SIH_IMU_COUNT) to simulate up to three, each with its own noise, for example to test IMU redundancy and failover (takes effect after a reboot).
+
+Failure injection addresses each IMU by its instance, so the following makes only the first gyro drift (at the rate set by [`SYS_FAIL_G_DRIFT`](../advanced_config/parameter_reference.md#SYS_FAIL_G_DRIFT)):
+
+```sh
+param set SYS_FAILURE_EN 1
+failure gyro drift -i 1
+```
+
 #### Set Custom Takeoff Location
 
 The default takeoff location can be set using environment variables:
