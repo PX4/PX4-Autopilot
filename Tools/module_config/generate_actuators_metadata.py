@@ -167,6 +167,7 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
         actuator_output['parameters'] = parameters
 
     subgroups = []
+    first_instance = {} # instance_start of the first group per param prefix
 
     while group_idx < len(output_groups):
         group = output_groups[group_idx]
@@ -258,10 +259,13 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
                 if show_if: param['show-if'] = show_if
                 per_channel_params.append(param)
 
+        # MixingOutput reads bit i for output channel i, counted from the
+        # instance_start of the prefix's first group (0 or 1)
+        first_instance.setdefault(param_prefix, instance_start)
         param = {
                 'label': 'Rev Range\n(for Servos)',
                 'name': param_prefix+'_REV',
-                'index-offset': -1,
+                'index-offset': -first_instance[param_prefix],
                 'show-as': 'bitset',
             }
         per_channel_params.append(param)
