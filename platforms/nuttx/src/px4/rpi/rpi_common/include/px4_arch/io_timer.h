@@ -148,6 +148,7 @@ __EXPORT uint32_t io_timer_get_group(unsigned timer);
 __EXPORT int io_timer_validate_channel_index(unsigned channel);
 __EXPORT int io_timer_is_channel_free(unsigned channel);
 __EXPORT int io_timer_free_channel(unsigned channel);
+__EXPORT int io_timer_unallocate_channel(unsigned channel);
 __EXPORT int io_timer_get_channel_mode(unsigned channel);
 __EXPORT int io_timer_get_mode_channels(io_timer_channel_mode_t mode);
 __EXPORT extern void io_timer_trigger(void);

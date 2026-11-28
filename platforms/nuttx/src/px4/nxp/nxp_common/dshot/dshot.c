@@ -41,38 +41,9 @@
 #include <nuttx/irq.h>
 #include <string.h>
 
-#include "arm_internal.h"
+#include "../include/flexio.h"
 
 /* FlexIO DShot / bidirectional DShot driver shared by i.MX RT and i.MX9 */
-
-#if defined(CONFIG_ARCH_CHIP_IMXRT)
-#include <imxrt_flexio.h>
-#include <imxrt_periphclks.h>
-
-#if defined(IOMUX_PULL_UP_47K)
-#define IOMUX_PULL_UP IOMUX_PULL_UP_47K
-#endif
-
-#define FLEXIO_BASE			IMXRT_FLEXIO1_BASE
-#define FLEXIO_OFFSET(reg)		IMXRT_FLEXIO_##reg##_OFFSET
-#define FLEXIO_IRQ			IMXRT_IRQ_FLEXIO1
-
-static inline void flexio_clock_enable(void) { imxrt_clockall_flexio1(); }
-static inline void dshot_pin_config(const dshot_conf_t *conf) { imxrt_config_gpio(conf->pinmux | IOMUX_PULL_UP); }
-static inline bool dshot_pin_unused(const dshot_conf_t *conf) { return conf->pinmux == 0; }
-#else /* i.MX9 */
-#include <imx9_flexio.h>
-#include <imx9_clockconfig.h>
-
-#define FLEXIO_BASE			IMX9_FLEXIO1_BASE
-#define FLEXIO_OFFSET(reg)		IMX9_FLEXIO_##reg##_OFFSET
-#define FLEXIO_IRQ			IMX9_IRQ_FLEXIO1
-
-static inline void flexio_clock_enable(void) { imx9_configure_clock(FLEXIO1_CLK_ROOT_SYS_PLL1_DFS1_DIV2_CLK | CLOCK_DIV(3), true); }
-static inline void dshot_pin_config(const dshot_conf_t *conf) { imx9_iomux_configure(conf->pinmux); }
-/* Pad control registers never sit at offset 0, so a zero padregoff marks an unset pinmux */
-static inline bool dshot_pin_unused(const dshot_conf_t *conf) { return conf->pinmux.padcfg.padregoff == 0; }
-#endif
 
 #define DSHOT_TIMERS			FLEXIO_SHIFTBUFNIS_COUNT
 #define DSHOT_THROTTLE_POSITION		5u
@@ -149,23 +120,6 @@ static uint32_t bdshot_ready_mask;
 static hrt_abstime _bdshot_busy_us;
 static bool _edt_enabled = false;
 static bool _dshot_armed = false;
-
-static inline uint32_t flexio_getreg32(uint32_t offset)
-{
-	return getreg32(FLEXIO_BASE + offset);
-}
-
-static inline void flexio_modifyreg32(unsigned int offset,
-				      uint32_t clearbits,
-				      uint32_t setbits)
-{
-	modifyreg32(FLEXIO_BASE + offset, clearbits, setbits);
-}
-
-static inline void flexio_putreg32(uint32_t value, uint32_t offset)
-{
-	putreg32(value, FLEXIO_BASE + offset);
-}
 
 static inline void enable_shifter_status_interrupts(uint32_t mask)
 {
@@ -616,6 +570,19 @@ static void bdshot_process_response(uint32_t channel)
 
 int up_dshot_init(uint32_t channel_mask, uint32_t bdshot_channel_mask, unsigned dshot_pwm_freq, bool edt_enable)
 {
+	/* FlexIO is shared with the ESC pin UART, which owns its pins while a session runs: leave FlexIO
+	 * and its interrupt alone if any requested output belongs to another driver */
+	for (unsigned channel = 0; channel < MAX_TIMER_IO_CHANNELS; channel++) {
+		int mode = io_timer_get_channel_mode(channel);
+
+		if (((channel_mask | bdshot_channel_mask) & (1u << channel)) && mode > IOTimerChanMode_NotUsed
+		    && mode != IOTimerChanMode_Dshot) {
+			PX4_WARN("output %u in use, DShot not started", channel);
+			memset((void *)dshot_inst, 0, sizeof(dshot_inst));
+			return -EBUSY;
+		}
+	}
+
 	/* Clock FlexIO peripheral */
 	flexio_clock_enable();
 
@@ -675,16 +642,23 @@ int up_dshot_init(uint32_t channel_mask, uint32_t bdshot_channel_mask, unsigned 
 		}
 
 		// board does not configure dshot on this pin
-		if (channel >= DSHOT_TIMERS || dshot_pin_unused(&timer_io_channels[channel].dshot)) {
+		if (channel >= DSHOT_TIMERS || flexio_pin_unused(&timer_io_channels[channel].dshot)) {
 			// Cannot capture, so it must never hold up DShot.cpp's all-channels-ready wait
 			bdshot_ready_mask |= bit & bdshot_channel_mask;
 			PX4_WARN("no FlexIO DShot on output %u", channel);
 			continue;
 		}
 
+		// Owned by another output driver; claiming it also keeps the ESC serial passthrough off it
+		if (io_timer_allocate_channel(channel, IOTimerChanMode_Dshot) != 0) {
+			bdshot_ready_mask |= bit & bdshot_channel_mask;
+			PX4_WARN("output %u already in use", channel);
+			continue;
+		}
+
 		volatile dshot_channel_t *ch = &dshot_inst[channel];
 
-		dshot_pin_config(&timer_io_channels[channel].dshot);
+		flexio_pin_config(&timer_io_channels[channel].dshot);
 
 		ch->bdshot = (bdshot_channel_mask & bit) != 0;
 
