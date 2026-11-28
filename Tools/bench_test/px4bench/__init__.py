@@ -58,6 +58,10 @@ DEFAULT_BAUD = 57600
 # open right after a previous session closed, so the budget is generous and
 # open() re-sends its wake write until the shell answers.
 SHELL_OPEN_TIMEOUT = 10.0
+# How long MavlinkShell.run() waits for the second sentinel echo once the first
+# arrived. Both echoes are queued together, so the second one follows within a
+# MAVLink round trip; the wait only bounds a garbled one.
+SENTINEL_GRACE = 1.0
 USB_DEVICE_GLOB_DARWIN = '/dev/tty.usbmodem*'
 USB_DEVICE_GLOB_LINUX = '/dev/serial/by-id/*PX4*'
 
@@ -67,7 +71,8 @@ USB_DEVICE_GLOB_LINUX = '/dev/serial/by-id/*PX4*'
 EXIT_SKIP = 75
 
 # NuttX nsh prints exactly this for an unknown command
-# (apps/nshlib/nsh_parse.c: "nsh: %s: command not found").
+# (apps/nshlib/nsh_parse.c: "nsh: %s: command not found"), and other shells
+# "%s: command not found".
 NSH_NOT_FOUND = 'command not found'
 
 
@@ -323,8 +328,7 @@ class MavlinkShell:
                 self._write('echo {}\n'.format(sentinel))
                 next_wake = time.monotonic() + 1.0
             self._pump()
-            if 'nsh>' in self.buf or re.search(
-                    r'^{}\s*$'.format(re.escape(sentinel)), self.buf, re.MULTILINE):
+            if 'nsh>' in self.buf or self._sentinel_count(sentinel) >= 1:
                 self.buf = ''
                 return True
         return False
@@ -344,16 +348,37 @@ class MavlinkShell:
         # non-zero exit and a failing command reads as a stall. nsh consumes
         # input lines sequentially, so the sentinel line runs after the
         # command finishes regardless of its exit status.
-        # Two echoes like run_nsh_cmd.py, in case the first line is garbled.
+        # Two echoes like run_nsh_cmd.py, in case the first line is garbled,
+        # each on a line of its own, for shells that have no ';' chaining.
         self._write('{}\n'.format(cmd))
-        self._write('echo {0}; echo {0}\n'.format(sentinel))
+        self._write('echo {0}\necho {0}\n'.format(sentinel))
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
             self._pump()
-            # sentinel on its own line (not the command echo containing "echo <sentinel>")
-            if re.search(r'^{}\s*$'.format(re.escape(sentinel)), self.buf, re.MULTILINE):
+            # sentinel on its own line after the prompt (not the command echo containing
+            # "echo <sentinel>")
+            if self._sentinel_count(sentinel) >= 1:
+                # Briefly wait for the second echo too: with a shell that
+                # echoes a line when it runs it, not when it receives it, the
+                # echo and the output of the second sentinel line would
+                # otherwise arrive in the middle of the next command's output,
+                # cut at any character.
+                grace = min(deadline, time.monotonic() + SENTINEL_GRACE)
+                while self._sentinel_count(sentinel) < 2 and time.monotonic() < grace:
+                    self._pump()
                 return self._strip(cmd, sentinel), False
         return self._strip(cmd, sentinel), True
+
+    @staticmethod
+    def _bare(line):
+        """A line without ANSI sequences, the nsh> or px4> prompt, which nsh
+        prints before the output of each line, and blanks."""
+        bare = re.sub(r'\x1b\[[0-9;]*[A-Za-z]', '', line)
+        return bare.replace('nsh>', '').replace('px4>', '').strip()
+
+    def _sentinel_count(self, sentinel):
+        """Number of outputs of 'echo <sentinel>' received."""
+        return sum(1 for line in self.buf.splitlines() if self._bare(line) == sentinel)
 
     def _strip(self, cmd, sentinel):
         """Remove command echo and sentinel lines from captured output.
@@ -374,9 +399,9 @@ class MavlinkShell:
             if cmd in line and 'echo' in line:
                 continue
             # the terminal echo of the command itself (possibly prefixed by
-            # the prompt and ANSI erase sequences) is not command output
-            bare = re.sub(r'\x1b\[[0-9;]*[A-Za-z]', '', line).replace('nsh>', '').strip()
-            if bare == cmd:
+            # the nsh> or px4> prompt, and ANSI erase
+            # sequences) is not command output
+            if self._bare(line) == cmd:
                 continue
             lines.append(line)
         return '\n'.join(lines).strip()
