@@ -428,6 +428,7 @@ private:
 		(ParamInt<px4::params::SIH_VEHICLE_TYPE>) _param_sih_vehicle_type,
 		(ParamFloat<px4::params::SIH_WIND_N>) _param_sih_wind_n,
 		(ParamFloat<px4::params::SIH_WIND_E>) _param_sih_wind_e,
-		(ParamFloat<px4::params::SIH_RNGBC_NOISE>) _param_sih_rngbc_noise
+		(ParamFloat<px4::params::SIH_RNGBC_NOISE>) _param_sih_rngbc_noise,
+		(ParamInt<px4::params::SIH_IMU_VIB_EN>) _param_sih_imu_vib_en
 	)
 };

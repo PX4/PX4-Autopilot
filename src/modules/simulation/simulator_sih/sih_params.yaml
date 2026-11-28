@@ -359,6 +359,21 @@ parameters:
       type: float
       default: 0.0
       unit: m/s
+    SIH_IMU_VIB_EN:
+      description:
+        short: Enable the in-flight IMU noise
+        long: |-
+          While the vehicle produces thrust, the simulated accelerometer and gyroscope use
+          higher noise levels (standard deviations of 0.5, 1.7, 1.4 m/s^2 and
+          0.14, 0.07, 0.03 rad/s on the body x, y, z axes).
+          When disabled, the on-ground levels (0.1 m/s^2 and 0.01 rad/s) are used at all times.
+          Disabled by default: the in-flight levels are too much for the low update rate
+          the integration tests run at.
+      type: enum
+      values:
+        0: Disabled
+        1: Enabled
+      default: 0
     SIH_RNGBC_NOISE:
       description:
         short: Ranging beacon measurement noise standard deviation

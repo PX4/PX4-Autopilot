@@ -1030,7 +1030,7 @@ void Sih::reconstruct_sensors_signals(const hrt_abstime &time_now_us)
 	Vector3f accel_noise;
 	Vector3f gyro_noise;
 
-	if (false && _T_B.longerThan(FLT_EPSILON)) { // too much noise at least for the low update rate O.O
+	if (_param_sih_imu_vib_en.get() && _T_B.longerThan(FLT_EPSILON)) {
 		accel_noise = math::noiseGauss3f(0.5f, 1.7f, 1.4f);
 		gyro_noise = math::noiseGauss3f(0.14f, 0.07f, 0.03f);
 
