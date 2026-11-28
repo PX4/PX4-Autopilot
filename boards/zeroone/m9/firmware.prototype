@@ -1,0 +1,13 @@
+{
+    "board_id": 5610,
+    "magic": "PX4FWv1",
+    "description": "Firmware for the ZeroOneM9 board",
+    "image": "",
+    "build_time": 0,
+    "summary": "ZeroOneM9",
+    "version": "0.1",
+    "image_size": 0,
+    "image_maxsize": 1966080,
+    "git_identity": "",
+    "board_revision": 0
+}
