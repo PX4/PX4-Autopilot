@@ -120,16 +120,6 @@ static inline SensorSource operator &(A lhs, B rhs)
 	       );
 }
 
-#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
-enum class TargetAbsoluteSensorCapability : uint8_t {
-	kPosition = (1 << 0),
-	kVelocity = (1 << 1),
-	kAcceleration = (1 << 2),
-	kAttitude = (1 << 3),
-	kRates = (1 << 4),
-};
-#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
-
 class SimulatorMavlink : public ModuleParams
 {
 public:
