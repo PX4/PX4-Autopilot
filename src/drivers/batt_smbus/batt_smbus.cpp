@@ -107,7 +107,10 @@ void BATT_SMBUS::RunImpl()
 
 	new_report.connected = true;
 
-	ret |= _interface->read_word(BATT_SMBUS_VOLTAGE, result);
+	// read_word() only writes result when the transfer succeeds.
+	if (_interface->read_word(BATT_SMBUS_VOLTAGE, result) != PX4_OK) {
+		return;
+	}
 
 	ret |= get_cell_voltages();
 
@@ -119,12 +122,18 @@ void BATT_SMBUS::RunImpl()
 	new_report.voltage_v = ((float)result) / 1000.0f;
 
 	// Read current.
-	ret |= _interface->read_word(BATT_SMBUS_CURRENT, result);
+	// read_word() only writes result when the transfer succeeds.
+	if (_interface->read_word(BATT_SMBUS_CURRENT, result) != PX4_OK) {
+		return;
+	}
 
 	new_report.current_a = (-1.0f * ((float)(*(int16_t *)&result)) / 1000.0f) * _c_mult;
 
 	// Read average current.
-	ret |= _interface->read_word(BATT_SMBUS_AVERAGE_CURRENT, result);
+	// read_word() only writes result when the transfer succeeds.
+	if (_interface->read_word(BATT_SMBUS_AVERAGE_CURRENT, result) != PX4_OK) {
+		return;
+	}
 
 	float average_current = (-1.0f * ((float)(*(int16_t *)&result)) / 1000.0f) * _c_mult;
 
@@ -135,31 +144,49 @@ void BATT_SMBUS::RunImpl()
 	set_undervoltage_protection(average_current);
 
 	// Read run time to empty (minutes).
-	ret |= _interface->read_word(BATT_SMBUS_RUN_TIME_TO_EMPTY, result);
+	// read_word() only writes result when the transfer succeeds.
+	if (_interface->read_word(BATT_SMBUS_RUN_TIME_TO_EMPTY, result) != PX4_OK) {
+		return;
+	}
 	new_report.time_remaining_s = result * 60;
 
 	// Read average time to empty (minutes).
-	ret |= _interface->read_word(BATT_SMBUS_AVERAGE_TIME_TO_EMPTY, result);
+	// read_word() only writes result when the transfer succeeds.
+	if (_interface->read_word(BATT_SMBUS_AVERAGE_TIME_TO_EMPTY, result) != PX4_OK) {
+		return;
+	}
 	new_report.average_time_to_empty = result;
 
 	// Read remaining capacity.
-	ret |= _interface->read_word(BATT_SMBUS_REMAINING_CAPACITY, result);
+	// read_word() only writes result when the transfer succeeds.
+	if (_interface->read_word(BATT_SMBUS_REMAINING_CAPACITY, result) != PX4_OK) {
+		return;
+	}
 
 	// Calculate total discharged amount in mah.
 	new_report.discharged_mah = _batt_startup_capacity - (float)result * _c_mult;
 
 	// Read Relative SOC.
-	ret |= _interface->read_word(BATT_SMBUS_RELATIVE_SOC, result);
+	// read_word() only writes result when the transfer succeeds.
+	if (_interface->read_word(BATT_SMBUS_RELATIVE_SOC, result) != PX4_OK) {
+		return;
+	}
 
 	// Normalize 0.0 to 1.0
 	new_report.remaining = (float)result / 100.0f;
 
 	// Read Max Error
-	ret |= _interface->read_word(BATT_SMBUS_MAX_ERROR, result);
+	// read_word() only writes result when the transfer succeeds.
+	if (_interface->read_word(BATT_SMBUS_MAX_ERROR, result) != PX4_OK) {
+		return;
+	}
 	new_report.max_error = result;
 
 	// Read battery temperature and covert to Celsius.
-	ret |= _interface->read_word(BATT_SMBUS_TEMP, result);
+	// read_word() only writes result when the transfer succeeds.
+	if (_interface->read_word(BATT_SMBUS_TEMP, result) != PX4_OK) {
+		return;
+	}
 	new_report.temperature = ((float)result / 10.0f) + atmosphere::kAbsoluteNullCelsius;
 
 	// Only publish if no errors.

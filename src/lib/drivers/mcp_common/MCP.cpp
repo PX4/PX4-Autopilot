@@ -78,8 +78,14 @@ int MCP230XX::read(uint16_t *mask)
 		uint8_t gpio_addr;
 		uint8_t data;
 
-		ret |= get_gpio(i, &gpio_addr);
-		ret |= read_reg(gpio_addr, data);
+		int bank_ret = get_gpio(i, &gpio_addr);
+		bank_ret |= read_reg(gpio_addr, data);
+		ret |= bank_ret;
+
+		// read_reg() only writes data when the transfer succeeds.
+		if (bank_ret != PX4_OK) {
+			continue;
+		}
 
 		*mask |= (((uint16_t) data) << (8 * i));
 	}
