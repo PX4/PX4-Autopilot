@@ -85,6 +85,7 @@ private:
 	bool isFrontTransitionCompleted() override;
 	bool isBackTransitionCompleted() override;
 	void onTransitionStart() override { _flag_was_in_trans_mode = false; }
+	float frontTransitionPitch() const override;
 	void onQuadchute() override;
 	bool isPitchExceeded() override;
 	bool isRollExceeded() override;

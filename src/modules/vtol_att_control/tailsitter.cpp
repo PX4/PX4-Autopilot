@@ -106,6 +106,16 @@ bool Tailsitter::isBackTransitionCompleted()
 	return pitch >= PITCH_THRESHOLD_AUTO_TRANSITION_TO_MC || _time_since_trans_start > _param_vt_b_trans_dur.get();
 }
 
+float Tailsitter::frontTransitionPitch() const
+{
+	if (can_transition_on_ground() || !_v_control_mode->flag_control_altitude_enabled || !_flag_was_in_trans_mode) {
+		return NAN;
+	}
+
+	// The transition setpoint is in the multicopter frame.
+	return Eulerf(_q_trans_sp * _q_fw_to_mc).theta();
+}
+
 void Tailsitter::onQuadchute()
 {
 	if (_common_vtol_mode != mode::ROTARY_WING) {
@@ -208,14 +218,17 @@ void Tailsitter::update_transition_state()
 
 void Tailsitter::waiting_on_tecs()
 {
-	// copy the last trust value from the front transition
+	// Hold thrust while waiting for the fixed-wing setpoint.
 	_v_att_sp->thrust_body[0] = -_last_thr_in_mc;
 }
 
 void Tailsitter::update_fw_state()
 {
-	VtolType::update_fw_state();
+	if (!_v_control_mode->flag_control_altitude_enabled) {
+		clearFrontTransitionPitch();
+	}
 
+	VtolType::update_fw_state();
 }
 
 /**

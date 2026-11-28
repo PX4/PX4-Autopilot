@@ -132,6 +132,7 @@ void VtolType::update_fw_state()
 	    && _v_control_mode->flag_control_altitude_enabled) {
 
 		waiting_on_tecs();
+		blendPitchAfterFrontTransition(0.f);
 		_throttle_blend_start_ts = hrt_absolute_time();
 
 	} else if (shouldBlendThrottleAfterFrontTransition()) {
@@ -152,12 +153,24 @@ void VtolType::update_fw_state()
 	check_quadchute_condition();
 }
 
+void VtolType::blendPitchAfterFrontTransition(float scale)
+{
+	if (!PX4_ISFINITE(_front_transition_pitch)) {
+		return;
+	}
+
+	Eulerf attitude_sp{Quatf(_v_att_sp->q_d)};
+	attitude_sp.theta() = math::lerp(_front_transition_pitch, attitude_sp.theta(), scale);
+	Quatf(attitude_sp).copyTo(_v_att_sp->q_d);
+}
+
 void VtolType::update_vtol_state()
 {
 	checkTypeSpecificQuadchute();
 
 	if (_attc->is_quadchute_active()) {
 		// Failsafe event, engage mc motors immediately
+		clearFrontTransitionPitch();
 		onQuadchute();
 		_common_vtol_mode = mode::ROTARY_WING;
 
@@ -178,7 +191,7 @@ void VtolType::update_vtol_state()
 			if (isFrontTransitionCompleted()) {
 				_common_vtol_mode = mode::FIXED_WING;
 				_trans_finished_ts = hrt_absolute_time();
-				onFrontTransitionCompleted();
+				_front_transition_pitch = frontTransitionPitch();
 			}
 
 			break;
@@ -285,13 +298,14 @@ bool VtolType::isFrontTransitionSpeedOrTimeReached() const
 
 }
 
-bool VtolType::can_transition_on_ground()
+bool VtolType::can_transition_on_ground() const
 {
 	return !_v_control_mode->flag_armed || _land_detected->landed;
 }
 
 void VtolType::resetTransitionStates()
 {
+	clearFrontTransitionPitch();
 	_transition_start_timestamp = hrt_absolute_time();
 	_time_since_trans_start = 0.f;
 	_local_position_z_start_of_transition = _local_pos->z;
