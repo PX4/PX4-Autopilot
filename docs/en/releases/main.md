@@ -105,6 +105,11 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
   `geofence_max_dist_triggered`, `geofence_max_alt_triggered`, `geofence_custom_fence_triggered` and `geofence_action` of [GeofenceResult](../msg_docs/GeofenceResult.md) are now `geofence_emer_max_dist_triggered`, `geofence_emer_max_alt_triggered`, `geofence_emer_custom_fence_triggered` and `geofence_emer_action`.
   They name the emergency geofence, next to the new `geofence_cont_*` fields of the contingency geofence.
   Log analysis that reads the old names must use the new ones.
+- **Precision landing search altitude is now relative to the ground.**
+  [PLD_SRCH_ALT](../advanced_config/parameter_reference.md#PLD_SRCH_ALT) was a height above home; it is now a height above the ground estimate (landing target, distance sensor, landing waypoint, then home).
+  [PLD_FAPPR_ALT](../advanced_config/parameter_reference.md#PLD_FAPPR_ALT) uses the same estimate.
+  Re-check `PLD_SRCH_ALT` if you land at a different altitude from home.
+  See [Precision Landing](../advanced_features/precland.md#ground-altitude).
 
 ## Other changes
 
@@ -219,6 +224,12 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - The neural network controller (`mc_nn_control`) now maps its actions to motor commands over the real motor range, so action -1 idles a motor instead of stopping it and the top of the range no longer runs past full scale. The two RPM limits and the thrust coefficient (`MC_NN_MIN_RPM`, `MC_NN_MAX_RPM`, `MC_NN_THRST_COEF`) are now checked against each other, and the module has its first unit tests. ([PX4-Autopilot#28433](https://github.com/PX4/PX4-Autopilot/pull/28433))
 - The neural network controller (`mc_nn_control`) now rejects at load a model whose input or output shape does not match what the controller expects, checks the position, attitude and angular velocity observations each cycle for validity, age and finiteness, and reports a fault on a bad observation or a non-finite output instead of stopping one motor. ([PX4-Autopilot#28504](https://github.com/PX4/PX4-Autopilot/pull/28504))
 - The multicopter position controller now moves its stored fallback setpoint along with the current setpoint when the estimator resets its position, velocity or heading, so when the setpoint is unusable at the moment of a reset the controller no longer flies a fallback setpoint that is offset by the amount of the reset. ([PX4-Autopilot#28810](https://github.com/PX4/PX4-Autopilot/pull/28810))
+- [Precision landing](../advanced_features/precland.md) has been reworked.
+  The vehicle now descends normally until the search altitude and only climbs back if the target is not visible there, instead of climbing to the search altitude first.
+  Opportunistic precision landings no longer give up when the target is not visible at the start; they use it if it becomes visible during the descent.
+  A lost target leads to a new search instead of a return to the start point, and the fallback landing is at the last known target position or the landing waypoint instead of the current position.
+  During that fallback landing the vehicle still moves towards the target if it becomes visible again, until it is below `PLD_FAPPR_ALT`.
+- Precision landing can stop descending and return to the horizontal approach when the vehicle drifts away from the target, set with the new [PLD_DRIFT_RAD](../advanced_config/parameter_reference.md#PLD_DRIFT_RAD) (disabled by default).
 - [Follow Me](../flight_modes_mc/follow_me.md) no longer treats an [EKF2 instance switch](../advanced_config/tuning_the_ecl_ekf.md#running-multiple-ekf-instances) or a change of the local origin as a jump of the target while the mode is active. The vehicle holds its position until the next target position message and keeps its altitude instead of climbing or descending by the change in reference altitude. ([PX4-Autopilot#29029](https://github.com/PX4/PX4-Autopilot/pull/29029))
 
 ### VTOL
