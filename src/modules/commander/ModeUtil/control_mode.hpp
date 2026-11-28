@@ -44,6 +44,7 @@ namespace mode_util
 
 void getVehicleControlMode(uint8_t nav_state, uint8_t vehicle_type,
 			   const offboard_control_mode_s &offboard_control_mode,
-			   vehicle_control_mode_s &vehicle_control_mode, SetpointType external_mode_setpoint_type);
+			   vehicle_control_mode_s &vehicle_control_mode, SetpointType external_mode_setpoint_type,
+			   bool in_transition_mode = false);
 
 } // namespace mode_util
