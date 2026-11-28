@@ -1,0 +1,155 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1060" viewBox="0 0 1200 1060" role="img" aria-labelledby="title desc">
+  <title id="title">MicoAir743v3 hardware block diagram</title>
+  <desc id="desc">Functional view of the MicoAir743v3. Battery input feeds onboard regulation, board logic, a 4.6 volt peripheral output and a switchable 9 volt video output. PE15 low enables the 9 volt output. The STM32H743 connects to BMI088 over SPI2, ICM45686 over SPI3, SPA06 and IST8310 over internal I2C2, AT7456E over SPI1, and the microSD card over SDMMC2. External connections include I2C1, UARTs, CAN1, USB, SWD and ten motor or servo outputs. UART8 connects to onboard Bluetooth. Internal regulator topology, USB power routing and power sequencing are not shown.</desc>
+  <!--
+    Sources: boards/micoair/h743-v3/{src,nuttx-config/include,init}
+    https://micoair.com/en/docs/flight-controller/micoair743/micoair743v3-flight-controller
+    Functional connections only; this is not an electrical schematic.
+  -->
+  <defs>
+    <style>
+      text { font-family: Arial, Helvetica, sans-serif; fill: #243442; }
+      .heading { font-size: 30px; font-weight: 700; }
+      .section { font-size: 18px; font-weight: 700; letter-spacing: 1px; }
+      .name { font-size: 22px; font-weight: 700; }
+      .detail { font-size: 18px; }
+      .small { font-size: 16px; }
+      .muted { fill: #526471; }
+      .box { fill: #f7fafc; stroke: #768c9d; stroke-width: 1.5; }
+      .mcu { fill: #eaf2f8; stroke: #355c79; stroke-width: 2; }
+      .power-box { fill: #fff8ed; stroke: #a36b1a; stroke-width: 1.5; }
+      .signal { fill: none; stroke: #355c79; stroke-width: 2; }
+      .power { fill: none; stroke: #a36b1a; stroke-width: 2; marker-end: url(#power-arrow); }
+      .bus { font-size: 17px; font-weight: 700; fill: #355c79; text-anchor: middle; }
+    </style>
+    <marker id="power-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#a36b1a"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="1060" fill="#ffffff"/>
+  <text x="36" y="48" class="heading">MicoAir743v3</text>
+  <text x="36" y="77" class="detail muted">Main components, power outputs and hardware interfaces</text>
+
+  <!-- Power is a functional view: no regulator stages or sequencing are inferred. -->
+  <text x="36" y="112" class="section">POWER</text>
+  <path d="M 196 192 H 246" class="power"/>
+  <path d="M 476 192 H 512 V 153 H 550" class="power"/>
+  <path d="M 476 192 H 512 V 266 H 550" class="power"/>
+  <path d="M 820 153 H 904" class="power"/>
+  <path d="M 820 266 H 904" class="power"/>
+  <path d="M 360 236 V 326 H 600 V 390" class="power"/>
+
+  <rect x="36" y="148" width="160" height="88" rx="8" class="power-box"/>
+  <text x="116" y="184" text-anchor="middle" class="name">VBAT</text>
+  <text x="116" y="214" text-anchor="middle" class="detail">6–27 V · 2–6S</text>
+
+  <rect x="246" y="148" width="230" height="88" rx="8" class="power-box"/>
+  <text x="361" y="199" text-anchor="middle" class="name">Onboard regulation</text>
+
+  <rect x="550" y="112" width="270" height="82" rx="8" class="power-box"/>
+  <text x="685" y="147" text-anchor="middle" class="name">4.6 V output</text>
+  <text x="685" y="176" text-anchor="middle" class="detail">Up to 2 A</text>
+
+  <rect x="904" y="112" width="260" height="82" rx="8" class="power-box"/>
+  <text x="1034" y="145" text-anchor="middle" class="name">Peripheral connectors</text>
+  <text x="1034" y="174" text-anchor="middle" class="detail">Receiver, GPS, I²C, telemetry</text>
+
+  <rect x="550" y="225" width="270" height="82" rx="8" class="power-box"/>
+  <text x="685" y="256" text-anchor="middle" class="name">Switched 9 V · up to 2 A</text>
+  <text x="685" y="285" text-anchor="middle" class="small">PE15: LOW = ON / HIGH = OFF</text>
+
+  <rect x="904" y="225" width="260" height="82" rx="8" class="power-box"/>
+  <text x="1034" y="257" text-anchor="middle" class="name">Shared video supply</text>
+  <text x="1034" y="286" text-anchor="middle" class="detail">Analog VTX, DJI VTX, camera</text>
+  <text x="382" y="316" class="small" fill="#a36b1a">Board logic supply</text>
+
+  <text x="36" y="370" class="section">SIGNAL AND CONTROL CONNECTIONS</text>
+
+  <!-- Plain lines denote bus connectivity, not data direction or start-up order. -->
+  <g class="signal">
+    <path d="M 336 436 H 493 M 707 436 H 864"/>
+    <path d="M 336 546 H 493 M 707 546 H 864"/>
+    <path d="M 336 656 H 493 M 707 656 H 864"/>
+    <path d="M 336 766 H 493 M 707 766 H 864"/>
+    <path d="M 336 876 H 493 M 707 876 H 864"/>
+    <path d="M 336 986 H 493 M 707 986 H 864"/>
+  </g>
+
+  <rect x="493" y="390" width="214" height="642" rx="12" class="mcu"/>
+  <text x="600" y="618" text-anchor="middle" class="name">STM32H743VIT6</text>
+  <text x="600" y="652" text-anchor="middle" class="detail">Flight controller</text>
+  <text x="600" y="697" text-anchor="middle" class="detail">480 MHz</text>
+  <text x="600" y="728" text-anchor="middle" class="detail">2 MB flash</text>
+  <path d="M 530 758 H 670" stroke="#a9bfce" stroke-width="1"/>
+  <text x="600" y="793" text-anchor="middle" class="detail">1 MB RAM</text>
+
+  <!-- Onboard components and host/debug connections. -->
+  <rect x="36" y="390" width="300" height="92" rx="8" class="box"/>
+  <text x="56" y="424" class="name">BMI088 IMU</text>
+  <text x="56" y="452" class="detail">Accel CS: PD4 · Gyro CS: PD5</text>
+  <text x="414" y="424" class="bus">SPI2</text>
+
+  <rect x="36" y="500" width="300" height="92" rx="8" class="box"/>
+  <text x="56" y="534" class="name">ICM45686 IMU</text>
+  <text x="56" y="562" class="detail">CS: PA15</text>
+  <text x="414" y="534" class="bus">SPI3</text>
+
+  <rect x="36" y="610" width="300" height="92" rx="8" class="box"/>
+  <text x="56" y="642" class="name">SPA06 + IST8310</text>
+  <text x="56" y="670" class="detail">Barometer + magnetometer</text>
+  <text x="56" y="692" class="small muted">Addresses: 0x77 / 0x0E</text>
+  <text x="414" y="644" class="bus">I²C2</text>
+  <text x="414" y="682" text-anchor="middle" class="small muted">Internal</text>
+
+  <rect x="36" y="720" width="300" height="92" rx="8" class="box"/>
+  <text x="56" y="754" class="name">AT7456E analog OSD</text>
+  <text x="56" y="782" class="detail">Camera video → OSD → VTX</text>
+  <text x="414" y="754" class="bus">SPI1</text>
+  <text x="414" y="792" text-anchor="middle" class="small muted">CS: PB12</text>
+
+  <rect x="36" y="830" width="300" height="92" rx="8" class="box"/>
+  <text x="56" y="862" class="name">Battery monitoring</text>
+  <text x="56" y="890" class="detail">Onboard voltage sense: PC0</text>
+  <text x="56" y="912" class="small muted">ESC current-sensor signal: PC1</text>
+  <text x="414" y="864" class="bus">ADC1</text>
+
+  <rect x="36" y="940" width="300" height="92" rx="8" class="box"/>
+  <text x="56" y="974" class="name">USB Type-C / SWD</text>
+  <text x="56" y="1002" class="detail">Host connection / debug pads</text>
+  <text x="414" y="974" class="bus">USB FS / SWD</text>
+
+  <!-- External buses, storage and onboard wireless link. -->
+  <rect x="864" y="390" width="300" height="92" rx="8" class="box"/>
+  <text x="884" y="424" class="name">External I²C devices</text>
+  <text x="884" y="452" class="detail">GPS and I²C1 connectors</text>
+  <text x="786" y="424" class="bus">I²C1</text>
+  <text x="786" y="462" text-anchor="middle" class="small muted">PB6 / PB7</text>
+
+  <rect x="864" y="500" width="300" height="92" rx="8" class="box"/>
+  <text x="884" y="534" class="name">microSD card</text>
+  <text x="884" y="562" class="detail">PX4 parameters and flight logs</text>
+  <text x="786" y="534" class="bus">SDMMC2</text>
+
+  <rect x="864" y="610" width="300" height="92" rx="8" class="box"/>
+  <text x="884" y="644" class="name">Onboard Bluetooth</text>
+  <text x="884" y="672" class="detail">SPP / BLE</text>
+  <text x="786" y="644" class="bus">UART8</text>
+
+  <rect x="864" y="720" width="300" height="92" rx="8" class="box"/>
+  <text x="884" y="752" class="name">External serial ports</text>
+  <text x="884" y="780" class="detail">UART1, 2, 3, 4, 6</text>
+  <text x="884" y="802" class="small muted">UART7: RX only (ESC telemetry)</text>
+  <text x="786" y="754" class="bus">UARTs</text>
+
+  <rect x="864" y="830" width="300" height="92" rx="8" class="box"/>
+  <text x="884" y="864" class="name">CAN interface</text>
+  <text x="884" y="892" class="detail">CANH / CANL connector</text>
+  <text x="786" y="864" class="bus">CAN1</text>
+
+  <rect x="864" y="940" width="300" height="92" rx="8" class="box"/>
+  <text x="884" y="974" class="name">Motor / servo outputs</text>
+  <text x="884" y="1002" class="detail">M1–M10</text>
+  <text x="786" y="974" class="bus">Timers</text>
+
+</svg>
