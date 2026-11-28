@@ -108,13 +108,8 @@ public:
 	void set_command_timeout(const float timeout) { _command_timeout = timeout; }
 
 	/**
-	 * Copies position from setpoint if valid, otherwise copies current position
-	 */
-	void copy_position_if_valid(struct mission_item_s *const mission_item,
-				    const struct position_setpoint_s *const setpoint) const;
-
-	/**
-	 * Create mission item to align towards next waypoint
+	 * Create a mission item that turns towards the next waypoint while flying to it.
+	 * It is reached once the heading is.
 	 */
 	void set_align_mission_item(struct mission_item_s *const mission_item,
 				    const struct mission_item_s *const mission_item_next) const;

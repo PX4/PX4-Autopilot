@@ -251,6 +251,17 @@ TEST_F(MissionBlockYawTest, VtolAwaitsForcedHeading)
 	EXPECT_FALSE(_block.reached());
 }
 
+TEST_F(MissionBlockYawTest, HeadingOnlyItemDoesNotWaitForItsPosition)
+{
+	// e.g. the alignment before a VTOL front transition, flown on the way to the next waypoint
+	_block.item().heading_only = true;
+	setVehicleOnWaypoint(false);
+	EXPECT_FALSE(_block.reached()); // the heading is still awaited
+
+	_navigator.get_local_position()->heading = kItemYaw;
+	EXPECT_TRUE(_block.reached());
+}
+
 TEST_F(MissionBlockYawTest, VtolStopsAwaitingForcedHeadingInFrontTransition)
 {
 	// e.g. a front transition from RC during the alignment for it: the vehicle no longer turns to the heading

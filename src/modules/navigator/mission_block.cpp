@@ -389,6 +389,10 @@ MissionBlock::is_mission_item_reached_or_completed()
 			}
 		}
 
+		if (_mission_item.heading_only) {
+			_waypoint_position_reached = true;
+		}
+
 		if (_waypoint_position_reached) {
 			// reached just now
 			_time_wp_reached = now;
@@ -952,30 +956,17 @@ MissionBlock::get_absolute_altitude_for_item(const mission_item_s &mission_item,
 }
 
 void
-MissionBlock::copy_position_if_valid(struct mission_item_s *const mission_item,
-				     const struct position_setpoint_s *const setpoint) const
-{
-	if (setpoint->valid && setpoint->type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
-		mission_item->lat = setpoint->lat;
-		mission_item->lon = setpoint->lon;
-		mission_item->altitude = setpoint->alt;
-
-	} else {
-		mission_item->lat = _navigator->get_global_position()->lat;
-		mission_item->lon = _navigator->get_global_position()->lon;
-		mission_item->altitude = _navigator->get_global_position()->alt;
-	}
-
-	mission_item->altitude_is_relative = false;
-}
-
-void
 MissionBlock::set_align_mission_item(struct mission_item_s *const mission_item,
 				     const struct mission_item_s *const mission_item_next) const
 {
 	mission_item->nav_cmd = NAV_CMD_WAYPOINT;
-	copy_position_if_valid(mission_item, &(_navigator->get_position_setpoint_triplet()->current));
+	// Keep flying towards the next waypoint while turning to it, so the vehicle does not stop. Never descend.
+	mission_item->lat = mission_item_next->lat;
+	mission_item->lon = mission_item_next->lon;
+	mission_item->altitude = math::max(_navigator->get_global_position()->alt,
+					   get_absolute_altitude_for_item(*mission_item_next));
 	mission_item->altitude_is_relative = false;
+	mission_item->heading_only = true;
 	mission_item->autocontinue = true;
 	mission_item->time_inside = 0.0f;
 	mission_item->yaw = get_bearing_to_next_waypoint(

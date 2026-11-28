@@ -30,6 +30,15 @@ In fixed-wing mode there are the following exceptions:
 - [MAV_CMD_NAV_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LAND) is transformed into [MAV_CMD_NAV_VTOL_LAND](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_VTOL_LAND) unless [NAV_FORCE_VT](../advanced_config/parameter_reference.md#NAV_FORCE_VT) is set to `0` (disabled).
 - [MAV_CMD_NAV_TAKEOFF](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_TAKEOFF) is not supported.
 
+## Mission Transitions
+
+Before a [MAV_CMD_DO_VTOL_TRANSITION](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_VTOL_TRANSITION) item that transitions to fixed-wing mode, a vehicle in multicopter mode turns towards the next waypoint.
+It keeps flying towards that waypoint while it turns, climbing to the waypoint's altitude if that is higher, but never descending.
+The transition starts where the vehicle is, once its heading is within [MIS_YAW_ERR](../advanced_config/parameter_reference.md#MIS_YAW_ERR) of the bearing to the waypoint.
+If the heading is not reached within the [waypoint heading timeout](#waypoint-heading-timeout), the mission fails; until then the vehicle keeps flying towards the waypoint.
+With [MPC_YAW_MODE](../advanced_config/parameter_reference.md#MPC_YAW_MODE) set to `towards waypoint (yaw first)` the vehicle still turns before it moves on.
+<Badge type="tip" text="main (PX4 v2.0)" />
+
 ## Mission Command Timeouts
 
 Some mission commands/items can take time to complete, such as a gripper opening and closing, a winch extending or retracting, or a gimbal moving to point at a region of interest.
@@ -42,7 +51,7 @@ This should be set to be a small amount greater than the time required for the l
 
 ## Waypoint Heading Timeout
 
-In multicopter mode, a VTOL vehicle only waits at a waypoint for headings that the mission requires, such as the alignment towards the next waypoint before a forward transition.
+In multicopter mode, a VTOL vehicle only waits for headings that the mission requires, such as the alignment towards the next waypoint before a forward transition.
 Other headings set by mission items are not awaited.
 
 If a required heading is not reached within [MIS_YAW_TMT](../advanced_config/parameter_reference.md#MIS_YAW_TMT) (default: 10 s) after it was commanded, the mission fails and the vehicle switches to [Return mode](../flight_modes_vtol/return.md).

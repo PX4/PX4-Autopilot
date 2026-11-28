@@ -326,9 +326,11 @@ void Mission::setActiveMissionItems()
 		handleVtolTransition(new_work_item_type, next_mission_items, num_found_items);
 	}
 
-	// Only set the previous position item if the current one really changed
+	// Only set the previous position item if the current one really changed.
+	// A VTOL transition command keeps the setpoints of its handler.
 	if ((_work_item_type != WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND) &&
 	    (_work_item_type != WorkItemType::WORK_ITEM_TYPE_ALIGN_TO_LAND) &&
+	    (_mission_item.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION) &&
 	    !position_setpoint_equal(&pos_sp_triplet->current, &current_setpoint_copy)) {
 		pos_sp_triplet->previous = current_setpoint_copy;
 	}
@@ -479,7 +481,7 @@ void Mission::handleVtolTransition(WorkItemType &new_work_item_type, mission_ite
 			} else {
 				set_align_mission_item(&_mission_item, &next_mission_items[0u]);
 
-				/* hold position and align heading towards the next waypoint */
+				/* align heading towards the next waypoint on the way to it */
 				mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 			}
 		}
@@ -496,10 +498,14 @@ void Mission::handleVtolTransition(WorkItemType &new_work_item_type, mission_ite
 			_mission_item.yaw = NAN;
 
 		} else {
+			// The vehicle kept flying while it turned: the transition starts where it is now.
+			pos_sp_triplet->current.lat = _global_pos_sub.get().lat;
+			pos_sp_triplet->current.lon = _global_pos_sub.get().lon;
+			pos_sp_triplet->current.alt = _global_pos_sub.get().alt;
 			pos_sp_triplet->previous = pos_sp_triplet->current;
 		}
 
-		// keep current setpoints (FW position controller generates wp to track during transition)
+		// the FW position controller generates the wp to track during transition from the current setpoint
 		pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 	}
 }
