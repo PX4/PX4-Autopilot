@@ -34,29 +34,19 @@
 ############################################################################
 
 import argparse
-import builtins
 import pathlib
 import sys
 
-from rosidl_adapter.msg import convert_msg_to_idl
 from rosidl_adapter.parser import parse_message_string
 from rosidl_adapter.resource import expand_template
 
 
-def write_idlc_idl(package_dir, package_name, input_file, output_dir):
-    """Write the IDL that CycloneDDS idlc compiles.
-
-    uORB field names such as 'sequence' or 'string' are IDL keywords, which
-    idlc rejects. A leading underscore escapes an IDL identifier and idlc strips
-    it again, so the generated C names stay unchanged. Escaping every name means
-    no keyword list has to track idlc. rosidl_parser rejects escaped names, so
-    the RIHS01 hash keeps using the plain IDL from convert_msg_to_idl.
-    """
+def write_idl(package_dir, package_name, input_file, output_dir, adapt):
+    """Convert a .msg file to IDL, after adapt() has changed the parsed message."""
     content = (package_dir / input_file).read_text(encoding='utf-8')
     msg = parse_message_string(package_name, input_file.stem, content)
 
-    for member in msg.fields + msg.constants:
-        member.name = f'_{member.name}'
+    adapt(msg)
 
     data = {
         'pkg_name': package_name,
@@ -65,6 +55,30 @@ def write_idlc_idl(package_dir, package_name, input_file, output_dir):
     }
     expand_template('msg.idl.em', data, output_dir / input_file.with_suffix('.idl').name,
                     encoding='iso-8859-1')
+
+
+def drop_comments(msg):
+    """Adapt a message for the IDL that idl2rihs01.py hashes.
+
+    A type hash covers the type name and the names and types of its fields.
+    rosidl_parser takes time in proportion to the size of the IDL, and the
+    comment text is most of it, so it is left out. Units and constants stay.
+    """
+    for item in [msg] + msg.fields + msg.constants:
+        item.annotations.pop('comment', None)
+
+
+def escape_names(msg):
+    """Adapt a message for the IDL that CycloneDDS idlc compiles.
+
+    uORB field names such as 'sequence' or 'string' are IDL keywords, which
+    idlc rejects. A leading underscore escapes an IDL identifier and idlc strips
+    it again, so the generated C names stay unchanged. Escaping every name means
+    no keyword list has to track idlc. rosidl_parser rejects escaped names, so
+    the RIHS01 hash has its own IDL.
+    """
+    for member in msg.fields + msg.constants:
+        member.name = f'_{member.name}'
 
 
 if __name__ == '__main__':
@@ -78,26 +92,10 @@ if __name__ == '__main__':
         help='Directory for the keyword-escaped IDL compiled by idlc')
     args = parser.parse_args(sys.argv[1:])
 
-    # convert_msg_to_idl prints a Reading/Writing line per file. Filter those
-    # via builtins.print instead of redirecting stdout, which the empy template
-    # engine relies on and breaks if replaced. Errors still surface on stderr.
-    real_print = builtins.print
+    for interface_file in args.interface_files:
+        interface_file = pathlib.Path(interface_file)
+        package_dir = interface_file.parent.absolute()
+        input_file = interface_file.absolute().relative_to(package_dir)
 
-    def quiet_print(*pargs, **kwargs):
-        if pargs and isinstance(pargs[0], str) and \
-                pargs[0].startswith(('Reading input file:', 'Writing output file:')):
-            return
-        real_print(*pargs, **kwargs)
-
-    builtins.print = quiet_print
-    try:
-        for interface_file in args.interface_files:
-            interface_file = pathlib.Path(interface_file)
-            package_dir = interface_file.parent.absolute()
-            input_file = interface_file.absolute().relative_to(package_dir)
-
-            convert_msg_to_idl(
-                package_dir, 'px4_msgs', input_file, interface_file.parent)
-            write_idlc_idl(package_dir, 'px4_msgs', input_file, args.idlc_output_dir)
-    finally:
-        builtins.print = real_print
+        write_idl(package_dir, 'px4_msgs', input_file, interface_file.parent, drop_comments)
+        write_idl(package_dir, 'px4_msgs', input_file, args.idlc_output_dir, escape_names)
