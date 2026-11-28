@@ -182,6 +182,7 @@ Navigator::Navigator() :
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 	_handle_back_trans_dec_mss = param_find("VT_B_DEC_MSS");
+	_handle_ekf2_rng_ctrl = param_find("EKF2_RNG_CTRL");
 
 	_handle_mpc_jerk_auto = param_find("MPC_JERK_AUTO");
 	_handle_mpc_acc_hor = param_find("MPC_ACC_HOR");
@@ -219,6 +220,10 @@ void Navigator::params_update()
 
 	if (_handle_back_trans_dec_mss != PARAM_INVALID) {
 		param_get(_handle_back_trans_dec_mss, &_param_back_trans_dec_mss);
+	}
+
+	if (_handle_ekf2_rng_ctrl != PARAM_INVALID) {
+		param_get(_handle_ekf2_rng_ctrl, &_param_ekf2_rng_ctrl);
 	}
 
 	if (_handle_mpc_jerk_auto != PARAM_INVALID) {
@@ -1286,6 +1291,7 @@ void Navigator::geofence_breach_check()
 		}
 
 		if (!have_valid_position_for_breach_check) {
+			local_geofence_breach_check();
 			return;
 		}
 
@@ -1376,8 +1382,84 @@ void Navigator::geofence_breach_check()
 		_geofence_emer_reposition_sent = breach_emergency && (_geofence_emer_reposition_sent || hold_emergency);
 		_geofence_cont_reposition_sent = breach_contingency && (_geofence_cont_reposition_sent || hold_contingency);
 
+		_global_gf_breach = breach_emergency || breach_contingency;
 		_geofence_result_pub.publish(_geofence_result);
 	}
+}
+
+void Navigator::local_geofence_breach_check()
+{
+	// Without a global position (e.g. indoors on optical flow) the checks above cannot run.
+	// Enforce GF_MAX_HOR_DIST against the horizontal distance from the local home position and
+	// GF_MAX_VER_DIST against the height above ground measured by the distance sensor, or without a
+	// distance sensor (EKF2_RNG_CTRL 0) against the estimated height above the arming point.
+	const float max_hor_dist = _geofence.getMaxHorDistanceHome();
+	const float max_ver_dist = _geofence.getMaxVerDistanceHome();
+
+	// A breach found with the global position stays until the global position is back: the local check
+	// must not clear it, e.g. when GNSS is lost outside the fence
+	if (_global_gf_breach || (max_hor_dist <= FLT_EPSILON && max_ver_dist <= FLT_EPSILON)) {
+		return;
+	}
+
+	const bool armed = _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
+	const hrt_abstime now = hrt_absolute_time();
+	bool max_dist_triggered = false;
+	bool cont_max_dist_triggered = false;
+	bool max_alt_triggered = false;
+
+	const bool hor_checked = (max_hor_dist > FLT_EPSILON) && _local_pos.xy_valid && _home_pos.valid_lpos;
+	bool ver_checked = false;
+
+	if (hor_checked) {
+		const float dist_xy = hypotf(_local_pos.x - _home_pos.x, _local_pos.y - _home_pos.y);
+		max_dist_triggered = dist_xy >= max_hor_dist;
+
+		// The contingency geofence keeps GF_CONT_H_MARGIN from the maximum distance, as in the global check
+		const float cont_margin = _geofence.getContGeofenceMargin();
+		cont_max_dist_triggered = (cont_margin > FLT_EPSILON) && (dist_xy >= max_hor_dist - cont_margin);
+	}
+
+	if (max_ver_dist > FLT_EPSILON) {
+		// Distance sensor height with sudden jumps (reflections while tilted) filtered out
+		const float range_height = _local_gf_height.update(_local_pos.dist_bottom_valid ? _local_pos.dist_bottom : NAN,
+					   _local_pos.v_z_valid ? _local_pos.vz : NAN, _local_pos.timestamp_sample);
+		const float armed_height = _local_gf_armed_height.update(_local_pos.z, _local_pos.z_valid,
+					   _local_pos.z_reset_counter, _local_pos.delta_z, armed);
+		const float height = (_param_ekf2_rng_ctrl == 0) ? armed_height : range_height;
+
+		// Height unknown in flight counts as a breach rather than letting the vehicle climb unchecked
+		const bool alt_exceeded = PX4_ISFINITE(height) ? (height >= max_ver_dist) : armed;
+		ver_checked = PX4_ISFINITE(height) || armed;
+
+		// A reflection or a lost return makes the distance sensor jump for a moment (e.g. when tilting),
+		// so the breach is only reported once it has lasted LOCAL_GF_ALT_CONFIRM
+		if (!alt_exceeded) {
+			_local_gf_alt_breach_start = 0;
+
+		} else if (_local_gf_alt_breach_start == 0) {
+			_local_gf_alt_breach_start = now;
+		}
+
+		max_alt_triggered = alt_exceeded && (now - _local_gf_alt_breach_start >= LOCAL_GF_ALT_CONFIRM);
+	}
+
+	// Nothing could be checked: like the global check without a valid position, publish no (clear) result
+	if (!hor_checked && !ver_checked) {
+		return;
+	}
+
+	_geofence_result.geofence_emer_max_dist_triggered = max_dist_triggered;
+	_geofence_result.geofence_emer_max_alt_triggered = max_alt_triggered;
+	_geofence_result.geofence_emer_custom_fence_triggered = false;
+	_geofence_result.geofence_cont_max_dist_triggered = cont_max_dist_triggered;
+	_geofence_result.geofence_cont_custom_fence_triggered = false;
+
+	_last_geofence_check = now;
+	_geofence_result.timestamp = now;
+	_geofence_result.geofence_emer_action = _geofence.getGeofenceAction();
+	_geofence_result.geofence_cont_action = _geofence.getContGeofenceAction();
+	_geofence_result_pub.publish(_geofence_result);
 }
 
 int Navigator::run_trampoline(int argc, char *argv[])

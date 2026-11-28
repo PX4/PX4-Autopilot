@@ -71,6 +71,7 @@
 #include <uORB/topics/telemetry_status.h>
 
 #include <lib/perf/perf_counter.h>
+#include <lib/robust_height/RobustHeight.hpp>
 #include <px4_platform_common/events.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
@@ -329,6 +330,11 @@ public:
 
 	void geofence_breach_check();
 
+	/**
+	 * Max distance and height limits in the local frame, used when no global position is available.
+	 */
+	void local_geofence_breach_check();
+
 	// Param access
 	int get_loiter_min_alt() const { return _param_nav_min_ltr_alt.get(); }
 	int get_landing_abort_min_alt() const { return _param_mis_lnd_abrt_alt.get(); }
@@ -430,6 +436,11 @@ private:
 	hrt_abstime _last_geofence_check{0};
 	bool _geofence_emer_reposition_sent{false};	/**< reposition triplet sent for the current emergency geofence breach */
 	bool _geofence_cont_reposition_sent{false};	/**< reposition triplet sent for the current contingency geofence breach */
+	static constexpr hrt_abstime LOCAL_GF_ALT_CONFIRM{500_ms};	/**< local vertical limit must be exceeded this long */
+	hrt_abstime _local_gf_alt_breach_start{0};	/**< since when the local vertical limit is exceeded, 0 if not */
+	bool _global_gf_breach{false};			/**< the last result from the global check is a breach, not cleared by the local check */
+	RobustHeight _local_gf_height;			/**< distance sensor height without sudden jumps, for the local fence */
+	ArmedHeight _local_gf_armed_height;		/**< height above the arming point, for the local fence without a distance sensor */
 	hrt_abstime _time_loitering_after_gf_breach{0};	/**< latches breach state while loitering, prevents reposition center walking */
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 	GeofenceAvoidancePlanner _geofence_avoidance_planner; /**< Return path planner that routes around fences (visibility graph + Dijkstra) */
@@ -467,10 +478,12 @@ private:
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE] {};	/**< array of navigation modes */
 
 	param_t _handle_back_trans_dec_mss{PARAM_INVALID};
+	param_t _handle_ekf2_rng_ctrl{PARAM_INVALID};	/**< local fence height source, only where EKF2 has range support */
 	param_t _handle_mpc_jerk_auto{PARAM_INVALID};
 	param_t _handle_mpc_acc_hor{PARAM_INVALID};
 
 	float _param_back_trans_dec_mss{0.f};
+	int32_t _param_ekf2_rng_ctrl{0};		/**< 0 (no distance sensor) where EKF2_RNG_CTRL does not exist */
 	float _param_mpc_jerk_auto{4.f}; 	/**< initialized with the default jerk auto value to prevent division by 0 if the parameter is accidentally set to 0 */
 	float _param_mpc_acc_hor{3.f};		/**< initialized with the default horizontal acc value to prevent division by 0 if the parameter is accidentally set to 0 */
 

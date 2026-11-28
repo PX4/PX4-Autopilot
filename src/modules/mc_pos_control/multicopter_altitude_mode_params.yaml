@@ -80,3 +80,21 @@ parameters:
       min: 0
       max: 3
       decimal: 2
+    MPC_HAGL_MAX:
+      description:
+        short: Maximum height above ground in altitude and position mode
+        long: |-
+          Hard ceiling for the height above ground measured by the distance sensor,
+          enforced in Altitude and Position mode regardless of the throttle stick,
+          and in Stabilized by capping the thrust. Without a distance sensor
+          (EKF2_RNG_CTRL 0) the Stabilized cap uses the estimated height above the
+          arming point instead. The climb rate is limited to
+          MPC_Z_P * (MPC_HAGL_MAX - height) and the vehicle descends when it is above
+          the ceiling. Not applied while the height is unknown. 0 disables the ceiling.
+      type: float
+      default: 0.0
+      unit: m
+      min: 0
+      max: 100
+      decimal: 2
+      increment: 0.1
