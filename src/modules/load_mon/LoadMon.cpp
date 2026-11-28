@@ -263,7 +263,8 @@ void LoadMon::stack_usage()
 
 	sched_lock();
 
-	if (system_load.tasks[_stack_task_index].valid && (system_load.tasks[_stack_task_index].tcb->pid > 0)) {
+	if (system_load.tasks[_stack_task_index].valid && system_load.tasks[_stack_task_index].tcb
+	    && (system_load.tasks[_stack_task_index].tcb->pid > 0)) {
 
 		stack_free = system_load.tasks[_stack_task_index].tcb->adj_stack_size - up_check_tcbstack(
 				     system_load.tasks[_stack_task_index].tcb, system_load.tasks[_stack_task_index].tcb->adj_stack_size);
