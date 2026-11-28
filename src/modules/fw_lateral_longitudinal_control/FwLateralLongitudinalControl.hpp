@@ -162,7 +162,6 @@ private:
 		(ParamFloat<px4::params::FW_T_THR_DAMPING>) _param_fw_t_thr_damping,
 		(ParamFloat<px4::params::FW_T_VERT_ACC>) _param_fw_t_vert_acc,
 		(ParamFloat<px4::params::FW_T_STE_R_TC>) _param_fw_t_ste_r_tc,
-		(ParamFloat<px4::params::FW_T_SEB_R_FF>) _param_fw_t_seb_r_ff,
 		(ParamFloat<px4::params::FW_T_SPDWEIGHT>) _param_fw_t_spdweight,
 		(ParamFloat<px4::params::FW_T_CLMB_R_SP>) _param_fw_t_clmb_r_sp,
 		(ParamFloat<px4::params::FW_T_SINK_R_SP>) _param_fw_t_sink_r_sp,
