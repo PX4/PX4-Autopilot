@@ -154,6 +154,12 @@ public:
 	 */
 	uint8_t getNavStateDisplay(uint8_t nav_state) const;
 
+	/**
+	 * Find a registered external mode by name
+	 * @return nav_state of the mode, or -1 if no valid mode with that name is registered
+	 */
+	int findExternalModeByName(const char *name) const;
+
 	void onUserIntendedNavStateChange(ModeChangeSource source, uint8_t user_intended_nav_state) override;
 	uint8_t getReplacedModeIfAny(uint8_t nav_state) override;
 
@@ -221,6 +227,7 @@ public:
 
 	int modeExecutorInCharge() const { return ModeExecutors::AUTOPILOT_EXECUTOR_ID; }
 	uint8_t getNavStateDisplay(uint8_t nav_state) const { return nav_state; }
+	int findExternalModeByName(const char *name) const { return -1; }
 
 	void onUserIntendedNavStateChange(ModeChangeSource source, uint8_t user_intended_nav_state) override {}
 	uint8_t getReplacedModeIfAny(uint8_t nav_state) override { return nav_state; }

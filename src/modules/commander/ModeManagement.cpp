@@ -568,6 +568,17 @@ int ModeManagement::modeExecutorInCharge() const
 	return _mode_executor_in_charge;
 }
 
+int ModeManagement::findExternalModeByName(const char *name) const
+{
+	for (uint8_t nav_state = Modes::FIRST_EXTERNAL_NAV_STATE; nav_state <= Modes::LAST_EXTERNAL_NAV_STATE; ++nav_state) {
+		if (_modes.valid(nav_state) && strncmp(_modes.mode(nav_state).name, name, sizeof(Modes::Mode::name)) == 0) {
+			return nav_state;
+		}
+	}
+
+	return -1;
+}
+
 uint8_t ModeManagement::getNavStateDisplay(uint8_t nav_state) const
 {
 	const int executor_in_charge = modeExecutorInCharge();
