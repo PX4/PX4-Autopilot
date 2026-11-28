@@ -89,10 +89,10 @@ void EKF2Selector::PrintInstanceChange(const uint8_t old_instance, uint8_t new_i
 	} else if (_instance[old_instance].timeout) {
 		old_reason = " (timeout)";
 
-	} else if (_gyro_fault_detected) {
+	} else if (_gyro_inconsistency_cusum.faultDetected()) {
 		old_reason = " (gyro fault)";
 
-	} else if (_accel_fault_detected) {
+	} else if (_accel_inconsistency_cusum.faultDetected()) {
 		old_reason = " (accel fault)";
 
 	} else if (!_instance[_selected_instance].healthy.get_state() && (_instance[_selected_instance].healthy_count > 0)) {
@@ -160,11 +160,6 @@ bool EKF2Selector::SelectInstance(uint8_t ekf_instance, const hrt_abstime now)
 bool EKF2Selector::UpdateErrorScores(const hrt_abstime now)
 {
 	// first check imu inconsistencies
-	_gyro_fault_detected = false;
-	uint32_t faulty_gyro_id = 0;
-	_accel_fault_detected = false;
-	uint32_t faulty_accel_id = 0;
-
 	if (_sensors_status_imu.updated()) {
 		sensors_status_imu_s sensors_status_imu;
 
@@ -173,93 +168,16 @@ bool EKF2Selector::UpdateErrorScores(const hrt_abstime now)
 			const float time_step_s = constrain((sensors_status_imu.timestamp - _last_update_us) * 1e-6f, 0.f, 0.02f);
 			_last_update_us = sensors_status_imu.timestamp;
 
-			{
-				const float angle_rate_threshold = radians(_param_ekf2_sel_imu_rat.get());
-				const float angle_threshold = radians(_param_ekf2_sel_imu_ang.get());
-				uint8_t n_gyros = 0;
-				uint8_t n_gyro_exceedances = 0;
-				float largest_accumulated_gyro_error = 0.0f;
-				uint8_t largest_gyro_error_index = 0;
+			_gyro_inconsistency_cusum.update(sensors_status_imu.gyro_device_ids, sensors_status_imu.gyro_inconsistency_rad_s,
+							 radians(_param_ekf2_sel_imu_rat.get()), radians(_param_ekf2_sel_imu_ang.get()), time_step_s);
 
-				for (unsigned i = 0; i < IMU_STATUS_SIZE; i++) {
-					// check for gyros with excessive difference to mean using accumulated error
-					if (sensors_status_imu.gyro_device_ids[i] != 0) {
-						n_gyros++;
-						_accumulated_gyro_error[i] += (sensors_status_imu.gyro_inconsistency_rad_s[i] - angle_rate_threshold) * time_step_s;
-						_accumulated_gyro_error[i] = fmaxf(_accumulated_gyro_error[i], 0.f);
-
-						if (_accumulated_gyro_error[i] > angle_threshold) {
-							n_gyro_exceedances++;
-						}
-
-						if (_accumulated_gyro_error[i] > largest_accumulated_gyro_error) {
-							largest_accumulated_gyro_error = _accumulated_gyro_error[i];
-							largest_gyro_error_index = i;
-						}
-
-					} else {
-						// no sensor
-						_accumulated_gyro_error[i] = NAN;
-					}
-				}
-
-				if (n_gyro_exceedances > 0) {
-					if (n_gyros >= 3) {
-						// If there are 3 or more sensors, the one with the largest accumulated error is faulty
-						_gyro_fault_detected = true;
-						faulty_gyro_id = sensors_status_imu.gyro_device_ids[largest_gyro_error_index];
-
-					} else if (n_gyros == 2) {
-						// A fault is present, but the faulty sensor identity cannot be determined
-						_gyro_fault_detected = true;
-					}
-				}
-			}
-
-			{
-				const float accel_threshold = _param_ekf2_sel_imu_acc.get();
-				const float velocity_threshold = _param_ekf2_sel_imu_vel.get();
-				uint8_t n_accels = 0;
-				uint8_t n_accel_exceedances = 0;
-				float largest_accumulated_accel_error = 0.0f;
-				uint8_t largest_accel_error_index = 0;
-
-				for (unsigned i = 0; i < IMU_STATUS_SIZE; i++) {
-					// check for accelerometers with excessive difference to mean using accumulated error
-					if (sensors_status_imu.accel_device_ids[i] != 0) {
-						n_accels++;
-						_accumulated_accel_error[i] += (sensors_status_imu.accel_inconsistency_m_s_s[i] - accel_threshold) * time_step_s;
-						_accumulated_accel_error[i] = fmaxf(_accumulated_accel_error[i], 0.f);
-
-						if (_accumulated_accel_error[i] > velocity_threshold) {
-							n_accel_exceedances++;
-						}
-
-						if (_accumulated_accel_error[i] > largest_accumulated_accel_error) {
-							largest_accumulated_accel_error = _accumulated_accel_error[i];
-							largest_accel_error_index = i;
-						}
-
-					} else {
-						// no sensor
-						_accumulated_accel_error[i] = NAN;
-					}
-				}
-
-				if (n_accel_exceedances > 0) {
-					if (n_accels >= 3) {
-						// If there are 3 or more sensors, the one with the largest accumulated error is faulty
-						_accel_fault_detected = true;
-						faulty_accel_id = sensors_status_imu.accel_device_ids[largest_accel_error_index];
-
-					} else if (n_accels == 2) {
-						// A fault is present, but the faulty sensor identity cannot be determined
-						_accel_fault_detected = true;
-					}
-				}
-			}
+			_accel_inconsistency_cusum.update(sensors_status_imu.accel_device_ids, sensors_status_imu.accel_inconsistency_m_s_s,
+							  _param_ekf2_sel_imu_acc.get(), _param_ekf2_sel_imu_vel.get(), time_step_s);
 		}
 	}
+
+	const uint32_t faulty_gyro_id = _gyro_inconsistency_cusum.faultyDeviceId();
+	const uint32_t faulty_accel_id = _accel_inconsistency_cusum.faultyDeviceId();
 
 	bool updated = false;
 	bool primary_updated = false;
@@ -329,12 +247,12 @@ bool EKF2Selector::UpdateErrorScores(const hrt_abstime now)
 		}
 
 		// if the gyro used by the EKF is faulty, declare the EKF unhealthy without delay
-		if (_gyro_fault_detected && (faulty_gyro_id != 0) && (_instance[i].gyro_device_id == faulty_gyro_id)) {
+		if ((faulty_gyro_id != 0) && (_instance[i].gyro_device_id == faulty_gyro_id)) {
 			_instance[i].healthy.set_state_and_update(false, now);
 		}
 
 		// if the accelerometer used by the EKF is faulty, declare the EKF unhealthy without delay
-		if (_accel_fault_detected && (faulty_accel_id != 0) && (_instance[i].accel_device_id == faulty_accel_id)) {
+		if ((faulty_accel_id != 0) && (_instance[i].accel_device_id == faulty_accel_id)) {
 			_instance[i].healthy.set_state_and_update(false, now);
 		}
 
@@ -350,13 +268,17 @@ bool EKF2Selector::UpdateErrorScores(const hrt_abstime now)
 
 	// update relative test ratios if primary has updated
 	if (primary_updated) {
+		// without knowing which IMU is off, the innovations are all that is left to tell the instances apart
+		const bool unattributed_imu_fault = (_gyro_inconsistency_cusum.faultDetected() && (faulty_gyro_id == 0))
+						    || (_accel_inconsistency_cusum.faultDetected() && (faulty_accel_id == 0));
+
 		for (uint8_t i = 0; i < _available_instances; i++) {
 			if (i != _selected_instance) {
 
 				const float error_delta = _instance[i].combined_test_ratio - _instance[_selected_instance].combined_test_ratio;
 
 				// reduce error only if its better than the primary instance by at least EKF2_SEL_ERR_RED to prevent unnecessary selection changes
-				const float threshold = _gyro_fault_detected ? 0.0f : fmaxf(_param_ekf2_sel_err_red.get(), 0.05f);
+				const float threshold = unattributed_imu_fault ? 0.0f : fmaxf(_param_ekf2_sel_err_red.get(), 0.05f);
 
 				if (error_delta > 0 || error_delta < -threshold) {
 					_instance[i].relative_test_ratio += error_delta;
@@ -877,7 +799,7 @@ bool EKF2Selector::Update(const hrt_abstime now)
 		    || (selected_instance_prev != _selected_instance)
 		    || (instance_changed_count_prev != _instance_changed_count)
 		    || (last_instance_change_prev != _last_instance_change)
-		    || _accel_fault_detected || _gyro_fault_detected) {
+		    || _accel_inconsistency_cusum.faultDetected() || _gyro_inconsistency_cusum.faultDetected()) {
 
 			PublishEstimatorSelectorStatus(now);
 			_selector_status_publish = false;
@@ -905,8 +827,8 @@ void EKF2Selector::PublishEstimatorSelectorStatus(const hrt_abstime now)
 	selector_status.baro_device_id = _instance[_selected_instance].baro_device_id;
 	selector_status.gyro_device_id = _instance[_selected_instance].gyro_device_id;
 	selector_status.mag_device_id = _instance[_selected_instance].mag_device_id;
-	selector_status.gyro_fault_detected = _gyro_fault_detected;
-	selector_status.accel_fault_detected = _accel_fault_detected;
+	selector_status.gyro_fault_detected = _gyro_inconsistency_cusum.faultDetected();
+	selector_status.accel_fault_detected = _accel_inconsistency_cusum.faultDetected();
 
 	for (int i = 0; i < EKF2_MAX_INSTANCES; i++) {
 		selector_status.combined_test_ratio[i] = _instance[i].combined_test_ratio;
@@ -915,8 +837,8 @@ void EKF2Selector::PublishEstimatorSelectorStatus(const hrt_abstime now)
 	}
 
 	for (int i = 0; i < IMU_STATUS_SIZE; i++) {
-		selector_status.accumulated_gyro_error[i] = _accumulated_gyro_error[i];
-		selector_status.accumulated_accel_error[i] = _accumulated_accel_error[i];
+		selector_status.accumulated_gyro_error[i] = _gyro_inconsistency_cusum.accumulatedError(i);
+		selector_status.accumulated_accel_error[i] = _accel_inconsistency_cusum.accumulatedError(i);
 	}
 
 	selector_status.timestamp = now;

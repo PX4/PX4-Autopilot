@@ -56,6 +56,8 @@
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/wind.h>
 
+#include "SensorInconsistencyCusum.hpp"
+
 #if CONSTRAINED_MEMORY
 # define EKF2_MAX_INSTANCES 2
 #else
@@ -176,11 +178,9 @@ private:
 			      estimator_selector_status_s::combined_test_ratio[0]),
 		      "increase estimator_selector_status_s::combined_test_ratio size");
 
-	float _accumulated_gyro_error[IMU_STATUS_SIZE] {};
-	float _accumulated_accel_error[IMU_STATUS_SIZE] {};
+	SensorInconsistencyCusum<IMU_STATUS_SIZE> _gyro_inconsistency_cusum;
+	SensorInconsistencyCusum<IMU_STATUS_SIZE> _accel_inconsistency_cusum;
 	hrt_abstime _last_update_us{0};
-	bool _gyro_fault_detected{false};
-	bool _accel_fault_detected{false};
 
 	uint8_t _available_instances{0};
 	uint8_t _selected_instance{INVALID_INSTANCE};

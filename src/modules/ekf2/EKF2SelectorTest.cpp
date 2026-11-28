@@ -43,15 +43,24 @@
 #include "EKF2Selector.hpp"
 
 #include <drivers/drv_hrt.h>
+#include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/estimator_selector_status.h>
+#include <uORB/topics/sensors_status_imu.h>
 
 using namespace time_literals;
 
 // filter_fault_flags bit 10: bad vertical accelerometer data
 static constexpr uint32_t kFaultBadAccVertical = (1u << 10);
+
+static constexpr uint32_t kAccelDeviceIdBase = 1000;
+static constexpr uint32_t kGyroDeviceIdBase = 2000;
+
+// far above the selector thresholds, so that a fault is flagged within a few cycles
+static constexpr float kGyroFaultInconsistency = 10.f; // rad/s
+static constexpr float kAccelFaultInconsistency = 100.f; // m/s^2
 
 // The test steps the selector itself on simulated time. No work queue is
 // started, so neither its scheduling nor its uORB callbacks run it.
@@ -75,6 +84,10 @@ public:
 	static constexpr Status kWarned{true, 2.f, 0}; // nominally healthy, failing test ratio
 	static constexpr Status kFaulted{true, 0.1f, kFaultBadAccVertical};
 	static constexpr Status kSilent{false, 0.f, 0};
+
+	// test ratios closer to each other than EKF2_SEL_ERR_RED
+	static constexpr Status kSlightlyWorse{true, 0.3f, 0};
+	static constexpr Status kSlightlyBetter{true, 0.2f, 0};
 
 	static constexpr hrt_abstime kStep{10_ms}; // the selector's update period
 
@@ -100,8 +113,8 @@ public:
 
 		estimator_status_s status{};
 		status.timestamp_sample = _now;
-		status.accel_device_id = 1000 + instance;
-		status.gyro_device_id = 2000 + instance;
+		status.accel_device_id = kAccelDeviceIdBase + instance;
+		status.gyro_device_id = kGyroDeviceIdBase + instance;
 		status.vel_test_ratio = s.test_ratio;
 		status.pos_test_ratio = s.test_ratio;
 		status.hgt_test_ratio = s.test_ratio;
@@ -116,7 +129,38 @@ public:
 		_now += kStep;
 		publishStatus(0, s0);
 		publishStatus(1, s1);
+		_imu_status.timestamp = _now;
+		_imu_status_pub.publish(_imu_status);
 		_selector.Update(_now);
+	}
+
+	// the first two IMUs are the ones the two instances use
+	void setImuCount(uint8_t imu_count)
+	{
+		for (uint8_t i = 0; i < imu_count; i++) {
+			_imu_status.accel_device_ids[i] = kAccelDeviceIdBase + i;
+			_imu_status.gyro_device_ids[i] = kGyroDeviceIdBase + i;
+		}
+	}
+
+	// lowest relative test ratio of instance 1 while it does slightly better than the primary
+	float lowestRelativeTestRatioOfSlightlyBetterInstance()
+	{
+		const hrt_abstime start = _now;
+		float lowest = INFINITY;
+
+		// longer than the 1 s status period, to see a status even when nothing changes
+		while (_now - start < 1500_ms) {
+			step(kSlightlyWorse, kSlightlyBetter);
+
+			const estimator_selector_status_s status = selectorStatus();
+
+			if (status.timestamp > start) {
+				lowest = fminf(lowest, status.relative_test_ratio[1]);
+			}
+		}
+
+		return lowest;
 	}
 
 	void runFor(hrt_abstime duration, const Status &s0, const Status &s1)
@@ -182,6 +226,10 @@ public:
 
 	EKF2SelectorTestable _selector;
 	uORB::Subscription _selector_status_sub{ORB_ID(estimator_selector_status)};
+
+	// published every cycle, so that a selector never starts on the sample of an earlier test
+	sensors_status_imu_s _imu_status{};
+	uORB::Publication<sensors_status_imu_s> _imu_status_pub{ORB_ID(sensors_status_imu)};
 };
 
 hrt_abstime EKF2SelectorTest::_now{100_s};
@@ -254,4 +302,66 @@ TEST_F(EKF2SelectorTest, sustainedFaultFallsBackEventually)
 	runFor(7_s, kWarned, kFaulted);
 
 	EXPECT_EQ(primaryInstance(), 0);
+}
+
+// an advantage below EKF2_SEL_ERR_RED does not count towards a switch
+TEST_F(EKF2SelectorTest, smallAdvantageIgnoredWithoutImuFault)
+{
+	setImuCount(2);
+
+	EXPECT_FLOAT_EQ(lowestRelativeTestRatioOfSlightlyBetterInstance(), 0.f);
+	EXPECT_FALSE(selectorStatus().gyro_fault_detected);
+	EXPECT_FALSE(selectorStatus().accel_fault_detected);
+}
+
+// two gyros disagree: nothing tells which instance to leave, so any advantage counts
+TEST_F(EKF2SelectorTest, smallAdvantageCountsWithUnattributedGyroFault)
+{
+	setImuCount(2);
+	_imu_status.gyro_inconsistency_rad_s[0] = kGyroFaultInconsistency;
+	_imu_status.gyro_inconsistency_rad_s[1] = kGyroFaultInconsistency;
+
+	EXPECT_LT(lowestRelativeTestRatioOfSlightlyBetterInstance(), -0.5f);
+	EXPECT_TRUE(selectorStatus().gyro_fault_detected);
+}
+
+TEST_F(EKF2SelectorTest, smallAdvantageCountsWithUnattributedAccelFault)
+{
+	setImuCount(2);
+	_imu_status.accel_inconsistency_m_s_s[0] = kAccelFaultInconsistency;
+	_imu_status.accel_inconsistency_m_s_s[1] = kAccelFaultInconsistency;
+
+	EXPECT_LT(lowestRelativeTestRatioOfSlightlyBetterInstance(), -0.5f);
+	EXPECT_TRUE(selectorStatus().accel_fault_detected);
+}
+
+// the faulty gyro is known and neither instance uses it: no reason to leave the primary
+TEST_F(EKF2SelectorTest, smallAdvantageIgnoredWithFaultOnUnusedGyro)
+{
+	setImuCount(3);
+	_imu_status.gyro_inconsistency_rad_s[0] = 0.5f * kGyroFaultInconsistency;
+	_imu_status.gyro_inconsistency_rad_s[1] = 0.5f * kGyroFaultInconsistency;
+	_imu_status.gyro_inconsistency_rad_s[2] = kGyroFaultInconsistency;
+
+	EXPECT_FLOAT_EQ(lowestRelativeTestRatioOfSlightlyBetterInstance(), 0.f);
+
+	const estimator_selector_status_s status = selectorStatus();
+	EXPECT_TRUE(status.gyro_fault_detected);
+	EXPECT_TRUE(status.healthy[0]);
+	EXPECT_TRUE(status.healthy[1]);
+	EXPECT_EQ(status.primary_instance, 0);
+}
+
+// the faulty gyro is known and the primary uses it: switch away without delay
+TEST_F(EKF2SelectorTest, faultOnPrimaryGyroSwitchesAway)
+{
+	setImuCount(3);
+	_imu_status.gyro_inconsistency_rad_s[0] = kGyroFaultInconsistency;
+	_imu_status.gyro_inconsistency_rad_s[1] = 0.5f * kGyroFaultInconsistency;
+	_imu_status.gyro_inconsistency_rad_s[2] = 0.5f * kGyroFaultInconsistency;
+
+	const hrt_abstime switched_after = runUntilPrimary(1, 3_s, kGood, kGood);
+
+	EXPECT_EQ(primaryInstance(), 1);
+	EXPECT_LT(switched_after, 1_s);
 }
