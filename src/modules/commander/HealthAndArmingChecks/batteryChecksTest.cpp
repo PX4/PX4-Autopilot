@@ -40,10 +40,12 @@
 
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/param.h>
+#include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/event.h>
+#include <uORB/topics/rtl_time_estimate.h>
 
 // to run: make tests TESTFILTER=batteryChecks
 
@@ -77,7 +79,7 @@ public:
 	}
 
 	static void publish(int index, uint8_t warning, bool connected = true, float remaining = 0.5f, uint8_t cell_count = 0,
-			    uint8_t source = battery_status_s::SOURCE_POWER_MODULE, uint8_t id = 1)
+			    uint8_t source = battery_status_s::SOURCE_POWER_MODULE, uint8_t id = 1, float time_remaining_s = NAN)
 	{
 		battery_status_s battery{};
 		battery.timestamp = hrt_absolute_time();
@@ -86,7 +88,7 @@ public:
 		battery.cell_count = cell_count;
 		battery.source = source;
 		battery.id = id;
-		battery.time_remaining_s = NAN;
+		battery.time_remaining_s = time_remaining_s;
 		battery.warning = warning;
 		_battery_pubs[index].publish(battery);
 	}
@@ -255,4 +257,30 @@ TEST_F(BatteryChecksTest, UnknownChargeIsNotReportedWhileArmed)
 	runCheck(true);
 	EXPECT_FALSE(reported(events::ID("check_battery_charge_unknown")));
 	EXPECT_EQ(_failsafe_flags.battery_warning, battery_status_s::WARNING_NONE);
+}
+
+// the remaining flight time is compared with the lowest Return estimate, not the one to the selected destination
+TEST_F(BatteryChecksTest, RemainingFlightTimeIsComparedWithTheLowestReturnEstimate)
+{
+	const auto publish_time_remaining = [](float time_remaining_s) {
+		publish(0, battery_status_s::WARNING_NONE, true, 0.5f, 0, battery_status_s::SOURCE_POWER_MODULE, 1, time_remaining_s);
+	};
+
+	// Home is selected and no longer within reach of the latest battery data, a rally point still is
+	uORB::Publication<rtl_time_estimate_s> estimate_pub{ORB_ID(rtl_time_estimate)};
+	rtl_time_estimate_s estimate{};
+	estimate.timestamp = hrt_absolute_time();
+	estimate.valid = true;
+	estimate.safe_time_estimate = 200.f;
+	estimate.min_safe_time_estimate = 100.f;
+	estimate_pub.publish(estimate);
+
+	publish_time_remaining(150.f);
+	runCheck(true);
+	EXPECT_FALSE(_failsafe_flags.battery_low_remaining_time);
+
+	// neither is within reach
+	publish_time_remaining(100.f);
+	runCheck(true);
+	EXPECT_TRUE(_failsafe_flags.battery_low_remaining_time);
 }

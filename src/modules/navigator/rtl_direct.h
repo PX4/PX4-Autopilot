@@ -113,12 +113,12 @@ public:
 		loiter_point_s approach; ///< NaN fields default to the destination, RTL_DESCEND_ALT and RTL_LOITER_RAD
 		float return_alt; ///< [m] AMSL
 		bool destination_is_current_position{false};
+		bool follow_avoidance_path{true}; ///< Use the planner's waypoints on the leg to the landing approach.
 	};
 
 	/**
 	 * Time a direct Return to target would take if it started now, without configuring RtlDirect.
-	 * Like calc_rtl_time_estimate(), it adds the geofence avoidance path the planner holds.
-	 */
+		 */
 	rtl_time_estimate_s estimateReturnTo(const Target &target);
 
 	void setReturnAltMin(bool min) { _enforce_rtl_alt = min; }

@@ -129,6 +129,7 @@ private:
 		uint8_t safe_point_index{RTL_STATUS_NO_SAFE_POINT};
 		bool home_has_land_approach{false}; ///< Home has a VTOL land approach, for the types that look
 		bool rally_point_has_land_approach{false}; ///< A rally point searched for this selection has one
+		float fallback_safe_time_estimate{NAN}; ///< [s] Safe return time to an available fallback, or NAN
 	};
 
 	/** Selects the destination of the current RTL_TYPE, then applies it. */
@@ -150,8 +151,8 @@ private:
 
 	PositionYawSetpoint homeDestination() const;
 
-	/** Time of a direct Return to Home as applyReturn() would configure it, without configuring RtlDirect. */
-	rtl_time_estimate_s estimateTimeToHome();
+	/** Estimates a direct Return to the destination */
+	rtl_time_estimate_s estimateDirectReturn(const PositionYawSetpoint &destination, bool follow_avoidance_path = true);
 
 	/** The VTOL land approach of the destination, or the destination itself. */
 	loiter_point_s landingLoiter(const PositionYawSetpoint &destination) const;
@@ -159,8 +160,9 @@ private:
 	/**
 	 * @brief Publish the remaining time estimate to go to the Return landing point.
 	 *
+	 * While inactive, RTL_TYPE 6 also reports the lower estimate of Home and its rally point.
 	 */
-	void publishRemainingTimeEstimate();
+	void publishRemainingTimeEstimate(float fallback_safe_time_estimate);
 
 	/**
 	 * @brief Find the closest rally point within min_dist

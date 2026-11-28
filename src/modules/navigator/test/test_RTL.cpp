@@ -255,7 +255,7 @@ public:
 	bool directActiveForTest() { return _rtl_direct.isActive(); }
 
 	// an inactive evaluation of the given RTL_TYPE with the latest vehicle state
-	void evaluateReturnTypeForTest(int32_t rtl_type)
+	float evaluateReturnTypeForTest(int32_t rtl_type)
 	{
 		_param_rtl_type.set(rtl_type);
 		_global_pos_sub.update();
@@ -263,7 +263,9 @@ public:
 		_mission_sub.update();
 		_home_pos_sub.update();
 		_wind_sub.update();
-		setRtlTypeAndDestination();
+		const ReturnSelection selection = selectReturn();
+		applyReturn(selection);
+		return selection.fallback_safe_time_estimate;
 	}
 
 	void activateReturnTypeForTest(int32_t rtl_type)
@@ -274,6 +276,9 @@ public:
 
 	// the estimate RTL publishes while the return type is a direct Return
 	rtl_time_estimate_s directEstimateForTest() { return _rtl_direct.calc_rtl_time_estimate(); }
+
+	// RTL publishes its estimate every few seconds, after it selected the destination
+	void publishTimeEstimateForTest(float fallback) { publishRemainingTimeEstimate(fallback); }
 
 	// the estimate RTL publishes while the return type is mission-based
 	rtl_time_estimate_s missionEstimateForTest() { return _rtl_mission_type_handle->calc_rtl_time_estimate(); }
@@ -3442,6 +3447,48 @@ TEST_F(RTLGeofenceAvoidanceTest, DirectEstimateCoversTheWayAroundTheGeofence)
 	ASSERT_TRUE(direct.valid && around.valid);
 	EXPECT_NEAR(around.time_estimate - direct.time_estimate, (around_m - direct_m) / cruise_speed, 0.1f);
 }
+
+TEST_F(RTLGeofenceAvoidanceTest, Type6UsesDirectRallyEstimateWhileHomeHasADetour)
+{
+	// Home is 600 m south of the vehicle. The two rally positions will be on opposite sides of the fence.
+	publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	publishGlobalPosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 600.f, 0.f, kAlt + 100.f));
+	publishLandDetected(false);
+	primeNavigatorState();
+	const auto setRallyPoint = [&](float north_of_home) {
+		const auto rally = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, north_of_home, 0.f, kAlt);
+		loadSafePointsIntoRouteCache({makeSafePointItem(rally.lat, rally.lon, kAlt, NAV_FRAME_GLOBAL)});
+	};
+	_rtl.on_inactive();
+	const auto directEstimateWithoutFence = [&](float north_of_home) {
+		setRallyPoint(north_of_home);
+		_rtl.evaluateReturnTypeForTest(5);
+		return _rtl.directEstimateForTest();
+	};
+	const rtl_time_estimate_s clear_leg = directEstimateWithoutFence(700.f);
+	const rtl_time_estimate_s blocked_leg = directEstimateWithoutFence(200.f);
+	ASSERT_TRUE(clear_leg.valid && blocked_leg.valid);
+	ASSERT_NO_FATAL_FAILURE(loadExclusionZone({{280.f, -400.f}, {320.f, -400.f}, {320.f, 400.f}, {280.f, 400.f}}));
+
+	battery_status_s battery{};
+	battery.timestamp = hrt_absolute_time();
+	battery.connected = true;
+	battery.time_remaining_s = 3600.f;
+	orb_advert_t battery_pub = orb_advertise(ORB_ID(battery_status), &battery);
+
+	// One inactive cycle installs Home's route. The next estimates the rally point with that route in the planner.
+	setRallyPoint(700.f);
+	_rtl.evaluateReturnTypeForTest(6);
+	EXPECT_GT(_navigator.get_geofence_avoidance_planner().get_num_waypoints(), 0);
+	const float fallback = _rtl.evaluateReturnTypeForTest(6);
+	EXPECT_FLOAT_EQ(fallback, clear_leg.safe_time_estimate);
+	EXPECT_LT(fallback, _rtl.directEstimateForTest().safe_time_estimate);
+
+	// Even across the fence, the fallback uses the direct leg to the rally point.
+	setRallyPoint(200.f);
+	EXPECT_FLOAT_EQ(_rtl.evaluateReturnTypeForTest(6), blocked_leg.safe_time_estimate);
+	orb_unadvertise(battery_pub);
+}
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
 // WHY: A stop that never lands must not count a landing in the remaining time estimate.
@@ -3519,4 +3566,152 @@ TEST_F(RTLTest, Type6BeyondBatteryTakesOnlyCloserRallyPoint)
 	}
 
 	orb_unadvertise(battery_pub);
+}
+
+// A multicopter with a rally point 100 m away, closer than Home 300 m away.
+class RTLLowestEstimateTest : public RTLTest
+{
+protected:
+	void SetUp() override
+	{
+		RTLTest::SetUp();
+		publishVehicleStatus(false, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+		publishGlobalPosition(kBaseLat, kBaseLon, kAlt + 100.f);
+		publishLandDetected(false);
+		publishHomePosition(makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, -300.f, 0.f, kAlt));
+		primeNavigatorState();
+		const PositionYawSetpoint rally_point = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt);
+		loadSafePointsIntoRouteCache({makeSafePointItem(rally_point.lat, rally_point.lon, kAlt, NAV_FRAME_GLOBAL)});
+		_battery.connected = true;
+		_battery_pub = orb_advertise(ORB_ID(battery_status), &_battery);
+
+		// RtlDirect reads the vehicle type, which sets the speeds of its estimate, in its own inactive cycle
+		_rtl.run(false);
+	}
+
+	void TearDown() override
+	{
+		orb_unadvertise(_battery_pub);
+		RTLTest::TearDown();
+	}
+
+	void publishBatteryTimeRemaining(float time_remaining_s)
+	{
+		_battery.timestamp = hrt_absolute_time();
+		_battery.time_remaining_s = time_remaining_s;
+		orb_publish(ORB_ID(battery_status), _battery_pub, &_battery);
+	}
+
+	// the estimate RTL publishes after an evaluation
+	rtl_time_estimate_s publishedEstimate(float fallback)
+	{
+		_rtl.publishTimeEstimateForTest(fallback);
+		EXPECT_TRUE(_estimate_sub.update());
+		EXPECT_TRUE(_estimate_sub.get().valid);
+		return _estimate_sub.get();
+	}
+
+	bool selectsRallyPoint()
+	{
+		EXPECT_TRUE(_rtl_status_sub.update());
+		return _rtl_status_sub.get().safe_point_index != UINT8_MAX;
+	}
+
+	battery_status_s _battery{};
+	orb_advert_t _battery_pub{nullptr};
+	uORB::SubscriptionData<rtl_status_s> _rtl_status_sub{ORB_ID(rtl_status)};
+	uORB::SubscriptionData<rtl_time_estimate_s> _estimate_sub{ORB_ID(rtl_time_estimate)};
+};
+
+// WHY: the distance-aware return failsafe must not trigger at the Home crossing while a rally point is within reach.
+// WHAT: the lowest estimate RTL_TYPE 6 publishes is the same whether the battery reaches Home or not.
+TEST_F(RTLLowestEstimateTest, Type6LowestEstimateDoesNotDependOnTheBattery)
+{
+	// WHEN: the battery reaches Home
+	publishBatteryTimeRemaining(3600.f);
+	const float home_fallback = _rtl.evaluateReturnTypeForTest(6);
+	ASSERT_FALSE(selectsRallyPoint());
+	const rtl_time_estimate_s to_home = publishedEstimate(home_fallback);
+
+	// WHEN: the battery does not reach Home
+	publishBatteryTimeRemaining(1.f);
+	const float rally_fallback = _rtl.evaluateReturnTypeForTest(6);
+	ASSERT_TRUE(selectsRallyPoint());
+	const rtl_time_estimate_s to_rally_point = publishedEstimate(rally_fallback);
+
+	// THEN: the selected estimate drops from Home's to the rally point's, the lowest one stays the rally point's
+	EXPECT_GT(to_home.safe_time_estimate, to_rally_point.safe_time_estimate + 1.f);
+	EXPECT_FLOAT_EQ(to_home.min_safe_time_estimate, to_rally_point.safe_time_estimate);
+	EXPECT_FLOAT_EQ(to_rally_point.min_safe_time_estimate, to_rally_point.safe_time_estimate);
+}
+
+TEST_F(RTLLowestEstimateTest, CloserButSlowerRallyDoesNotProvideFallbackTime)
+{
+	const PositionYawSetpoint rally = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 100.f, 0.f, kAlt + 500.f);
+	loadSafePointsIntoRouteCache({makeSafePointItem(rally.lat, rally.lon, rally.alt, NAV_FRAME_GLOBAL)});
+
+	publishBatteryTimeRemaining(3600.f);
+	const float fallback = _rtl.evaluateReturnTypeForTest(6);
+	ASSERT_FALSE(selectsRallyPoint());
+	EXPECT_TRUE(std::isnan(fallback));
+	const rtl_time_estimate_s home = publishedEstimate(fallback);
+	EXPECT_FLOAT_EQ(home.min_safe_time_estimate, home.safe_time_estimate);
+
+	publishBatteryTimeRemaining(1.f);
+	const float selected_rally_fallback = _rtl.evaluateReturnTypeForTest(6);
+	ASSERT_TRUE(selectsRallyPoint());
+	const rtl_time_estimate_s selected_rally = publishedEstimate(selected_rally_fallback);
+	EXPECT_GT(selected_rally.safe_time_estimate, home.safe_time_estimate);
+	EXPECT_FLOAT_EQ(selected_rally.min_safe_time_estimate, selected_rally.safe_time_estimate);
+}
+
+// WHY: only RTL_TYPE 6 chooses between two destinations by the battery.
+// WHAT: without a second destination, the lowest estimate is the one to the selected destination.
+TEST_F(RTLLowestEstimateTest, LowestEstimateIsTheSelectedOneWithoutAnotherDestination)
+{
+	// GIVEN: RTL_TYPE 6 going Home with the rally point as the other destination
+	publishBatteryTimeRemaining(3600.f);
+	const float home_fallback = _rtl.evaluateReturnTypeForTest(6);
+	const rtl_time_estimate_s with_rally_point = publishedEstimate(home_fallback);
+	ASSERT_LT(with_rally_point.min_safe_time_estimate, with_rally_point.safe_time_estimate);
+
+	// WHEN: RTL_TYPE 0 takes the closest destination, the rally point
+	const float closest_fallback = _rtl.evaluateReturnTypeForTest(0);
+	ASSERT_TRUE(selectsRallyPoint());
+	const rtl_time_estimate_s closest = publishedEstimate(closest_fallback);
+
+	// THEN: its estimate is also the lowest one
+	EXPECT_FLOAT_EQ(closest.min_safe_time_estimate, closest.safe_time_estimate);
+	EXPECT_FLOAT_EQ(closest.safe_time_estimate, with_rally_point.min_safe_time_estimate);
+
+	// WHEN: RTL_TYPE 6 has no rally point closer than Home
+	const PositionYawSetpoint far_rally_point = makePositionYawSetpointFromOffset(kBaseLat, kBaseLon, 400.f, 0.f, kAlt);
+	loadSafePointsIntoRouteCache({makeSafePointItem(far_rally_point.lat, far_rally_point.lon, kAlt, NAV_FRAME_GLOBAL)});
+	const float home_only_fallback = _rtl.evaluateReturnTypeForTest(6);
+	ASSERT_FALSE(selectsRallyPoint());
+	const rtl_time_estimate_s home_only = publishedEstimate(home_only_fallback);
+
+	// THEN: Home's estimate is also the lowest one
+	EXPECT_FLOAT_EQ(home_only.min_safe_time_estimate, home_only.safe_time_estimate);
+	EXPECT_FLOAT_EQ(home_only.safe_time_estimate, with_rally_point.safe_time_estimate);
+}
+
+// WHY: an active Return keeps its destination, so the battery has to reach that one.
+// WHAT: once RTL_TYPE 6 flies Home, the lowest estimate is Home's although the rally point is closer.
+TEST_F(RTLLowestEstimateTest, Type6LowestEstimateFollowsTheActiveReturn)
+{
+	// GIVEN: the battery reaches Home, and the rally point's estimate is the lowest one
+	publishBatteryTimeRemaining(3600.f);
+	const float home_fallback = _rtl.evaluateReturnTypeForTest(6);
+	const rtl_time_estimate_s inactive = publishedEstimate(home_fallback);
+	ASSERT_LT(inactive.min_safe_time_estimate, inactive.safe_time_estimate);
+
+	// WHEN: Return activates
+	_rtl.activateReturnTypeForTest(6);
+	ASSERT_FALSE(selectsRallyPoint());
+	const rtl_time_estimate_s active = publishedEstimate(NAN);
+
+	// THEN: the lowest estimate is the one to Home
+	EXPECT_FLOAT_EQ(active.min_safe_time_estimate, active.safe_time_estimate);
+	EXPECT_FLOAT_EQ(active.safe_time_estimate, inactive.safe_time_estimate);
 }

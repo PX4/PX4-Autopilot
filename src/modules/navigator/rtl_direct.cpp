@@ -585,11 +585,12 @@ rtl_time_estimate_s RtlDirect::estimateReturnFromState(const Target &target, con
 		// FALLTHROUGH
 		case RTLState::AVOID_GEOFENCE: {
 #if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
-				pos_before_loiter = add_geofence_avoidance_path_distance(
-							    _rtl_time_estimator,
-							    _navigator->get_geofence_avoidance_planner(),
-							    matrix::Vector2d(_global_pos_sub.get().lat, _global_pos_sub.get().lon)
-						    );
+
+				if (target.follow_avoidance_path) {
+					pos_before_loiter = add_geofence_avoidance_path_distance(_rtl_time_estimator,
+							    _navigator->get_geofence_avoidance_planner(), pos_before_loiter);
+				}
+
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 			}
 
