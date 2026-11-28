@@ -1,7 +1,7 @@
 # Vehicle Command uORB message. Used for commanding a mission / action / etc.
 # Follows the MAVLink COMMAND_INT / COMMAND_LONG definition
 
-uint32 MESSAGE_VERSION = 1
+uint32 MESSAGE_VERSION = 2
 
 uint64 timestamp # [us] Time since system start.
 
@@ -241,6 +241,10 @@ float32 param4 # Parameter 4, as defined by MAVLink uint16 VEHICLE_CMD enum.
 float64 param5 # Parameter 5, as defined by MAVLink uint16 VEHICLE_CMD enum.
 float64 param6 # Parameter 6, as defined by MAVLink uint16 VEHICLE_CMD enum.
 float32 param7 # Parameter 7, as defined by MAVLink uint16 VEHICLE_CMD enum.
+uint8 frame # [@enum FRAME] Frame of param5, param6 and param7 for commands with a position, a subset of MAVLink MAV_FRAME. FRAME_GLOBAL for commands without a frame, such as MAVLink COMMAND_LONG
+uint8 FRAME_GLOBAL = 0 # Altitude above mean sea level (AMSL)
+uint8 FRAME_GLOBAL_RELATIVE_ALT = 3 # Altitude relative to the home position
+uint8 FRAME_GLOBAL_TERRAIN_ALT = 10 # Altitude above the terrain below the vehicle
 uint32 command # Command ID.
 uint32 target_system # System which should execute the command.
 uint8 target_component # Component which should execute the command, 0 for all components.

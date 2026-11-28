@@ -580,6 +580,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 	vcmd.param5 = (double)cmd_mavlink.param5;
 	vcmd.param6 = (double)cmd_mavlink.param6;
 	vcmd.param7 = cmd_mavlink.param7;
+	vcmd.frame = vehicle_command_s::FRAME_GLOBAL;
 	vcmd.command = cmd_mavlink.command;
 	vcmd.target_system = mavlink_target_system(msg, cmd_mavlink.target_system);
 	vcmd.target_component = cmd_mavlink.target_component;
@@ -709,6 +710,25 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	}
 
 	vcmd.param7 = cmd_mavlink.z;
+
+	switch (cmd_mavlink.frame) {
+	case MAV_FRAME_GLOBAL_INT:
+		vcmd.frame = vehicle_command_s::FRAME_GLOBAL;
+		break;
+
+	case MAV_FRAME_GLOBAL_RELATIVE_ALT_INT:
+		vcmd.frame = vehicle_command_s::FRAME_GLOBAL_RELATIVE_ALT;
+		break;
+
+	case MAV_FRAME_GLOBAL_TERRAIN_ALT_INT:
+		vcmd.frame = vehicle_command_s::FRAME_GLOBAL_TERRAIN_ALT;
+		break;
+
+	default:
+		vcmd.frame = cmd_mavlink.frame;
+		break;
+	}
+
 	vcmd.command = cmd_mavlink.command;
 	vcmd.target_system = mavlink_target_system(msg, cmd_mavlink.target_system);
 	vcmd.target_component = cmd_mavlink.target_component;
@@ -717,7 +737,7 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	vcmd.confirmation = false;
 	vcmd.from_external = true;
 
-	// The frame is not passed on to Commander, which takes the DO_SET_HOME altitude as AMSL.
+	// Commander takes the DO_SET_HOME altitude as AMSL, so it is converted here.
 	// The frame only matters if the location is given (param1 MAV_BOOL_FALSE), not when the
 	// current position is used (MAV_BOOL_TRUE). Other param1 values are denied by Commander.
 	if (cmd_mavlink.command == MAV_CMD_DO_SET_HOME && fabsf(cmd_mavlink.param1) < FLT_EPSILON
@@ -738,6 +758,7 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 			}
 
 			vcmd.param7 = home_position.alt + cmd_mavlink.z;
+			vcmd.frame = vehicle_command_s::FRAME_GLOBAL;
 
 		} else {
 			acknowledge(msg->sysid, msg->compid, cmd_mavlink.command,

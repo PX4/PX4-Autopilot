@@ -413,11 +413,30 @@ void Navigator::run()
 					position_setpoint.lon = get_global_position()->lon;
 				}
 
-				position_setpoint.alt = PX4_ISFINITE(cmd.param7) ? cmd.param7 : get_global_position()->alt;
+
+				const bool alt_requested = PX4_ISFINITE(cmd.param7);
+				const bool relative_alt_requested = alt_requested && (cmd.frame == vehicle_command_s::FRAME_GLOBAL_RELATIVE_ALT);
+				const bool terrain_alt_requested = alt_requested && (cmd.frame == vehicle_command_s::FRAME_GLOBAL_TERRAIN_ALT);
+				float requested_alt_amsl = cmd.param7;
+
+				if (relative_alt_requested) {
+					requested_alt_amsl = cmd.param7 + get_home_position()->alt;
+
+				} else if (terrain_alt_requested) {
+					const float terrain_alt = get_global_position()->terrain_alt_valid ? get_global_position()->terrain_alt : NAN;
+					requested_alt_amsl = cmd.param7 + (PX4_ISFINITE(terrain_alt) ? terrain_alt : get_home_position()->alt);
+				}
+
+				position_setpoint.alt = alt_requested ? requested_alt_amsl : get_global_position()->alt;
 
 				const bool emergency_allows_position = geofence_emer_allows_position(position_setpoint);
 
-				if (emergency_allows_position && geofence_cont_allows_position(position_setpoint)) {
+				if (relative_alt_requested && !get_home_position()->valid_alt) {
+					mavlink_log_critical(&_mavlink_log_pub, "Reposition altitude is relative to home, but home is not set\t");
+					events::send(events::ID("navigator_reposition_relative_alt_no_home"), {events::Log::Error, events::LogInternal::Info},
+						     "Reposition altitude is relative to home, but home is not set");
+
+				} else if (emergency_allows_position && geofence_cont_allows_position(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 					position_setpoint_triplet_s *curr = get_position_setpoint_triplet();
 
@@ -425,10 +444,11 @@ void Navigator::run()
 					rep->previous.yaw = get_local_position()->heading;
 					rep->previous.lat = get_global_position()->lat;
 					rep->previous.lon = get_global_position()->lon;
-					rep->previous.alt = get_global_position()->alt;
+					set_setpoint_altitude_amsl(rep->previous, get_global_position()->alt);
 
 
 					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+					rep->current.agl_alt = terrain_alt_requested ? cmd.param7 : NAN;
 
 					bool only_alt_change_requested = false;
 
@@ -462,8 +482,8 @@ void Navigator::run()
 						rep->current.lat = cmd.param5;
 						rep->current.lon = cmd.param6;
 
-						if (PX4_ISFINITE(cmd.param7)) {
-							rep->current.alt = cmd.param7;
+						if (alt_requested) {
+							rep->current.alt = requested_alt_amsl;
 
 						} else {
 							rep->current.alt = get_global_position()->alt;
@@ -474,8 +494,8 @@ void Navigator::run()
 						rep->current.lat = PX4_ISFINITE(curr->current.lat) ? curr->current.lat : get_global_position()->lat;
 						rep->current.lon = PX4_ISFINITE(curr->current.lon) ? curr->current.lon : get_global_position()->lon;
 
-						if (PX4_ISFINITE(cmd.param7)) {
-							rep->current.alt = cmd.param7;
+						if (alt_requested) {
+							rep->current.alt = requested_alt_amsl;
 							only_alt_change_requested = true;
 
 						} else {
