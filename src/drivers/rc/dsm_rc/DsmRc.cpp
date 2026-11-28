@@ -37,6 +37,8 @@
 
 #include <termios.h>
 
+#include <lib/rc/rc_uart.hpp>
+
 using namespace time_literals;
 
 ModuleBase::Descriptor DsmRc::desc{task_spawn, custom_command, print_usage};
@@ -138,10 +140,8 @@ int DsmRc::task_spawn(int argc, char *argv[])
 void DsmRc::Run()
 {
 	if (should_exit()) {
-
-		close(_rcs_fd);
-
 		dsm_deinit();
+		_rcs_fd = -1;
 
 		exit_and_cleanup(desc);
 		return;
@@ -216,8 +216,6 @@ void DsmRc::Run()
 
 	bool rc_updated = false;
 
-	constexpr hrt_abstime rc_scan_max = 3_s;
-
 	// read all available data from the serial RC input UART
 	uint8_t rcs_buf[DSM_BUFFER_SIZE] {};
 	int newBytes = ::read(_rcs_fd, &rcs_buf[0], DSM_BUFFER_SIZE);
@@ -233,16 +231,14 @@ void DsmRc::Run()
 
 		// Configure serial port
 		if (_rcs_fd < 0) {
-			_rcs_fd = open(_device, O_RDWR | O_NONBLOCK);
+			_rcs_fd = dsm_init(_device);
+			rc_uart_configure(_rcs_fd, _device);
 		}
-
-		dsm_config(_rcs_fd);
 
 		// flush serial buffer and any existing buffered data
 		tcflush(_rcs_fd, TCIOFLUSH);
 
-	} else if (_rc_scan_locked
-		   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
+	} else {
 
 		if (newBytes > 0) {
 			uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS] {};
@@ -297,12 +293,6 @@ void DsmRc::Run()
 			}
 		}
 
-	} else {
-		_rc_scan_begin = 0;
-		_rc_scan_locked = false;
-
-		close(_rcs_fd);
-		_rcs_fd = -1;
 	}
 
 	if (!rc_updated && !_armed && (hrt_elapsed_time(&_timestamp_last_signal) > 1_s)) {
