@@ -143,6 +143,106 @@ TEST_F(FeasibilityCheckerTest, mission_item_validity)
 	ASSERT_EQ(ret, false);
 }
 
+TEST_F(FeasibilityCheckerTest, terrain_relative_altitude)
+{
+	struct TerrainFrameCase {
+		uint16_t nav_cmd;
+		bool accepted;
+	};
+
+	// only waypoints and loiters can be flown with a terrain-relative altitude
+	const TerrainFrameCase cases[] = {
+		{NAV_CMD_WAYPOINT, true},
+		{NAV_CMD_LOITER_UNLIMITED, true},
+		{NAV_CMD_LOITER_TIME_LIMIT, true},
+		{NAV_CMD_TAKEOFF, false},
+		{NAV_CMD_VTOL_TAKEOFF, false},
+		{NAV_CMD_LAND, false},
+		{NAV_CMD_VTOL_LAND, false},
+		{NAV_CMD_LOITER_TO_ALT, false},
+		{NAV_CMD_DO_SET_ROI_LOCATION, false},
+	};
+
+	// the deprecated _INT synonym is stored as uploaded and handled the same
+	for (const uint8_t frame : {NAV_FRAME_GLOBAL_TERRAIN_ALT, NAV_FRAME_GLOBAL_TERRAIN_ALT_INT}) {
+		for (const TerrainFrameCase &terrain_case : cases) {
+			TestFeasibilityChecker checker;
+			checker.publishLanded(true);
+			checker.publishHomePosition(0, 0, 100.f);
+
+			mission_item_s mission_item = {};
+			mission_item.nav_cmd = terrain_case.nav_cmd;
+			mission_item.altitude = 30.f;
+			mission_item.frame = frame;
+
+			checker.processNextItem(mission_item, 0, 1);
+			EXPECT_EQ(checker.someCheckFailed(), !terrain_case.accepted)
+					<< "nav_cmd " << terrain_case.nav_cmd << ", frame " << (int)frame;
+		}
+	}
+}
+
+TEST_F(FeasibilityCheckerTest, terrain_relative_altitude_below_min_ground_distance)
+{
+	struct MinGroundDistanceCase {
+		float nav_min_gnd_dist;
+		uint8_t frame;
+		float altitude;
+		bool accepted;
+	};
+
+	const MinGroundDistanceCase cases[] = {
+		{-1.f, NAV_FRAME_GLOBAL_TERRAIN_ALT, 5.f, true}, // disabled
+		{10.f, NAV_FRAME_GLOBAL_TERRAIN_ALT, 5.f, false},
+		{10.f, NAV_FRAME_GLOBAL_TERRAIN_ALT, 10.f, true},
+		{10.f, NAV_FRAME_GLOBAL_TERRAIN_ALT, 30.f, true},
+		{10.f, NAV_FRAME_GLOBAL_RELATIVE_ALT, 5.f, true}, // the height above ground of other frames is unknown
+	};
+
+	for (const MinGroundDistanceCase &test_case : cases) {
+		param_set(param_handle(px4::params::NAV_MIN_GND_DIST), &test_case.nav_min_gnd_dist);
+
+		TestFeasibilityChecker checker;
+		checker.publishLanded(true);
+		checker.publishHomePosition(0, 0, 100.f);
+
+		mission_item_s mission_item = {};
+		mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+		mission_item.altitude = test_case.altitude;
+		mission_item.frame = test_case.frame;
+
+		checker.processNextItem(mission_item, 0, 1);
+		EXPECT_EQ(checker.someCheckFailed(), !test_case.accepted)
+				<< "NAV_MIN_GND_DIST " << test_case.nav_min_gnd_dist << ", frame " << (int)test_case.frame
+				<< ", altitude " << test_case.altitude;
+	}
+}
+
+TEST_F(FeasibilityCheckerTest, fixed_wing_land_approach_terrain_relative)
+{
+	for (const uint8_t approach_frame : {NAV_FRAME_GLOBAL_RELATIVE_ALT, NAV_FRAME_GLOBAL_TERRAIN_ALT}) {
+		TestFeasibilityChecker checker;
+		checker.publishLanded(true);
+		checker.publishHomePosition(0, 0, 100);
+		checker.publishVehicleType(vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+
+		mission_item_s mission_item = {};
+		mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+		mission_item.altitude = 50;
+		mission_item.frame = approach_frame;
+		checker.processNextItem(mission_item, 0, 2);
+
+		waypoint_from_heading_and_distance(0, 0, 0, 1000, &mission_item.lat, &mission_item.lon);
+		mission_item.nav_cmd = NAV_CMD_LAND;
+		mission_item.altitude = 0;
+		mission_item.frame = NAV_FRAME_GLOBAL_RELATIVE_ALT;
+		checker.processNextItem(mission_item, 1, 2);
+
+		// the approach altitude above the landing point can not be checked with a terrain-relative approach waypoint
+		EXPECT_EQ(checker.someCheckFailed(), approach_frame == NAV_FRAME_GLOBAL_TERRAIN_ALT);
+	}
+}
+
 TEST_F(FeasibilityCheckerTest, do_jump_requires_earlier_target)
 {
 	struct JumpTargetCase {

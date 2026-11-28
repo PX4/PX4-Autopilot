@@ -344,3 +344,40 @@ TEST_F(PositionSmoothingTest, resetContinuesAcceleration)
 		EXPECT_LE(fabsf(out.acceleration(0) - previous_acceleration(0)), MAX_JERK * dt + 1e-4f);
 	}
 }
+
+TEST_F(PositionSmoothingTest, decoupledVerticalTracksAltitudeDirectly)
+{
+	// A long level leg whose altitude jumps up by 20 m, as for a target following rising terrain
+	const float DELTA_T = 0.02f;
+	const Vector3f PREVIOUS{0.f, 0.f, -20.f};
+	const Vector3f TARGET{1000.f, 0.f, -20.f};
+	Vector3f waypoints[3] = {PREVIOUS, TARGET, TARGET};
+
+	PositionSmoothing::PositionSmoothingSetpoints out;
+	Vector3f position{0.f, 0.f, 0.f};
+
+	_position_smoothing.setVerticalDecoupled(true);
+
+	// 15 s: enough to climb 20 m at MAX_VELOCITY, far from the end of the leg
+	for (int i = 0; i < 750; i++) {
+		_position_smoothing.generateSetpoints(position, waypoints, Vector3f{0.f, 0.f, 0.f}, DELTA_T, false, out);
+		position = out.position;
+		expectDynamicsLimitsRespected(out);
+	}
+
+	EXPECT_NEAR(position(2), TARGET(2), 0.1f) << "The altitude was not reached directly\n";
+	EXPECT_GT(position(0), 50.f) << "No horizontal progress along the leg\n";
+	EXPECT_NEAR(position(1), 0.f, 0.1f) << "Left the horizontal line\n";
+
+	// Coupled, the same altitude change is spread over the whole leg
+	_position_smoothing.reset({0.f, 0.f, 0.f}, {0.f, 0.f, 0.f}, {0.f, 0.f, 0.f});
+	_position_smoothing.setVerticalDecoupled(false);
+	position = {0.f, 0.f, 0.f};
+
+	for (int i = 0; i < 750; i++) {
+		_position_smoothing.generateSetpoints(position, waypoints, Vector3f{0.f, 0.f, 0.f}, DELTA_T, false, out);
+		position = out.position;
+	}
+
+	EXPECT_GT(position(2), -10.f);
+}

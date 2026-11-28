@@ -190,8 +190,15 @@ MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission,
 			break;
 		}
 
-		// Geofence function checks against home altitude amsl
-		missionitem.altitude = mission_item_altitude_is_relative(missionitem) ? missionitem.altitude + home_alt : missionitem.altitude;
+		// Geofence function checks against home altitude amsl. A terrain-relative altitude is only estimated, assuming
+		// the terrain at the home altitude, so the altitude checks of such items are approximate.
+		if (mission_item_altitude_is_terrain(missionitem) && !home_valid) {
+			failure = Failure::NoHome;
+			failed_item = i;
+			break;
+		}
+
+		missionitem.altitude = MissionBlock::get_absolute_altitude_for_item(missionitem, home_alt);
 
 		bool point_valid = PX4_ISFINITE(missionitem.lat) && PX4_ISFINITE(missionitem.lon)
 				   && PX4_ISFINITE(missionitem.altitude)

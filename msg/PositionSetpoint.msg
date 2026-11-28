@@ -21,7 +21,8 @@ float32 vz			# local velocity setpoint in m/s in NED
 
 float64 lat			# latitude, in deg
 float64 lon			# longitude, in deg
-float32 alt			# altitude AMSL, in m
+float32 alt			# altitude AMSL, in m. If agl_alt is finite, only an estimate of the AMSL altitude of agl_alt
+float32 agl_alt			# [m] [@invalid NaN if unused] altitude above the terrain below the vehicle. If finite, it is the altitude setpoint instead of alt
 float32 yaw			# yaw (only in hover), in rad [-PI..PI), NaN = leave to flight task
 
 float32 loiter_radius		# [m] [@range 0, INF] loiter major axis radius

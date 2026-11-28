@@ -25,6 +25,8 @@ uint8 FRAME_MISSION = 2 # Item without a position, such as a DO command. `latitu
 uint8 FRAME_GLOBAL_RELATIVE_ALT = 3 # Altitude relative to the home position
 uint8 FRAME_GLOBAL_INT = 5 # Deprecated MAVLink synonym of FRAME_GLOBAL
 uint8 FRAME_GLOBAL_RELATIVE_ALT_INT = 6 # Deprecated MAVLink synonym of FRAME_GLOBAL_RELATIVE_ALT
+uint8 FRAME_GLOBAL_TERRAIN_ALT = 10 # Altitude above the terrain below the item
+uint8 FRAME_GLOBAL_TERRAIN_ALT_INT = 11 # Deprecated MAVLink synonym of FRAME_GLOBAL_TERRAIN_ALT
 
 uint8 origin # [@enum ORIGIN] Where the mission item was generated
 uint8 ORIGIN_MAVLINK = 0 # Uploaded through MAVLink

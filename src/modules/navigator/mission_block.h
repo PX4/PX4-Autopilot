@@ -44,6 +44,8 @@
 #include "navigator_mode.h"
 #include "navigation.h"
 
+#include <math.h>
+
 #include <drivers/drv_hrt.h>
 #include <systemlib/mavlink_log.h>
 #include <uORB/Publication.hpp>
@@ -52,6 +54,17 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vtol_vehicle_status.h>
+
+/**
+ * Set the AMSL altitude of a setpoint, which is then not terrain-relative anymore
+ *
+ * Use it instead of setting alt directly: a finite agl_alt has precedence over alt.
+ */
+inline void set_setpoint_altitude_amsl(position_setpoint_s &setpoint, float altitude_amsl)
+{
+	setpoint.alt = altitude_amsl;
+	setpoint.agl_alt = NAN;
+}
 
 // cosine of maximal course error to exit loiter if exit course is enforced (fixed-wing only)
 static constexpr float kCosineExitCourseThreshold = 0.99619f; // cos(5°)
@@ -87,11 +100,16 @@ public:
 	/**
 	 * Get the absolute altitude for mission item
 	 *
+	 * A terrain-relative altitude can only be estimated, as the terrain below the item is unknown:
+	 * it is added to terrain_alt if finite, else to home_alt.
+	 *
 	 * @param mission_item	the mission item of interest
 	 * @param home_alt	the home altitude in [m AMSL].
+	 * @param terrain_alt	the terrain altitude below the vehicle in [m AMSL], NAN if unknown.
 	 * @return Mission item altitude in [m AMSL]
 	 */
-	static float get_absolute_altitude_for_item(const  mission_item_s &mission_item, float home_alt);
+	static float get_absolute_altitude_for_item(const  mission_item_s &mission_item, float home_alt,
+			float terrain_alt = NAN);
 
 	/**
 	 * Check if the mission item contains a marker
@@ -159,7 +177,14 @@ protected:
 	 */
 	bool mission_item_to_position_setpoint(const mission_item_s &item, position_setpoint_s *sp);
 
-	void setLoiterItemFromCurrentPositionSetpoint(struct mission_item_s &item, const position_setpoint_s &reference_setpoint);
+	/**
+	 * Set a loiter item at the position of a setpoint
+	 *
+	 * @param keep_terrain_frame if true, a terrain-relative setpoint gives a terrain-relative loiter,
+	 *        otherwise the loiter is at the AMSL altitude from get_setpoint_altitude_amsl()
+	 */
+	void setLoiterItemFromCurrentPositionSetpoint(struct mission_item_s &item, const position_setpoint_s &reference_setpoint,
+			bool keep_terrain_frame = true);
 
 	void setLoiterItemFromCurrentPosition(struct mission_item_s &item);
 	void setLoiterItemFromCurrentPositionWithBraking(struct mission_item_s *item);
@@ -226,6 +251,19 @@ protected:
 	float get_time_inside(const mission_item_s &item) const;
 
 	float get_absolute_altitude_for_item(const mission_item_s &mission_item) const;
+
+	/**
+	 * [m AMSL] Altitude of a setpoint, for items that need an AMSL altitude
+	 *
+	 * For a terrain-relative setpoint, alt is a stale estimate: use the terrain below the vehicle now plus agl_alt,
+	 * or the vehicle altitude without a terrain estimate.
+	 */
+	float get_setpoint_altitude_amsl(const position_setpoint_s &setpoint) const;
+
+	/**
+	 * [m] Altitude of the vehicle above the altitude of a position item, in the item's frame
+	 */
+	float altitudeAboveItem(const mission_item_s &mission_item) const;
 
 	mission_item_s _mission_item{}; // Current mission item that is being executed
 

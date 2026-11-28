@@ -219,6 +219,24 @@ Please add an issue report or PR if you find a missing/incorrect message.
 
 :::
 
+## Terrain-Relative Altitude
+
+<Badge type="tip" text="main (PX4 v2.0)" />
+
+Waypoints and loiters ([MAV_CMD_NAV_WAYPOINT](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_WAYPOINT), [MAV_CMD_NAV_LOITER_UNLIM](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LOITER_UNLIM) and [MAV_CMD_NAV_LOITER_TIME](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LOITER_TIME)) can set their altitude above the terrain, with the frame [MAV_FRAME_GLOBAL_TERRAIN_ALT](https://mavlink.io/en/messages/common.html#MAV_FRAME_GLOBAL_TERRAIN_ALT).
+A mission that uses this frame on any other item is rejected, as is a mission whose landing approach waypoint (the waypoint before the landing) uses it.
+
+The vehicle then flies at that height above the terrain directly below it, as estimated by EKF2 from a [distance sensor](../sensor/rangefinders.md).
+The terrain below the waypoint is not known in advance, so the altitude follows the terrain along the whole leg, within the climb and descent rate limits of the vehicle.
+
+- If [NAV_MIN_GND_DIST](../advanced_config/parameter_reference.md#NAV_MIN_GND_DIST) is set, a mission with a terrain-relative item below that height above the terrain is rejected.
+- The item is reached once the height above the terrain is within the altitude acceptance radius.
+  Without a valid distance to the ground it is reached horizontally only.
+- If the terrain estimate is lost, the vehicle keeps the last valid terrain altitude, and a warning is shown.
+- [Hold mode](../flight_modes_fw/hold.md) entered while established on a terrain-relative loiter keeps following the terrain.
+  Other modes started from a terrain-relative item use the current terrain altitude plus the height above the terrain as their altitude.
+- The [feasibility checks](#mission-feasibility-checks) of the altitude, such as the geofence maximum altitude, assume the terrain at the home altitude, so they are only approximate for terrain-relative items.
+
 ## Mission Command Timeouts
 
 Some mission commands/items can take time to complete, such as a gripper opening and closing, a winch extending or retracting, or a gimbal moving to point at a region of interest.

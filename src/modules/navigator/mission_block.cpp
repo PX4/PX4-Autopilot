@@ -193,6 +193,15 @@ MissionBlock::is_mission_item_reached_or_completed()
 				_navigator->get_global_position()->alt,
 				&dist_xy, &dist_z);
 
+		if (dist >= 0.f && mission_item_altitude_is_terrain(_mission_item)) {
+			// The altitude is above the terrain below the vehicle: compare it with the distance to the ground.
+			// Without a valid distance to the ground, the item is reached horizontally only.
+			const vehicle_local_position_s &local_pos = *_navigator->get_local_position();
+			dist_z = (local_pos.dist_bottom_valid && PX4_ISFINITE(local_pos.dist_bottom)) ?
+				 fabsf(local_pos.dist_bottom - _mission_item.altitude) : 0.f;
+			dist = sqrtf(dist_xy * dist_xy + dist_z * dist_z);
+		}
+
 		if ((_mission_item.nav_cmd == NAV_CMD_TAKEOFF || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF)
 		    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 
@@ -275,7 +284,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 				if (dist >= 0.0f && dist_xy <= (_navigator->get_acceptance_radius() + mission_item_loiter_radius_abs)
 				    && dist_z <= _navigator->get_altitude_acceptance_radius()) {
 
-					curr_sp->alt = mission_item_altitude_amsl;
+					set_setpoint_altitude_amsl(*curr_sp, mission_item_altitude_amsl);
 					curr_sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 					_navigator->set_position_setpoint_triplet_updated();
 				}
@@ -650,6 +659,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 	sp->lat = item.lat;
 	sp->lon = item.lon;
 	sp->alt = get_absolute_altitude_for_item(item);
+	sp->agl_alt = mission_item_altitude_is_terrain(item) ? item.altitude : NAN;
 	sp->yaw = item.yaw;
 	sp->course = NAN; // mission items never command a course, only Course mode sets it
 	sp->loiter_radius = (fabsf(item.loiter_radius) > FLT_EPSILON) ? fabsf(item.loiter_radius) :
@@ -714,7 +724,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 		break;
 
 	case NAV_CMD_LOITER_TO_ALT:
-		sp->alt = _navigator->get_global_position()->alt;
+		set_setpoint_altitude_amsl(*sp, _navigator->get_global_position()->alt);
 
 	// FALLTHROUGH
 	case NAV_CMD_LOITER_TIME_LIMIT:
@@ -736,13 +746,22 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 
 void
 MissionBlock::setLoiterItemFromCurrentPositionSetpoint(struct mission_item_s &item,
-		const position_setpoint_s &reference_setpoint)
+		const position_setpoint_s &reference_setpoint, bool keep_terrain_frame)
 {
 	setLoiterItemCommonFields(&item);
 
 	item.lat = reference_setpoint.lat;
 	item.lon = reference_setpoint.lon;
-	item.altitude = reference_setpoint.alt;
+
+	if (keep_terrain_frame && PX4_ISFINITE(reference_setpoint.agl_alt)) {
+		// keep following the terrain, the loiter supports terrain-relative altitude
+		item.altitude = reference_setpoint.agl_alt;
+		item.frame = NAV_FRAME_GLOBAL_TERRAIN_ALT;
+
+	} else {
+		item.altitude = get_setpoint_altitude_amsl(reference_setpoint);
+	}
+
 	item.loiter_radius = reference_setpoint.loiter_direction_counter_clockwise ?
 			     -reference_setpoint.loiter_radius : reference_setpoint.loiter_radius;
 	item.yaw = reference_setpoint.yaw;
@@ -842,7 +861,7 @@ MissionBlock::publishCourseHoldSetpoint(const float course_rad, const float alti
 
 	pos_sp_triplet->current.valid = true;
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
-	pos_sp_triplet->current.alt = altitude_amsl;
+	set_setpoint_altitude_amsl(pos_sp_triplet->current, altitude_amsl);
 
 	// lat/lon are not used for course guidance but FixedWingModeManager::set_control_mode_current() requires
 	// PX4_ISFINITE(lat) && PX4_ISFINITE(lon) to classify the setpoint as valid and enter FW_POSCTRL_MODE_AUTO.
@@ -935,18 +954,43 @@ MissionBlock::set_vtol_transition_item(struct mission_item_s *item, const uint8_
 float
 MissionBlock::get_absolute_altitude_for_item(const mission_item_s &mission_item) const
 {
-	return get_absolute_altitude_for_item(mission_item, _navigator->get_home_position()->alt);
+	const vehicle_global_position_s &global_pos = *_navigator->get_global_position();
+	const float terrain_alt = global_pos.terrain_alt_valid ? global_pos.terrain_alt : NAN;
+
+	return get_absolute_altitude_for_item(mission_item, _navigator->get_home_position()->alt, terrain_alt);
 }
 
 float
-MissionBlock::get_absolute_altitude_for_item(const mission_item_s &mission_item, float home_alt)
+MissionBlock::get_absolute_altitude_for_item(const mission_item_s &mission_item, float home_alt, float terrain_alt)
 {
 	if (mission_item_altitude_is_relative(mission_item)) {
 		return mission_item.altitude + home_alt;
 
+	} else if (mission_item_altitude_is_terrain(mission_item)) {
+		// Only an estimate: the terrain below the item is unknown, use the one below the vehicle, else the home altitude
+		return mission_item.altitude + (PX4_ISFINITE(terrain_alt) ? terrain_alt : home_alt);
+
 	} else {
 		return mission_item.altitude;
 	}
+}
+
+float
+MissionBlock::get_setpoint_altitude_amsl(const position_setpoint_s &setpoint) const
+{
+	if (!PX4_ISFINITE(setpoint.agl_alt)) {
+		return setpoint.alt;
+	}
+
+	// The alt of a terrain-relative setpoint is an estimate from when it was published, refresh it with the
+	// terrain below the vehicle now. Without a terrain estimate, keep the vehicle altitude rather than jump.
+	const vehicle_global_position_s &global_pos = *_navigator->get_global_position();
+
+	if (global_pos.terrain_alt_valid && PX4_ISFINITE(global_pos.terrain_alt)) {
+		return global_pos.terrain_alt + setpoint.agl_alt;
+	}
+
+	return global_pos.alt;
 }
 
 void
@@ -956,7 +1000,7 @@ MissionBlock::copy_position_if_valid(struct mission_item_s *const mission_item,
 	if (setpoint->valid && setpoint->type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
 		mission_item->lat = setpoint->lat;
 		mission_item->lon = setpoint->lon;
-		mission_item->altitude = setpoint->alt;
+		mission_item->altitude = get_setpoint_altitude_amsl(*setpoint);
 
 	} else {
 		mission_item->lat = _navigator->get_global_position()->lat;
@@ -1097,18 +1141,26 @@ void MissionBlock::updateAltToAvoidTerrainCollisionAndRepublishTriplet(const mis
 	    && _navigator->get_local_position()->dist_bottom_valid
 	    && _navigator->get_local_position()->dist_bottom < _navigator->get_nav_min_gnd_dist_param()
 	    && _navigator->get_local_position()->vz > FLT_EPSILON
-	    && _navigator->get_global_position()->alt - get_absolute_altitude_for_item(mission_item) >
-	    kAltitudeDifferenceForDescentCondition) {
+	    && altitudeAboveItem(mission_item) > kAltitudeDifferenceForDescentCondition) {
 
 		_navigator->sendWarningDescentStoppedDueToTerrain();
 
 		struct position_setpoint_s *curr_sp = &_navigator->get_position_setpoint_triplet()->current;
-		curr_sp->alt = _navigator->get_global_position()->alt;
+		set_setpoint_altitude_amsl(*curr_sp, _navigator->get_global_position()->alt);
 		_navigator->set_position_setpoint_triplet_updated();
 
 		_mission_item.altitude = _navigator->get_global_position()->alt;
 		_mission_item.frame = NAV_FRAME_GLOBAL;
 	}
+}
+
+float MissionBlock::altitudeAboveItem(const mission_item_s &mission_item) const
+{
+	if (mission_item_altitude_is_terrain(mission_item)) {
+		return _navigator->get_local_position()->dist_bottom - mission_item.altitude;
+	}
+
+	return _navigator->get_global_position()->alt - get_absolute_altitude_for_item(mission_item);
 }
 
 void MissionBlock::updateFailsafeChecks()
@@ -1118,10 +1170,20 @@ void MissionBlock::updateFailsafeChecks()
 
 void MissionBlock::updateMaxHaglFailsafe()
 {
-	const float target_alt = _navigator->get_position_setpoint_triplet()->current.alt;
+	const position_setpoint_s &current_sp = _navigator->get_position_setpoint_triplet()->current;
 	const float max_alt = math::min(_navigator->get_local_position()->hagl_max_z, _navigator->get_local_position()->hagl_max_xy);
 	const float terrain_alt = _navigator->get_global_position()->terrain_alt;
 	const bool terrain_alt_valid = _navigator->get_global_position()->terrain_alt_valid;
+
+	// height of the target above the terrain: given directly by a terrain-relative setpoint
+	float target_hagl = NAN;
+
+	if (PX4_ISFINITE(current_sp.agl_alt)) {
+		target_hagl = current_sp.agl_alt;
+
+	} else if (terrain_alt_valid) {
+		target_hagl = current_sp.alt - terrain_alt;
+	}
 
 	// If the HAGL failsafe is declared during front transition, we enter a
 	// FW hold at the current low altitude while not having finished the
@@ -1130,7 +1192,7 @@ void MissionBlock::updateMaxHaglFailsafe()
 	// failsafe here.
 	const bool in_transition_to_fw = _navigator->get_vstatus()->in_transition_to_fw;
 
-	if (!in_transition_to_fw && terrain_alt_valid && (target_alt - terrain_alt) > max_alt) {
+	if (!in_transition_to_fw && PX4_ISFINITE(target_hagl) && target_hagl > max_alt) {
 		// Handle case where the altitude setpoint is above the maximum HAGL (height above ground level)
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Target altitude higher than max HAGL\t");
 		events::send(events::ID("navigator_fail_max_hagl"), events::Log::Error, "Target altitude higher than max HAGL");

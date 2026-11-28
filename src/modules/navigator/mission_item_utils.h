@@ -51,3 +51,13 @@ inline bool mission_item_contains_position(const mission_item_s &item)
 	       item.nav_cmd == NAV_CMD_VTOL_TAKEOFF ||
 	       item.nav_cmd == NAV_CMD_VTOL_LAND;
 }
+
+/**
+ * @return true if navigator can fly the item with a terrain-relative altitude (NAV_FRAME_GLOBAL_TERRAIN_ALT)
+ */
+inline bool mission_item_supports_terrain_altitude(const mission_item_s &item)
+{
+	return item.nav_cmd == NAV_CMD_WAYPOINT ||
+	       item.nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
+	       item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT;
+}

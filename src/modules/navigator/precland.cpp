@@ -113,7 +113,7 @@ PrecLand::on_activation()
 		PX4_WARN("Reset");
 		pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
 		pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;
-		pos_sp_triplet->current.alt = _navigator->get_global_position()->alt;
+		set_setpoint_altitude_amsl(pos_sp_triplet->current, _navigator->get_global_position()->alt);
 		pos_sp_triplet->current.valid = true;
 		pos_sp_triplet->current.timestamp = hrt_absolute_time();
 	}
@@ -299,7 +299,7 @@ PrecLand::run_state_horizontal_approach()
 		// Stay at current position for searching for the landing target
 		pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
 		pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;
-		pos_sp_triplet->current.alt = _navigator->get_global_position()->alt;
+		set_setpoint_altitude_amsl(pos_sp_triplet->current, _navigator->get_global_position()->alt);
 
 		if (!switch_to_state_start()) {
 			switch_to_state_fallback();
@@ -332,7 +332,7 @@ PrecLand::run_state_horizontal_approach()
 	// XXX need to transform to GPS coords because mc_pos_control only looks at that
 	_map_ref.reproject(x, y, pos_sp_triplet->current.lat, pos_sp_triplet->current.lon);
 
-	pos_sp_triplet->current.alt = _approach_alt;
+	set_setpoint_altitude_amsl(pos_sp_triplet->current, _approach_alt);
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 
 #if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
@@ -355,7 +355,7 @@ PrecLand::run_state_descend_above_target()
 			// Stay at current position for searching for the target
 			pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
 			pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;
-			pos_sp_triplet->current.alt = _navigator->get_global_position()->alt;
+			set_setpoint_altitude_amsl(pos_sp_triplet->current, _navigator->get_global_position()->alt);
 
 			if (!switch_to_state_start()) {
 				switch_to_state_fallback();
@@ -395,7 +395,7 @@ PrecLand::run_state_search()
 			_target_acquired_time = hrt_absolute_time();
 			position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 			float new_alt = _navigator->get_global_position()->alt + 1.0f;
-			pos_sp_triplet->current.alt = new_alt < pos_sp_triplet->current.alt ? new_alt : pos_sp_triplet->current.alt;
+			set_setpoint_altitude_amsl(pos_sp_triplet->current, new_alt < pos_sp_triplet->current.alt ? new_alt : pos_sp_triplet->current.alt);
 			_navigator->set_position_setpoint_triplet_updated();
 		}
 
@@ -493,7 +493,7 @@ PrecLand::switch_to_state_search()
 {
 	PX4_INFO("Climbing to search altitude.");
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-	pos_sp_triplet->current.alt = _navigator->get_home_position()->alt + _param_pld_srch_alt.get();
+	set_setpoint_altitude_amsl(pos_sp_triplet->current, _navigator->get_home_position()->alt + _param_pld_srch_alt.get());
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 	clear_current_yaw_setpoint();
 	_navigator->set_position_setpoint_triplet_updated();
@@ -512,7 +512,7 @@ PrecLand::switch_to_state_fallback()
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
 	pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;
-	pos_sp_triplet->current.alt = _navigator->get_global_position()->alt;
+	set_setpoint_altitude_amsl(pos_sp_triplet->current, _navigator->get_global_position()->alt);
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_LAND;
 	clear_current_yaw_setpoint();
 	_navigator->set_position_setpoint_triplet_updated();

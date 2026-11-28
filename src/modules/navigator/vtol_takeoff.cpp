@@ -118,7 +118,7 @@ VtolTakeoff::on_active()
 				position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
 				if (pos_sp_triplet->current.valid && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
-					setLoiterItemFromCurrentPositionSetpoint(_mission_item, pos_sp_triplet->current);
+					setLoiterItemFromCurrentPositionSetpoint(_mission_item, pos_sp_triplet->current, false);
 
 				} else {
 					setLoiterItemFromCurrentPosition(_mission_item);

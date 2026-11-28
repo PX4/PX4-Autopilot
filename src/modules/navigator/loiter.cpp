@@ -208,7 +208,7 @@ Loiter::reposition()
 		pos_sp_triplet->previous.yaw = _navigator->get_local_position()->heading;
 		pos_sp_triplet->previous.lat = _navigator->get_global_position()->lat;
 		pos_sp_triplet->previous.lon = _navigator->get_global_position()->lon;
-		pos_sp_triplet->previous.alt = _navigator->get_global_position()->alt;
+		set_setpoint_altitude_amsl(pos_sp_triplet->previous, _navigator->get_global_position()->alt);
 		memcpy(&pos_sp_triplet->current, &rep->current, sizeof(rep->current));
 		pos_sp_triplet->next.valid = false;
 

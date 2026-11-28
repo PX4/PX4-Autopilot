@@ -367,6 +367,16 @@ public:
 	}
 
 	/**
+	 * @param decoupled true to track the vertical target directly, independently of the horizontal progress towards
+	 *        the target (e.g. for a target at a constant height above the terrain, which moves with the terrain below the
+	 *        vehicle), false to fly a straight 3D line to it
+	 */
+	inline void setVerticalDecoupled(bool decoupled)
+	{
+		_vertical_decoupled = decoupled;
+	}
+
+	/**
 	 * @param radius target acceptance radius
 	 */
 	inline void setTargetAcceptanceRadius(float radius)
@@ -428,6 +438,7 @@ private:
 	float _cruise_speed{0.f};
 	float _horizontal_trajectory_gain{0.f};
 	float _target_acceptance_radius{0.f};
+	bool _vertical_decoupled{false};
 
 
 	/* Internal state */

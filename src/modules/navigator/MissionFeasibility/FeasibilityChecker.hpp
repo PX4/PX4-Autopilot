@@ -104,6 +104,7 @@ private:
 	float _param_mis_dist_1wp{0.f};
 	float _param_nav_acc_rad{0.f};
 	int32_t _param_mis_takeoff_land_req{0};
+	float _param_nav_min_gnd_dist{-1.f};
 
 	bool _is_landed{false};
 	float _home_alt_msl{NAN};

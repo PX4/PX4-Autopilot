@@ -141,6 +141,12 @@ void FeasibilityChecker::updateData()
 	if (handle != PARAM_INVALID) {
 		param_get(handle, &_param_mis_takeoff_land_req);
 	}
+
+	handle = param_find("NAV_MIN_GND_DIST");
+
+	if (handle != PARAM_INVALID) {
+		param_get(handle, &_param_nav_min_gnd_dist);
+	}
 }
 
 bool FeasibilityChecker::processNextItem(mission_item_s &mission_item, const int current_index, const int total_count)
@@ -238,6 +244,30 @@ bool FeasibilityChecker::checkMissionItemValidity(mission_item_s &mission_item, 
 				      current_index + 1);
 		return false;
 
+	}
+
+	/* reject terrain-relative alt on items that navigator can not fly with it, it would treat it as AMSL */
+	if (mission_item_altitude_is_terrain(mission_item)
+	    && (mission_item_contains_position(mission_item) || mission_item.nav_cmd == NAV_CMD_DO_SET_ROI_LOCATION)
+	    && !mission_item_supports_terrain_altitude(mission_item)) {
+
+		mavlink_log_critical(_mavlink_log_pub, "Mission rejected: WP %d uses terrain alt, unsupported\t", current_index + 1);
+		events::send<int16_t>(events::ID("navigator_mis_terrain_alt_cmd"), {events::Log::Error, events::LogInternal::Info},
+				      "Mission rejected: item {1} uses terrain-relative altitude, only supported for waypoints and loiters",
+				      current_index + 1);
+		return false;
+	}
+
+	/* reject terrain-relative alt below the minimum height above ground, navigator would stop the descent to it */
+	if (mission_item_altitude_is_terrain(mission_item) && mission_item_contains_position(mission_item)
+	    && _param_nav_min_gnd_dist > FLT_EPSILON && mission_item.altitude < _param_nav_min_gnd_dist) {
+
+		mavlink_log_critical(_mavlink_log_pub, "Mission rejected: WP %d terrain alt below NAV_MIN_GND_DIST\t",
+				     current_index + 1);
+		events::send<int16_t, float>(events::ID("navigator_mis_terrain_alt_below_min_gnd_dist"), {events::Log::Error, events::LogInternal::Info},
+					     "Mission rejected: item {1} is below the minimum height above ground of {2:.1m}",
+					     current_index + 1, _param_nav_min_gnd_dist);
+		return false;
 	}
 
 	// check if we find unsupported items and reject mission if so
@@ -391,6 +421,15 @@ bool FeasibilityChecker::checkFixedWingLandApproach(mission_item_s &mission_item
 	if (mission_item.nav_cmd == NAV_CMD_LAND && current_index > 0) {
 
 		if (mission_item_contains_position(_mission_item_previous)) {
+
+			// the approach altitude above the landing point can not be checked with a terrain-relative entrance
+			if (mission_item_altitude_is_terrain(_mission_item_previous)) {
+				mavlink_log_critical(_mavlink_log_pub,
+						     "Mission rejected: the approach waypoint can not use terrain alt.\t");
+				events::send(events::ID("navigator_mis_approach_wp_terrain"), {events::Log::Error, events::LogInternal::Info},
+					     "Mission rejected: the approach waypoint can not use terrain-relative altitude");
+				return false;
+			}
 
 			const float land_alt_amsl = mission_item_altitude_is_relative(mission_item) ? mission_item.altitude +
 						    _home_alt_msl : mission_item.altitude;

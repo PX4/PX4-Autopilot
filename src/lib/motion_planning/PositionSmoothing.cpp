@@ -201,7 +201,7 @@ const Vector3f PositionSmoothing::_generateVelocitySetpoint(const Vector3f &posi
 
 	Vector3f velocity_setpoint = feedforward_velocity_setpoint;
 
-	if (xy_target_valid && z_target_valid) {
+	if (xy_target_valid && z_target_valid && !_vertical_decoupled) {
 		// Use 3D position setpoint to generate a 3D velocity setpoint
 		Vector3f pos_traj(_trajectory[0].getCurrentPosition(),
 				  _trajectory[1].getCurrentPosition(),
@@ -242,7 +242,17 @@ const Vector3f PositionSmoothing::_generateVelocitySetpoint(const Vector3f &posi
 
 		// Get various path specific vectors
 		Vector2f pos_traj(_trajectory[0].getCurrentPosition(), _trajectory[1].getCurrentPosition());
-		Vector2f crossing_point = is_single_waypoint ? Vector2f(target) : Vector2f(_getCrossingPoint(position, waypoints));
+
+		// With a decoupled vertical, follow the line between the waypoints horizontally only
+		const float z_traj = _trajectory[2].getCurrentPosition();
+		const Vector3f waypoints_horizontal[3] = {
+			{waypoints[0](0), waypoints[0](1), z_traj},
+			{waypoints[1](0), waypoints[1](1), z_traj},
+			{waypoints[2](0), waypoints[2](1), z_traj},
+		};
+		const Vector3f(&waypoints_line)[3] = _vertical_decoupled ? waypoints_horizontal : waypoints;
+
+		Vector2f crossing_point = is_single_waypoint ? Vector2f(target) : Vector2f(_getCrossingPoint(position, waypoints_line));
 		Vector2f pos_traj_to_dest_xy = crossing_point - pos_traj;
 		Vector2f u_pos_traj_to_dest_xy(pos_traj_to_dest_xy.unit_or_zero());
 
@@ -269,11 +279,16 @@ const Vector3f PositionSmoothing::_generateVelocitySetpoint(const Vector3f &posi
 		}
 	}
 
-	else if (z_target_valid) {
+	if (z_target_valid && (!xy_target_valid || _vertical_decoupled)) {
 		// Use Z position setpoint to generate a Z velocity setpoint
 
 		const float z_dir = matrix::sign(target(2) - _trajectory[2].getCurrentPosition());
-		const float vel_sp_z = z_dir * _getMaxZSpeed(waypoints);
+
+		// A decoupled vertical holds its target (e.g. a height above the moving terrain) instead of passing
+		// through it towards the next waypoint: arrive with zero vertical speed, else it keeps overshooting
+		const Vector3f waypoints_hold[3] = {waypoints[0], waypoints[1], waypoints[1]};
+		const Vector3f(&waypoints_z)[3] = _vertical_decoupled ? waypoints_hold : waypoints;
+		const float vel_sp_z = z_dir * _getMaxZSpeed(waypoints_z);
 
 		// If available, use the existing velocity as a feedforward, otherwise replace it
 		if (PX4_ISFINITE(velocity_setpoint(2))) {
@@ -342,7 +357,8 @@ void PositionSmoothing::_generateTrajectory(
 		_trajectory[i].updateDurations(velocity_setpoint(i));
 	}
 
-	VelocitySmoothing::timeSynchronization(_trajectory, 3);
+	// A decoupled vertical tracks its own target: only synchronize the horizontal axes
+	VelocitySmoothing::timeSynchronization(_trajectory, _vertical_decoupled ? 2 : 3);
 
 	// Axis 0,1 (XY) get the horizontal stretch; axis 2 (Z) gets the vertical stretch.
 	const float axis_stretch[3] = { time_stretch_xy, time_stretch_xy, time_stretch_z };
