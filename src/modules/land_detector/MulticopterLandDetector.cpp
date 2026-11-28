@@ -231,7 +231,13 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	// low thrust: 30% of throttle range between min and hover, relaxed to 60% if hover thrust estimate available
 	const float thr_pct_hover = _hover_thrust_estimate_valid ? 0.6f : 0.3f;
 	const float hover_thrust = PX4_ISFINITE(_hover_thrust_estimate) ? _hover_thrust_estimate : _params.mpc_thr_hover;
-	const float sys_low_throttle = _params.minThrottle + (hover_thrust - _params.minThrottle) * thr_pct_hover;
+	float sys_low_throttle = _params.minThrottle + (hover_thrust - _params.minThrottle) * thr_pct_hover;
+
+	if (!_flag_control_climb_rate_enabled) {
+		// manual thrust cannot go below MPC_MANTHR_MIN, keep the threshold reachable (same as in maybe landed)
+		sys_low_throttle = math::max(sys_low_throttle, _params.minManThrottle + 0.01f);
+	}
+
 	// Only use thrust setpoint for landing detection if it's being actively published.
 	// In OFFBOARD direct_actuator mode, PX4 controllers don't publish thrust setpoints,
 	// so stale data would cause false landed-state detection. This intentionally disables
