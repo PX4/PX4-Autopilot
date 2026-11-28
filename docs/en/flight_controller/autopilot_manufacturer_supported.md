@@ -43,6 +43,7 @@ The boards in this category are:
 - [CubePilot Cube Yellow](../flight_controller/cubepilot_cube_yellow.md)
 - [CyberCraft CyberX-v10](../flight_controller/cyberx_v10.md)
 - [Gear Up AirBrainH743](../flight_controller/gearup_airbrainh743.md)
+- [GOKHAN IHA G-Pilot P1](../flight_controller/gpilot_p1.md)
 - [Holybro Kakute H7v2](../flight_controller/kakuteh7v2.md)
 - [Holybro Kakute H7mini](../flight_controller/kakuteh7mini.md)
 - [Holybro Kakute H7](../flight_controller/kakuteh7.md)
