@@ -41,6 +41,11 @@ file(GLOB zenoh_catalog_msg_files
 	${PX4_SOURCE_DIR}/msg/*.msg
 	${PX4_SOURCE_DIR}/msg/versioned/*.msg
 )
+# Out-of-tree messages, so that Zenoh can bridge them too
+if(EXTERNAL_MODULES_LOCATION)
+	file(GLOB zenoh_catalog_external_msg_files ${EXTERNAL_MODULES_LOCATION}/msg/*.msg)
+	list(APPEND zenoh_catalog_msg_files ${zenoh_catalog_external_msg_files})
+endif()
 execute_process(
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/zenoh/px_generate_zenoh_topic_files.py
 		--zenoh-config

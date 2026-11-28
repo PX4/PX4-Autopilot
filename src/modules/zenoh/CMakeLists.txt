@@ -90,14 +90,24 @@ if(CONFIG_ZENOH_SERIAL)
     target_compile_options(zenohpico_static PRIVATE -DZ_LINK_SERIAL)
 endif()
 
+# PX4's topics, then those of out-of-tree messages listed in $EXTERNAL_MODULES_LOCATION/msg/dds_topics.yaml
+set(dds_topics_files ${CMAKE_CURRENT_SOURCE_DIR}/dds_topics.yaml)
+if(EXTERNAL_MODULES_LOCATION AND EXISTS ${EXTERNAL_MODULES_LOCATION}/msg/dds_topics.yaml)
+	list(APPEND dds_topics_files ${EXTERNAL_MODULES_LOCATION}/msg/dds_topics.yaml)
+endif()
+set(dds_topics_args)
+foreach(dds_topics_file ${dds_topics_files})
+	list(APPEND dds_topics_args --dds-topics-file ${dds_topics_file})
+endforeach()
+
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/default_topics.c
 COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../uxrce_dds_client/generate_dds_topics.py
 	--client-outdir ${CMAKE_CURRENT_BINARY_DIR}
-	--dds-topics-file ${CMAKE_CURRENT_SOURCE_DIR}/dds_topics.yaml
+	${dds_topics_args}
 	--template_file ${CMAKE_CURRENT_SOURCE_DIR}/default_topics.c.em
 DEPENDS
 	${CMAKE_CURRENT_SOURCE_DIR}/../uxrce_dds_client/generate_dds_topics.py
-	${CMAKE_CURRENT_SOURCE_DIR}/dds_topics.yaml
+	${dds_topics_files}
 	${CMAKE_CURRENT_SOURCE_DIR}/default_topics.c.em
 COMMENT "Generating Default config"
 )

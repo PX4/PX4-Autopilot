@@ -217,6 +217,13 @@ if(PYTHON_COVERAGE)
 	set(PYTHON_EXECUTABLE coverage run -p)
 endif()
 
+# external modules (before kconfig, which adds their messages to the Zenoh topic catalog)
+set(EXTERNAL_MODULES_LOCATION "" CACHE STRING "External modules source location")
+
+if(NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
+	get_filename_component(EXTERNAL_MODULES_LOCATION "${EXTERNAL_MODULES_LOCATION}" ABSOLUTE)
+endif()
+
 include(px4_config)
 include(kconfig)
 message(STATUS "PX4 config: ${PX4_CONFIG}")
@@ -236,13 +243,6 @@ if(${PX4_PLATFORM} STREQUAL "posix")
 	else()
 		message(STATUS "PX4 lockstep: disabled")
 	endif()
-endif()
-
-# external modules
-set(EXTERNAL_MODULES_LOCATION "" CACHE STRING "External modules source location")
-
-if(NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
-	get_filename_component(EXTERNAL_MODULES_LOCATION "${EXTERNAL_MODULES_LOCATION}" ABSOLUTE)
 endif()
 
 set_property(GLOBAL PROPERTY PX4_MODULE_CONFIG_FILES)
