@@ -423,10 +423,26 @@ CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor, 
 	}
 }
 
+int
+CollisionPrevention::guidanceBins(float guidance_angle_deg)
+{
+	// CP_GUIDE_ANG declares min 0 / max 90 in collisionprevention_params.yaml, but a parameter's range
+	// is not enforced when it is set (e.g. over MAVLink PARAM_SET). Bound it here: an out-of-range or
+	// non-finite value would otherwise unbound the guidance loop below and index the obstacle map
+	// outside [0, BIN_COUNT).
+	static constexpr float MAX_GUIDE_ANGLE_DEG{90.f};
+
+	if (!PX4_ISFINITE(guidance_angle_deg)) {
+		return 0;
+	}
+
+	return (int)floor(math::constrain(guidance_angle_deg, 0.f, MAX_GUIDE_ANGLE_DEG) / BIN_SIZE);
+}
+
 void
 CollisionPrevention::_adaptSetpointDirection(Vector2f &setpoint_dir, int &setpoint_index, float vehicle_yaw_angle_rad)
 {
-	const int guidance_bins = floor(_param_cp_guide_ang.get() / BIN_SIZE);
+	const int guidance_bins = guidanceBins(_param_cp_guide_ang.get());
 	const int sp_index_original = setpoint_index;
 	float best_cost = 9999.f;
 	int new_sp_index = setpoint_index;
