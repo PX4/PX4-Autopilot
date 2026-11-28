@@ -404,10 +404,12 @@ MissionBlock::is_mission_item_reached_or_completed()
 	update_precision_takeoff(now);
 #endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
-	// Update the 'waypoint yaw reached' status, only rotary wings wait for the heading
+	// Update the 'waypoint yaw reached' status, only rotary wings wait for the heading.
+	// During a front transition the vehicle no longer turns to it, so the wait ends.
 	if (_waypoint_position_reached && !_waypoint_yaw_reached) {
 
 		if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+		    && !_navigator->get_vstatus()->in_transition_to_fw
 		    && _navigator->get_yaw_to_be_accepted(_mission_item.yaw)
 		    && _navigator->get_local_position()->heading_good_for_control) {
 

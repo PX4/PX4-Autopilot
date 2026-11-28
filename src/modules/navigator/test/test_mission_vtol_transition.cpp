@@ -336,6 +336,47 @@ TEST_F(MissionVtolTransitionTest, FrontTransitionWithoutLaterWaypointIsSentAtOnc
 	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
 }
 
+TEST_F(MissionVtolTransitionTest, OnlyAFrontTransitionThatHasNotStartedIsAligned)
+{
+	// A back transition needs no heading, and during a front transition the vehicle cannot stop to turn: these
+	// items are sent at once, with no setpoint to hold. During a back transition the vehicle can turn as in hover.
+	MissionTestPeer mission(&_navigator);
+	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
+
+	struct {
+		uint8_t target_state;
+		bool in_front_transition;
+		bool in_back_transition;
+		bool aligned;
+	} cases[] = {
+		{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC, false, false, false},
+		{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC, true, false, false},
+		{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW, true, false, false},
+		{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW, false, true, true},
+	};
+
+	for (const auto &test_case : cases) {
+		SCOPED_TRACE(::testing::Message() << int(test_case.target_state) << ", " << test_case.in_front_transition
+			     << ", " << test_case.in_back_transition);
+		setAirborneVehicle(position, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, M_PI_F,
+				   test_case.in_front_transition, test_case.in_back_transition);
+
+		vehicle_command_s command{};
+		prepareExecution(mission, {makeVtolTransitionItem(test_case.target_state), waypointAt(200.f, 0.f)});
+
+		if (test_case.aligned) {
+			EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING);
+			EXPECT_FALSE(_command_sub.updated());
+
+		} else {
+			EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
+			EXPECT_FALSE(_navigator.get_position_setpoint_triplet()->current.valid);
+			ASSERT_TRUE(_command_sub.update(&command));
+			EXPECT_FLOAT_EQ(command.param1, test_case.target_state);
+		}
+	}
+}
+
 TEST_F(MissionVtolTransitionTest, VtolTakeoffKeepsItsWaypointOnlyWhenMovementRemains)
 {
 	MissionTestPeer mission(&_navigator);
@@ -392,5 +433,39 @@ TEST_F(MissionVtolTransitionTest, VtolTakeoffKeepsItsWaypointOnlyWhenMovementRem
 		EXPECT_DOUBLE_EQ(triplet.current.lat, movement_remains ? takeoff.lat : next.lat);
 		EXPECT_DOUBLE_EQ(triplet.current.lon, movement_remains ? takeoff.lon : next.lon);
 		EXPECT_EQ(triplet.current.type, position_setpoint_s::SETPOINT_TYPE_POSITION);
+	}
+}
+
+TEST_F(MissionVtolTransitionTest, FrontTransitionDuringTakeoffKeepsTheTakeoffWaypoint)
+{
+	// A front transition from the ground station or RC ends the hover steps of the takeoff, during its alignment
+	// or at the end of its climb. The takeoff still flies to its waypoint.
+	MissionTestPeer mission(&_navigator);
+	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
+	auto takeoff = waypointAt(100.f, 0.f);
+	takeoff.nav_cmd = NAV_CMD_VTOL_TAKEOFF;
+
+	for (bool during_alignment : {true, false}) {
+		SCOPED_TRACE(during_alignment);
+		setAirborneVehicle(position, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, M_PI_2_F, !during_alignment);
+		prepareExecution(mission, {takeoff, waypointAt(300.f, 0.f)}, MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_CLIMB);
+
+		if (during_alignment) {
+			ASSERT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING);
+			mission.on_active();
+			EXPECT_FALSE(_command_sub.updated());
+
+			// Not aligned, but the transition runs: the takeoff goes on.
+			publishVehicleStatus(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true);
+			mission.on_active();
+		}
+
+		EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF);
+
+		publishVehicleStatus(vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+		mission.on_active();
+		EXPECT_EQ(mission.currentSequenceForTest(), 0);
+		EXPECT_EQ(mission.currentMissionItemForTest().nav_cmd, NAV_CMD_WAYPOINT);
+		EXPECT_DOUBLE_EQ(_navigator.get_position_setpoint_triplet()->current.lat, takeoff.lat);
 	}
 }

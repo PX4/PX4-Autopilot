@@ -251,6 +251,18 @@ TEST_F(MissionBlockYawTest, VtolAwaitsForcedHeading)
 	EXPECT_FALSE(_block.reached());
 }
 
+TEST_F(MissionBlockYawTest, VtolStopsAwaitingForcedHeadingInFrontTransition)
+{
+	// e.g. a front transition from RC during the alignment for it: the vehicle no longer turns to the heading
+	_navigator.get_vstatus()->is_vtol = true;
+	_block.item().force_heading = true;
+	EXPECT_FALSE(_block.reached());
+
+	_navigator.get_vstatus()->in_transition_mode = true;
+	_navigator.get_vstatus()->in_transition_to_fw = true;
+	EXPECT_TRUE(_block.reached());
+}
+
 TEST_F(MissionBlockYawTest, VtolTakeoffTransitionsOnceAligned)
 {
 	VtolTakeoff takeoff{&_navigator};
