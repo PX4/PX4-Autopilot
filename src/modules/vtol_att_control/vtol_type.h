@@ -346,6 +346,11 @@ protected:
 	bool isBackTransitionSpeedOrTimeReached() const;
 
 	/**
+	 * @return the ground speed along the body x axis if valid, otherwise the calibrated airspeed, NAN if unknown
+	 */
+	float getForwardSpeed() const;
+
+	/**
 	 * Called when fixed-wing is requested while a back transition is in progress.
 	 *
 	 * @return true to switch to fixed-wing mode immediately, false to restart the front transition
@@ -363,9 +368,10 @@ protected:
 	virtual void onFrontTransitionCompleted() {}
 
 	/**
-	 * Called when a front transition is aborted into hover because fixed-wing is no longer requested.
+	 * Called when a front transition is aborted because fixed-wing is no longer requested.
+	 * Returns the mode to enter: hover, or a back transition for a type that needs to decelerate.
 	 */
-	virtual void onFrontTransitionAborted() {}
+	virtual mode onFrontTransitionAborted() { return mode::ROTARY_WING; }
 
 	/**
 	 * Called on every update while a quad-chute keeps the vehicle in hover, before the mode is set to hover.

@@ -86,9 +86,24 @@ void Standard::onFrontTransitionCompleted()
 	_front_transition_pitch = Eulerf(Quatf(_v_att_sp->q_d)).theta();
 }
 
-void Standard::onFrontTransitionAborted()
+mode Standard::onFrontTransitionAborted()
 {
 	_pusher_throttle = 0.0f;
+	_mc_roll_weight = 1.0f;
+	_mc_pitch_weight = 1.0f;
+	_mc_yaw_weight = 1.0f;
+	_mc_throttle_weight = 1.0f;
+
+	// A stopped front transition at speed decelerates in a back transition with full multicopter control.
+	_full_mc_control_in_back_transition = !_attc->get_immediate_transition()
+					      && getForwardSpeed() >= _param_mpc_xy_cruise.get();
+
+	if (_full_mc_control_in_back_transition) {
+		resetTransitionStates();
+		return mode::TRANSITION_TO_MC;
+	}
+
+	return mode::ROTARY_WING;
 }
 
 void Standard::onQuadchute()
@@ -183,7 +198,7 @@ void Standard::update_transition_state()
 	} else if (_common_vtol_mode == mode::TRANSITION_TO_MC) {
 
 		// continually increase mc attitude control as we transition back to mc mode
-		if (_param_vt_b_trans_ramp.get() > FLT_EPSILON) {
+		if (_param_vt_b_trans_ramp.get() > FLT_EPSILON && !_full_mc_control_in_back_transition) {
 			mc_weight = _time_since_trans_start / _param_vt_b_trans_ramp.get();
 		}
 
