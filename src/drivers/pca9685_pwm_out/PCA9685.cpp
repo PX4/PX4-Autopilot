@@ -126,7 +126,7 @@ int PCA9685::updateFreq(float freq)
 		return PX4_ERROR;
 	}
 
-	currentFreq = (float)PCA9685_CLOCK_REFERENCE / (float)((divider + 1) * 4096);
+	currentFreq = (float)PCA9685_CLOCK_REFERENCE / (float)((divider + 1) * PCA9685_PWM_RES);
 	PX4_INFO("PCA9685 PWM frequency: target=%.2f real=%.2f", (double)freq, (double)currentFreq);
 
 	return setDivider(divider);
@@ -216,7 +216,7 @@ int PCA9685::writePWM(uint8_t idx, const uint16_t *value, uint8_t num)
 			buf[3 + i * PCA9685_REG_LED_INCREMENT] = 0x00;
 			buf[4 + i * PCA9685_REG_LED_INCREMENT] = PCA9685_LED_ON_FULL_ON_OFF_MASK;
 
-		} else if (value[i] == 4096) {
+		} else if (value[i] == PCA9685_PWM_RES) {
 			buf[2 + i * PCA9685_REG_LED_INCREMENT] = PCA9685_LED_ON_FULL_ON_OFF_MASK;
 			buf[3 + i * PCA9685_REG_LED_INCREMENT] = 0x00;
 			buf[4 + i * PCA9685_REG_LED_INCREMENT] = 0x00;
