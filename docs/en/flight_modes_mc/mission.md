@@ -150,12 +150,13 @@ Mission Items:
 - [MAV_CMD_NAV_TAKEOFF](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_TAKEOFF)
 - [MAV_CMD_NAV_LOITER_TO_ALT](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_LOITER_TO_ALT)
 - [MAV_CMD_DO_JUMP](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_JUMP)
-  - _Param1_ (sequence number) must refer to an earlier mission item.
-    A mission is rejected if a jump targets itself or a later item, even if its repeat count is 0.
-    It is also rejected if the items from the target reach a `DO_JUMP` before a waypoint, the jump itself included, even if its repeat count is 0: a jump cannot target another jump, and a loop needs a waypoint.
+  - _Param1_ (sequence number) must refer to an earlier mission item, and from that item the mission must reach a waypoint (or takeoff, land or loiter item) before it reaches any `DO_JUMP`, including this one.
+    A mission that breaks this rule is rejected, even if the repeat count is 0.
+    So a jump can't target itself, a later item or another `DO_JUMP`, and the looped items must include a waypoint.
   - _Param2_ (repeat count) must be from 0 to 65535.
     A mission with a negative or larger repeat count is rejected.
-  - Up to 9 `DO_JUMP` items in a row are supported: with more, the mission ends there once the first 9 have used up their repeats.
+  - At most 9 `DO_JUMP` items can follow one another with no other item between them.
+    A mission with more is still accepted, but ends at that point once the first 9 have used up their repeats.
 - [MAV_CMD_NAV_ROI](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_ROI)
 - [MAV_CMD_DO_SET_ROI](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_ROI)
 - [MAV_CMD_DO_SET_ROI_LOCATION](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_ROI_LOCATION)
