@@ -455,6 +455,7 @@ void Sih::parameters_updated()
 	_optical_flow_interval_us = static_cast<hrt_abstime>(roundf(1e6f / math::max(_param_sih_of_rate.get(), 1.f)));
 
 	_T_TAU = _param_sih_t_tau.get();
+	_T_START = _param_sih_t_start.get();
 
 	_v_wind_N = Vector3f(_param_sih_wind_n.get(), _param_sih_wind_e.get(), 0.f);
 }
@@ -478,6 +479,33 @@ void Sih::read_motors(const float dt)
 
 				} else {
 					float u_sp = actuators_out.output[i];
+
+					// A real ESC needs a while to start a stopped motor before it makes thrust, and reversing
+					// means stopping first: model that as a dead time SIH_T_START from standstill
+					if (_T_START > 0.f) {
+						const bool running = fabsf(_u[i]) > 0.02f;
+
+						if (running) {
+							_motor_start_time[i] = 0;
+
+							if (u_sp * _u[i] < 0.f) {
+								u_sp = 0.f;
+							}
+
+						} else if (fabsf(u_sp) > 0.02f) {
+							if (_motor_start_time[i] == 0) {
+								_motor_start_time[i] = actuators_out.timestamp;
+							}
+
+							if (actuators_out.timestamp - _motor_start_time[i] < (hrt_abstime)(_T_START * 1e6f)) {
+								u_sp = 0.f;
+							}
+
+						} else {
+							_motor_start_time[i] = 0;
+						}
+					}
+
 					_u[i] = _u[i] + dt / _T_TAU * (u_sp - _u[i]); // first order transfer function with time constant tau
 				}
 			}

@@ -330,6 +330,7 @@ private:
 	matrix::Vector3f _lpos{};  // position in a local tangent-plane frame [m]
 
 	float _u[NUM_ACTUATORS_MAX] {}; // thruster signals
+	hrt_abstime _motor_start_time[NUM_ACTUATORS_MAX] {}; // when a stopped motor was commanded to run, 0 if not starting
 	float       _T[NUM_DYN_THRUSTER] {};         // thruster forces (N)
 	float       _Q[NUM_DYN_THRUSTER] {};         // thruster torque (Nm)
 	Thruster    _thruster[NUM_DYN_THRUSTER] {};	// thruster objects
@@ -373,7 +374,7 @@ private:
 	MapProjection _lpos_ref{};
 	float _lpos_ref_alt;
 	float _ground_alt{0.f};  // ground altitude below the vehicle [m AMSL]
-	float _MASS, _T_MAX, _Q_MAX, _L_ROLL, _L_PITCH, _KDV, _KDW, _T_TAU, _F_T_MAX, _F_Q_MAX;
+	float _MASS, _T_MAX, _Q_MAX, _L_ROLL, _L_PITCH, _KDV, _KDW, _T_TAU, _T_START, _F_T_MAX, _F_Q_MAX;
 	matrix::Matrix3f _I;    // vehicle inertia matrix
 	matrix::Matrix3f _Im1;  // inverse of the inertia matrix
 
@@ -413,6 +414,7 @@ private:
 		(ParamFloat<px4::params::SIH_OF_NOISE>) _param_sih_of_noise,
 		(ParamFloat<px4::params::SIH_OF_H_MAX>) _param_sih_of_h_max,
 		(ParamFloat<px4::params::SIH_T_TAU>) _param_sih_t_tau,
+		(ParamFloat<px4::params::SIH_T_START>) _param_sih_t_start,
 		// forward propeller
 		(ParamFloat<px4::params::SIH_F_T_MAX>) _param_sih_f_t_max,
 		(ParamFloat<px4::params::SIH_F_Q_MAX>) _param_sih_f_q_max,
