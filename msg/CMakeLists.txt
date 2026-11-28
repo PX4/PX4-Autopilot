@@ -225,6 +225,8 @@ set(msg_files
 	SurfaceVehicleSteeringSetpoint.msg
 	SurfaceVehicleThrustSetpoint.msg
 	SystemPower.msg
+	StateSharingControl.msg
+	StateSharingMsg.msg
 	TakeoffStatus.msg
 	TaskStackInfo.msg
 	TecsStatus.msg

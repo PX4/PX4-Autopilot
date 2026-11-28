@@ -389,6 +389,21 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		break;
 #endif
 
+
+#if defined(MAVLINK_MSG_ID_STATE_SHARING) && defined(CONFIG_MODULES_STATE_SHARING)
+
+	case MAVLINK_MSG_ID_STATE_SHARING:
+		handle_message_state_sharing(msg);
+		break;
+#endif
+
+#if defined(MAVLINK_MSG_ID_STATE_SHARING_CONTROL) && defined(CONFIG_MODULES_STATE_SHARING)
+
+	case MAVLINK_MSG_ID_STATE_SHARING_CONTROL:
+		handle_message_state_sharing_control(msg);
+		break;
+#endif
+
 	default:
 		break;
 	}
@@ -3985,6 +4000,57 @@ void MavlinkReceiver::handle_message_open_drone_id_system(
 
 	_open_drone_id_system_pub.publish(odid_system);
 }
+
+#if defined(MAVLINK_MSG_ID_STATE_SHARING) && defined(CONFIG_MODULES_STATE_SHARING)
+void
+MavlinkReceiver::handle_message_state_sharing(mavlink_message_t *msg)
+{
+	if ((msg->sysid == mavlink_system.sysid)) {
+		return;
+	}
+
+	state_sharing_msg_s incoming_state{};
+	mavlink_state_sharing_t mav_state_sharing_msg;
+	mavlink_msg_state_sharing_decode(msg, &mav_state_sharing_msg);
+
+	incoming_state.timestamp = hrt_absolute_time();
+	incoming_state.timestamp_real_time = mav_state_sharing_msg.timestamp_real_time;
+	incoming_state.sysid = msg->sysid;
+	incoming_state.data_flags = mav_state_sharing_msg.data_flags;
+	incoming_state.global_position_lat = mav_state_sharing_msg.lat;
+	incoming_state.global_position_lon = mav_state_sharing_msg.lon;
+	incoming_state.global_position_alt = mav_state_sharing_msg.alt;
+	memcpy(incoming_state.q, mav_state_sharing_msg.q, sizeof(incoming_state.q));
+	memcpy(incoming_state.velocity, mav_state_sharing_msg.velocity, sizeof(incoming_state.velocity));
+	memcpy(incoming_state.acceleration, mav_state_sharing_msg.acceleration, sizeof(incoming_state.acceleration));
+	memcpy(incoming_state.aux, mav_state_sharing_msg.aux, sizeof(incoming_state.aux));
+	_in_state_sharing_msg_pub.publish(incoming_state);
+}
+#endif //MAVLINK_MSG_ID_STATE_SHARING
+
+#if defined(MAVLINK_MSG_ID_STATE_SHARING_CONTROL) && defined(CONFIG_MODULES_STATE_SHARING)
+void
+MavlinkReceiver::handle_message_state_sharing_control(mavlink_message_t *msg)
+{
+	if ((msg->sysid == mavlink_system.sysid)) {
+		return;
+	}
+
+	state_sharing_control_s incoming_control{};
+	mavlink_state_sharing_control_t mav_state_sharing_control_msg;
+	mavlink_msg_state_sharing_control_decode(msg, &mav_state_sharing_control_msg);
+
+	incoming_control.timestamp = hrt_absolute_time();
+	incoming_control.sync_epoch_us = mav_state_sharing_control_msg.sync_epoch_us;
+	incoming_control.command = mav_state_sharing_control_msg.command;
+	incoming_control.target_system = mav_state_sharing_control_msg.target_system;
+	incoming_control.data_flags = mav_state_sharing_control_msg.data_flags;
+	incoming_control.sharing_period = mav_state_sharing_control_msg.sharing_period;
+	incoming_control.delay_start = mav_state_sharing_control_msg.delay_start;
+	_in_state_sharing_control_msg_pub.publish(incoming_control);
+}
+#endif //MAVLINK_MSG_ID_STATE_SHARING_CONTROL
+
 void
 MavlinkReceiver::run()
 {

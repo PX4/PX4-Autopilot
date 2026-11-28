@@ -126,6 +126,8 @@
 #include <uORB/topics/velocity_limits.h>
 #include <uORB/topics/aux_global_position.h>
 #include <uORB/topics/ranging_beacon.h>
+#include <uORB/topics/state_sharing_msg.h>
+#include <uORB/topics/state_sharing_control.h>
 
 #if !defined(CONSTRAINED_FLASH)
 # include <uORB/topics/debug_array.h>
@@ -261,6 +263,12 @@ private:
 	void handle_message_target_absolute(mavlink_message_t *msg);
 # endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
+#if defined(MAVLINK_MSG_ID_STATE_SHARING) && defined (CONFIG_MODULES_STATE_SHARING)
+	void handle_message_state_sharing(mavlink_message_t *msg);
+#endif //MAVLINK_MSG_ID_STATE_SHARING
+#if defined(MAVLINK_MSG_ID_STATE_SHARING_CONTROL) && defined (CONFIG_MODULES_STATE_SHARING)
+	void handle_message_state_sharing_control(mavlink_message_t *msg);
+#endif //MAVLINK_MSG_ID_STATE_SHARING_CONTROL
 	void handle_message_request_event(mavlink_message_t *msg);
 
 	void CheckHeartbeats(const hrt_abstime &t, bool force = false);
@@ -415,6 +423,8 @@ private:
 #if defined(MAVLINK_MSG_ID_ESC_EEPROM)
 	uORB::Publication<esc_eeprom_write_s>			_esc_eeprom_write_pub {ORB_ID(esc_eeprom_write)};
 #endif
+	uORB::Publication<state_sharing_msg_s>			_in_state_sharing_msg_pub {ORB_ID(incoming_state_sharing)};
+	uORB::Publication<state_sharing_control_s>		_in_state_sharing_control_msg_pub{ORB_ID(incoming_state_sharing_control)};
 
 #if !defined(CONSTRAINED_FLASH)
 	uORB::Publication<debug_array_s>			_debug_array_pub {ORB_ID(debug_array)};
