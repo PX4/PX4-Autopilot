@@ -34,8 +34,10 @@
 #include "uORBUtils.hpp"
 #include <stdio.h>
 #include <errno.h>
+#include <string.h>
 
-int uORB::Utils::node_mkpath(char *buf, const struct orb_metadata *meta, int *instance)
+int uORB::Utils::node_mkpath(char *buf, const struct orb_metadata *meta, int *instance,
+			     const char *namespace_prefix)
 {
 	unsigned len;
 
@@ -45,7 +47,12 @@ int uORB::Utils::node_mkpath(char *buf, const struct orb_metadata *meta, int *in
 		index = *instance;
 	}
 
-	len = snprintf(buf, orb_maxpath, "/%s/%s%d", "obj", meta->o_name, index);
+#if defined(__PX4_POSIX) && !defined(POSIX_SHM_DISABLED)
+	len = snprintf(buf, orb_maxpath, "%s%s%s%d", namespace_prefix, orb_name_prefix, meta->o_name, index);
+#else
+	(void)namespace_prefix;
+	len = snprintf(buf, orb_maxpath, "%s%d", meta->o_name, index);
+#endif
 
 	if (len >= orb_maxpath) {
 		return -ENAMETOOLONG;
@@ -56,17 +63,60 @@ int uORB::Utils::node_mkpath(char *buf, const struct orb_metadata *meta, int *in
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-int uORB::Utils::node_mkpath(char *buf, const char *orbMsgName)
+int uORB::Utils::node_mkpath(char *buf, const char *orbMsgName, const char *namespace_prefix)
 {
 	unsigned len;
 
 	unsigned index = 0;
 
-	len = snprintf(buf, orb_maxpath, "/%s/%s%d", "obj", orbMsgName, index);
+#if defined(__PX4_POSIX) && !defined(POSIX_SHM_DISABLED)
+	len = snprintf(buf, orb_maxpath, "%s%s%s%d", namespace_prefix, orb_name_prefix, orbMsgName, index);
+#else
+	(void)namespace_prefix;
+	len = snprintf(buf, orb_maxpath, "%s%d", orbMsgName, index);
+#endif
 
 	if (len >= orb_maxpath) {
 		return -ENAMETOOLONG;
 	}
 
 	return OK;
+}
+
+int uORB::Utils::manager_mkpath(char *buf, const char *namespace_prefix)
+{
+#if defined(__PX4_POSIX) && !defined(POSIX_SHM_DISABLED)
+	const unsigned len = snprintf(buf, orb_maxpath, "%s%s", namespace_prefix, orb_manager_name);
+#else
+	(void)namespace_prefix;
+	const unsigned len = snprintf(buf, orb_maxpath, "%s", orb_manager_name);
+#endif
+
+	if (len >= orb_maxpath) {
+		return -ENAMETOOLONG;
+	}
+
+	return OK;
+}
+
+bool uORB::Utils::is_uorb_node_path(const char *path, const char *namespace_prefix)
+{
+	if (path == nullptr || namespace_prefix == nullptr) {
+		return false;
+	}
+
+#if defined(__PX4_POSIX) && !defined(POSIX_SHM_DISABLED)
+	const size_t namespace_len = strlen(namespace_prefix);
+
+	if (strncmp(path, namespace_prefix, namespace_len) != 0) {
+		return false;
+	}
+
+	const char *name = path + namespace_len;
+
+	return strncmp(name, orb_name_prefix, strlen(orb_name_prefix)) == 0;
+#else
+	(void)namespace_prefix;
+	return path[0] != '\0' && path[0] != '_';
+#endif
 }
