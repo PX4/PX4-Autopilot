@@ -80,6 +80,7 @@
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/failure_detector_status.h>
+#include <uORB/topics/vehicle_land_detected.h>
 
 class ControlAllocator : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -142,6 +143,9 @@ private:
 	void update_effectiveness_matrix_if_needed(EffectivenessUpdateReason reason);
 
 	void check_for_motor_failures();
+
+	// Bring motors back gradually after a failure cleared (CA_RESTORE_SPIN, CA_RESTORE_TIME)
+	void update_motor_restore(const hrt_abstime now);
 
 	// Populate _opposite_motor[] with each motor's geometric antipode (hexarotor only); -1 if none.
 	void computeOppositeMotors();
@@ -220,6 +224,7 @@ private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _failure_detector_status_sub{ORB_ID(failure_detector_status)};
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 
 	matrix::Vector3f _torque_sp;
 	matrix::Vector3f _thrust_sp;
@@ -234,6 +239,14 @@ private:
 	// control authority after a motor failure.
 	uint16_t _runtime_reversible_bitmask{0}; // motors made reversible at runtime because of failure event
 	int8_t _opposite_motor[MAX_NUM_MOTORS]; // per-motor index of geometric opposite; -1 if none
+
+	// Motor restore after a failure cleared: the motors in _restoring_motor_mask idle first, then their
+	// effectiveness columns and their outputs are both scaled by _restore_scale, which goes from 0 to 1.
+	uint16_t _restoring_motor_mask{0};
+	float _restore_scale{1.f};
+	uint8_t _restore_dropped_axes{0}; // axes the failure allocation had dropped, kept dropped while restoring
+	hrt_abstime _restore_start{0};
+	hrt_abstime _last_restore_update{0};
 
 	ActuatorGroupPreflightCheck _actuator_group_preflight_check;
 
@@ -256,6 +269,8 @@ private:
 		(ParamInt<px4::params::CA_FAILURE_MODE>) _param_ca_failure_mode,
 		(ParamInt<px4::params::CA_R_REV>) _param_ca_r_rev,
 		(ParamFloat<px4::params::CA_REV_THR_FRAC>) _param_ca_rev_thr_frac,
+		(ParamFloat<px4::params::CA_RESTORE_SPIN>) _param_ca_restore_spin,
+		(ParamFloat<px4::params::CA_RESTORE_TIME>) _param_ca_restore_time,
 		(ParamFloat<px4::params::CA_ICE_PERIOD>) _param_ca_ice_period
 	)
 
