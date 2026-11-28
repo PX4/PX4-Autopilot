@@ -50,9 +50,6 @@ public:
 	static constexpr const char *get_name_static() { return "COMPONENT_INFORMATION"; }
 	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_COMPONENT_INFORMATION; }
 
-	const char *get_name() const override { return get_name_static(); }
-	uint16_t get_id() override { return get_id_static(); }
-
 	unsigned get_size() override
 	{
 		return 0; // never streamed

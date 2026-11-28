@@ -20,19 +20,40 @@ enum class params : uint16_t {
 
 };
 
-static constexpr param_info_s parameters[] = {
-{% for param in params %}
-	{
-		.name = "{{ param.attrib["name"] }}",
-	{%- if param.attrib["type"] == "FLOAT" %}
-		.val = {{ "{" }} .f = {{ param.attrib["default"] }} {{ "}" }},
-	{%- elif param.attrib["type"] == "INT32" %}
-		.val = {{ "{" }} .i = {{ param.attrib["default"] }}{{ "}" }},
-	{%- endif %}
-	},
-{% endfor %}
+static constexpr uint16_t parameters_count = {{ params|length }};
+
+/// All parameter names back to back, each NUL-terminated, in enum order
+static constexpr char parameters_names[] =
+{%- for param in params %}
+	"{{ param.attrib["name"] }}\0"
+{%- endfor %}
+	"";
+
+/// Offset of each parameter's name in parameters_names
+static constexpr uint16_t parameters_name_offset[] = {
+{%- for offset in name_offsets %}
+	{{ offset }},
+{%- endfor %}
 };
 
+static constexpr param_value_u parameters_default[] = {
+{%- for param in params %}
+	{%- if param.attrib["type"] == "FLOAT" %}
+	{{ "{" }} .f = {{ param.attrib["default"] }} {{ "}" }},
+	{%- elif param.attrib["type"] == "INT32" %}
+	{{ "{" }} .i = {{ param.attrib["default"] }} {{ "}" }},
+	{%- endif %}
+{%- endfor %}
+};
+
+/// Bit i is set if parameter i is FLOAT, otherwise it is INT32. Used at run time instead of parameters_type.
+static constexpr uint32_t parameters_float_mask[] = {
+{%- for word in float_mask %}
+	{{ "0x%08x" % word }}u,
+{%- endfor %}
+};
+
+/// For compile-time type checks only; indexing it at run time would add a byte per parameter to flash
 static constexpr param_type_t parameters_type[] = {
 {% for param in params %}
 	PARAM_TYPE_{{ param.attrib["type"] }},

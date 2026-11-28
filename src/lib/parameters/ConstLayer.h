@@ -68,7 +68,7 @@ public:
 			return {0};
 		}
 
-		return px4::parameters[param].val;
+		return px4::parameters_default[param];
 	}
 
 	void reset(param_t param) override
@@ -88,6 +88,6 @@ public:
 
 	int byteSize() const override
 	{
-		return PARAM_COUNT * sizeof(param_info_s);
+		return sizeof(px4::parameters_default);
 	}
 };
