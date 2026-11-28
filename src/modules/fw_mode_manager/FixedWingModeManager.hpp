@@ -389,6 +389,7 @@ private:
 
 	// VTOL / TRANSITION
 	matrix::Vector2d _transition_waypoint{(double)NAN, (double)NAN};
+	bool _transition_followed_mission_leg{false}; // a mission leg was followed during the front transition
 	float _backtrans_heading{NAN};	// used to lock the initial heading for backtransition with no position control
 
 	// ESTIMATOR RESET COUNTERS

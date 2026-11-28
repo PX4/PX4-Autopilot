@@ -251,7 +251,7 @@ protected:
 TEST_F(MissionVtolTransitionTest, NominalFrontTransitionAlignsBeforeItsCommand)
 {
 	// The vehicle turns towards the next waypoint on the way to it. The command is sent once the heading is
-	// reached, wherever the vehicle is then, and the item completes in fixed-wing.
+	// reached, wherever the vehicle is then, and the item completes once the transition runs.
 	MissionTestPeer mission(&_navigator);
 	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
 	auto target = waypointAt(300.f, 0.f);
@@ -296,17 +296,15 @@ TEST_F(MissionVtolTransitionTest, NominalFrontTransitionAlignsBeforeItsCommand)
 	EXPECT_DOUBLE_EQ(triplet.previous.lat, moved.lat);
 	EXPECT_EQ(_navigator.get_mission_result()->seq_reached, 0);
 
-	// The front transition runs without a second command and the item completes in fixed-wing.
-	publishVehicleStatus(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true);
+	// The item is done once the transition runs, without a second command. The vehicle then flies the leg to
+	// the waypoint, which starts where the transition did.
 	mission.on_active();
-	EXPECT_FALSE(_command_sub.updated());
 	EXPECT_EQ(mission.currentSequenceForTest(), 0);
-	publishVehicleStatus(vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	publishVehicleStatus(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true);
 	mission.on_active();
 	EXPECT_FALSE(_command_sub.updated());
 	EXPECT_EQ(mission.currentSequenceForTest(), 1);
 	EXPECT_EQ(_navigator.get_mission_result()->seq_reached, 0);
-	// The leg to the waypoint starts where the transition did.
 	EXPECT_DOUBLE_EQ(triplet.previous.lat, moved.lat);
 	EXPECT_DOUBLE_EQ(triplet.current.lat, target.lat);
 }
@@ -349,15 +347,26 @@ TEST_F(MissionVtolTransitionTest, BackTransitionKeepsItsParameterAndWaitsForMult
 
 TEST_F(MissionVtolTransitionTest, FrontTransitionWithoutLaterWaypointIsSentAtOnce)
 {
-	// With no position item after it there is nothing to turn towards: the command is sent at once.
+	// With no position item after it there is nothing to turn towards: the command is sent at once. The leg the
+	// vehicle came on is not left for the transition to follow.
 	MissionTestPeer mission(&_navigator);
-	setAirborneVehicle(makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt), vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
+	setAirborneVehicle(makePositionFromOffset(kBaseLat, kBaseLon, -100.f, 0.f, kAlt), vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 
 	vehicle_command_s command{};
-	prepareExecution(mission, {makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW)});
+	prepareExecution(mission, {waypointAt(-100.f, 0.f), waypointAt(0.f, 0.f),
+				   makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW)
+				  });
+	mission.on_active();
+	publishGlobalPosition(position);
+	mission.on_active();
+	ASSERT_EQ(mission.currentSequenceForTest(), 2);
 	ASSERT_TRUE(_command_sub.update(&command));
 	EXPECT_FLOAT_EQ(command.param1, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
 	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_DEFAULT);
+	const auto &triplet = *_navigator.get_position_setpoint_triplet();
+	EXPECT_DOUBLE_EQ(triplet.current.lat, position.lat);
+	EXPECT_DOUBLE_EQ(triplet.previous.lat, position.lat);
 }
 
 TEST_F(MissionVtolTransitionTest, OnlyAFrontTransitionThatHasNotStartedIsAligned)
@@ -446,9 +455,16 @@ TEST_F(MissionVtolTransitionTest, VtolTakeoffKeepsItsWaypointOnlyWhenMovementRem
 		EXPECT_FLOAT_EQ(command.param1, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
 		EXPECT_FLOAT_EQ(command.param2, 0.f);
 		EXPECT_EQ(triplet.current.type, position_setpoint_s::SETPOINT_TYPE_POSITION);
+		// No leg to follow until the takeoff goes on: the previous setpoint is the current one.
+		EXPECT_DOUBLE_EQ(triplet.previous.lat, triplet.current.lat);
+		EXPECT_DOUBLE_EQ(triplet.previous.lon, triplet.current.lon);
+		// Once the transition runs the takeoff goes on to its waypoint. On top of it the takeoff completes in
+		// fixed-wing flight: it did not turn towards the next waypoint.
 		publishVehicleStatus(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true);
 		mission.on_active();
 		EXPECT_EQ(mission.currentSequenceForTest(), 0);
+		EXPECT_EQ(mission.currentMissionItemForTest().nav_cmd,
+			  movement_remains ? NAV_CMD_WAYPOINT : NAV_CMD_DO_VTOL_TRANSITION);
 		publishVehicleStatus(vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 		mission.on_active();
 		EXPECT_EQ(mission.currentSequenceForTest(), movement_remains ? 0 : 1);
@@ -492,4 +508,211 @@ TEST_F(MissionVtolTransitionTest, FrontTransitionDuringTakeoffKeepsTheTakeoffWay
 		EXPECT_EQ(mission.currentMissionItemForTest().nav_cmd, NAV_CMD_WAYPOINT);
 		EXPECT_DOUBLE_EQ(_navigator.get_position_setpoint_triplet()->current.lat, takeoff.lat);
 	}
+}
+
+TEST_F(MissionVtolTransitionTest, FrontTransitionCompletesInFixedWingUnlessAWaypointFollows)
+{
+	// Only a waypoint is flown to during the transition. A command or a landing after the transition item starts
+	// in fixed-wing flight.
+	MissionTestPeer mission(&_navigator);
+	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
+	auto front_transition = makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+	front_transition.autocontinue = true;
+	mission_item_s speed_change{};
+	speed_change.nav_cmd = NAV_CMD_DO_CHANGE_SPEED;
+	speed_change.autocontinue = true;
+	auto land = makeLandItemFromOffset(kBaseLat, kBaseLon, 300.f, 0.f, kAlt);
+	land.nav_cmd = NAV_CMD_VTOL_LAND;
+
+	for (const mission_item_s &next : {speed_change, land}) {
+		SCOPED_TRACE(next.nav_cmd);
+		setAirborneVehicle(position, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+		prepareExecution(mission, {front_transition, next, waypointAt(300.f, 0.f)});
+		mission.on_active();
+		ASSERT_EQ(mission.currentMissionItemForTest().nav_cmd, NAV_CMD_DO_VTOL_TRANSITION);
+
+		publishVehicleStatus(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true);
+		mission.on_active();
+		EXPECT_EQ(mission.currentSequenceForTest(), 0);
+
+		publishVehicleStatus(vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+		mission.on_active();
+		EXPECT_EQ(mission.currentSequenceForTest(), 1);
+	}
+}
+
+TEST_F(MissionVtolTransitionTest, WaypointDuringFrontTransitionIsReachedAsInFixedWing)
+{
+	// The vehicle cannot stop during a front transition: a passed waypoint is reached, within the fixed-wing
+	// altitude radius and without its heading or hold time.
+	MissionTestPeer mission(&_navigator);
+	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
+	auto target = waypointAt(0.f, 300.f);
+	target.yaw = M_PI_F;
+	target.time_inside = 5.f;
+	auto front_transition = makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+	front_transition.autocontinue = true;
+	setAirborneVehicle(position, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, M_PI_2_F);
+	prepareExecution(mission, {front_transition, target, waypointAt(300.f, 300.f)});
+	mission.on_active();
+	publishVehicleStatus(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true);
+	mission.on_active();
+	ASSERT_EQ(mission.currentSequenceForTest(), 1);
+
+	// Before the waypoint, 30 m to the side: not reached.
+	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 30.f, 280.f, kAlt - 5.f));
+	mission.on_active();
+	EXPECT_EQ(mission.currentSequenceForTest(), 1);
+
+	// Past it, but far below: not reached.
+	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 30.f, 320.f, kAlt - 50.f));
+	mission.on_active();
+	EXPECT_EQ(mission.currentSequenceForTest(), 1);
+
+	// Past it, 5 m low: reached at once.
+	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 30.f, 320.f, kAlt - 5.f));
+	mission.on_active();
+	EXPECT_EQ(mission.currentSequenceForTest(), 2);
+}
+
+TEST_F(MissionVtolTransitionTest, WaypointBeforeACommandIsReachedInFixedWing)
+{
+	// During the transition the mission only goes on from waypoint to waypoint, so that no command runs in it:
+	// a passed waypoint that a command follows is reached in fixed-wing flight.
+	MissionTestPeer mission(&_navigator);
+	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
+	auto front_transition = makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+	front_transition.autocontinue = true;
+	mission_item_s speed_change{};
+	speed_change.nav_cmd = NAV_CMD_DO_CHANGE_SPEED;
+	speed_change.autocontinue = true;
+	setAirborneVehicle(position, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, M_PI_2_F);
+	prepareExecution(mission, {front_transition, waypointAt(0.f, 100.f), speed_change, waypointAt(0.f, 400.f)});
+	mission.on_active();
+	publishVehicleStatus(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true);
+	mission.on_active();
+	ASSERT_EQ(mission.currentSequenceForTest(), 1);
+
+	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 120.f, kAlt));
+	mission.on_active();
+	EXPECT_EQ(mission.currentSequenceForTest(), 1);
+
+	publishVehicleStatus(vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	mission.on_active();
+	EXPECT_EQ(mission.currentSequenceForTest(), 2);
+}
+
+TEST_F(MissionVtolTransitionTest, HoldBeforeACommandGoesOnDuringFrontTransition)
+{
+	// The vehicle holds at a waypoint when a front transition starts, e.g. commanded by the operator. The hold
+	// keeps its time, as on main, instead of ending at once and running the next command. In fixed-wing flight it ends.
+	MissionTestPeer mission(&_navigator);
+	auto hold = waypointAt(0.f, 0.f);
+	hold.time_inside = 60.f;
+	hold.autocontinue = true;
+	mission_item_s speed_change{};
+	speed_change.nav_cmd = NAV_CMD_DO_CHANGE_SPEED;
+	speed_change.autocontinue = true;
+	setAirborneVehicle(makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt), vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	prepareExecution(mission, {hold, speed_change, waypointAt(0.f, 400.f)});
+	mission.on_active();
+	ASSERT_EQ(mission.currentSequenceForTest(), 0);
+
+	publishVehicleStatus(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true);
+	mission.on_active();
+	EXPECT_EQ(mission.currentSequenceForTest(), 0);
+
+	publishVehicleStatus(vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	mission.on_active();
+	EXPECT_EQ(mission.currentSequenceForTest(), 1);
+}
+
+TEST_F(MissionVtolTransitionTest, TakeoffWaypointBeforeACommandIsReachedInFixedWing)
+{
+	// The takeoff waypoint is flown to during the transition, but a command after it runs in fixed-wing flight.
+	MissionTestPeer mission(&_navigator);
+	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
+	auto takeoff = waypointAt(100.f, 0.f);
+	takeoff.nav_cmd = NAV_CMD_VTOL_TAKEOFF;
+	mission_item_s speed_change{};
+	speed_change.nav_cmd = NAV_CMD_DO_CHANGE_SPEED;
+	speed_change.autocontinue = true;
+	setAirborneVehicle(position, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	prepareExecution(mission, {takeoff, speed_change}, MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_CLIMB);
+	mission.on_active();
+	publishVehicleStatus(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true);
+	mission.on_active();
+	ASSERT_EQ(mission.currentMissionItemForTest().nav_cmd, NAV_CMD_WAYPOINT);
+
+	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 120.f, 0.f, kAlt));
+	mission.on_active();
+	EXPECT_EQ(mission.currentSequenceForTest(), 0);
+
+	publishVehicleStatus(vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	mission.on_active();
+	EXPECT_EQ(mission.currentSequenceForTest(), 1);
+}
+
+TEST_F(MissionVtolTransitionTest, PauseDuringFrontTransitionResumesAtTheTransitionItem)
+{
+	// The transition item completed when its transition started. Paused during that transition, the mission
+	// resumes at the item, which sends the transition again if the pause stopped it.
+	MissionTestPeer mission(&_navigator);
+	const auto position = makePositionFromOffset(kBaseLat, kBaseLon, 0.f, 0.f, kAlt);
+	auto front_transition = makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+	front_transition.autocontinue = true;
+	setAirborneVehicle(position, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	prepareExecution(mission, {waypointAt(0.f, 0.f), front_transition, waypointAt(300.f, 0.f), waypointAt(600.f, 0.f)});
+	mission.run(true);
+	mission.on_active();
+	mission.on_active();
+	publishVehicleStatus(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true);
+	mission.on_active();
+	ASSERT_EQ(mission.currentSequenceForTest(), 2);
+
+	mission.run(false);
+	EXPECT_EQ(mission.currentSequenceForTest(), 1);
+
+	// The pause stopped the transition: the item aligns and transitions again.
+	publishVehicleStatus(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	mission.run(false);
+	mission.run(true);
+	EXPECT_EQ(mission.currentSequenceForTest(), 1);
+	EXPECT_EQ(mission.workItemTypeForTest(), MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_ALIGN_HEADING);
+	mission.on_active();
+	publishVehicleStatus(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true);
+	mission.on_active();
+	ASSERT_EQ(mission.currentSequenceForTest(), 2);
+
+	// Paused after the transition, the mission resumes at its waypoint, also in multicopter mode again.
+	publishVehicleStatus(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	mission.run(false);
+	mission.run(false);
+	mission.run(true);
+	EXPECT_EQ(mission.currentSequenceForTest(), 2);
+
+	// A back transition item did not start the front transition that runs: the pause keeps the waypoint after it.
+	auto back_transition = makeVtolTransitionItem(vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+	back_transition.autocontinue = true;
+	prepareExecution(mission, {back_transition, waypointAt(300.f, 0.f)});
+	mission.on_active();
+	ASSERT_EQ(mission.currentSequenceForTest(), 1);
+	publishVehicleStatus(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true);
+	mission.on_inactivation();
+	EXPECT_EQ(mission.currentSequenceForTest(), 1);
+
+	// A takeoff is not stepped back to either, once its waypoint is reached during the transition.
+	auto takeoff = waypointAt(100.f, 0.f);
+	takeoff.nav_cmd = NAV_CMD_VTOL_TAKEOFF;
+	setAirborneVehicle(position, vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+	prepareExecution(mission, {takeoff, waypointAt(300.f, 0.f), waypointAt(600.f, 0.f)},
+			 MissionTestPeer::WorkItemType::WORK_ITEM_TYPE_CLIMB);
+	mission.on_active();
+	publishVehicleStatus(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING, true);
+	mission.on_active();
+	publishGlobalPosition(makePositionFromOffset(kBaseLat, kBaseLon, 120.f, 0.f, kAlt));
+	mission.on_active();
+	ASSERT_EQ(mission.currentSequenceForTest(), 1);
+	mission.on_inactivation();
+	EXPECT_EQ(mission.currentSequenceForTest(), 1);
 }
