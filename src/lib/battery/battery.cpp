@@ -54,7 +54,7 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us, 
 	_source(source)
 {
 	const float expected_filter_dt = static_cast<float>(sample_interval_us) * 1e-6f;
-	_current_average_filter_a.setParameters(expected_filter_dt, 50.f);
+	_current_average_filter_a.setParameters(expected_filter_dt, CURRENT_AVERAGE_TIME_CONSTANT_S);
 	_ocv_filter_v.setParameters(expected_filter_dt, 1.f);
 	_cell_voltage_filter_v.setParameters(expected_filter_dt, 1.f);
 
@@ -406,28 +406,30 @@ float Battery::computeRemainingTime(float current_a)
 
 	_flight_phase_estimation_sub.update();
 
-	bool reset_filter_transition_now = !_vehicle_status_was_fw && _vehicle_status_is_fw;
+	// events after which the current average no longer represents the load
+	const bool transition_to_fw = !_vehicle_status_was_fw && _vehicle_status_is_fw;
+	const bool back_transition = _vehicle_status_was_fw && !_vehicle_status_is_fw;
+	const bool motor_failure = checkNewMotorFailure();
+	_vehicle_status_was_fw = _vehicle_status_is_fw;
 
 	// reset filter if not feasible, negative or we did a VTOL transition to FW mode
 	if (!PX4_ISFINITE(_current_average_filter_a.getState()) || _current_average_filter_a.getState() < FLT_EPSILON
-	    || reset_filter_transition_now) {
+	    || transition_to_fw) {
 		_current_average_filter_a.reset(_params.bat_avrg_current);
 	}
 
-	_vehicle_status_was_fw = _vehicle_status_is_fw;
+	if (_armed && !_vehicle_status_is_fw && (motor_failure || back_transition)) {
+		// hover draws more than wing-borne flight, the fixed-wing average is no lower bound for it
+		const float min_current_a = back_transition
+					    ? fmaxf(_current_average_filter_a.getState(), _params.bat_avrg_current)
+					    : _current_average_filter_a.getState();
+		resetTimeRemainingEstimate(min_current_a);
 
-	if (_armed && PX4_ISFINITE(current_a) && fabsf(current_a + 1.f) > FLT_EPSILON) {
-		// For FW only update when we are in level flight
-		if (!_vehicle_status_is_fw || ((hrt_absolute_time() - _flight_phase_estimation_sub.get().timestamp) < 2_s
-					       && _flight_phase_estimation_sub.get().flight_phase == flight_phase_estimation_s::FLIGHT_PHASE_LEVEL)) {
-			if (_dt > FLT_EPSILON) {
-				_current_average_filter_a.update(fmaxf(current_a, 0.f), _dt);
-
-			} else {
-				_current_average_filter_a.update(fmaxf(current_a, 0.f));
-			}
-		}
+	} else if (!_armed || _vehicle_status_is_fw) {
+		_time_since_reset_s = NAN;
 	}
+
+	updateCurrentAverage(current_a);
 
 	// Remaining time estimation only possible with capacity and a known state of charge
 	if ((_capacity_mah > 0.f) && (_state_of_charge >= 0.f)) {
@@ -437,6 +439,65 @@ float Battery::computeRemainingTime(float current_a)
 	}
 
 	return time_remaining_s;
+}
+
+bool Battery::checkNewMotorFailure()
+{
+	failure_detector_status_s failure_detector_status;
+
+	if (!_failure_detector_status_sub.update(&failure_detector_status)) {
+		return false;
+	}
+
+	// only motors not yet failed in this flight change the load, ignore clears and flapping bits
+	const bool new_failure = _armed && ((failure_detector_status.motor_failure_mask & ~_motor_failure_mask) != 0);
+
+	// on ground, track the mask so faults present before takeoff are not taken for an in-flight failure
+	_motor_failure_mask = _armed ? (_motor_failure_mask | failure_detector_status.motor_failure_mask)
+			      : failure_detector_status.motor_failure_mask;
+
+	return new_failure;
+}
+
+void Battery::resetTimeRemainingEstimate(float min_current_a)
+{
+	_time_since_reset_s = 0.f;
+	_reset_min_current_a = min_current_a;
+	_current_average_filter_a.reset(fmaxf(_current_average_filter_a.getState(), min_current_a));
+}
+
+void Battery::updateCurrentAverage(float current_a)
+{
+	if (!_armed || !PX4_ISFINITE(current_a) || fabsf(current_a + 1.f) < FLT_EPSILON) {
+		return;
+	}
+
+	if (PX4_ISFINITE(_time_since_reset_s)) {
+		// after a reset, hold the average through the current spike, then use the cumulative mean of the samples since
+		// until its window reaches the filter time constant, where it continues seamlessly, never below the given minimum
+		_time_since_reset_s += _dt;
+		const float averaging_time_s = _time_since_reset_s - RESET_HOLD_TIME_S;
+
+		if (averaging_time_s > FLT_EPSILON) {
+			const float alpha = math::min(_dt / averaging_time_s, 1.f);
+			const float state = _current_average_filter_a.getState();
+			_current_average_filter_a.reset(fmaxf(state + alpha * (fmaxf(current_a, 0.f) - state), _reset_min_current_a));
+
+			if (averaging_time_s >= CURRENT_AVERAGE_TIME_CONSTANT_S) {
+				_time_since_reset_s = NAN;
+			}
+		}
+
+	} else if (!_vehicle_status_is_fw || ((hrt_absolute_time() - _flight_phase_estimation_sub.get().timestamp) < 2_s
+					      && _flight_phase_estimation_sub.get().flight_phase == flight_phase_estimation_s::FLIGHT_PHASE_LEVEL)) {
+		// For FW only update when we are in level flight
+		if (_dt > FLT_EPSILON) {
+			_current_average_filter_a.update(fmaxf(current_a, 0.f), _dt);
+
+		} else {
+			_current_average_filter_a.update(fmaxf(current_a, 0.f));
+		}
+	}
 }
 
 void Battery::updateParams()
