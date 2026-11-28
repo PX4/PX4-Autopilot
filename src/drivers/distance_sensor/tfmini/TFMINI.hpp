@@ -70,6 +70,8 @@ public:
 
 	void print_info();
 
+	const char *port() const { return _port; }
+
 private:
 
 	int collect();
