@@ -143,7 +143,7 @@ private:
 	void selectMissionPath(int32_t rtl_type, ReturnSelection &selection) const;
 	/** RTL_TYPE 5: the closest rally point, or the current position. */
 	void selectSafePoint(ReturnSelection &selection) const;
-	/** RTL_TYPE 6: Home if the battery reaches it, else the closest rally point. */
+	/** RTL_TYPE 6: Home if the battery reaches it, else the quickest of Home and the rally points. */
 	void selectHomeIfReachable(ReturnSelection &selection);
 
 	/** Creates and configures the executor, updates the avoidance planner and publishes rtl_status. */
@@ -154,13 +154,16 @@ private:
 	/** Estimates a direct Return to the destination */
 	rtl_time_estimate_s estimateDirectReturn(const PositionYawSetpoint &destination, bool follow_avoidance_path = true);
 
+	/** Plan the geofence avoidance path from the vehicle to the destination. */
+	void planAvoidancePath(const matrix::Vector2d &destination);
+
 	/** The VTOL land approach of the destination, or the destination itself. */
 	loiter_point_s landingLoiter(const PositionYawSetpoint &destination) const;
 
 	/**
 	 * @brief Publish the remaining time estimate to go to the Return landing point.
 	 *
-	 * While inactive, RTL_TYPE 6 also reports the lower estimate of Home and its rally point.
+	 * While inactive, RTL_TYPE 6 also reports the lowest estimate of Home and the rally points.
 	 */
 	void publishRemainingTimeEstimate(float fallback_safe_time_estimate);
 
@@ -172,6 +175,24 @@ private:
 	 */
 	PositionYawSetpoint findClosestSafePoint(float min_dist, bool skip_near_home, uint8_t &safe_point_index,
 			bool &has_land_approach) const;
+
+	/**
+	 * @brief Find the rally point with the lowest time estimate below max_safe_time_s
+	 *
+	 * @param[out] has_land_approach a rally point looked at has a VTOL land approach
+	 * @param[out] estimate the estimate to the rally point found
+	 */
+	PositionYawSetpoint findQuickestSafePoint(float max_safe_time_s, uint8_t &safe_point_index, bool &has_land_approach,
+			rtl_time_estimate_s &estimate);
+
+	/**
+	 * @brief Load a rally point Return may go to
+	 *
+	 * @param[in] skip_near_home ignore rally points within 10 m of Home
+	 * @param[out] has_land_approach set if the rally point has a VTOL land approach
+	 * @return false if there is none at this index or RTL_APPR_FORCE excludes it
+	 */
+	bool loadRallyPoint(int index, bool skip_near_home, PositionYawSetpoint &rally_point, bool &has_land_approach) const;
 
 	/**
 	 * @brief Smallest remaining time [s] of the connected batteries, NAN if none reports one.
@@ -226,6 +247,8 @@ private:
 	bool _mission_land_failure_reported{false};
 
 	RtlDirect _rtl_direct;
+
+	matrix::Vector2d _planned_destination{(double)NAN, (double)NAN}; ///< of the avoidance path applied last
 
 	bool _enforce_rtl_alt{false};
 

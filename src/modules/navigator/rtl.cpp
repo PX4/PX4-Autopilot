@@ -54,6 +54,7 @@ using namespace time_literals;
 using namespace math;
 
 static constexpr float MIN_DIST_THRESHOLD = 2.f;
+static constexpr float MIN_TIME_THRESHOLD_S = 1.f;
 
 // Named constants for RTL_TYPE parameter values (must match value tags in rtl_params.yaml).
 static constexpr int RTL_TYPE_CLOSEST_HOME_OR_SAFE_POINT = 0;
@@ -300,13 +301,13 @@ void RTL::selectHomeIfReachable(ReturnSelection &selection)
 				       && PX4_ISFINITE(worst_battery_time_s)
 				       && (time_to_home.safe_time_estimate < worst_battery_time_s);
 
-	// A rally point replaces Home only if it is closer
-	const float home_dist = get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon,
-				home.lat, home.lon);
+	// A rally point replaces Home only if it is quicker to reach
 	uint8_t rally_point_index{RTL_STATUS_NO_SAFE_POINT};
 	bool rally_point_has_land_approach{false};
-	const PositionYawSetpoint rally_point = findClosestSafePoint(home_dist, /*skip_near_home=*/false,
-						rally_point_index, rally_point_has_land_approach);
+	rtl_time_estimate_s time_to_rally_point{};
+	const PositionYawSetpoint rally_point = findQuickestSafePoint(
+			time_to_home.valid ? time_to_home.safe_time_estimate : FLT_MAX,
+			rally_point_index, rally_point_has_land_approach, time_to_rally_point);
 	const bool has_rally_point = rally_point_index != RTL_STATUS_NO_SAFE_POINT;
 
 	if (!home_within_reach) {
@@ -319,15 +320,8 @@ void RTL::selectHomeIfReachable(ReturnSelection &selection)
 			selection.safe_point_index = rally_point_index;
 		}
 
-		// If no rally points are closer (or none are defined), fall back to home (already set as the destination)
-
 	} else if (has_rally_point) {
-		// The planner holds Home's path until the rally point is selected.
-		const rtl_time_estimate_s fallback = estimateDirectReturn(rally_point, /*follow_avoidance_path=*/false);
-
-		if (fallback.valid && fallback.safe_time_estimate < time_to_home.safe_time_estimate) {
-			selection.fallback_safe_time_estimate = fallback.safe_time_estimate;
-		}
+		selection.fallback_safe_time_estimate = time_to_rally_point.safe_time_estimate;
 	}
 }
 
@@ -352,7 +346,32 @@ rtl_time_estimate_s RTL::estimateDirectReturn(const PositionYawSetpoint &destina
 {
 	RtlDirect::Target target{destination, landingLoiter(destination), computeReturnAltitude(destination)};
 	target.follow_avoidance_path = follow_avoidance_path;
+
+	if (follow_avoidance_path) {
+		planAvoidancePath(matrix::Vector2d{target.approach.lat, target.approach.lon});
+	}
+
 	return _rtl_direct.estimateReturnTo(target);
+}
+
+void RTL::planAvoidancePath(const matrix::Vector2d &destination)
+{
+#if CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
+	GeofenceAvoidancePlanner &planner = _navigator->get_geofence_avoidance_planner();
+
+	if (destination.isAllFinite()) {
+		planner.updateDestination(destination);
+	}
+
+	const vehicle_global_position_s &gpos = _global_pos_sub.get();
+
+	const bool gpos_recent = gpos.timestamp > 0 && hrt_elapsed_time(&gpos.timestamp) < 10_s;
+
+	if (gpos_recent) {
+		planner.updateStartAndFillPath(matrix::Vector2d(gpos.lat, gpos.lon));
+	}
+
+#endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 }
 
 void RTL::applyReturn(const ReturnSelection &selection)
@@ -417,17 +436,17 @@ void RTL::applyReturn(const ReturnSelection &selection)
 		planner_destination = _rtl_mission_type_handle->getRtlPlannerDestination();
 	}
 
-	if (planner_destination.isAllFinite()) {
-		planner.updateDestination(planner_destination);
+	planAvoidancePath(planner_destination);
+
+	// RTL_TYPE 6 plans to other destinations for its estimates, so the planner reports
+	// an unchanged destination that breaches the geofence at every evaluation: warn once
+	if (_param_rtl_type.get() == RTL_TYPE_HOME_OR_SAFE_POINT_DIRECT
+	    && planner.status() == GeofenceAvoidancePlanner::Status::DestinationBreachesGeofence
+	    && (planner_destination - _planned_destination).norm() < DBL_EPSILON) {
+		planner.resetStatus();
 	}
 
-	const vehicle_global_position_s &gpos = _global_pos_sub.get();
-
-	const bool gpos_recent = gpos.timestamp > 0 && hrt_elapsed_time(&gpos.timestamp) < 10_s;
-
-	if (gpos_recent) {
-		planner.updateStartAndFillPath(matrix::Vector2d(_global_pos_sub.get().lat, _global_pos_sub.get().lon));
-	}
+	_planned_destination = planner_destination;
 
 #endif // CONFIG_NAVIGATOR_GEOFENCE_AVOIDANCE
 
@@ -471,10 +490,6 @@ float RTL::worstBatteryTimeRemaining()
 PositionYawSetpoint RTL::findClosestSafePoint(float min_dist, bool skip_near_home, uint8_t &safe_point_index,
 		bool &has_land_approach) const
 {
-#if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
-	const bool vtol_in_fw_mode = _vehicle_status_sub.get().is_vtol
-				     && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
-#endif
 	const MissionRouteCache &mission_route_cache = _navigator->get_mission_route_cache();
 
 	PositionYawSetpoint closest_safe_point{static_cast<double>(NAN), static_cast<double>(NAN), NAN, NAN};
@@ -485,61 +500,134 @@ PositionYawSetpoint RTL::findClosestSafePoint(float min_dist, bool skip_near_hom
 	}
 
 	for (int current_seq = 0; current_seq < mission_route_cache.safePointCount(); ++current_seq) {
-		mission_item_s mission_safe_point;
+		PositionYawSetpoint candidate_setpoint;
 
-		if (!mission_route_cache.loadSafePointItem(current_seq, mission_safe_point)) {
-			PX4_ERR("dm_read failed");
+		if (!loadRallyPoint(current_seq, skip_near_home, candidate_setpoint, has_land_approach)) {
 			continue;
 		}
 
-		// Only look at rally points
-		if (mission_safe_point.nav_cmd != NAV_CMD_RALLY_POINT) {
-			continue;
-		}
+		const float dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon,
+				 candidate_setpoint.lat, candidate_setpoint.lon)};
 
-		mission_route::Position candidate_position{};
-
-		if (!mission_route::extractSafePointPosition(mission_safe_point, _home_pos_sub.get().alt, candidate_position)) {
-			continue;
-		}
-
-		const PositionYawSetpoint candidate_setpoint{
-			candidate_position.lat,
-			candidate_position.lon,
-			candidate_position.alt,
-			NAN
-		};
-
-		// Ignore safepoints which are too close to the homepoint (only if home is an option to return to)
-		const bool far_from_home = get_distance_to_next_waypoint(_home_pos_sub.get().lat, _home_pos_sub.get().lon,
-					   candidate_setpoint.lat, candidate_setpoint.lon) > mission_route::kLandApproachAssociationDistanceM;
-
-		if (far_from_home || !skip_near_home) {
-			const float dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon,
-					 candidate_setpoint.lat, candidate_setpoint.lon)};
-
-#if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
-			const bool current_safe_point_has_approaches {
-				mission_route::hasVtolLandApproachesAtSafePointIndex(mission_route_cache, current_seq,
-						_home_pos_sub.get().alt)
-			};
-
-			has_land_approach |= current_safe_point_has_approaches;
-			const bool approach_requirement_satisfied = !vtol_in_fw_mode || (_param_rtl_appr_force.get() == 0)
-					|| current_safe_point_has_approaches;
-#else
-			constexpr bool approach_requirement_satisfied = true;
-#endif
-
-			if (((dist + MIN_DIST_THRESHOLD) < min_dist) && approach_requirement_satisfied) {
-				min_dist = dist;
-				closest_safe_point = candidate_setpoint;
-				safe_point_index = static_cast<uint8_t>(current_seq);
-			}
+		if ((dist + MIN_DIST_THRESHOLD) < min_dist) {
+			min_dist = dist;
+			closest_safe_point = candidate_setpoint;
+			safe_point_index = static_cast<uint8_t>(current_seq);
 		}
 	}
 
 	return closest_safe_point;
+}
+
+bool RTL::loadRallyPoint(int index, bool skip_near_home, PositionYawSetpoint &rally_point, bool &has_land_approach) const
+{
+	const MissionRouteCache &mission_route_cache = _navigator->get_mission_route_cache();
+	mission_item_s mission_safe_point;
+
+	if (!mission_route_cache.loadSafePointItem(index, mission_safe_point)) {
+		PX4_ERR("dm_read failed");
+		return false;
+	}
+
+	// Only look at rally points
+	if (mission_safe_point.nav_cmd != NAV_CMD_RALLY_POINT) {
+		return false;
+	}
+
+	mission_route::Position position{};
+
+	if (!mission_route::extractSafePointPosition(mission_safe_point, _home_pos_sub.get().alt, position)) {
+		return false;
+	}
+
+	rally_point = PositionYawSetpoint{position.lat, position.lon, position.alt, NAN};
+
+	// Ignore safepoints which are too close to the homepoint (only if home is an option to return to)
+	const bool far_from_home = get_distance_to_next_waypoint(_home_pos_sub.get().lat, _home_pos_sub.get().lon,
+				   rally_point.lat, rally_point.lon) > mission_route::kLandApproachAssociationDistanceM;
+
+	if (skip_near_home && !far_from_home) {
+		return false;
+	}
+
+#if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
+	const bool vtol_in_fw_mode = _vehicle_status_sub.get().is_vtol
+				     && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	const bool rally_point_has_approaches = mission_route::hasVtolLandApproachesAtSafePointIndex(mission_route_cache, index,
+						_home_pos_sub.get().alt);
+
+	has_land_approach |= rally_point_has_approaches;
+	return !vtol_in_fw_mode || (_param_rtl_appr_force.get() == 0) || rally_point_has_approaches;
+#else
+	return true;
+#endif
+}
+
+PositionYawSetpoint RTL::findQuickestSafePoint(float max_safe_time_s, uint8_t &safe_point_index, bool &has_land_approach,
+		rtl_time_estimate_s &estimate)
+{
+	const MissionRouteCache &mission_route_cache = _navigator->get_mission_route_cache();
+
+	PositionYawSetpoint quickest_safe_point{static_cast<double>(NAN), static_cast<double>(NAN), NAN, NAN};
+	has_land_approach = false;
+
+	if (!mission_route_cache.safePointsReady()) {
+		return quickest_safe_point;
+	}
+
+	const int count = min(static_cast<int>(mission_route_cache.safePointCount()), static_cast<int>(DM_KEY_SAFE_POINTS_MAX));
+
+	// The straight line is never slower than the avoidance path: estimate it for every rally point first
+	float straight_safe_time_s[DM_KEY_SAFE_POINTS_MAX];
+
+	for (int seq = 0; seq < count; ++seq) {
+		PositionYawSetpoint candidate;
+		straight_safe_time_s[seq] = NAN;
+
+		if (loadRallyPoint(seq, /*skip_near_home=*/false, candidate, has_land_approach)) {
+			const rtl_time_estimate_s straight = estimateDirectReturn(candidate, /*follow_avoidance_path=*/false);
+
+			if (straight.valid) {
+				straight_safe_time_s[seq] = straight.safe_time_estimate;
+			}
+		}
+	}
+
+	// Then plan the avoidance path only for those that can still be the quickest, most promising first.
+	// Each one replans: if all of them need a long way around the geofence this scales with the
+	// number of rally points and the size of the geofence, and may need a limit per evaluation.
+	while (true) {
+		int next = -1;
+
+		for (int seq = 0; seq < count; ++seq) {
+			if (PX4_ISFINITE(straight_safe_time_s[seq]) && ((next < 0) || (straight_safe_time_s[seq] < straight_safe_time_s[next]))) {
+				next = seq;
+			}
+		}
+
+		if ((next < 0) || ((straight_safe_time_s[next] + MIN_TIME_THRESHOLD_S) >= max_safe_time_s)) {
+			break;
+		}
+
+		straight_safe_time_s[next] = NAN;
+		PositionYawSetpoint candidate;
+		bool unused{false};
+
+		if (!loadRallyPoint(next, /*skip_near_home=*/false, candidate, unused)) {
+			continue;
+		}
+
+		const rtl_time_estimate_s candidate_estimate = estimateDirectReturn(candidate);
+
+		if (candidate_estimate.valid && ((candidate_estimate.safe_time_estimate + MIN_TIME_THRESHOLD_S) < max_safe_time_s)) {
+			max_safe_time_s = candidate_estimate.safe_time_estimate;
+			quickest_safe_point = candidate;
+			safe_point_index = static_cast<uint8_t>(next);
+			estimate = candidate_estimate;
+		}
+	}
+
+	return quickest_safe_point;
 }
 
 void RTL::selectClosest(int32_t rtl_type, ReturnSelection &selection)

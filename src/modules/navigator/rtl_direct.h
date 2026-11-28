@@ -118,7 +118,7 @@ public:
 
 	/**
 	 * Time a direct Return to target would take if it started now, without configuring RtlDirect.
-		 */
+	*/
 	rtl_time_estimate_s estimateReturnTo(const Target &target);
 
 	void setReturnAltMin(bool min) { _enforce_rtl_alt = min; }
