@@ -8,12 +8,13 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name                                                  | Type      | Unit [Frame] | Range/Enum | Description                                                                                   |
-| ----------------------------------------------------- | --------- | ------------ | ---------- | --------------------------------------------------------------------------------------------- |
-| <a id="fld_timestamp"></a>timestamp                   | `uint64`  |              |            | time since system start (microseconds)                                                        |
-| <a id="fld_valid"></a>valid                           | `bool`    |              |            | Flag indicating whether the time estiamtes are valid                                          |
-| <a id="fld_time_estimate"></a>time_estimate           | `float32` | s            |            | Estimated time for Return                                                                     |
-| <a id="fld_safe_time_estimate"></a>safe_time_estimate | `float32` | s            |            | Same as time_estimate, but with safety factor and safety margin included (factor\*t + margin) |
+| Name                                                          | Type      | Unit [Frame] | Range/Enum | Description                                                                                               |
+| ------------------------------------------------------------- | --------- | ------------ | ---------- | --------------------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                           | `uint64`  |              |            | time since system start (microseconds)                                                                    |
+| <a id="fld_valid"></a>valid                                   | `bool`    |              |            | Flag indicating whether the time estimates are valid                                                      |
+| <a id="fld_time_estimate"></a>time_estimate                   | `float32` | s            |            | Estimated time for Return                                                                                 |
+| <a id="fld_safe_time_estimate"></a>safe_time_estimate         | `float32` | s            |            | Same as time_estimate, but with safety factor and safety margin included (factor\*t + margin)             |
+| <a id="fld_min_safe_time_estimate"></a>min_safe_time_estimate | `float32` | s            |            | Lowest safe_time_estimate of the possible Return destinations, used by the distance-aware return failsafe |
 
 ## Source Message
 
@@ -24,9 +25,10 @@ pageClass: is-wide-page
 ```c
 uint64 timestamp # time since system start (microseconds)
 
-bool valid			# Flag indicating whether the time estiamtes are valid
-float32 time_estimate		# [s] Estimated time for Return
-float32 safe_time_estimate	# [s] Same as time_estimate, but with safety factor and safety margin included (factor*t + margin)
+bool valid # Flag indicating whether the time estimates are valid
+float32 time_estimate # [s] Estimated time for Return
+float32 safe_time_estimate # [s] Same as time_estimate, but with safety factor and safety margin included (factor*t + margin)
+float32 min_safe_time_estimate # [s] Lowest safe_time_estimate of the possible Return destinations, used by the distance-aware return failsafe
 ```
 
 :::
