@@ -168,31 +168,28 @@ void MavlinkSignControl::reload_key()
 		return;
 	}
 
-	_is_signing_initialized = false;
-
 	int fd = ::open(MAVLINK_SECRET_FILE, O_RDONLY);
 
-	if (fd != -1) {
-		ssize_t bytes_read = ::read(fd, _mavlink_signing.secret_key, MAVLINK_SECRET_KEY_LENGTH);
-
-		if (bytes_read == MAVLINK_SECRET_KEY_LENGTH) {
-			bytes_read = ::read(fd, &_mavlink_signing.timestamp, MAVLINK_SECRET_KEY_TIMESTAMP_LENGTH);
-
-			if (bytes_read == MAVLINK_SECRET_KEY_TIMESTAMP_LENGTH) {
-				if (_mavlink_signing.timestamp != 0 || !is_array_all_zeros(_mavlink_signing.secret_key, MAVLINK_SECRET_KEY_LENGTH)) {
-					_is_signing_initialized = true;
-				}
-			}
-		}
-
-		close(fd);
+	if (fd < 0) {
+		PX4_WARN("signing record unavailable; retaining current link configuration");
+		return;
 	}
 
-	if (!_is_signing_initialized) {
-		memset(_mavlink_signing.secret_key, 0, MAVLINK_SECRET_KEY_LENGTH);
-		_mavlink_signing.timestamp = 0;
+	uint8_t candidate_key[MAVLINK_SECRET_KEY_LENGTH] {};
+	uint64_t candidate_timestamp{};
+	const bool key_complete = ::read(fd, candidate_key, sizeof(candidate_key)) == sizeof(candidate_key);
+	const bool record_complete = key_complete
+				     && ::read(fd, &candidate_timestamp, sizeof(candidate_timestamp)) == sizeof(candidate_timestamp);
+	const int close_result = ::close(fd);
+
+	if (!record_complete || close_result != 0) {
+		PX4_WARN("signing record read failed; retaining current link configuration");
+		return;
 	}
 
+	memcpy(_mavlink_signing.secret_key, candidate_key, sizeof(candidate_key));
+	_mavlink_signing.timestamp = candidate_timestamp;
+	_is_signing_initialized = candidate_timestamp != 0 || !is_array_all_zeros(candidate_key, sizeof(candidate_key));
 	_update_signing_state();
 }
 
