@@ -110,7 +110,7 @@ xhost +
 
 # Run docker
 docker run -it --privileged \
-    --env=LOCAL_USER_ID="$(id -u)" \
+    --user="$(id -u):$(id -g)" \
     -v <host_src>:<container_src>:rw \
     -v /tmp/.X11-unix:/tmp/.X11-unix:ro \
     -e DISPLAY=:0 \
@@ -134,7 +134,7 @@ xhost +
 
 # Run docker and open bash shell
 docker run -it --privileged \
---env=LOCAL_USER_ID="$(id -u)" \
+--user="$(id -u):$(id -g)" \
 -v ~/src/PX4-Autopilot:/src/PX4-Autopilot/:rw \
 -v /tmp/.X11-unix:/tmp/.X11-unix:ro \
 -e DISPLAY=:0 \
@@ -202,22 +202,23 @@ The IP address is the one of your docker container, usually 172.17.0.1/16 when u
 The IP address of the docker container can be found with the following command (assuming the container name is `mycontainer`):
 
 ```sh
-$ docker inspect -f '{ {range .NetworkSettings.Networks}}{ {.IPAddress}}{ {end}}' mycontainer
+docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' mycontainer
 ```
-
-::: info
-Spaces between double curly braces above should be not be present (they are needed to avoid a UI rendering problem in gitbook).
-:::
 
 ### Troubleshooting
 
 #### Permission Errors
 
-The container creates files as needed with a default user - typically "root".
+The container runs as `root` unless told otherwise, so files it creates in the shared source directory (such as the `build` directory) are owned by `root` on the host.
 This can lead to permission errors where the user on the host computer is not able to access files created by the container.
 
-The example above uses the line `--env=LOCAL_USER_ID="$(id -u)"` to create a user in the container with the same UID as the user on the host.
+The examples above use `--user="$(id -u):$(id -g)"` to run the container with the same UID and GID as the user on the host, as [docker_run.sh](https://github.com/PX4/PX4-Autopilot/blob/main/Tools/docker_run.sh) does.
 This ensures that all files created within the container will be accessible on the host.
+
+::: info
+Older PX4 containers created a matching user from the `LOCAL_USER_ID` environment variable.
+The `px4-dev` container does not, and ignores that variable.
+:::
 
 #### Graphics Driver Issues
 
