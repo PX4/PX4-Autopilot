@@ -35,6 +35,7 @@
 
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/estimator_fusion_control.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_gnss.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -52,7 +53,6 @@ static constexpr int kHomePositionGPSRequiredFixType = 2;
 static constexpr float kHomePositionGPSRequiredEPH = 5.f;
 static constexpr float kHomePositionGPSRequiredEPV = 10.f;
 static constexpr float kHomePositionGPSRequiredEVH = 1.f;
-static constexpr int32_t kGpsCtrlHorizontalAndAltitude = (1 << 0) | (1 << 1);
 static constexpr int32_t kHeightReferenceGnss = 1;
 static constexpr float kMinHomePositionChangeEPH = 1.f;
 static constexpr float kMinHomePositionChangeEPV = 1.5f;
@@ -95,6 +95,7 @@ private:
 	uORB::SubscriptionData<vehicle_attitude_s>	_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::SubscriptionData<vehicle_land_detected_s>	_vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
+	uORB::Subscription _estimator_fusion_control_sub{ORB_ID(estimator_fusion_control)};
 
 	uint64_t _last_gps_timestamp{0};
 	uint64_t _last_baro_timestamp{0};
@@ -119,6 +120,5 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::COM_HOME_EN>) _param_com_home_en
 	)
-	param_t _param_ekf2_gps_ctrl_handle{PARAM_INVALID};
 	bool _gnss_height_reference{true};
 };

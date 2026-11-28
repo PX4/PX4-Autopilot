@@ -8,13 +8,16 @@ pageClass: is-wide-page
 
 ## Fields
 
-| Name                                                                            | Type     | Unit [Frame] | Range/Enum | Description                                                            |
-| ------------------------------------------------------------------------------- | -------- | ------------ | ---------- | ---------------------------------------------------------------------- |
-| <a id="fld_timestamp"></a>timestamp                                             | `uint64` |              |            | time since system start (microseconds)                                 |
-| <a id="fld_geofence_max_dist_triggered"></a>geofence_max_dist_triggered         | `bool`   |              |            | true the check for max distance from Home is triggered                 |
-| <a id="fld_geofence_max_alt_triggered"></a>geofence_max_alt_triggered           | `bool`   |              |            | true the check for max altitude above Home is triggered                |
-| <a id="fld_geofence_custom_fence_triggered"></a>geofence_custom_fence_triggered | `bool`   |              |            | true the check for custom inclusion/exclusion geofence(s) is triggered |
-| <a id="fld_geofence_action"></a>geofence_action                                 | `uint8`  |              |            | action to take when the geofence is breached                           |
+| Name                                                                                      | Type     | Unit [Frame] | Range/Enum | Description                                                                                    |
+| ----------------------------------------------------------------------------------------- | -------- | ------------ | ---------- | ---------------------------------------------------------------------------------------------- |
+| <a id="fld_timestamp"></a>timestamp                                                       | `uint64` |              |            | time since system start (microseconds)                                                         |
+| <a id="fld_geofence_emer_max_dist_triggered"></a>geofence_emer_max_dist_triggered         | `bool`   |              |            | true if the emergency geofence check for max distance from Home is triggered                   |
+| <a id="fld_geofence_emer_max_alt_triggered"></a>geofence_emer_max_alt_triggered           | `bool`   |              |            | true if the emergency geofence check for max altitude above Home is triggered                  |
+| <a id="fld_geofence_emer_custom_fence_triggered"></a>geofence_emer_custom_fence_triggered | `bool`   |              |            | true if the emergency geofence check for custom inclusion/exclusion geofence(s) is triggered   |
+| <a id="fld_geofence_cont_max_dist_triggered"></a>geofence_cont_max_dist_triggered         | `bool`   |              |            | true if the contingency geofence check for max distance from Home is triggered                 |
+| <a id="fld_geofence_cont_custom_fence_triggered"></a>geofence_cont_custom_fence_triggered | `bool`   |              |            | true if the contingency geofence check for custom inclusion/exclusion geofence(s) is triggered |
+| <a id="fld_geofence_emer_action"></a>geofence_emer_action                                 | `uint8`  |              |            | action to take when the emergency geofence is breached                                         |
+| <a id="fld_geofence_cont_action"></a>geofence_cont_action                                 | `uint8`  |              |            | action to take when the contingency geofence is breached, GF_ACTION_NONE while it is disabled  |
 
 ## Constants
 
@@ -42,11 +45,14 @@ uint8 GF_ACTION_RTL = 3                 # switch to AUTO|RTL
 uint8 GF_ACTION_TERMINATE = 4           # flight termination
 uint8 GF_ACTION_LAND = 5                # switch to AUTO|LAND
 
-bool geofence_max_dist_triggered	# true the check for max distance from Home is triggered
-bool geofence_max_alt_triggered		# true the check for max altitude above Home is triggered
-bool geofence_custom_fence_triggered	# true the check for custom inclusion/exclusion geofence(s) is triggered
+bool geofence_emer_max_dist_triggered	# true if the emergency geofence check for max distance from Home is triggered
+bool geofence_emer_max_alt_triggered	# true if the emergency geofence check for max altitude above Home is triggered
+bool geofence_emer_custom_fence_triggered	# true if the emergency geofence check for custom inclusion/exclusion geofence(s) is triggered
+bool geofence_cont_max_dist_triggered	# true if the contingency geofence check for max distance from Home is triggered
+bool geofence_cont_custom_fence_triggered	# true if the contingency geofence check for custom inclusion/exclusion geofence(s) is triggered
 
-uint8 geofence_action           	# action to take when the geofence is breached
+uint8 geofence_emer_action       	# action to take when the emergency geofence is breached
+uint8 geofence_cont_action       	# action to take when the contingency geofence is breached, GF_ACTION_NONE while it is disabled
 ```
 
 :::

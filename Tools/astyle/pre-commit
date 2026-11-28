@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # An example hook script to verify what is about to be committed.
 # Called by "git commit" with no arguments. The hook should
@@ -53,10 +53,27 @@ if [ $? -ne 0 ]; then
 	exit 1
 fi
 
-# Check for code style, only in changed files
-bash -c "comm -12 <(./Tools/astyle/files_to_check_code_style.sh | sort) <(git diff --cached --name-only --diff-filter=ACM) | xargs ./Tools/astyle/check_code_style.sh"
+# The following checks run on the staged content, exported into a temporary
+# directory, so that unstaged changes neither hide nor cause errors.
+REPO=$(git rev-parse --show-toplevel)
+STAGED_DIR=$(mktemp -d)
+trap 'rm -rf "$STAGED_DIR"' EXIT
+git diff --cached --name-only --diff-filter=ACM -z | git checkout-index --stdin -z --prefix="$STAGED_DIR/"
+
+# Check for missing or duplicate newlines at the end of changed text files
+git diff --cached --name-only --diff-filter=ACM -z -- ':!docs/*' | xargs -0 -r git grep --cached -Il -z '' -- |
+	(cd "$STAGED_DIR" && xargs -0 -r "$REPO/Tools/astyle/check_newlines.py")
 if [ $? -ne 0 ]
 then
-	echo "Pre-commit style error: Bad formatting according to astyle rules"
+	echo "Pre-commit style error: Missing or duplicate newlines at the end of files, fix with \"make format\" and stage the result"
+	exit 1
+fi
+
+# Check for code style, only in changed files
+comm -12 <(./Tools/astyle/files_to_check_code_style.sh | sort) <(git diff --cached --name-only --diff-filter=ACM | sort) |
+	(cd "$STAGED_DIR" && xargs -r "$REPO/Tools/astyle/check_code_style.sh")
+if [ $? -ne 0 ]
+then
+	echo "Pre-commit style error: Bad formatting according to astyle rules, fix with \"make format\" and stage the result"
 	exit 1
 fi

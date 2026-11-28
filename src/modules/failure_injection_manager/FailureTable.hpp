@@ -85,6 +85,9 @@ public:
 	 */
 	AckResult injectMask(uint8_t unit, uint8_t type, uint16_t mask);
 
+	/** Remove all active failures. */
+	void clearAll();
+
 	/** True if the table changed since the last clearChanged(). */
 	bool changed() const { return _changed; }
 	void clearChanged() { _changed = false; }

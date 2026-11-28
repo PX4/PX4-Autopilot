@@ -368,7 +368,7 @@ void BatteryChecks::rtlEstimateCheck(const Context &context, Report &reporter, f
 			&& rtl_time_estimate.valid
 			&& context.isArmed()
 			&& PX4_ISFINITE(worst_battery_time_s)
-			&& rtl_time_estimate.safe_time_estimate * hysteresis_factor >= worst_battery_time_s;
+			&& rtl_time_estimate.min_safe_time_estimate * hysteresis_factor >= worst_battery_time_s;
 
 
 	// Every COM_LOW_BAT_ACT option at least warns on low remaining flight time (distance-aware return options return)

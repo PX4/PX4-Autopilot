@@ -85,6 +85,14 @@ void OutputToGimbalManager::update(const ControlData &control_data, bool new_set
 		// This can't take control away from anyone, so it's still up to the
 		// manager to arbitrate between its clients.
 		_send_configure(true);
+
+	} else if (!onboard_intent && _we_are_in_control()
+		   && hrt_elapsed_time(&_last_configure) > CONFIGURE_RETRY_INTERVAL) {
+		// We don't want control but the manager reports that we have it, e.g.
+		// because our release got lost, or a retry of an earlier acquire reached
+		// the manager after the release (COMMAND_ACK can't tell which of the two
+		// it answers). Release again. This only removes control if we hold it.
+		_send_configure(false);
 	}
 
 	_onboard_intent = onboard_intent;
@@ -121,6 +129,12 @@ void OutputToGimbalManager::_update_manager_status()
 bool OutputToGimbalManager::_nobody_in_control() const
 {
 	return _status.primary_control_sysid == 0 && _status.primary_control_compid == 0;
+}
+
+bool OutputToGimbalManager::_we_are_in_control() const
+{
+	return _status.primary_control_sysid == (uint8_t)_parameters.mav_sysid
+	       && _status.primary_control_compid == (uint8_t)_parameters.mav_compid;
 }
 
 void OutputToGimbalManager::_send_configure(bool acquire)

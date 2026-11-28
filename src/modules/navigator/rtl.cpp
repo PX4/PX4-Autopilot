@@ -95,8 +95,9 @@ void RTL::on_inactive()
 
 	if ((now - _destination_check_time) > RTL_REPLAN_INTERVAL) {
 		_destination_check_time = now;
-		setRtlTypeAndDestination();
-		publishRemainingTimeEstimate();
+		const ReturnSelection selection = selectReturn();
+		applyReturn(selection);
+		publishRemainingTimeEstimate(selection.fallback_safe_time_estimate);
 	}
 
 }
@@ -112,7 +113,7 @@ void RTL::on_inactivation()
 	_rtl_direct.run(false);
 }
 
-void RTL::publishRemainingTimeEstimate()
+void RTL::publishRemainingTimeEstimate(float fallback_safe_time_estimate)
 {
 	const bool global_position_recently_updated = _global_pos_sub.get().timestamp > 0
 			&& hrt_elapsed_time(&_global_pos_sub.get().timestamp) < 10_s;
@@ -127,6 +128,13 @@ void RTL::publishRemainingTimeEstimate()
 		} else if (_rtl_mission_type_handle) {
 			estimated_time = _rtl_mission_type_handle->calc_rtl_time_estimate();
 		}
+	}
+
+	// RTL_TYPE 6 while inactive: the lower estimate of Home and its rally point, for the distance-aware return failsafe
+	estimated_time.min_safe_time_estimate = estimated_time.safe_time_estimate;
+
+	if (estimated_time.valid && PX4_ISFINITE(fallback_safe_time_estimate)) {
+		estimated_time.min_safe_time_estimate = min(estimated_time.safe_time_estimate, fallback_safe_time_estimate);
 	}
 
 	estimated_time.timestamp = hrt_absolute_time();
@@ -184,7 +192,7 @@ void RTL::on_active()
 
 	if ((now - _destination_check_time) > RTL_REPLAN_INTERVAL) {
 		_destination_check_time = now;
-		publishRemainingTimeEstimate();
+		publishRemainingTimeEstimate(NAN);
 	}
 }
 
@@ -277,12 +285,14 @@ void RTL::selectMissionPath(int32_t rtl_type, ReturnSelection &selection) const
 
 void RTL::selectHomeIfReachable(ReturnSelection &selection)
 {
+	const PositionYawSetpoint home = selection.destination;
+
 #if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
 	selection.home_has_land_approach = mission_route::hasVtolLandApproachesNearLocation(
-			_navigator->get_mission_route_cache(), selection.destination, _home_pos_sub.get().alt);
+			_navigator->get_mission_route_cache(), home, _home_pos_sub.get().alt);
 #endif
 
-	const rtl_time_estimate_s time_to_home = estimateTimeToHome();
+	const rtl_time_estimate_s time_to_home = estimateDirectReturn(home);
 
 	const float worst_battery_time_s = worstBatteryTimeRemaining();
 
@@ -290,34 +300,59 @@ void RTL::selectHomeIfReachable(ReturnSelection &selection)
 				       && PX4_ISFINITE(worst_battery_time_s)
 				       && (time_to_home.safe_time_estimate < worst_battery_time_s);
 
+	// A rally point replaces Home only if it is closer
+	const float home_dist = get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon,
+				home.lat, home.lon);
+	uint8_t rally_point_index{RTL_STATUS_NO_SAFE_POINT};
+	bool rally_point_has_land_approach{false};
+	const PositionYawSetpoint rally_point = findClosestSafePoint(home_dist, /*skip_near_home=*/false,
+						rally_point_index, rally_point_has_land_approach);
+	const bool has_rally_point = rally_point_index != RTL_STATUS_NO_SAFE_POINT;
+
 	if (!home_within_reach) {
-		// Home is out of reach or not estimated: a rally point replaces Home only if it is closer
-		const float home_dist = get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon,
-					_home_pos_sub.get().lat, _home_pos_sub.get().lon);
+		// Home is out of reach or not estimated
+		selection.rally_point_has_land_approach = rally_point_has_land_approach;
 
-		PositionYawSetpoint safe_point = findClosestSafePoint(home_dist, /*skip_near_home=*/false,
-						 selection.safe_point_index, selection.rally_point_has_land_approach);
-
-		if (selection.safe_point_index != RTL_STATUS_NO_SAFE_POINT) {
-			selection.destination = safe_point;
+		if (has_rally_point) {
+			selection.destination = rally_point;
 			selection.destination_type = DestinationType::DESTINATION_TYPE_SAFE_POINT;
+			selection.safe_point_index = rally_point_index;
 		}
 
 		// If no rally points are closer (or none are defined), fall back to home (already set as the destination)
+
+	} else if (has_rally_point) {
+		// The planner holds Home's path until the rally point is selected.
+		const rtl_time_estimate_s fallback = estimateDirectReturn(rally_point, /*follow_avoidance_path=*/false);
+
+		if (fallback.valid && fallback.safe_time_estimate < time_to_home.safe_time_estimate) {
+			selection.fallback_safe_time_estimate = fallback.safe_time_estimate;
+		}
 	}
 }
 
-rtl_time_estimate_s RTL::estimateTimeToHome()
+loiter_point_s RTL::landingLoiter(const PositionYawSetpoint &destination) const
 {
-	const PositionYawSetpoint home = homeDestination();
-	loiter_point_s home_loiter;
-	home_loiter.lat = home.lat;
-	home_loiter.lon = home.lon;
-	home_loiter.height_m = NAN;
+	loiter_point_s landing_loiter{};
 
-	_rtl_direct.setRtlAlt(computeReturnAltitude(home));
-	_rtl_direct.setRtlPosition(home, home_loiter);
-	return _rtl_direct.calc_rtl_time_estimate();
+#if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
+	landing_loiter = selectLandingApproach(destination);
+#endif
+
+	if (!landing_loiter.isValid()) {
+		landing_loiter.lat = destination.lat;
+		landing_loiter.lon = destination.lon;
+		landing_loiter.height_m = NAN;
+	}
+
+	return landing_loiter;
+}
+
+rtl_time_estimate_s RTL::estimateDirectReturn(const PositionYawSetpoint &destination, bool follow_avoidance_path)
+{
+	RtlDirect::Target target{destination, landingLoiter(destination), computeReturnAltitude(destination)};
+	target.follow_avoidance_path = follow_avoidance_path;
+	return _rtl_direct.estimateReturnTo(target);
 }
 
 void RTL::applyReturn(const ReturnSelection &selection)
@@ -358,15 +393,7 @@ void RTL::applyReturn(const ReturnSelection &selection)
 	loiter_point_s landing_loiter{};
 
 	if (new_rtl_type == RtlType::RTL_DIRECT) {
-#if defined(CONFIG_MODULES_VTOL_ATT_CONTROL) && CONFIG_MODULES_VTOL_ATT_CONTROL
-		landing_loiter = selectLandingApproach(destination);
-#endif
-
-		if (!landing_loiter.isValid()) {
-			landing_loiter.lat = destination.lat;
-			landing_loiter.lon = destination.lon;
-			landing_loiter.height_m = NAN;
-		}
+		landing_loiter = landingLoiter(destination);
 	}
 
 	_rtl_direct.setRtlAlt(rtl_alt);

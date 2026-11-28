@@ -44,6 +44,7 @@ void ZeroGyroUpdate::reset()
 {
 	_zgup_delta_ang.setZero();
 	_zgup_delta_ang_dt = 0.f;
+	_zgup_rate_pending_valid = false;
 }
 
 bool ZeroGyroUpdate::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
@@ -58,9 +59,24 @@ bool ZeroGyroUpdate::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 		const bool zero_gyro_update_data_ready = _zgup_delta_ang_dt >= zgup_dt;
 
 		if (zero_gyro_update_data_ready) {
+			// The at-rest status lags the start of a rotation: a rate is fused once the
+			// vehicle has stayed at rest for one more window
+			const Vector3f rate = _zgup_rate_pending;
+			const bool rate_valid = _zgup_rate_pending_valid;
+
+			_zgup_rate_pending = _zgup_delta_ang / _zgup_delta_ang_dt;
+			_zgup_rate_pending_valid = true;
+
+			// Reset the integrators
+			_zgup_delta_ang.setZero();
+			_zgup_delta_ang_dt = 0.f;
+
+			if (!rate_valid) {
+				return false;
+			}
 
 			const Vector3f earth_rate_body = ekf.state().quat_nominal.rotateVectorInverse(ekf.getEarthRateNED());
-			const Vector3f gyro_bias = _zgup_delta_ang / _zgup_delta_ang_dt - earth_rate_body;
+			const Vector3f gyro_bias = rate - earth_rate_body;
 
 			const float obs_var = sq(math::constrain(ekf.getGyroNoise(), 0.f, 1.f));
 
@@ -74,17 +90,11 @@ bool ZeroGyroUpdate::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 
 			ekf.applyStateCorrection(state_correction);
 
-			// Reset the integrators
-			_zgup_delta_ang.setZero();
-			_zgup_delta_ang_dt = 0.f;
-
 			return true;
 		}
 
 	} else if (ekf.control_status_prev_flags().vehicle_at_rest) {
-		// Reset the integrators
-		_zgup_delta_ang.setZero();
-		_zgup_delta_ang_dt = 0.f;
+		reset();
 	}
 
 	return false;

@@ -131,7 +131,18 @@ void LandDetector::Run()
 
 		static constexpr float GYRO_NORM_MAX = math::radians(3.f); // 3 degrees/second
 
-		if (_angular_velocity.norm() > GYRO_NORM_MAX) {
+		// The angular velocity has the estimated gyro bias removed, so an error of that estimate
+		// reads as a rotation. The margin to GYRO_NORM_MAX is the smallest bias estimate that
+		// can make the rate without this correction disagree.
+		static constexpr float kUncorrectedGyroNormMax = 0.5f * GYRO_NORM_MAX;
+		static constexpr hrt_abstime kUncorrectedGyroTimeout = 100_ms;
+
+		sensor_combined_s sensor_combined;
+		const bool uncorrected_rate_still = _sensor_combined_sub.copy(&sensor_combined)
+						    && (hrt_elapsed_time(&sensor_combined.timestamp) < kUncorrectedGyroTimeout)
+						    && (matrix::Vector3f{sensor_combined.gyro_rad}.norm() < kUncorrectedGyroNormMax);
+
+		if ((_angular_velocity.norm() > GYRO_NORM_MAX) && !uncorrected_rate_still) {
 			_time_last_move_detect_us = vehicle_angular_velocity.timestamp_sample;
 		}
 	}

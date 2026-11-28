@@ -142,6 +142,15 @@ private:
 
 			mavlink_sys_status_t msg{};
 
+			msg.onboard_control_sensors_present |= MAV_SYS_STATUS_SENSOR_MOTOR_OUTPUTS;
+			msg.onboard_control_sensors_health |= MAV_SYS_STATUS_SENSOR_MOTOR_OUTPUTS;
+
+			// Commander also reports safety off when the interlock is disabled.
+			// Button availability does not cover MAVLink-only safety.
+			if (status.safety_off) {
+				msg.onboard_control_sensors_enabled |= MAV_SYS_STATUS_SENSOR_MOTOR_OUTPUTS;
+			}
+
 			if (health_report.can_arm_mode_flags & (1u << status.nav_state)) {
 				msg.onboard_control_sensors_health |= MAV_SYS_STATUS_PREARM_CHECK;
 			}

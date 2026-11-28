@@ -83,6 +83,10 @@ private:
 	void announceFailure(uint8_t unit, uint8_t type, uint16_t mask);
 
 	void evaluateRcInjection();
+	void evaluateRcReset(float value);
+	bool rcResetEnabled() const;
+
+	static float auxValue(const manual_control_setpoint_s &manual_control_setpoint, int32_t aux);
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_command_sub{this, ORB_ID(vehicle_command)};
 	uORB::SubscriptionCallbackWorkItem _manual_control_setpoint_sub{this, ORB_ID(manual_control_setpoint)};
@@ -95,14 +99,23 @@ private:
 	orb_advert_t _mavlink_log_pub{nullptr};
 
 	bool     _rc_active{false};
+	bool     _rc_latched{false};
 	uint8_t  _rc_active_unit{0};
 	uint16_t _rc_active_mask{0};
+
+	enum class SwitchPosition : uint8_t {
+		Unknown,
+		Low,
+		Middle,
+		High,
+	} _rc_reset_position{SwitchPosition::Unknown};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SYS_FAIL_RC_SRC>) _param_sys_fail_rc_src,
 		(ParamInt<px4::params::SYS_FAIL_RC_UNIT>) _param_sys_fail_rc_unit,
 		(ParamInt<px4::params::SYS_FAIL_RC_MODE>) _param_sys_fail_rc_mode,
 		(ParamInt<px4::params::SYS_FAIL_RC_INST>) _param_sys_fail_rc_inst,
+		(ParamInt<px4::params::SYS_FAIL_RC_RST>) _param_sys_fail_rc_rst,
 		// Consumed via param_find() in failure_injection::process_XXXX() and
 		// failure_injection::imu_offset(); registered here so they are marked used
 		// and show up in the GCS parameter list.

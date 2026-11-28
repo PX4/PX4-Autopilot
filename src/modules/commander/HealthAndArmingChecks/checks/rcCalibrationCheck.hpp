@@ -37,6 +37,7 @@
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/input_rc.h>
+#include <uORB/topics/rc_channels.h>
 
 class RcCalibrationChecks : public HealthAndArmingCheckBase
 {
@@ -59,6 +60,8 @@ private:
 		float trim;
 		float max;
 	};
+
+	uORB::Subscription _rc_channels_sub{ORB_ID(rc_channels)};
 
 	ParamHandles _param_handles[input_rc_s::RC_INPUT_MAX_CHANNELS];
 	ParamValues _param_values[input_rc_s::RC_INPUT_MAX_CHANNELS];

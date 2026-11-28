@@ -53,7 +53,8 @@ The flag comments are used as label for the failsafe state machine simulation
 | <a id="fld_fd_motor_failure"></a>fd_motor_failure                                                 | `bool`   |              |            | Motor failure                                                                                  |
 | <a id="fld_fd_motor_stuck_failure"></a>fd_motor_stuck_failure                                     | `bool`   |              |            | Motor-stuck failure during spool-up                                                            |
 | <a id="fld_fd_alt_loss"></a>fd_alt_loss                                                           | `bool`   |              |            | Uncommanded altitude loss (rotary-wing, altitude-controlled flight)                            |
-| <a id="fld_geofence_breached"></a>geofence_breached                                               | `bool`   |              |            | Geofence breached (one or multiple)                                                            |
+| <a id="fld_gf_emer_breach"></a>gf_emer_breach                                                     | `bool`   |              |            | Emergency geofence breached (one or multiple)                                                  |
+| <a id="fld_gf_cont_breach"></a>gf_cont_breach                                                     | `bool`   |              |            | Contingency geofence breached (one or multiple)                                                |
 | <a id="fld_mission_failure"></a>mission_failure                                                   | `bool`   |              |            | Mission failure                                                                                |
 | <a id="fld_vtol_fixed_wing_system_failure"></a>vtol_fixed_wing_system_failure                     | `bool`   |              |            | vehicle in fixed-wing system failure failsafe mode (after quad-chute)                          |
 | <a id="fld_wind_limit_exceeded"></a>wind_limit_exceeded                                           | `bool`   |              |            | Wind limit exceeded                                                                            |
@@ -127,7 +128,8 @@ bool fd_motor_stuck_failure           # Motor-stuck failure during spool-up
 bool fd_alt_loss                      # Uncommanded altitude loss (rotary-wing, altitude-controlled flight)
 
 # Other
-bool geofence_breached        	      # Geofence breached (one or multiple)
+bool gf_emer_breach                   # Emergency geofence breached (one or multiple)
+bool gf_cont_breach                   # Contingency geofence breached (one or multiple)
 bool mission_failure                  # Mission failure
 bool vtol_fixed_wing_system_failure   # vehicle in fixed-wing system failure failsafe mode (after quad-chute)
 bool wind_limit_exceeded              # Wind limit exceeded

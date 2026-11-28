@@ -56,9 +56,22 @@ set(NUTTX_CONFIG_DIR ${PX4_BOARD_DIR}/nuttx-config CACHE FILEPATH "PX4 NuttX con
 set(NUTTX_DEFCONFIG ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig CACHE FILEPATH "path to defconfig" FORCE)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${NUTTX_DEFCONFIG})
 
+# NUTTX_SRC_DIR holds PX4's NuttX glue (Make.defs.in, tools, include overlay) and
+# the nuttx and apps submodules. NuttX builds inside its source tree, so by
+# default the build happens in those submodules. PX4_NUTTX_TREE_DIR points the
+# build at another directory holding a copy of nuttx/ and apps/ instead, which
+# lets a second target build in the same checkout without sharing that state
+# (see px4io_firmware_build.cmake). Board defconfigs reach their board directory
+# with a path relative to nuttx/ (CONFIG_ARCH_BOARD_CUSTOM_DIR), so such a tree
+# has to sit three levels below PX4_SOURCE_DIR, like the submodules do.
 set(NUTTX_SRC_DIR  ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX)
-set(NUTTX_DIR      ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx CACHE FILEPATH "NuttX directory" FORCE)
-set(NUTTX_APPS_DIR ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/apps CACHE FILEPATH "NuttX apps directory" FORCE)
+if(PX4_NUTTX_TREE_DIR)
+	set(nuttx_tree_dir ${PX4_NUTTX_TREE_DIR})
+else()
+	set(nuttx_tree_dir ${NUTTX_SRC_DIR})
+endif()
+set(NUTTX_DIR      ${nuttx_tree_dir}/nuttx CACHE FILEPATH "NuttX directory" FORCE)
+set(NUTTX_APPS_DIR ${nuttx_tree_dir}/apps CACHE FILEPATH "NuttX apps directory" FORCE)
 
 px4_add_git_submodule(TARGET git_nuttx PATH "${NUTTX_SRC_DIR}/nuttx")
 px4_add_git_submodule(TARGET git_nuttx_apps PATH "${NUTTX_SRC_DIR}/apps")

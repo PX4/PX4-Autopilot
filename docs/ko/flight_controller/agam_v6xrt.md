@@ -135,6 +135,8 @@ Notes:
 | LPUART10 | /dev/ttyS6 | TELEM3  |
 | LPUART11 | /dev/ttyS7 | EXT2    |
 
+The board has five [MAVLink instances](../peripherals/mavlink_peripherals.md#mavlink-instances) (`MAV_0_CONFIG` to `MAV_4_CONFIG`) rather than the usual three.
+
 ## Radio Control {#radio_control}
 
 A remote control (RC) radio system is required if you want to _manually_ control your vehicle (PX4 does not require a radio system for autonomous flight modes).

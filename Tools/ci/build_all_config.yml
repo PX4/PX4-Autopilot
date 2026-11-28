@@ -57,6 +57,27 @@ special_labels:
   - lto
   - protected
 
+# Targets that are built but not published: nothing from them reaches S3, a
+# GitHub Release or the build artifacts of a pull request. They are in the
+# build matrix for compile coverage, analysis or testing, and are not firmware
+# anyone should flash. Each entry says why. Tools/ci/test_package_build_artifacts.py
+# fails when an entry no longer matches a target in the tree.
+unpublished:
+  # Every target with this label (boards/<vendor>/<board>/<label>.px4board)
+  labels:
+    flash-analysis: linked against an oversized flash region, for flash_analysis.yml
+    allyes: every option enabled, for compile coverage
+    performance-test: test firmware without a flight stack
+    bench: tooling for the bench test suite
+    lto: link-time optimization coverage
+    secureboot: signed with the test keys kept in the tree
+    bootloader_secureboot: signed with the test keys kept in the tree
+    cryptotest: uses the test keys kept in the tree
+    test-daa-crosstrack: unit test configuration
+  # Single targets, where other targets with the same label are user firmware
+  targets:
+    px4_fmu-v5_debug: NuttX debug and OS test build
+
 # NXP chip families are pooled under "nxp-{chip}" regardless of board directory
 nxp_chip_families:
   - imxrt

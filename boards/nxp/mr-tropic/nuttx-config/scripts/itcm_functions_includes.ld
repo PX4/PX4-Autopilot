@@ -266,7 +266,7 @@
 *(.text.nxsem_wait_irq)
 *(.text._ZN20MavlinkCommandSender4lockEv)
 *(.text._ZThn24_N16ControlAllocator3RunEv)
-*(.text._ZN15TimestampedListIN20MavlinkCommandSender14command_item_sELi3EE8get_nextEv)
+*(.text._ZN15TimestampedListIN20MavlinkCommandSender14command_item_sELi5EE8get_nextEv)
 *(.text._ZNK3Ekf21get_ekf_lpos_accuracyEPfS0_)
 *(.text._ZN17FlightModeManager17start_flight_taskEv)
 *(.text._ZN29MavlinkStreamLocalPositionNED8get_sizeEv)

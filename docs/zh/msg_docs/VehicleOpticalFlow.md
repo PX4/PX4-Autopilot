@@ -23,6 +23,7 @@ Optical flow in XYZ body frame in SI units.
 | <a id="fld_max_flow_rate"></a>max_flow_rate                     | `float32`    |                                                                  |            | (radians/s) Magnitude of maximum angular which the optical flow sensor can measure reliably                                                                                       |
 | <a id="fld_min_ground_distance"></a>min_ground_distance         | `float32`    |                                                                  |            | (meters) Minimum distance from ground at which the optical flow sensor operates reliably                                                                                          |
 | <a id="fld_max_ground_distance"></a>max_ground_distance         | `float32`    |                                                                  |            | (meters) Maximum distance from ground at which the optical flow sensor operates reliably                                                                                          |
+| <a id="fld_position_offset"></a>position_offset                                      | `float32[3]` |                                                                  |            | (meters) Position of the sensor focal point in body FRD frame, relative to the vehicle centre of gravity                                                                          |
 
 ## Source Message
 
@@ -53,6 +54,8 @@ float32 max_flow_rate          # (radians/s) Magnitude of maximum angular which 
 
 float32 min_ground_distance    # (meters) Minimum distance from ground at which the optical flow sensor operates reliably
 float32 max_ground_distance    # (meters) Maximum distance from ground at which the optical flow sensor operates reliably
+
+float32[3] position_offset     # (meters) Position of the sensor focal point in body FRD frame, relative to the vehicle centre of gravity
 ```
 
 :::

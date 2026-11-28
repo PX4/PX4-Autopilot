@@ -40,6 +40,7 @@
 #include <lib/parameters/param.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/estimator_fusion_control.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -68,10 +69,10 @@ protected:
 
 		// The constructor caches EKF2_HGT_REF and the parameter objects read their
 		// values on construction, so all parameters are set before HomePosition exists
-		const char *names[] = {"COM_HOME_EN", "EKF2_GPS_CTRL", "EKF2_HGT_REF"};
-		const int32_t values[] = {1, 3, 1};
+		const char *names[] = {"COM_HOME_EN", "EKF2_HGT_REF"};
+		const int32_t values[] = {1, 1};
 
-		for (unsigned i = 0; i < 3; ++i) {
+		for (unsigned i = 0; i < 2; ++i) {
 			_saved[i].handle = param_find(names[i]);
 			ASSERT_NE(_saved[i].handle, PARAM_INVALID) << names[i];
 			ASSERT_EQ(param_get(_saved[i].handle, &_saved[i].value), 0);
@@ -85,6 +86,11 @@ protected:
 
 		_flags.attitude_invalid = true;
 		_home = std::make_unique<HomePosition>(_flags);
+
+		estimator_fusion_control_s fusion_control{};
+		fusion_control.timestamp = hrt_absolute_time();
+		fusion_control.gps_intended[0] = true;
+		_fusion_control_pub.publish(fusion_control);
 
 		publishPosition(0.f, kRefAlt, true, true);
 		publishGnss(kRefAlt, false); // overwrite retained GNSS data with an invalid fix
@@ -206,7 +212,7 @@ protected:
 
 	failsafe_flags_s _flags{}; // must outlive the HomePosition that references it
 	std::unique_ptr<HomePosition> _home;
-	SavedParam _saved[3] {};
+	SavedParam _saved[2] {};
 	bool _helpers_initialized{false};
 
 	uORB::Publication<vehicle_local_position_s> _lpos_pub{ORB_ID(vehicle_local_position)};
@@ -215,6 +221,7 @@ protected:
 	uORB::Publication<vehicle_land_detected_s> _land_pub{ORB_ID(vehicle_land_detected)};
 	uORB::Publication<vehicle_air_data_s> _baro_pub{ORB_ID(vehicle_air_data)};
 	uORB::Publication<vehicle_gnss_s> _gnss_pub{ORB_ID(vehicle_gnss)};
+	uORB::Publication<estimator_fusion_control_s> _fusion_control_pub{ORB_ID(estimator_fusion_control)};
 	uORB::Subscription _home_sub{ORB_ID(home_position)};
 };
 

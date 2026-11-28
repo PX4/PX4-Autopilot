@@ -608,8 +608,8 @@ When this has been done, the performance metadata files can be processed to prov
 
 ### States
 
-Refer to states\[24\] in [EstimatorStates](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStates.msg).
-The index map for states\[24\] is as follows:
+Refer to states\[25\] in [EstimatorStates](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStates.msg).
+The index map for states\[25\] is as follows:
 
 - \[0 ... 3\] Quaternions
 - \[4 ... 6\] Velocity NED \(m/s\)
@@ -619,20 +619,22 @@ The index map for states\[24\] is as follows:
 - \[16 ... 18\] Earth magnetic field NED \(gauss\)
 - \[19 ... 21\] Body magnetic field XYZ \(gauss\)
 - \[22 ... 23\] Wind velocity NE \(m/s\)
+- \[24\] Terrain altitude, AMSL downpositive \(m\)
 
 ### State Variances
 
 Refer to covariances\[24\] in [EstimatorStates](https://github.com/PX4/PX4-Autopilot/blob/main/msg/EstimatorStates.msg).
 The index map for covariances\[24\] is as follows:
 
-- \[0 ... 3\] Quaternions
-- \[4 ... 6\] Velocity NED \(m/s\)^2
-- \[7 ... 9\] Position NED \(m^2\)
-- \[10 ... 12\] IMU delta angle bias XYZ \(rad^2\)
-- \[13 ... 15\] IMU delta velocity bias XYZ \(m/s\)^2
-- \[16 ... 18\] Earth magnetic field NED \(gauss^2\)
-- \[19 ... 21\] Body magnetic field XYZ \(gauss^2\)
-- \[22 ... 23\] Wind velocity NE \(m/s\)^2
+- \[0 ... 2\] Quaternions
+- \[3 ... 5\] Velocity NED \(m/s\)^2
+- \[6 ... 8\] Position NED \(m^2\)
+- \[9 ... 11\] IMU delta angle bias XYZ \(rad^2\)
+- \[12 ... 14\] IMU delta velocity bias XYZ \(m/s\)^2
+- \[15 ... 17\] Earth magnetic field NED \(gauss^2\)
+- \[18 ... 20\] Body magnetic field XYZ \(gauss^2\)
+- \[21 ... 22\] Wind velocity NE \(m/s\)^2
+- \[23\] Terrain altitude \(m\)
 
 ### Observation Innovations & Innovation Variances
 

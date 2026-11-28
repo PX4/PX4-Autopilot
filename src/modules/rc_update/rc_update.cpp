@@ -496,6 +496,7 @@ void RCUpdate::Run()
 		_rc.channel_count = input_rc.channel_count;
 		_rc.rssi = input_rc.rssi;
 		_rc.signal_lost = _rc_signal_lost_hysteresis.get_state();
+		_rc.calibrated = _rc_calibrated;
 		_rc.timestamp = input_rc.timestamp_last_signal;
 		_rc.frame_drop_count = input_rc.rc_lost_frame_count;
 

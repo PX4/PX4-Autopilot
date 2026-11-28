@@ -40,8 +40,7 @@
 #include "commander_helper.h"
 
 HomePosition::HomePosition(const failsafe_flags_s &failsafe_flags): ModuleParams(nullptr),
-	_failsafe_flags(failsafe_flags),
-	_param_ekf2_gps_ctrl_handle(param_find("EKF2_GPS_CTRL"))
+	_failsafe_flags(failsafe_flags)
 {
 	int32_t ekf2_hgt_ref = kHeightReferenceGnss;
 	const param_t param_ekf2_hgt_ref_handle = param_find("EKF2_HGT_REF");
@@ -343,15 +342,8 @@ void HomePosition::setHomePosValid()
 
 bool HomePosition::isGpsPositionFusionEnabled()
 {
-	// If parameter doesn't exist, allow GPS usage
-	if (_param_ekf2_gps_ctrl_handle == PARAM_INVALID) {
-		return true;
-	}
-
-	// Raw GNSS home position uses both horizontal position and altitude.
-	int32_t ekf2_gps_ctrl = 0;
-	param_get(_param_ekf2_gps_ctrl_handle, &ekf2_gps_ctrl);
-	return (ekf2_gps_ctrl & kGpsCtrlHorizontalAndAltitude) == kGpsCtrlHorizontalAndAltitude;
+	estimator_fusion_control_s fusion_control;
+	return _estimator_fusion_control_sub.copy(&fusion_control) && fusion_control.gps_intended[0];
 }
 
 void HomePosition::updateHomePositionYaw(float yaw)

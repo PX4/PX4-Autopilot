@@ -442,6 +442,7 @@ AirspeedModule::Run()
 		input_data.q_att = _q_att;
 		input_data.air_pressure_pa = _vehicle_air_data.baro_pressure_pa;
 		input_data.accel_z = _accel.xyz[2];
+		input_data.ground_contact = _vehicle_land_detected.ground_contact;
 		input_data.vel_test_ratio = _estimator_status.vel_test_ratio;
 		input_data.hdg_test_ratio = _estimator_status.hdg_test_ratio;
 		input_data.tecs_timestamp = _tecs_status.timestamp;
@@ -837,9 +838,9 @@ void AirspeedModule::select_airspeed_and_publish()
 		} else if (_prev_airspeed_src > AirspeedSource::GROUND_MINUS_WIND
 			   && prev_airspeed_index <= MAX_NUM_AIRSPEED_SENSORS) {
 			mavlink_log_critical(&_mavlink_log_pub,
-					     "Airspeed sensor failure detected. Return mode is advised.\t");
+					     "Airspeed sensor failure detected\t");
 			events::send(events::ID("airspeed_selector_sensor_failure"), events::Log::Critical,
-				     "Airspeed sensor failure detected. Return mode is advised");
+				     "Airspeed sensor failure detected");
 
 		} else if (_prev_airspeed_src == AirspeedSource::GROUND_MINUS_WIND
 			   && _valid_airspeed_src == AirspeedSource::DISABLED) {
