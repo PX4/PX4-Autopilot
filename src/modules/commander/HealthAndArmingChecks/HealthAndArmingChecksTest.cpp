@@ -34,9 +34,10 @@
 #include <gtest/gtest.h>
 
 #include "Common.hpp"
+#include "checks/modeCheck.hpp"
+#include <parameters/param.h>
 #if CONFIG_NAVIGATOR_ADSB
 #include "checks/daaCheck.hpp"
-#include <parameters/param.h>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/detect_and_avoid_most_urgent.h>
 #endif // CONFIG_NAVIGATOR_ADSB
@@ -407,3 +408,58 @@ TEST_F(ReporterTest, daaCheckIgnoresConflictWhileArmed)
 }
 
 #endif // CONFIG_NAVIGATOR_ADSB
+
+// A ground station names the cause of a blocked mode from the events reported for that mode, so the blocking
+// event must cover only the modes it blocks.
+TEST_F(ReporterTest, manualControlLostReportsBlockedModes)
+{
+	param_control_autosave(false);
+	param_reset_all();
+
+	vehicle_status_s status{};
+	status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+	Context context{status};
+
+	const uint32_t posctl = 1u << vehicle_status_s::NAVIGATION_STATE_POSCTL;
+	const uint32_t loiter = 1u << vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+
+	for (const int32_t rc_in_mode : {3, 4}) { // sticks enabled, sticks disabled
+		param_set(param_handle(px4::params::COM_RC_IN_MODE), &rc_in_mode);
+		ModeChecks mode_checks;
+
+		failsafe_flags_s failsafe_flags{};
+		Report reporter{failsafe_flags, 0_s};
+		uORB::Subscription event_sub{ORB_ID(event)};
+		event_s event{};
+
+		while (event_sub.update(&event)) {}
+
+		reporter.reset();
+		reporter.prepare(vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+		failsafe_flags.manual_control_signal_lost = true;
+		mode_checks.checkAndReport(context, reporter);
+		reporter.finalize();
+		reporter.report(false);
+
+		EXPECT_FALSE(reporter.canArm(vehicle_status_s::NAVIGATION_STATE_POSCTL));
+		EXPECT_TRUE(reporter.canArm(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER));
+
+		uint32_t blocking_modes = 0;
+		uint32_t warning_modes = 0;
+
+		while (event_sub.update(&event)) {
+			uint32_t modes;
+			memcpy(&modes, event.arguments, sizeof(modes));
+
+			if (event.id == events::ID("check_modes_manual_control")) {
+				blocking_modes = modes;
+
+			} else if (event.id == events::ID("check_modes_manual_control_warning")) {
+				warning_modes = modes;
+			}
+		}
+
+		EXPECT_EQ(blocking_modes & (posctl | loiter), posctl);
+		EXPECT_EQ(warning_modes & (posctl | loiter), rc_in_mode == 4 ? 0u : loiter);
+	}
+}
