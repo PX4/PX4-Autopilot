@@ -90,8 +90,8 @@ void VtolType::parameters_update()
 {
 	updateParams();
 
-	// make sure that transition speed is above blending speed
-	_param_vt_arsp_trans.set(math::max(_param_vt_arsp_trans.get(), _param_vt_arsp_blend.get()));
+	// blending ends at the transition airspeed, a higher blending airspeed disables blending
+	_param_vt_arsp_blend.set(math::min(_param_vt_arsp_blend.get(), _param_vt_arsp_trans.get()));
 	// make sure that openloop transition time is above minimum time
 	_param_vt_f_tr_ol_tm.set(math::max(_param_vt_f_tr_ol_tm.get(), _param_vt_trans_min_tm.get()));
 }
@@ -666,8 +666,22 @@ float VtolType::getFrontTransitionTimeout() const
 
 float VtolType::getOpenLoopFrontTransitionTime() const
 {
-	return getFrontTransitionTimeFactor() * _param_vt_f_tr_ol_tm.get();
+	// Constrain to param min to avoid division by 0
+	return getFrontTransitionTimeFactor() * math::max(1.f, _param_vt_f_tr_ol_tm.get());
 }
+
+float VtolType::getFrontTransitionMcWeight() const
+{
+	float airspeed = _attc->get_calibrated_airspeed();
+
+	if (!PX4_ISFINITE(airspeed)) {
+		// without airspeed feedback assume constant acceleration, reaching the transition airspeed at the open-loop time
+		airspeed = getTransitionAirspeed() * _time_since_trans_start / getOpenLoopFrontTransitionTime();
+	}
+
+	return math::interpolate(airspeed, getBlendAirspeed(), getTransitionAirspeed(), 1.f, 0.f);
+}
+
 float VtolType::getTransitionAirspeed() const
 {
 	// Since the stall airspeed increases with vehicle weight, we increase the transition airspeed
@@ -696,5 +710,6 @@ float VtolType::getWeightRatio() const
 
 float VtolType::getBlendAirspeed() const
 {
-	return _param_vt_arsp_blend.get();
+	// scaled like the transition airspeed to keep the blending range at the same fraction of it
+	return sqrtf(getWeightRatio()) * _param_vt_arsp_blend.get();
 }

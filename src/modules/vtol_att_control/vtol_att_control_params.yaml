@@ -23,8 +23,8 @@ parameters:
       default: 1
     VT_F_TRANS_DUR:
       description:
-        short: Duration of a front transition
-        long: Time in seconds used for a transition
+        short: Front transition tilt or pitch-down duration
+        long: 'Tiltrotor: time to tilt the rotors from VT_TILT_MC to VT_TILT_TRANS. Tailsitter: time to pitch down by 90 degrees. Not used by standard VTOL.'
       type: float
       default: 5.0
       unit: s
@@ -70,8 +70,10 @@ parameters:
     VT_ARSP_BLEND:
       description:
         short: Transition blending airspeed
-        long: Airspeed at which we can start blending both fw and mc controls. Set
-          to 0 to disable.
+        long: Calibrated airspeed at which we start blending down MC control in the transition to FW (FW control is always fully applied).
+          Scaled by the square root of the weight ratio (WEIGHT_GROSS / WEIGHT_BASE), like VT_ARSP_TRANS.
+          Set to VT_ARSP_TRANS or higher to keep MC control fully active in entire transition.
+          If airspeed is not measured, we assume constant acceleration from 0 m/s (start of transition) to VT_ARSP_TRANS (after VT_F_TR_OL_TM).
       type: float
       default: 8.0
       unit: m/s
@@ -82,7 +84,7 @@ parameters:
     VT_ARSP_TRANS:
       description:
         short: Transition airspeed
-        long: Airspeed at which we can switch to fw mode
+        long: Calibrated airspeed at which the front transition can complete. Scaled by the square root of the weight ratio (WEIGHT_GROSS / WEIGHT_BASE).
       type: float
       default: 10.0
       unit: m/s

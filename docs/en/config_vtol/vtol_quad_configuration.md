@@ -71,15 +71,17 @@ Note that once the ramp up period ends throttle will be at its target setting an
 
 Parameter: [VT_ARSP_BLEND](../advanced_config/parameter_reference.md#VT_ARSP_BLEND)
 
-By default, as the airspeed gets close to the transition speed, multirotor attitude control will be reduced and fixed-wing control will start increasing continuously until the transition occurs.
+By default, as the airspeed gets close to the transition speed, multirotor attitude control will be reduced linearly between `VT_ARSP_BLEND` and `VT_ARSP_TRANS`.
+The value is a calibrated airspeed and is scaled by the square root of the weight ratio (`WEIGHT_GROSS` / `WEIGHT_BASE`), like the transition airspeed.
 
-Disable blending by setting this parameter to 0 which will keep full multirotor control and zero fixed-wing control until the transition occurs.
+Disable blending by setting this parameter equal to or above the transition airspeed, which will keep full MC and FW control active throughout the transition.
 
 #### Transition Airspeed
 
 Parameter: [VT_ARSP_TRANS](../advanced_config/parameter_reference.md#VT_ARSP_TRANS)
 
-This is the airspeed which, when reached, will trigger the transition out of multirotor mode into fixed-wing mode.
+This is the calibrated airspeed which, when reached, will trigger the transition out of multirotor mode into fixed-wing mode.
+It is scaled by the square root of the weight ratio (`WEIGHT_GROSS` / `WEIGHT_BASE`).
 It is critical that you have properly calibrated your airspeed sensor.
 It is also important that you pick an airspeed that is comfortably above your airframes stall speed (check `FW_AIRSPD_MIN`) as this is currently not checked.
 
@@ -88,7 +90,10 @@ It is also important that you pick an airspeed that is comfortably above your ai
 Parameter: [VT_F_TR_OL_TM](../advanced_config/parameter_reference.md#VT_F_TR_OL_TM)
 
 This specifies the duration of the front transition in seconds when no airspeed feedback is available (e.g. no airspeed sensor present).
-It should be set to a value which ensures that the vehicle reaches a high enough airspeed to complete the transition, e.g. airspeed should exceed [VT_ARSP_TRANS](../advanced_config/parameter_reference.md#VT_ARSP_TRANS).
+It should be set to the time needed to reach [VT_ARSP_TRANS](../advanced_config/parameter_reference.md#VT_ARSP_TRANS).
+Depending on your tolerance for overspeed and underspeed you may choose to set it a bit higher or lower.
+
+When airspeed is measured, the transition will be aborted by a quadchute if by this time the airspeed is below [VT_ARSP_BLEND](../advanced_config/parameter_reference.md#VT_ARSP_BLEND).
 
 #### Transition Timeout
 
@@ -125,7 +130,7 @@ Start your transition.
 It should transition within 50 – 100 meters.
 If it doesn’t or it isn’t flying in a stable fashion abort the transition (see below) and land or hover back to the start position and land.
 Try increasing the [transition throttle](#transition-throttle) (`VT_F_TRANS_THR`) value.
-Also consider reducing the transition duration (`VT_F_TRANS_DUR`) if you are not using an airspeed sensor.
+Also consider reducing the open-loop transition time ([VT_F_TR_OL_TM](../advanced_config/parameter_reference.md#VT_F_TR_OL_TM)) if you are not using an airspeed sensor.
 If you are using an airspeed sensor consider lowering the transition airspeed but stay well above the stall speed.
 
 As soon as you notice the transition happen be ready to handle height loss which may include throttling up quickly.
