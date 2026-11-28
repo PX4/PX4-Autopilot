@@ -54,6 +54,12 @@ The low resolution of common optical flow sensors can cause slow oscillations wh
 Reducing the optical flow scale factor can improve the situation.
 :::
 
+### Measurement Delay
+
+For MAVLink sensors, PX4 timestamps each sample with `OPTICAL_FLOW_RAD.time_usec` converted using [timesync](https://mavlink.io/en/services/timesync.html), or with its arrival time if `time_usec` is `0` or timesync has not converged.
+If the sender sets `time_usec` to the end of the integration interval, set [SENS_FLOW0_DELAY](../advanced_config/parameter_reference.md#SENS_FLOW0_DELAY) to `0`.
+Otherwise, set it to the remaining delay.
+
 ## Flow Sensors/Cameras
 
 ### Agam FloRange
