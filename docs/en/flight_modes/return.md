@@ -187,7 +187,8 @@ In this return type, the vehicle ignores home and mission landing patterns entir
 - Lands or waits at the rally point destination.
 
 ::: info
-If no rally points are defined the vehicle will land at its current position instead of returning to home. There is a pre-flight check that prevents taking off without any rally point if this RTL_TYPE is selected.
+If no rally points are defined the vehicle will land at its current position instead of returning to home.
+A pre-flight check denies arming without any rally point if this `RTL_TYPE` is selected; set [COM_ARM_RALLY_PT](../advanced_config/parameter_reference.md#COM_ARM_RALLY_PT) to `0` to only warn instead.
 A fixed-wing vehicle does not land there: it circles over that position, because the altitude it is flying at is not a landing altitude.
 This type is intended for use cases where only pre-approved rally points are acceptable landing destinations.
 :::

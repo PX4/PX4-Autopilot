@@ -47,7 +47,16 @@ public:
 	void checkAndReport(const Context &context, Report &reporter) override;
 
 private:
+	enum class RallyPointArmingCheck : uint8_t {
+		WarningOnly = 0,
+		DenyArming = 1
+	};
+
 	uORB::Subscription _rtl_status_sub{ORB_ID(rtl_status)};
 
 	const param_t _param_rtl_type_handle;
+
+	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
+					(ParamInt<px4::params::COM_ARM_RALLY_PT>) _param_com_arm_rally_pt
+				       )
 };
