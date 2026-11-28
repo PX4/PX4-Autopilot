@@ -127,9 +127,9 @@ int up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate)
 		return ERROR;
 	}
 
-	/* Allow a rate of 0 to enter oneshot mode */
+	/* Allow specific rates to enter oneshot or timer max rate mode */
 
-	if (rate != PWM_RATE_ONESHOT) {
+	if (rate != PWM_RATE_ONESHOT && rate != PWM_RATE_TIMER_MAX) {
 
 		/* limit update rate to 1..10000Hz; somewhat arbitrary but safe */
 
