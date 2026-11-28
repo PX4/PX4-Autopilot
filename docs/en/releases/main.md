@@ -135,6 +135,7 @@ Please continue reading for [upgrade instructions](#upgrade-guide).
 - [Syro V6X](../flight_controller/syro_v6x.md): new FMUv6X-based flight controller (STM32H753) with two ICM-45686 IMUs, a BMI088 IMU, two BMP581 barometers and a BMM350 magnetometer. ([PX4-Autopilot#29784](https://github.com/PX4/PX4-Autopilot/pull/29784))
 - [NXP MR-NavQ95](../flight_controller/nxp_mr_navq95.md): new i.MX 95 flight controller with PX4 on the Cortex-M7 core and Linux on the Cortex-A55 cores. ([PX4-Autopilot#29055](https://github.com/PX4/PX4-Autopilot/pull/29055))
 - [Avian Automata 305AP](../flight_controller/avianautomata_305ap.md): new STM32H743 flight controller with two IMU slots, two CAN buses and eight DShot outputs. ([PX4-Autopilot#29689](https://github.com/PX4/PX4-Autopilot/pull/29689))
+- [Droneer X6](../flight_controller/droneer_x6.md): Pixhawk FMUv6X-based flight controller (STM32H753) with triple ICM-45686 IMUs, dual ICP-20100 barometers, and an RM3100 compass. ([PX4-Autopilot#27745](https://github.com/PX4/PX4-Autopilot/pull/27745))
 
 ### Common
 
