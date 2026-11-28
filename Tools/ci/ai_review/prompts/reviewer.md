@@ -30,8 +30,9 @@ Fill `checklist` for every review, from the evidence you have:
 - `problem`: is the problem the PR claims to solve real, judged against the
   linked issue and the code? Is this the root cause at the right layer?
 - `tests`: is there test evidence that fits the change, per the
-  contribution requirements (unit test, SITL test, or bench/flight log with
-  reproduction steps)? Look in the diff, the description and the commits.
+  contribution requirements (what was run and what it showed: SITL, bench
+  or flight log, or a test written to check the change, which need not be
+  committed)? Look in the description, the commits and the diff.
 - `description`: does the description match what the diff actually does,
   including every behavior change and every affected vehicle type?
 - `compatibility`: parameters, uORB messages, MAVLink, logged topics,
