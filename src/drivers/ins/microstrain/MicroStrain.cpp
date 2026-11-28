@@ -48,13 +48,11 @@ MicroStrain::MicroStrain(const char *uart_port) :
 	_vehicle_local_position_pub((_param_ms_mode.get() == 0) ? ORB_ID(external_ins_local_position) : ORB_ID(
 					    vehicle_local_position))
 {
-	// Store port name
-	memset(_port, '\0', sizeof(_port));
-	const size_t max_len = math::min(sizeof(_port), strnlen(uart_port, sizeof(_port)));
-	strncpy(_port, uart_port, max_len);
+	// Store port name (length checked in task_spawn)
+	strncpy(_port, uart_port, sizeof(_port) - 1);
 
 	// Enforce null termination
-	_port[max_len] = '\0';
+	_port[sizeof(_port) - 1] = '\0';
 
 	// The scheduling rate (in microseconds) is set higher than the highest data rate param (in Hz)
 	const int max_param_rate = math::max(math::max(_param_ms_imu_rate_hz.get(), _param_ms_mag_rate_hz.get(),
@@ -1951,6 +1949,14 @@ int MicroStrain::task_spawn(int argc, char *argv[])
 
 	if (dev == nullptr || strlen(dev) == 0) {
 		print_usage("no device specified");
+		desc.object.store(nullptr);
+		desc.task_id = -1;
+
+		return PX4_ERROR;
+	}
+
+	if (strlen(dev) >= sizeof(_port)) {
+		PX4_ERR("device path too long (max %zu): %s", sizeof(_port) - 1, dev);
 		desc.object.store(nullptr);
 		desc.task_id = -1;
 
