@@ -370,7 +370,7 @@ jobs:
           echo "is_prerelease=$is_prerelease" >> $GITHUB_OUTPUT
 
       - name: Uploading Artifacts to S3 [${{ steps.upload-location.outputs.uploadlocation }}]
-        uses: jakejarvis/s3-sync-action@master
+        uses: jakejarvis/s3-sync-action@be0d7f93b60a7f7b71ec3a89e596fc4a8f5159e4 # master
         with:
           args: --acl public-read
         env:
