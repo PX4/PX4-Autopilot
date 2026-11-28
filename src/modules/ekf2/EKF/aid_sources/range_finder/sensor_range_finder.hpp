@@ -70,6 +70,7 @@ public:
 	bool isDataReady() const { return _is_sample_ready; }
 	bool isRegularlySendingData() const { return _is_regularly_sending_data; }
 	bool isStuckDetectorEnabled() const { return _stuck_threshold > 0.f; }
+	bool isStuck() const { return _is_stuck; }
 
 	void setSample(const rangeSample &sample)
 	{

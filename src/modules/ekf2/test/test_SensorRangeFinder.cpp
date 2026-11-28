@@ -243,10 +243,12 @@ TEST_F(SensorRangeFinderTest, rangeStuck)
 	// THEN: the data should be marked as unhealthy
 	// because the sensor is "stuck"
 	if (_range_finder.isStuckDetectorEnabled()) {
+		EXPECT_TRUE(_range_finder.isStuck());
 		EXPECT_FALSE(_range_finder.isDataHealthy());
 		EXPECT_FALSE(_range_finder.isHealthy());
 
 	} else {
+		EXPECT_FALSE(_range_finder.isStuck());
 		// If stuck detector is disabled then the
 		// data should instantly be marked as healthy
 		EXPECT_TRUE(_range_finder.isDataHealthy());
@@ -263,6 +265,7 @@ TEST_F(SensorRangeFinderTest, rangeStuck)
 
 	// THEN: the data should be marked as healthy
 	// because the sensor is not "stuck" anymore
+	EXPECT_FALSE(_range_finder.isStuck());
 	EXPECT_TRUE(_range_finder.isDataHealthy());
 	EXPECT_TRUE(_range_finder.isHealthy());
 }
