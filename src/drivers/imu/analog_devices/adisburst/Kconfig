@@ -1,0 +1,6 @@
+menuconfig DRIVERS_IMU_ANALOG_DEVICES_ADISBURST
+	bool "ADI single-sample SPI burst family"
+	default n
+	help
+	  Shared SPI burst acquisition for ADIS16470, ADIS16477, ADIS1650x and ADIS1657x.
+	  Start requires an exact -T model; stop and status accept optional -T and -B filters.

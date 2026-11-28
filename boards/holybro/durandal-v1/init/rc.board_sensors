@@ -5,22 +5,22 @@
 board_adc start
 
 # Internal SPI bus ICM-20689
-icm20689 -R 2 -s start
+mpu_direct -T icm20689 -R 2 -s start
 
 # Internal SPI BMI088
-bmi088 -A -R 2 -s start
-bmi088 -G -R 2 -s start
+bmi_hybrid -T bmi088 -A -R 2 -s start
+bmi_hybrid -T bmi088 -G -R 2 -s start
 
 if ver hwtypecmp  VD000000
 then
 	# Internal SPI BMI088
-	bmi088 -A -R 2 -s start
-	bmi088 -G -R 2 -s start
+	bmi_hybrid -T bmi088 -A -R 2 -s start
+	bmi_hybrid -T bmi088 -G -R 2 -s start
 fi
 if ver hwtypecmp  VD000001
 then
 	# Internal SPI ICM-20602
-	icm20602 -R 2 -s start
+	mpu_direct -T icm20602 -R 2 -s start
 fi
 
 # internal compass

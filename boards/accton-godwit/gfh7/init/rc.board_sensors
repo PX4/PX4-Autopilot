@@ -4,7 +4,7 @@
 # Rotation 6 = ROTATION_YAW_270.  The chip sits rotated 90 degrees in yaw
 # relative to the LSM6DSK320X on the PCB.  The driver already flips y & z,
 # so only the mounting rotation belongs here.
-icm42688p -R 6 -C 32000 -s -b 4 start
+icm42x -T icm42688p -R 6 -C 32000 -s -b 4 start
 
 # LSM6DSK320X (lsm6dsv driver) on SPI2.
 # Rotation 0 = ROTATION_NONE.  Like the ICM-42688-P driver, this driver flips

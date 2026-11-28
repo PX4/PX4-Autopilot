@@ -1,0 +1,6 @@
+menuconfig DRIVERS_IMU_INVENSENSE_ICM42X
+	bool "TDK ICM42x SPI IMU family"
+	default n
+	help
+		Enable support for the banked TDK ICM-40609-D, ICM-42605,
+		ICM-42688-P, ICM-42686-P, IIM-42652 and IIM-42653 SPI IMU family.

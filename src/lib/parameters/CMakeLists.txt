@@ -65,6 +65,12 @@ if(NOT CONFIG_BOARD_HAS_RID_EEPROM)
 	list(REMOVE_ITEM module_config_files ${PX4_SOURCE_DIR}/src/lib/open_drone_id/odid_params.yaml)
 endif()
 
+if(CONFIG_DRIVERS_IMU_ANALOG_DEVICES_ADIS16507)
+	list(REMOVE_ITEM module_config_files ${PX4_SOURCE_DIR}/src/drivers/imu/analog_devices/adisburst/parameters.yaml)
+else()
+	list(REMOVE_ITEM module_config_files ${PX4_SOURCE_DIR}/src/drivers/imu/analog_devices/adis16507/parameters.yaml)
+endif()
+
 set(generated_params_dir ${PX4_BINARY_DIR}/generated_params)
 set(generated_serial_params_file ${generated_params_dir}/serial_params.c)
 set(generated_module_params_file ${generated_params_dir}/module_params.c)

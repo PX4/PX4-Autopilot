@@ -129,7 +129,12 @@ fi
 # ADIS16507 spi external IMU
 if param greater -s SENS_EN_ADIS165X 0
 then
-	adis16507 -S start
+	if [ -e /bin/adisburst ]
+	then
+		adisburst -T adis16507 -B 16 -S start
+	else
+		adis16507 -S start
+	fi
 fi
 
 # SCH16T spi external IMU

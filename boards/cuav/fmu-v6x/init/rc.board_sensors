@@ -66,10 +66,10 @@ then
 	fi
 fi
 
-iim42652 -R 6 -s -C 32768 start
-bmi088 -A -R 4 -s start
-bmi088 -G -R 4 -s start
-icm45686 -R 2 -s start
+icm42x -T iim42652 -R 6 -s -C 32768 start
+bmi_hybrid -T bmi088 -A -R 4 -s start
+bmi_hybrid -T bmi088 -G -R 4 -s start
+icm45x -T icm45686 -R 2 -s start
 
 rm3100 -I -b 4 start
 

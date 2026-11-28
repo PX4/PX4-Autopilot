@@ -9,8 +9,8 @@
 board_adc start
 
 # IMU3 on SPI3, ROTATION_NONE=0
-bmi088 -A -R 0 -s start
-bmi088 -G -R 0 -s start
+bmi_hybrid -T bmi088 -A -R 0 -s start
+bmi_hybrid -T bmi088 -G -R 0 -s start
 
 # MAG on I2C4, ROTATION_ROLL_180=8
 if ver hwtypecmp V6S013 V6S015

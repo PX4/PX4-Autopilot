@@ -4,11 +4,11 @@
 #------------------------------------------------------------------------------
 # v1.1=mpu6000   v1.3=bmi270   v1.5=icm42688p
 board_adc start
-if ! mpu6000 -R 6 -s -q start
+if ! mpu_direct -T mpu6000 -R 6 -s -q start
 then
-  if ! bmi270 -R 6 -s -q start
+  if ! bmi_hybrid -T bmi270 -R 6 -s -q start
   then
-	icm42688p -R 6 -s start
+	icm42x -T icm42688p -R 6 -s start
   fi
 fi
 

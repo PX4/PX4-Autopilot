@@ -5,11 +5,11 @@
 board_adc start
 
 # Internal SPI bus IMU
-icm45686 -s -R 4 start
+icm45x -T icm45686 -s -R 4 start
 
 # Internal SPI bus BMI088 accel/gyro
-bmi088 -s -A -R 10 start
-bmi088 -s -G -R 10 start
+bmi_hybrid -T bmi088 -s -A -R 10 start
+bmi_hybrid -T bmi088 -s -G -R 10 start
 
 # Internal compass
 ist8310 -I -R 6 start

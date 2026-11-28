@@ -1,5 +1,6 @@
 menuconfig DRIVERS_IMU_INVENSENSE_MPU6000
 	bool "mpu6000"
 	default n
+	depends on !DRIVERS_IMU_INVENSENSE_MPU_DIRECT
 	---help---
 		Enable support for mpu6000

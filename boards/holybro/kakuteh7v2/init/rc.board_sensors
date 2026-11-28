@@ -4,9 +4,9 @@
 #------------------------------------------------------------------------------
 board_adc start
 
-if ! bmi270 -s -q start
+if ! bmi_hybrid -T bmi270 -s -q start
 then
-	icm42688p -R 0 -s start
+	icm42x -T icm42688p -R 0 -s start
 fi
 
 if ! bmp280 -I -b 1 start

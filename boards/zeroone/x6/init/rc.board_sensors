@@ -60,15 +60,15 @@ fi
 if ver hwtypecmp ZeroOneX6000
 then
         # Internal SPI bus icm45686 with SPIX
-	icm45686 -b 2 -s -R 6 start       # X6 & X6 air
+	icm45x -T icm45686 -b 2 -s -R 6 start       # X6 & X6 air
 
-	bmi088 -A -R 4 -s start           # X6
-	bmi088 -G -R 4 -s start           # X6
+	bmi_hybrid -T bmi088 -A -R 4 -s start           # X6
+	bmi_hybrid -T bmi088 -G -R 4 -s start           # X6
 
 	# Internal SPI bus icm45686 with SPIX
-	if ! icm45686 -b 1 -s -R 8 start       # X6 & X6 air
+	if ! icm45x -T icm45686 -b 1 -s -R 8 start       # X6 & X6 air
 	then
-		iim42652 -b 1 -s -R 8 start    # X6 air V2
+		icm42x -T iim42652 -b 1 -s -R 8 start    # X6 air V2
 	fi
 fi
 
@@ -76,15 +76,15 @@ fi
 if ver hwtypecmp ZeroOneX6001             # X6 PRO
 then
 	# Internal SPI bus IIM42653 with SPIX
-	iim42653 -b 2 -s -R 6 start
+	icm42x -T iim42653 -b 2 -s -R 6 start
 
-	bmi088 -A -R 4 -s start
-	bmi088 -G -R 4 -s start
+	bmi_hybrid -T bmi088 -A -R 4 -s start
+	bmi_hybrid -T bmi088 -G -R 4 -s start
 
 	# Internal SPI bus IIM42653 with SPIX
-	if ! iim42653 -b 1 -s -R 8 start
+	if ! icm42x -T iim42653 -b 1 -s -R 8 start
 	then
-		iim42652 -b 1 -s -R 8 start    # X6 Pro V2
+		icm42x -T iim42652 -b 1 -s -R 8 start    # X6 Pro V2
 	fi
 fi
 
@@ -93,15 +93,15 @@ then
         # Internal SPI bus SCH16T with SPIX
 	zeroone_sch16t -b 2 -s -R 2 start
 	# Internal SPI bus IIM42653 or IIM42652 with SPIX
-	if ! iim42653 -b 1 -s -R 8 start
+	if ! icm42x -T iim42653 -b 1 -s -R 8 start
 	then
-		iim42652 -b 1 -s -R 8 start
+		icm42x -T iim42652 -b 1 -s -R 8 start
 	fi
 
 	# Internal SPI bus IIM42653 or IIM42652 with SPIX
-	if ! iim42653 -b 3 -s -R 0 start
+	if ! icm42x -T iim42653 -b 3 -s -R 0 start
 	then
-		iim42652 -b 3 -s -R 0 start
+		icm42x -T iim42652 -b 3 -s -R 0 start
 	fi
 fi
 

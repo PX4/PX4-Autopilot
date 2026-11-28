@@ -14,10 +14,10 @@ fi
 if ver hwtypecmp ARKPI6X000
 then
 	# Internal SPI bus ICM42688p with SPIX measured frequency of 32.051kHz
-	icm42688p -R 3 -s -b 1 -C 32051 start
+	icm42x -T icm42688p -R 3 -s -b 1 -C 32051 start
 
 	# Internal SPI bus ICM42688p with SPIX measured frequency of 32.051kHz
-	icm42688p -R 1 -s -b 2 -C 32051 start
+	icm42x -T icm42688p -R 1 -s -b 2 -C 32051 start
 fi
 
 # Internal magnetometer on I2C

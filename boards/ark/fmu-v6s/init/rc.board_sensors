@@ -68,7 +68,7 @@ then
 fi
 
 # Internal SPI bus IIM42653
-iim42653 -R 0 -s -b 1 start
+icm42x -T iim42653 -R 0 -s -b 1 start
 
 # Internal magnetometer on I2C
 iis2mdc -R 4 -I start

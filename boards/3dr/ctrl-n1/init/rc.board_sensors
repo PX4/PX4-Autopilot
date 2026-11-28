@@ -6,8 +6,8 @@
 board_adc start
 
 # Internal x2 IIM-42653
-iim42653 -R 14 -s -b 1 start
-iim42653 -R 14 -s -b 2 start
+icm42x -T iim42653 -R 14 -s -b 1 start
+icm42x -T iim42653 -R 14 -s -b 2 start
 
 # Internal DPS368 (barometer)
 dps310 -s -b 6 -8 start

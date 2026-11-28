@@ -1,5 +1,6 @@
 menuconfig DRIVERS_IMU_INVENSENSE_ICM42605
 	bool "icm42605"
 	default n
+	depends on !DRIVERS_IMU_INVENSENSE_ICM42X
 	---help---
 		Enable support for icm42605
