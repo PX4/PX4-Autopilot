@@ -894,6 +894,19 @@ ControlAllocator::check_for_motor_failures()
 			update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::MOTOR_ACTIVATION_UPDATE);
 		}
 	}
+
+	// Mode 2 keeps the opposite rotor reversible only in the air. At touchdown the collective thrust
+	// collapses, the remaining rotors can only add one-sided torque and the vehicle tips over, so the
+	// landing is finished with the opposite rotor stopped as in mode 1.
+	vehicle_land_detected_s land_detected;
+
+	if (_runtime_reversible_bitmask != 0 && _vehicle_land_detected_sub.copy(&land_detected)
+	    && (land_detected.ground_contact || land_detected.maybe_landed || land_detected.landed)) {
+		PX4_WARN("Ground contact: stopping opposite motor (mask 0x%x)", _runtime_reversible_bitmask);
+		_handled_motor_failure_bitmask |= _runtime_reversible_bitmask;
+		_runtime_reversible_bitmask = 0;
+		update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::MOTOR_ACTIVATION_UPDATE);
+	}
 }
 
 int ControlAllocator::task_spawn(int argc, char *argv[])

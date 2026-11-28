@@ -80,6 +80,7 @@
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/failure_detector_status.h>
+#include <uORB/topics/vehicle_land_detected.h>
 
 class ControlAllocator : public ModuleBase, public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -220,6 +221,7 @@ private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _failure_detector_status_sub{ORB_ID(failure_detector_status)};
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 
 	matrix::Vector3f _torque_sp;
 	matrix::Vector3f _thrust_sp;
