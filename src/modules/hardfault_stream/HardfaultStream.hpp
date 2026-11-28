@@ -37,6 +37,8 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#include <board_config.h>
+
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
@@ -48,6 +50,14 @@
 #include <uORB/topics/telemetry_status.h>
 
 #include <systemlib/mavlink_log.h>
+
+#ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
+# include <inttypes.h>
+# include <systemlib/hardfault_log.h>
+# include <crc32.h>
+# include <uavcan/protocol/debug/LogMessage.hpp>
+# include <uORB/topics/dronecan_node_status.h>
+#endif
 
 namespace hardfault_stream
 {
@@ -75,9 +85,13 @@ public:
 
 private:
 	enum class State {
-		SearchFile,
+		SearchHardFault,
 		WaitMavlink,
 		StreamFile,
+#ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
+		WaitTransportReady,
+		StreamRAM,
+#endif
 		RequestStop,
 		WaitStop,
 	};
@@ -88,8 +102,11 @@ private:
 	bool mavlink_gcs_up();
 	void search_hardfault_file();
 	void stream_hardfault();
+#ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
+	bool is_transport_ready();
+#endif
 
-	State _state {State::SearchFile};
+	State _state {State::SearchHardFault};
 
 	bool _stream_finished {false};
 	bool _hardfault_file_present {false};
@@ -99,6 +116,12 @@ private:
 
 	orb_advert_t _mavlink_log_pub {nullptr};
 	uORB::SubscriptionMultiArray<telemetry_status_s> _telemetry_status_subs{ORB_ID::telemetry_status};
+
+#ifdef BOARD_HAS_RAM_HARDFAULT_DUMP
+	size_t   _ram_off {0};
+	uint32_t _ram_crc{0xFFFFFFFFu};
+	uORB::Subscription _dronecan_node_status_sub {ORB_ID(dronecan_node_status)};
+#endif
 };
 
 } // namespace hardfault_stream

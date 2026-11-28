@@ -3,4 +3,13 @@ menuconfig MODULES_TASK_WATCHDOG
 	default n
 	depends on PLATFORM_NUTTX
 	---help---
-		Detect tasks running too long and dump their register/stack state and cpuload to files
+		Detect tasks running too long and dump their register/stack state and cpuload
+
+if MODULES_TASK_WATCHDOG
+config TASK_WATCHDOG_MAX_DUMP_TASKS
+	int "Max number of tasks captured in a starvation dump"
+	default -1
+	---help---
+		On boards with minimal RAM, configure how many tasks will be logged on task starvation.
+		If TASK_WATCHDOG_MAX_DUMP_TASKS == -1, the config_variable CONFIG_FS_PROCFS_MAX_TASKS is used instead.
+endif
