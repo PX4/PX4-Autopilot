@@ -629,3 +629,40 @@ TEST_F(TECSControlClosedLoopTest, AirspeedlessAltitudeStepHalfFeedforward)
 	EXPECT_LT(_sim_stats.max_airspeed_error, MAX_NUMERICAL_ERR_OPENLOOP) << "peak at t=" << _sim_stats.t_max_airspeed_error << " s";
 	EXPECT_LT(_sim_stats.max_pitch_integ_norm, MAX_NUMERICAL_ERR_OPENLOOP);
 }
+
+// --- Energy error phase portrait -----------------------------------------------
+// Every combination of a {+1, 0, -1} J/kg specific kinetic and potential energy error (setpoint - state), each
+// started from level flight at the offset state with the setpoints at trim. The plant flies level at trim throttle at
+// any airspeed, so the offset state is a steady state of the plant. All cases go into one CSV, each restarting at t = 0,
+// which plot_closed_loop.py draws as a phase portrait in the (SKE error, SPE error) plane.
+
+TEST_F(TECSControlClosedLoopTest, EnergyErrorPhasePortrait)
+{
+	static constexpr float ENERGY_ERROR = 1.f; // [J/kg]
+
+	// 1 J/kg is 0.1 m: at ALT_INIT the float altitude resolution stalls the final convergence
+	setAltitudeSetpoint(0.f);
+
+	for (int ske_sign = -1; ske_sign <= 1; ske_sign++) {
+		for (int spe_sign = -1; spe_sign <= 1; spe_sign++) {
+
+			// All zero case, not interesting
+			if (!ske_sign && !spe_sign) { continue; }
+
+			const float ske_error = ske_sign * ENERGY_ERROR;
+			const float spe_error = spe_sign * ENERGY_ERROR;
+
+			_state = {sqrtf(_V_sp * _V_sp - 2.f * ske_error), _alt_sp - spe_error / CONSTANTS_ONE_G};
+			_pitch = 0.f;
+			_throttle = _params.throttle_trim;
+			_step = 0;
+			_t = 0.f;
+			initTecs();
+
+			run(60.f);
+
+			EXPECT_NEAR(_state.V, _V_sp, TRACKING_ERROR_TOL) << "SKE error " << ske_error << " SPE error " << spe_error;
+			EXPECT_NEAR(_state.h, _alt_sp, TRACKING_ERROR_TOL) << "SKE error " << ske_error << " SPE error " << spe_error;
+		}
+	}
+}
