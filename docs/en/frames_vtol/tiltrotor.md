@@ -9,6 +9,10 @@ A **Tiltrotor VTOL** is a [VTOL](../frames_vtol/index.md) vehicle that has rotor
 - [Convergence Tiltrotor](../frames_vtol/vtol_tiltrotor_eflite_convergence_pixfalcon.md)
 - [OMP Hobby ZMO FPV](../frames_vtol/vtol_tiltrotor_omp_hobby_zmo_fpv.md)
 
+## Configuration
+
+Tiltrotor-specific configuration and transition behaviour are covered in [Tiltrotor VTOL Configuration](../config_vtol/vtol_tiltrotor_configuration.md).
+
 ## Videos
 
 This section contains videos that are specific to Tiltrotor VTOL (videos that apply to all VTOL types can be found in [VTOL](../frames_vtol/index.md)).

@@ -6,6 +6,7 @@ As part of this you should calibrate the [Airspeed sensor](../config/airspeed.md
 Then perform VTOL-specific configuration and tuning:
 
 - [QuadPlane Configuration](../config_vtol/vtol_quad_configuration.md)
+- [Tiltrotor Configuration](../config_vtol/vtol_tiltrotor_configuration.md)
 - [Back-transition Tuning](../config_vtol/vtol_back_transition_tuning.md)
 - [VTOL w/o Airspeed Sensor](../config_vtol/vtol_without_airspeed_sensor.md)
 - [VTOL Weather Vane](../config_vtol/vtol_weathervane.md)
