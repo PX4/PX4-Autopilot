@@ -175,7 +175,11 @@ bool IRLOCK::sync_device()
 	}
 
 	if (sync_word == IRLOCK_RESYNC) {
-		transfer(nullptr, 0, &sync_byte, 1);
+		if (transfer(nullptr, 0, &sync_byte, 1) != PX4_OK) {
+			// transfer leaves sync_byte untouched on failure, and the comparison
+			// below would then read an uninitialised value.
+			return false;
+		}
 
 		if (sync_byte == IRLOCK_ADJUST) {
 			return true;
